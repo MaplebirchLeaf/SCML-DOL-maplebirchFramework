@@ -1,0 +1,8 @@
+:: maplebirch widgets [widget]
+
+<<widget 'maplebirchOptionsInfo'>>
+  <div class="settingsHeader options"><span class="gold"><<= maplebirch.autoTranslate('秋枫白桦拓展')>></span></div>
+  <div class="settingsGrid">
+    <<if maplebirch.modUtils.getMod('maplebirch-audio')>><<maplebirch-playback 'maplebirch-audio'>><</if>>
+  </div>
+<</widget>>

@@ -1,0 +1,74 @@
+:: Maplebirch Version Update [widget]
+
+<<widget 'maplebirchModHintContent'>>
+  <h1>暂时无内容</h1>
+<</widget>>
+
+<<widget 'maplebirchModHint'>>
+  <span class='searchButtons'>
+    <<textbox '_maplebirchModHintTextbox' ''>>
+    <<langbutton '搜索'>>
+      <<run maplebirch.tool.modhint.searchButtonClicked()>>
+    <</langbutton>>
+    <<langbutton '清除'>>
+      <<run maplebirch.tool.modhint.clearButtonClicked()>>
+    <</langbutton>>
+  </span>
+  <div id='maplebirchModHintContent'>
+    <<maplebirchModHintContent>>
+  </div>
+<</widget>>
+
+<<widget 'titleMaplebirchModHint'>>
+  <<setupTabs>>
+  <div id="overlayTabs" class="tab">
+    <<closeButtonMobile>>
+    <<langbutton '模组介绍'>>
+      <<toggleTab>>
+      <<replace #customOverlayContent>><<maplebirchModHint>><</replace>>
+    <</langbutton>>
+    <<langbutton '模组设置'>>
+      <<toggleTab>>
+      <<replace #customOverlayContent>><<maplebirchOptionsInfo>><</replace>>
+    <</langbutton>>
+    <<langbutton '角色面板'>>
+      <<toggleTab>>
+      <<replace #customOverlayContent>><<maplebirchPanel>><</replace>>
+      <<run maplebirch.trigger('characterRender')>>
+    <</langbutton>>
+  </div>
+  <<closeButton>>
+<</widget>>
+
+<<widget 'maplebirchModHintMobile'>>
+  <<if $options.maplebirch?.modHint is 'mobile' && $options.sidebarStats isnot 'disabled'>>
+    <input type="button" class="saveMenuButton maplebirchModHintMobile" value="" onclick="maplebirch.tool.modhint.hintClicked()">
+  <</if>>
+<</widget>>
+
+<<widget "maplebirchModHintDesktop">>
+	<<if $options.maplebirch?.modHint is 'desktop'>>
+    <<langbutton '秋枫白桦' 'upper'>>
+    	<<maplebirchReplace "maplebirchModHint" "title">>
+    <</langbutton>>
+	<</if>>
+<</widget>>
+
+<<widget "maplebirchPanel">>
+  <div class="maplebirch-inventory-panel">
+    <!-- 状态区域（现在在左侧） -->
+    <div class="maplebirch-status-section">
+      <h2>角色状态</h2>
+      
+      <div class="maplebirch-status-content">
+        <!-- 角色容器（包含角色图片和覆盖层） -->
+        <div id="maplebirch-character-container">
+          <div id="maplebirch-character"></div>
+          <div id="maplebirch-character-overlay"></div>
+        </div>
+
+        
+      </div>
+    </div>
+  </div>
+<</widget>>
