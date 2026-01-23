@@ -8,6 +8,8 @@
     constructor(core) {
       this.core = core;
       this.log = core.tool.createLog('char');
+      /**@type {string[]}*/this.facestyle = [];
+      /**@type {string[]}*/this.facevariant = [];
       /**@type {Object<string,any>}*/
       this.handlers = { pre: [], post: [] };
       this.layers = {};
@@ -74,6 +76,37 @@
         try { fn(options); } 
         catch (/**@type {any}*/e) { this.log(`${type}process 错误: ${e.message}`, 'ERROR'); }
       }
+    }
+
+    async faceStyleImagePaths() {
+      for (const modName of this.core.modUtils.getModListNameNoAlias()) {
+        try {
+          const modZip = this.core.modUtils.getModZip(modName);
+          if (!this.core.modUtils.getMod(modName).bootJson.addonPlugin?.some((/**@type {{ modName: string; }}*/p) => p.modName === 'BeautySelectorAddon') || !modZip) continue;
+          let added = false;
+          for (const filePath of Object.keys(modZip.zip.files)) {
+            const faceIndex = filePath.indexOf('img/face/');
+            if (faceIndex === -1) continue;
+            const pathParts = filePath.substring(faceIndex + 9).split('/');
+            if (pathParts.length < 2) continue;
+            const firstFolder = pathParts[0];
+            const secondFolder = pathParts[1];
+            if (firstFolder === 'default') {
+              if (pathParts.length >= 3 && secondFolder && !['aloof', 'catty', 'default', 'foxy', 'gloomy', 'sweet'].includes(secondFolder) && !this.facevariant.includes(secondFolder)) { this.facevariant.push(secondFolder); added = true; }
+            } else if (firstFolder !== 'masks') {
+              if (!this.facestyle.includes(firstFolder)) { this.facestyle.push(firstFolder); added = true; }
+              if (pathParts.length >= 3 && secondFolder && !this.facevariant.includes(secondFolder)) { this.facevariant.push(secondFolder); added = true; }
+            }
+          }
+          if (added && !this.core.modList.includes(modName)) this.core.modList.push(modName);
+        } catch (e) {
+          this.log(`${modName}:`, 'ERROR', e);
+        }
+      }
+    }
+
+    #faceStyleSetupOption() {
+      
     }
 
     /* 渲染角色到容器 */

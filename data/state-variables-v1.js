@@ -52,10 +52,18 @@
     data.version = '1.0.4';
   });
 
+  // v1.0.5版本数据更新
   migration.add('1.0.4', '1.0.5', (data, utils) => {
     utils.remove(data, 'wardrobeSearch');
     utils.remove(data, 'audio');
     utils.remove(data, 'combat');
     utils.remove(data, 'hintlocation');
+    data.version = '1.0.5';
+  })
+
+  // v1.0.6版本数据更新
+  migration.add('1.0.5', '1.0.6', (data, utils) => {
+    if (data.npc) for (const npcName in data.npc) if (Object.prototype.hasOwnProperty.call(data.npc, npcName)) utils.remove(data.npc, `${npcName}.clothes`);
+    data.version = '1.0.6';
   })
 })();

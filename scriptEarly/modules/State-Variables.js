@@ -3,7 +3,7 @@
 (async() => {
   'use strict';
 
-  const currentVersion = '1.0.5';
+  const currentVersion = '1.0.6';
 
   class variables {
     static options = {
@@ -11,8 +11,13 @@
         show:     false,
         model:    false,
         position: 'back',
+        dxfn:     -48,
+        dyfn:     -8,
         skin_type:'light',
         tan:      0,
+        facevariant: 'default',
+        freckles: false,
+        mask:     'mask_0',
         nnpc:     false,
         display:  {}
       },

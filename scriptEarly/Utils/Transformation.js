@@ -102,9 +102,11 @@
 		}
 
 		_update() {
-			const base = this.manager.core.tool.clone(setup.transformations);
+			const base = setup.transformations;
 			/**@type {Array<{name:string;[x: string]:any}>}*/
 			const injected = [];
+			const baseNames = new Set();
+			for (const tf of base) if (tf?.name) baseNames.add(tf.name === 'fallenangel' ? 'fallenAngel' : tf.name);
 			for (const [name, entry] of this.config) {
 				if (!entry?.type) continue;
 				injected.push({
@@ -116,8 +118,7 @@
 					traits: entry.traits || []
 				});
 			}
-			const baseNames = new Set(base.map((/**@type {{ name: string; }}*/t) => t?.name).filter(Boolean));
-			setup.transformations = [...base, ...injected.filter(t => !baseNames.has(t.name))];
+			setup.transformations = [...base,...injected.filter(t => !baseNames.has(t.name))];
 			V.maplebirch.transformation ??= {};
 			if (!V.transformationParts) V.transformationParts = {};
 			if (!V.transformationParts.traits) V.transformationParts.traits = {};
@@ -126,7 +127,7 @@
 				return list.map(p => p?.name).filter(Boolean);
 			};
 			for (const [name, entry] of this.config) {
-				if (!V.maplebirch.transformation[name]) V.maplebirch.transformation[name] = { level: 0, build: 0, };
+				if (!V.maplebirch.transformation[name]) V.maplebirch.transformation[name] = { level: 0, build: 0 };
 				if (entry.parts?.length) {
 					if (!V.transformationParts[name]) V.transformationParts[name] = {};
 					const original = V.transformationParts[name];
@@ -170,8 +171,7 @@
 		/** @param {string} name @param {number} change */
 		_transform(name, change) {
 			if (!change) return;
-			/**@type {string}*/
-			let type = '';
+			/**@type {string}*/let type = '';
 			if (Array.isArray(setup.transformations)) {
 				const transformation = setup.transformations.find((/**@type {{ name: string; }}*/t) => t.name === name);
 				if (transformation) type = transformation.type;
@@ -190,7 +190,7 @@
 					if (config) V.maplebirch.transformation[name].build = Math.clamp(V.maplebirch.transformation[name].build + change, 0, config.build); 
 					break;
 				}
-			if (change > 0)  this.#suppress(name, change);
+			if (this.suppressConditions.hasOwnProperty(name) && change > 0 && !(V.worn.neck.name === 'familiar collar' && V.worn.neck.cursed === 1))  this.#suppress(name, change);
 		}
 
 		/** @param {string} name */
@@ -291,7 +291,7 @@
 		}
 
 		_transformationStateUpdate() {
-			// 0.5.6：熟悉项圈检查
+			// 0.5.6：眷属项圈检查
 			if (!(V.worn.neck.name === 'familiar collar' && V.worn.neck.cursed === 1)) Object.entries(this.decayConditions).forEach(([animal, conditions]) => { if (conditions.every((condition) => condition())) this._transform(animal, -1); });
 			if (V.wolfgirl >= 6) this.#wikifier('def', 5);
 			this._transformationAlteration();
@@ -377,16 +377,13 @@
 		}
 
 		get icon() {
-			for (const [name, entry] of this.config) if (V.maplebirch.transformation[name]?.level >= 6 && entry?.icon) return `<<icon "${entry.icon}">>`;
-			if (V.angel >= 6) return '<<tficon "angel">>';
-			if (V.fallenangel >= 2) return '<<tficon "fallenangel">>';
-			if (V.demon >= 6) return '<<tficon "demon">>';
-			if (V.wolfgirl >= 6) return '<<tficon "wolf">>';
-			if (V.cat >= 6) return '<<tficon "cat">>';
-			if (V.cow >= 6) return '<<tficon "cow">>';
-			if (V.harpy >= 6) return '<<tficon "bird">>';
-			if (V.fox >= 6) return '<<tficon "fox">>';
-			return '<<tficon "angel">>';
+			const activeTfs = setup.transformations.filter((/**@type {{ parts: any[]; level: number; }}*/tf) => tf.parts?.some(part => tf.level >= part.tfRequired));
+			if (activeTfs.length === 0) return '<<tficon "angel">>';
+			let highestTf = activeTfs[0];
+			for (let i = 1; i < activeTfs.length; i++) if (activeTfs[i].level > highestTf.level) highestTf = activeTfs[i];
+			const tfName = highestTf.name;
+			for (const [name, entry] of this.config) if (name === tfName && entry?.icon) return `<<icon '${entry.icon}'>>`;
+			return `<<tficon '${tfName}'>>`;
 		}
 
 		/** @param {string} name @param {number|null} level */

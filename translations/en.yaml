@@ -36,6 +36,7 @@
 'create': create
 'modify': modify
 'sort': sort
+'reset': reset
 
 'Prioritise headwear over horns': Prioritise headwear over horns
 'Prioritise horns over headwear': Prioritise horns over headwear

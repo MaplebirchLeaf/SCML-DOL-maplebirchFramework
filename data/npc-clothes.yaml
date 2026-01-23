@@ -1,0 +1,2188 @@
+naked:
+  over_upper:
+    index: 0
+    slot: over_upper
+    name: naked
+    name_cap: Naked
+    cn_name_cap: 赤裸
+    variable: naked
+    integrity: 0
+    integrity_max: 0
+    fabric_strength: 0
+    reveal: 1000
+    bustresize: 0
+    word: 'n'
+    strap: 0
+    open: 0
+    zip: 0
+    state: 0
+    state_base: 0
+    state_top: 0
+    state_top_base: 0
+    plural: 0
+    colour: 0
+    colour_options: []
+    exposed: 2
+    exposed_base: 2
+    type:
+      - naked
+    gender: 'n'
+    warmth: 0
+    cost: 0
+    description: 一丝不挂
+    shop: []
+    accessory: 0
+    accessory_colour: 0
+    accessory_colour_options: []
+    sleeve_img: 0
+    breast_img: 0
+    cursed: 0
+    location: 0
+    iconFile: 0
+    accIcon: 0
+    mainImage: 0
+  over_lower:
+    index: 0
+    slot: over_lower
+    name: naked
+    name_cap: Naked
+    cn_name_cap: 赤裸
+    variable: naked
+    integrity: 0
+    integrity_max: 0
+    fabric_strength: 0
+    reveal: 1000
+    rearresize: 0
+    word: 'n'
+    skirt: 0
+    skirt_down: 0
+    state: 0
+    state_base: 0
+    plural: 0
+    colour: 0
+    colour_options: []
+    exposed: 2
+    exposed_base: 2
+    vagina_exposed: 1
+    vagina_exposed_base: 1
+    anus_exposed: 1
+    anus_exposed_base: 1
+    type:
+      - naked
+    gender: 'n'
+    warmth: 0
+    cost: 0
+    description: 一丝不挂
+    shop: []
+    accessory: 0
+    accessory_colour: 0
+    accessory_colour_options: []
+    high_img: 0
+    back_img: 0
+    cursed: 0
+    location: 0
+    iconFile: 0
+    accIcon: 0
+    mainImage: 0
+  upper:
+    index: 0
+    slot: upper
+    name: naked
+    name_cap: Naked
+    cn_name_cap: 赤裸
+    variable: naked
+    integrity: 0
+    integrity_max: 0
+    fabric_strength: 0
+    reveal: 1000
+    bustresize: 0
+    word: 'n'
+    one_piece: 0
+    strap: 0
+    open: 0
+    state: 0
+    state_base: 0
+    state_top: 0
+    state_top_base: 0
+    plural: 0
+    colour: 0
+    colour_options: []
+    exposed: 2
+    exposed_base: 2
+    type:
+      - naked
+    set: upper
+    gender: 'n'
+    warmth: 0
+    cost: 0
+    description: 一丝不挂
+    shop: []
+    accessory: 0
+    accessory_colour: 0
+    accessory_colour_options: []
+    sleeve_img: 0
+    breast_img: 0
+    cursed: 0
+    location: 0
+    iconFile: 0
+    accIcon: 0
+    mainImage: 0
+    notuck: 1
+    pregType: 0
+  lower:
+    index: 0
+    slot: lower
+    name: naked
+    name_cap: Naked
+    cn_name_cap: 赤裸
+    variable: naked
+    integrity: 0
+    integrity_max: 0
+    fabric_strength: 0
+    reveal: 1000
+    rearresize: 0
+    word: 'n'
+    one_piece: 0
+    skirt: 0
+    skirt_down: 0
+    short: 0
+    state: 0
+    state_base: 0
+    plural: 0
+    colour: 0
+    colour_options: []
+    exposed: 2
+    exposed_base: 2
+    vagina_exposed: 1
+    vagina_exposed_base: 1
+    anus_exposed: 1
+    anus_exposed_base: 1
+    type:
+      - naked
+    set: lower
+    gender: 'n'
+    warmth: 0
+    cost: 0
+    description: 一丝不挂
+    shop: []
+    accessory: 0
+    accessory_colour: 0
+    accessory_colour_options: []
+    high_img: 0
+    back_img: 0
+    cursed: 0
+    notuck: 1
+    location: 0
+    iconFile: 0
+    accIcon: 0
+    mainImage: 0
+  under_upper:
+    index: 0
+    slot: under_upper
+    name: naked
+    name_cap: Naked
+    cn_name_cap: 赤裸
+    variable: naked
+    integrity: 0
+    integrity_max: 0
+    fabric_strength: 0
+    reveal: 1000
+    bustresize: 0
+    word: 'n'
+    one_piece: 0
+    strap: 0
+    open: 0
+    state: 0
+    state_base: 0
+    state_top: 0
+    state_top_base: 0
+    plural: 0
+    colour: 0
+    colour_options: []
+    exposed: 1
+    exposed_base: 1
+    type:
+      - naked
+    set: under_upper
+    gender: 'n'
+    warmth: 0
+    cost: 0
+    description: 一丝不挂
+    shop: []
+    accessory: 0
+    accessory_colour: 0
+    accessory_colour_options: []
+    sleeve_img: 0
+    breast_img: 0
+    cursed: 0
+    location: 0
+    iconFile: 0
+    accIcon: 0
+    mainImage: 0
+  under_lower:
+    index: 0
+    slot: under_lower
+    name: naked
+    name_cap: Naked
+    cn_name_cap: 赤裸
+    name_simple: 赤裸
+    variable: naked
+    integrity: 0
+    integrity_max: 0
+    fabric_strength: 0
+    reveal: 1000
+    rearresize: 0
+    word: 'n'
+    one_piece: 0
+    state: 0
+    state_base: 0
+    plural: 0
+    colour: 0
+    colour_options: []
+    exposed: 1
+    exposed_base: 1
+    vagina_exposed: 1
+    vagina_exposed_base: 1
+    anus_exposed: 1
+    anus_exposed_base: 1
+    type:
+      - naked
+    anal_shield: 0
+    set: under_lower
+    gender: 'n'
+    warmth: 0
+    cost: 0
+    description: 一丝不挂
+    shop: []
+    accessory: 0
+    accessory_colour: 0
+    accessory_colour_options: []
+    penis_img: 0
+    high_img: 0
+    cursed: 0
+    location: 0
+    iconFile: 0
+    accIcon: 0
+    mainImage: 0
+    exposedType: notWorn
+  over_head:
+    index: 0
+    slot: over_head
+    name: naked
+    name_cap: Naked
+    cn_name_cap: 赤裸
+    variable: naked
+    state: 0
+    state_base: 0
+    integrity: 0
+    integrity_max: 0
+    fabric_strength: 0
+    reveal: 1
+    word: 'n'
+    plural: 0
+    colour: 0
+    colour_options: []
+    type:
+      - naked
+    gender: 'n'
+    warmth: 0
+    cost: 0
+    description: 一丝不挂
+    shop: []
+    accessory: 0
+    accessory_colour: 0
+    accessory_colour_options: []
+    back_img: 0
+    cursed: 0
+    location: 0
+    iconFile: 0
+    accIcon: 0
+    mainImage: 0
+  head:
+    index: 0
+    slot: head
+    name: naked
+    name_cap: Naked
+    cn_name_cap: 赤裸
+    variable: naked
+    state: 0
+    state_base: 0
+    integrity: 0
+    integrity_max: 0
+    fabric_strength: 0
+    reveal: 1
+    word: 'n'
+    plural: 0
+    colour: 0
+    colour_options: []
+    type:
+      - naked
+    gender: 'n'
+    warmth: 0
+    cost: 0
+    description: 一丝不挂
+    shop: []
+    accessory: 0
+    accessory_colour: 0
+    accessory_colour_options: []
+    back_img: 0
+    cursed: 0
+    location: 0
+    iconFile: 0
+    accIcon: 0
+    mainImage: 0
+  face:
+    index: 0
+    slot: face
+    name: naked
+    name_cap: Naked
+    cn_name_cap: 赤裸
+    variable: naked
+    state: 0
+    state_base: 0
+    integrity: 10
+    integrity_max: 10
+    fabric_strength: 20
+    reveal: 1
+    word: a
+    plural: 0
+    colour: 0
+    colour_options: []
+    type:
+      - naked
+    gender: 'n'
+    warmth: 0
+    cost: 0
+    description: 一丝不挂
+    shop: []
+    accessory: 0
+    accessory_colour: 0
+    accessory_colour_options: []
+    cursed: 0
+    location: 0
+    iconFile: 0
+    accIcon: 0
+    mainImage: 0
+  neck:
+    index: 0
+    slot: neck
+    name: naked
+    name_cap: Naked
+    cn_name_cap: 赤裸
+    variable: naked
+    state: 0
+    state_base: 0
+    integrity: 10
+    integrity_max: 10
+    fabric_strength: 20
+    reveal: 1
+    word: a
+    plural: 0
+    colour: 0
+    colour_options: []
+    type:
+      - naked
+    gender: 'n'
+    warmth: 0
+    cost: 0
+    description: 一丝不挂
+    shop: []
+    collared: 0
+    accessory: 0
+    accessory_colour: 0
+    accessory_colour_options: []
+    cursed: 0
+    location: 0
+    iconFile: 0
+    accIcon: 0
+    mainImage: 0
+  hands:
+    index: 0
+    slot: hands
+    name: naked
+    name_cap: Naked
+    cn_name_cap: 赤裸
+    variable: naked
+    state: 0
+    state_base: 0
+    warmth: 0
+    integrity: 0
+    integrity_max: 0
+    fabric_strength: 0
+    reveal: 1
+    word: 'n'
+    plural: 0
+    colour: 0
+    colour_options: []
+    type:
+      - naked
+    gender: 'n'
+    cost: 0
+    description: 一丝不挂
+    shop: []
+    accessory: 0
+    accessory_colour: 0
+    accessory_colour_options: []
+    back_img: 0
+    cursed: 0
+    location: 0
+    iconFile: 0
+    accIcon: 0
+    mainImage: 0
+  handheld:
+    index: 0
+    slot: handheld
+    name: naked
+    name_cap: Naked
+    cn_name_cap: 赤裸
+    variable: naked
+    state: 0
+    state_base: 0
+    integrity: 0
+    integrity_max: 0
+    fabric_strength: 0
+    reveal: 1
+    word: 'n'
+    plural: 0
+    colour: 0
+    colour_options: []
+    type:
+      - naked
+    gender: 'n'
+    warmth: 0
+    cost: 0
+    description: 一丝不挂。
+    shop: []
+    accessory: 0
+    accessory_colour: 0
+    accessory_colour_options: []
+    back_img: 0
+    cursed: 0
+    location: 0
+    iconFile: 0
+    accIcon: 0
+    mainImage: 0
+  legs:
+    index: 0
+    slot: legs
+    name: naked
+    name_cap: Naked
+    cn_name_cap: 赤裸
+    variable: naked
+    integrity: 10
+    integrity_max: 10
+    fabric_strength: 20
+    reveal: 1
+    word: a
+    state: 0
+    state_base: 0
+    plural: 0
+    colour: 0
+    colour_options: []
+    type:
+      - naked
+    gender: 'n'
+    warmth: 0
+    cost: 0
+    description: 一丝不挂
+    shop: []
+    accessory: 0
+    accessory_colour: 0
+    accessory_colour_options: []
+    cursed: 0
+    location: 0
+    iconFile: 0
+    accIcon: 0
+    mainImage: 0
+  feet:
+    index: 0
+    slot: feet
+    name: naked
+    name_cap: Naked
+    cn_name_cap: 赤裸
+    variable: naked
+    state: 0
+    state_base: 0
+    integrity: 10
+    integrity_max: 10
+    fabric_strength: 20
+    reveal: 1
+    word: a
+    plural: 0
+    colour: 0
+    colour_options: []
+    type:
+      - naked
+    gender: 'n'
+    warmth: 0
+    cost: 0
+    description: 一丝不挂
+    shop: []
+    accessory: 0
+    accessory_colour: 0
+    accessory_colour_options: []
+    cursed: 0
+    notuck: 1
+    location: 0
+    iconFile: 0
+    accIcon: 0
+    mainImage: 0
+  genitals:
+    index: 0
+    slot: genitals
+    name: naked
+    cn_name_cap: 赤裸
+    variable: naked
+    state: 0
+    warmth: 0
+    integrity: 0
+    reveal: 1
+    plural: 0
+    colour: 0
+    exposed: 1
+    vagina_exposed: 1
+    anus_exposed: 1
+    type:
+      - naked
+    gender: 'n'
+    accessory: 0
+    accessory_colour: 0
+    back_img: 0
+    cursed: 0
+    location: 0
+    mainImage: 0
+
+sydney_school_girl:
+  upper:
+    index: 128
+    slot: upper
+    name: school sweater vest
+    cn_name_cap: 学校毛衣背心
+    variable: schoolvest
+    integrity: 200
+    reveal: 200
+    one_piece: 0
+    open: 0
+    state: waist
+    state_top: chest
+    plural: 0
+    colour: tangerine
+    colour_sidebar: 1
+    exposed: 0
+    type:
+      - normal
+      - school
+    set: upper
+    gender: 'n'
+    warmth: 7
+    accessory: 1
+    accessory_colour: white
+    accessory_colour_sidebar: 1
+    accessory_integrity_img: 1
+    sleeve_colour: secondary
+    altsleeve: alt
+    has_collar: 1
+    cursed: 0
+    location: 0
+    pregType: 0'
+  lower:
+    index: 27
+    slot: lower
+    name: short school skirt
+    cn_name_cap: 短校服裙
+    variable: schoolskirtshort
+    integrity: 80
+    reveal: 600
+    rearresize: 0
+    one_piece: 0
+    skirt_down: 1
+    state: waist
+    plural: 0
+    colour: red
+    colour_sidebar: 1
+    exposed: 0
+    vagina_exposed: 1
+    anus_exposed: 1
+    type:
+      - school
+    set: lower
+    gender: f
+    warmth: 1
+    accessory: 0
+    accessory_colour: 0
+    high_img: 0
+    back_img: 0
+    cursed: 0
+    location: 0'
+  under_upper:
+    index: 17
+    slot: under_upper
+    name: chest wrap
+    cn_name_cap: 裹胸
+    variable: chestwrap
+    integrity: 200
+    reveal: 300
+    one_piece: 0
+    open: 1
+    state: midriff
+    state_top: chest
+    plural: 0
+    colour: 0
+    colour_combat: 0
+    exposed: 0
+    type:
+      - chest_bind
+      - constricting
+      - covered
+    set: under_upper
+    gender: 'n'
+    warmth: 1
+    accessory: 0
+    accessory_colour: 0
+    mainImage: 0
+    cursed: 0
+    location: 0'
+  under_lower:
+    index: 1
+    slot: under_lower
+    name: plain panties
+    cn_name_cap: 普通内裤
+    name_simple: 内裤
+    variable: plainpanties
+    integrity: 100
+    reveal: 400
+    rearresize: 0
+    one_piece: 0
+    state: waist
+    plural: 1
+    colour: pale white
+    exposed: 0
+    vagina_exposed: 0
+    anus_exposed: 0
+    type:
+      - normal
+    anal_shield: 0
+    set: under_lower
+    gender: f
+    warmth: 1
+    accessory: 0
+    accessory_colour: 0
+    penis_img: 1
+    high_img: 0
+    cursed: 0
+    location: 0
+    colour_sidebar: 1'
+  head:
+    index: 1
+    slot: head
+    name: hairpin
+    cn_name_cap: 发卡
+    variable: hairpin
+    state: 0
+    integrity: 50
+    reveal: 1
+    plural: 0
+    colour: 0
+    colour_combat: 0
+    type:
+      - normal
+    gender: f
+    warmth: 0
+    accessory: 0
+    accessory_colour: 0
+    back_img: 0
+    cursed: 0
+    location: 0'
+  face:
+    index: 1
+    slot: face
+    name: glasses
+    cn_name_cap: 眼镜
+    variable: glasses
+    state: 0
+    integrity: 20
+    reveal: 1
+    plural: 1
+    colour: red
+    colour_sidebar: 1
+    colour_combat: 0
+    type:
+      - glasses
+    gender: 'n'
+    warmth: 0
+    accessory: 1
+    accessory_colour: 0
+    altposition: none
+    altdisabled: []
+    cursed: 0
+    location: 0'
+  neck:
+    index: 5
+    slot: neck
+    name: stone pendant
+    cn_name_cap: 石制吊坠
+    variable: stonependant
+    state: 0
+    integrity: 100
+    reveal: 1
+    plural: 0
+    colour: 0
+    colour_combat: black
+    type:
+      - holy
+    gender: 'n'
+    warmth: 0
+    collared: 0
+    accessory: 0
+    accessory_colour: 0
+    cursed: 0
+    location: 0
+  legs:
+    index: 3
+    slot: legs
+    name: girl's gym socks
+    cn_name_cap: 女式运动袜
+    variable: girlsgymsocks
+    integrity: 100
+    reveal: 1
+    state: thighs
+    plural: 1
+    colour: 0
+    colour_combat: 0
+    type:
+      - school
+      - athletic
+    gender: f
+    warmth: 2
+    accessory: 0
+    accessory_colour: 0
+    cursed: 0
+    location: 0'
+  feet:
+    index: 1
+    slot: feet
+    name: school shoes
+    cn_name_cap: 校服鞋
+    variable: schoolshoes
+    state: 0
+    integrity: 200
+    reveal: 1
+    plural: 1
+    colour: 0
+    colour_combat: black
+    type:
+      - school
+    gender: 'n'
+    warmth: 2
+    accessory: 0
+    accessory_colour: 0
+    cursed: 0
+    location: 0'
+
+sydney_school_boy:
+  upper:
+    index: 128
+    slot: upper
+    name: school sweater vest
+    cn_name_cap: 学校毛衣背心
+    variable: schoolvest
+    integrity: 200
+    reveal: 200
+    one_piece: 0
+    open: 0
+    state: waist
+    state_top: chest
+    plural: 0
+    colour: tangerine
+    colour_sidebar: 1
+    exposed: 0
+    type:
+      - normal
+      - school
+    set: upper
+    gender: 'n'
+    warmth: 7
+    accessory: 1
+    accessory_colour: white
+    accessory_colour_sidebar: 1
+    accessory_integrity_img: 1
+    sleeve_colour: secondary
+    altsleeve: alt
+    has_collar: 1
+    cursed: 0
+    location: 0
+    pregType: 0
+  lower:
+    index: 28
+    slot: lower
+    name: school trousers
+    cn_name_cap: 校服长裤
+    variable: schooltrousers
+    integrity: 120
+    reveal: 200
+    rearresize: 0
+    one_piece: 0
+    skirt_down: 0
+    state: waist
+    plural: 1
+    colour: black
+    colour_sidebar: 1
+    exposed: 0
+    vagina_exposed: 0
+    anus_exposed: 0
+    type:
+      - school
+    set: lower
+    gender: m
+    warmth: 5
+    accessory: 0
+    accessory_colour: 0
+    high_img: 0
+    back_img: 0
+    cursed: 0
+    location: 0
+  under_lower:
+    index: 1
+    slot: under_lower
+    name: plain panties
+    cn_name_cap: 普通内裤
+    name_simple: 内裤
+    variable: plainpanties
+    integrity: 100
+    reveal: 400
+    rearresize: 0
+    one_piece: 0
+    state: waist
+    plural: 1
+    colour: pale white
+    exposed: 0
+    vagina_exposed: 0
+    anus_exposed: 0
+    type:
+      - normal
+    anal_shield: 0
+    set: under_lower
+    gender: f
+    warmth: 1
+    accessory: 0
+    accessory_colour: 0
+    penis_img: 1
+    high_img: 0
+    cursed: 0
+    location: 0
+    colour_sidebar: 1
+  face:
+    index: 1
+    slot: face
+    name: glasses
+    cn_name_cap: 眼镜
+    variable: glasses
+    state: 0
+    integrity: 20
+    reveal: 1
+    plural: 1
+    colour: red
+    colour_sidebar: 1
+    colour_combat: 0
+    type:
+      - glasses
+    gender: 'n'
+    warmth: 0
+    accessory: 1
+    accessory_colour: 0
+    altposition: none
+    altdisabled: []
+    cursed: 0
+    location: 0
+  neck:
+    index: 5
+    slot: neck
+    name: stone pendant
+    cn_name_cap: 石制吊坠
+    variable: stonependant
+    state: 0
+    integrity: 100
+    reveal: 1
+    plural: 0
+    colour: 0
+    colour_combat: black
+    type:
+      - holy
+    gender: 'n'
+    warmth: 0
+    collared: 0
+    accessory: 0
+    accessory_colour: 0
+    cursed: 0
+    location: 0
+  feet:
+    index: 1
+    slot: feet
+    name: school shoes
+    cn_name_cap: 校服鞋
+    variable: schoolshoes
+    state: 0
+    integrity: 200
+    reveal: 1
+    plural: 1
+    colour: 0
+    colour_combat: black
+    type:
+      - school
+    gender: 'n'
+    warmth: 2
+    accessory: 0
+    accessory_colour: 0
+    cursed: 0
+    location: 0
+
+sydney_temple_girl:
+  upper:
+    index: 13
+    slot: upper
+    name: nun's habit
+    cn_name_cap: 修女长袍
+    variable: nun
+    integrity: 100
+    reveal: 200
+    one_piece: 1
+    open: 0
+    state: waist
+    state_top: chest
+    plural: 0
+    colour: 0
+    colour_combat: black
+    exposed: 0
+    type:
+      - holy
+      - costume
+      - bellyHide
+    set: nun
+    gender: f
+    warmth: 4
+    accessory: 0
+    accessory_colour: 0
+    cursed: 0
+    location: 0
+    outfitPrimary:
+      lower: nun's habit skirt
+    pregType: 0
+  lower:
+    index: 14
+    slot: lower
+    name: nun's habit skirt
+    cn_name_cap: 修女长袍下摆
+    variable: nun
+    integrity: 100
+    reveal: 400
+    rearresize: 0
+    one_piece: 1
+    skirt_down: 1
+    state: waist
+    plural: 0
+    colour: 0
+    colour_combat: black
+    exposed: 0
+    vagina_exposed: 0
+    anus_exposed: 0
+    type:
+      - holy
+      - costume
+    set: nun
+    gender: f
+    warmth: 3
+    accessory: 0
+    accessory_colour: 0
+    high_img: 0
+    back_img: 1
+    back_img_colour: primary
+    back_integrity_img: 1
+    cursed: 0
+    location: 0
+    outfitSecondary:
+      - upper
+      - nun's habit
+  under_upper:
+    index: 17
+    slot: under_upper
+    name: chest wrap
+    cn_name_cap: 裹胸
+    variable: chestwrap
+    integrity: 200
+    reveal: 300
+    one_piece: 0
+    open: 1
+    state: midriff
+    state_top: chest
+    plural: 0
+    colour: 0
+    colour_combat: 0
+    exposed: 0
+    type:
+      - chest_bind
+      - constricting
+      - covered
+    set: under_upper
+    gender: 'n'
+    warmth: 1
+    accessory: 0
+    accessory_colour: 0
+    mainImage: 0
+    cursed: 0
+    location: 0
+  under_lower:
+    index: 1
+    slot: under_lower
+    name: plain panties
+    cn_name_cap: 普通内裤
+    name_simple: 内裤
+    variable: plainpanties
+    integrity: 100
+    reveal: 400
+    rearresize: 0
+    one_piece: 0
+    state: waist
+    plural: 1
+    colour: pale white
+    exposed: 0
+    vagina_exposed: 0
+    anus_exposed: 0
+    type:
+      - normal
+    anal_shield: 0
+    set: under_lower
+    gender: f
+    warmth: 1
+    accessory: 0
+    accessory_colour: 0
+    penis_img: 1
+    high_img: 0
+    cursed: 0
+    location: 0
+    colour_sidebar: 1
+  over_head:
+    index: 0
+    slot: over_head
+    name: naked
+    name_cap: Naked
+    cn_name_cap: 赤裸
+    variable: naked
+    state: 0
+    state_base: 0
+    integrity: 0
+    integrity_max: 0
+    fabric_strength: 0
+    reveal: 1
+    word: 'n'
+    plural: 0
+    colour: 0
+    colour_options: []
+    type:
+      - naked
+    gender: 'n'
+    warmth: 0
+    cost: 0
+    description: 一丝不挂
+    shop: []
+    accessory: 0
+    accessory_colour: 0
+    accessory_colour_options: []
+    back_img: 0
+    cursed: 0
+    location: 0
+    iconFile: 0
+    accIcon: 0
+    mainImage: 0
+  head:
+    index: 4
+    slot: head
+    name: nun's veil
+    cn_name_cap: 修女头巾
+    variable: nun
+    state: 0
+    integrity: 100
+    reveal: 1
+    plural: 0
+    mask_img: 1
+    colour: 0
+    type:
+      - holy
+      - costume
+    gender: f
+    warmth: 2
+    accessory: 0
+    accessory_colour: 0
+    back_img: 1
+    back_img_colour: primary
+    head_type: veil
+    cursed: 0
+    location: 0
+  face:
+    index: 1
+    slot: face
+    name: glasses
+    cn_name_cap: 眼镜
+    variable: glasses
+    state: 0
+    integrity: 20
+    reveal: 1
+    plural: 1
+    colour: red
+    colour_sidebar: 1
+    colour_combat: 0
+    type:
+      - glasses
+    gender: 'n'
+    warmth: 0
+    accessory: 1
+    accessory_colour: 0
+    altposition: none
+    altdisabled: []
+    cursed: 0
+    location: 0
+  neck:
+    index: 5
+    slot: neck
+    name: stone pendant
+    cn_name_cap: 石制吊坠
+    variable: stonependant
+    state: 0
+    integrity: 100
+    reveal: 1
+    plural: 0
+    colour: 0
+    colour_combat: black
+    type:
+      - holy
+    gender: 'n'
+    warmth: 0
+    collared: 0
+    accessory: 0
+    accessory_colour: 0
+    cursed: 0
+    location: 0
+  feet:
+    index: 5
+    slot: feet
+    name: dress sandals
+    cn_name_cap: 高跟凉鞋
+    variable: dresssandals
+    state: 0
+    integrity: 100
+    reveal: 1
+    plural: 1
+    colour: white
+    colour_sidebar: 1
+    type:
+      - formal
+    gender: f
+    warmth: 1
+    accessory: 0
+    accessory_colour: 0
+    cursed: 0
+    location: 0
+
+sydney_temple_boy:
+  upper:
+    index: 32
+    slot: upper
+    name: monk's habit
+    cn_name_cap: 修士长袍
+    variable: monk
+    integrity: 90
+    reveal: 200
+    one_piece: 1
+    open: 0
+    state: waist
+    state_top: chest
+    plural: 0
+    colour: 0
+    colour_combat: brown
+    exposed: 0
+    type:
+      - holy
+      - costume
+      - bellyHide
+    set: monk
+    gender: m
+    warmth: 4
+    accessory: 0
+    accessory_colour: 0
+    cursed: 0
+    location: 0
+    outfitPrimary:
+      lower: monk's habit skirt
+    pregType: 0
+  lower:
+    index: 35
+    slot: lower
+    name: monk's habit skirt
+    cn_name_cap: 修士长袍下摆
+    variable: monk
+    integrity: 100
+    reveal: 400
+    rearresize: 0
+    one_piece: 1
+    skirt_down: 1
+    state: waist
+    plural: 0
+    colour: 0
+    colour_combat: brown
+    exposed: 0
+    vagina_exposed: 0
+    anus_exposed: 0
+    type:
+      - holy
+      - costume
+    set: monk
+    gender: m
+    warmth: 4
+    accessory: 0
+    accessory_colour: 0
+    high_img: 0
+    back_img: 1
+    back_img_colour: primary
+    cursed: 0
+    location: 0
+    outfitSecondary:
+      - upper
+      - monk's habit
+  under_lower:
+    index: 1
+    slot: under_lower
+    name: plain panties
+    cn_name_cap: 普通内裤
+    name_simple: 内裤
+    variable: plainpanties
+    integrity: 100
+    reveal: 400
+    rearresize: 0
+    one_piece: 0
+    state: waist
+    plural: 1
+    colour: pale white
+    exposed: 0
+    vagina_exposed: 0
+    anus_exposed: 0
+    type:
+      - normal
+    anal_shield: 0
+    set: under_lower
+    gender: f
+    warmth: 1
+    accessory: 0
+    accessory_colour: 0
+    penis_img: 1
+    high_img: 0
+    cursed: 0
+    location: 0
+    colour_sidebar: 1
+  over_head:
+    index: 0
+    slot: over_head
+    name: naked
+    name_cap: Naked
+    cn_name_cap: 赤裸
+    variable: naked
+    state: 0
+    state_base: 0
+    integrity: 0
+    integrity_max: 0
+    fabric_strength: 0
+    reveal: 1
+    word: 'n'
+    plural: 0
+    colour: 0
+    colour_options: []
+    type:
+      - naked
+    gender: 'n'
+    warmth: 0
+    cost: 0
+    description: 一丝不挂
+    shop: []
+    accessory: 0
+    accessory_colour: 0
+    accessory_colour_options: []
+    back_img: 0
+    cursed: 0
+    location: 0
+    iconFile: 0
+    accIcon: 0
+    mainImage: 0
+  face:
+    index: 1
+    slot: face
+    name: glasses
+    cn_name_cap: 眼镜
+    variable: glasses
+    state: 0
+    integrity: 20
+    reveal: 1
+    plural: 1
+    colour: red
+    colour_sidebar: 1
+    colour_combat: 0
+    type:
+      - glasses
+    gender: 'n'
+    warmth: 0
+    accessory: 1
+    accessory_colour: 0
+    altposition: none
+    altdisabled: []
+    cursed: 0
+    location: 0
+  neck:
+    index: 5
+    slot: neck
+    name: stone pendant
+    cn_name_cap: 石制吊坠
+    variable: stonependant
+    state: 0
+    integrity: 100
+    reveal: 1
+    plural: 0
+    colour: 0
+    colour_combat: black
+    type:
+      - holy
+    gender: 'n'
+    warmth: 0
+    collared: 0
+    accessory: 0
+    accessory_colour: 0
+    cursed: 0
+    location: 0
+  feet:
+    index: 6
+    slot: feet
+    name: trainers
+    cn_name_cap: 运动鞋
+    variable: trainers
+    state: 0
+    integrity: 250
+    reveal: 1
+    plural: 1
+    colour: white
+    colour_sidebar: 1
+    type:
+      - normal
+      - athletic
+    gender: 'n'
+    warmth: 2
+    accessory: 1
+    accessory_colour: white
+    accessory_colour_sidebar: 1
+    cursed: 0
+    location: 0
+
+sydney_temple_girl_sexy:
+  upper:
+    index: 141
+    slot: upper
+    name: sexy nun's habit
+    cn_name_cap: 性感修女长袍
+    variable: nunlewd
+    integrity: 100
+    reveal: 500
+    one_piece: 1
+    open: 0
+    state: waist
+    state_top: chest
+    plural: 0
+    colour: 0
+    colour_combat: black
+    exposed: 0
+    type:
+      - holy
+      - costume
+      - fetish
+    set: nunlewd
+    gender: f
+    formfitting: 1
+    warmth: 3
+    accessory: 0
+    accessory_colour: 0
+    cursed: 0
+    location: 0
+    outfitPrimary:
+      lower: sexy nun's habit skirt
+    pregType: 0
+  lower:
+    index: 128
+    slot: lower
+    name: sexy nun's habit skirt
+    cn_name_cap: 性感修女裙
+    variable: nunlewd
+    integrity: 100
+    reveal: 500
+    rearresize: 0
+    one_piece: 1
+    skirt_down: 1
+    state: waist
+    plural: 0
+    colour: 0
+    colour_combat: black
+    exposed: 0
+    vagina_exposed: 0
+    anus_exposed: 0
+    type:
+      - holy
+      - costume
+      - fetish
+    set: nunlewd
+    gender: f
+    warmth: 1
+    accessory: 0
+    accessory_colour: 0
+    high_img: 0
+    back_img: 0
+    back_img_colour: primary
+    cursed: 0
+    location: 0
+    outfitSecondary:
+      - upper
+      - sexy nun's habit
+  head:
+    index: 4
+    slot: head
+    name: nun's veil
+    cn_name_cap: 修女头巾
+    variable: nun
+    state: 0
+    integrity: 100
+    reveal: 1
+    plural: 0
+    mask_img: 1
+    colour: 0
+    type:
+      - holy
+      - costume
+    gender: f
+    warmth: 2
+    accessory: 0
+    accessory_colour: 0
+    back_img: 1
+    back_img_colour: primary
+    head_type: veil
+    cursed: 0
+    location: 0
+  face:
+    index: 1
+    slot: face
+    name: glasses
+    cn_name_cap: 眼镜
+    variable: glasses
+    state: 0
+    integrity: 20
+    reveal: 1
+    plural: 1
+    colour: red
+    colour_sidebar: 1
+    colour_combat: 0
+    type:
+      - glasses
+    gender: 'n'
+    warmth: 0
+    accessory: 1
+    accessory_colour: 0
+    altposition: none
+    altdisabled: []
+    cursed: 0
+    location: 0
+  neck:
+    index: 5
+    slot: neck
+    name: stone pendant
+    cn_name_cap: 石制吊坠
+    variable: stonependant
+    state: 0
+    integrity: 100
+    reveal: 1
+    plural: 0
+    colour: 0
+    colour_combat: black
+    type:
+      - holy
+    gender: 'n'
+    warmth: 0
+    collared: 0
+    accessory: 0
+    accessory_colour: 0
+    cursed: 0
+    location: 0
+  hands:
+    index: 10
+    slot: hands
+    name: sexy nun's gloves
+    cn_name_cap: 性感修女手套
+    variable: nunlewd
+    state: 0
+    integrity: 100
+    reveal: 100
+    plural: 1
+    colour: 0
+    colour_sidebar: 0
+    type:
+      - holy
+      - costume
+      - fetish
+    gender: f
+    warmth: 1
+    accessory: 0
+    accessory_colour: 0
+    back_img: 0
+    cursed: 0
+    location: 0
+    mainImage: 0
+    leftImage: 1
+    rightImage: 1
+  legs:
+    index: 28
+    slot: legs
+    name: sexy nun's stockings
+    cn_name_cap: 性感修女长筒袜
+    variable: nunlewd
+    integrity: 100
+    reveal: 500
+    state: knees
+    plural: 1
+    colour: black
+    colour_sidebar: 1
+    type:
+      - holy
+      - costume
+      - fetish
+    gender: f
+    warmth: 2
+    accessory: 1
+    accessory_colour: black
+    accessory_colour_sidebar: 1
+    cursed: 0
+    location: 0
+  feet:
+    index: 46
+    slot: feet
+    name: gift wrap footwrap
+    cn_name_cap: 礼物包装脚布
+    variable: giftwrap
+    state: 0
+    integrity: 10
+    reveal: 1
+    plural: 0
+    colour: white
+    colour_sidebar: 1
+    type:
+      - costume
+      - fetish
+    gender: 'n'
+    warmth: 0
+    accessory: 0
+    accessory_colour: 0
+    cursed: 0
+    location: 0
+
+sydney_temple_boy_sexy:
+  upper:
+    index: 142
+    slot: upper
+    name: sexy priest's vestments
+    cn_name_cap: 性感司祭法袍
+    variable: monklewd
+    integrity: 100
+    reveal: 700
+    one_piece: 1
+    open: 0
+    state: waist
+    state_top: chest
+    plural: 1
+    colour: 0
+    colour_combat: black
+    exposed: 1
+    type:
+      - holy
+      - costume
+      - fetish
+      - bellyShow
+    set: monklewd
+    gender: m
+    warmth: 2
+    accessory: 0
+    accessory_colour: 0
+    cursed: 0
+    location: 0
+    outfitPrimary:
+      lower: sexy priest's shorts
+    pregType: 0
+  lower:
+    index: 129
+    slot: lower
+    name: sexy priest's shorts
+    cn_name_cap: 性感司祭短裤
+    variable: monklewd
+    integrity: 100
+    reveal: 500
+    rearresize: 0
+    one_piece: 1
+    skirt_down: 0
+    state: waist
+    plural: 1
+    colour: 0
+    colour_combat: black
+    exposed: 0
+    vagina_exposed: 0
+    anus_exposed: 0
+    type:
+      - holy
+      - costume
+      - fetish
+    set: monklewd
+    gender: m
+    warmth: 2
+    accessory: 0
+    accessory_colour: 0
+    high_img: 0
+    back_img: 0
+    back_img_colour: primary
+    cursed: 0
+    location: 0
+    outfitSecondary:
+      - upper
+      - sexy priest's vestments
+  face:
+    index: 1
+    slot: face
+    name: glasses
+    cn_name_cap: 眼镜
+    variable: glasses
+    state: 0
+    integrity: 20
+    reveal: 1
+    plural: 1
+    colour: red
+    colour_sidebar: 1
+    colour_combat: 0
+    type:
+      - glasses
+    gender: 'n'
+    warmth: 0
+    accessory: 1
+    accessory_colour: 0
+    altposition: none
+    altdisabled: []
+    cursed: 0
+    location: 0
+  neck:
+    index: 5
+    slot: neck
+    name: stone pendant
+    cn_name_cap: 石制吊坠
+    variable: stonependant
+    state: 0
+    integrity: 100
+    reveal: 1
+    plural: 0
+    colour: 0
+    colour_combat: black
+    type:
+      - holy
+    gender: 'n'
+    warmth: 0
+    collared: 0
+    accessory: 0
+    accessory_colour: 0
+    cursed: 0
+    location: 0
+  feet:
+    index: 46
+    slot: feet
+    name: gift wrap footwrap
+    cn_name_cap: 礼物包装脚布
+    variable: giftwrap
+    state: 0
+    integrity: 10
+    reveal: 1
+    plural: 0
+    colour: white
+    colour_sidebar: 1
+    type:
+      - costume
+      - fetish
+    gender: 'n'
+    warmth: 0
+    accessory: 0
+    accessory_colour: 0
+    cursed: 0
+    location: 0
+
+sydney_temple_initiate:
+  upper:
+    index: 171
+    slot: upper
+    name: initiate's robe
+    cn_name_cap: 见习教徒长袍
+    variable: initiate
+    integrity: 100
+    reveal: 200
+    one_piece: 1
+    open: 0
+    state: waist
+    state_top: chest
+    plural: 0
+    colour: 0
+    colour_combat: white
+    exposed: 0
+    type:
+      - holy
+      - costume
+      - bellyHide
+    set: initiate
+    gender: 'n'
+    warmth: 4
+    accessory: 0
+    accessory_colour: 0
+    cursed: 0
+    location: 0
+    outfitPrimary:
+      lower: initiate's robe skirt
+    pregType: min
+  lower:
+    index: 162
+    slot: lower
+    name: initiate's robe skirt
+    cn_name_cap: 见习教徒长袍下摆
+    variable: initiate
+    integrity: 100
+    reveal: 400
+    rearresize: 0
+    one_piece: 1
+    skirt_down: 1
+    state: waist
+    plural: 0
+    colour: 0
+    colour_combat: white
+    exposed: 0
+    vagina_exposed: 0
+    anus_exposed: 0
+    type:
+      - holy
+      - costume
+    set: initiate
+    gender: 'n'
+    warmth: 4
+    accessory: 0
+    accessory_colour: 0
+    high_img: 0
+    back_img: 0
+    cursed: 0
+    location: 0
+    outfitSecondary:
+      - upper
+      - initiate's robe
+  under_upper:
+    index: 17
+    slot: under_upper
+    name: chest wrap
+    cn_name_cap: 裹胸
+    variable: chestwrap
+    integrity: 200
+    reveal: 300
+    one_piece: 0
+    open: 1
+    state: midriff
+    state_top: chest
+    plural: 0
+    colour: 0
+    colour_combat: 0
+    exposed: 0
+    type:
+      - chest_bind
+      - constricting
+      - covered
+    set: under_upper
+    gender: 'n'
+    warmth: 1
+    accessory: 0
+    accessory_colour: 0
+    mainImage: 0
+    cursed: 0
+    location: 0
+  under_lower:
+    index: 1
+    slot: under_lower
+    name: plain panties
+    cn_name_cap: 普通内裤
+    name_simple: 内裤
+    variable: plainpanties
+    integrity: 100
+    reveal: 400
+    rearresize: 0
+    one_piece: 0
+    state: waist
+    plural: 1
+    colour: pale white
+    exposed: 0
+    vagina_exposed: 0
+    anus_exposed: 0
+    type:
+      - normal
+    anal_shield: 0
+    set: under_lower
+    gender: f
+    warmth: 1
+    accessory: 0
+    accessory_colour: 0
+    penis_img: 1
+    high_img: 0
+    cursed: 0
+    location: 0
+    colour_sidebar: 1
+  over_head:
+    index: 0
+    slot: over_head
+    name: naked
+    name_cap: Naked
+    cn_name_cap: 赤裸
+    variable: naked
+    state: 0
+    state_base: 0
+    integrity: 0
+    integrity_max: 0
+    fabric_strength: 0
+    reveal: 1
+    word: 'n'
+    plural: 0
+    colour: 0
+    colour_options: []
+    type:
+      - naked
+    gender: 'n'
+    warmth: 0
+    cost: 0
+    description: 一丝不挂
+    shop: []
+    accessory: 0
+    accessory_colour: 0
+    accessory_colour_options: []
+    back_img: 0
+    cursed: 0
+    location: 0
+    iconFile: 0
+    accIcon: 0
+    mainImage: 0
+  head:
+    index: 1
+    slot: head
+    name: hairpin
+    cn_name_cap: 发卡
+    variable: hairpin
+    state: 0
+    integrity: 50
+    reveal: 1
+    plural: 0
+    colour: 0
+    type:
+      - normal
+    gender: f
+    warmth: 0
+    accessory: 0
+    accessory_colour: 0
+    back_img: 0
+    cursed: 0
+    location: 0
+    colour_combat: 0
+  face:
+    index: 1
+    slot: face
+    name: glasses
+    cn_name_cap: 眼镜
+    variable: glasses
+    state: 0
+    integrity: 20
+    reveal: 1
+    plural: 1
+    colour: red
+    colour_sidebar: 1
+    colour_combat: 0
+    type:
+      - glasses
+    gender: 'n'
+    warmth: 0
+    accessory: 1
+    accessory_colour: 0
+    altposition: none
+    altdisabled: []
+    cursed: 0
+    location: 0
+  neck:
+    index: 5
+    slot: neck
+    name: stone pendant
+    cn_name_cap: 石制吊坠
+    variable: stonependant
+    state: 0
+    integrity: 100
+    reveal: 1
+    plural: 0
+    colour: 0
+    colour_combat: black
+    type:
+      - holy
+    gender: 'n'
+    warmth: 0
+    collared: 0
+    accessory: 0
+    accessory_colour: 0
+    cursed: 0
+    location: 0
+
+school_girl_swim:
+  under_upper:
+    index: 2
+    slot: under_upper
+    name: school swimsuit
+    cn_name_cap: 学校泳装
+    variable: schoolswimsuit
+    integrity: 40
+    reveal: 600
+    one_piece: 1
+    open: 1
+    state: waist
+    state_top: chest
+    plural: 0
+    colour: white
+    colour_sidebar: 1
+    exposed: 0
+    type:
+      - swim
+      - school
+    set: school swimsuit
+    gender: f
+    formfitting: 1
+    warmth: 3
+    accessory: 0
+    accessory_colour: 0
+    cursed: 0
+    location: 0
+    outfitPrimary:
+      under_lower: school swimsuit bottom
+  under_lower:
+    index: 6
+    slot: under_lower
+    name: school swimsuit bottom
+    cn_name_cap: 学校泳装下部
+    name_simple: 泳衣
+    variable: schoolswimsuit
+    integrity: 40
+    reveal: 600
+    rearresize: 0
+    one_piece: 1
+    state: waist
+    plural: 0
+    colour: white
+    colour_sidebar: 1
+    exposed: 0
+    vagina_exposed: 0
+    anus_exposed: 0
+    type:
+      - swim
+      - school
+    anal_shield: 0
+    set: school swimsuit
+    warmth: 1
+    gender: f
+    accessory: 0
+    accessory_colour: 0
+    penis_img: 1
+    high_img: 0
+    cursed: 0
+    location: 0
+    outfitSecondary:
+      - under_upper
+      - school swimsuit
+
+school_boy_swim:
+  under_lower:
+    index: 7
+    slot: under_lower
+    name: school swim shorts
+    cn_name_cap: 学校泳裤
+    name_simple: 游泳短裤
+    variable: schoolswimshorts
+    integrity: 40
+    reveal: 600
+    rearresize: 0
+    one_piece: 0
+    state: waist
+    plural: 1
+    colour: white
+    colour_sidebar: 1
+    exposed: 0
+    vagina_exposed: 0
+    anus_exposed: 0
+    no_aside: 1
+    type:
+      - swim
+      - school
+    anal_shield: 0
+    set: under_lower
+    gender: m
+    warmth: 2
+    accessory: 1
+    accessory_colour: white
+    accessory_colour_sidebar: 1
+    penis_img: 1
+    penis_acc_img: 0
+    high_img: 0
+    cursed: 0
+    location: 0
+
+bikini:
+  under_upper:
+    index: 1
+    slot: under_upper
+    name: bikini top
+    cn_name_cap: 比基尼上装
+    variable: bikini
+    integrity: 30
+    reveal: 900
+    one_piece: 0
+    open: 1
+    state: midriff
+    state_top: chest
+    plural: 0
+    colour: white
+    colour_sidebar: 1
+    exposed: 0
+    type:
+      - swim
+    set: under_upper
+    gender: f
+    warmth: 1
+    accessory: 0
+    accessory_colour: 0
+    mainImage: 0
+    cursed: 0
+    location: 0
+  under_lower:
+    index: 2
+    slot: under_lower
+    name: bikini bottoms
+    cn_name_cap: 比基尼下装
+    name_simple: 比基尼下装
+    variable: bikini
+    integrity: 20
+    reveal: 700
+    rearresize: 0
+    one_piece: 0
+    state: waist
+    plural: 1
+    colour: white
+    colour_sidebar: 1
+    exposed: 0
+    vagina_exposed: 0
+    anus_exposed: 0
+    type:
+      - swim
+    anal_shield: 0
+    set: under_lower
+    gender: f
+    warmth: 1
+    accessory: 0
+    accessory_colour: 0
+    penis_img: 1
+    high_img: 0
+    cursed: 0
+    location: 0
+
+bikini_expose:
+  under_upper:
+    index: 11
+    slot: under_upper
+    name: microkini top
+    cn_name_cap: 暴露式比基尼上装
+    variable: microkini
+    integrity: 30
+    reveal: 900
+    one_piece: 0
+    open: 1
+    state: midriff
+    state_top: chest
+    plural: 0
+    colour: white
+    colour_sidebar: 1
+    exposed: 0
+    type:
+      - swim
+    set: under_upper
+    gender: f
+    warmth: 0
+    accessory: 0
+    accessory_colour: 0
+    mainImage: 0
+    cursed: 0
+    location: 0
+  under_lower:
+    index: 18
+    slot: under_lower
+    name: microkini bottom
+    cn_name_cap: 暴露式比基尼下装
+    name_simple: 泳衣
+    variable: microkini
+    integrity: 30
+    reveal: 900
+    rearresize: 0
+    one_piece: 0
+    state: waist
+    plural: 0
+    colour: white
+    colour_sidebar: 1
+    exposed: 0
+    vagina_exposed: 0
+    anus_exposed: 0
+    type:
+      - swim
+    anal_shield: 0
+    set: under_lower
+    gender: f
+    warmth: 0
+    accessory: 0
+    accessory_colour: 0
+    penis_img: 1
+    high_img: 0
+    cursed: 0
+    location: 0
+
+swim_trunks:
+  under_lower:
+    index: 19
+    slot: under_lower
+    name: speedo
+    cn_name_cap: 速干泳裤
+    name_simple: 紧身泳裤
+    variable: speedo
+    integrity: 50
+    reveal: 700
+    rearresize: 0
+    one_piece: 0
+    state: waist
+    plural: 0
+    colour: white
+    colour_sidebar: 1
+    exposed: 0
+    vagina_exposed: 0
+    anus_exposed: 0
+    type:
+      - swim
+    anal_shield: 0
+    set: under_lower
+    gender: m
+    warmth: 1
+    accessory: 0
+    accessory_colour: 0
+    penis_img: 1
+    high_img: 0
+    cursed: 0
+    location: 0
+

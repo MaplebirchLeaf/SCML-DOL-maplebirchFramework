@@ -11,32 +11,26 @@
         return includeWeekday ? `${formattedDate} ${date.weekDayName}` : formattedDate;
       }
       switch (V.options.dateFormat) {
-        case "en-US":
-        case "zh-CN": {
+        case 'en-US':
+        case 'zh-CN': {
           const formattedDate = `${date.monthName} ${ordinalSuffixOf(date.day)}`;
           return includeWeekday ? `${date.weekDayName}, ${formattedDate}` : formattedDate;
         }
-        case "en-GB": {
+        case 'en-GB': {
           const formattedDate = `the ${ordinalSuffixOf(date.day)} of ${date.monthName}`;
           return includeWeekday ? `${date.weekDayName} ${formattedDate}` : formattedDate;
         }
-        default:
-          throw new Error(`Invalid date format: ${V.options.dateFormat}`);
+        default: throw new Error(`Invalid date format: ${V.options.dateFormat}`);
       }
     };
     const getShortFormattedDate = function(date) {
       const lang = maplebirch.Language || 'EN';
-      if (lang === 'CN') {
-        return `${date.month}月${date.day}日`;
-      }
+      if (lang === 'CN') return `${date.month}月${date.day}日`;
       switch (V.options.dateFormat) {
-        case "en-US":
-        case "zh-CN":
-          return `${date.monthName.slice(0, 3)} ${ordinalSuffixOf(date.day)}`;
-        case "en-GB":
-          return `${ordinalSuffixOf(date.day)} ${date.monthName.slice(0, 3)}`;
-        default:
-          throw new Error(`Invalid date format: ${V.options.dateFormat}`);
+        case 'en-US':
+        case 'zh-CN': return `${date.monthName.slice(0, 3)} ${ordinalSuffixOf(date.day)}`;
+        case 'en-GB': return `${ordinalSuffixOf(date.day)} ${date.monthName.slice(0, 3)}`;
+        default: throw new Error(`Invalid date format: ${V.options.dateFormat}`);
       }
     };
     return {
@@ -117,7 +111,7 @@
       switch(this.type) {
         case 'onHour': return prevDate.hour !== currentDate.hour;
         case 'onDay':  return prevDate.day !== currentDate.day || prevDate.month !== currentDate.month || prevDate.year !== currentDate.year;
-        case 'onWeek': return prevDate.weekDay !== currentDate.weekDay;
+        case 'onWeek': return Math.floor(prevDate.timeStamp / 604800) !== Math.floor(currentDate.timeStamp / 604800);
         case 'onMonth':return prevDate.month !== currentDate.month || prevDate.year !== currentDate.year;
         case 'onYear': return prevDate.year !== currentDate.year;
         default:       return true;
@@ -129,14 +123,14 @@
     static TimeEvent = TimeEvent;
 
     static moonPhases = {
-      new:            { EN: "New Moon",         CN: "新月"   },
-      waxingCrescent: { EN: "Waxing Crescent",  CN: "蛾眉月" },
-      firstQuarter:   { EN: "First Quarter",    CN: "上弦月" },
-      waxingGibbous:  { EN: "Waxing Gibbous",   CN: "盈凸月" },
-      full:           { EN: "Full Moon",        CN: "满月"   },
-      waningGibbous:  { EN: "Waning Gibbous",   CN: "亏凸月" },
-      lastQuarter:    { EN: "Last Quarter",     CN: "下弦月" },
-      waningCrescent: { EN: "Waning Crescent",  CN: "残月"   },
+      new:            { EN: 'New Moon',         CN: '新月'   },
+      waxingCrescent: { EN: 'Waxing Crescent',  CN: '蛾眉月' },
+      firstQuarter:   { EN: 'First Quarter',    CN: '上弦月' },
+      waxingGibbous:  { EN: 'Waxing Gibbous',   CN: '盈凸月' },
+      full:           { EN: 'Full Moon',        CN: '满月'   },
+      waningGibbous:  { EN: 'Waning Gibbous',   CN: '亏凸月' },
+      lastQuarter:    { EN: 'Last Quarter',     CN: '下弦月' },
+      waningCrescent: { EN: 'Waning Crescent',  CN: '残月'   },
     };
 
     static monthNames = {
@@ -167,7 +161,11 @@
       ];
 
       this.timeEvents = {};
-      this.eventTypes.forEach(type => this.timeEvents[type] = new Map());
+      this.sortedEventsCache = {};
+      this.eventTypes.forEach(type => {
+        this.timeEvents[type] = new Map();
+        this.sortedEventsCache[type] = null;
+      });
 
       this.prevDate = null;
       this.currentDate = null;
@@ -186,11 +184,9 @@
     }
 
     #trigger(type, timeData) {
-      if (!this.timeEvents[type]) {
-        this.log(`事件类型未注册: ${type}`, 'WARN');
-        return;
-      }
-      const events = Array.from(this.timeEvents[type].values()).sort((a, b) => b.priority - a.priority);
+      if (!this.timeEvents[type]) { this.log(`事件类型未注册: ${type}`, 'WARN'); return; }
+      if (!this.sortedEventsCache[type]) this.sortedEventsCache[type] = Array.from(this.timeEvents[type].values()).sort((a, b) => b.priority - a.priority);
+      const events = this.sortedEventsCache[type];
       const toRemove = [];
       for (const event of events) {
         try { if (event.tryRun(timeData)) toRemove.push(event.id); }
@@ -198,6 +194,7 @@
       }
       toRemove.forEach(eventId => {
         this.timeEvents[type].delete(eventId);
+        this.sortedEventsCache[type] = null;
         this.log(`移除一次性事件: ${type}.${eventId}`, 'DEBUG');
       });
     }
@@ -239,7 +236,8 @@
       const triggeredThisCycle = new Set();
       const safeTrigger = (type, data) => {
         if (!this.timeEvents[type]) return;
-        const events = Array.from(this.timeEvents[type].values()).sort((a, b) => b.priority - a.priority);
+        if (!this.sortedEventsCache[type]) this.sortedEventsCache[type] = Array.from(this.timeEvents[type].values()).sort((a, b) => b.priority - a.priority);
+        const events = this.sortedEventsCache[type];
         const toRemove = [];
         for (const event of events) {
           if (triggeredThisCycle.has(event.id)) continue;
@@ -255,7 +253,7 @@
           }
         }
         toRemove.forEach(eventId => {
-          if (this.timeEvents[type].delete(eventId)) this.log(`移除一次性事件: ${type}.${eventId}`, 'DEBUG');
+          if (this.timeEvents[type].delete(eventId)) { this.sortedEventsCache[type] = null; this.log(`移除一次性事件: ${type}.${eventId}`, 'DEBUG'); }
         });
       };
 
@@ -341,13 +339,14 @@
       if (!this.eventTypes.includes(type)) { this.log(`未知的时间事件类型: ${type}`, 'ERROR'); return false; }
       if (this.timeEvents[type].has(eventId)) { this.log(`事件ID已存在: ${type}.${eventId}`, 'WARN'); return false; }
       this.timeEvents[type].set(eventId, new TimeEvent(eventId, type, options));
+      this.sortedEventsCache[type] = null;
       this.log(`注册时间事件: ${type}.${eventId}`, 'DEBUG');
       return true;
     }
 
     unregister(type, eventId) {
       if (!this.timeEvents[type]) { this.log(`事件类型不存在: ${type}`, 'WARN'); return false; }
-      if (this.timeEvents[type].delete(eventId)) { this.log(`注销时间事件: ${type}.${eventId}`, 'DEBUG'); return true; }
+      if (this.timeEvents[type].delete(eventId)) { this.sortedEventsCache[type] = null; this.log(`注销时间事件: ${type}.${eventId}`, 'DEBUG'); return true; }
       this.log(`未找到事件: ${type}.${eventId}`, 'DEBUG');
       return false;
     }
@@ -418,7 +417,7 @@
           if (options.addMinutes) targetDate.addMinutes(options.addMinutes);
           if (options.addSeconds) targetDate.addSeconds(options.addSeconds);
         } else {
-          throw new Error("无效的时间旅行参数");
+          throw new Error('无效的时间旅行参数');
         }
 
         const prevDate = new DateTime(Time.date);
@@ -456,7 +455,7 @@
           }
           if (arguments.length === 1 && typeof year === 'number') {
             super();
-            if (year < -62135596800 || year > 315569437199) throw new Error("Invalid timestamp: Timestamp out of range.");
+            if (year < -62135596800 || year > 315569437199) throw new Error('Invalid timestamp: Timestamp out of range.');
             this.fromTimestamp(year);
             return;
           }
@@ -495,8 +494,8 @@
         }
 
         toTimestamp(year, month, day, hour, minute, second) {
-          if (year < -9999 || year > 9999) throw new Error("Invalid year: Year must be between -9999 to 9999.");
-          if (month < 1 || month > 12) throw new Error("Invalid month: Month must be 1-12.");
+          if (year < -9999 || year > 9999) throw new Error('Invalid year: Year must be between -9999 to 9999.');
+          if (month < 1 || month > 12) throw new Error('Invalid month: Month must be 1-12.');
           const daysInMonth = DateTime.getDaysOfMonthFromYear(year);
           if (day < 1 || day > daysInMonth[month - 1]) throw new Error(`Invalid date: Day must be 1-${daysInMonth[month - 1]}.`);
           const totalDays = DateTime.getTotalDaysSinceStart(year) + daysInMonth.slice(0, month - 1).reduce((a, b) => a + b, 0) + day - 1;
@@ -624,7 +623,7 @@
         }
       }
       Object.defineProperty(Time, 'monthName', { get: function() { return TimeManager.monthNames.EN[this.month - 1]; } });
-      Object.defineProperty(Time, 'monthCNName', { get: function() { return TimeManager.monthNames.CN[Time.month - 1]; } });
+      Object.defineProperty(Time, 'monthNameCN', { get: function() { return TimeManager.monthNames.CN[Time.month - 1]; } });
       window.DateTime = DateTime;
     }
 
@@ -649,19 +648,11 @@
         try {
           this.#updateDateTime();
           this.updateTimeLanguage();
-          if (typeof Time.pass === 'function') {
-            this.originalTimePass = Time.pass;
-            this.log('原始Time.pass方法已保存', 'DEBUG');
-          } else {
-            this.originalTimePass = function (passedSeconds) { V.timeStamp += passedSeconds; return ''; };
-            this.log('使用默认时间流逝实现', 'WARN');
-          }
+          if (typeof Time.pass === 'function') { this.originalTimePass = Time.pass; }
+          else { this.originalTimePass = function (passedSeconds) { V.timeStamp += passedSeconds; return ''; }; }
           Time.pass = (passedSeconds) => {
             try { return this.#handleTimePass(passedSeconds); }
-            catch (error) {
-              this.log(`时间流逝处理错误: ${error.message}`, 'ERROR');
-              return this.originalTimePass(passedSeconds);
-            }
+            catch (error) { this.log(`时间流逝处理错误: ${error.message}`, 'ERROR'); return this.originalTimePass(passedSeconds); }
           };
           this.log('时间事件系统已激活', 'INFO');
           try { getFormattedDate = createDateFormatters().getFormattedDate; } catch(e) { this.log(`getFormattedDate错误: ${e.message}`, 'WARN')};

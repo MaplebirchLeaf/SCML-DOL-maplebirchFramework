@@ -592,9 +592,9 @@ declare global {
     addTo(zone: string, ...widgets: any[]): void;
     storyInit(): void;
     play(zone: string, passageTitle?: string): string;
-    patchPassage(passage: any, title: string): Promise<any>;
+    patchPassage(type: 'before'|'after', passage: any, title: string): Promise<any>;
     widgetInit(passageData: any): Promise<any>;
-    afterPatchModToGame(): Promise<void>;
+    patchModToGame(type: 'before'|'after'): Promise<void>;
   }
 
   interface FrameworkData {
@@ -734,10 +734,11 @@ declare global {
     modifyPCModel(manager: any): Promise<void>;
     use(...args: any[]): this;
     process(type: 'pre' | 'post', options: any): void;
+    faceStyleImagePaths(): Promise<void>;
     render(): Promise<void>;
     Init(): void;
     loadInit(): void;
-    get ZIndices(): any;
+    readonly get ZIndices(): typeof ZIndices;
   }
 
   class Transformation {
@@ -761,7 +762,7 @@ declare global {
     romanceConditions: { [x: string]: (() => any)[] };
     NPCNameList: string[];
     customStats: Record<string, NPCStatConfig>;
-    Sidebar: NPCSidebar;
+    Sidebar: typeof NPCSidebar;
     Clothes: typeof NPCClothes;
     constructor(manager: any);
     add(npcData: NPCData, config?: NPCConfig, translationsData?: Record<string, any>): boolean;
@@ -787,10 +788,10 @@ declare global {
   class NPCSchedules {
     static schedules: Map<string, Schedule>;
     static init(manager: NPCManager): boolean;
-    static add(npcName: string, scheduleConfig: ScheduleConfig, location: string | ((date: EnhancedDate) => string), options?: ScheduleOptions): Schedule;
+    static add(npcName: string, scheduleConfig: ScheduleConfig, location: string | ((date: EnhancedDate) => string) | ((date: EnhancedDate) => Schedule), id?: string | number, options?: ScheduleOptions): Schedule;
     static get(npcName: string): Schedule;
-    static update(npcName: string, specialId: number, updates: Partial<ScheduleSpecial>): Schedule;
-    static remove(npcName: string, specialId: number): Schedule;
+    static update(npcName: string, specialId: string | number, updates: ScheduleUpdateOptions): Schedule;
+    static remove(npcName: string, specialId: string | number): Schedule;
     static clear(npcName: string): Schedule;
     static clearAll(): void;
     static npcList: string[];
@@ -801,19 +802,47 @@ declare global {
     constructor();
     daily: string[];
     specials: ScheduleSpecial[];
-    location: string;
     sortedSpecials: ScheduleSpecial[] | null;
-    add(scheduleConfig: ScheduleConfig, location: string | Schedule | ((date: EnhancedDate) => string | Schedule), options?: ScheduleOptions): Schedule;
-    set(scheduleConfig: ScheduleConfig, location: string | Schedule | ((date: EnhancedDate) => string | Schedule), options?: ScheduleOptions): Schedule;
-    if(condition: (date: EnhancedDate) => boolean, location: string | Schedule | ((date: EnhancedDate) => string | Schedule), options?: ScheduleOptions): Schedule;
-    update(specialId: number, updates: Partial<ScheduleSpecial>): Schedule;
-    remove(specialId: number): Schedule;
-    resolveLocation(loc: string | Schedule | ((date: EnhancedDate) => string | Schedule), date: EnhancedDate): string;
+    readonly location: string;
+    
+    at(scheduleConfig: [number, number] | number, location: string): this;
+    when(condition: (date: EnhancedDate) => boolean, location: string | ((date: EnhancedDate) => string) | ((date: EnhancedDate) => Schedule), id?: string | number, options?: ScheduleOptions): this;
+    update(specialId: string | number, updates: ScheduleUpdateOptions): this;
+    remove(specialId: string | number): this;
+    resolveLocation(loc: string | ((date: EnhancedDate) => string) | ((date: EnhancedDate) => Schedule), date: DateTime): string;
     createEnhancedDate(date: DateTime): EnhancedDate;
     buildEnhancedDateProto(): EnhancedDateProto;
   }
 
-  interface ScheduleSpecial { id: number; condition: (date: EnhancedDate) => boolean; location: string | Schedule | ((date: EnhancedDate) => string | Schedule); priority: number }
+  interface ScheduleSpecial { 
+    id: string | number; 
+    condition: (date: EnhancedDate) => boolean; 
+    location: string | ((date: EnhancedDate) => string) | ((date: EnhancedDate) => Schedule); 
+    before?: string | number; 
+    after?: string | number; 
+    insteadOf?: string | number; 
+    override?: boolean; 
+  }
+  
+  interface ScheduleOptions { 
+    id?: string | number; 
+    before?: string | number; 
+    after?: string | number; 
+    insteadOf?: string | number; 
+    override?: boolean; 
+  }
+  
+  interface ScheduleUpdateOptions {
+    condition?: (date: EnhancedDate) => boolean;
+    location?: string | ((date: EnhancedDate) => string) | ((date: EnhancedDate) => Schedule);
+    before?: string | number;
+    after?: string | number;
+    insteadOf?: string | number;
+    override?: boolean;
+  }
+
+  type ScheduleConfig = [number, number] | number | ((date: EnhancedDate) => boolean);
+
   interface EnhancedDate extends DateTime {
     readonly schedule: Schedule;
     isAt(time: [number, number] | number): boolean;
@@ -829,6 +858,7 @@ declare global {
     readonly autumn: boolean;
     readonly winter: boolean;
     readonly dawn: boolean;
+    readonly day: boolean;
     readonly dusk: boolean;
     readonly night: boolean;
     readonly weekEnd: boolean;
@@ -855,28 +885,22 @@ declare global {
     readonly weekEnd: boolean;
   }
 
-  type ScheduleConfig = [number, number] | number | ((date: EnhancedDate) => boolean) | { condition: (date: EnhancedDate) => boolean };
-  interface ScheduleOptions { id?: string | number; priority?: number; [key: string]: any }
-  interface ScheduleSpecial { id: number; condition: (date: EnhancedDate) => boolean; location: string | Schedule | ((date: EnhancedDate) => string | Schedule); priority: number }
-
   class NPCClothes {
     static log: (msg: string, level?: string) => void;
     manager: NPCManager;
-    clothes: Map<string, NPCClothingItem>;
-    outfits: string[];
+    clothes: Array<object>;
+    static layers: Map<string,any>;
     constructor(manager?: NPCManager);
     static add(...configs: NPCClothesConfig[]): void;
     static init(manager: { log: (msg: string, level?: string) => void }): void;
-    importNPCClothesData(modName: string, filePath: string): Promise<boolean>;
-    #clothesData(data: any): boolean;
+    static import(modeName:string, modZip:JSZip, filePaths:string|string[]): Promise<string[]>;
+    static load(modName?:string, filePath?:string): Promise<void>;
   }
-
-  interface NPCClothingItem { over_upper?: any; over_lower?: any; upper?: any; lower?: any; under_upper?: any; under_lower?: any; over_head?: any; head?: any; face?: any; neck?: any; legs?: any; feet?: any; genital?: any; [key: string]: any }
 
   interface NPCData {
     nam: string;
     title?: string;
-    gender?: 'm' | 'f' | 'h' | 'n' | 't';
+    gender?: 'm'|'f'|'h'|'n'|'t';
     type?: string;
     adult?: number;
     teen?: number;
@@ -916,7 +940,7 @@ declare global {
 
   class NamedNPC {
     nam: string;
-    gender: 'm' | 'f' | 'h' | 'n' | 't';
+    gender: 'm'|'f'|'h'|'n';
     title: string;
     description: string;
     type: string;
@@ -927,7 +951,7 @@ declare global {
     virginity: Record<string, boolean>;
     eyeColour: string;
     hairColour: string;
-    pronoun: string;
+    pronoun: 'm'|'f'|'i'|'n'|'t';
     penissize: number;
     breastsize: number;
     ballssize: number;
@@ -947,8 +971,10 @@ declare global {
     static setup: (manager: any) => void;
   }
 
-  class NPCSidebar { init(force?: boolean): void; static get ZIndices(): any; display: Map 
-    loadFromMod: (modZip:JSZip, npcNames:string) => string[];
+  class NPCSidebar { 
+    init(force?: boolean): void; 
+    static display: Set;
+    static loadFromMod: (modZip:JSZip, npcNames:string) => string[];
   }
 
   class CombatManager {
@@ -1227,6 +1253,9 @@ declare global {
   function hasSexStat(input: string, required: number, modifiers?: boolean): boolean;
   let isPossibleLoveInterest: (name: string) => boolean;
   const ZIndices: { [key: string]: number };
+  function clothesIndex(slot:string, itemToIndex:object): number;
+  function integrityKeyword(worn:object, slot:string): string;
+  function getKylarLocation(): {area:string,state:string};
 }
 
 export {};

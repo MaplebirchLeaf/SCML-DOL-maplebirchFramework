@@ -49,6 +49,18 @@
         <<script>>jQuery('.passage').on('change', 'select.macro-lanListbox', function (e) { maplebirch.SugarCube.Wikifier.wikifyEval('<<updatesidebarimg true>>'); });<</script>>
       <</if>>
     <</widget>>`,
+    `<<widget 'maplebirchNPCHairStyleOptions'>>
+      <span class='gold'><<lanSwitch 'Hair Style: ' '发型：'>></span><span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Adjust hair style' '调整发型样式'>></span>">(?)</span><br> 
+      <<lanSwitch 'Sides: ' '侧发：'>><<lanListbox  '$NPCName[_npcId].hair_side_type' autoselect>><<optionsfrom maplebirch.npc.Sidebar.hair_type('sides')>><</lanListbox>><br>
+      <<lanSwitch 'Fringe: ' '刘海：'>><<lanListbox  '$NPCName[_npcId].hair_fringe_type' autoselect>><<optionsfrom maplebirch.npc.Sidebar.hair_type('fringe')>><</lanListbox>><br>
+      <<radiobuttonsfrom '$NPCName[_npcId].hair_position' '[["front",["Sides in front","两侧头发在身体前"]],["back",["Sides behind","两侧头发在身体后"]]]'>><</radiobuttonsfrom>><br>
+      <<numberStepper '<<lanSwitch "Length" "长度">>' $NPCName[_npcId].hairlength {max: 1000, callback: value => { V.NPCName[T.npcId].hairlength = value; $.wiki('<<replace #maplebirchNPCHairStyleOptions>><<maplebirchNPCHairStyleOptions>><</replace>>') }}>>
+      <<set _NPCHairLength to (function(v) { if (v < 200) return 'ear'; if (v < 400) return 'neck'; if (v < 600) return 'chest'; if (v < 800) return 'waist'; if (v < 1000) return 'knees'; return 'ankles'; })($NPCName[_npcId].hairlength)>>
+      <<radiobuttonsfrom '_NPCHairLength' '[["ear",["Ear","耳朵"]],["neck",["Neck","颈部"]],["chest",["Chest","胸前"]],["waist",["Waist","腰际"]],["knees",["Knees","膝盖"]],["ankles",["Ankles","脚踝"]]]'>>
+        <<set $NPCName[_npcId].hairlength to { ear:0, neck:200, chest:400, waist:600, knees:800, ankles:1000 }[_NPCHairLength]>>
+        <<replace #maplebirchNPCHairStyleOptions>><<maplebirchNPCHairStyleOptions>><</replace>>
+      <</radiobuttonsfrom>>
+    <</widget>>`
   ];
 
   const defaultData = {
@@ -73,28 +85,42 @@
           <span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'After enabling, it overrides the original schedule location detection for Robin and Sydney.' '启用后覆盖原版的罗宾和悉尼的日程地点检测。'>></span>">(?)</span>
         </div>
         <div class='settingsToggleItem'>
-          <span class='gold'><<lanSwitch 'Total Number Of Social Status Displays' '社交栏状态显示总数'>></span>
-          <span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Adjust the total number of status displays for Primary Relationships NPCs in the SOCIAL bar.' '调整社交栏中主要关系NPC的状态显示总数。'>></span>">(?)</span>
-          <br><div class='maplebirch-relationcount-slider'><<numberslider '$options.maplebirch.relationcount' $options.maplebirch.relationcount 2 10 2>></div>
+          <div class='maplebirch-relationcount-slider numberslider-inline'><label>
+            <span class='gold'><<lanSwitch 'Total Number Of Social Status Displays' '社交栏状态显示总数'>></span>
+            <span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Adjust the total number of status displays for Primary Relationships NPCs in the SOCIAL bar.' '调整社交栏中主要关系NPC的状态显示总数。'>></span>">(?)</span>
+            <<numberslider '$options.maplebirch.relationcount' $options.maplebirch.relationcount 2 10 2>>
+          </label></div>
         </div>
-        <div class='settingsToggleItemWide'>
-          <<set _npcsidebarName = {}>>
-          <<set setup.NPCNameList.forEach(name => T.npcsidebarName[maplebirch.autoTranslate(maplebirch.tool.convert(name, 'title'))] = name)>>
-          <label><<checkbox '$options.maplebirch.npcsidebar.show' false true autocheck>><<lanSwitch 'NPC Sidebar Image Display' 'NPC侧边栏图像显示'>></label>|
-          <label><<checkbox '$options.maplebirch.npcsidebar.model' false true autocheck>><<lanSwitch 'PC MODEL MODE' 'PC模型模式'>></label>
+        <div class='settingsToggleItem'></div>
+        <div class='settingsToggleItem'>
+          <label><<checkbox '$options.maplebirch.npcsidebar.show' false true autocheck>><<lanSwitch 'NPC Sidebar Image Display' 'NPC侧边栏图像显示'>></label> | <label><<checkbox '$options.maplebirch.npcsidebar.model' false true autocheck>><<lanSwitch 'PC MODEL MODE' 'PC模型模式'>></label>
           <span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'After enabling the display, named NPCs will show their models when nearby, with the canvas mode set to the player model' '开启显示后命名NPC在附近将显示模型，画布模式为玩家模型'>></span>">(?)</span><br>
-          <span class='gold'><<lanSwitch 'Image Position' '图像位置：'>></span><<radiobuttonsfrom '$options.maplebirch.npcsidebar.position' '[["front",["front","前置"]],["back",["back","后置"]]]'>>
+          <span class='gold'><<lanSwitch 'Image Position: ' '图像位置：'>></span><<radiobuttonsfrom '$options.maplebirch.npcsidebar.position' '[["front",["Front","前置"]],["back",["Back","后置"]]]'>><<updatesidebarimg>><</radiobuttonsfrom>>
           <span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Front: Model appears in front. Back: Model appears behind.' '前置：模型显示在前面。后置：模型显示在后面。'>></span>">(?)</span><br>
+          <span class='gold'><<lanSwitch 'Model Mask: ' '模型遮罩：'>></span><<radiobuttonsfrom '$options.maplebirch.npcsidebar.mask' '[["mask_0",["Small","小"]],["mask_1",["Big","大"]]]'>><<updatesidebarimg>><</radiobuttonsfrom>>
+          <span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Small mask: 112px. Big mask: 128px.' '小遮罩：112px。大遮罩：128px。'>></span>">(?)</span><br>
+          <div class='maplebirch-relationcount-slider numberslider-inline'><label>
+            <span class='gold'><<lanSwitch 'Canvas Model Offset: ' '画布模型偏移：'>></span><<lanLink 'reset' 'capitalize'>><<set $options.maplebirch.npcsidebar.dxfn to -48>><<set $options.maplebirch.npcsidebar.dyfn to -8>><<updatesidebarimg>><<replace #customOverlayContent>><<maplebirchOptions>><</replace>><</lanLink>><br>
+            <<lanSwitch 'Horizontal Offset' '水平偏移'>><<numberslider '$options.maplebirch.npcsidebar.dxfn' $options.maplebirch.npcsidebar.dxfn -72 24 1 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => \`\${v}px\` }>>
+            <<lanSwitch 'Vertical Offset' '垂直偏移'>><<numberslider '$options.maplebirch.npcsidebar.dyfn' $options.maplebirch.npcsidebar.dyfn -26 10 1 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => \`\${v}px\` }>>
+          </label></div>
+        </div>
+        <div class='settingsToggleItem'>
+          <br><label><<checkbox '$options.maplebirch.npcsidebar.freckles' false true autocheck>><<lanSwitch 'Enable Freckles' '启用雀斑'>></label><br>
+          <<language>><<option 'CN'>><<set _npcsidebarDemeanour to { 温柔: 'default', 妩媚: 'catty', 高冷: 'aloof', 甜美: 'sweet', 勾人: 'foxy', 忧郁: 'gloomy' }>><<option 'EN'>><<set _npcsidebarDemeanour to { Gentle: 'default', Catty: 'catty', Aloof: 'aloof', Sweet: 'sweet', Foxy: 'foxy', Gloomy: 'gloomy' }>><</language>>
+          <span class='gold'><<lanSwitch 'Model Demeanour: ' '模型姿态：'>></span><<lanListbox '$options.maplebirch.npcsidebar.facevariant'>><<optionsfrom _npcsidebarDemeanour>><</lanListbox>><br>
           <span class='gold'><<lanSwitch 'Skin Tone: ' '皮肤色调：'>></span><<set _npcsidebarSkinTone to ''>>
           <<radiobuttonsfrom '_npcsidebarSkinTone' '[["",["Neutral","中性"]],["r",["Warm","暖色"]],["g",["Golden","金色"]],["y",["Olive","橄榄色"]],["b",["Cool","冷色"]]]'>><<set $options.maplebirch.npcsidebar.skin_type to _npcsidebarSkinTone + _npcsidebarSkinShade>><</radiobuttonsfrom>><br>
           <span class='gold'><<lanSwitch 'Skin Shade: ' '肤色明暗：'>></span><<set _npcsidebarSkinShade to 'light'>>
           <<radiobuttonsfrom '_npcsidebarSkinShade' '[["light",["Light","明亮"]],["medium",["Medium","适中"]],["dark",["Dark","暗沉"]],["gyaru",["Gyaru","辣妹"]]]'>><<set $options.maplebirch.npcsidebar.skin_type to _npcsidebarSkinTone + _npcsidebarSkinShade>><</radiobuttonsfrom>>
           <span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Skin Tone: The underlying tone of the skin. Cool, Warm, Golden, Olive, or Neutral. Skin Shade: The lightness or darkness of the skin surface. Gyaru is a tanned style.' '皮肤色调：皮肤的底层色调。冷色、暖色、金色、橄榄色或中性。肤色明暗：皮肤表面的明暗程度。辣妹为美黑风格。'>></span>">(?)</span><br>
-          <div class="numberslider-inline">
-            <label><span class="gold"><<lanSwitch 'Tan: ' '日晒：'>></span>
-            <<numberslider "$options.maplebirch.npcsidebar.tan" $options.maplebirch.npcsidebar.tan 0 100 1 { onInputChange: value => { Wikifier.wikifyEval("<<updatesidebarimg>>"); }, value: v => \`\${v}%\` }>>
-            </label>
-          </div>
+          <div class='maplebirch-relationcount-slider numberslider-inline'><label><span class='gold'><<lanSwitch 'Tan: ' '日晒：'>></span>
+            <<numberslider '$options.maplebirch.npcsidebar.tan' $options.maplebirch.npcsidebar.tan 0 100 1 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => \`\${v}%\` }>>
+          </label></div>
+        </div>
+        <div class='settingsToggleItemWide'>
+          <<set _npcsidebarName = {}>>
+          <<set setup.NPCNameList.forEach(name => T.npcsidebarName[maplebirch.autoTranslate(maplebirch.tool.convert(name, 'title'))] = name)>>
           <<lanListbox '$options.maplebirch.npcsidebar.nnpc' autoselect>><<optionsfrom _npcsidebarName>><</lanListbox>>
           <<if $options.maplebirch.npcsidebar.nnpc>>
             <<set _npcsidebarSet to maplebirch.npc.Sidebar.display.get($options.maplebirch.npcsidebar.nnpc) ?? new Set()>>
@@ -221,6 +247,7 @@
       { srcmatch: /(?:<<NPC_CN_NAME \$NPCName\[_npcId\]\.nam>>——<span style="text-transform: capitalize;"><<print[\s\S]*?>><\/span>|\$NPCName\[_npcId\]\.nam the <span style="text-transform: capitalize;">\$NPCName\[_npcId\]\.title<\/span>|<<NPC_CN_NAME \$NPCName\[_npcId\]\.nam>>——<span style="text-transform: capitalize;"><<print setup\.NPC_CN_TITLE\(\$NPCName\[_npcId\]\.title\)>><\/span>)/, to: '<<= maplebirch.autoTranslate($NPCName[_npcId].nam) + (maplebirch.Language is "CN" ? "——" : " the ")>><span style="text-transform: capitalize;"><<= maplebirch.autoTranslate($NPCName[_npcId].title)>></span>' },
       { srcmatchgroup: /<<if _npcList\[(?:\$NPCName\[_npcId\]\.nam(?:\.replace\([^)]+\))*|setup\.NPC_CN_NAME\(\$NPCName\[_npcId\]\.nam\))\] is undefined>>/g, to: '<<if _npcList[maplebirch.lang.t($NPCName[_npcId].nam)] is undefined>>' },
       { src: '\t\t\t</span>\n\t\t</div>\n\t\t<div class="settingsToggleItem">\n\t\t\t<span class="gold">', applybefore: '\t\t\t<<if $debug is 1>>| <label><<radiobutton "$NPCName[_npcId].pronoun" "n" autocheck>><<= maplebirch.lang.t("hermaphrodite")+"/"+maplebirch.lang.t("asexual")>></label><</if>>\n' },
+      { src: '</span>\n\t\t\t<</if>>\n\t\t</div>', applyafter: '\n\t\t<div id="maplebirchNPCHairStyleOptions" class="settingsToggleItemWide"><<maplebirchNPCHairStyleOptions>></div>' },
     ],
     Widgets: [
       { src: 'T.getStatConfig = function(stat) {', applybefore: 'maplebirch.npc.applyStatDefaults(statDefaults);\n\t\t\t' },

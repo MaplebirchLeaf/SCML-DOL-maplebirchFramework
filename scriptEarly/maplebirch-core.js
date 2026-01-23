@@ -5,7 +5,7 @@ var maplebirch = (() => {
   const frameworkVersion = modUtils.getMod('maplebirch').version;
   const lastUpdate = '2026.01.02';
   const lastModifiedBy = '楓樺葉';
-  const DEBUGMODE = false;
+  const DEBUGMODE = true;
 
   const ModuleState = {
     PENDING:   0,
@@ -1204,7 +1204,7 @@ var maplebirch = (() => {
       /** @type {string[]} */
       this.modList = [];
       this.logger = new Logger(this);
-      this.events = new EventEmitter(this);
+      this.tracer = new EventEmitter(this);
       this.idb = new IndexedDBService(this);
       this.lang = new LanguageManager(this);
       this.modules = new ModuleSystem(this);
@@ -1217,19 +1217,19 @@ var maplebirch = (() => {
     }  
     /** @param {string} evt @param {Function} handler */
     on(evt, handler, desc = '') {
-      return this.events.on(evt, handler, desc);
+      return this.tracer.on(evt, handler, desc);
     }
     /** @param {string} evt @param {string|Function} identifier */
     off(evt, identifier) {
-      return this.events.off(evt, identifier);
+      return this.tracer.off(evt, identifier);
     }
     /** @param {string} evt @param {Function} handler */
     once(evt, handler, desc = '') {
-      return this.events.once(evt, handler, desc);
+      return this.tracer.once(evt, handler, desc);
     }    
     /** @param {string} evt @param {...any} args */
     async trigger(evt, ...args) {
-      await this.events.trigger(evt, ...args);
+      await this.tracer.trigger(evt, ...args);
     }
     /** @param {string} name @param {any} module @param {string[]} [dependencies] @param {boolean|undefined} [isExtension] */
     async register(name, module, dependencies = [], isExtension) {
@@ -1262,7 +1262,7 @@ var maplebirch = (() => {
 
     set Language(lang) {
       this.lang.setLanguage(lang);
-      this.events.trigger(':languageChange');
+      this.tracer.trigger(':languageChange');
     }
 
     set LogLevel(level) {
@@ -1384,7 +1384,7 @@ var maplebirch = (() => {
         tryPostInit();
       });
 
-      this.on(':passageend' , async () => setTimeout(() => this.events.trigger(':finally'), 500));
+      this.on(':passageend' , async () => setTimeout(() => this.trigger(':finally'), 500));
 
       this.once(':storyready' , async () => {
         SugarCube.Save.onSave.add(async() => this.trigger(':onSave', State));

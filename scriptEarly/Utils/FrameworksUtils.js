@@ -994,12 +994,13 @@
 
     /**
      * 主段落处理函数
+     * @param {'before'|'after'} type - 时机类型
      * @param {Object<any,any>} passage - 段落对象
      * @param {string} title - 段落标题
      * @returns {Promise<Object>} 处理后的段落
      */
-    async patchPassage(passage, title) { 
-      if (!this.patchedPassage.has(title)) {
+    async patchPassage(type, passage, title) { 
+      if (!this.patchedPassage.has(title) && type === 'before') {
         if (passage.tags.includes('widget')) {
           if (Object.keys(this.widgetPassage).length > 0) passage = this.#applyContentPatches(passage, title, this.widgetPassage);
         } else {
@@ -1007,7 +1008,7 @@
         }
         this.patchedPassage.add(title);
       }
-      passage = this.#wrapSpecialPassages(passage, title);
+      if (type === 'after') if (!passage.tags.includes('widget')) passage = this.#wrapSpecialPassages(passage, title);
       return passage;
     }
 
@@ -1041,17 +1042,17 @@
       return passageData;
     }
 
-    // 在Mod注入后执行的主要处理函数
-    async afterPatchModToGame() {
+    /** @param {'before'|'after'} type */
+    async patchModToGame(type) {
       const oldSCdata = modSC2DataManager.getSC2DataInfoAfterPatch();
       const SCdata = oldSCdata.cloneSC2DataInfo();
       const passageData = SCdata.passageDataItems.map;
   
-      await this.widgetInit(passageData);
+      if (type === 'before') await this.widgetInit(passageData);
       
       for (const [title, passage] of passageData) {
         try {
-          this.patchPassage(passage, title);
+          this.patchPassage(type, passage, title);
         } catch (/**@type {any}*/e) {
           const errorMsg = e?.message ? e.message : e;
           this.log(`处理段落 ${title} 时出错: ${errorMsg}`, 'ERROR');

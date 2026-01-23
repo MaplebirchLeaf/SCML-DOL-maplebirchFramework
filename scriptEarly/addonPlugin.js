@@ -144,9 +144,18 @@
             }
           }
           if (config.Stats && typeof config.Stats === 'object') addon.core.npc.addStats(config.Stats);
-          if (config.Sidebar && Array.isArray(config.Sidebar)) {
-            const imagePaths = addon.core.npc.Sidebar.loadFromMod(modZip, config.Sidebar);
-            if (imagePaths.length > 0) await Process.#injectBSAImages(addon, modName, modZip, imagePaths);
+          if (config.Sidebar && typeof config.Sidebar === 'object') {
+            const allImagePaths = [];
+            if (Array.isArray(config.Sidebar.clothes)) for (const filePath of config.Sidebar.clothes) await addon.core.npc.Clothes.load(modName, filePath);
+            if (Array.isArray(config.Sidebar.image)) {
+              const imagePaths = addon.core.npc.Sidebar.loadFromMod(modZip, config.Sidebar.image);
+              if (imagePaths.length > 0) allImagePaths.push(...imagePaths);
+            }
+            if (Array.isArray(config.Sidebar.config)) {
+              const clothesImagePaths = await addon.core.npc.Clothes.import(modName, modZip, config.Sidebar.config);
+              if (clothesImagePaths.length > 0) allImagePaths.push(...clothesImagePaths);
+            }
+            if (allImagePaths.length > 0) await Process.#injectBSAImages(addon, modName, modZip, allImagePaths);
           }
         }
         addon.processed.npc = true;
@@ -264,18 +273,20 @@
     }
 
     async afterRegisterMod2Addon() {
+      try { await this.core.char.faceStyleImagePaths(); } catch (/**@type {any}*/e) { this.core.log(`faceStyleImagePaths函数错误: ${e.message}`, 'ERROR') }
       await this.#executeScripts(this.jsFiles, 'Script');
       this.processed.script = true;
     }
 
     async afterPatchModToGame() {
-      await this.core.tool.framework.afterPatchModToGame();
+      await this.core.tool.framework.patchModToGame('after');
     }
 
     async beforePatchModToGame() {
       await this.core.trigger(':import');
       await this.#dataReplace();
       await this.#processInit();
+      try { await this.core.tool.framework.patchModToGame('before'); } catch (/**@type {any}*/e) { this.core.log(`框架数据修改失败: ${e.message}`, 'ERROR'); }
       try { await this.core.shop.beforePatchModToGame(); } catch (/**@type {any}*/e) { this.core.log(`商店数据注入失败: ${e.message}`, 'ERROR'); }
     }
 
@@ -295,13 +306,10 @@
       if (!Array.isArray(modNames) || modNames.length === 0) return;
       for (const modName of modNames) {
         try {
-          const mod = this.gModUtils.getMod(modName);
-          if (!mod || !mod.bootJson) continue;
-          const bootJson = mod.bootJson;
-          const modZip = this.gModUtils.getModZip(modName);
-          if (!modZip) continue;
+          const bootJson = this.gModUtils.getMod(modName).bootJson;
           const config = bootJson.addonPlugin?.find((/**@type {{ modName: string; addonName: string; }}*/p) => p.modName === 'maplebirch' && p.addonName === 'maplebirchAddon');
-          if (!config?.params) continue;
+          const modZip = this.gModUtils.getModZip(modName);
+          if (!config?.params || !modZip) continue;
           if (Array.isArray(config.params?.module)) await this.#loadFilesArray(modName, modZip, config.params.module, true);
           if (Array.isArray(config.params?.script)) await this.#loadFilesArray(modName, modZip, config.params.script, false);
         } catch (/**@type {any}*/e) {

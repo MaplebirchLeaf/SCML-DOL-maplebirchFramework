@@ -300,7 +300,7 @@
     }
 
     // <<lanListbox>>
-    _lanListbox() {
+    _languageListbox() {
       try {
         if (!this.args || this.args.length === 0) return this.error('<<lanListbox>> 需要至少一个参数：变量名');
         const varName = String(this.args[0]).trim();
@@ -319,15 +319,15 @@
         }
         const options = [];
         let selectedIdx = -1;
+        const dynamic = { payloads: [], expressions: [] };
         for (let i = 1; i < this.payload.length; ++i) {
           const payload = this.payload[i];
-
           if (payload.name === 'option') {
             if (payload.args.length === 0) return this.error('<<option>> 需要参数');
             const label = String(payload.args[0]);
             const value = payload.args.length > 1 ? payload.args[1] : label;
             const isSelected = payload.args.includes('selected');
-            options.push({ label, value });
+            options.push({ label, value, type: 'static' });
             if (isSelected) {
               if (config.autoselect) return this.error('不能同时指定 autoselect 和 selected');
               if (selectedIdx !== -1) return this.error('只能有一个选中选项');
@@ -335,6 +335,8 @@
             }
           } else if (payload.name === 'optionsfrom') {
             if (!payload.args.full) return this.error('<<optionsfrom>> 需要表达式');
+            dynamic.payloads.push(payload);
+            dynamic.expressions.push(payload.args.full);
             let result;
             try {
               const exp = payload.args.full;
@@ -344,21 +346,19 @@
             }
             if (typeof result !== 'object' || result === null) return this.error('表达式必须返回对象或数组');
             if (Array.isArray(result) || result instanceof Set) {
-              result.forEach(val => options.push({ label: String(val), value: val }));
+              result.forEach(val => options.push({ label: String(val), value: val, type: 'dynamic', exprIndex: dynamic.expressions.length - 1 }));
             } else if (result instanceof Map) {
-              result.forEach((val, key) => options.push({ label: String(key), value: val }));
+              result.forEach((val, key) => options.push({ label: String(key), value: val, type: 'dynamic', exprIndex: dynamic.expressions.length - 1 }));
             } else {
-              Object.keys(result).forEach(key => options.push({ label: key, value: result[key] }));
+              Object.keys(result).forEach(key => options.push({ label: key, value: result[key], type: 'dynamic', exprIndex: dynamic.expressions.length - 1 }));
             }
           }
         }
-
         if (options.length === 0) return this.error('没有指定选项');
         if (selectedIdx === -1) {
           selectedIdx = config.autoselect ? options.findIndex(opt => maplebirch.SugarCube.Util.sameValueZero(opt.value, State.getVar(varName))) : 0;
           if (selectedIdx === -1) selectedIdx = 0;
         }
-
         const $select = jQuery(document.createElement('select'))
           .attr({
             id: `lanListbox-${varId}`,
@@ -369,26 +369,78 @@
           .on('change.macros', this.createShadowWrapper(function () { State.setVar(varName, options[Number(this.value)].value); }));
         if (customClasses) customClasses.split(/\s+/).forEach(cls => { if (cls.trim()) $select.addClass(cls.trim()); });
         if (inlineStyle) $select.attr('style', inlineStyle);
-        options.forEach((opt, i) => {
-          jQuery(document.createElement('option'))
-            .val(i)
-            .text(Internals.macroTranslation(opt.label, maplebirch) || opt.label)
-            .attr('data-translation-key', opt.label)
-            .prop('selected', i === selectedIdx)
-            .appendTo($select);
-        });
-
-        $select.appendTo(this.output);
-        State.setVar(varName, options[selectedIdx].value);
-        const updateTexts = () => {
-          $select.find('option').each(function () {
-            const $opt = $(this);
-            const newText = Internals.macroTranslation($opt.attr('data-translation-key'), maplebirch) || $opt.attr('data-translation-key');
-            $opt.text(newText);
+        const create = (opts, selectIdx) => {
+          $select.empty();
+          opts.forEach((opt, i) => {
+            jQuery(document.createElement('option'))
+              .val(i)
+              .text(Internals.macroTranslation(opt.label, maplebirch) || opt.label)
+              .attr('data-translation-key', opt.label)
+              .attr('data-opt-type', opt.type)
+              .attr('data-expr-index', opt.exprIndex || -1)
+              .prop('selected', i === selectIdx)
+              .appendTo($select);
           });
         };
-        setup.maplebirch.language.add('lanListbox', updateTexts);
-        $select.on('remove', () => setup.maplebirch.language.remove('lanListbox', updateTexts));
+        create(options, selectedIdx);
+        $select.appendTo(this.output);
+        State.setVar(varName, options[selectedIdx].value);
+        if (!this.lanListboxCache) this.lanListboxCache = {};
+        const updateOptions = () => {
+          const cacheKey = maplebirch.Language;
+          if (this.lanListboxCache[cacheKey]) {
+            const cached = this.lanListboxCache[cacheKey];
+            options.length = 0;
+            cached.options.forEach(o => options.push(o));
+            create(options, cached.selectedIdx);
+            selectedIdx = cached.selectedIdx;
+            State.setVar(varName, options[selectedIdx].value);
+            return;
+          }
+          const freshOpts = [];
+          for (let i = 1; i < this.payload.length; ++i) {
+            const p = this.payload[i];
+            if (p.name === 'option') {
+              const lbl = String(p.args[0]);
+              const val = p.args.length > 1 ? p.args[1] : lbl;
+              freshOpts.push({ label: lbl, value: val, type: 'static', exprIdx: -1 });
+            } else if (p.name === 'optionsfrom') {
+              let res;
+              try {
+                const exp = p.args.full;
+                res = maplebirch.SugarCube.Scripting.evalJavaScript(exp[0] === '{' ? `(${exp})` : exp);
+              } catch (ex) {
+                maplebirch.log(`<<lanListbox>> 重新计算表达式错误: ${ex.message}`, 'ERROR');
+                continue;
+              }
+              if (typeof res !== 'object' || res === null) continue;
+              const exprIdx = dynamic.expressions.indexOf(p.args.full);
+              if (Array.isArray(res) || res instanceof Set) {
+                res.forEach(v => freshOpts.push({ label: String(v), value: v, type: 'dynamic', exprIdx }));
+              } else if (res instanceof Map) {
+                res.forEach((v, k) => freshOpts.push({ label: String(k), value: v, type: 'dynamic', exprIdx }));
+              } else {
+                Object.keys(res).forEach(k => freshOpts.push({ label: k, value: res[k], type: 'dynamic', exprIdx }));
+              }
+            }
+          }
+          if (freshOpts.length > 0) {
+            const currVal = State.getVar(varName);
+            const newIdx = config.autoselect ? freshOpts.findIndex(o => maplebirch.SugarCube.Util.sameValueZero(o.value, currVal)) : selectedIdx;
+            options.length = 0;
+            freshOpts.forEach(o => options.push(o));
+            const finalIdx = newIdx !== -1 ? newIdx : 0;
+            create(options, finalIdx);
+            selectedIdx = finalIdx;
+            if (newIdx === -1) State.setVar(varName, freshOpts[0].value);
+            this.lanListboxCache[cacheKey] = {
+              options: [...freshOpts],
+              selectedIdx: finalIdx
+            };
+          }
+        };
+        setup.maplebirch.language.add('lanListbox', updateOptions);
+        $select.on('remove', () => { setup.maplebirch.language.remove('lanListbox', updateOptions); delete this.lanListboxCache; });
       } catch (e) {
         maplebirch.log('<<lanListbox>> 错误', 'ERROR', e);
         return this.error(`<<lanListbox>> 错误: ${e.message}`);
@@ -557,8 +609,8 @@
       <div class='p-2 text-align-center'>
         <h3>[[<<lanSwitch 'Maplebirch Framework' '秋枫白桦框架'>>|'https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchframework']]</h3>
         <div class='m-2'><span class='gold'><<lanSwitch 'Version: ' '版本：'>></span>${this.core.meta.version}<br></div>
-        <div class='m-2'><span class='gold'><<lanSwitch 'Author: ' '作者：'>></span>${this.core.autoTranslate(this.core.meta.author)}<br></div>
-        <div class='m-2'><span class='gold'><<lanSwitch 'Last Modified By: ' '最后修改者：'>></span>${this.core.autoTranslate(this.core.meta.modifiedby)}<br></div>
+        <div class='m-2'><span class='gold'><<lanSwitch 'Author: ' '作者：'>></span>${this.core.meta.author}<br></div>
+        <div class='m-2'><span class='gold'><<lanSwitch 'Last Modified By: ' '最后修改者：'>></span>${this.core.meta.modifiedby}<br></div>
       </div>`;
 
       this.#getModDependenceInfo();
@@ -630,7 +682,7 @@
         this.core.tool.widget.defineMacro('lanSwitch', this._languageSwitch);
         this.core.tool.widget.defineMacro('lanButton', this._languageButton, null, false, true);
         this.core.tool.widget.defineMacro('lanLink', this._languageLink, null, false, true);
-        this.core.tool.widget.defineMacro('lanListbox', this._lanListbox, ['option', 'optionsfrom'], ['optionsfrom'], true);
+        this.core.tool.widget.defineMacro('lanListbox', this._languageListbox, ['option', 'optionsfrom'], ['optionsfrom'], true);
         this.core.tool.widget.defineMacro('radiobuttonsfrom', this._radiobuttonsfrom, null, false, true);
         this.core.tool.widget.defineMacro('maplebirchReplace', (name, type) => this._overlayReplace(name, type));
         this.core.tool.widget.defineMacro('maplebirchTextOutput', this.core.tool.text.makeMacroHandler());
@@ -651,6 +703,11 @@
       $(document).on('change', 'select[name="lanListbox-optionsmaplebirchnpcsidebarnnpc"]', function () {
         if (!maplebirch.modules.initPhase.preInitCompleted) return;
         try { $.wiki('<<replace #customOverlayContent>><<maplebirchOptions>><</replace>>'); } catch (error) { console.log('图形选择错误:', error); }
+      });
+
+      $(document).on('change', 'select[name="lanListbox-optionsmaplebirchnpcsidebarfacevariant"]', function () {
+        if (!maplebirch.modules.initPhase.preInitCompleted) return;
+        try { $.wiki('<<updatesidebarimg>>'); } catch (error) { console.log('姿态更新错误:', error); }
       });
 
       $(document).on('click', '.link-internal.macro-button', () => {

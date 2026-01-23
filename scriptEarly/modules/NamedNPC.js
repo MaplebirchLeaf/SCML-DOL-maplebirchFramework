@@ -66,7 +66,7 @@
 
     /**
      * @param {NPCManager} manager
-     * @param {{ [x: string]: any; nam: any; gender:'m'|'f'|'i'|'n'|'t';}} npcData
+     * @param {{ [x: string]: any; nam: any; gender:'m'|'f'|'h'|'n'; pronoun: 'm'|'f'|'i'|'n'|'t';}} npcData
      * @param {any} config
      * @param {{ [x: string]: any; hasOwnProperty: (arg0: string) => any; }} translationsData
      */
@@ -87,12 +87,12 @@
     class NamedNPC {
       /**
        * @param {NPCManager} manager
-       * @param {{ nam: any; gender:'m'|'f'|'i'|'n'|'t'; title?: any; description?: any; type?: any; adult?: any; teen?: any; insecurity?: any; chastity?: any; virginity?: any; eyeColour?: any; hairColour?: any; pronoun?: any; bottomsize?: any; pregnancy?: any; skincolour?: any; init?: any; intro?: any; }} data
+       * @param {{ [x:string]:any; nam:any; gender:'m'|'f'|'h'|'n'|'none'; pronoun:'m'|'f'|'i'|'n'|'t'; }} data
        */
       constructor(manager, data) {
         if (!data.nam) manager.log('NamedNPC必须存在nam', 'ERROR');
         this.nam = data.nam;
-        this.gender = data.gender ?? manager.tool.either(['m', 'f', 'h', 'n'], { weights: [0.47, 0.47, 0.05, 0.01] });;
+        this.gender = data.gender ?? manager.tool.either(['m', 'f', 'h', 'n'], { weights: [0.47, 0.47, 0.05, 0.01] });
         this.title = data.title ?? 'none';
         this.description = data.description ?? this.nam;
         this.type = data.type ?? 'human';
@@ -102,10 +102,14 @@
         this.insecurity = data.insecurity ?? manager.tool.either(insecurity);
         this.chastity = typeof data.chastity === 'object' ? data.chastity : {penis: '', vagina: '', anus: ''};
         this.virginity = typeof data.virginity === 'object' ? data.virginity : virginityTypes;
+        this.hair_side_type = data.hair_side_type ?? 'default';
+        this.hair_fringe_type = data.hair_fringe_type ?? 'default';
+        this.hair_position = data.hair_position ?? 'back';
+        this.hairlength = data.hairlength ?? manager.tool.either(0, 200, 400, 600, 800, 1000);
         this.eyeColour = data.eyeColour ?? manager.tool.either(eyeColour);
         this.hairColour = data.hairColour ?? manager.tool.either(hairColour);
-        this.pronoun = data.pronoun ?? this.gender;
-        manager.tool.core.modUtils.getMod('ModI18N') ? this.pronouns = pronounsMap[this.gender].CN : Object.defineProperty(this, 'pronouns', { get: () => pronounsMap[this.gender][manager.tool.core.Language] });
+        this.pronoun = data.pronoun ?? (['m','f','i','n','t'].includes(this.gender) ? this.gender : manager.tool.either('m','f'));
+        if (this.gender !== 'none') manager.tool.core.modUtils.getMod('ModI18N') ? this.pronouns = pronounsMap[this.pronoun].CN : Object.defineProperty(this, 'pronouns', { get: () => pronounsMap[this.pronoun][manager.tool.core.Language] });
         this.#setPronouns(manager, data);
         this.bottomsize = data.bottomsize ?? manager.tool.random(4);
         this.#bodyPartdescription(manager);
@@ -312,7 +316,7 @@
     function getNamedNPC(manager) {
       if (!V.NPCName) return [];
       const NamedNPCs = manager.tool.clone(V.NPCName);
-      manager.NPCNameList = NamedNPCs.map((/**@type {{ nam: any; }}*/npc) => npc.nam);
+      manager.NPCNameList = NamedNPCs.map((/**@type {{ nam: string; }}*/npc) => npc.nam);
       const NowNPCNameList = new Set(manager.NPCNameList || []);
       const NewNPCNameList = [];
       for (const npc of NamedNPCs) {
@@ -447,20 +451,16 @@
     class Schedule {
       constructor() {
         this.daily = new Array(24).fill('');
-        /** @type {any[]} */
+        /** @type {Array<{id: string|number; condition: Function; location: any; before?: string|number; after?: string|number; insteadOf?: string|number; override?: boolean}>} */
         this.specials = [];
         this.sortedSpecials = null;
       }
 
-      /** @param {string|number|any[]} scheduleConfig @param {any} location @param {{id:number|string; priority: number}|Object<any,any>} options*/
-      add(scheduleConfig, location, options = {}) {
-        const { id, priority = 0 } = options;
-        if (typeof scheduleConfig === 'function') {
-          this.specials.push({ id: id ?? (nextId++), condition: scheduleConfig, location, priority });
-          this.sortedSpecials = null;
-        } else if (Array.isArray(scheduleConfig) && scheduleConfig.length === 2) {
+      /** @param {string|number|any[]} scheduleConfig @param {any} location */
+      at(scheduleConfig, location) {
+        if (Array.isArray(scheduleConfig) && scheduleConfig.length === 2) {
           const [start, end] = scheduleConfig;
-          if (start > end) return maplebirch.log('起始时间不能大于结束时间', 'ERROR');
+          if (start > end) { maplebirch.log('起始时间不能大于结束时间', 'ERROR'); return this; }
           for (let hour = start; hour <= end; hour++) if (hour >= 0 && hour <= 23) this.daily[hour] = location;
         } else if (typeof scheduleConfig === 'number') {
           if (scheduleConfig >= 0 && scheduleConfig <= 23) this.daily[scheduleConfig] = location;
@@ -468,30 +468,64 @@
         return this;
       }
 
-      /** @param {any} specialId @param {{ condition: null; location: null; priority: null; }} updates */
-      update(specialId, updates) {
-        const special = this.specials.find(s => s.id === specialId);
-        if (special) {
-          if (updates.condition != null) special.condition = updates.condition;
-          if (updates.location != null) special.location = updates.location;
-          if (updates.priority != null) special.priority = updates.priority;
-          this.sortedSpecials = null;
-        }
+      /** @param {Function} condition @param {any} location @param {string} id @param {Object} options */
+      when(condition, location, id, options = {}) {
+        this.specials.push({id: id || (nextId++).toString(), condition, location, ...options});
+        this.sortedSpecials = null;
         return this;
       }
 
-      /** @param {any} specialId */
+      /** @param {string|number} specialId @param {Object} updates */
+      update(specialId, updates) {
+        const special = this.specials.find(s => s.id === specialId);
+        if (special) { Object.assign(special, updates); this.sortedSpecials = null; }
+        return this;
+      }
+
+      /** @param {string|number} specialId */
       remove(specialId) {
         this.specials = this.specials.filter(s => s.id !== specialId);
         this.sortedSpecials = null;
         return this;
       }
 
+      sortSpecials() {
+        if (this.sortedSpecials) return;
+        const overrides = this.specials.filter(s => s.override);
+        const nonOverrides = this.specials.filter(s => !s.override);
+        this.sortedSpecials = [...overrides, ...this.topologicalSort(nonOverrides)];
+      }
+
+      /** @param {any[]} items */
+      topologicalSort(items) {
+        const graph = new Map(), inDegree = new Map(), idToItem = new Map();
+        items.forEach(item => { graph.set(item.id, new Set()); inDegree.set(item.id, 0); idToItem.set(item.id, item); });
+        items.forEach(item => {
+          const addEdge = (/**@type {any}*/from, /**@type {any}*/to) => { graph.get(from).add(to); inDegree.set(to, (inDegree.get(to) || 0) + 1); };
+          if (item.before && idToItem.has(item.before)) addEdge(item.id, item.before);
+          if (item.after && idToItem.has(item.after)) addEdge(item.after, item.id);
+          if (item.insteadOf && idToItem.has(item.insteadOf)) addEdge(item.id, item.insteadOf);
+        });
+        const queue = [...inDegree.entries()].filter(([_, degree]) => degree === 0).map(([id]) => id);
+        const sorted = [];
+        while (queue.length) {
+          const current = queue.shift();
+          sorted.push(idToItem.get(current));
+          for (const neighbor of graph.get(current) || []) {
+            inDegree.set(neighbor, inDegree.get(neighbor) - 1);
+            if (inDegree.get(neighbor) === 0) queue.push(neighbor);
+          }
+        }
+        if (sorted.length !== items.length) maplebirch.log('NPCSchedules: 条件依赖存在环', 'WARN');
+        return sorted.length === items.length ? sorted : items;
+      }
+
       // @ts-ignore
       get location() {
         const date = new DateTime(Time.date);
         if (this.specials.length > 0) {
-          if (!this.sortedSpecials) this.sortedSpecials = [...this.specials].sort((a, b) => b.priority - a.priority);
+          this.sortSpecials();
+          // @ts-ignore
           for (const special of this.sortedSpecials) {
             const enhancedDate = this.createEnhancedDate(date);
             if (special.condition(enhancedDate)) return this.resolveLocation(special.location, date);
@@ -499,7 +533,7 @@
         }
         return this.daily[Time.date.hour] ?? '';
       }
-      
+
       // @ts-ignore
       resolveLocation(loc, date) {
         try {
@@ -515,7 +549,10 @@
             return '';
           }
           return typeof loc === 'string' ? loc : String(loc || '');
-        } catch(e) { maplebirch.log('NPCSchedules: resolveLocation', 'ERROR', e) }
+        } catch(e) { 
+          maplebirch.log('NPCSchedules: resolveLocation', 'ERROR', e); 
+          return ''; 
+        }
       }
       
       /** @param {DateTime} date */
@@ -524,73 +561,52 @@
         const enhancedDate = Object.create(enhancedDateProto);
         const schedule = new Schedule();
         Object.defineProperty(enhancedDate, 'schedule', { value: schedule });
+        const specialProps = {
+          schoolDay: () => Time.schoolDay,
+          spring:    () => Time.season === 'spring',
+          summer:    () => Time.season === 'summer',
+          autumn:    () => Time.season === 'autumn',
+          winter:    () => Time.season === 'winter',
+          dawn:      () => Time.dayState === 'dawn',
+          day:       () => Time.dayState === 'day',
+          dusk:      () => Time.dayState === 'dusk',
+          night:     () => Time.dayState === 'night',
+          weekEnd:   () => Time.date.weekEnd
+        };
+        for (const [prop, getter] of Object.entries(specialProps)) if (!Object.prototype.hasOwnProperty.call(enhancedDate, prop)) Object.defineProperty(enhancedDate, prop, { get: getter });
         // @ts-ignore
-        for (const key in date) if (!Object.prototype.hasOwnProperty.call(enhancedDate, key)) Object.defineProperty(enhancedDate, key, {get: function () { return date[key]; }});
+        for (const key in date) if (!Object.prototype.hasOwnProperty.call(enhancedDate, key)) Object.defineProperty(enhancedDate, key, { get: function() { return date[key]; } });
         // @ts-ignore
-        for (const key in Time) if (typeof Time[key] !== 'function' && !Object.prototype.hasOwnProperty.call(enhancedDate, key)) Object.defineProperty(enhancedDate, key, {get: function () { return Time[key]; }});
+        for (const key in Time) if (typeof Time[key] !== 'function' && !Object.prototype.hasOwnProperty.call(enhancedDate, key)) Object.defineProperty(enhancedDate, key, { get: function() { return Time[key]; } });
         return enhancedDate;
       }
 
       buildEnhancedDateProto() {
         const proto = Object.create(null);
-        proto.isAt = function(/**@type {[any,(0|undefined)?]}*/time) {
-          const [hour, minute = 0] = Array.isArray(time) ? time : [time];
-          return this.hour === hour && this.minute === minute;
-        };
-        proto.isAfter = function(/**@type {[any,(0|undefined)?]}*/ time) {
-          const [hour, minute = 0] = Array.isArray(time) ? time : [time];
-          return (this.hour * 60 + this.minute) > (hour * 60 + minute);
-        };
-        proto.isBefore = function(/**@type {[any, (0|undefined)?]}*/ time) {
-          const [hour, minute = 0] = Array.isArray(time) ? time : [time];
-          return (this.hour * 60 + this.minute) < (hour * 60 + minute);
-        };
-        proto.isBetween = function(/**@type {[any,(0|undefined)?]}*/startTime, /**@type {[any,(0|undefined)?]}*/endTime) {
-          const [startHour, startMinute = 0] = Array.isArray(startTime) ? startTime : [startTime];
-          const [endHour, endMinute = 0] = Array.isArray(endTime) ? endTime : [endTime];
-          return (this.hour * 60 + this.minute) >= (startHour * 60 + startMinute) && (this.hour * 60 + this.minute) <= (endHour * 60 + endMinute);
-        };
-        proto.isHour = function(/**@type {any[]}*/ ...hours) { return hours.includes(this.hour); };
-        proto.isHourBetween = function(/**@type {number}*/ start, /**@type {number}*/ end) { return this.hour >= start && this.hour <= end; };
-        proto.isMinuteBetween = function(/**@type {number}*/ start, /**@type {number}*/ end) { return this.minute >= start && this.minute <= end; };
-        Object.defineProperties(proto, {
-          schoolDay: {get: function () { return this.schoolDay; }},
-          spring:    {get: function () { return this.season === 'spring'; }},
-          summer:    {get: function () { return this.season === 'summer'; }},
-          autumn:    {get: function () { return this.season === 'autumn'; }},
-          winter:    {get: function () { return this.season === 'winter'; }},
-          dawn:      {get: function () { return this.dayState === 'dawn'; }},
-          day:       {get: function () { return this.dayState === 'day'; }},
-          dusk:      {get: function () { return this.dayState === 'dusk'; }},
-          night:     {get: function () { return this.dayState === 'night'; }},
-          weekEnd:   {get: function () { return this.date.weekEnd }}
-        });
+        const toMinutes = (/**@type {number|any[]} */time) => Array.isArray(time) ? time[0] * 60 + (time[1] || 0) : time * 60;
+        proto.isAt = function(/**@type {any[]}*/ time) { return this.hour === (Array.isArray(time) ? time[0] : time) && this.minute === (Array.isArray(time) ? (time[1] || 0) : 0); };
+        proto.isAfter = function(/**@type {number|any[]}*/time) { return this.hour * 60 + this.minute > toMinutes(time); };
+        proto.isBefore = function(/**@type {number|any[]}*/time) { return this.hour * 60 + this.minute < toMinutes(time); };
+        proto.isBetween = function(/**@type {number|any[]}*/start, /** @type {number | any[]} */ end) { return this.hour * 60 + this.minute >= toMinutes(start) && this.hour * 60 + this.minute <= toMinutes(end); };
+        proto.isHour = function(/**@type {any[]}*/...hours) { return hours.includes(this.hour); };
+        proto.isHourBetween = function(/**@type {number}*/start, /**@type {number}*/end) { return this.hour >= start && this.hour <= end; };
+        proto.isMinuteBetween = function(/**@type {number}*/start, /**@type {number}*/end) { return this.minute >= start && this.minute <= end; };
         return proto;
-      }
-      
-      /** @param {string|number|any[]} scheduleConfig @param {any} location */
-      set(scheduleConfig, location, options = {}) {
-        return this.add(scheduleConfig, location, options);
-      }
-      
-      /** @param {string|number|any[]} condition @param {any} location */
-      if(condition, location, options = {}) {
-        return this.add(condition, location, options);
       }
     }
 
-    /**@param {NPCManager} manager*/
+    /** @param {NPCManager} manager */
     function initData(manager) {
-      if (!Array.isArray(manager.NPCNameList)) { manager.log('NPCSchedules: 需要传入NPC名称数组', 'WARN'); return false; }
+      if (!Array.isArray(manager.NPCNameList)) { maplebirch.log('NPCSchedules: 需要传入NPC名称数组', 'WARN'); return false; }
       for (const npcName of manager.NPCNameList) if (!schedules.has(npcName)) schedules.set(npcName, new Schedule());
       return true;
     }
 
-    /** @param {string} npcName @param {any} scheduleConfig @param {any} location */
-    function addData(npcName, scheduleConfig, location, options = {}) {
+    /** @param {string} npcName @param {any} scheduleConfig @param {any} location @param {any} id @param {Object} options */
+    function addData(npcName, scheduleConfig, location, id, options = {}) {
       if (!schedules.has(npcName)) schedules.set(npcName, new Schedule());
       const schedule = schedules.get(npcName);
-      schedule.add(scheduleConfig, location, options);
+      typeof scheduleConfig === 'function' ? schedule.when(scheduleConfig, location, id, options) : schedule.at(scheduleConfig, location);
       return schedule;
     }
 
@@ -600,7 +616,7 @@
       return schedules.get(npcName);
     }
 
-    /** @param {string} npcName @param {any} specialId @param {any} updates */
+    /** @param {string} npcName @param {string|number} specialId @param {Object} updates */
     function updateData(npcName, specialId, updates) {
       if (!schedules.has(npcName)) schedules.set(npcName, new Schedule());
       const schedule = schedules.get(npcName);
@@ -608,7 +624,7 @@
       return schedule;
     }
 
-    /** @param {string} npcName @param {any} specialId */
+    /** @param {string} npcName @param {string|number} specialId */
     function removeData(npcName, specialId) {
       if (!schedules.has(npcName)) schedules.set(npcName, new Schedule());
       const schedule = schedules.get(npcName);
@@ -616,24 +632,16 @@
       return schedule;
     }
 
-    function npcSchedule() {
-      /**@type {any}*/ const result = {};
-      for (const [npcName, schedule] of schedules) result[npcName] = schedule.location;
-      return result;
-    }
-
-    function NPCList() {
-      return Array.from(schedules.keys());
-    }
-    
     /** @param {string} npcName */
     function clearSchedule(npcName) {
       if (schedules.has(npcName)) schedules.set(npcName, new Schedule());
       return schedules.get(npcName);
     }
-    
-    function clearAll() {
-      schedules.clear();
+
+    function npcSchedule() {
+      /**@type {{[x:string]:any}}*/const result = {};
+      for (const [npcName, schedule] of schedules) result[npcName] = schedule.location;
+      return result;
     }
 
     Object.defineProperties(Schedule, {
@@ -644,8 +652,8 @@
       update:     { value: updateData },
       remove:     { value: removeData },
       clear:      { value: clearSchedule },
-      clearAll:   { value: clearAll },
-      npcList:    { get: () => NPCList() },
+      clearAll:   { value: schedules.clear },
+      npcList:    { get: () => Array.from(schedules.keys()) },
       location:   { get: () => npcSchedule() },
     });
 
@@ -657,6 +665,19 @@
     static isPossibleLoveInterest(manager, name) {
       if (manager.romanceConditions[name]) return manager.romanceConditions[name].every(condition => condition());
       return false;
+    }
+
+    /** @param {NPCManager} manager */
+    static convertNPCs(manager) {
+      if (!V.NPCName || !Array.isArray(V.NPCName)) return;
+      for (let i = 0; i < V.NPCName.length; i++) {
+        const npc = V.NPCName[i];
+        if (npc?.nam && !(npc instanceof NamedNPC)) {
+          /**@type {any}*/const newNpc = new NamedNPC(manager, npc);
+          for (const key in npc) if (!newNpc.hasOwnProperty(key) && key !== 'nam') newNpc[key] = npc[key];
+          V.NPCName[i] = newNpc;
+        }
+      }
     }
 
     /** @param {string} npcName */
@@ -682,18 +703,14 @@
     /** @param {string} npcName */
     static bodyDataProperties(npcName) {
       const name = npcName.toLowerCase();
-      const bodyProperties = ['eyeColour', 'hairColour', 'penissize', 'breastsize'];
+      const body = ['penis','vagina','virginity','hair_side_type','hair_fringe_type','hair_position','hairlength','eyeColour','hairColour','penissize','breastsize','ballssize'];
       const bodyData = V.maplebirch.npc[name].bodydata;
-      bodyProperties.forEach(prop => {
-        if (Object.getOwnPropertyDescriptor(bodyData, prop)) return;
+      body.forEach(prop => {
+        delete bodyData[prop];
         Object.defineProperty(bodyData, prop, {
           get: () => {
             const npc = V.NPCName.find((/**@type {{ nam: string; }}*/ n) => n.nam === npcName);
             return npc ? npc[prop] : undefined;
-          },
-          set: (val) => {
-            const npcIndex = V.NPCName.findIndex((/**@type {{ nam: string; }}*/ n) => n.nam === npcName);
-            if (npcIndex !== -1) V.NPCName[npcIndex][prop] = val;
           },configurable: true,enumerable: true
         });
       });
@@ -702,14 +719,11 @@
     /** @param {string} npcName */
     static outfitProperties(npcName) {
       const name = npcName.toLowerCase();
+      delete V.maplebirch.npc[name].outfits;
       Object.defineProperty(V.maplebirch.npc[name], 'outfits', {
         get: () => {
           const npc = V.NPCName.find((/**@type {{ nam: string; }}*/ n) => n.nam === npcName);
           return npc ? (npc.outfits || []) : [];
-        },
-        set: (val) => {
-          const npcIndex = V.NPCName.findIndex((/**@type {{ nam: string; }}*/ n) => n.nam === npcName);
-          if (npcIndex !== -1) V.NPCName[npcIndex].outfits = Array.isArray(val) ? val : [];
         },configurable: true,enumerable: true
       });
     }
@@ -723,11 +737,18 @@
         if (!V.maplebirch.npc[name]) V.maplebirch.npc[name] = {};
         if (!V.maplebirch.npc[name].bodydata) V.maplebirch.npc[name].bodydata = {};
         if (!V.maplebirch.npc[name].outfits) V.maplebirch.npc[name].outfits = [];
-        if (!V.maplebirch.npc[name].clothes) V.maplebirch.npc[name].clothes = {};
+        if (!V.maplebirch.npc[name].hasOwnProperty('clothes')) Object.defineProperty(V.maplebirch.npc[name], 'clothes', {
+          // @ts-ignore
+          get: () => manager.Clothes.worn(npcName),
+          // @ts-ignore
+          set: (value) => maplebirch.log(`警告：禁止直接设置 NPC ${npcName} 的服装，请通过服装系统管理`),
+        });
+        if (!V.maplebirch.npc[name].tucked) V.maplebirch.npc[name].tucked = [false, false];
         if (!V.maplebirch.npc[name].hasOwnProperty('location')) {
           Object.defineProperty(V.maplebirch.npc[name], 'location', {
             // @ts-ignore
             get: () => manager.Schedules.location[npcName],
+            // @ts-ignore
             set: (value) => maplebirch.log(`警告：禁止直接设置 NPC ${npcName} 的位置，请通过日程系统管理`),
           });
         }
@@ -819,6 +840,7 @@
      * @param {number} [options.priority=0] - 优先级，数字越大优先级越高
      * @returns {Schedule} 返回NPC的Schedule实例，支持链式调用
      */
+    // @ts-ignore
     addSchedule(npcName, scheduleConfig, location, options = {}) {
       // @ts-ignore
       return this.Schedules.add(npcName, scheduleConfig, location, options = {});
@@ -879,8 +901,11 @@
       this.NamedNPC.update(this);
       // @ts-ignore
       this.NamedNPC.setup(this);
+      NPCUtils.convertNPCs(this);
       // @ts-ignore
       this.Schedules.init(this);
+      // @ts-ignore
+      this.Clothes.init(this);
     }
 
     /** @param {any} npcConfig */
@@ -942,6 +967,7 @@
     }
 
     /** @param {number[]} args */
+    // @ts-ignore
     NPCSpawn(...args) {
       try { this.core.combat.Speech.init(); } catch {};
     }
@@ -951,11 +977,9 @@
       this.Sidebar.init(this);
     }
 
-    Init() {
+    async Init() {
       NPCUtils.setupNpcData(this, 'init');
       isPossibleLoveInterest = (name) => NPCUtils.isPossibleLoveInterest(this, name);
-      // @ts-ignore
-      this.Clothes.init();
     }
 
     loadInit() {

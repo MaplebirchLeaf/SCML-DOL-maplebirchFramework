@@ -5,8 +5,8 @@
     "cn": "秋枫白桦框架"
   },
   "alias": ["Simple Frameworks"], 
-  "version": "2.7.3",
-  "imgFileList": [],
+  "version": "2.7.6",
+  "imgFileList": ["img/mask_0.png", "img/mask_1.png"],
   "styleFileList": ["styles/maplebirch-styles.css"],
   "scriptFileList": [
     "data/defineSugarCube.js",
@@ -23,7 +23,7 @@
     "scriptEarly/Utils/StateEvents.js",
     "scriptEarly/Utils/modifyWeather.js",
     "scriptEarly/Utils/FrameworksUtils.js",
-    "scriptEarly/Utils/NPC-clothes.js",
+    "scriptEarly/Utils/NPCClothes.js",
     "scriptEarly/Utils/NPCSidebar.js",
     "scriptEarly/Utils/Transformation.js",
     "scriptEarly/modules/TimeState.js",
