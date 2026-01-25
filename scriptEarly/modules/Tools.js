@@ -236,9 +236,9 @@
 
     async preInit() {
       // @ts-ignore
-      maplebirch.once(':finally', () => { this.linkzone.removeZones(); this.linkzone.apply({ debug: true }); });
+      this.core.once(':finally', () => { this.linkzone.removeZones(); this.linkzone.apply({ debug: true }); });
       // @ts-ignore
-      maplebirch.on(':passagedisplay', () => this.linkzone.apply(), 'applylinkzone');
+      this.core.on(':passagedisplay', () => this.linkzone.apply(), 'applylinkzone');
     }
 
     Init() {

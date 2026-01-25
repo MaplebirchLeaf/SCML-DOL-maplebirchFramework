@@ -387,17 +387,15 @@
   /**
    * 加载图片（支持ModLoader）
    * @param {string} src - 图片路径
-   * @returns {Promise<string>} 图片数据（base64）或原始路径
+   * @returns {string|boolean|Promise<string|boolean>} 图片数据（base64）或原始路径
    * @example loadImage('character.png').then(data => img.src = data)
    * @example await loadImage('https://example.com/image.jpg')
+   * @example const data = loadImage('character.png'); // 同步返回
    */
-  async function loadImage(src) {
+  function loadImage(src) {
     try {
-      if (typeof modSC2DataManager?.getHtmlTagSrcHook?.()?.requestImageBySrc !== 'undefined') {
-        const imageData = await modSC2DataManager.getHtmlTagSrcHook().requestImageBySrc(src);
-        if (imageData) return imageData;
-      }
-      return src;
+      if (modImgLoaderHooker.maplebirchCheckImageExist(src)) return modUtils.getImage(src);
+      return false;
     } catch (error) {
       return src;
     }
@@ -447,6 +445,28 @@
       case 'constant': return words.map(w => w.toUpperCase()).join('_');
       default: return str;
     }
+  }
+
+  modImgLoaderHooker.maplebirchCheckImageExist = function (/**@type {string}*/src) {
+    var _a;
+    if (this.imgLookupTable.has(src)) {
+      const n = this.imgLookupTable.get(src);
+      if (n && n.length > 0) {
+        const r = (_a = n[0]) === null || _a === void 0 ? void 0 : _a.imgData.getter.invalid;
+        if (!r) return true;
+      }
+    }
+    let maybeExist = false;
+    for (const hooker of this.sideHooker) {
+      if (hooker.hookName === 'GameOriginalImagePackImageSideHook') continue;
+      try {
+        if (hooker.checkImageExist) {
+          const c = hooker.checkImageExist(src);
+          if (c === true) { return true; } else if (c === undefined) { maybeExist = true; continue; }
+        }
+      } catch (e) {}
+    }
+    return maybeExist ? undefined : false;
   }
 
   /** @type {any} */

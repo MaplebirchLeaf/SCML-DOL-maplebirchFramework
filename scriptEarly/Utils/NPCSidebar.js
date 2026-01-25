@@ -631,7 +631,8 @@
         nnpc_freckles: {
           /** @param {{ maplebirch: { nnpc: { close_up_mask: any; }; }; }} options */
           masksrcfn(options) { return options.maplebirch.nnpc.close_up_mask; },
-          src: 'img/face/default/freckles.png',
+          /** @param {{ maplebirch: { nnpc: { facestyle: any; }; }; }} options */
+          srcfn(options) { return `img/face/${options.maplebirch.nnpc.facestyle}/freckles.png`; },
           /** @param {{ maplebirch: { nnpc: { freckles: any; show: any; model: any; }; }; }} options */
           showfn(options) { return !!options.maplebirch.nnpc.freckles && options.maplebirch.nnpc.show && options.maplebirch.nnpc.model; },
           /** @param {{ maplebirch: { nnpc: { position: number; }; }; }} options */
@@ -642,11 +643,26 @@
           dyfn(options) { return options.maplebirch.nnpc.dyfn; },
           filters: ['nnpc_tan'],
         },
+        nnpc_ears: {
+          /** @param {{ maplebirch: { nnpc: { close_up_mask: any; }; }; }} options */
+          masksrcfn(options) { return options.maplebirch.nnpc.close_up_mask; },
+          /** @param {{ maplebirch: { nnpc: { facestyle: any; }; }; }} options */
+          srcfn(options) { return `img/face/${options.maplebirch.nnpc.facestyle}/ears.png`; },
+          /** @param {{ maplebirch: { nnpc: { ears_position: string; show: any; model: any; }; }; }} options */
+          showfn(options) { return options.maplebirch.nnpc.ears_position === 'front' && options.maplebirch.nnpc.show && options.maplebirch.nnpc.model; },
+          /** @param {{ maplebirch: { nnpc: { position: number; }; }; }} options */
+          zfn(options) { return maplebirch.char.ZIndices.ears + options.maplebirch.nnpc.position; },
+          /** @param {{ maplebirch: { nnpc: { dxfn: any; }; }; }} options */
+          dxfn(options) { return options.maplebirch.nnpc.dxfn; },
+          /** @param {{ maplebirch: { nnpc: { dyfn: any; }; }; }} options */
+          dyfn(options) { return options.maplebirch.nnpc.dyfn; },
+          filters: ['nnpc_tan']
+        },
         nnpc_eyes: {
           /** @param {{ maplebirch: { nnpc: { close_up_mask: any; }; }; }} options */
           masksrcfn(options) { return options.maplebirch.nnpc.close_up_mask; },
-          /** @param {{ maplebirch: { nnpc: { facevariant: any; }; }; }} options */
-          srcfn(options) { return `img/face/default/${options.maplebirch.nnpc.facevariant}/eyes.png`; },
+          /** @param {{ maplebirch: { nnpc: { facestyle: any; facevariant: any; }; }; }} options */
+          srcfn(options) { return `img/face/${options.maplebirch.nnpc.facestyle}/${options.maplebirch.nnpc.facevariant}/eyes.png`; },
           /** @param {{ maplebirch: { nnpc: { show: any; model: any; }; }; }} options */
           showfn(options) { return options.maplebirch.nnpc.show && options.maplebirch.nnpc.model; },
           /** @param {{ maplebirch: { nnpc: { position: number; }; }; }} options */
@@ -660,8 +676,8 @@
         nnpc_sclera: {
           /** @param {{ maplebirch: { nnpc: { close_up_mask: any; }; }; }} options */
           masksrcfn(options) { return options.maplebirch.nnpc.close_up_mask; },
-          /** @param {{ maplebirch: { nnpc: { facevariant: any; }; }; }} options */
-          srcfn(options) { return `img/face/default/${options.maplebirch.nnpc.facevariant}/sclera.png`; },
+          /** @param {{ maplebirch: { nnpc: { facestyle: any; facevariant: any; }; }; }} options */
+          srcfn(options) { return `img/face/${options.maplebirch.nnpc.facestyle}/${options.maplebirch.nnpc.facevariant}/sclera.png`; },
           /** @param {{ maplebirch: { nnpc: { show: any; model: any; }; }; }} options */
           showfn(options) { return options.maplebirch.nnpc.show && options.maplebirch.nnpc.model; },
           /** @param {{ maplebirch: { nnpc: { position: number; }; }; }} options */
@@ -674,8 +690,8 @@
         nnpc_iris: {
           /** @param {{ maplebirch: { nnpc: { close_up_mask: any; }; }; }} options */
           masksrcfn(options) { return options.maplebirch.nnpc.close_up_mask; },
-          /** @param {{ maplebirch: { nnpc: { facevariant: any; }; }; }} options */
-          srcfn(options) { return `img/face/default/${options.maplebirch.nnpc.facevariant}/iris.png`;},
+          /** @param {{ maplebirch: { nnpc: { facestyle: any; facevariant: any; }; }; }} options */
+          srcfn(options) { return `img/face/${options.maplebirch.nnpc.facestyle}/${options.maplebirch.nnpc.facevariant}/iris.png`;},
           /** @param {{ maplebirch: { nnpc: { show: any; model: any; }; }; }} options */
           showfn(options) { return options.maplebirch.nnpc.show && options.maplebirch.nnpc.model; },
           /** @param {{ maplebirch: { nnpc: { position: number; }; }; }} options */
@@ -690,8 +706,8 @@
         nnpc_eyelids: {
           /** @param {{ maplebirch: { nnpc: { close_up_mask: any; }; }; }} options */
           masksrcfn(options) { return options.maplebirch.nnpc.close_up_mask; },
-          /** @param {{ maplebirch: { nnpc: { facevariant: any; }; }; }} options */
-          srcfn(options) { return `img/face/default/${options.maplebirch.nnpc.facevariant}/eyelids.png`; },
+          /** @param {{ maplebirch: { nnpc: { facestyle: any; facevariant: any; }; }; }} options */
+          srcfn(options) { return `img/face/${options.maplebirch.nnpc.facestyle}/${options.maplebirch.nnpc.facevariant}/eyelids.png`; },
           /** @param {{ maplebirch: { nnpc: { show: any; model: any; }; }; }} options */
           showfn(options) { return options.maplebirch.nnpc.show && options.maplebirch.nnpc.model; },
           /** @param {{ maplebirch: { nnpc: { position: number; }; }; }} options */
@@ -707,8 +723,8 @@
         nnpc_lashes: {
           /** @param {{ maplebirch: { nnpc: { close_up_mask: any; }; }; }} options */
           masksrcfn(options) { return options.maplebirch.nnpc.close_up_mask; },
-          /** @param {{ maplebirch: { nnpc: { facevariant: any; }; }; }} options */
-          srcfn(options) { return `img/face/default/${options.maplebirch.nnpc.facevariant}/lashes.png`; },
+          /** @param {{ maplebirch: { nnpc: { facestyle: any; facevariant: any; }; }; }} options */
+          srcfn(options) { return `img/face/${options.maplebirch.nnpc.facestyle}/${options.maplebirch.nnpc.facevariant}/lashes.png`; },
           /** @param {{ maplebirch: { nnpc: { show: any; model: any; }; }; }} options */
           showfn(options) { return options.maplebirch.nnpc.show && options.maplebirch.nnpc.model; },
           /** @param {{ maplebirch: { nnpc: { position: number; }; }; }} options */
@@ -724,8 +740,8 @@
         nnpc_brows: {
           /** @param {{ maplebirch: { nnpc: { close_up_mask: any; }; }; }} options */
           masksrcfn(options) { return options.maplebirch.nnpc.close_up_mask; },
-          /** @param {{ maplebirch: { nnpc: { facevariant: any; }; }; }} options */
-          srcfn(options) { return `img/face/default/${options.maplebirch.nnpc.facevariant}/brow-top.png`; },
+          /** @param {{ maplebirch: { nnpc: { facestyle: any; facevariant: any; }; }; }} options */
+          srcfn(options) { return `img/face/${options.maplebirch.nnpc.facestyle}/${options.maplebirch.nnpc.facevariant}/brow-top.png`; },
           /** @param {{ maplebirch: { nnpc: { show: any; model: any; }; }; }} options */
           showfn(options) { return options.maplebirch.nnpc.show && options.maplebirch.nnpc.model; },
           /** @param {{ maplebirch: { nnpc: { position: number; }; }; }} options */
@@ -738,9 +754,9 @@
         },
         nnpc_mouth: {
           /** @param {{ maplebirch: { nnpc: { close_up_mask: any; }; }; }} options */
-          masksrcfn(options) { return options.maplebirch.nnpc.close_up_mask;
-          },
-          src: 'img/face/default/mouth-smile.png',
+          masksrcfn(options) { return options.maplebirch.nnpc.close_up_mask; },
+          /** @param {{ maplebirch: { nnpc: { facestyle: any; }; }; }} options */
+          srcfn(options) { return `img/face/${options.maplebirch.nnpc.facestyle}/mouth-smile.png`; },
           /** @param {{ maplebirch: { nnpc: { show: any; model: any; }; }; }} options */
           showfn(options) { return options.maplebirch.nnpc.show && options.maplebirch.nnpc.model; },
           /** @param {{ maplebirch: { nnpc: { position: number; }; }; }} options */
@@ -1269,8 +1285,10 @@
         nnpc.dyfn = V.options.maplebirch.npcsidebar.dyfn ?? -8;
         nnpc.tan = V.options.maplebirch.npcsidebar.tan ?? 0;
         nnpc.skin_type = nnpc.name === 'Ivory Wraith' ? 'wraith' : (V.options.maplebirch.npcsidebar.skin_type ?? 'light');
-        nnpc.facevariant = V.options.maplebirch.npcsidebar.facevariant ?? 'default';
         nnpc.freckles = V.options.maplebirch.npcsidebar.freckles ? true : false;
+        nnpc.facestyle = V.options.maplebirch.npcsidebar.facestyle ?? 'default';
+        nnpc.facevariant = V.options.maplebirch.npcsidebar.facevariant ?? 'default';
+        nnpc.ears_position = V.options.maplebirch.npcsidebar.ears ?? 'back';
         nnpc.close_up_mask = `img/${V.options.maplebirch.npcsidebar.mask ?? 'mask_0'}.png`;
         if (nnpc_name) {
           options.filters.nnpc_tan = setup.colours.getSkinFilter(nnpc.skin_type, nnpc.tan);

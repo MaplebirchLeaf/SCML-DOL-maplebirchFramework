@@ -730,15 +730,21 @@ declare global {
     core: MaplebirchCore;
     log: (message: string, level?: string, ...objects: any[]) => void;
     transformation: Transformation;
+    faceStyleMap: Map<string,Array<string>>
+    layers: Record<string, any>;
+    handlers: { pre: Array<(options: any) => void>; post: Array<(options: any) => void> };
     constructor(core: MaplebirchCore);
     modifyPCModel(manager: any): Promise<void>;
+    modifyFaceStyle(manager: any): void;
     use(...args: any[]): this;
     process(type: 'pre' | 'post', options: any): void;
     faceStyleImagePaths(): Promise<void>;
+    _faceStyleModel(options: any): Promise<void>;
     render(): Promise<void>;
+    preInit(): void;
     Init(): void;
     loadInit(): void;
-    readonly get ZIndices(): typeof ZIndices;
+    readonly ZIndices: typeof ZIndices;
   }
 
   class Transformation {
@@ -1240,6 +1246,7 @@ declare global {
   const addonBeautySelectorAddon: any;
   const addonTweeReplacer: any;
   const addonReplacePatcher: any;
+  const modImgLoaderHooker: any;
   function lanSwitch(text: any): string;
   function lanSwitch(english: string, chinese: string, ...args: any[]): string;
   function lanSwitch(options: { EN: string; CN: string; [key: string]: string }): string;

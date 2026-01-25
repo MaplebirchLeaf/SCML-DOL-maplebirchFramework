@@ -38,6 +38,14 @@
 'sort': sort
 'reset': reset
 
+'traditional': traditional
+'gentle': gentle
+'catty': catty
+'aloof': aloof
+'sweet': sweet
+'foxy': foxy
+'gloomy': gloomy
+
 'Prioritise headwear over horns': Prioritise headwear over horns
 'Prioritise horns over headwear': Prioritise horns over headwear
 'Push tail back': Push tail back

@@ -247,6 +247,7 @@
     async #dataReplace() {
       try { await modifyOptionsDateFormat(); } catch (e) { this.core.log('modifyOptionsDateFormat 出错', 'ERROR'); }
       try { await this.core.char.modifyPCModel(this); } catch (e) { this.core.log('modifyPCModel 出错', 'ERROR'); }
+      try { await this.core.char.modifyFaceStyle(this); } catch (e) { this.core.log('modifyFaceStyle 出错', 'ERROR'); }
       try { await this.core.char.transformation.modifyEffect(this); } catch (e) { this.core.log('modifyEffect 出错', 'ERROR'); }
       try { await this.core.state.modifyWeather.modifyWeatherJavaScript(); } catch (e) { this.core.log('modifyWeatherJavaScript 出错', 'ERROR'); }
     }

@@ -15,8 +15,10 @@
         dyfn:     -8,
         skin_type:'light',
         tan:      0,
+        facestyle:   'default',
         facevariant: 'default',
         freckles: false,
+        ears:     'back',
         mask:     'mask_0',
         nnpc:     false,
         display:  {}
@@ -57,7 +59,7 @@
       if (typeof V.options?.maplebirch !== 'object' || V.options?.maplebirch === null) {
         V.options.maplebirch = this.tool.clone(variables.options);
       } else {
-        for (const key in variables.options) if (!(key in V.options.maplebirch)) V.options.maplebirch[key] = this.tool.clone(variables.options[key]);
+        V.options.maplebirch = this.tool.merge({}, variables.options, V.options.maplebirch, { mode: 'merge', filterFn: (key, value, depth) => true, });
       }
     }
 

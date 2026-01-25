@@ -107,8 +107,10 @@
         </div>
         <div class='settingsToggleItem'>
           <br><label><<checkbox '$options.maplebirch.npcsidebar.freckles' false true autocheck>><<lanSwitch 'Enable Freckles' '启用雀斑'>></label><br>
-          <<language>><<option 'CN'>><<set _npcsidebarDemeanour to { 温柔: 'default', 妩媚: 'catty', 高冷: 'aloof', 甜美: 'sweet', 勾人: 'foxy', 忧郁: 'gloomy' }>><<option 'EN'>><<set _npcsidebarDemeanour to { Gentle: 'default', Catty: 'catty', Aloof: 'aloof', Sweet: 'sweet', Foxy: 'foxy', Gloomy: 'gloomy' }>><</language>>
-          <span class='gold'><<lanSwitch 'Model Demeanour: ' '模型姿态：'>></span><<lanListbox '$options.maplebirch.npcsidebar.facevariant'>><<optionsfrom _npcsidebarDemeanour>><</lanListbox>><br>
+          <<switch $options.maplebirch.npcsidebar.ears>><<case 'front'>><<set _npcsidebarEars to lanSwitch('Position hair in front of ears','置头发于耳朵前')>><<set _npcsidebarEarsPosition to 'back'>><<default>><<set _npcsidebarEars to lanSwitch('Tuck hair behind ears','置头发于耳朵后')>><<set _npcsidebarEarsPosition to 'front'>><</switch>>
+          <span class='gold'><<lanSwitch 'Ears Position: ' '耳朵位置：'>></span><<lanLink _npcsidebarEars 'class:teal'>><<set $options.maplebirch.npcsidebar.ears to _npcsidebarEarsPosition>><<updatesidebarimg>><<replace #customOverlayContent>><<maplebirchOptions>><</replace>><</lanLink>><br>
+          <span class='gold'><<lanSwitch 'Face Style: ' '脸部类型：'>></span><<lanListbox '$options.maplebirch.npcsidebar.facevariant'>><<optionsfrom setup.faceStyleOptions>><</lanListbox>><br>
+          <span class='gold'><<lanSwitch 'Face Demeanour: ' '脸部仪态：'>></span><<lanListbox '$options.maplebirch.npcsidebar.facevariant'>><<optionsfrom setup.faceVariantOptions[$options.maplebirch.npcsidebar.facestyle]>><</lanListbox>><br>
           <span class='gold'><<lanSwitch 'Skin Tone: ' '皮肤色调：'>></span><<set _npcsidebarSkinTone to ''>>
           <<radiobuttonsfrom '_npcsidebarSkinTone' '[["",["Neutral","中性"]],["r",["Warm","暖色"]],["g",["Golden","金色"]],["y",["Olive","橄榄色"]],["b",["Cool","冷色"]]]'>><<set $options.maplebirch.npcsidebar.skin_type to _npcsidebarSkinTone + _npcsidebarSkinShade>><</radiobuttonsfrom>><br>
           <span class='gold'><<lanSwitch 'Skin Shade: ' '肤色明暗：'>></span><<set _npcsidebarSkinShade to 'light'>>
