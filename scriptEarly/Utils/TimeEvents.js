@@ -657,7 +657,7 @@
           this.log('时间事件系统已激活', 'INFO');
           try { getFormattedDate = createDateFormatters().getFormattedDate; } catch(e) { this.log(`getFormattedDate错误: ${e.message}`, 'WARN')};
           try { getShortFormattedDate = createDateFormatters().getShortFormattedDate; } catch(e) { this.log(`getShortFormattedDate错误: ${e.message}`, 'WARN')};
-          maplebirch.on(':languageChange', () => this.updateTimeLanguage());
+          maplebirch.on(':language', () => this.updateTimeLanguage());
         } catch (e) { this.log(`初始化时间系统失败: ${e.message}`, 'ERROR'); }
       });
     }

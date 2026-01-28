@@ -5,36 +5,52 @@
 
   const currentVersion = '1.0.6';
 
+  function hairgradients() {
+    if (!setup.colours?.hairgradients_prototypes) return { fringe: {}, sides: {} };
+    const data = { fringe: {}, sides: {} };
+    const hg = setup.colours.hairgradients_prototypes;
+    for (const [style, hairstyles] of Object.entries(hg.fringe||{})) if (hairstyles.all?.colors) data.fringe[style] = hairstyles.all.colors.map(color => color[0]);
+    for (const [style, hairstyles] of Object.entries(hg.sides||{})) if (hairstyles.all?.colors) data.sides[style] = hairstyles.all.colors.map(color => color[0]);
+    return data;
+  }
+
   class variables {
-    static options = {
-      npcsidebar: {
-        show:     false,
-        model:    false,
-        position: 'back',
-        dxfn:     -48,
-        dyfn:     -8,
-        skin_type:'light',
-        tan:      0,
-        facestyle:   'default',
-        facevariant: 'default',
-        freckles: false,
-        ears:     'back',
-        mask:     'mask_0',
-        nnpc:     false,
-        display:  {}
-      },
-      relationcount: 4,
-      npcschedules: false
+    static get options() {
+      return {
+        character: {
+          mask: 0,
+          charArt: { type:'fringe',select:'low-ombre',value:clone(hairgradients()) },
+          closeUp: { type:'fringe',select:'low-ombre',value:clone(hairgradients()) },
+        },
+        npcsidebar: {
+          show: false,
+          model: false,
+          position: 'back',
+          dxfn: -48,
+          dyfn: -8,
+          skin_type: 'light',
+          tan: 0,
+          facestyle: 'default',
+          facevariant: 'default',
+          freckles: false,
+          ears: 'back',
+          mask: 0,
+          nnpc: false,
+          display: {}
+        },
+        relationcount: 4,
+        npcschedules: false
+      };
     }
 
     static player = {
       clothing: {}
-    }
+    };
 
     static defaultVar = {
-      player:     variables.player,
-      npc:            {},
-      transformation: {},
+      player: variables.player,
+      npc: {},
+      transformation: {}
     };
     
     /** @param {MaplebirchCore} core */
@@ -43,6 +59,7 @@
       this.tool = core.tool;
       this.log = this.tool.createLog('var');
       this.migration = new this.tool.migration();
+      this.hairgradients = hairgradients;
       core.once(':passageend', () => this.optionsCheck());
     }
 
@@ -59,7 +76,7 @@
       if (typeof V.options?.maplebirch !== 'object' || V.options?.maplebirch === null) {
         V.options.maplebirch = this.tool.clone(variables.options);
       } else {
-        V.options.maplebirch = this.tool.merge({}, variables.options, V.options.maplebirch, { mode: 'merge', filterFn: (key, value, depth) => true, });
+        V.options.maplebirch = this.tool.merge({}, variables.options, V.options.maplebirch, { mode: 'merge', filterFn: (key, value, depth) => true });
       }
     }
 

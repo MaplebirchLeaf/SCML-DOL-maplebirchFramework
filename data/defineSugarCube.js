@@ -1,10 +1,1 @@
-(() => {
-  'use strict';
-
-  const widget = maplebirch.tool.widget;
-  const text = maplebirch.tool.text;
-  widget._getMacro(Macro);
-  text._getWikifier(Wikifier);
-  maplebirch.SugarCube = { Macro, Wikifier, Engine, Story, Config, State, Util, Scripting, Save };
-  maplebirch.trigger(':defineSugarcube');
-})();
+(()=>{'use strict';maplebirch.SugarCube={Browser,Config,Dialog,Engine,Fullscreen,Has,L10n,Macro,Passage,Save,Scripting,Setting,SimpleAudio,State,Story,UI,UIBar,DebugBar,Util,Visibility,Wikifier,session,settings,setup,storage,version};maplebirch.trigger(':defineSugarcube');})();

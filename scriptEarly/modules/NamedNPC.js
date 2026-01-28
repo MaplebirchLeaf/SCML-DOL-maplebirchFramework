@@ -799,6 +799,10 @@
       };
       this.core.trigger(':npc-init', this);
       this.core.once(':passagestart',() => {
+        // @ts-ignore
+        this.Schedules.init(this);
+        // @ts-ignore
+        this.Clothes.init(this);
         if (['Start', 'Downgrade Waiting Room'].includes(core.state.Passage?.title)) return;
         this.injectModNPCs();
       });
@@ -902,10 +906,6 @@
       // @ts-ignore
       this.NamedNPC.setup(this);
       NPCUtils.convertNPCs(this);
-      // @ts-ignore
-      this.Schedules.init(this);
-      // @ts-ignore
-      this.Clothes.init(this);
     }
 
     /** @param {any} npcConfig */

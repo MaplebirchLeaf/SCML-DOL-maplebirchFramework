@@ -1289,8 +1289,8 @@
         nnpc.facestyle = V.options.maplebirch.npcsidebar.facestyle ?? 'default';
         nnpc.facevariant = V.options.maplebirch.npcsidebar.facevariant ?? 'default';
         nnpc.ears_position = V.options.maplebirch.npcsidebar.ears ?? 'back';
-        nnpc.close_up_mask = `img/${V.options.maplebirch.npcsidebar.mask ?? 'mask_0'}.png`;
-        if (nnpc_name) {
+        nnpc.close_up_mask = maplebirch.char.mask(V.options.maplebirch.npcsidebar.mask);
+        if (nnpc_name && nnpc.model) {
           options.filters.nnpc_tan = setup.colours.getSkinFilter(nnpc.skin_type, nnpc.tan);
           const npcData = V.maplebirch.npc[nnpc_name.toLowerCase()];
           const keys = ['head','face','neck','upper','lower','feet','legs','handheld','genitals','under_upper','under_lower','over_head','over_upper','over_lower','hands'];

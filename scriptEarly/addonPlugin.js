@@ -2,8 +2,25 @@
 /// <reference path='../maplebirch.d.ts' />
 (async() => {
   'use strict';
-  const logger = modUtils.getLogger();
-  logger.log('[maplebirchMod] 开始执行');
+
+  let order = addonBeautySelectorAddon.typeOrderUsed;
+  Object.defineProperty(addonBeautySelectorAddon, 'typeOrderUsed', {
+    get() { return order; },
+    set(v) { order = v; if (T?.modelclass) { Renderer.clearCaches(T.modelclass); $.wiki('<<updatesidebarimg>>'); } }
+  });
+
+  /** @param {string} content @param {[RegExp, string][]} replacements */
+  function replace(content, replacements) {
+    /** @type {number[]} */
+    const unmatched = [];
+    let result = content;
+    replacements.forEach(([regex, replace], i) => {
+      if (regex.test(result)) { result = result.replace(regex, replace); }
+      else { unmatched.push(i + 1); }
+    });
+    if (unmatched.length) maplebirch.log(`以下正则未匹配到内容 - ${unmatched.join(',' )}`, 'WARN');
+    return result;
+  }
 
   async function modifyOptionsDateFormat() {
     const oldSCdata = modSC2DataManager.getSC2DataInfoAfterPatch();
@@ -11,18 +28,24 @@
     const passageData = SCdata.passageDataItems.map;
     const OptionsOverlayTwinePath = 'Options Overlay';
     const modify = passageData.get(OptionsOverlayTwinePath);
-    const regex1 = /<label\s+class="en-GB">\s*<<radiobutton\s*"\$options\.dateFormat"\s*"en-GB"\s*autocheck\s*>>\s*([^<]+)<\/label>/;
-    const regex2 = /<label\s+class="en-US">\s*<<radiobutton\s*"\$options\.dateFormat"\s*"en-US"\s*autocheck\s*>>\s*([^<]+)<\/label>/;
-    const regex3 = /<label\s+class="zh-CN">\s*<<radiobutton\s*"\$options\.dateFormat"\s*"zh-CN"\s*autocheck\s*>>\s*([^<]+)<\/label>/;
-    const text1 = modUtils.getMod('ModI18N') ? '英(日/月/年)' : 'GB(dd/mm/yyyy)';
-    const text2 = modUtils.getMod('ModI18N') ? '美(月/日/年)' : 'US(mm/dd/yyyy)';
-    const text3 = modUtils.getMod('ModI18N') ? '中(年/月/日)' : 'CN(yyyy/mm/dd)';
-    if (regex1.test(modify.content)) modify.content = modify.content.replace(regex1, `<label class="en-GB"><<radiobutton "$options.dateFormat" "en-GB" autocheck>> ${text1}</label>`);
-    if (regex2.test(modify.content)) modify.content = modify.content.replace(regex2, `<label class="en-US"><<radiobutton "$options.dateFormat" "en-US" autocheck>> ${text2}</label>`);
-    if (regex3.test(modify.content)) modify.content = modify.content.replace(regex3, `<label class="zh-CN"><<radiobutton "$options.dateFormat" "zh-CN" autocheck>> ${text3}</label>`);
+    /**@type {[RegExp, string][]}*/const replacements = [
+      [
+        /<label\s+class="en-GB">\s*<<radiobutton\s*"\$options\.dateFormat"\s*"en-GB"\s*autocheck\s*>>\s*([^<]+)<\/label>/,
+        `<label class="en-GB"><<radiobutton "$options.dateFormat" "en-GB" autocheck>> ${modUtils.getMod('ModI18N') ? '英(日/月/年)' : 'GB(dd/mm/yyyy)'}</label>`
+      ],
+      [
+        /<label\s+class="en-US">\s*<<radiobutton\s*"\$options\.dateFormat"\s*"en-US"\s*autocheck\s*>>\s*([^<]+)<\/label>/,
+        `<label class="en-US"><<radiobutton "$options.dateFormat" "en-US" autocheck>> ${modUtils.getMod('ModI18N') ? '美(月/日/年)' : 'US(mm/dd/yyyy)'}</label>`
+      ],
+      [
+        /<label\s+class="zh-CN">\s*<<radiobutton\s*"\$options\.dateFormat"\s*"zh-CN"\s*autocheck\s*>>\s*([^<]+)<\/label>/,
+        `<label class="zh-CN"><<radiobutton "$options.dateFormat" "zh-CN" autocheck>> ${modUtils.getMod('ModI18N') ? '中(年/月/日)' : 'CN(yyyy/mm/dd)'}</label>`
+      ]
+    ];
+    modify.content = replace(modify.content, replacements);
     passageData.set(OptionsOverlayTwinePath, modify);
     SCdata.passageDataItems.back2Array();
-    addonTweeReplacer.gModUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);  
+    addonTweeReplacer.gModUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
   }
 
   class Process {
@@ -33,18 +56,18 @@
         for (const task of addon.queue.language) {
           const { modName, config } = task;
           if (config === true) {
-            await addon.core.lang.importAllLanguages(modName);
+            for await (const p of addon.core.lang.importAll(modName)) if (p.error) addon.core.log(`导入失败: ${p.lang}`, 'ERROR');
           } else if (Array.isArray(config)) {
             addon.core.log(`为${modName}导入指定语言: ${config.join(', ')}`, 'DEBUG');
             for (const lang of config) {
               const filePath = `translations/${lang.toLowerCase()}.json`;
-              await addon.core.lang.loadTranslations(modName, lang.toUpperCase(), filePath);
+              for await (const p of addon.core.lang.load(modName, lang.toUpperCase(), filePath)) if (p.type === 'error') addon.core.log(`导入失败: ${p.lang}`, 'ERROR');
             }
           } else if (typeof config === 'object' && config !== null) {
             addon.core.log(`为${modName}导入自定义语言配置`, 'DEBUG');
             for (const [lang, langConfig] of Object.entries(config)) {
               const filePath = langConfig.file || `translations/${lang.toLowerCase()}.json`;
-              await addon.core.lang.loadTranslations(modName, lang.toUpperCase(), filePath);
+              for await (const p of addon.core.lang.load(modName, lang.toUpperCase(), filePath)) if (p.type === 'error') addon.core.log(`导入失败: ${p.lang}`, 'ERROR');
             }
           }
         }
@@ -213,6 +236,7 @@
     /** @param {MaplebirchCore} core @param {modSC2DataManager} gSC2DataManager @param {modUtils} gModUtils */
     constructor(core, gSC2DataManager, gModUtils) {
       this.core = core;
+      this.replace = replace;
       this.gSC2DataManager = gSC2DataManager;
       this.gModUtils = gModUtils;
       this.addonTweeReplacer = addonTweeReplacer;
@@ -220,6 +244,7 @@
       this.core.trigger(':beforePatch', this);
       this.info = new Map();
       this.logger = gModUtils.getLogger();
+      this.logger.log('[MaplebirchAddonPlugin] 开始初始化');
       this.gModUtils.getAddonPluginManager().registerAddonPlugin('maplebirch', 'maplebirchAddon', this);
       this.gSC2DataManager.getModLoadController().addLifeTimeCircleHook('maplebirchFramework', this);
       this.supportedConfigs = ['script', 'language', 'audio', 'framework', 'npc', 'shop'];
@@ -241,7 +266,7 @@
       const modInfo = this.gModUtils.getMod(theName);
       if (!modInfo) { this.logger.error(`[MaplebirchAddonPlugin] 初始化失败: 无法获取当前Mod对象 [${theName}]`); return; }
       modInfo.modRef = this;
-      this.logger.log(`[MaplebirchAddonPlugin] 初始化完成: 当前Mod对象 [${theName}]`);
+      this.logger.log(`[MaplebirchAddonPlugin] 初始化完成`);
     }
 
     async #dataReplace() {
@@ -249,7 +274,7 @@
       try { await this.core.char.modifyPCModel(this); } catch (e) { this.core.log('modifyPCModel 出错', 'ERROR'); }
       try { await this.core.char.modifyFaceStyle(this); } catch (e) { this.core.log('modifyFaceStyle 出错', 'ERROR'); }
       try { await this.core.char.transformation.modifyEffect(this); } catch (e) { this.core.log('modifyEffect 出错', 'ERROR'); }
-      try { await this.core.state.modifyWeather.modifyWeatherJavaScript(); } catch (e) { this.core.log('modifyWeatherJavaScript 出错', 'ERROR'); }
+      try { await this.core.state.modifyWeather.modifyWeatherJavaScript(this); } catch (e) { this.core.log('modifyWeatherJavaScript 出错', 'ERROR'); }
     }
 
     /** @param {string} addonName @param {{ name: string; bootJson: { addonPlugin: any[]; }; }} modInfo @param {JSZip} modZip */
@@ -265,7 +290,7 @@
     async afterInjectEarlyLoad() {
       await this.scriptFiles();
       await this.#executeScripts(this.moduleFiles, 'Module'); 
-      if (this.core.modules.initPhase.allModuleRegisteredTriggered) await this.core.trigger(':allModule');
+      if (this.core.modules.initPhase.allRegisteredTriggered) await this.core.trigger(':allModule');
     }
 
     /** @param {string} modName @param {string} fileName */
@@ -361,5 +386,5 @@
     }
   }
 
-  await maplebirch.register('addonPlugin', new FrameworkAddon(maplebirch, modSC2DataManager, modUtils), []);
+  await maplebirch.register('addon', new FrameworkAddon(maplebirch, modSC2DataManager, modUtils), []);
 })();

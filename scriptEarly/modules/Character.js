@@ -4,128 +4,196 @@
   'use strict';
 
   /** @param {Function|string} name @param {Object} options @param {boolean} [options.variant=false] @returns {Function}  */
-  function faceStyleSrcFn(name, options = {}) {
-    const { variant = false } = options;
+  function faceStyleSrcFn(name) {
     const Name = typeof name === 'function' ? name : () => name;
-    return function (/**@type {{ facestyle: any; facevariant: any; }}*/options) {
-      const image = Name(options);
-      if (variant) {
-        const paths = [
-          `img/face/${options.facestyle}/${options.facevariant}/${image}.png`,
-          `img/face/default/${options.facevariant}/${image}.png`,
-          `img/face/default/default/${image}.png`
-        ];
-        for (let i = 0; i < paths.length; i++) if (!!loadImage(paths[i])) return paths[i];
-        return paths[paths.length - 1];
-      } else {
-        const paths = [
-          `img/face/${options.facestyle}/${image}.png`,
-          `img/face/default/${image}.png`
-        ];
-        for (let i = 0; i < paths.length; i++) if (!!loadImage(paths[i])) return paths[i];
-        return paths[paths.length - 1];
-      }
+    return function (/**@type {{ facestyle: any; facevariant: any; }}*/layerOptions) {
+      const image = Name(layerOptions);
+      const paths = [
+        `img/face/${layerOptions.facestyle}/${layerOptions.facevariant || 'default'}/${image}.png`,
+        `img/face/default/${layerOptions.facevariant || 'default'}/${image}.png`,
+        `img/face/${layerOptions.facestyle}/${image}.png`,
+        `img/face/default/${image}.png`,
+        `img/face/default/default/${image}.png`
+      ];
+      for (let i = 0; i < paths.length; i++) if (!!loadImage(paths[i])) return paths[i];
+      return paths[paths.length - 1];
     };
   }
 
+  function mask(x=0,swap=false,width=256,height = 256) {
+    const canvas = document.createElement('canvas');
+    canvas.width = width * 2;
+    canvas.height = height;
+    /**@type {any}*/const ctx = canvas.getContext('2d');
+    let splitX = Math.max(0, Math.min(width, width / 2 + x));
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let frame = 0; frame < 2; frame++) {
+      const offsetX = frame * width;
+      const whiteStart = swap ? offsetX + splitX : offsetX;
+      const whiteWidth = swap ? width - splitX : splitX;
+      if (whiteWidth > 0) {
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(whiteStart, 0, whiteWidth, height);
+      }
+    }
+    return canvas.toDataURL('image/png');
+  }
+
+  /**
+   * @param {string} part
+   * @param {{style: string;colours: {[x: string]: string | number;};}} gradient
+   * @param {string} hairType
+   * @param {number} hairLength
+   * @param {string} prefilterName
+   * @param {'charArt'|'closeUp'} type
+   */
+  function hairColourGradient(part, gradient, hairType, hairLength, prefilterName, type) {
+    const filterPrototypeLibrary = setup.colours.hairgradients_prototypes[part][gradient.style];
+    const filterPrototype = filterPrototypeLibrary[hairType] || filterPrototypeLibrary.all;
+    const storedPositions = V.options.maplebirch.character[type].value[part][gradient.style];
+    const blend = clone(filterPrototype);
+    if (storedPositions && storedPositions.length === blend.colors.length) for (let i = 0; i < blend.colors.length; i++) blend.colors[i][0] = Math.max(0, Math.min(1, storedPositions[i]));
+    const filter = {
+      blend: blend,
+      brightness: {
+        gradient: filterPrototype.gradient,
+        values: filterPrototype.values,
+        adjustments: [[], []]
+      },
+      blendMode: 'hard-light'
+    };
+    for (const colorIndex in filter.blend.colors) {
+      let lengthValue = filter.blend.lengthFunctions[0](hairLength, filter.blend.colors[colorIndex][0]);
+      lengthValue = Math.max(0, Math.min(1, lengthValue));
+      const colorData = setup.colours.hair_map[gradient.colours[colorIndex]].canvasfilter;
+      // @ts-ignore
+      filter.brightness.adjustments[colorIndex][0] = lengthValue;
+      // @ts-ignore
+      filter.brightness.adjustments[colorIndex][1] = colorData.brightness || 0;
+      filter.blend.colors[colorIndex][0] = lengthValue;
+      filter.blend.colors[colorIndex][1] = colorData.blend;
+    }
+    Renderer.mergeLayerData(filter, setup.colours.sprite_prefilters[prefilterName], true);
+    return filter;
+  }
+
+  /** @param {{hair_sides_length:string; [x:string]:any; }} options */
+  function preprocess(options) {
+    (options.maplebirch ??= {}).char ??= {};
+    options.maplebirch.char.mask = V.options.maplebirch.character.mask ?? 0;
+    const gradients = (/**@type {string}*/style,/**@type {string}*/key,/**@type {string}*/part,/**@type {string}*/type,/**@type {string}*/lengthKey,/**@type {string}*/prefilter)=>{
+      if (options[style] === 'gradient') {
+        const gradient = options[key];
+        const hairType = options[type];
+        const length = hairLengthStringToNumber(options[lengthKey]);
+        options.filters[prefilter] = hairColourGradient(part, gradient, hairType, length, prefilter, 'charArt');
+        options.filters[`${prefilter}_close_up`] = hairColourGradient(part, gradient, hairType, length, prefilter, 'closeUp');
+      }
+    };
+    gradients('hair_colour_style', 'hair_colour_gradient', 'sides', 'hair_sides_type', 'hair_sides_length', 'hair');
+    gradients('hair_fringe_colour_style', 'hair_fringe_colour_gradient', 'fringe', 'hair_fringe_type', 'hair_sides_length', 'hair_fringe');
+  }
+
   const layers = {
+    hair_sides: {
+      /** @param {{ head_mask_src: any; maplebirch: { char: { mask: number; }; }; }} options */
+      masksrcfn(options) { return [options.head_mask_src, mask(options.maplebirch.char.mask)]; },
+		},
+    hair_sides_close_up: {
+      /** @param {{ head_mask_src: any; maplebirch: { char: { mask: number; }; }; }} options */
+      masksrcfn(options) { return [options.head_mask_src, mask(options.maplebirch.char.mask,true)]; },
+      /** @param {{ hair_sides_type: any; hair_sides_length: any; }} options */
+      srcfn(options) { return `img/hair/sides/${options.hair_sides_type}/${options.hair_sides_length}.png`; },
+      /** @param {{ show_hair: any; hair_sides_type: any; }} options */
+      showfn(options) { return !!options.show_hair && !!options.hair_sides_type; },
+      /** @param {{ hair_sides_position: string; }} options */
+      zfn(options) { return options.hair_sides_position === 'front' ? ZIndices.hairforwards : ZIndices.backhair; },
+      /** @param {{ hair_colour_style: string; }} options */
+      filtersfn(options) { return options.hair_colour_style === 'gradient' ? ['hair_close_up'] : ['hair']; },
+      animation: 'idle'
+		},
+    hair_fringe: {
+			/** @param {{ head_mask_src: any; fringe_mask_src: any; maplebirch: { char: { mask: number; }; }; }} options */
+			masksrcfn(options) { return [(options.head_mask_src ? options.head_mask_src : options.fringe_mask_src),mask(options.maplebirch.char.mask)]; },
+		},
+    hair_fringe_close_up: {
+      /** @param {{ head_mask_src: any; fringe_mask_src: any; maplebirch: { char: { mask: number; }; }; }} options */
+			masksrcfn(options) { return [(options.head_mask_src ? options.head_mask_src : options.fringe_mask_src),mask(options.maplebirch.char.mask,true)]; },
+			/** @param {{ hair_fringe_type: any; hair_fringe_length: any; }} options */
+			srcfn(options) { return `img/hair/fringe/${options.hair_fringe_type}/${options.hair_fringe_length}.png`; },
+			/** @param {{ show_hair: any; hair_fringe_type: any; }} options */
+			showfn(options) { return !!options.show_hair && !!options.hair_fringe_type; },
+			zfn() { return ZIndices.fronthair },
+      /** @param {{ hair_fringe_colour_style: string; }} options */
+      filtersfn(options) { return options.hair_fringe_colour_style === 'gradient' ? ['hair_fringe_close_up'] : ['hair_fringe']; },
+      animation: 'idle',
+		},
     freckles: { srcfn: faceStyleSrcFn('freckles') },
     ears: { srcfn: faceStyleSrcFn('ears') },
-    eyes: { srcfn: faceStyleSrcFn('eyes', { variant: true }) },
+    eyes: { srcfn: faceStyleSrcFn('eyes') },
     sclera: {
-      srcfn: faceStyleSrcFn(
-        (/**@type {{ eyes_bloodshot: any; }}*/o) => o.eyes_bloodshot ? 'sclera-bloodshot' : 'sclera',
-        { variant: true }
-      )
+      srcfn: faceStyleSrcFn((/**@type {{ eyes_bloodshot: any; }}*/options) => options.eyes_bloodshot ? 'sclera-bloodshot' : 'sclera')
     },
     left_iris: {
       srcfn: faceStyleSrcFn(
-        (/**@type {{ trauma: any; eyes_half: any; }}*/o) => {
-          const iris = o.trauma ? 'iris-empty' : 'iris';
-          const half = o.eyes_half ? '-half-closed' : '';
+        (/**@type {{ trauma: any; eyes_half: any; }}*/options) => {
+          const iris = options.trauma ? 'iris-empty' : 'iris';
+          const half = options.eyes_half ? '-half-closed' : '';
           return `${iris}${half}`;
-        },
-        { variant: true }
+        }
       )
     },
     right_iris: {
       srcfn: faceStyleSrcFn(
-        (/**@type {{ trauma: any; eyes_half: any; }}*/o) => {
-          const iris = o.trauma ? 'iris-empty' : 'iris';
-          const half = o.eyes_half ? '-half-closed' : '';
+        (/**@type {{ trauma: any; eyes_half: any; }}*/options) => {
+          const iris = options.trauma ? 'iris-empty' : 'iris';
+          const half = options.eyes_half ? '-half-closed' : '';
           return `${iris}${half}`;
-        },
-        { variant: true }
+        }
       )
     },
     eyelids: {
       srcfn: faceStyleSrcFn(
-        (/**@type {{ eyes_half: any; }}*/o) => {
-          const half = o.eyes_half ? '-half-closed' : '';
+        (/**@type {{ eyes_half: any; }}*/options) => {
+          const half = options.eyes_half ? '-half-closed' : '';
           return `eyelids${half}`;
-        },
-        { variant: true }
+        }
       )
     },
     lashes: {
       srcfn: faceStyleSrcFn(
-        (/**@type {{ eyes_half: any; }}*/o) => {
-          const half = o.eyes_half ? '-half-closed' : '';
+        (/**@type {{ eyes_half: any; }}*/options) => {
+          const half = options.eyes_half ? '-half-closed' : '';
           return `lashes${half}`;
-        },
-        { variant: true }
+        }
       )
     },
     makeup_eyeshadow: {
       srcfn: faceStyleSrcFn(
-        (/**@type {{ eyes_half: any; }}*/o) => {
-          const half = o.eyes_half ? '-half-closed' : '';
+        (/**@type {{ eyes_half: any; }}*/options) => {
+          const half = options.eyes_half ? '-half-closed' : '';
           return `makeup/eyeshadow${half}`;
-        },
-        { variant: true }
+        }
       )
     },
     makeup_mascara: {
       srcfn: faceStyleSrcFn(
-        (/**@type {{ eyes_half: any; }}*/o) => {
-          const half = o.eyes_half ? '-half-closed' : '';
+        (/**@type {{ eyes_half: any; }}*/options) => {
+          const half = options.eyes_half ? '-half-closed' : '';
           return `makeup/mascara${half}`;
-        },
-        { variant: true }
+        }
       )
     },
     makeup_blusher: { srcfn: faceStyleSrcFn('blusher') },
     brows: {
-      srcfn: faceStyleSrcFn(
-        (/**@type {{ brows: any; }}*/o) => `brow-${o.brows}`,
-        { variant: true }
-      )
+      srcfn: faceStyleSrcFn((/**@type {{ brows: any; }}*/options) => `brow-${options.brows}`)
     },
-    mouth: {
-      srcfn: faceStyleSrcFn(
-        (/**@type {{ mouth: any; }}*/o) => `mouth-${o.mouth}`
-      )
-    },
-    makeup_lipstick: {
-      srcfn: faceStyleSrcFn(
-        (/**@type {{ mouth: any; }}*/o) => `lipstick-${o.mouth}`
-      )
-    },
-    blush: {
-      srcfn: faceStyleSrcFn(
-        (/**@type {{ blush: any; }}*/o) => `blush${o.blush}`
-      )
-    },
-    tears: {
-      srcfn: faceStyleSrcFn(
-        (/**@type {{ tears: any; }}*/o) => `tear${o.tears}`
-      )
-    },
+    mouth: { srcfn: faceStyleSrcFn((/**@type {{ mouth: any; }}*/options) => `mouth-${options.mouth}`) },
+    makeup_lipstick: { srcfn: faceStyleSrcFn((/**@type {{ mouth: any; }}*/options) => `lipstick-${options.mouth}`)},
+    blush: { srcfn: faceStyleSrcFn((/**@type {{ blush: any; }}*/options) => `blush${options.blush}`) },
+    tears: { srcfn: faceStyleSrcFn((/**@type {{ tears: any; }}*/options) => `tear${options.tears}`) },
     makeup_mascara_tears: {
-      srcfn: faceStyleSrcFn(
-        (/**@type {{ mascara_running: any; }}*/o) => `makeup/mascara${o.mascara_running}`,
-        { variant: true }
-      )
+      srcfn: faceStyleSrcFn((/**@type {{ mascara_running: any; }}*/options) => `makeup/mascara${options.mascara_running}`)
     }
   }
 
@@ -134,12 +202,13 @@
     constructor(core) {
       this.core = core;
       this.log = core.tool.createLog('char');
+      this.mask = mask;
       /**@type {Map<string, string[]>}*/this.faceStyleMap = new Map();
       /**@type {Object<string,any>}*/
       this.handlers = { pre: [], post: [] };
       this.layers = {};
       this.core.trigger(':char-init', this);
-      this.core.on(':languageChange', () => this.#faceStyleSetupOption());
+      this.core.on(':language', () => this.#faceStyleSetupOption());
       this.core.once(':defineSugarcube', () => {
 				const model = Renderer.CanvasModels.main;
 				if (!model?.layers) return;
@@ -163,13 +232,14 @@
     /** @param {FrameworkAddon} manager */
     async modifyPCModel(manager) {
       const oldSCdata = manager.gSC2DataManager.getSC2DataInfoAfterPatch();
-			const SCdata = oldSCdata.cloneSC2DataInfo();
-			const file = SCdata.scriptFileItems.getByNameWithOrWithoutPath('canvasmodel-main.js');
-			const regex1 = /},\n\tpostprocess/;
-      const regex2 = /},\n\tlayers/;
-      if (regex1.test(file.content)) file.content = file.content.replace(regex1,'\tmaplebirch.char.process("pre", options);\n\t},\n\tpostprocess');
-      if (regex2.test(file.content)) file.content = file.content.replace(regex2,'\tmaplebirch.char.process("post", options);\n\t},\n\tlayers');
-			manager.addonReplacePatcher.gModUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
+      const SCdata = oldSCdata.cloneSC2DataInfo();
+      const file = SCdata.scriptFileItems.getByNameWithOrWithoutPath('canvasmodel-main.js');
+      /**@type {[RegExp, string][]}*/const replacements = [
+        [/},\n\tpostprocess/g,'\tmaplebirch.char.process("pre", options);\n\t},\n\tpostprocess'],
+        [/},\n\tlayers/g,'\tmaplebirch.char.process("post", options);\n\t},\n\tlayers']
+      ];
+      file.content = manager.replace(file.content, replacements);
+      manager.addonReplacePatcher.gModUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
     }
 
     /** @param {any[]} args */
@@ -206,18 +276,17 @@
     }
 
     /** @param {FrameworkAddon} manager */
-    modifyFaceStyle(manager) {
+    async modifyFaceStyle(manager) {
       const oldSCdata = manager.gSC2DataManager.getSC2DataInfoAfterPatch();
       const SCdata = oldSCdata.cloneSC2DataInfo();
       const passageData = SCdata.passageDataItems.map;
       const files = ['Cheats', 'clothesTestingImageGenerate', 'Widgets Mirror', 'Widgets Settings'];
-      const regex = /setup.faceStyleOptions.length/g;
       for (const file of files) {
         const modify = passageData.get(file);
-        if (modify && regex.test(modify.content)) {
-          modify.content = modify.content.replace(regex, 'Object.keys(setup.faceStyleOptions).length');
-          passageData.set(file, modify);
-        }
+        /**@type {[RegExp, string][]}*/const replacements = [[/setup.faceStyleOptions.length gt/g,'Object.keys(setup.faceStyleOptions).length gte']];
+        if (file === 'Widgets Mirror') replacements.push([/Object.keys\(setup.faceVariantOptions\[\$facestyle\]\).length gt/g,'Object.keys(setup.faceVariantOptions[$facestyle]).length gte']);
+        modify.content = manager.replace(modify.content, replacements);
+        passageData.set(file, modify);
       }
       SCdata.passageDataItems.back2Array();
       manager.addonTweeReplacer.gModUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
@@ -265,17 +334,19 @@
         for (const value of Object.values(variantObj)) if (!variants.includes(value)) variants.push(value);
       }
       setup.faceStyleOptions = {};
-      for (const [style] of this.faceStyleMap) setup.faceStyleOptions[convert(this.core.autoTranslate(style === 'default' ? 'traditional' : style), 'capitalize')] = style;
+      for (const [style] of this.faceStyleMap) setup.faceStyleOptions[convert(this.core.auto(style === 'default' ? 'traditional' : style), 'capitalize')] = style;
       setup.faceVariantOptions = {};
       for (const [style, variants] of this.faceStyleMap) {
         if (variants.length === 0) continue;
         setup.faceVariantOptions[style] = {};
         for (const variant of variants) {
-          const translatedName = this.core.autoTranslate(variant === 'default' ? 'gentle' : variant);
+          const translatedName = this.core.auto(variant === 'default' ? 'gentle' : variant);
           setup.faceVariantOptions[style][convert(translatedName, 'capitalize')] = variant;
         }
       }
     }
+
+    faceStyleSrcFn = faceStyleSrcFn
 
     /* 渲染角色到容器 */
     async #renderCharacter() {
@@ -412,6 +483,7 @@
     }
 
     preInit() {
+      this.use('pre',preprocess);
       this.use(layers);
     }
 

@@ -27,12 +27,12 @@
       catch (e) { return ''; }
       const translation = core.t(key);
       if (translation[0] !== '[' || translation[translation.length - 1] !== ']') return translation;
-      const autoTranslated = core.autoTranslate(key);
+      const autoTranslated = core.auto(key);
       if (autoTranslated !== key) return autoTranslated;
       if (key.includes(' ')) {
         const words = key.split(' ');
-        const translatedWords = words.map(word => core.autoTranslate(word));
-        if (translatedWords.some((word, i) => word !== words[i])) return core.lang.language === 'CN' ? translatedWords.join('') : translatedWords.join(' ');
+        const translatedWords = words.map(word => core.auto(word));
+        if (translatedWords.some((word, i) => word !== words[i])) return core.Language === 'CN' ? translatedWords.join('') : translatedWords.join(' ');
       }
       return key;
     }
@@ -49,7 +49,7 @@
         managers: { language: new Map(), lanSwitch: new Map(), lanButton: new Map(), lanLink: new Map(), lanListbox: new Map(), radiobuttonsfrom: new Map(), },
         init() {
           if (this.initialized) return;
-          maplebirch.on(':languageChange', () => {
+          maplebirch.on(':language', () => {
             for (const [macroType, manager] of Object.entries(this.managers)) {
               manager.forEach((updater) => {
                 try { updater(); }
@@ -306,6 +306,7 @@
         const varName = String(this.args[0]).trim();
         if (!varName || (varName[0] !== '$' && varName[0] !== '_')) return this.error(`变量名 '${varName}' 缺少sigil（$ 或 _）`);
         const varId = maplebirch.SugarCube.Util.slugify(varName);
+        const CONVERT_MODES = ['lower','upper','capitalize','title','camel','pascal','snake','kebab','constant'];
         const config = { autoselect: false };
         let customClasses = '';
         let inlineStyle = '';
@@ -326,8 +327,14 @@
             if (payload.args.length === 0) return this.error('<<option>> 需要参数');
             const label = String(payload.args[0]);
             const value = payload.args.length > 1 ? payload.args[1] : label;
-            const isSelected = payload.args.includes('selected');
-            options.push({ label, value, type: 'static' });
+            let isSelected = false;
+            let convertMode = null;
+            for (let j = 2; j < payload.args.length; j++) {
+              const arg = payload.args[j];
+              if (arg === 'selected') isSelected = true;
+              else if (CONVERT_MODES.includes(arg)) convertMode = arg;
+            }
+            options.push({ label, value, type: 'static', convertMode });
             if (isSelected) {
               if (config.autoselect) return this.error('不能同时指定 autoselect 和 selected');
               if (selectedIdx !== -1) return this.error('只能有一个选中选项');
@@ -337,6 +344,14 @@
             if (!payload.args.full) return this.error('<<optionsfrom>> 需要表达式');
             dynamic.payloads.push(payload);
             dynamic.expressions.push(payload.args.full);
+            let dynConvertMode = null;
+            for (let j = 1; j < payload.args.length; j++) {
+              const arg = payload.args[j];
+              if (CONVERT_MODES.includes(arg)) {
+                dynConvertMode = arg;
+                break;
+              }
+            }
             let result;
             try {
               const exp = payload.args.full;
@@ -346,11 +361,11 @@
             }
             if (typeof result !== 'object' || result === null) return this.error('表达式必须返回对象或数组');
             if (Array.isArray(result) || result instanceof Set) {
-              result.forEach(val => options.push({ label: String(val), value: val, type: 'dynamic', exprIndex: dynamic.expressions.length - 1 }));
+              result.forEach(val => options.push({ label: String(val), value: val, type: 'dynamic', exprIndex: dynamic.expressions.length - 1, convertMode: dynConvertMode }));
             } else if (result instanceof Map) {
-              result.forEach((val, key) => options.push({ label: String(key), value: val, type: 'dynamic', exprIndex: dynamic.expressions.length - 1 }));
+              result.forEach((val, key) => options.push({ label: String(key), value: val, type: 'dynamic', exprIndex: dynamic.expressions.length - 1, convertMode: dynConvertMode }));
             } else {
-              Object.keys(result).forEach(key => options.push({ label: key, value: result[key], type: 'dynamic', exprIndex: dynamic.expressions.length - 1 }));
+              Object.keys(result).forEach(key => options.push({ label: key, value: result[key], type: 'dynamic', exprIndex: dynamic.expressions.length - 1, convertMode: dynConvertMode }));
             }
           }
         }
@@ -372,10 +387,13 @@
         const create = (opts, selectIdx) => {
           $select.empty();
           opts.forEach((opt, i) => {
+            let displayText = Internals.macroTranslation(opt.label, maplebirch) || opt.label;
+            if (opt.convertMode && maplebirch.tool.convert) displayText = maplebirch.tool.convert(displayText, opt.convertMode);
             jQuery(document.createElement('option'))
               .val(i)
-              .text(Internals.macroTranslation(opt.label, maplebirch) || opt.label)
+              .text(displayText)
               .attr('data-translation-key', opt.label)
+              .attr('data-convert-mode', opt.convertMode || '')
               .attr('data-opt-type', opt.type)
               .attr('data-expr-index', opt.exprIndex || -1)
               .prop('selected', i === selectIdx)
@@ -403,7 +421,15 @@
             if (p.name === 'option') {
               const lbl = String(p.args[0]);
               const val = p.args.length > 1 ? p.args[1] : lbl;
-              freshOpts.push({ label: lbl, value: val, type: 'static', exprIdx: -1 });
+              let convertMode = null;
+              for (let j = 2; j < p.args.length; j++) {
+                const arg = p.args[j];
+                if (CONVERT_MODES.includes(arg)) {
+                  convertMode = arg;
+                  break;
+                }
+              }
+              freshOpts.push({ label: lbl, value: val, type: 'static', convertMode, exprIdx: -1 });
             } else if (p.name === 'optionsfrom') {
               let res;
               try {
@@ -415,12 +441,20 @@
               }
               if (typeof res !== 'object' || res === null) continue;
               const exprIdx = dynamic.expressions.indexOf(p.args.full);
+              let dynConvertMode = null;
+              for (let j = 1; j < p.args.length; j++) {
+                const arg = p.args[j];
+                if (CONVERT_MODES.includes(arg)) {
+                  dynConvertMode = arg;
+                  break;
+                }
+              }
               if (Array.isArray(res) || res instanceof Set) {
-                res.forEach(v => freshOpts.push({ label: String(v), value: v, type: 'dynamic', exprIdx }));
+                res.forEach(v => freshOpts.push({ label: String(v), value: v, type: 'dynamic', exprIdx, convertMode: dynConvertMode }));
               } else if (res instanceof Map) {
-                res.forEach((v, k) => freshOpts.push({ label: String(k), value: v, type: 'dynamic', exprIdx }));
+                res.forEach((v, k) => freshOpts.push({ label: String(k), value: v, type: 'dynamic', exprIdx, convertMode: dynConvertMode }));
               } else {
-                Object.keys(res).forEach(k => freshOpts.push({ label: k, value: res[k], type: 'dynamic', exprIdx }));
+                Object.keys(res).forEach(k => freshOpts.push({ label: k, value: res[k], type: 'dynamic', exprIdx, convertMode: dynConvertMode }));
               }
             }
           }
@@ -456,10 +490,36 @@
       const separator = this.args.length > 2 ? this.args[2] : ' | ';
       const $container = jQuery('<span>').addClass('radiobuttonsfrom-container');
       let parsedOptions = [];
+      const parse = (input) => {
+        if (Array.isArray(input)) return input;
+        if (typeof input === 'string') {
+          const str = input.trim();
+          if (str.includes('|')) {
+            const options = [];
+            const optionStrs = str.split('|').map(s => s.trim());
+            optionStrs.forEach(optionStr => {
+              if (optionStr.startsWith('[') && optionStr.endsWith(']')) {
+                const valueContent = optionStr.substring(1, optionStr.length - 1);
+                if (valueContent.includes(',')) options.push(['', valueContent.split(',').map(v => v.trim())]);
+                else options.push(['', valueContent]);
+              } else if (optionStr.includes('[') && optionStr.endsWith(']')) {
+                const bracketIndex = optionStr.indexOf('[');
+                const key = optionStr.substring(0, bracketIndex);
+                const valueContent = optionStr.substring(bracketIndex + 1, optionStr.length - 1);
+                if (valueContent.includes(',')) options.push([key, valueContent.split(',').map(v => v.trim())]);
+                else options.push([key, valueContent]);
+              } else if (!optionStr.includes('[') && !optionStr.includes(']')) {
+                options.push([optionStr, optionStr]);
+              } else options.push([optionStr, optionStr]);
+            });
+            return options;
+          }
+        }
+        return null;
+      };
       try {
-        if (typeof options === 'string') { parsedOptions = JSON.parse(options); }
-        else { parsedOptions = options; }
-        if (!Array.isArray(parsedOptions)) return this.error('选项参数必须是数组或有效的JSON数组字符串');
+        parsedOptions = parse(options);
+        if (!parsedOptions) return this.error('无法解析选项参数');
       } catch (e) {
         return this.error(`无法解析选项参数: ${e.message}`);
       }
@@ -470,14 +530,8 @@
       parsedOptions.forEach((option, index) => {
         const $label = jQuery('<label>').addClass('radiobuttonsfrom-label');
         const $temp = jQuery(document.createElement('div'));
-        let optionValue, displayData;
-        if (Array.isArray(option) && option.length >= 2) {
-          optionValue = option[0];
-          displayData = option[1];
-        } else {
-          optionValue = option;
-          displayData = option;
-        }
+        let optionValue = Array.isArray(option) && option.length >= 2 ? option[0] : option;
+        let displayData = Array.isArray(option) && option.length >= 2 ? option[1] : option;
         const optionInfo = { value: optionValue, data: displayData, $label: $label };
         optionsData.push(optionInfo);
         try {
@@ -521,8 +575,8 @@
             displayText = String(option.data);
           }
           $textContainer.empty();
-          if (typeof displayText === 'string' && /<[^>]+>/.test(displayText)) { $textContainer.html(displayText); }
-          else { $textContainer.text(displayText); }
+          if (typeof displayText === 'string' && /<[^>]+>/.test(displayText)) $textContainer.html(displayText);
+          else $textContainer.text(displayText);
         });
       };
       updateDisplayTexts();
@@ -531,6 +585,7 @@
       return $container[0];
     }
 
+    // <<maplebirchReplace>>
     _overlayReplace(name, type) {
       const key = name;
       if (!key) return;
@@ -574,8 +629,8 @@
     }
 
     #getModName(modinfo) {
-      if (!modinfo.nickName) return this.core.lang.autoTranslate(modinfo.name);
-      if (typeof modinfo.nickName === 'string') return this.core.lang.autoTranslate(modinfo.nickName);
+      if (!modinfo.nickName) return this.core.lang.auto(modinfo.name);
+      if (typeof modinfo.nickName === 'string') return this.core.lang.auto(modinfo.nickName);
       if (typeof modinfo.nickName === 'object') {
         const translationsObj = Object.entries(modinfo.nickName).reduce((acc, [lang, text]) => {
           acc[lang.toUpperCase()] = text;
@@ -638,7 +693,7 @@
         if (!args || typeof args !== 'string') return args;
         const originalResult = originalName(args);
         if (originalResult !== args) return originalResult;
-        if (this.core.lang.translations.has(args)) return this.core.autoTranslate(args);
+        if (this.core.lang.translations.has(args)) return this.core.auto(args);
         return args;
       };
       const originalTitle = setup.NPC_CN_TITLE;
@@ -646,7 +701,7 @@
         if (!str || typeof str !== 'string') return str;
         const originalResult = originalTitle(str);
         if (originalResult !== str) return originalResult;
-        if (this.core.lang.translations.has(str)) return this.core.autoTranslate(str);
+        if (this.core.lang.translations.has(str)) return this.core.auto(str);
         return str;
       };
     }
@@ -709,6 +764,17 @@
         if (!maplebirch.modules.initPhase.preInitCompleted) return;
         try { $.wiki('<<updatesidebarimg>>'); } catch (error) { console.log('姿态更新错误:', error); }
       });
+
+      $(document).on('change', 'select[name="lanListbox-optionsmaplebirchcharactercharartselect"]', function () {
+        if (!maplebirch.modules.initPhase.preInitCompleted) return;
+        try { $.wiki('<<replace #customOverlayContent>><<maplebirchOptions>><</replace>>'); } catch (error) { console.log('渐变调整错误:', error); }
+      });
+
+      $(document).on('change', 'select[name="lanListbox-optionsmaplebirchcharactercloseupselect"]', function () {
+        if (!maplebirch.modules.initPhase.preInitCompleted) return;
+        try { $.wiki('<<replace #customOverlayContent>><<maplebirchOptions>><</replace>>'); } catch (error) { console.log('渐变调整错误:', error); }
+      });
+
 
       $(document).on('click', '.link-internal.macro-button', () => {
         if (!maplebirch.modules.initPhase.preInitCompleted) return;

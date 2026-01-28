@@ -289,18 +289,14 @@
     /** @param {{ (message: string, level?: string, ...objects: any[]): void; (msg: string, level?: string, ...objs: any[]): void; }} logger */
     constructor(logger) {
       this.log = logger;
-      this.Macro = null;
       /** @type {any} */
       this.statFunctions = {};
       /** @type {string[]} */
       this.macro = [];
     }
 
-    /** @param {any} data */
-    _getMacro(data) {
-      if (!data) return false
-      this.Macro = data;
-      return true
+    get Macro() {
+      return maplebirch.SugarCube.Macro;
     }
 
     /**
@@ -410,13 +406,10 @@
     constructor(logger) {
       this.log = logger;
       this.store = new Map();
-      this.Wikifier = null;
     }
 
-    /** @param {any} wikifier */
-    _getWikifier(wikifier) {
-      this.Wikifier = wikifier;
-      return true;
+    get Wikifier() {
+      return maplebirch.SugarCube.Wikifier;
     }
 
     /** 替换文本内容 @param {string|Object} oldText - 要替换的文本 * @param {string} newText - 新文本 */
@@ -536,7 +529,7 @@
           const el = document.createElement('span');
           if (style) el.classList.add(style);
           const contentStr = String(content);
-          const translated = maplebirch.autoTranslate(contentStr);
+          const translated = maplebirch.auto(contentStr);
           el.textContent = (translated == null ? '' : translated) + ' ';
           fragment.appendChild(el);
           return tools;
@@ -545,7 +538,7 @@
           fragment.appendChild(document.createElement('br'));
           if (content == null) return tools;
           const contentStr = String(content);
-          const translated = maplebirch.autoTranslate(contentStr);
+          const translated = maplebirch.auto(contentStr);
           tools.text(translated, style);
           return tools;
         },
@@ -567,7 +560,7 @@
             fragment.appendChild(content);
           } else {
             const contentStr = String(content);
-            const translated = maplebirch.autoTranslate(contentStr);
+            const translated = maplebirch.auto(contentStr);
             fragment.appendChild(document.createTextNode(translated));
           }
           return tools;
@@ -580,7 +573,7 @@
             box.appendChild(content);
           } else {
             const contentStr = String(content);
-            const translated = maplebirch.autoTranslate(contentStr);
+            const translated = maplebirch.auto(contentStr);
             box.appendChild(document.createTextNode(translated));
           }
           fragment.appendChild(box);

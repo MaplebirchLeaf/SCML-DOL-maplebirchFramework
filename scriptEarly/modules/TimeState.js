@@ -68,5 +68,5 @@
     }
   }
 
-  await maplebirch.register('state', new TimeStateManager(maplebirch), ['addonPlugin']);
+  await maplebirch.register('state', new TimeStateManager(maplebirch), ['addon']);
 })();

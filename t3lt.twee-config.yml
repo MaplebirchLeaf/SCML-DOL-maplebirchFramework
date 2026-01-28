@@ -20158,13 +20158,21 @@ sugarcube-2:
         - text
     mirroricon:
       name: mirroricon
-    lanSwitch:
-      name: lanSwitch
-    lanListbox:
-      name: lanListbox
-      container: true
     language:
       name: language
       container: true
     maplebirchNPCHairStyleOptions:
       name: maplebirchNPCHairStyleOptions
+    maplebirchOptions:
+      name: maplebirchOptions
+    lanLink:
+      name: lanLink
+      container: true
+    lanSwitch:
+      name: lanSwitch
+    lanListbox:
+      name: lanListbox
+      container: true
+    radiobuttonsfrom:
+      name: radiobuttonsfrom
+      container: true

@@ -5,8 +5,8 @@
     "cn": "秋枫白桦框架"
   },
   "alias": ["Simple Frameworks"], 
-  "version": "2.7.6",
-  "imgFileList": ["img/mask_0.png", "img/mask_1.png"],
+  "version": "2.7.8",
+  "imgFileList": [],
   "styleFileList": ["styles/maplebirch-styles.css"],
   "scriptFileList": [
     "data/defineSugarCube.js",
@@ -99,7 +99,7 @@
       "addonName": "BeautySelectorAddon",
       "modVersion": "^2.0.0",
       "params": {
-       "types": [
+        "types": [
         ]
       }
     }

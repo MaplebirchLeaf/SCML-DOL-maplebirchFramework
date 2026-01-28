@@ -61,13 +61,8 @@
 			const oldSCdata = manager.gSC2DataManager.getSC2DataInfoAfterPatch();
 			const SCdata = oldSCdata.cloneSC2DataInfo();
 			const file = SCdata.scriptFileItems.getByNameWithOrWithoutPath('effect.js');
-			const regex = /errors.pushUnique\(messageKey\);/;
-			if (regex.test(file.content)) {
-				file.content = file.content.replace(
-					regex,
-					'if (maplebirch.char.transformation.message(messageKey, { element: element, sWikifier: sWikifier, fragment: fragment, wikifier: wikifier })) break;\n\t\t\t\t\terrors.pushUnique\(messageKey\);'
-				);
-			}
+			/**@type {[RegExp, string][]}*/const replacements = [[/errors\.pushUnique\(messageKey\);/g,'if (maplebirch.char.transformation.message(messageKey, { element: element, sWikifier: sWikifier, fragment: fragment, wikifier: wikifier })) break;\n\t\t\t\t\terrors.pushUnique(messageKey);']];
+			file.content = manager.replace(file.content, replacements);
 			manager.addonReplacePatcher.gModUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
 		}
 

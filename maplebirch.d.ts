@@ -9,7 +9,7 @@ declare global {
     between: typeof between;
   }
 
-  const JSZip: any;
+  type JSZip = any;
 
   interface Math {
     clamp(value: number, min: number, max: number): number;
@@ -111,7 +111,7 @@ declare global {
     modList: string[];
     onLoad: boolean;
     readonly logger: Logger;
-    readonly events: EventEmitter;
+    readonly tracer: EventEmitter;
     readonly idb: IndexedDBService;
     readonly lang: LanguageManager;
     readonly modules: ModuleSystem;
@@ -126,7 +126,7 @@ declare global {
     readonly modLoader: any;
     readonly modUtils: any;
     readonly SugarCube: SugarCube;
-    readonly addonPlugin: FrameworkAddon;
+    readonly addon: FrameworkAddon;
     constructor();
     log(msg: string, level?: string, ...objs: any[]): void;
     on(evt: string, handler: Function, desc?: string): boolean;
@@ -139,7 +139,7 @@ declare global {
     loadInit(): Promise<void>;
     postInit(): Promise<void>;
     t(key: string, space?: boolean): string;
-    autoTranslate(text: string): string;
+    auto(text: string): string;
     set Language(lang: string);
     set LogLevel(level: string);
     set ExModCount(count: number);
@@ -186,26 +186,43 @@ declare global {
 
   class LanguageManager {
     static DEFAULT_LANGS: string[];
-    static DEFAULT_IMPORT_CONCURRENCY: number;
-    static DEFAULT_BATCH_SIZE: number;
-    static DEFAULT_PRELOAD_YIELD: number;
+    static BATCH_SIZE: number;
     constructor(core: MaplebirchCore);
-    translations: Map<string, string>;
+    language: string;
+    translations: Map<string, Object<string, string>>;
+    preloaded: boolean;
+    detectLang(): string;
+    initDB(): void;
     setLanguage(lang: string): void;
+    importAll(modName: string, langs?: string[]): AsyncGenerator<{
+      lang: string;
+      count: number;
+      error?: Error;
+      type: string;
+    }, void, void>;
+    load(modName: string, lang: string, path: string): AsyncGenerator<{
+      lang: string;
+      count: number;
+      error?: Error;
+      type: string;
+    }|{
+      progress: number;
+      current: number;
+      total: number;
+      lang: string;
+      type: string;
+    }, void, void>;
     t(key: string, space?: boolean): string;
-    autoTranslate(sourceText: string): string;
-    importAllLanguages(modName: string, languages?: string[]): Promise<boolean>;
-    loadTranslations(modName: string, languageCode: string, filePath: string): Promise<boolean>;
-    preloadAllTranslations(): Promise<void>;
-    clearDatabase(): Promise<void>;
-    cleanOldVersions(): Promise<void>;
-    get language(): string;
+    auto(text: string): string;
+    preload(): Promise<void>;
+    clearDB(): Promise<void>;
+    cleanOld(): Promise<void>;
   }
 
   class ModuleSystem {
     static streamConfig: { batchSize: number; yieldInterval: number };
     constructor(core: MaplebirchCore);
-    initPhase: { preInitCompleted: boolean; mainInitCompleted: boolean; loadInitExecuted: boolean; postInitExecuted: boolean; expectedModuleCount: number; registeredModuleCount: number; allModuleRegisteredTriggered: boolean };
+    initPhase: { preInitCompleted: boolean; mainInitCompleted: boolean; loadInitExecuted: boolean; postInitExecuted: boolean; expectedModuleCount: number; registeredModuleCount: number; allRegisteredTriggered: boolean };
     register(name: string, module: any, dependencies?: string[], isExtension?: boolean|undefined): Promise<boolean>;
     setExpectedModuleCount(count: number): void;
     getDependencyGraph(): Record<string, { dependencies: string[]; dependents: string[]; state: string; allDependencies: string[] }>;
@@ -218,6 +235,7 @@ declare global {
   class FrameworkAddon {
     constructor(core: MaplebirchCore, gSC2DataManager: typeof modSC2DataManager, gModUtils: typeof modUtils);
     core: MaplebirchCore;
+    replace(content:string, replacements:[RegExp, string][]): string;
     readonly gSC2DataManager: typeof modSC2DataManager;
     readonly gModUtils: typeof modUtils;
     readonly addonTweeReplacer: any;
@@ -227,21 +245,15 @@ declare global {
     supportedConfigs: string[];
     queue: Record<string, Array<{ modName: string; modZip: any; config: any }>>;
     processed: Record<string, boolean>;
-    jsFiles: string[];
+    jsFiles: Array<{modName: string, filePath: string, content: string}>;
     moduleFiles: Array<{ modName: string; filePath: string; content: string }>;
     nowModName: string;
     registerMod(addonName: string, modInfo: { name: string; bootJson: { addonPlugin: any[] } }, modZip: any): Promise<void>;
-    canLoadThisMod(bootJson: { addonPlugin: any[]; name: string }, modZip: any): Promise<boolean>;
     afterInjectEarlyLoad(): Promise<void>;
     InjectEarlyLoad_start(modName: string, fileName: string): Promise<void>;
     afterRegisterMod2Addon(): Promise<void>;
     afterPatchModToGame(): Promise<void>;
     beforePatchModToGame(): Promise<void>;
-    #vanillaDataReplace(): Promise<void>;
-    #loadFiles(modName: string, modZip: any, files: string[], isModule: boolean): Promise<void>;
-    #executeScripts(files: Array<string | {modName?: string, filePath?: string, content: string}>, type: string): Promise<void>;
-    #simpleFrameworkCheck(): Promise<boolean>;
-    #processInit(): Promise<void>;
   }
 
   class Process {
@@ -359,7 +371,7 @@ declare global {
   }
 
   class modifyWeather {
-    constructor(core: MaplebirchCore, modSC2DataManager: any, addonReplacePatcher: any);
+    constructor(core: MaplebirchCore);
     core: MaplebirchCore;
     modSC2DataManager: any;
     addonReplacePatcher: any;
@@ -369,7 +381,7 @@ declare global {
     addEffect(effectName: string, patch: object, mode?: string): this;
     addLayer(layerName: string, patch: object, mode?: string): this;
     trigger(params: { name: any }): { name: any };
-    modifyWeatherJavaScript(): Promise<void>;
+    modifyWeatherJavaScript(manager: FrameworkAddon): Promise<void>;
   }
 
   class DateTime {
@@ -559,7 +571,6 @@ declare global {
 
   class defineWidget {
     constructor(logger: (message: string, level?: string, ...objects: any[]) => void);
-    _getMacro(data: any): boolean;
     defineMacro(macroName: string, macroFunction: Function, tags?: any[], skipArgs?: boolean, isAsync?: boolean): void;
     defineMacroS(macroName: string, macroFunction: Function, tags?: any, skipArgs?: boolean, maintainContext?: boolean): void;
     statChange(statType: string, amount: number, colorClass: string, condition?: () => boolean): DocumentFragment;
@@ -569,7 +580,6 @@ declare global {
 
   class htmlTools {
     constructor(logger: (message: string, level?: string, ...objects: any[]) => void);
-    _getWikifier(wikifier: any): boolean;
     reg(key: string, handler: Function, id?: string): string | false;
     unreg(key: string, idOrHandler?: string | Function): boolean;
     clear(): void;
@@ -729,17 +739,17 @@ declare global {
   class CharacterManager {
     core: MaplebirchCore;
     log: (message: string, level?: string, ...objects: any[]) => void;
+    mask: (x?:number,swap?:boolean,width?:number,height?:number) => Base64URLString;
     transformation: Transformation;
     faceStyleMap: Map<string,Array<string>>
-    layers: Record<string, any>;
     handlers: { pre: Array<(options: any) => void>; post: Array<(options: any) => void> };
     constructor(core: MaplebirchCore);
-    modifyPCModel(manager: any): Promise<void>;
-    modifyFaceStyle(manager: any): void;
+    modifyPCModel(manager: FrameworkAddon): Promise<void>;
+    modifyFaceStyle(manager: FrameworkAddon): romise<void>;
     use(...args: any[]): this;
-    process(type: 'pre' | 'post', options: any): void;
+    process(type: 'pre'|'post', options: any): void;
     faceStyleImagePaths(): Promise<void>;
-    _faceStyleModel(options: any): Promise<void>;
+    faceStyleSrcFn(name:Function|string, options: Object): Function;
     render(): Promise<void>;
     preInit(): void;
     Init(): void;
@@ -750,7 +760,7 @@ declare global {
   class Transformation {
     add(name: string, type: 'physical'|'special', options: any): this;
     inject(): void;
-    modifyEffect(manager: any): Promise<void>;
+    modifyEffect(manager: FrameworkAddon): Promise<void>;
     message(key: string, tools: { element: Function, wikifier: Function }): boolean;
     get icon(): string;
     setTransform(name: string, level: number | null): void;
@@ -978,9 +988,10 @@ declare global {
   }
 
   class NPCSidebar { 
-    init(force?: boolean): void; 
-    static display: Set;
+    init(NPCManager): void; 
+    static display: Map<string,any>;
     static loadFromMod: (modZip:JSZip, npcNames:string) => string[];
+    static hair_type(type:'sides'|'fringe'): string;
   }
 
   class CombatManager {
@@ -1263,6 +1274,7 @@ declare global {
   function clothesIndex(slot:string, itemToIndex:object): number;
   function integrityKeyword(worn:object, slot:string): string;
   function getKylarLocation(): {area:string,state:string};
+  function hairLengthStringToNumber(hairLength:string): number;
 }
 
 export {};

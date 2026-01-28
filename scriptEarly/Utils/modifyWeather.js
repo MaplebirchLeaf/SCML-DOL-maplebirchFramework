@@ -4,11 +4,9 @@
   'use strict';
 
   class modifyWeather {
-    /** @param {MaplebirchCore} core @param {any} modSC2DataManager @param {any} addonReplacePatcher */
-    constructor(core, modSC2DataManager, addonReplacePatcher) {
+    /** @param {MaplebirchCore} core */
+    constructor(core) {
       this.core = core;
-      this.modSC2DataManager = modSC2DataManager;
-      this.addonReplacePatcher = addonReplacePatcher;
       this.layerModifications = new Map();
       this.effectModifications = new Map();
       this.weathertrigger = false;
@@ -57,24 +55,19 @@
       return params;
     }
 
-    async modifyWeatherJavaScript() {
-      const oldSCdata = this.modSC2DataManager.getSC2DataInfoAfterPatch();
+    /** @param {FrameworkAddon} manager */
+    async modifyWeatherJavaScript(manager) {
+      const oldSCdata = manager.gSC2DataManager.getSC2DataInfoAfterPatch();
       const SCdata = oldSCdata.cloneSC2DataInfo();
       const file = SCdata.scriptFileItems.getByNameWithOrWithoutPath('00-layer-manager.js');
-      try {
-        const regex = /const\s+layer\s*=\s*new\s+Weather\.Renderer\.Layer\(([^)]+)\);/;
-        if (regex.test(file.content)) {
-          file.content = file.content.replace(
-            regex,
-            'maplebirch.state.modifyWeather.trigger(params);\n\t\tconst layer = new Weather.Renderer.Layer(params.name, params.blur, params.zIndex, params.animation);'
-          );
-        }
-        this.addonReplacePatcher.gModUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
-      } catch (/** @type {any} */error) {
-        this.core.log(`处理天气JavaScript时发生错误: ${error.message}`, 'ERROR');
-      }
+      /**@type {[RegExp, string][]}*/const replacements = [[
+        /const\s+layer\s*=\s*new\s+Weather\.Renderer\.Layer\(([^)]+)\);/,
+        'maplebirch.state.modifyWeather.trigger(params);\n\t\tconst layer = new Weather.Renderer.Layer(params.name, params.blur, params.zIndex, params.animation);'
+      ]];
+      file.content = manager.replace(file.content, replacements);
+      manager.addonReplacePatcher.gModUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
     }
   }
 
-  maplebirch.once(':state-init', (/**@type {TimeStateManager}*/ data) => Object.assign(data, { modifyWeather: new modifyWeather(maplebirch, modSC2DataManager, addonReplacePatcher) }));
+  maplebirch.once(':state-init', (/**@type {TimeStateManager}*/ data) => Object.assign(data, { modifyWeather: new modifyWeather(maplebirch) }));
 })();
