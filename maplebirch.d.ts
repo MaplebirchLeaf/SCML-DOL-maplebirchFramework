@@ -1258,6 +1258,8 @@ declare global {
   const addonTweeReplacer: any;
   const addonReplacePatcher: any;
   const modImgLoaderHooker: any;
+  const modGameOriginalImagePack: any;
+  const modLoaderGui_ModSubUiAngularJsService: any;
   function lanSwitch(text: any): string;
   function lanSwitch(english: string, chinese: string, ...args: any[]): string;
   function lanSwitch(options: { EN: string; CN: string; [key: string]: string }): string;

@@ -9,11 +9,11 @@
     return function (/**@type {{ facestyle: any; facevariant: any; }}*/layerOptions) {
       const image = Name(layerOptions);
       const paths = [
-        `img/face/${layerOptions.facestyle}/${layerOptions.facevariant || 'default'}/${image}.png`,
-        `img/face/default/${layerOptions.facevariant || 'default'}/${image}.png`,
+        `img/face/${layerOptions.facestyle}/${layerOptions.facevariant}/${image}.png`,
         `img/face/${layerOptions.facestyle}/${image}.png`,
+        `img/face/default/${layerOptions.facevariant}/${image}.png`,
         `img/face/default/${image}.png`,
-        `img/face/default/default/${image}.png`
+        `img/face/default/default/${image}.png`,
       ];
       for (let i = 0; i < paths.length; i++) if (!!loadImage(paths[i])) return paths[i];
       return paths[paths.length - 1];

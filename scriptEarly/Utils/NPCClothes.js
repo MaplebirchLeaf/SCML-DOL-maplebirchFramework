@@ -61,18 +61,18 @@
             type: 'default',
             gender: 'n',
             outfit: 0,
-            upper: { name: 'shirt', integrity_max: 100, word: 'a', action: 'lift', get desc() { return maplebirch.Language === 'CN' ? '衬衫' : 'shirt'; } },
-            lower: { name: 'cargo trousers', integrity_max: 100, word: 'n', action: 'pull', get desc() { return maplebirch.Language === 'CN' ? '工装裤' : 'cargo trousers'; } },
-            get desc() { return maplebirch.Language === 'CN' ? '衬衫和工装裤' : 'Shirt and cargo trousers'; }
+            upper: { name: 'shirt', integrity_max: 100, word: 'a', action: 'lift', get desc() { return lanSwitch('shirt','衬衫'); } },
+            lower: { name: 'cargo trousers', integrity_max: 100, word: 'n', action: 'pull', get desc() { return lanSwitch('cargo trousers','工装裤'); } },
+            get desc() { return lanSwitch('Shirt and cargo trousers','衬衫和工装裤'); }
           },
           {
             name: 'hermDefault',
             type: 'default',
             gender: 'h',
             outfit: 0,
-            upper: { name: 'shirt', integrity_max: 100, word: 'a', action: 'lift', get desc() { return maplebirch.Language === 'CN' ? '衬衫' : 'shirt'; } },
-            lower: { name: 'miniskirt', integrity_max: 100, word: 'a', action: 'lift', get desc() { return maplebirch.Language === 'CN' ? '迷你裙' : 'miniskirt'; } },
-            get desc() { return maplebirch.Language === 'CN' ? '衬衫和迷你裙' : 'Shirt and miniskirt'; }
+            upper: { name: 'shirt', integrity_max: 100, word: 'a', action: 'lift', get desc() { return lanSwitch('shirt','衬衫'); } },
+            lower: { name: 'miniskirt', integrity_max: 100, word: 'a', action: 'lift', get desc() { return lanSwitch('miniskirt','迷你裙'); } },
+            get desc() { return lanSwitch('Shirt and miniskirt','衬衫和迷你裙'); }
           }
         );
         merge();

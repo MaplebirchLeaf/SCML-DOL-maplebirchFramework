@@ -37,6 +37,7 @@
 'modify': modify
 'sort': sort
 'reset': reset
+'status': status
 
 'traditional': traditional
 'gentle': gentle

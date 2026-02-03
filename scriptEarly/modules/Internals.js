@@ -95,21 +95,24 @@
 
     // <<lanSwitch>>
     _languageSwitch(...lanObj) {
-      let lancheck = maplebirch.Language;
+      const availableLangs = maplebirch.meta.availableLanguages;
+      const lancheck = maplebirch.Language;
       let targetObj;
+      
       if (typeof lanObj[0] === 'object' && lanObj[0] !== null && !Array.isArray(lanObj[0])) {
         targetObj = lanObj[0];
       } else {
-        targetObj = { EN: lanObj[0], CN: lanObj[1] };
+        targetObj = {};
         if (Array.isArray(lanObj[0])) {
-          targetObj.EN = lanObj[0][0];
-          targetObj.CN = lanObj[0][1];
+          lanObj[0].forEach((text, index) => { if (availableLangs[index]) targetObj[availableLangs[index]] = text; });
+        } else {
+          lanObj.forEach((text, index) => { if (availableLangs[index]) targetObj[availableLangs[index]] = text; });
         }
       }
 
       if (targetObj[lancheck] == undefined) {
         const available = Object.keys(targetObj);
-        lancheck = available.length > 0 ? available[0] : 'EN';
+        maplebirch.Language = available.length > 0 ? available[0] : availableLangs[0];
       }
 
       if (this?.output) {
@@ -119,7 +122,7 @@
           const renderContent = () => {
             $container.empty();
             const currentLang = maplebirch.Language;
-            const content = contentObj[currentLang] || contentObj.EN || '';
+            const content = contentObj[currentLang] || contentObj[availableLangs[0]] || '';
             if (content) {
               const fragment = document.createDocumentFragment();
               new maplebirch.SugarCube.Wikifier(fragment, content);
@@ -746,14 +749,6 @@
       });
 
       this.core.on(':loadSaveData', () => maplebirch.Language = V?.maplebirch?.language);
-
-      $(document).on('change', 'select[name="lanListbox--maplebirchlanguage"]', function () {
-        if (!maplebirch.modules.initPhase.preInitCompleted) return;
-        try { 
-          V.maplebirch.language = T.maplebirchLanguage;
-          maplebirch.Language = T.maplebirchLanguage;
-        } catch (error) { console.log('语言切换错误:', error); }
-      });
 
       $(document).on('change', 'select[name="lanListbox-optionsmaplebirchnpcsidebarnnpc"]', function () {
         if (!maplebirch.modules.initPhase.preInitCompleted) return;

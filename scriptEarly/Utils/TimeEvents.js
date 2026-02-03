@@ -631,7 +631,9 @@
       if (choice) {
         switch (choice) {
           case 'JournalTime':
-            return maplebirch.Language === 'CN' ? '今天是' + (Time.year > 0 ? '公元' : '公元前') + Math.abs(Time.year) + '年' + getFormattedDate(Time.date) + '。' : 'It is ' + getFormattedDate(Time.date) + ', ' + Math.abs(Time.year) + (Time.year > 0 ? 'AD' : 'BC') + '.';
+            const en_text = 'It is ' + getFormattedDate(Time.date) + ', ' + Math.abs(Time.year) + (Time.year > 0 ? 'AD' : 'BC') + '.';
+            const cn_text = '今天是' + (Time.year > 0 ? '公元' : '公元前') + Math.abs(Time.year) + '年' + getFormattedDate(Time.date) + '。';
+            return lanSwitch(en_text,cn_text);
         }
         return false;
       }

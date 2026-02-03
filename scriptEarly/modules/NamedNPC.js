@@ -191,7 +191,7 @@
               const typeEnabled = manager.pregnancy.typesEnabled.includes(this.type);
               const canBePregnant = manager.pregnancy.canBePregnant.includes(this.nam);
               const pregnancyEnabledUndefined = pregnancyData.enabled == null;
-              const incompletePregnancyEnabled = V.settings.incompletePregnancyEnabled;
+              const incompletePregnancyEnabled = V.settings?.incompletePregnancyEnabled;
 
               const shouldInitialize = !isInfertile && typeEnabled &&
               ((incompletePregnancyEnabled && pregnancyEnabledUndefined &&
@@ -401,9 +401,9 @@
         setup.loveAlias[npcName] = loveAliasConfig;
       } else if (Array.isArray(loveAliasConfig) && loveAliasConfig.length >= 2) {
         const [cnAlias, enAlias] = loveAliasConfig;
-        setup.loveAlias[npcName] = () => maplebirch.Language === 'CN' ? cnAlias : enAlias;
+        setup.loveAlias[npcName] = () => lanSwitch(enAlias,cnAlias);
       } else {
-        setup.loveAlias[npcName] = () => maplebirch.Language === 'CN' ? '好感' : 'Affection';
+        setup.loveAlias[npcName] = () => lanSwitch('好感','Affection');
       }
     }
 

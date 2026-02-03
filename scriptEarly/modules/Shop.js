@@ -139,7 +139,7 @@
 
       const modUtils = window.maplebirch.modUtils;
       const hasReOverfits = modUtils.getMod('ReOverfits');
-      html += `\t\t<span><<= maplebirch.Language === 'CN' ? '保暖度：' : 'Warmth: '>></span>\n`;
+      html += `\t\t<<lanSwitch 'Warmth: ' '保暖度：'>>\n`;
       html += `\t\t<<warmthscale>>\n`;
       html += `\t\t<div id="warmth-description">\n`;
       html += `\t\t\t<<warmth_description>>\n`;

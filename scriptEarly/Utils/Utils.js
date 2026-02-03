@@ -458,7 +458,13 @@
     }
     let maybeExist = false;
     for (const hooker of this.sideHooker) {
-      if (hooker.hookName === 'GameOriginalImagePackImageSideHook') continue;
+      if (hooker.hookName === 'GameOriginalImagePackImageSideHook') {
+        const n = modGameOriginalImagePack.selfImg.get(src);
+        if (!n) continue;
+        try { if (!n.getter.invalid) return true; }
+        catch (e) { maybeExist = true; }
+        continue;
+      }
       try {
         if (hooker.checkImageExist) {
           const c = hooker.checkImageExist(src);

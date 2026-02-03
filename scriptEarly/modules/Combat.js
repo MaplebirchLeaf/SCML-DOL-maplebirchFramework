@@ -31,7 +31,7 @@
           () => {
             if (V[`${npc.toLowerCase()}Seen`]?.includes(type)) return '';
             const single = V.npc.length === 1;
-            const lang = maplebirch.Language === 'CN' ? 'CN' : 'EN';
+            const lang = maplebirch.Language;
             let output;
             if (typeof config.texts === 'function') { output = config.texts(lang, single); }
             else { output = single ? config.texts[lang].s : config.texts[lang].m; }

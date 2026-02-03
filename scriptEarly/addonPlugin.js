@@ -287,15 +287,19 @@
       }
     }
 
+    /** Controller @param {string} modName @param {string} fileName */
+    async InjectEarlyLoad_start(modName, fileName) {
+      try { await this.#simpleFrameworkCheck(); } catch {};
+    }
+
+    async ModLoaderLoadEnd() {
+      await this.core.gui.init();
+    }
+
     async afterInjectEarlyLoad() {
       await this.scriptFiles();
       await this.#executeScripts(this.moduleFiles, 'Module'); 
       if (this.core.modules.initPhase.allRegisteredTriggered) await this.core.trigger(':allModule');
-    }
-
-    /** @param {string} modName @param {string} fileName */
-    async InjectEarlyLoad_start(modName, fileName) {
-      try { await this.#simpleFrameworkCheck(); } catch {};
     }
 
     async afterRegisterMod2Addon() {
@@ -347,17 +351,24 @@
     /** @param {Array<{modName?: string, filePath?: string, content: string}>} files @param {string} type */
     async #executeScripts(files, type = 'Script') {
       if (files.length === 0) return;
+      const disabled = type === 'Script' ? this.core.gui.disabledScripts : [];
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
+        if (type === 'Script') {
+          const scriptKey = `[${file.modName}]:${file.filePath}`;
+          if (disabled.includes(scriptKey)) { file.content = ''; continue; }
+        }
+        const content = file.content;
         try {
-          const func = new Function(file.content);
+          const func = new Function(content);
           const result = func();
           if (result && typeof result.then === 'function') await result;
         } catch (/**@type {any}*/e) {
           this.core.log(`执行 ${type} 文件失败: ${file.filePath} (来自 ${file.modName}): ${e.message}`, 'ERROR');
+        } finally {
+          file.content = '';
         }
       }
-      files.length = 0;
     }
 
     async #simpleFrameworkCheck() {

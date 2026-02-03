@@ -5,14 +5,32 @@ var maplebirch = (() => {
   const frameworkVersion = modUtils.getMod('maplebirch').version;
   const lastUpdate = '2026.01.02';
   const lastModifiedBy = '楓樺葉';
-  const DEBUGMODE = true;
+  const LANGUAGE = ['EN', 'CN'];
 
-  const ModuleState = {
-    PENDING:   0,
-    MOUNTED:   1,
-    ERROR:     2,
-    EXTENSION: 3
+  const CONFIG = {
+    Title: ['Maplebirch Framworks', '秋枫白桦框架'],
+    DEBUG: ['DEBUG MODE', '调试模式'],
+    DEBUGSTATUS: ['DEBUG MODE STATUS', '调试模式状态'],
+    EnabledSTATUS: [' Enabled', '已启用'],
+    DisabledSTATUS: [' Disabled', '已禁用'],
+    Languages: [['EN','English'],['CN','Chinese']],
+    LanguageSelection: ['Frameworks Language Selection: ', '框架语言选择：'],
+    EnableModule: ['Enable selected module', '启用选中模块'],
+    DisableModule: ['Disable selected module', '禁用选中模块'],
+    EnableScript: ['Enable selected script', '启用选中脚本'],
+    DisableScript: ['Disable selected script', '禁用选中脚本'],
   };
+
+  /**@type {{[x:string|number]:string|number}}*/
+  const ModuleState = {
+    REGISTERED: 0,
+    LOADED:     1,
+    MOUNTED:    2,
+    ERROR:      3,
+    EXTENSION:  4
+  };
+
+  Object.entries(ModuleState).forEach(([key, value]) => ModuleState[value] = key);
 
   /** @param {string} modName */
   async function disabled(modName) {
@@ -64,14 +82,16 @@ var maplebirch = (() => {
     constructor(core) {
       this.core = core;
       this.level = Logger.LogLevel.INFO;
-      this.#fromIDB();
     }
 
-    async #fromIDB() {
+    async fromIDB() {
       try {
-        const DEBUG = await this.core.idb.withTransaction(['config'], 'readonly', async (/**@type {any}*/tx) =>  await tx.objectStore('config').get('debugMode'));
-        if (DEBUG?.value) this.level = Logger.LogLevel.DEBUG;
-      } catch (err) {}
+        const DEBUG = await this.core.idb.withTransaction(['settings'], 'readonly', async (/**@type {any}*/tx) => await tx.objectStore('settings').get('DEBUG'));
+        if (DEBUG?.value) { this.level = Logger.LogLevel.DEBUG; }
+        else { this.level = Logger.LogLevel.INFO; }
+      } catch (err) {
+        this.level = Logger.LogLevel.INFO;
+      }
     }
 
     /**
@@ -341,22 +361,29 @@ var maplebirch = (() => {
   }
 
   class LanguageManager {
-    static DEFAULT_LANGS = ['EN', 'CN'];
+    static DEFAULT_LANGS = LANGUAGE;
     static BATCH_SIZE = 500;          // 默认批处理大小
 
     /** @param {MaplebirchCore} core */
     constructor(core) {
       this.core = core;
-      this.language = this.detectLang();       // 自动检测语言
-      this.translations = new Map();           // 内存翻译缓存
-      this.cache = new Map();                  // 文本->键名缓存
-      this.preloaded = false;                  // 预加载状态标志
-      this.fileHashes = new Map();             // 文件哈希缓存
+      /**@type {string}*/
+      this.language = 'EN';           // 自动检测语言
+      this.translations = new Map();  // 内存翻译缓存
+      this.cache = new Map();         // 文本->键名缓存
+      this.preloaded = false;         // 预加载状态标志
+      this.fileHashes = new Map();    // 文件哈希缓存
+      this.detectLang();
     }
 
-    detectLang() {
-      const lang = navigator.language || 'en';
-      return lang.includes('zh') ? 'CN' : 'EN';
+    async detectLang() {
+      const check = navigator.language.includes('zh') ? 'CN' : 'EN' 
+      try {
+        const Language = await this.core.idb.withTransaction(['settings'], 'readonly', async (/**@type {any}*/tx) => await tx.objectStore('settings').get('Language'));
+        this.language = Language?.value || check;
+      } catch (err) {
+        this.language = check;
+      }
     }
     
     initDB() {
@@ -373,10 +400,10 @@ var maplebirch = (() => {
       ]);
     }
 
-    /** 设置语言 @param {string} lang 语言代码 */
+    /** @param {string} lang */
     setLanguage(lang) {
       if (!lang) return;
-      this.language = ('' + lang).toUpperCase();
+      this.language = (''+lang).toUpperCase();
       this.cache.clear();
       this.core.logger.log(`语言设置为: ${this.language}`, 'DEBUG');
     }
@@ -399,7 +426,6 @@ var maplebirch = (() => {
             const file = modZip.zip.file(path);
             const content = await file.async('text');
             let data = this.#parseFile(content, path);
-            
             for await (const progress of this.#processStream(modName, lang, data)) yield { ...progress, lang, type: 'process' };
             processedCount = Object.keys(data).length;
           } catch (/**@type {any}*/err) {
@@ -808,6 +834,7 @@ var maplebirch = (() => {
         dependents: new Map(),     // 模块名称->依赖者
         allDependencies: new Map(),// 模块名称->所有依赖(传递闭包)
         waitingQueue: new Map(),   // 等待队列
+        source: new Map(),         // 扩展模块来源
       };
 
       this.initPhase = {
@@ -820,9 +847,10 @@ var maplebirch = (() => {
         allRegisteredTriggered: false // 所有模块注册事件触发标志
       };
 
-      this.preInitialized = new Set();      // 预初始化模块集合
-      this.#waitingResolvers = new Map();   // 等待解析器
-      this.#depthMemo = new Map();          // 深度计算缓存
+      this.preInitialized = new Set();     // 预初始化模块集合
+      this.waitingResolvers = new Map();   // 等待解析器
+      this.depthMemo = new Map();          // 深度计算缓存
+      this.circularCheckCache = new Map(); // 循环依赖检查缓存
     }
 
     /**
@@ -830,97 +858,141 @@ var maplebirch = (() => {
      * @param {string} name 模块名称
      * @param {any} module 模块对象
      * @param {string[]} [dependencies] 依赖列表
-     * @param {boolean} [isExtension=false] 是否为扩展模块
+     * @param {string} [source] 扩展模块来源模组名
      * @returns {Promise<boolean>} 是否注册成功
      */
-    async register(name, module, dependencies = [], isExtension = false) {
-      const reg = this.registry;
-      if (isExtension) {
-        // @ts-ignore
-        if (this.core[name] != null) { this.core.logger.log(`扩展模块 ${name} 挂载失败: 名称冲突`, 'WARN'); return false; }
-        this.core.logger.log(`挂载扩展模块: ${name}`, 'DEBUG');
-        /**@type {any}*/(this.core)[name] = module;
-        reg.modules.set(name, module);
-        reg.states.set(name, ModuleState.EXTENSION);
-        return true;
-      }
-      if (reg.modules.has(name)) {
+    async register(name, module, dependencies = [], source = '') {
+      if (source) return this.#registerExtension(name, module, source);
+      if (this.registry.modules.has(name)) {
         this.core.logger.log(`模块 ${name} 已注册`, 'WARN');
         return false;
       }
-      const moduleDependencies = [...(module.dependencies || []), ...dependencies];
-      if (this.core.meta.earlyMount?.includes(name)) {
-        const earlyMountSet = new Set(this.core.meta.earlyMount);
-        const unmetEarlyDeps = moduleDependencies.filter(dep => earlyMountSet.has(dep) && !(/**@type {any}*/(this.core)[dep]));
-        if (unmetEarlyDeps.length > 0) {
-          this.core.logger.log(`[${name}] 模块等待依赖挂载: [${unmetEarlyDeps.join(', ')}]`, 'DEBUG');
-          const checkDeps = () => {
-            const stillUnmet = unmetEarlyDeps.filter(dep => !(/**@type {any}*/(this.core)[dep]));
-            stillUnmet.length === 0 ? (/**@type {any}*/(this.core)[name] = module, this.core.logger.log(`[${name}] 模块已在依赖满足后挂载 (earlyMount)`, 'DEBUG')) : setTimeout(checkDeps, 10);
-          };
-          setTimeout(checkDeps, 0);
-        } else {
-          /**@type {any}*/(this.core)[name] = module;
-          this.core.logger.log(`[${name}] 模块已在注册时挂载 (earlyMount)`, 'DEBUG');
-        }
-      }
-      const allDependencies = new Set();
-      /** 递归收集依赖 @param {string} depName 依赖名称 */
-      const collectDependencies = (depName) => {
-        if (allDependencies.has(depName)) return;
-        allDependencies.add(depName);
-        if (reg.modules.has(depName)) [...(reg.dependencies.get(depName) || [])].forEach(collectDependencies);
-      };
-      moduleDependencies.forEach(collectDependencies);
-
-      if (this.#detectCircularDependency(name, [...allDependencies])) {
+      const moduleDependencies = [...new Set([...(module.dependencies||[]), ...(dependencies||[])])];
+      this.#handleEarlyMount(name, module, moduleDependencies);
+      const allDependencies = this.#collectAllDependencies(moduleDependencies);
+      if (this.#hasCircularDependency(name, allDependencies)) {
         this.core.logger.log(`模块 ${name} 注册失败: 存在循环依赖`, 'ERROR');
         return false;
       }
-
-      reg.modules.set(name, module);
-      reg.states.set(name, ModuleState.PENDING);
-      reg.dependencies.set(name, new Set(moduleDependencies));
-      reg.allDependencies.set(name, allDependencies);
-
-      if (!reg.dependents.has(name)) reg.dependents.set(name, new Set());
-      moduleDependencies.forEach(dep => {
-        if (!reg.dependents.has(dep)) reg.dependents.set(dep, new Set());
-        reg.dependents.get(dep).add(name);
-      });
-
-      this.core.logger.log(`注册模块: ${name}, 依赖: [${moduleDependencies.join(', ')}]`, 'DEBUG');
-      this.core.logger.log(`传递依赖: [${[...allDependencies].join(', ')}]`, 'DEBUG');
-
+      this.#storeModuleRegistration(name, module, moduleDependencies, allDependencies);
+      this.#logModuleRegistration(name, moduleDependencies, allDependencies);
       this.initPhase.registeredCount++;
       this.#checkModuleRegistration();
-
-      if (reg.waitingQueue.has(name)) {
-        [...reg.waitingQueue.get(name)].forEach(moduleName => {
-          if (reg.states.get(moduleName) === ModuleState.PENDING) setTimeout(() => this.#initModule(moduleName), 0);
-        });
-        reg.waitingQueue.delete(name);
-      }
-
+      this.#processWaitingQueue(name);
       return true;
     }
 
-    /** 设置预期模块数量 @param {number} count 预期模块数量 */
+    /** 记录模块注册日志 @param {string} name @param {string[]} directDeps @param {Set<string>} allDeps */
+    #logModuleRegistration(name, directDeps, allDeps) {
+      if (directDeps.length > 0) { this.core.logger.log(`注册模块: ${name}, 依赖: [${directDeps.join(', ')}]`, 'DEBUG'); }
+      else { this.core.logger.log(`注册模块: ${name} (无依赖)`, 'DEBUG'); }
+      if (allDeps.size > directDeps.length) this.core.logger.log(`传递依赖: [${[...allDeps].join(', ')}]`, 'DEBUG');
+    }
+
+    /** 注册扩展模块 @param {string} name @param {any} module @param {string} source 来源模组名 @returns {Promise<boolean>} */
+    async #registerExtension(name, module, source) {
+      try {
+        if (/**@type {any}*/(this.core)[name] != null) { this.core.logger.log(`扩展模块 ${name} 挂载失败: 名称冲突`, 'WARN'); return false; }
+        const Extension = await this.core.idb.withTransaction(['settings'], 'readonly', async (/**@type {any}*/tx) => await tx.objectStore('settings').get('Extension'));
+        if (Extension?.value?.disabled?.some((/**@type {{name:string}}*/m) => m.name === name)) { this.core.logger.log(`扩展模块 ${name} 被禁用，跳过注册`, 'DEBUG'); return false; }
+        /**@type {any}*/(this.core)[name] = module;
+        this.registry.modules.set(name, module);
+        this.registry.states.set(name, ModuleState.EXTENSION);
+        this.registry.source.set(name, source);
+        this.core.logger.log(`挂载扩展模块: ${name} (来源: ${source})`, 'DEBUG');
+        return true;
+      } catch (/**@type {any}*/e) { this.core.logger.log(`扩展模块 ${name} 挂载失败: ${e.message}`, 'ERROR'); return false; }
+    }
+
+    /** 处理 earlyMount 模块 @param {string} name @param {any} module @param {string[]} dependencies */
+    #handleEarlyMount(name, module, dependencies) {
+      if (!this.core.meta.earlyMount?.includes(name)) return;
+      const earlyMountSet = new Set(this.core.meta.earlyMount);
+      const unmetDeps = dependencies.filter(dep => earlyMountSet.has(dep) && !(/**@type {any}*/(this.core)[dep]));
+      if (unmetDeps.length === 0) {
+        /**@type {any}*/(this.core)[name] = module;
+        this.registry.states.set(name, ModuleState.LOADED);
+        this.core.logger.log(`[${name}] 模块已在注册时挂载 (earlyMount)`, 'DEBUG');
+      } else {
+        this.core.logger.log(`[${name}] 模块等待依赖挂载: [${unmetDeps.join(', ')}]`, 'DEBUG');
+        this.#scheduleEarlyMountCheck(name, module, unmetDeps);
+      }
+    }
+
+    /** 调度 earlyMount 依赖检查 @param {string} name @param {any} module @param {string[]} unmetDeps */
+    #scheduleEarlyMountCheck(name, module, unmetDeps) {
+      const maxRetries = 10;
+      let retries = 0;
+      const checkDeps = () => {
+        const stillUnmet = unmetDeps.filter(dep => !(/**@type {any}*/(this.core)[dep]));
+        if (stillUnmet.length === 0) {
+          /**@type {any}*/(this.core)[name] = module;
+          this.registry.states.set(name, ModuleState.LOADED);
+          this.core.logger.log(`[${name}] 模块已在依赖满足后挂载 (earlyMount)`, 'DEBUG');
+        } else if (retries++ < maxRetries) {
+          setTimeout(checkDeps, 5);
+        } else {
+          this.core.logger.log(`[${name}] earlyMount 超时: 依赖未满足 [${stillUnmet.join(', ')}]`, 'WARN');
+        }
+      };
+      setTimeout(checkDeps, 0);
+    }
+
+    /** 收集所有传递依赖 @param {string[]} directDeps @returns {Set<string>} */
+    #collectAllDependencies(directDeps) {
+      const allDeps = new Set();
+      const visited = new Set();
+      /** 递归收集 @param {string} depName */
+      const collect = (depName) => {
+        if (visited.has(depName)) return;
+        visited.add(depName);
+        allDeps.add(depName);
+        const subDeps = this.registry.dependencies.get(depName);
+        if (subDeps) subDeps.forEach(collect);
+      };
+      directDeps.forEach(collect);
+      return allDeps;
+    }
+
+    /** 存储模块注册信息 @param {string} name @param {any} module @param {string[]} directDeps @param {Set<string>} allDeps */
+    #storeModuleRegistration(name, module, directDeps, allDeps) {
+      const reg = this.registry;
+      reg.modules.set(name, module);
+      reg.states.set(name, ModuleState.REGISTERED);
+      reg.dependencies.set(name, new Set(directDeps));
+      reg.allDependencies.set(name, allDeps);
+      if (!reg.dependents.has(name)) reg.dependents.set(name, new Set());
+      directDeps.forEach(dep => {
+        if (!reg.dependents.has(dep)) reg.dependents.set(dep, new Set());
+        reg.dependents.get(dep).add(name);
+      });
+    }
+
+    /** 处理等待队列 @param {string} name */
+    #processWaitingQueue(name) {
+      const waitingModules = this.registry.waitingQueue.get(name);
+      if (!waitingModules) return;
+      const pendingModules = [...waitingModules].filter(moduleName => this.registry.states.get(moduleName) === ModuleState.REGISTERED || this.registry.states.get(moduleName) === ModuleState.LOADED);
+      if (pendingModules.length > 0) queueMicrotask(() => pendingModules.forEach(moduleName => this.#initModule(moduleName)));
+      this.registry.waitingQueue.delete(name);
+    }
+
+    /** 设置预期模块数量 @param {number} count */
     setExpectedModuleCount(count) {
       this.initPhase.expectedCount = count;
       this.#checkModuleRegistration();
     }
-    
-    getDependencyGraph() {
+
+    get dependencyGraph() {
       const reg = this.registry;
-      /** @type {Object<string, {dependencies: string[], dependents: string[], state: string, allDependencies: string[]}>} */
-      const graph = {};
+      /**@type {any}*/const graph = {};
       reg.modules.forEach((_, name) => {
         graph[name] = {
           dependencies: Array.from(reg.dependencies.get(name) || []),
           dependents: Array.from(reg.dependents.get(name) || []),
-          state: this.#getStateName(reg.states.get(name)),
-          allDependencies: Array.from(reg.allDependencies.get(name) || [])
+          state: ModuleState[reg.states.get(name)] || `UNKNOWN(${reg.states.get(name)})`,
+          allDependencies: Array.from(reg.allDependencies.get(name) || []),
+          source: reg.source.get(name) || null
         };
       });
       return graph;
@@ -930,7 +1002,7 @@ var maplebirch = (() => {
       if (this.initPhase.preInitCompleted) return;
       await this.#initAllModules(true);
       this.initPhase.preInitCompleted = true;
-      this.core.logger.log(`预初始化完成`, 'INFO');
+      this.core.logger.log('预初始化完成', 'INFO');
     }
 
     async init() {
@@ -938,7 +1010,7 @@ var maplebirch = (() => {
       if (!this.initPhase.preInitCompleted) await this.preInit();
       await this.#initAllModules(false);
       this.initPhase.mainInitCompleted = true;
-      this.core.logger.log(`主初始化完成`, 'INFO');
+      this.core.logger.log('主初始化完成', 'INFO');
     }
 
     async loadInit() {
@@ -953,9 +1025,6 @@ var maplebirch = (() => {
       this.initPhase.postInitExecuted = true;
     }
 
-    #waitingResolvers = new Map();
-    #depthMemo = new Map();
-
     #checkModuleRegistration() {
       if (this.initPhase.allRegisteredTriggered) return;
       const { expectedCount, registeredCount } = this.initPhase;
@@ -965,42 +1034,35 @@ var maplebirch = (() => {
       }
     }
 
-    /** 获取状态名称 @param {number} stateValue 状态值 @returns {string} 状态名称 */
-    #getStateName(stateValue) {
-      const states = { [ModuleState.PENDING]: 'PENDING', [ModuleState.MOUNTED]: 'MOUNTED', [ModuleState.ERROR]: 'ERROR', [ModuleState.EXTENSION]: 'EXTENSION' };
-      return states[stateValue] || `UNKNOWN(${stateValue})`;
-    }
-
-    /** 等待模块初始化完成 @param {string} moduleName 模块名称 @returns {Promise<void>} */
+    /** 等待模块初始化完成 @param {string} moduleName @returns {Promise<void>} */
     #waitForModule(moduleName) {
       const state = this.registry.states.get(moduleName);
-      if (state === ModuleState.EXTENSION || this.preInitialized.has(moduleName) || [ModuleState.MOUNTED, ModuleState.ERROR].includes(state)) return Promise.resolve();
+      if (state === ModuleState.EXTENSION || state === ModuleState.MOUNTED || state === ModuleState.ERROR || this.preInitialized.has(moduleName)) return Promise.resolve();
       return new Promise(resolve => {
-        if (!this.#waitingResolvers.has(moduleName)) this.#waitingResolvers.set(moduleName, []);
-        this.#waitingResolvers.get(moduleName).push(resolve);
+        const resolvers = this.waitingResolvers.get(moduleName) || [];
+        if (resolvers.length === 0) this.waitingResolvers.set(moduleName, resolvers);
+        resolvers.push(resolve);
       });
     }
 
-    /** 解析等待器 @param {string} moduleName 模块名称 */
+    /** 解析等待的 Promise @param {string} moduleName */
     #resolveWaiters(moduleName) {
-      const list = this.#waitingResolvers.get(moduleName);
-      if (!list) return;
-      for (const res of list) try { res(); } catch (e) {}
-      this.#waitingResolvers.delete(moduleName);
+      const resolvers = this.waitingResolvers.get(moduleName);
+      if (!resolvers || resolvers.length === 0) return;
+      resolvers.forEach((/**@type {() => void}*/resolve) => {
+        try { resolve(); } catch (e) {}
+      });
+      this.waitingResolvers.delete(moduleName);
     }
 
-    /**
-     * 检查模块依赖
-     * @param {string} moduleName 模块名称
-     * @param {boolean} [isPreInit] 是否为预初始化
-     * @returns {Promise<boolean>} 依赖是否就绪
-     */
+    /** 检查模块依赖是否满足 @param {string} moduleName @param {boolean} [isPreInit] @returns {Promise<boolean>} */
     async #checkDependencies(moduleName, isPreInit = false) {
       const reg = this.registry;
-      for (const dep of (reg.allDependencies.get(moduleName) || [])) {
+      const allDeps = reg.allDependencies.get(moduleName);
+      if (!allDeps || allDeps.size === 0) return true;
+      for (const dep of allDeps) {
         if (!reg.modules.has(dep)) {
-          if (!reg.waitingQueue.has(dep)) reg.waitingQueue.set(dep, new Set());
-          reg.waitingQueue.get(dep).add(moduleName);
+          this.#addToWaitingQueue(dep, moduleName);
           return false;
         }
         const depState = reg.states.get(dep);
@@ -1009,7 +1071,7 @@ var maplebirch = (() => {
           if (!this.preInitialized.has(dep)) await this.#waitForModule(dep);
         } else {
           if (depState === ModuleState.ERROR) return false;
-          if (![ModuleState.MOUNTED, ModuleState.ERROR].includes(depState)) {
+          if (depState !== ModuleState.MOUNTED) {
             await this.#waitForModule(dep);
             if (reg.states.get(dep) === ModuleState.ERROR) return false;
           }
@@ -1018,60 +1080,77 @@ var maplebirch = (() => {
       return true;
     }
 
+    /** 添加到等待队列 @param {string} dependency @param {string} moduleName */
+    #addToWaitingQueue(dependency, moduleName) {
+      const queue = this.registry.waitingQueue.get(dependency) || new Set();
+      if (queue.size === 0) this.registry.waitingQueue.set(dependency, queue);
+      queue.add(moduleName);
+    }
+
+    /** 初始化所有模块 @param {boolean} [isPreInit] */
     async #initAllModules(isPreInit = false) {
       const initOrder = this.#getTopologicalOrder();
       for (const name of initOrder) await this.#initModule(name, isPreInit);
     }
 
-    /**
-     * 初始化单个模块
-     * @param {string} moduleName 模块名称
-     * @param {boolean} isPreInit 是否为预初始化
-     * @returns {Promise<boolean>} 是否初始化成功
-     */
+    /** 初始化单个模块 @param {string} moduleName @param {boolean} [isPreInit] @returns {Promise<boolean>} */
     async #initModule(moduleName, isPreInit = false) {
       const reg = this.registry;
       const module = reg.modules.get(moduleName);
       if (!module) return false;
       const state = reg.states.get(moduleName);
       if (state === ModuleState.EXTENSION) return true;
-      if ([ModuleState.MOUNTED, ModuleState.ERROR].includes(state)) return false;
-      reg.states.set(moduleName, ModuleState.PENDING);
+      if (state === ModuleState.MOUNTED || state === ModuleState.ERROR) return state === ModuleState.MOUNTED;
+      reg.states.set(moduleName, ModuleState.REGISTERED);
       if (!(await this.#checkDependencies(moduleName, isPreInit))) return false;
       try {
-        const initType = isPreInit ? 'preInit' : 'Init';
-        if (typeof module[initType] === 'function') {
-          try {
-            const result = module[initType]();
-            if (result instanceof Promise) await result;
-          } catch (/**@type {any}*/error) {
-            this.core.logger.log(`[${moduleName}] ${initType} 执行失败: ${error.message}`, 'ERROR');
-          }
-        }
+        const initMethod = isPreInit ? 'preInit' : 'Init';
+        await this.#executeModuleInit(module, initMethod, moduleName);
         if (isPreInit) {
-          if (this.core.meta.coreModules?.includes(moduleName) && !this.core.meta.earlyMount?.includes(moduleName)) /**@type {any}*/(this.core)[moduleName] = module;
-          this.preInitialized.add(moduleName);
+          this.#handlePreInitComplete(moduleName, module);
         } else {
           reg.states.set(moduleName, ModuleState.MOUNTED);
         }
         this.#resolveWaiters(moduleName);
         return true;
-      } catch (err) {
+      } catch (error) {
         reg.states.set(moduleName, ModuleState.ERROR);
         this.#resolveWaiters(moduleName);
         return false;
       }
     }
 
-    /** 执行阶段初始化 @param {string} phase 阶段名称 @param {string} logName 日志名称 */
+    /** 执行模块的初始化方法 @param {any} module @param {string} methodName @param {string} moduleName */
+    async #executeModuleInit(module, methodName, moduleName) {
+      const initMethod = module[methodName];
+      if (typeof initMethod !== 'function') return;
+      try {
+        const result = initMethod.call(module);
+        if (result instanceof Promise) await result;
+      } catch (/**@type {any}*/error) {
+        this.core.logger.log(`[${moduleName}] ${methodName} 执行失败: ${error.message}`, 'ERROR');
+        throw error;
+      }
+    }
+
+    /** 处理预初始化完成 @param {string} moduleName @param {any} module */
+    #handlePreInitComplete(moduleName, module) {
+      const shouldMount = this.core.meta.coreModules?.includes(moduleName) && !this.core.meta.earlyMount?.includes(moduleName);
+      if (shouldMount) { /**@type {any}*/(this.core)[moduleName] = module; this.registry.states.set(moduleName, ModuleState.LOADED); }
+      this.preInitialized.add(moduleName);
+    }
+
+    /** 执行阶段初始化 @param {string} phase @param {string} logName */
     async #executePhaseInit(phase, logName) {
       const reg = this.registry;
       const initOrder = this.#getTopologicalOrder();
       for (const name of initOrder) {
         const module = reg.modules.get(name);
-        if (reg.states.get(name) !== ModuleState.MOUNTED || typeof module[phase] !== 'function') continue;
+        if (reg.states.get(name) !== ModuleState.MOUNTED) continue;
+        const phaseMethod = module[phase];
+        if (typeof phaseMethod !== 'function') continue;
         try {
-          const result = module[phase]();
+          const result = phaseMethod.call(module);
           if (result instanceof Promise) await result;
         } catch (/**@type {any}*/error) {
           this.core.logger.log(`[${name}] ${logName}失败: ${error.message}`, 'ERROR');
@@ -1080,64 +1159,432 @@ var maplebirch = (() => {
       this.core.logger.log(`${logName}完成`, 'INFO');
     }
 
-    /** 获取拓扑排序顺序 @returns {string[]} 拓扑排序后的模块名称数组 */
+    /** 获取拓扑排序顺序 @returns {string[]} */
     #getTopologicalOrder() {
       const reg = this.registry;
       const inDegree = new Map();
-      /** @type {any[]} */const queue = [], result = [];
+      /**@type {any[]}*/
+      const queue = [];
+      const result = [];
       reg.modules.forEach((_, name) => {
-        const deg = [...(reg.dependencies.get(name) || [])].filter(dep => reg.states.get(dep) !== ModuleState.EXTENSION).length;
-        inDegree.set(name, deg);
-        if (deg === 0) queue.push(name);
+        const deps = reg.dependencies.get(name);
+        const validDeps = deps ? [...deps].filter(dep => reg.states.get(dep) !== ModuleState.EXTENSION) : [];
+        const degree = validDeps.length;
+        inDegree.set(name, degree);
+        if (degree === 0) queue.push(name);
       });
-      let head = 0;
-      while (head < queue.length) {
-        const name = queue[head++];
-        result.push(name);
-        (reg.dependents.get(name) || []).forEach((/** @type {string} */dep) => {
-          const deg = inDegree.get(dep) - 1;
-          inDegree.set(dep, deg);
-          if (deg === 0) queue.push(dep);
+      let idx = 0;
+      while (idx < queue.length) {
+        const current = queue[idx++];
+        result.push(current);
+        const dependents = reg.dependents.get(current);
+        if (!dependents) continue;
+        dependents.forEach((/**@type {any}*/dependent) => {
+          const newDegree = inDegree.get(dependent) - 1;
+          inDegree.set(dependent, newDegree);
+          if (newDegree === 0) queue.push(dependent);
         });
       }
       return result;
     }
 
-    /**
-     * 检测循环依赖
-     * @param {string} startName 起始模块名称
-     * @param {string[]} dependencies 依赖列表
-     * @returns {boolean} 是否存在循环依赖
-     */
-    #detectCircularDependency(startName, dependencies) {
-      const reg = this.registry;
-      const visited = new Set(), onStack = new Set(), graph = new Map();
-      reg.modules.forEach((_, nm) => graph.set(nm, [...(reg.dependencies.get(nm) || [])]));
-      if (!graph.has(startName)) graph.set(startName, dependencies || []);
-      /** 深度优先搜索函数 @param {string} node 当前节点 @returns {boolean} 是否检测到循环依赖 */
-      const dfs = node => {
-        if (onStack.has(node)) return true;
-        if (visited.has(node)) return false;
-        visited.add(node);
-        onStack.add(node);
-        for (const n of (graph.get(node) || [])) if (dfs(n)) return true;
-        onStack.delete(node);
-        return false;
-      };
-      if (dfs(startName)) {
-        this.core.logger.log(`循环依赖检测到: ${startName}`, 'ERROR');
-        return true;
-      }
-      return false;
+    /** @param {string} moduleName @param {Set<string>} allDeps @returns {boolean} */
+    #hasCircularDependency(moduleName, allDeps) {
+      if (this.circularCheckCache.has(moduleName)) return this.circularCheckCache.get(moduleName);
+      const hasCircular = this.#detectCircularDependency(moduleName, [...allDeps]);
+      this.circularCheckCache.set(moduleName, hasCircular);
+      return hasCircular;
     }
 
-    /** 获取模块深度 @param {string} moduleName 模块名称 @returns {number} 模块深度 */
+    /** @param {string} startName @param {string[]} dependencies @returns {boolean} */
+    #detectCircularDependency(startName, dependencies) {
+      const reg = this.registry;
+      const visited = new Set();
+      const recursionStack = new Set();
+      const graph = new Map();
+      reg.modules.forEach((_, name) => graph.set(name, [...(reg.dependencies.get(name) || [])]));
+      if (!graph.has(startName)) graph.set(startName, dependencies);
+      /** DFS 检测环 @param {string} node @returns {boolean} */
+      const hasCycle = (node) => {
+        if (recursionStack.has(node)) return true;
+        if (visited.has(node)) return false;
+        visited.add(node);
+        recursionStack.add(node);
+        const neighbors = graph.get(node) || [];
+        for (const neighbor of neighbors) if (hasCycle(neighbor)) return true;
+        recursionStack.delete(node);
+        return false;
+      };
+      const result = hasCycle(startName);
+      if (result) this.core.logger.log(`循环依赖检测到: ${startName}`, 'ERROR');
+      return result;
+    }
+
+    /** @param {string} moduleName @returns {number} */
     #getModuleDepth(moduleName) {
-      if (this.#depthMemo.has(moduleName)) return this.#depthMemo.get(moduleName);
-      const filteredDeps = [...(this.registry.dependencies.get(moduleName) || [])].filter(dep => this.registry.states.get(dep) !== ModuleState.EXTENSION);
-      const depth = filteredDeps.length === 0 ? 0 : Math.max(...filteredDeps.map(d => this.#getModuleDepth(d) + 1));
-      this.#depthMemo.set(moduleName, depth);
+      if (this.depthMemo.has(moduleName)) return this.depthMemo.get(moduleName);
+      const deps = this.registry.dependencies.get(moduleName);
+      if (!deps || deps.size === 0) {
+        this.depthMemo.set(moduleName, 0);
+        return 0;
+      }
+      const validDeps = [...deps].filter(dep => this.registry.states.get(dep) !== ModuleState.EXTENSION);
+      const depth = validDeps.length === 0 ? 0 : Math.max(...validDeps.map(dep => this.#getModuleDepth(dep) + 1));
+      this.depthMemo.set(moduleName, depth);
       return depth;
+    }
+  }
+
+  class GUIControl {
+    /** @param {MaplebirchCore} core @param {modLoaderGui_ModSubUiAngularJsService} modSubUiAngularJsService */
+    constructor(core, modSubUiAngularJsService) {
+      this.core = core;
+      /**@type {Array<{name: string, source: string, dependencies?: string[]}>}*/this.enabledModules = [];
+      /**@type {Array<{name: string, source: string, dependencies?: string[]}>}*/this.disabledModules = [];
+      /**@type {string[]}*/this.enabledScripts = [];
+      /**@type {string[]}*/this.disabledScripts = [];
+      this.modSubUiAngularJsService = modSubUiAngularJsService;
+    }
+
+    async initDB() {
+      this.core.idb.register('settings', { keyPath: 'key' });
+      await this.core.idb.withTransaction(['settings'], 'readwrite', async (/**@type {any}*/tx) => {
+        const store = tx.objectStore('settings');
+        if (!await store.get('DEBUG')) await store.put({ key: 'DEBUG', value: false });
+        if (!await store.get('Language')) await store.put({ key: 'Language', value: 'EN' });
+        const Extension = await store.get('Extension');
+        const modules = Object.entries(this.core.dependencyGraph).filter(([_, m]) => m.state === 'EXTENSION').map(([n, m]) => ({ 
+          name: n, 
+          source: m.source, 
+          dependencies: m.allDependencies.filter((/**@type {string|number}*/dep) => this.core.dependencyGraph[dep]?.state === 'EXTENSION')
+        }));
+        if (!Extension) {
+          await store.put({ key: 'Extension', value: { enabled: modules, disabled: [] } });
+        } else {
+          const Enabled = Extension.value.enabled;
+          const Disabled = Extension.value.disabled;
+          modules.forEach(mod => {
+            const existingMod = [...Enabled, ...Disabled].find(m => m.name === mod.name);
+            if (existingMod) {
+              existingMod.dependencies = mod.dependencies;
+              if (mod.source) existingMod.source = mod.source;
+            } else if (mod.source) { Enabled.push(mod); }
+          });
+          await store.put(Extension);
+        }
+        if (!await store.get('Script')) await store.put({ key: 'Script', value: { enabled: [], disabled: [] } });
+      });
+      const Script = await this.core.idb.withTransaction(['settings'], 'readonly', (/**@type {any}*/tx) => tx.objectStore('settings').get('Script'));
+      const scriptData = Script?.value || { enabled: [], disabled: [] };
+      this.enabledScripts = scriptData.enabled || [];
+      this.disabledScripts = scriptData.disabled || [];
+    }
+
+    async init() {
+      const settings = await this.core.idb.withTransaction(['settings'], 'readonly', (/**@type {any}*/tx) => tx.objectStore('settings').get('Extension'));
+      const Extension = settings?.value || { enabled: [], disabled: [] };
+      this.enabledModules = Extension.enabled.map((/**@type {{ name: any; source: any; dependencies: any; }}*/m) => ({ 
+        name: m.name, 
+        source: m.source, 
+        dependencies: m.dependencies || []
+      }));
+      this.disabledModules = Extension.disabled.map((/**@type {{ name: any; source: any; dependencies: any; }}*/m) => ({ 
+        name: m.name, 
+        source: m.source, 
+        dependencies: m.dependencies || []
+      }));
+      const addon = this.core.getModule('addon');
+      const all = new Set([...this.enabledScripts, ...this.disabledScripts]);
+      /** @type {string[]} */const scripts = [];
+      addon.jsFiles.forEach((/**@type {{ modName: string; filePath: string; }}*/entry) => {
+        const key = `[${entry.modName}]:${entry.filePath}`;
+        if (!all.has(key)) scripts.push(key);
+      });
+      if (scripts.length > 0) {
+        this.enabledScripts.push(...scripts);
+        await this.core.idb.withTransaction(['settings'], 'readwrite', async (/**@type {any}*/tx) => {
+          const store = tx.objectStore('settings');
+          const script = await store.get('Script');
+          if (script?.value) {
+            script.value.enabled.push(...scripts);
+            await store.put(script);
+          }
+        });
+      }
+      this.modSubUiAngularJsService.addLifeTimeCallback('maplebirchFrameworkAddon-GUIControl', { whenCreate: this.whenCreate.bind(this) });
+    }
+
+    /**
+     * @param {'enable'|'disable'} action 
+     * @param {string} moduleName 
+     * @param {{ disabled: Array<{name:string, dependencies?: string[]}>; enabled: Array<{name:string, dependencies?: string[]}>; }} Extension 
+     * @returns {boolean} 
+     */
+    canToggleModule(action, moduleName, Extension) {
+      const disabled = new Set(Extension.disabled.map(m => m.name));
+      if (action === 'enable') {
+        const module = Extension.disabled.find(m => m.name === moduleName);
+        if (!module) return false;
+        for (const dep of (module.dependencies||[])) if (disabled.has(dep)) return false;
+        return true;
+      } else {
+        const module = Extension.enabled.find(m => m.name === moduleName);
+        if (!module) return false;
+        for (const enabled of Extension.enabled) if ((enabled.dependencies||[]).includes(moduleName)) return false;
+        return true;
+      }
+    }
+
+    /**
+     * @param {'enable'|'disable'} action 
+     * @param {string} moduleName 
+     * @param {{ disabled: Array<{name:string, dependencies?: string[]}>; enabled: Array<{name:string, dependencies?: string[]}>; }} Extension 
+     * @returns {string[]}
+     */
+    cascadeModules(action, moduleName, Extension) {
+      const result = new Set([moduleName]);
+      if (action === 'enable') {
+        const disabled = new Set(Extension.disabled.map(m => m.name));
+        const addDeps = (/**@type {string}*/name) => {
+          const module = Extension.disabled.find(m => m.name === name) || Extension.enabled.find(m => m.name === name);
+          if (!module) return;
+          for (const dep of (module.dependencies||[])) if (disabled.has(dep)) { result.add(dep); addDeps(dep); }
+        };
+        addDeps(moduleName);
+      } else {
+        const enabled = new Set(Extension.enabled.map(m => m.name));
+        const addDependents = (/**@type {string}*/name) => { for (const mod of Extension.enabled) if ((mod.dependencies||[]).includes(name) && enabled.has(mod.name)) { result.add(mod.name); addDependents(mod.name); } };
+        addDependents(moduleName);
+      }
+      return Array.from(result);
+    }
+
+    get moduleList() {
+      const addon = this.core.getModule('addon');
+      /** @type {string[]} */const result = [];
+      Object.entries(this.core.dependencyGraph).forEach(([name, info]) => {
+        if (info.state === 'EXTENSION') { result.push(`[Extension] ${name} [${info.source||'unknown'}]`); }
+        else { result.push(`[Core] ${name} [${info.state}]`); }
+      });
+      addon.jsFiles.forEach((/**@type {{ filePath: string; modName: string; }}*/entry) => result.push(`[Script] ${entry.filePath} [${entry.modName}]`));
+      return result.length > 0 ? result.join('\n') : '';
+    }
+
+    /**@param {any} Ref*/
+    async whenCreate(Ref) {
+      Ref.registryComponentModGuiConfig((/**@type {any}*/ngModule) => {
+        const componentDef = {
+          selector: 'maplebirch-control-component',
+          componentName: 'maplebirchControlComponent',
+          componentOptions: {
+            bindings: { data: '<' },
+            template: `
+            <div id='maplebirch'>
+              <div class='title-container'>{{t($ctrl.data.text.Title)}}</div>
+              <div class='content-container'>
+                <label>{{t($ctrl.data.text.LanguageSelection)}}</label>
+                <select ng-model='$ctrl.data.Language' ng-change='changeLanguage()'>
+                  <option ng-repeat='lang in languages' value='{{lang.code}}'>{{lang.name}}</option>
+                </select><br>
+                <input type='button' ng-click="EnableDisableItem('enable')" ng-value="DEBUGMODE('enable')" class='theme-button' />
+                <input type='button' ng-click="EnableDisableItem('disable')" ng-value="DEBUGMODE('disable')" class='theme-button' />
+                <input type='text' readonly='true' ng-value='DEBUGSTATUS()' />
+                <textarea ng-model='$ctrl.data.moduleText' readonly='true'></textarea>
+                <div ng-if='isDEBUG()' class='module-settings-container'>
+                  <div class='settings-panel'>
+                    <div class='module-list-enabled'>
+                      <div ng-repeat='module in $ctrl.data.enabledModules track by $index' ng-click="selectModule($index, 'enabled')" ng-class="{'selected': selectedEnabledModule === $index}">{{module.name}} [{{module.source}}]</div>
+                    </div>
+                    <input type='button' value='{{t($ctrl.data.text.DisableModule)}}' ng-click="toggleModule('disable')" class='theme-button' />
+                    <input type='button' value='{{t($ctrl.data.text.EnableModule)}}' ng-click="toggleModule('enable')" class='theme-button' />
+                    <div class='module-list-disabled'>
+                      <div ng-repeat='module in $ctrl.data.disabledModules track by $index' ng-click="selectModule($index, 'disabled')" ng-class="{'selected': selectedDisabledModule === $index}">{{module.name}} [{{module.source}}]</div>
+                    </div>
+                  </div>
+                  <div class='settings-panel'>
+                    <div class='module-list-enabled'>
+                      <div ng-repeat='script in $ctrl.data.enabledScripts track by $index' ng-click="selectScript($index, 'enabled')" ng-class="{'selected': selectedEnabledScript === $index}">{{script}}</div>
+                    </div>
+                    <input type='button' value='{{t($ctrl.data.text.DisableScript)}}' ng-click="toggleScript('disable')" class='theme-button' />
+                    <input type='button' value='{{t($ctrl.data.text.EnableScript)}}' ng-click="toggleScript('enable')" class='theme-button' />
+                    <div class='module-list-disabled'>
+                      <div ng-repeat='script in $ctrl.data.disabledScripts track by $index' ng-click="selectScript($index, 'disabled')" ng-class="{'selected': selectedDisabledScript === $index}">{{script}}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>`,
+            controller: ['$scope', '$compile', '$element', function(/**@type {any}*/$scope, /**@type {any}*/$compile,/**@type {any}*/$element) {
+              const ctrl = this;
+              $scope.t = ctrl.translation = (/**@type {string[]}*/text) => text[maplebirch.meta.availableLanguages.indexOf(maplebirch.Language)];
+              const callOnChange = (/**@type {any}*/action, /**@type {any}*/data) => { try { return $scope.$ctrl.data?.onChange?.(action, data) || false; } catch (e) { maplebirch.log(`Error in onChange: ${action}`, 'ERROR', e); return false; } };
+
+              ctrl.$onInit = () => {
+                // @ts-ignore
+                $scope.languages = ctrl.data.text.Languages.map(lang => ({ code: lang[0], get name() { return maplebirch.auto(lang[1]) } }));
+                $scope.selectedEnabledModule = $scope.selectedDisabledModule = -1;
+                $scope.selectedEnabledScript = $scope.selectedDisabledScript = -1;
+                $scope.isDEBUG = () => maplebirch.LogLevel === 'DEBUG';
+              }
+
+              $scope.changeLanguage = () => callOnChange('Language', { Language: $scope.$ctrl.data.Language, $ctrl: $scope.$ctrl.data });
+              // @ts-ignore
+              $scope.DEBUGMODE = (/**@type {string}*/type) => convert(maplebirch.t(type === 'enable' ? 'enable' : 'disable', true), 'title') + ctrl.translation(ctrl.data.text.DEBUGMODE);
+              // @ts-ignore
+              $scope.DEBUGSTATUS = () => ctrl.translation(ctrl.data.text.DEBUGSTATUS) + (maplebirch.LogLevel === 'DEBUG' ? ctrl.translation(ctrl.data.text.EnabledSTATUS) : ctrl.translation(ctrl.data.text.DisabledSTATUS));
+              $scope.EnableDisableItem = (/**@type {string}*/action) => { const enable = action === 'enable'; callOnChange('DEBUG', { enabled: enable, level: enable ? 'DEBUG' : 'INFO', $ctrl: $scope.$ctrl.data }); };
+
+              $scope.toggleModule = (/**@type {'enable'|'disable'}*/ action) => {
+                const isEnable = action === 'enable';
+                const src = isEnable ? $scope.$ctrl.data.disabledModules : $scope.$ctrl.data.enabledModules;
+                const idx = isEnable ? $scope.selectedDisabledModule : $scope.selectedEnabledModule;
+                if (idx === -1 || !src[idx]) return;
+                const module = src[idx];
+                const Extension = { 
+                  enabled: $scope.$ctrl.data.enabledModules.map((/**@type {{name:string;dependencies:string[];}}*/m) => ({ 
+                    name: m.name, 
+                    dependencies: m.dependencies || [] 
+                  })), 
+                  disabled: $scope.$ctrl.data.disabledModules.map((/**@type {{name:string;dependencies:string[];}}*/m) => ({ 
+                    name: m.name, 
+                    dependencies: m.dependencies || []
+                  })) 
+                };
+                const cascadeModules = maplebirch.gui.cascadeModules(action, module.name, Extension);
+                cascadeModules.forEach(moduleName => {
+                  const allModules = [...$scope.$ctrl.data.enabledModules, ...$scope.$ctrl.data.disabledModules];
+                  const mod = allModules.find(m => m.name === moduleName);
+                  if (!mod) return;
+                  const srcArray = isEnable ? $scope.$ctrl.data.disabledModules : $scope.$ctrl.data.enabledModules;
+                  const dstArray = isEnable ? $scope.$ctrl.data.enabledModules : $scope.$ctrl.data.disabledModules;
+                  const srcIdx = srcArray.findIndex((/**@type {{name:string;}}*/ m) => m.name === moduleName);
+                  if (srcIdx !== -1) {
+                    srcArray.splice(srcIdx, 1);
+                    if (!dstArray.some((/**@type {{name:string;}}*/m) => m.name === moduleName)) dstArray.push(mod);
+                  }
+                });
+                callOnChange('toggleModule', {
+                  action,
+                  enabled: $scope.$ctrl.data.enabledModules,
+                  disabled: $scope.$ctrl.data.disabledModules,
+                  $ctrl: $scope.$ctrl.data
+                });
+                $scope.selectedDisabledModule = $scope.selectedEnabledModule = -1;
+              };
+
+              $scope.selectModule = (/**@type {any}*/index,/**@type {string}*/listType) => {
+                if (listType === 'enabled') { $scope.selectedEnabledModule = ($scope.selectedEnabledModule === index) ? -1 : index; $scope.selectedDisabledModule = -1; }
+                else { $scope.selectedDisabledModule = ($scope.selectedDisabledModule === index) ? -1 : index; $scope.selectedEnabledModule = -1; }
+              };
+
+              $scope.toggleScript = (/**@type {'enable'|'disable'}*/ action) => {
+                const isEnable = action === 'enable';
+                const src = isEnable ? $scope.$ctrl.data.disabledScripts : $scope.$ctrl.data.enabledScripts;
+                const idx = isEnable ? $scope.selectedDisabledScript : $scope.selectedEnabledScript;
+                if (idx === -1 || !src[idx]) return;
+                const script = src[idx];
+                const srcArray = isEnable ? $scope.$ctrl.data.disabledScripts : $scope.$ctrl.data.enabledScripts;
+                const dstArray = isEnable ? $scope.$ctrl.data.enabledScripts : $scope.$ctrl.data.disabledScripts;
+                const srcIdx = srcArray.findIndex((/**@type {any}*/s) => s === script);
+                if (srcIdx !== -1) {
+                  srcArray.splice(srcIdx, 1);
+                  if (!dstArray.includes(script)) dstArray.push(script);
+                }
+                callOnChange('toggleScript', {
+                  action,
+                  enabled: $scope.$ctrl.data.enabledScripts,
+                  disabled: $scope.$ctrl.data.disabledScripts,
+                  $ctrl: $scope.$ctrl.data
+                });
+                $scope.selectedDisabledScript = $scope.selectedEnabledScript = -1;
+              };
+
+              $scope.selectScript = (/**@type {any}*/index,/**@type {string}*/listType) => {
+              if (listType === 'enabled') { 
+                $scope.selectedEnabledScript = ($scope.selectedEnabledScript === index) ? -1 : index; 
+                $scope.selectedDisabledScript = -1; 
+              } else { 
+                $scope.selectedDisabledScript = ($scope.selectedDisabledScript === index) ? -1 : index; 
+                $scope.selectedEnabledScript = -1; 
+              }
+            };
+            }]
+          }
+        };
+        ngModule.component(componentDef.componentName, componentDef.componentOptions);
+        return componentDef;
+      });
+
+      Ref.addComponentModGuiConfig({
+        selector: 'maplebirch-control-component',
+        data: {
+          onChange: async function (/**@type {any}*/action,/**@type {any}*/data) {
+            switch (action) {
+              case 'Language':
+                maplebirch.Language = data.Language;
+                await maplebirch.idb.withTransaction(['settings'], 'readwrite', async (/**@type {any}*/tx) => await tx.objectStore('settings').put({ key: 'Language', value: data.Language }));
+                break;
+              case 'DEBUG':
+                maplebirch.LogLevel = data.level;
+                await maplebirch.idb.withTransaction(['settings'], 'readwrite', async (/**@type {any}*/tx) => await tx.objectStore('settings').put({ key: 'DEBUG', value: data.enabled }));
+                break;
+              case 'toggleModule':
+                maplebirch.gui.enabledModules = data.enabled;
+                maplebirch.gui.disabledModules = data.disabled;
+                await maplebirch.idb.withTransaction(['settings'], 'readwrite', async (/**@type {any}*/tx) => {
+                  const store = tx.objectStore('settings');
+                  const Extension = await store.get('Extension');
+                  if (Extension?.value) {
+                    Extension.value.enabled = data.enabled.map((/**@type {{name:string;source:string;dependencies:string[];}}*/m) => ({ 
+                      name: m.name, 
+                      source: m.source,
+                      dependencies: m.dependencies || []
+                    }));
+                    Extension.value.disabled = data.disabled.map((/**@type {{name:string;source:string;dependencies:string[];}}*/m) => ({ 
+                      name: m.name, 
+                      source: m.source,
+                      dependencies: m.dependencies || []
+                    }));
+                    await store.put(Extension);
+                  }
+                });
+                break;
+              case 'toggleScript':
+                maplebirch.gui.enabledScripts = data.enabled;
+                maplebirch.gui.disabledScripts = data.disabled;
+                await maplebirch.idb.withTransaction(['settings'], 'readwrite', async (/**@type {any}*/tx) => {
+                  const store = tx.objectStore('settings');
+                  const Script = await store.get('Script');
+                  if (Script?.value) {
+                    Script.value.enabled = data.enabled;
+                    Script.value.disabled = data.disabled;
+                    await store.put(Script);
+                  }
+                });
+                break;
+            }
+          },
+          Language: maplebirch.Language,
+          moduleText: maplebirch.gui.moduleList,
+          enabledModules: maplebirch.gui.enabledModules,
+          disabledModules: maplebirch.gui.disabledModules,
+          enabledScripts: maplebirch.gui.enabledScripts,
+          disabledScripts: maplebirch.gui.disabledScripts,
+          text: {
+            Title: CONFIG.Title,
+            DEBUGMODE: CONFIG.DEBUG,
+            DEBUGSTATUS: CONFIG.DEBUGSTATUS,
+            EnabledSTATUS: CONFIG.EnabledSTATUS,
+            DisabledSTATUS: CONFIG.DisabledSTATUS,
+            Languages: CONFIG.Languages,
+            LanguageSelection: CONFIG.LanguageSelection,
+            EnableModule: CONFIG.EnableModule,
+            DisableModule: CONFIG.DisableModule,
+            EnableScript: CONFIG.EnableScript,
+            DisableScript: CONFIG.DisableScript
+          }
+        }
+      });
     }
   }
 
@@ -1162,6 +1609,7 @@ var maplebirch = (() => {
       this.idb = new IndexedDBService(this);
       this.lang = new LanguageManager(this);
       this.modules = new ModuleSystem(this);
+      this.gui = new GUIControl(this,modLoaderGui_ModSubUiAngularJsService);
       this.onLoad = false;
 
       this.log(`核心系统创建完成 (v${MaplebirchCore.meta.version})\n开始设置初始化流程`, 'INFO');
@@ -1170,7 +1618,9 @@ var maplebirch = (() => {
       events.forEach(event => $(document).on(event, (ev) => this.trigger(event, ev)));
 
       this.once(':IndexedDB', async() => {
+        this.logger.fromIDB();
         this.lang.initDB();
+        this.gui.initDB();
       });
 
       this.once(':import', async() => {
@@ -1268,9 +1718,9 @@ var maplebirch = (() => {
       await this.tracer.trigger(evt, ...args);
     }
 
-    /** @param {string} name @param {any} module @param {string[]} [dependencies] @param {boolean|undefined} [isExtension] */
-    async register(name, module, dependencies = [], isExtension) {
-      return this.modules.register(name, module, dependencies, isExtension);
+    /** @param {string} name @param {any} module @param {string[]} [dependencies] @param {string|undefined} [source] */
+    async register(name, module, dependencies = [], source) {
+      return this.modules.register(name, module, dependencies, source);
     }
 
     async pre() {
@@ -1345,7 +1795,7 @@ var maplebirch = (() => {
     }
     
     get dependencyGraph() {
-      return this.modules.getDependencyGraph();
+      return this.modules.dependencyGraph;
     }
 
     get yaml() {
