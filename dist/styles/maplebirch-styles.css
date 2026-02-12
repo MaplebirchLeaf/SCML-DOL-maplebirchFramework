@@ -1,0 +1,397 @@
+#maplebirch .title-container {
+  font-size: x-large;
+  margin: 0 auto 0.25em 0.5em;
+  text-align: center;
+  grid-column: 1/-1;
+}
+
+#maplebirch .content-container {
+  border: 1px solid var(--700);
+  grid-column: 1/-1;
+}
+
+#maplebirch .content-container label {
+  padding-left: 12px;
+  font-size: 1em;
+  line-height: 1.5;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+#maplebirch .theme-button {
+  border: 1px solid var(--700);
+  background: transparent;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+#maplebirch .theme-button:hover {
+  background-color: var(--800);
+}
+
+#maplebirch .status-label {
+  font-size: 0.9em;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+#maplebirch select {
+  border: 1px solid var(--700);
+  background: transparent;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 1em;
+}
+
+#maplebirch select:hover {
+  background-color: var(--800);
+}
+
+#maplebirch select option {
+  background-color: var(--800);
+}
+
+#maplebirch .module-list-enabled,
+#maplebirch .module-list-disabled {
+  display: flex;
+  flex-direction: column;
+  font-size: large;
+  width: auto;
+  overflow-y: auto;
+  color: var(--100);
+}
+
+#maplebirch .module-list-enabled {
+  border: 1px solid var(--green);
+}
+
+#maplebirch .module-list-disabled {
+  border: 1px solid var(--red);
+}
+
+#maplebirch .module-list-enabled > div,
+#maplebirch .module-list-disabled > div {
+  cursor: pointer;
+  user-select: none;
+  padding: 0.1em 0.5em;
+  font-size: 1.0em;
+}
+
+#maplebirch .module-list-enabled > div:hover,
+#maplebirch .module-list-disabled > div:hover {
+  background-color: var(--700);
+}
+
+#maplebirch .module-list-enabled > div.selected,
+#maplebirch .module-list-disabled > div.selected {
+  background-color: var(--800);
+}
+
+#maplebirch .module-settings-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+  width: 100%;
+}
+
+#maplebirch .settings-panel {
+  width: 100%;
+}
+
+#maplebirch input[type="text"] {
+  width: auto;
+  max-width: 48px;
+  box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+  #maplebirch .module-settings-container {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  
+  #maplebirch .settings-panel {
+    flex: 1;
+  }
+
+  #maplebirch input[type="text"] {
+    max-width: 24px;
+  }
+}
+
+#modversions {
+	position: fixed;
+	right: 3px;
+	bottom: 1px;
+	font-size: 0.6em;
+	color: var(--600);
+	z-index: 1000;
+	background-color: transparent;
+}
+
+/* 控制台作弊器 */
+#ConsoleCheat details.JSCheatConsole,
+#ConsoleCheat details.TwineCheatConsole {
+  overflow: hidden;
+  border: 1px solid var(--600);
+  margin-top: 0.5rem;
+  background: var(--800);
+}
+
+#ConsoleCheat summary.JSCheatConsole,
+#ConsoleCheat summary.TwineCheatConsole {
+  background: var(--750);
+  padding: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  font-weight: bold;
+  color: var(--000);
+}
+
+#ConsoleCheat summary.JSCheatConsole:hover,
+#ConsoleCheat summary.TwineCheatConsole:hover {
+  background: var(--700);
+}
+
+#ConsoleCheat .searchButtons {
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem;
+  background: var(--850);
+  gap: 0.5rem;
+}
+
+#ConsoleCheat .input-row {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+  align-items: center;
+}
+
+#ConsoleCheat input[type="text"] {
+  flex: 1;
+  padding: 0.4rem;
+  background: var(--900);
+  border: 1px solid var(--600);
+  color: var(--000);
+  font-family: "Consolas";
+  line-height: 1.4;
+  min-width: 0;
+  box-sizing: border-box;
+  height: 2.2rem;
+}
+
+#ConsoleCheat input[type="text"]:focus {
+  border-color: var(--gold);
+  outline: none;
+}
+
+#ConsoleCheat button {
+  background: var(--blue);
+  color: var(--000);
+  cursor: pointer;
+  font-weight: bold;
+  white-space: nowrap;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  font-family: "Consolas";
+  font-size: 0.9rem;
+  height: 2.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+#ConsoleCheat button:hover {
+  background: var(--blue-secondary);
+}
+
+/* 作弊列表状态 */
+#ConsoleCheat .cheat-status {
+  padding: 0.5rem;
+  margin: 0.5rem 0;
+  text-align: center;
+  font-family: "Consolas", monospace;
+  font-size: 0.9rem;
+  display: none;
+  box-sizing: border-box;
+  white-space: pre-wrap;
+}
+
+#ConsoleCheat .cheat-status.visible {
+  display: block;
+}
+
+#ConsoleCheat .cheat-status.success {
+  color: var(--green);
+  background: rgba(56, 178, 10, 0.1);
+  border: 1px solid var(--green);
+}
+
+#ConsoleCheat .cheat-status.error {
+  color: var(--red);
+  background: rgba(236, 53, 53, 0.1);
+  border: 1px solid var(--red);
+}
+
+/* JS/Twine控制台状态 */
+#ConsoleCheat #js-cheat-console-status,
+#ConsoleCheat #twine-cheat-console-status {
+  display: none;
+  padding: 0.5rem;
+  margin: 0.5rem 0;
+  min-height: 1.5rem;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.2);
+  font-family: "Consolas", monospace;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+  white-space: pre-wrap;
+}
+
+#ConsoleCheat #js-cheat-console-status.visible,
+#ConsoleCheat #twine-cheat-console-status.visible {
+  display: block;
+}
+
+#ConsoleCheat #js-cheat-console-status.success,
+#ConsoleCheat #twine-cheat-console-status.success {
+  color: var(--green);
+  background: rgba(56, 178, 10, 0.1);
+  border: 1px solid var(--green);
+}
+
+#ConsoleCheat #js-cheat-console-status.error,
+#ConsoleCheat #twine-cheat-console-status.error {
+  color: var(--red);
+  background: rgba(236, 53, 53, 0.1);
+  border: 1px solid var(--red);
+}
+
+/* 为作弊控制台添加可折叠区域 */
+#ConsoleCheat details.cheat-section {
+  overflow: hidden;
+  border: 1px solid var(--600);
+  margin-top: 0.5rem;
+  background: var(--800);
+}
+
+#ConsoleCheat summary.cheat-section {
+  background: var(--750);
+  padding: 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  font-weight: bold;
+  color: var(--000);
+  position: relative;
+}
+
+#ConsoleCheat summary.cheat-section:hover {
+  background: var(--700);
+}
+
+#ConsoleCheat summary.cheat-section::-webkit-details-marker {
+  display: none;
+}
+
+#ConsoleCheat summary.cheat-section::before {
+  content: "▶";
+  display: flex;
+  align-items: center;
+  margin-right: 0.5rem;
+  transition: transform 0.3s ease-out;
+}
+
+#ConsoleCheat details[open] > summary.cheat-section::before {
+  transform: rotate(90deg);
+}
+
+#ConsoleCheat details[open] > summary.cheat-section {
+  border-bottom: 1px solid var(--600);
+}
+
+/* 作弊代码显示样式 */
+#ConsoleCheat .cheat-code {
+  display: block;
+  color: #b7b7b7;
+  font-family: "Consolas", monospace;
+  font-size: 0.85rem;
+  margin: 0.5rem 0;
+  word-break: break-all;
+  line-height: 1.0;
+  background: var(--850);
+  padding: 0.5rem;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
+#ConsoleCheat .cheat-code::before {
+  content: attr(data-type);
+  font-weight: bold;
+  margin-right: 0.5rem;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+}
+
+#ConsoleCheat .cheat-code[data-type="JS"]::before {
+  color: var(--blue-secondary);
+}
+
+#ConsoleCheat .cheat-code[data-type="Twine"]::before {
+  color: #ab66ff;
+}
+
+@media (max-width: 480px) {
+  #ConsoleCheat .input-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  
+  #ConsoleCheat input[type="text"] {
+    width: 100%;
+    flex: 0 0 100%;
+  }
+  
+  #ConsoleCheat button {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 100px;
+  }
+}
+
+/* 社交栏NPC状态 */
+.relation-stat-list {
+  --maplebirch-relation-count: 2;
+}
+
+.relation-stat-list > :nth-child(-n + var(--maplebirch-relation-count)) {
+  border-bottom: solid 1px var(--750);
+}
+
+.maplebirch-relationcount-slider label {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 10px;
+}
+
+.maplebirch-relationcount-slider .macro-numberslider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+
+.maplebirch-relationcount-slider .macro-numberslider input[type="range"] {
+  flex: 1;
+}
+
+.maplebirch-relationcount-slider .macro-numberslider span {
+  min-width: 30px;
+  text-align: center;
+}
