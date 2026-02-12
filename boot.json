@@ -1,109 +1,22 @@
 {
   "name": "maplebirch",
   "nickName": {
-    "en": "maplebirchFramework",
+    "en": "Maplebirch Frameworks",
     "cn": "秋枫白桦框架"
   },
-  "alias": ["Simple Frameworks"], 
-  "version": "2.7.8",
+  "alias": ["Simple Frameworks"],
+  "version": "3.0.0",
+  "styleFileList": [],
+  "tweeFileList": [],
   "imgFileList": [],
-  "styleFileList": ["styles/maplebirch-styles.css"],
-  "scriptFileList": [
-    "data/defineSugarCube.js",
-    "data/vanillaNPCSchedule.js"
-  ],
-  "scriptFileList_preload":["data/state-variables-v1.js"],
+  "scriptFileList": ["defineSugarCube.js"],
+  "additionFile": [],
+  "scriptFileList_inject_early": [],
   "scriptFileList_earlyload": [],
-  "scriptFileList_inject_early": [
-    "scriptEarly/maplebirch-core.js",
-    "scriptEarly/Utils/Utils.js",
-    "data/framework-data.js",
-    "scriptEarly/addonPlugin.js",
-    "scriptEarly/Utils/TimeEvents.js",
-    "scriptEarly/Utils/StateEvents.js",
-    "scriptEarly/Utils/modifyWeather.js",
-    "scriptEarly/Utils/FrameworksUtils.js",
-    "scriptEarly/Utils/NPCClothes.js",
-    "scriptEarly/Utils/NPCSidebar.js",
-    "scriptEarly/Utils/Transformation.js",
-    "scriptEarly/modules/TimeState.js",
-    "scriptEarly/modules/Tools.js",
-    "scriptEarly/SFCompatible.js",
-    "scriptEarly/modules/Audio.js",
-    "scriptEarly/modules/State-Variables.js",
-    "scriptEarly/modules/Character.js",
-    "scriptEarly/modules/NamedNPC.js",
-    "scriptEarly/modules/Combat.js",
-    "scriptEarly/modules/Internals.js",
-    "scriptEarly/modules/Shop.js"
-  ],
-  "tweeFileList": [
-
-  ],
-  "additionDir": [
-    
-  ],
-  "additionBinaryFile": [
-
-  ],
-  "additionFile": [
-    "README.md",
-    "translations/en.yaml",
-    "translations/cn.yaml",
-    "data/npcClothesData.yaml"
-  ],
-  "addonPlugin": [
-    {
-      "modName": "ModdedClothesAddon",
-      "addonName": "ModdedClothesAddon",
-      "modVersion": "^1.1.0",
-      "params": {
-
-      }
-    },
-    {
-      "modName": "TweeReplacer",
-      "addonName": "TweeReplacerAddon",
-      "modVersion": "1.0.0",
-      "params": [
-      ]
-    },
-    {
-      "modName": "ModLoader DoL ImageLoaderHook",
-      "addonName": "ImageLoaderAddon",
-      "modVersion": "^2.3.0",
-      "params": []
-    },
-    {
-      "modName": "ReplacePatcher",
-      "addonName": "ReplacePatcherAddon",
-      "modVersion": "1.0.0",
-      "params": {
-        "js": [
-          
-        ]
-      }
-    },
-    {
-      "modName": "ModdedFeatsAddon",
-      "addonName": "ModdedFeatsAddon",
-      "modVersion": "^1.0.0",
-      "params": {
-        "feats": [
-
-        ]
-      }
-    },
-    {
-      "modName": "BeautySelectorAddon",
-      "addonName": "BeautySelectorAddon",
-      "modVersion": "^2.0.0",
-      "params": {
-        "types": [
-        ]
-      }
-    }
-  ],
+  "scriptFileList_preload": [],
+  "additionBinaryFile": [],
+  "additionDir": [],
+  "addonPlugin": [],
   "dependenceInfo": [
     {
       "modName": "ModLoader",
