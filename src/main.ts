@@ -13,5 +13,6 @@ import './modules/Internals';
 import './modules/Character';
 import './modules/NamedNPC';
 import './modules/Combat';
+import './SFcompat';
 
 export default maplebirch;

@@ -299,7 +299,7 @@ const widgetPassage = {
     { srcmatch: /<<if \$npc\.length is 1 and \(\["Kylar","Sydney","Gwylan"\]\.includes\(\$npc\[0\]\)\)>>\s*<<if \$npc\[0\] is "Sydney" and !\$sydneySeen\.includes\("crossdress"\)\s*>>\s*<<set \$sydneySeen\.pushUnique\("crossdress"\)>>[\s\S]*?<<elseif \$npc\[0\] is "Kylar">>[\s\S]*?<<elseif \$npc\[0\] is "Gwylan" and !\$gwylanSeen\.includes\("crossdress"\)>>[\s\S]*?<<\/if>>/, to: '<<if $npc.some(npc => maplebirch.combat.Reaction.CDNameList.includes(npc))>>\n\t\t\t\t<<= maplebirch.combat.Reaction.check("crossdress")>>'},
   ],
   'Widgets Speech': [
-    //{ src: '<</if>>\n\t<</switch>>', to: '<</if>>\n\t\t<<default>><<set $_text_output to maplebirch.combat.Speech.output(_args[0])>>\n\t<</switch>>' },
+    { src: '<</if>>\n\t<</switch>>', to: '<</if>>\n\t\t<<default>><<set $_text_output to maplebirch.combat.Speech.output(_args[0])>>\n\t<</switch>>' },
   ]
 }
 
