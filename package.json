@@ -4,11 +4,12 @@
   "description": "SugarCube2-ModLoader-Degrees of Lewdity-Maplebirch Frameworks",
   "private": true,
   "scripts": {
+    "clean": "node scripts/clean.js",
     "build": "webpack --mode=production",
     "build:dev": "webpack --mode=development",
     "build:types": "node scripts/maplebirch.dts.js",
     "package": "node scripts/package.js",
-    "build:all": "yarn build && yarn build:types && yarn package"
+    "build:all": "yarn clean && yarn build && yarn build:types && yarn package"
   },
   "dependencies": {
     "core-js": "^3.32.2",
