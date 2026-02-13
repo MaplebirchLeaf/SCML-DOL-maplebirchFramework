@@ -1,5 +1,6 @@
 // ./src/services/GUIControl.ts
 
+import { ModSubUiAngularJsService } from '../../types/ml-gui/ModSubUiAngularJsService';
 import maplebirch, { MaplebirchCore } from '../core';
 import { Config } from './../constants';
 
@@ -26,10 +27,10 @@ class GUIControl {
   disabledModules: ModuleInfo[] = [];
   enabledScripts: string[] = [];
   disabledScripts: string[] = [];
-  private modSubUiAngularJsService: any;
+  private modSubUiAngularJsService: ModSubUiAngularJsService;
 
   constructor(readonly core: MaplebirchCore) {
-    this.modSubUiAngularJsService = core.manager.modLoaderGui.modSubUiAngularJsService;
+    this.modSubUiAngularJsService = core.manager.modLoaderGui.getModSubUiAngularJsService();
     this.core.once(':IndexedDB', async () => this.initDB());
   }
 
