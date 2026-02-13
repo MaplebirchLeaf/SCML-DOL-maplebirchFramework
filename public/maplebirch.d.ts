@@ -2,10 +2,11 @@ import { Howl as Howl$1, Howler } from 'howler';
 import jsyaml$1 from 'js-yaml';
 import * as lodash from 'lodash-es';
 import { SugarCubeObject } from 'twine-sugarcube';
+import { TweeReplacer } from '../types/TweeReplacer/TweeReplacer';
 
 declare class AddonPlugin {
 	readonly core: MaplebirchCore;
-	readonly addonTweeReplacer: any;
+	readonly addonTweeReplacer: TweeReplacer;
 	readonly addonReplacePatcher: any;
 	replace: (content: string, replacements: (string | RegExp)[][]) => string;
 	readonly gSC2DataManager: any;
@@ -26,7 +27,7 @@ declare class AddonPlugin {
 	};
 	jsFiles: FileItem[];
 	moduleFiles: FileItem[];
-	constructor(core: MaplebirchCore, addonTweeReplacer: any, addonReplacePatcher: any);
+	constructor(core: MaplebirchCore, addonTweeReplacer: TweeReplacer, addonReplacePatcher: any);
 	registerMod(addonName: string, modInfo: ModInfo, modZip: any): Promise<void>;
 	InjectEarlyLoad_start(_modName: string, _fileName: string): Promise<void>;
 	ModLoaderLoadEnd(): Promise<void>;

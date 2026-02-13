@@ -29,7 +29,7 @@ class GUIControl {
   private modSubUiAngularJsService: any;
 
   constructor(readonly core: MaplebirchCore) {
-    this.modSubUiAngularJsService = core.manager.modLoaderGui.modSubUiAngularJsService;
+    this.modSubUiAngularJsService = core.manager.modLoaderGui.getModSubUiAngularJsService();
     this.core.once(':IndexedDB', async () => this.initDB());
   }
 
