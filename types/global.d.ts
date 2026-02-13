@@ -1,15 +1,22 @@
+import { BeautySelectorAddon } from "./BeautySelectorAddon/BeautySelectorAddon";
+import { Gui } from "./ml-gui/Gui";
+import { SC2DataManager } from "./ml/SC2DataManager";
+import { ModUtils } from "./ml/Utils";
+import { ReplacePatcher } from "./ReplacePatch/ReplacePatcher";
+import { TweeReplacer } from "./TweeReplacer/TweeReplacer";
+
 declare global {
   const JSZip: any;
   const Links: any;
   const StartConfig: any;
-  const modSC2DataManager: any;
-  const modLoaderGui: any;
-  const modUtils: any;
+  const modSC2DataManager: SC2DataManager;
+  const modLoaderGui: Gui;
+  const modUtils: ModUtils;
   const modImgLoaderHooker: any;
   const modGameOriginalImagePack:any;
-  const addonBeautySelectorAddon: any;
-  const addonTweeReplacer: any;
-  const addonReplacePatcher: any;
+  const addonBeautySelectorAddon: BeautySelectorAddon;
+  const addonTweeReplacer: TweeReplacer;
+  const addonReplacePatcher: ReplacePatcher;
 
   interface JSZip {
     zip: {
