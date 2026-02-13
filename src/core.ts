@@ -19,6 +19,7 @@ import Variables from './modules/Variables';
 import Character from './modules/Character';
 import NPCManager from './modules/NamedNPC';
 import CombatManager from './modules/Combat';
+import { SC2DataManager } from '../types/ml/SC2DataManager';
 
 let jsSugarCube: SugarCubeObject;
 
@@ -36,7 +37,7 @@ class MaplebirchCore {
 
   readonly meta: typeof MaplebirchCore.meta;
   modList: string[];
-  readonly manager: { modSC2DataManager: any; modLoaderGui: any };
+  readonly manager: { modSC2DataManager: SC2DataManager; modLoaderGui: any };
   passage: any;
   onLoad: boolean;
   readonly lodash: typeof lodash; 
@@ -57,7 +58,7 @@ class MaplebirchCore {
   readonly npc: NPCManager;
   readonly combat: CombatManager
 
-  constructor(modSC2DataManager: any, modLoaderGui: any) {
+  constructor(modSC2DataManager: SC2DataManager, modLoaderGui: any) {
     this.meta = { ...MaplebirchCore.meta };
     this.modList = [];
     this.manager = { modSC2DataManager, modLoaderGui };
