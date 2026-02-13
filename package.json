@@ -3,12 +3,13 @@
   "version": "1.0.0",
   "description": "SugarCube2-ModLoader-Degrees of Lewdity-Maplebirch Frameworks",
   "private": true,
+  "types": "dist/maplebirch.d.ts",
   "packageManager": "bun@1",
   "scripts": {
     "clean": "bun run scripts/clean.ts",
     "build": "bun run rspack -- build --mode=production",
     "build:dev": "bun run rspack -- build --mode=development",
-    "build:types": "bun run scripts/maplebirch.dts.ts",
+    "build:types": "tsup",
     "package": "bun run scripts/package.ts",
     "build:all": "bun run clean && bun run build && bun run build:types && bun run package"
   },
@@ -34,9 +35,9 @@
     "@types/lodash-es": "^4.17.8",
     "@types/node": "^20.10.5",
     "@types/twine-sugarcube": "^2.37.2",
-    "dts-bundle-generator": "^9.0.0",
     "patch-package": "^8.0.1",
     "postinstall-postinstall": "^2.1.0",
+    "tsup": "^8.5.1",
     "typescript": "^5.3.3",
     "webpack-bundle-analyzer": "^5.2.0"
   }
