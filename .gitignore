@@ -2,3 +2,4 @@
 node_modules/
 dist/inject_early.js
 package/
+dist/
