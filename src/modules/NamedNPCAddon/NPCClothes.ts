@@ -1,6 +1,8 @@
 // ./src/modules/NamedNPCAddon/NPCClothes.ts
 
+import { ModZipReader } from '../../../types/ml/ModZipReader';
 import maplebirch from '../../core';
+import { convert } from '../../utils';
 import NPCManager from '../NamedNPC';
 
 export interface ClothesConfig {
@@ -160,7 +162,7 @@ class VanillaClothes {
 class NPCSidebarData {
   private configs: ConfigData[] = [];
 
-  async import(modName: string, modZip: JSZip, filePaths: string | string[]) {
+  async import(modName: string, modZip: ModZipReader, filePaths: string | string[]) {
     if (!modZip) { maplebirch.npc.log('无效的模组压缩包', 'ERROR'); return []; }
     
     const paths = Array.isArray(filePaths) ? filePaths : [filePaths];
@@ -171,7 +173,7 @@ class NPCSidebarData {
       const file = modZip.zip.file(filePath);
       if (!file) continue;
       
-      const content = await file.async('text');
+      const content = await file.async('string');
       let data: any;
       
       if (filePath.endsWith('.json')) data = JSON.parse(content);

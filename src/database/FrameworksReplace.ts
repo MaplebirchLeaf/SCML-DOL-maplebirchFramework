@@ -213,7 +213,8 @@ const defaultData = {
         <</for>>
       </div><</if>>
     </div>`,
-  NPCinit : `<<run maplebirch.npc.vanillaNPCInit(_nam)>>`,
+  NPCinit   : `<<run maplebirch.npc.vanillaInit(_nam)>>`,
+  NPCinject : `<<run maplebirch.npc.vanillaInject(_nam, _npcno)>>`
 }
 
 const locationPassage = {
@@ -263,7 +264,7 @@ const widgetPassage = {
     { srcmatch: /\t\t\t<<NPC_CN_NAME _npc>>|\t\t\t_npc/, to: '\t\t<<if Object.keys(maplebirch.npc.data).includes(_npc) && maplebirch.SugarCube.Macro.has(_npc+"relationshiptext")>>\n\t\t\t<<= maplebirch.auto(_npc)>><<= "<<"+_npc+"relationshiptext>>">>\n\t\t<<else>>\n\t\t\t<<= maplebirch.auto(_npc)>>' },
     { src: '<</if>>\n\t<</switch>>\n<</widget>>', to: '<</if>>\n\t\t<</if>>\n\t<</switch>>\n<</widget>>' },
     { src: '<</if>>\n<</widget>>\n\n<<widget "initNNPCClothes">>', applybefore: '\t<<maplebirchNPCinit _nam>>\n\t' },
-    //{ src: '<</widget>>\n\n<<widget "npcrelationship">>', applybefore: '\t<<maplebirchNPCspawn _nam _npcno>>\n\t' },
+    { src: '<</widget>>\n\n<<widget "npcrelationship">>', applybefore: '\t<<maplebirchNPCspawn _nam _npcno>>\n\t' },
   ],
   'Widgets Settings': [
     { srcmatch: /_npcList\[(?:setup\.NPC_CN_NAME\()?_sortedNPCList\[\$_\w+\](?:\))?\]/, to: '_npcList[maplebirch.auto(_sortedNPCList[$_i])]' },

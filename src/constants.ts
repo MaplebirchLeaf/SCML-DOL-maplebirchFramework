@@ -1,6 +1,6 @@
 // .src/constants.ts
 
-const version = modUtils.getMod('maplebirch').version;
+const version = window.modUtils.getMod('maplebirch').version;
 const lastUpdate = '2026.03.01';
 const lastModifiedBy = '楓樺葉';
 const Languages = ['EN', 'CN'] as const;
@@ -16,7 +16,8 @@ const Config = {
   EnableModule: ['Enable selected module', '启用选中模块'],
   DisableModule: ['Disable selected module', '禁用选中模块'],
   EnableScript: ['Enable selected script', '启用选中脚本'],
-  DisableScript: ['Disable selected script', '禁用选中脚本']
+  DisableScript: ['Disable selected script', '禁用选中脚本'],
+  ClearIndexedDB: ['Clear IndexedDB', '清除索引数据库']
 };
 
 const ModuleState: {[key: string|number]: string|number} = (() => {

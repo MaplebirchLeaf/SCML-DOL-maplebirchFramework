@@ -372,6 +372,7 @@ class LanguageManager {
         await this.retrySmall(entries);
       } catch (e: any) {
         this.core.logger.log(`重试失败: ${e.message}`, 'ERROR');
+        this.core.idb.resetDatabase();
       }
     }
   }

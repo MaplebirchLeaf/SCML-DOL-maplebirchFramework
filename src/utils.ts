@@ -352,7 +352,7 @@ class SelectCase {
  */
 function loadImage(src: string): string | boolean | Promise<string | boolean> {
   try {
-    if (modImgLoaderHooker.maplebirchCheckImageExist(src)) return modUtils.getImage(src);
+    if (window.modImgLoaderHooker.maplebirchCheckImageExist(src)) return maplebirch.modUtils.getImage(src);
     return false;
   } catch (error) {
     return src;
@@ -399,7 +399,7 @@ function convert(str: string, mode: 'lower' | 'upper' | 'capitalize' | 'title' |
   }
 }
 
-modImgLoaderHooker.maplebirchCheckImageExist = function (src: string) {
+window.modImgLoaderHooker.maplebirchCheckImageExist = function (src: string) {
   var _a;
   if (this.imgLookupTable.has(src)) {
     const n = this.imgLookupTable.get(src);
@@ -411,7 +411,7 @@ modImgLoaderHooker.maplebirchCheckImageExist = function (src: string) {
   let maybeExist = false;
   for (const hooker of this.sideHooker) {
     if (hooker.hookName === 'GameOriginalImagePackImageSideHook') {
-      const n = modGameOriginalImagePack.selfImg.get(src);
+      const n = window.modGameOriginalImagePack.selfImg.get(src);
       if (!n) continue;
       try { if (!n.getter.invalid) return true; }
       catch (e) { maybeExist = true; }

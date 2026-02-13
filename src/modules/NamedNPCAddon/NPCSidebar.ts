@@ -15,11 +15,12 @@ import handheld_layers from './NPCSidebarConfig/handheld_layers';
 import legs_layers from './NPCSidebarConfig/legs_layers';
 import feet_layers from './NPCSidebarConfig/feet_layers';
 import NPCManager from '../NamedNPC';
+import { ModZipReader } from '../../../types/ml/ModZipReader';
 
 const display = new Map();
 const _ = maplebirch.lodash;
 
-function loadFromMod(modZip: JSZip, npcName: string) {
+function loadFromMod(modZip: ModZipReader, npcName: string) {
   if (!Array.isArray(npcName) || _.isEmpty(npcName)) return [];
   const formats = new Set(['png', 'jpg', 'gif']);
   const paths = [];
@@ -240,7 +241,7 @@ const NPCSidebar = (() => {
 
     static hair_type(type: 'sides' | 'fringe') {
       const hair_name: Record<string, string> = {};
-      const HAIR_NAME = (style: any) => (modUtils.getMod('ModI18N') && maplebirch.Language === 'CN') ? style.name_cap : style.name;
+      const HAIR_NAME = (style: any) => (maplebirch.modUtils.getMod('ModI18N') && maplebirch.Language === 'CN') ? style.name_cap : style.name;
       if (type === 'sides') _.forEach(setup.hairstyles.sides, (style: { variable: string; }) => hair_name[convert(HAIR_NAME(style), 'title')] = style.variable);
       if (type === 'fringe') _.forEach(setup.hairstyles.fringe, (style: { variable: string; }) => hair_name[convert(HAIR_NAME(style), 'title')] = style.variable);
       return hair_name;

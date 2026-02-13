@@ -1,59 +1,25 @@
 import { BeautySelectorAddon } from "./BeautySelectorAddon/BeautySelectorAddon";
+import { ImgLoaderHooker } from "./ImageLoaderHook/ImgLoaderHooker";
 import { Gui } from "./ml-gui/Gui";
+import { ModInfo } from "./ml/ModLoader";
 import { SC2DataManager } from "./ml/SC2DataManager";
 import { ModUtils } from "./ml/Utils";
 import { ReplacePatcher } from "./ReplacePatch/ReplacePatcher";
 import { TweeReplacer } from "./TweeReplacer/TweeReplacer";
 
 declare global {
-  const JSZip: any;
+  interface Window {
+    modGameOriginalImagePack: any;
+    addonTweeReplacer: TweeReplacer;
+    addonReplacePatcher: ReplacePatcher;
+  }
+
   const Links: any;
   const StartConfig: any;
-  const modSC2DataManager: SC2DataManager;
-  const modLoaderGui: Gui;
-  const modUtils: ModUtils;
-  const modImgLoaderHooker: any;
-  const modGameOriginalImagePack:any;
-  const addonBeautySelectorAddon: BeautySelectorAddon;
-  const addonTweeReplacer: TweeReplacer;
-  const addonReplacePatcher: ReplacePatcher;
-
-  interface JSZip {
-    zip: {
-      [x: string]: any;
-      file(path: string): { async(type: string): Promise<string> } | null;
-    };
-  }
 
   function lanSwitch(text: any): string;
   function lanSwitch(english: string, chinese: string, ...args: any[]): string;
   function lanSwitch(options: { EN: string; CN: string; [key: string]: string }): string;
-  function clone<T>(source: T, opt?: { deep?: boolean; proto?: boolean }, map?: WeakMap<any, any>): T;
-  function merge(target: any, ...sources: any[]): any;
-  function equal(a: any, b: any): boolean;
-  function contains<T>(arr: T[], value: T, mode?: 'all' | 'any' | 'none', opt?: ContainsOptions<T>): boolean;
-  function contains<T>(arr: T[], value: T[], mode?: 'all' | 'any' | 'none', opt?: ContainsOptions<T>): boolean;
-  function random(): number;
-  function random(max: number): number;
-  function random(min: number, max: number, float?: boolean): number;
-  function random(opt: { min?: number; max?: number; float?: boolean }): number;
-  function either(items: any[], opt?: { weights?: number[]; null?: boolean }): any;
-  function either(...args: any[]): any;
-  function loadImage(src: string): Promise<string>;
-  function convert(str: string, mode?: 'upper' | 'lower' | 'capitalize' | 'title' | 'camel' | 'pascal' | 'snake' | 'kebab' | 'constant', opt?: { delimiter?: string; acronym?: boolean }): string;
-  interface ContainsOptions<T> { case?: boolean; compare?: (item: T, value: T) => boolean; deep?: boolean }
-  class SelectCase {
-    constructor();
-    case(condition: any, result: any): SelectCase;
-    casePredicate(fn: (input: any, meta: any) => boolean, result: any): SelectCase;
-    caseRange(min: number, max: number, result: any): SelectCase;
-    caseIn(values: any[], result: any): SelectCase;
-    caseIncludes(substrings: string | string[], result: any): SelectCase;
-    caseRegex(regex: RegExp, result: any): SelectCase;
-    caseCompare(comparator: '<' | '<=' | '>' | '>=', value: number, result: any): SelectCase;
-    else(result: any): SelectCase;
-    match(input: any, meta?: any): any;
-  }
 
   class DateTime {
     static isLeapYear(year: number): boolean;

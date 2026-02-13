@@ -13,7 +13,7 @@ import { ZoneWidgetConfig } from './Frameworks/zonesManager';
 interface Task {
   modName: string;
   config: any;
-  modZip?: JSZip;
+  modZip?: ModZipReader;
 }
 
 interface AddonPluginConfig {
@@ -160,7 +160,7 @@ class Process {
             const clothesImagePaths = await addon.core.npc.Clothes.import(modName, modZip, config.Sidebar.config);
             if (clothesImagePaths.length > 0) allImagePaths.push(...clothesImagePaths);
           }
-          if (allImagePaths.length > 0) await Process.#injectBSAImages(addon, modName, modZip, allImagePaths);
+          if (allImagePaths.length > 0) await Process._injectBSAImages(addon, modName, modZip, allImagePaths);
         }
       }
       addon.processed.npc = true;
@@ -169,7 +169,7 @@ class Process {
     }
   }
 
-  static async #injectBSAImages(addon: AddonPlugin, modName: string, modZip: JSZip, imgPaths: string[]) {
+  private static async _injectBSAImages(addon: AddonPlugin, modName: string, modZip: ModZipReader, imgPaths: string[]) {
     try {
       const imgs = [];
       for (const imgPath of imgPaths) {
@@ -186,13 +186,18 @@ class Process {
         }
       }
       if (imgs.length === 0) return;
-      await addonBeautySelectorAddon.registerMod(
-        'BeautySelectorAddon',
-        { name: 'maplebirch', bootJson: { addonPlugin: [{ modName: 'BeautySelectorAddon', addonName: 'BeautySelectorAddon', params: { type: `npc-sidebar-[${modName}]` } }] }, imgs: imgs },
-        modZip
-      );
+      const modInfo = modZip.modInfo;
+      const plugins = modInfo.bootJson.addonPlugin;
+      let plugin = plugins.find(p => p.modName === 'BeautySelectorAddon' && p.addonName === 'BeautySelectorAddon');
+      if (!plugin) plugin = { modName: 'BeautySelectorAddon', addonName: 'BeautySelectorAddon', modVersion: '^2.0.0', params: {} }, plugins.push(plugin);
+      plugin.params = plugin.params || {};
+      plugin.params['type'] = 'npc-sidebar';
+      modInfo.imgs = imgs;
+      await window.addonBeautySelectorAddon.registerMod('BeautySelectorAddon', modInfo, modZip);
       addon.core.log(`成功注册 ${modName} 的 ${imgs.length} 个 NPC 侧边栏图片`, 'DEBUG');
-    } catch (e: any) { addon.core.log(`注册 ${modName} 的 NPC 侧边栏图片失败: ${e.message}`, 'ERROR'); }
+    } catch (e: any) {
+      addon.core.log(`注册 ${modName} 的 NPC 侧边栏图片失败: ${e.message}`, 'ERROR');
+    }
   }
 }
 
@@ -407,6 +412,6 @@ async function modifyOptionsDateFormat(manager: AddonPlugin): Promise<void> {
     }
   });
   await maplebirch.register('addon', Object.seal(new AddonPlugin(maplebirch, addonTweeReplacer, addonReplacePatcher)), []);
-})(maplebirch, addonTweeReplacer, addonReplacePatcher)
+})(maplebirch, window.addonTweeReplacer, window.addonReplacePatcher)
 
 export default AddonPlugin

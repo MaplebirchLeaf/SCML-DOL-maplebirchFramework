@@ -166,7 +166,7 @@ class Internals {
   }
 
   preInit() {
-    Object.defineProperties(window, { lanSwitch: { value: _languageSwitch }, });
+    (window as any).lanSwitch = Object.freeze(_languageSwitch);
 
     this.core.tool.onInit(() => {
       setup.maplebirch = {};

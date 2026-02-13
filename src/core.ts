@@ -3,6 +3,8 @@
 import jsyaml from 'js-yaml';
 import { Howl, Howler } from 'howler';
 import { SugarCubeObject } from 'twine-sugarcube';
+import { SC2DataManager } from '../types/ml/SC2DataManager';
+import { Gui } from '../types/ml-gui/Gui';
 import * as lodash from 'lodash-es';
 import { version, lastModifiedBy, lastUpdate, Languages } from './constants';
 import Logger from './services/Logger';
@@ -19,8 +21,6 @@ import Variables from './modules/Variables';
 import Character from './modules/Character';
 import NPCManager from './modules/NamedNPC';
 import CombatManager from './modules/Combat';
-import { SC2DataManager } from '../types/ml/SC2DataManager';
-import { Gui } from '../types/ml-gui/Gui';
 
 let jsSugarCube: SugarCubeObject;
 
