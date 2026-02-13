@@ -3,6 +3,7 @@
     "target": "es2022",
     "module": "esnext",
     "lib": ["es2022", "dom", "dom.iterable"],
+    "types":["bun"],
     "moduleResolution": "bundler",
     "strict": false,
     "esModuleInterop": true,
@@ -20,10 +21,9 @@
     "declarationMap": true,
   },
   "include": [
-    "src/**/*.ts", 
-    "src/**/*.js",
-    "src/**/*.d.ts",
-    "types/**/*.d.ts"
+    "src/**/*",
+    "types/**/*.d.ts",
+    "scripts/**/*.ts"
   ],
   "exclude": ["node_modules", "dist"]
 }
