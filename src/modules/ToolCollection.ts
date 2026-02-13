@@ -2,6 +2,7 @@
 
 import maplebirch, { MaplebirchCore } from '../core';
 import * as utils from '../utils';
+import Console from './Frameworks/consoleCheat';
 import migration from './Frameworks/migration';
 import randSystem from './Frameworks/randSystem';
 import defineMacros from './Frameworks/macros';
@@ -12,6 +13,7 @@ import otherTools from './Frameworks/otherTools';
 
 class ToolCollection {
   readonly utils: typeof utils;
+  readonly console: Console;
   readonly migration: typeof migration;
   readonly rand: typeof randSystem;
   readonly macro: defineMacros;
@@ -22,13 +24,14 @@ class ToolCollection {
 
   constructor (readonly core: MaplebirchCore) {
     this.utils = Object.freeze(utils);
+    this.console = Object.seal(new Console(this));
     this.migration = Object.freeze(migration);
     this.rand = Object.freeze(randSystem);
     this.macro = Object.freeze(new defineMacros(this));
-    this.text = Object.freeze(new htmlTools(this));
+    this.text = Object.seal(new htmlTools(this));
     this.zone = Object.seal(new zonesManager(this));
     this.link = Object.freeze(applyLinkZone);
-    this.other = Object.freeze(otherTools);
+    this.other = Object.seal(otherTools);
   }
 
   onInit(...widgets: (InitFunction[])) {

@@ -1,6 +1,8 @@
 // ./src/services/GUIControl.ts
 
+import { ModSubUiAngularJsService } from '../../types/ml-gui/ModSubUiAngularJsService';
 import maplebirch, { MaplebirchCore } from '../core';
+import { convert } from '../utils';
 import { Config } from './../constants';
 
 interface ModuleInfo {
@@ -26,10 +28,10 @@ class GUIControl {
   disabledModules: ModuleInfo[] = [];
   enabledScripts: string[] = [];
   disabledScripts: string[] = [];
-  private modSubUiAngularJsService: any;
+  private modSubUiAngularJsService: ModSubUiAngularJsService;
 
   constructor(readonly core: MaplebirchCore) {
-    this.modSubUiAngularJsService = core.manager.modLoaderGui.modSubUiAngularJsService;
+    this.modSubUiAngularJsService = core.manager.modLoaderGui.getModSubUiAngularJsService();
     this.core.once(':IndexedDB', async () => this.initDB());
   }
 
@@ -175,10 +177,15 @@ class GUIControl {
           <div id='maplebirch'>
             <div class='title-container'>{{t($ctrl.data.text.Title)}}</div>
             <div class='content-container'>
-              <label>{{t($ctrl.data.text.LanguageSelection)}}</label>
-              <select ng-model='$ctrl.data.Language' ng-change='changeLanguage()'>
-                <option ng-repeat='lang in languages' value='{{lang.code}}'>{{lang.name}}</option>
-              </select><br>
+              <div style='display: flex; align-items: center;'>
+                <label>{{t($ctrl.data.text.LanguageSelection)}}</label>
+                <select ng-model='$ctrl.data.Language' ng-change='changeLanguage()'>
+                  <option ng-repeat='lang in languages' value='{{lang.code}}'>{{lang.name}}</option>
+                </select>
+                <div ng-if='isDEBUG()' style='margin-left: auto;'>
+                  <input type='button' value='{{t($ctrl.data.text.ClearIndexedDB)}}' ng-click='maplebirch.idb.deleteDatabase()' class='theme-button' />
+                </div>
+              </div>
               <input type='button' ng-click="EnableDisableItem('enable')" ng-value="DEBUGMODE('enable')" class='theme-button' />
               <input type='button' ng-click="EnableDisableItem('disable')" ng-value="DEBUGMODE('disable')" class='theme-button' />
               <input type='text' readonly='true' ng-value='DEBUGSTATUS()' />
@@ -286,7 +293,6 @@ class GUIControl {
               $scope.selectedDisabledModule = $scope.selectedEnabledModule = -1;
             };
 
-            // 选择模块
             $scope.selectModule = (index: number, listType: string) => {
               if (listType === 'enabled') {
                 $scope.selectedEnabledModule = ($scope.selectedEnabledModule === index) ? -1 : index;
@@ -398,7 +404,8 @@ class GUIControl {
           EnableModule: Config.EnableModule,
           DisableModule: Config.DisableModule,
           EnableScript: Config.EnableScript,
-          DisableScript: Config.DisableScript
+          DisableScript: Config.DisableScript,
+          ClearIndexedDB: Config.ClearIndexedDB
         }
       }
     });

@@ -1,7 +1,7 @@
 // ./src/modules/Character.ts
 
 import maplebirch, { MaplebirchCore, createlog } from '../core';
-import { merge, loadImage } from '../utils';
+import { merge, loadImage, convert } from '../utils';
 import AddonPlugin from './AddonPlugin';
 import Transformation from './CharacterAddon/Transformation';
 

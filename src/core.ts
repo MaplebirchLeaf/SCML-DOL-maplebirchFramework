@@ -3,6 +3,8 @@
 import jsyaml from 'js-yaml';
 import { Howl, Howler } from 'howler';
 import { SugarCubeObject } from 'twine-sugarcube';
+import { SC2DataManager } from '../types/ml/SC2DataManager';
+import { Gui } from '../types/ml-gui/Gui';
 import * as lodash from 'lodash-es';
 import { version, lastModifiedBy, lastUpdate, Languages } from './constants';
 import Logger from './services/Logger';
@@ -36,7 +38,7 @@ class MaplebirchCore {
 
   readonly meta: typeof MaplebirchCore.meta;
   modList: string[];
-  readonly manager: { modSC2DataManager: any; modLoaderGui: any };
+  readonly manager: { modSC2DataManager: SC2DataManager; modLoaderGui: Gui };
   passage: any;
   onLoad: boolean;
   readonly lodash: typeof lodash; 
@@ -57,7 +59,7 @@ class MaplebirchCore {
   readonly npc: NPCManager;
   readonly combat: CombatManager
 
-  constructor(modSC2DataManager: any, modLoaderGui: any) {
+  constructor(modSC2DataManager: SC2DataManager, modLoaderGui: Gui) {
     this.meta = { ...MaplebirchCore.meta };
     this.modList = [];
     this.manager = { modSC2DataManager, modLoaderGui };
@@ -260,7 +262,7 @@ class MaplebirchCore {
   }
 }
 
-var maplebirch = new MaplebirchCore(modSC2DataManager, modLoaderGui);
+var maplebirch = new MaplebirchCore(window.modSC2DataManager, window.modLoaderGui);
 
 function createlog(prefix: string) { return (message: string, level: string = 'INFO', ...objects: any[]) => maplebirch.log(`[${prefix}] ${message}`, level, ...objects); }
 

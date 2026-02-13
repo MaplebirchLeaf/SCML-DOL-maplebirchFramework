@@ -1,5 +1,11 @@
 // ./src/modules/AddonPlugin.ts
 
+import { TypeOrderItem } from '../../types/BeautySelectorAddon/BeautySelectorAddonType';
+import { ModZipReader } from '../../types/ml/ModZipReader';
+import { SC2DataManager } from '../../types/ml/SC2DataManager';
+import { ModUtils } from '../../types/ml/Utils';
+import { ReplacePatcher } from '../../types/ReplacePatch/ReplacePatcher';
+import { TweeReplacer } from '../../types/TweeReplacer/TweeReplacer';
 import maplebirch, { MaplebirchCore, createlog } from '../core';
 import { TraitConfig } from './Frameworks/otherTools';
 import { ZoneWidgetConfig } from './Frameworks/zonesManager';
@@ -7,7 +13,7 @@ import { ZoneWidgetConfig } from './Frameworks/zonesManager';
 interface Task {
   modName: string;
   config: any;
-  modZip?: JSZip;
+  modZip?: ModZipReader;
 }
 
 interface AddonPluginConfig {
@@ -154,7 +160,7 @@ class Process {
             const clothesImagePaths = await addon.core.npc.Clothes.import(modName, modZip, config.Sidebar.config);
             if (clothesImagePaths.length > 0) allImagePaths.push(...clothesImagePaths);
           }
-          if (allImagePaths.length > 0) await Process.#injectBSAImages(addon, modName, modZip, allImagePaths);
+          if (allImagePaths.length > 0) await Process._injectBSAImages(addon, modName, modZip, allImagePaths);
         }
       }
       addon.processed.npc = true;
@@ -163,7 +169,7 @@ class Process {
     }
   }
 
-  static async #injectBSAImages(addon: AddonPlugin, modName: string, modZip: JSZip, imgPaths: string[]) {
+  private static async _injectBSAImages(addon: AddonPlugin, modName: string, modZip: ModZipReader, imgPaths: string[]) {
     try {
       const imgs = [];
       for (const imgPath of imgPaths) {
@@ -180,21 +186,26 @@ class Process {
         }
       }
       if (imgs.length === 0) return;
-      await addonBeautySelectorAddon.registerMod(
-        'BeautySelectorAddon',
-        { name: 'maplebirch', bootJson: { addonPlugin: [{ modName: 'BeautySelectorAddon', addonName: 'BeautySelectorAddon', params: { type: `npc-sidebar-[${modName}]` } }] }, imgs: imgs },
-        modZip
-      );
+      const modInfo = modZip.modInfo;
+      const plugins = modInfo.bootJson.addonPlugin;
+      let plugin = plugins.find(p => p.modName === 'BeautySelectorAddon' && p.addonName === 'BeautySelectorAddon');
+      if (!plugin) plugin = { modName: 'BeautySelectorAddon', addonName: 'BeautySelectorAddon', modVersion: '^2.0.0', params: {} }, plugins.push(plugin);
+      plugin.params = plugin.params || {};
+      plugin.params['type'] = 'npc-sidebar';
+      modInfo.imgs = imgs;
+      await window.addonBeautySelectorAddon.registerMod('BeautySelectorAddon', modInfo, modZip);
       addon.core.log(`成功注册 ${modName} 的 ${imgs.length} 个 NPC 侧边栏图片`, 'DEBUG');
-    } catch (e: any) { addon.core.log(`注册 ${modName} 的 NPC 侧边栏图片失败: ${e.message}`, 'ERROR'); }
+    } catch (e: any) {
+      addon.core.log(`注册 ${modName} 的 NPC 侧边栏图片失败: ${e.message}`, 'ERROR');
+    }
   }
 }
 
 class AddonPlugin {
   replace: (content: string, replacements: (string|RegExp)[][]) => string;
-  readonly gSC2DataManager: any;
-  readonly gModUtils: any;
-  info: Map<string, { addonName: string; mod: ModInfo; modZip: any }>;
+  readonly gSC2DataManager: SC2DataManager;
+  readonly gModUtils: ModUtils;
+  info: Map<string, { addonName: string; mod: ModInfo; modZip: ModZipReader }>;
   readonly log: ReturnType<typeof createlog>;
   nowModName: string;
   supportedConfigs: string[];
@@ -203,7 +214,7 @@ class AddonPlugin {
   jsFiles: FileItem[];
   moduleFiles: FileItem[];
 
-  constructor(readonly core: MaplebirchCore, readonly addonTweeReplacer: any, readonly addonReplacePatcher: any) {
+  constructor(readonly core: MaplebirchCore, readonly addonTweeReplacer: TweeReplacer, readonly addonReplacePatcher: ReplacePatcher) {
     this.replace = replace;
     this.gSC2DataManager = this.core.manager.modSC2DataManager;
     this.gModUtils = this.core.modUtils;
@@ -239,7 +250,7 @@ class AddonPlugin {
     this.log(`[AddonPlugin] 初始化完成`);
   }
 
-  async registerMod(addonName: string, modInfo: ModInfo, modZip: any): Promise<void> {
+  async registerMod(addonName: string, modInfo: ModInfo, modZip: ModZipReader): Promise<void> {
     this.info.set(modInfo.name, { addonName, mod: modInfo, modZip });
     const config = modInfo.bootJson?.addonPlugin?.find(
       (p: any) => p.modName === 'maplebirch' && p.addonName === 'maplebirchAddon'
@@ -290,7 +301,7 @@ class AddonPlugin {
     try { await this.core.char.transformation.modifyEffect(this); } catch (e) { this.log('modifyEffect 出错', 'ERROR'); }
   }
 
-  private async _loadFilesArray(modName: string, modZip: JSZip, files: string[], isModule: boolean): Promise<void> {
+  private async _loadFilesArray(modName: string, modZip: ModZipReader, files: string[], isModule: boolean): Promise<void> {
     for (const filePath of files) {
       const file = modZip.zip.file(filePath);
       if (!file) continue;
@@ -306,7 +317,7 @@ class AddonPlugin {
     for (const modName of modNames) {
       try {
         const bootJson = (this.gModUtils.getMod(modName) as ModInfo).bootJson;
-        const config = bootJson?.addonPlugin?.find((p: any) => p.modName === 'maplebirch' && p.addonName === 'maplebirchAddon') as AddonPluginConfig;
+        const config = bootJson?.addonPlugin?.find((p) => p.modName === 'maplebirch' && p.addonName === 'maplebirchAddon') as AddonPluginConfig;
         const modZip = this.gModUtils.getModZip(modName);
         if (!config?.params || !modZip) continue;
         if (Array.isArray(config.params?.module)) await this._loadFilesArray(modName, modZip, config.params.module, true);
@@ -387,12 +398,12 @@ async function modifyOptionsDateFormat(manager: AddonPlugin): Promise<void> {
   manager.addonTweeReplacer.gModUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
 }
 
-(async function(maplebirch, addonTweeReplacer, addonReplacePatcher) {
+(async function(maplebirch: MaplebirchCore, addonTweeReplacer: TweeReplacer, addonReplacePatcher: ReplacePatcher) {
   'use strict';
-  let order = addonBeautySelectorAddon.typeOrderUsed;
-  Object.defineProperty(addonBeautySelectorAddon, 'typeOrderUsed', {
+  let order:TypeOrderItem[] = window.addonBeautySelectorAddon.typeOrderUsed;
+  Object.defineProperty(window.addonBeautySelectorAddon, 'typeOrderUsed', {
     get() { return order; },
-    set(v: any) { 
+    set(v:TypeOrderItem[]) { 
       order = v; 
       if (T?.modelclass) { 
         Renderer.clearCaches(T.modelclass); 
@@ -401,6 +412,6 @@ async function modifyOptionsDateFormat(manager: AddonPlugin): Promise<void> {
     }
   });
   await maplebirch.register('addon', Object.seal(new AddonPlugin(maplebirch, addonTweeReplacer, addonReplacePatcher)), []);
-})(maplebirch, addonTweeReplacer, addonReplacePatcher)
+})(maplebirch, window.addonTweeReplacer, window.addonReplacePatcher)
 
 export default AddonPlugin

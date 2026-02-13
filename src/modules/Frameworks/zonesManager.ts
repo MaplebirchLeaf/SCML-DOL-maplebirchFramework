@@ -81,7 +81,7 @@ export class zonesManager {
       Fame                   : [], // 知名度
       StatusSocial           : [], // 自定义社交状态
       NPCinit                : [], // NPC初遇初始化(详情看原版<<initnpc>>宏)
-      //NPCspawn               : [], // NPC生成初始化(详情看原版<<npc>>宏)
+      NPCinject              : [], // NPC生成初始化(详情看原版<<npc>>宏)
     };
   }
 

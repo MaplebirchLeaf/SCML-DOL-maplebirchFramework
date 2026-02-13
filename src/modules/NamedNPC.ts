@@ -649,6 +649,10 @@ class NPCManager {
     Object.keys(this.customStats).forEach(stat => V.NPCName[idx][stat] = 0);
   }
 
+  vanillaInject() {
+    try { this.core.combat.Speech.init(); } catch {};
+  }
+
   preInit() {
     this.Sidebar.init(this);
   }
