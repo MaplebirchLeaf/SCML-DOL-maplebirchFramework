@@ -1,6 +1,6 @@
 // ./src/modules/ToolCollection.ts
 
-import maplebirch, { MaplebirchCore } from '../core';
+import maplebirch, { MaplebirchCore, createlog } from '../core';
 import * as utils from '../utils';
 import Console from './Frameworks/consoleCheat';
 import migration from './Frameworks/migration';
@@ -21,6 +21,7 @@ class ToolCollection {
   readonly zone: zonesManager;
   readonly link: typeof applyLinkZone;
   readonly other: typeof otherTools;
+  readonly createlog: typeof createlog = createlog;
 
   constructor (readonly core: MaplebirchCore) {
     this.utils = Object.freeze(utils);

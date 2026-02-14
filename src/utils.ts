@@ -85,9 +85,9 @@ function merge(target: any, ...sources: any[]): any {
   const mergeRec = (t: any, s: any, depth = 1) => {
     if (s === null || typeof s !== 'object' || typeof s === 'function') return s;
     for (const key in s) {
-      if (filterFn && !filterFn(key, s[key], depth)) continue;
       const sv = s[key];
       const tv = t[key];
+      if (filterFn && !filterFn(key, sv, depth, tv)) continue;
       if (typeof sv === 'function') {
         t[key] = sv;
       } else if (Array.isArray(sv) && Array.isArray(tv)) {

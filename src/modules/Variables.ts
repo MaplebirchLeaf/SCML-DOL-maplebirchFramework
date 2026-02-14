@@ -72,13 +72,13 @@ class Variables {
 	readonly migration: migration;
 	hairgradients: () => HairGradientsReturn;
 
-	constructor(core: MaplebirchCore) {
+	constructor(readonly core: MaplebirchCore) {
 		this.version = version;
-		this.tool = core.tool;
+		this.tool = this.core.tool;
 		this.log = createlog('var');
 		this.migration = new this.tool.migration();
 		this.hairgradients = hairgradients;
-		core.once(':passageend', () => this.optionsCheck());
+		this.core.once(':passageend', () => this.optionsCheck());
 	}
 
 	#mapProcessing() {
@@ -90,10 +90,19 @@ class Variables {
 
 	optionsCheck() {
 		if (typeof V.maplebirch !== 'object' || V.maplebirch == null) V.maplebirch = {};
-		if (typeof V.options?.maplebirch !== 'object' || V.options?.maplebirch === null) {
+		if (!this.core.lodash.isPlainObject(V.options?.maplebirch)) {
 			V.options.maplebirch = clone(Variables.options);
 		} else {
-			V.options.maplebirch = merge({}, Variables.options, V.options.maplebirch, { mode: 'merge', filterFn: (key: string, value: any, depth: number) => true });
+			V.options.maplebirch = merge(
+				{}, Variables.options, V.options.maplebirch,
+				{
+					mode: 'merge',
+					filterFn: (key: string, value: any, depth: number, targetValue: any) => {
+						if (targetValue !== undefined && typeof value !== typeof targetValue) return false;
+						return true;
+					}
+				}
+			);
 		}
 	}
 

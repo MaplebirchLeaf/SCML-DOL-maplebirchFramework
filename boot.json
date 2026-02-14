@@ -5,7 +5,11 @@
     "cn": "秋枫白桦框架"
   },
   "alias": ["Simple Frameworks"],
+<<<<<<< HEAD
+  "version": "3.0.8",
+=======
   "version": "3.0.7",
+>>>>>>> 11f091a6af963002e33cded9527680448f073973
   "styleFileList": [],
   "tweeFileList": [],
   "imgFileList": [],
