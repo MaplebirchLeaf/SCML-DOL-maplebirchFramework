@@ -1,11 +1,19 @@
 import path from 'path';
 import { rspack } from '@rspack/core';
 import type { Configuration } from '@rspack/core';
+<<<<<<< HEAD
+import { production } from './scripts/production';
+=======
+>>>>>>> 11f091a6af963002e33cded9527680448f073973
 
 export default (env: unknown, argv: { mode?: string }): Configuration => {
   const isProduction = argv.mode === 'production';
 
+<<<<<<< HEAD
+  const config: Configuration = {
+=======
   return {
+>>>>>>> 11f091a6af963002e33cded9527680448f073973
     entry: './src/main.ts',
     output: {
       path: path.resolve(__dirname, 'dist'),
@@ -46,6 +54,10 @@ export default (env: unknown, argv: { mode?: string }): Configuration => {
         },
       ],
     },
+<<<<<<< HEAD
+    performance: {
+      hints: false,
+=======
     optimization: isProduction
       ? {
           minimize: true,
@@ -72,6 +84,7 @@ export default (env: unknown, argv: { mode?: string }): Configuration => {
       hints: false,
       maxEntrypointSize: 2 * 1024 * 1024,
       maxAssetSize: 2 * 1024 * 1024,
+>>>>>>> 11f091a6af963002e33cded9527680448f073973
     },
     plugins: [
       new rspack.CopyRspackPlugin({
@@ -79,4 +92,17 @@ export default (env: unknown, argv: { mode?: string }): Configuration => {
       }),
     ],
   };
+<<<<<<< HEAD
+
+  if (isProduction) {
+    return {
+      ...config,
+      ...production(rspack),
+    };
+  }
+
+  return config;
 };
+=======
+};
+>>>>>>> 11f091a6af963002e33cded9527680448f073973
