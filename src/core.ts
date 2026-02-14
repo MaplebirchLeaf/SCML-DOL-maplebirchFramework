@@ -3,8 +3,8 @@
 import jsyaml from 'js-yaml';
 import { Howl, Howler } from 'howler';
 import { SugarCubeObject } from 'twine-sugarcube';
-import { SC2DataManager } from '../types/ml/SC2DataManager';
-import { Gui } from '../types/ml-gui/Gui';
+import { SC2DataManager } from '../types/sugarcube-2-ModLoader/SC2DataManager';
+import { Gui } from '../types/Mod_LoaderGui/Gui';
 import * as lodash from 'lodash-es';
 import { version, lastModifiedBy, lastUpdate, Languages } from './constants';
 import Logger from './services/Logger';

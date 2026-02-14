@@ -1,11 +1,12 @@
 // ./src/modules/AddonPlugin.ts
 
-import { TypeOrderItem } from '../../types/BeautySelectorAddon/BeautySelectorAddonType';
-import { ModZipReader } from '../../types/ml/ModZipReader';
-import { SC2DataManager } from '../../types/ml/SC2DataManager';
-import { ModUtils } from '../../types/ml/Utils';
-import { ReplacePatcher } from '../../types/ReplacePatch/ReplacePatcher';
-import { TweeReplacer } from '../../types/TweeReplacer/TweeReplacer';
+import { TypeOrderItem } from '../../types/AddonMod_BeautySelector/BeautySelectorAddonType';
+import { ModZipReader } from '../../types/sugarcube-2-ModLoader/ModZipReader';
+import { c } from '../../types/AddonMod_BeautySelector/SC2DataManager-BbuyuRDn';
+import { SC2DataManager } from '../../types/sugarcube-2-ModLoader/SC2DataManager';
+import { ModUtils } from '../../types/sugarcube-2-ModLoader/Utils';
+import { ReplacePatcher } from '../../types/Mod_ReplacePatch/ReplacePatcher';
+import { TweeReplacerLinker } from '../../types/Addon_TweeReplacerLinker/TweeReplacerLinker';
 import maplebirch, { MaplebirchCore, createlog } from '../core';
 import { TraitConfig } from './Frameworks/otherTools';
 import { ZoneWidgetConfig } from './Frameworks/zonesManager';
@@ -169,7 +170,7 @@ class Process {
     }
   }
 
-  private static async _injectBSAImages(addon: AddonPlugin, modName: string, modZip: ModZipReader, imgPaths: string[]) {
+  private static async _injectBSAImages(addon: AddonPlugin, modName: string, modZip: c, imgPaths: string[]) {
     try {
       const imgs = [];
       for (const imgPath of imgPaths) {
@@ -178,7 +179,7 @@ class Process {
           const file = modZip.zip.file(imgPath);
           if (!file) { addon.core.log(`图片未找到: ${imgPath} (模组: ${modName})`, 'WARN'); continue; }
           const base64Data = await file.async('base64');
-          const mimeType = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml' }[/** @type {string} */(imgPath.split('.').pop()?.toLowerCase())] || 'image/png';
+          const mimeType = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml' }[imgPath.split('.').pop()?.toLowerCase()] || 'image/png';
           const dataUrl = `data:${mimeType};base64,${base64Data}`;
           imgs.push({ path: imgPath, getter: { getBase64Image: async () => dataUrl, invalid: false } });
         } catch (e: any) {
@@ -214,7 +215,7 @@ class AddonPlugin {
   jsFiles: FileItem[];
   moduleFiles: FileItem[];
 
-  constructor(readonly core: MaplebirchCore, readonly addonTweeReplacer: TweeReplacer, readonly addonReplacePatcher: ReplacePatcher) {
+  constructor(readonly core: MaplebirchCore, readonly addonTweeReplacer: TweeReplacerLinker, readonly addonReplacePatcher: ReplacePatcher) {
     this.replace = replace;
     this.gSC2DataManager = this.core.manager.modSC2DataManager;
     this.gModUtils = this.core.modUtils;
@@ -278,6 +279,7 @@ class AddonPlugin {
   }
 
   async afterRegisterMod2Addon(): Promise<void> {
+    try { await this.core.char.faceStyleImagePaths(); } catch (e: any) { this.core.log(`faceStyleImagePaths函数错误: ${e.message}`, 'ERROR') }
     await this._executeScripts(this.jsFiles, 'Script');
     this.processed.script = true;
   }
@@ -398,7 +400,7 @@ async function modifyOptionsDateFormat(manager: AddonPlugin): Promise<void> {
   manager.addonTweeReplacer.gModUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
 }
 
-(async function(maplebirch: MaplebirchCore, addonTweeReplacer: TweeReplacer, addonReplacePatcher: ReplacePatcher) {
+(async function(maplebirch: MaplebirchCore, addonTweeReplacer: TweeReplacerLinker, addonReplacePatcher: ReplacePatcher) {
   'use strict';
   let order:TypeOrderItem[] = window.addonBeautySelectorAddon.typeOrderUsed;
   Object.defineProperty(window.addonBeautySelectorAddon, 'typeOrderUsed', {

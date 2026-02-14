@@ -8,12 +8,15 @@ export function production(rspack: typeof import('@rspack/core').rspack): Partia
         new rspack.SwcJsMinimizerRspackPlugin({
           minimizerOptions: {
             compress: {
-              passes: 3,
+              passes: 3
             },
             format: {
-              comments: false,
+              comments: false
             },
-            mangle: true,
+            mangle: {
+              keep_classnames: true,
+              keep_fnames: true
+            },
             ecma: 2022,
           },
         }),

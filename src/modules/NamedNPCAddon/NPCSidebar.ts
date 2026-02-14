@@ -15,7 +15,7 @@ import handheld_layers from './NPCSidebarConfig/handheld_layers';
 import legs_layers from './NPCSidebarConfig/legs_layers';
 import feet_layers from './NPCSidebarConfig/feet_layers';
 import NPCManager from '../NamedNPC';
-import { ModZipReader } from '../../../types/ml/ModZipReader';
+import { ModZipReader } from '../../../types/sugarcube-2-ModLoader/ModZipReader';
 
 const display = new Map();
 const _ = maplebirch.lodash;

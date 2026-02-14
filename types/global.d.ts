@@ -1,15 +1,18 @@
+import { SC2DataManager } from "./sugarcube-2-ModLoader/SC2DataManager";
+import { GameOriginalImagePack } from "./GameOriginalImagePackMod/GameOriginalImagePack";
 import { BeautySelectorAddon } from "./BeautySelectorAddon/BeautySelectorAddon";
 import { ImgLoaderHooker } from "./ImageLoaderHook/ImgLoaderHooker";
-import { Gui } from "./ml-gui/Gui";
-import { ModInfo } from "./ml/ModLoader";
-import { SC2DataManager } from "./ml/SC2DataManager";
-import { ModUtils } from "./ml/Utils";
-import { ReplacePatcher } from "./ReplacePatch/ReplacePatcher";
+import { Gui } from "./Mod_LoaderGui/Gui";
+import { ModInfo } from "./sugarcube-2-ModLoader/ModLoader";
+import { SC2DataManager } from "./sugarcube-2-ModLoader/SC2DataManager";
+import { ModUtils } from "./sugarcube-2-ModLoader/Utils";
+import { ReplacePatcher } from './Mod_ReplacePatch/ReplacePatcher';
 import { TweeReplacer } from "./TweeReplacer/TweeReplacer";
 
 declare global {
   interface Window {
-    modGameOriginalImagePack: any;
+    modSC2DataManager: SC2DataManager;
+    modGameOriginalImagePack: GameOriginalImagePack;
     addonTweeReplacer: TweeReplacer;
     addonReplacePatcher: ReplacePatcher;
   }

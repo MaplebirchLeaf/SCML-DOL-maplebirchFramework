@@ -1,4 +1,10 @@
 # .gitignore
+scml-types/
 node_modules/
 package/
 dist/
+types/*
+!types/global.d.ts
+!types/npcsidebar-layers.d.ts
+!types/twine-sugarcube.d
+

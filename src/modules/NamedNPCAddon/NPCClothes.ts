@@ -1,6 +1,6 @@
 // ./src/modules/NamedNPCAddon/NPCClothes.ts
 
-import { ModZipReader } from '../../../types/ml/ModZipReader';
+import { ModZipReader } from '../../../types/sugarcube-2-ModLoader/ModZipReader';
 import maplebirch from '../../core';
 import { convert } from '../../utils';
 import NPCManager from '../NamedNPC';
