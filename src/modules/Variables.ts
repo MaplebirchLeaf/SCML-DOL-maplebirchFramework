@@ -89,7 +89,6 @@ class Variables {
 	}
 
 	optionsCheck() {
-		if (typeof V.maplebirch !== 'object' || V.maplebirch == null) V.maplebirch = {};
 		if (!this.core.lodash.isPlainObject(V.options?.maplebirch)) {
 			V.options.maplebirch = clone(Variables.options);
 		} else {

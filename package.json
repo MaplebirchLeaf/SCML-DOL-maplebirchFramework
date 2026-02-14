@@ -7,6 +7,7 @@
   "packageManager": "bun@1",
   "scripts": {
     "clean": "bun run scripts/clean.ts",
+    "copy-dts": "bun run scripts/modloader.dts.ts",
     "build": "bun run rspack -- build --mode=production",
     "build:dev": "bun run rspack -- build --mode=development",
     "build:types": "tsup",
@@ -35,6 +36,8 @@
     "@types/lodash-es": "^4.17.8",
     "@types/node": "^25.2.3",
     "@types/twine-sugarcube": "^2.37.2",
+    "@babel/parser": "^7.24.7",
+    "@babel/traverse": "^7.24.7",
     "patch-package": "^8.0.1",
     "postinstall-postinstall": "^2.1.0",
     "tsup": "^8.5.1",
