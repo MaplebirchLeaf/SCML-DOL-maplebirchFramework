@@ -8,6 +8,7 @@ import { SC2DataManager } from "./sugarcube-2-ModLoader/SC2DataManager";
 import { ModUtils } from "./sugarcube-2-ModLoader/Utils";
 import { ReplacePatcher } from './Mod_ReplacePatch/ReplacePatcher';
 import { TweeReplacer } from "./TweeReplacer/TweeReplacer";
+import { _languageSwitch } from "../src/database/SugarCubeMacros";
 
 declare global {
   interface Window {
@@ -15,14 +16,16 @@ declare global {
     modGameOriginalImagePack: GameOriginalImagePack;
     addonTweeReplacer: TweeReplacer;
     addonReplacePatcher: ReplacePatcher;
+    DateTime: typeof DateTime;
+    closeOverlay(): void;
+    updateOptions(): void;
+    lanSwitch: typeof _languageSwitch;
   }
+
+  const lanSwitch = _languageSwitch;
 
   const Links: any;
   const StartConfig: any;
-
-  function lanSwitch(text: any): string;
-  function lanSwitch(english: string, chinese: string, ...args: any[]): string;
-  function lanSwitch(options: { EN: string; CN: string; [key: string]: string }): string;
 
   class DateTime {
     static isLeapYear(year: number): boolean;
@@ -36,18 +39,20 @@ declare global {
     minute: number;
     second: number;
     timeStamp: number;
-    weekDay: number;
+    get weekDay(): number;
     weekDayName: string;
     monthName: string;
     weekEnd: boolean;
     lastDayOfMonth: number;
     yearDay: number;
-    moonPhaseFraction: number;
-    fractionOfDay: number;
-    fractionOfDayFromNoon: number;
+    get moonPhaseFraction(): number;
+    get fractionOfDay(): number;
+    get fractionOfDayFromNoon(): number;
     simplifiedDayFactor: number;
     fractionOfYear: number;
     seasonFactor: number;
+    static getDaysOfYear(year: number): number;
+    static getDaysOfMonthFromYear(year: number): Array<number>;
     compareWith(otherDateTime: DateTime, getSeconds?: boolean): { years: number; months: number; days: number; hours: number; minutes: number; seconds: number } | number;
     dayDifference(otherDateTime: DateTime): number;
     getFirstWeekdayOfMonth(weekDay: number): DateTime;

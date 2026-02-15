@@ -643,13 +643,13 @@ class NPCManager {
     return statDefaults;
   }
 
-  vanillaNPCInit(...args: any[]) {
-    const nam = args[0];
+  vanillaInit(npcName: string) {
+    const nam = npcName;
     const idx = V.NPCNameList.indexOf(nam);
     Object.keys(this.customStats).forEach(stat => V.NPCName[idx][stat] = 0);
   }
 
-  vanillaInject() {
+  vanillaInject(npcName: string, npcno: number) {
     try { this.core.combat.Speech.init(); } catch {};
   }
 
