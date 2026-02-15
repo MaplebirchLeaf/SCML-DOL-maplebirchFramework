@@ -15,7 +15,8 @@ export function production(rspack: typeof import('@rspack/core').rspack): Partia
             },
             mangle: {
               keep_classnames: true,
-              keep_fnames: true
+              keep_fnames: true,
+              toplevel: true,
             },
             ecma: 2022,
           },

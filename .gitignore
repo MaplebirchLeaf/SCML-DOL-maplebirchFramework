@@ -7,4 +7,3 @@ types/*
 !types/global.d.ts
 !types/npcsidebar-layers.d.ts
 !types/twine-sugarcube.d
-

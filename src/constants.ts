@@ -32,4 +32,22 @@ const ModuleState: {[key: string|number]: string|number} = (() => {
   return state;
 })();
 
-export { version, lastUpdate, lastModifiedBy, Languages, Config, ModuleState }
+const TimeConstants = (() => {
+	const secondsPerDay = 86400;
+	const secondsPerHour = 3600;
+	const secondsPerMinute = 60;
+	const standardYearMonths = Object.freeze([31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]);
+	const leapYearMonths = Object.freeze([31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]);
+	const synodicMonth = 29.53058867;
+
+	return Object.freeze({
+		secondsPerDay,
+		secondsPerHour,
+		secondsPerMinute,
+		standardYearMonths,
+		leapYearMonths,
+		synodicMonth,
+	});
+})();
+
+export { version, lastUpdate, lastModifiedBy, Languages, Config, ModuleState, TimeConstants }

@@ -56,16 +56,19 @@ function _language(this: MacroContext) {
 }
 
 // <<lanSwitch>>
-function _languageSwitch(this: MacroContext, ...lanObj: any[]): string | HTMLElement {
+function _languageSwitch(this: void, ...lanObj: any[]): string;
+function _languageSwitch(this: MacroContext, ...lanObj: any[]): HTMLElement;
+function _languageSwitch(this: MacroContext | void, ...lanObj: any[]): string | HTMLElement {
   const availableLangs = maplebirch.meta.Languages;
   const lancheck = maplebirch.Language;
   let targetObj: Record<string, string>;
   if (typeof lanObj[0] === 'object' && lanObj[0] !== null && !Array.isArray(lanObj[0])) {
     targetObj = lanObj[0];
   } else {
-    targetObj = {};
-    if (Array.isArray(lanObj[0])) { lanObj[0].forEach((text: string, index: number) => { if (availableLangs[index]) targetObj[availableLangs[index]] = text; }); }
-    else { lanObj.forEach((text: string, index: number) => { if (availableLangs[index]) targetObj[availableLangs[index]] = text; }); }
+    const texts = Array.isArray(lanObj[0]) ? lanObj[0] : lanObj;
+    targetObj = _.transform(texts, (acc, text, index) => {
+      if (availableLangs[index]) acc[availableLangs[index]] = text;
+    }, {} as Record<string, string>);
   }
 
   if (!targetObj.hasOwnProperty(lancheck)) {
@@ -73,7 +76,8 @@ function _languageSwitch(this: MacroContext, ...lanObj: any[]): string | HTMLEle
     maplebirch.Language = available.length > 0 ? available[0] : availableLangs[0];
   }
 
-  if (this?.output) {
+  const context = this as MacroContext;
+  if (context?.output) {
     try {
       const $container = jQuery('<span style="display: contents;"></span>');
       const contentObj = targetObj;
@@ -89,7 +93,7 @@ function _languageSwitch(this: MacroContext, ...lanObj: any[]): string | HTMLEle
         }
       };
       renderContent();
-      jQuery(this.output).append($container);
+      jQuery(context.output).append($container);
       _.invoke(setup, 'maplebirch.language.add', 'lanSwitch', renderContent);
       $container.on('remove', () => _.invoke(setup, 'maplebirch.language.remove', 'lanSwitch', renderContent));
       return $container[0];
@@ -657,12 +661,12 @@ function _overlayReplace(name: string, type: string) {
   const key = name;
   if (!key) return;
   if (T.currentOverlay === key) {
-    if (typeof (window as any).closeOverlay === 'function') (window as any).closeOverlay();
+    if (typeof window.closeOverlay === 'function') window.closeOverlay();
     $.wiki('<<exit>>');
     return;
   }
   T.buttons.toggle();
-  if (typeof (window as any).updateOptions === 'function') (window as any).updateOptions();
+  if (typeof window.updateOptions === 'function') window.updateOptions();
   T.currentOverlay = key;
   const $overlay = jQuery('#customOverlay');
   if ($overlay.length) $overlay.removeClass('hidden').parent().removeClass('hidden').attr('data-overlay', T.currentOverlay);

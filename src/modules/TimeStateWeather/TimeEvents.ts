@@ -1,5 +1,6 @@
 // .src/modules/TimeStateWeather/TimeEvents.ts
 
+import { TimeConstants } from '../../constants';
 import maplebirch from '../../core';
 import DynamicManager from '../Dynamic';
 
@@ -441,7 +442,7 @@ export class TimeManager {
   }
 
   private _updateDateTime() {
-    const OriginalDateTime = (window as any).DateTime;
+    const OriginalDateTime = window.DateTime;
     class DateTime extends OriginalDateTime {
       constructor(year: number | DateTime = 2020, month?: number, day?: number, hour?: number, minute?: number, second?: number) {
         if (arguments.length === 1 && year && typeof year === 'object') {
@@ -483,96 +484,96 @@ export class TimeManager {
         const daysInMonth = DateTime.getDaysOfMonthFromYear(year);
         if (day < 1 || day > daysInMonth[month - 1]) throw new Error(`Invalid date: Day must be 1-${daysInMonth[month - 1]}.`);
         const totalDays = DateTime.getTotalDaysSinceStart(year) + daysInMonth.slice(0, month - 1).reduce((a, b) => a + b, 0) + day - 1;
-        const totalSeconds = totalDays * (window as any).TimeConstants.secondsPerDay + hour * (window as any).TimeConstants.secondsPerHour + minute * (window as any).TimeConstants.secondsPerMinute + second;
-        (this as any).timeStamp = totalSeconds;
-        (this as any).year = year;
-        (this as any).month = month;
-        (this as any).day = day;
-        (this as any).hour = hour;
-        (this as any).minute = minute;
-        (this as any).second = second;
+        const totalSeconds = totalDays * TimeConstants.secondsPerDay + hour * TimeConstants.secondsPerHour + minute * TimeConstants.secondsPerMinute + second;
+        this.timeStamp = totalSeconds;
+        this.year = year;
+        this.month = month;
+        this.day = day;
+        this.hour = hour;
+        this.minute = minute;
+        this.second = second;
       }
       fromTimestamp(timestamp: number) {
-        let totalDays = Math.floor(timestamp / (window as any).TimeConstants.secondsPerDay);
-        const remainingSeconds = timestamp - totalDays * (window as any).TimeConstants.secondsPerDay;
-        (this as any).hour = Math.floor(remainingSeconds / (window as any).TimeConstants.secondsPerHour) % 24;
-        (this as any).minute = Math.floor(remainingSeconds / (window as any).TimeConstants.secondsPerMinute) % 60;
-        (this as any).second = remainingSeconds % 60;
+        let totalDays = Math.floor(timestamp / TimeConstants.secondsPerDay);
+        const remainingSeconds = timestamp - totalDays * TimeConstants.secondsPerDay;
+        this.hour = Math.floor(remainingSeconds / TimeConstants.secondsPerHour) % 24;
+        this.minute = Math.floor(remainingSeconds / TimeConstants.secondsPerMinute) % 60;
+        this.second = remainingSeconds % 60;
         let approxYear = Math.floor(totalDays / 365.2425);
         let year = 1 + approxYear; 
         if (year <= 0) year = year <= 0 ? year - 1 : year;
         let daysSinceStart = DateTime.getTotalDaysSinceStart(year);
         while (totalDays < daysSinceStart) { year--; if (year === 0) year = -1; daysSinceStart = DateTime.getTotalDaysSinceStart(year); }
         while (totalDays >= daysSinceStart + DateTime.getDaysOfYear(year)) { daysSinceStart += DateTime.getDaysOfYear(year); year++; if (year === 0) year = 1; }
-        (this as any).year = year; 
-        if ((this as any).year === 0) { (this as any).year = (timestamp >= 0) ? 1 : -1; daysSinceStart = DateTime.getTotalDaysSinceStart((this as any).year); }
+        this.year = year; 
+        if (this.year === 0) { this.year = (timestamp >= 0) ? 1 : -1; daysSinceStart = DateTime.getTotalDaysSinceStart(this.year); }
         totalDays -= daysSinceStart; 
-        const daysPerMonth = DateTime.getDaysOfMonthFromYear((this as any).year);
+        const daysPerMonth = DateTime.getDaysOfMonthFromYear(this.year);
         let month = 0;
         let dayCount = totalDays;
         while (dayCount >= daysPerMonth[month]) { dayCount -= daysPerMonth[month]; month++; }
-        (this as any).month = month + 1;
-        (this as any).day = dayCount + 1;
-        (this as any).timeStamp = timestamp;
+        this.month = month + 1;
+        this.day = dayCount + 1;
+        this.timeStamp = timestamp;
       }
       compareWith(otherDateTime: DateTime, getSeconds = false): any {
-        let diffSeconds = otherDateTime.timeStamp - (this as any).timeStamp;
+        let diffSeconds = otherDateTime.timeStamp - this.timeStamp;
         if (getSeconds) return diffSeconds;
         const sign = Math.sign(diffSeconds);
         diffSeconds = Math.abs(diffSeconds);
-        const totalDays = Math.floor(diffSeconds / (window as any).TimeConstants.secondsPerDay);
+        const totalDays = Math.floor(diffSeconds / TimeConstants.secondsPerDay);
         const years = Math.floor(totalDays / 365.25);
         let remainingDays = totalDays - years * 365;
         const months = Math.floor(remainingDays / 30);
         remainingDays -= months * 30;
         const days = remainingDays;
-        diffSeconds -= totalDays * (window as any).TimeConstants.secondsPerDay;
-        const hours = Math.floor(diffSeconds / (window as any).TimeConstants.secondsPerHour);
-        diffSeconds -= hours * (window as any).TimeConstants.secondsPerHour;
-        const minutes = Math.floor(diffSeconds / (window as any).TimeConstants.secondsPerMinute);
-        diffSeconds -= minutes * (window as any).TimeConstants.secondsPerMinute;
+        diffSeconds -= totalDays * TimeConstants.secondsPerDay;
+        const hours = Math.floor(diffSeconds / TimeConstants.secondsPerHour);
+        diffSeconds -= hours * TimeConstants.secondsPerHour;
+        const minutes = Math.floor(diffSeconds / TimeConstants.secondsPerMinute);
+        diffSeconds -= minutes * TimeConstants.secondsPerMinute;
         const seconds = diffSeconds;
         return { years: years * sign, months: months * sign, days: days * sign, hours: hours * sign, minutes: minutes * sign, seconds: seconds * sign };
       }
       addYears(years: number) {
         if (!years) return this;
-        let newYear = (this as any).year + years;
-        if (((this as any).year < 0 && newYear >= 0) || ((this as any).year > 0 && newYear <= 0)) newYear += Math.sign(years) * (newYear === 0 ? 1 : 0);
+        let newYear = this.year + years;
+        if ((this.year < 0 && newYear >= 0) || (this.year > 0 && newYear <= 0)) newYear += Math.sign(years) * (newYear === 0 ? 1 : 0);
         if (newYear === 0) newYear = Math.sign(years) > 0 ? 1 : -1;
         const daysInMonth = DateTime.getDaysOfMonthFromYear(newYear);
-        const newDay = Math.min((this as any).day, daysInMonth[(this as any).month - 1]);
-        (this as any).toTimestamp(newYear, (this as any).month, newDay, (this as any).hour, (this as any).minute, (this as any).second);
+        const newDay = Math.min(this.day, daysInMonth[this.month - 1]);
+        this.toTimestamp(newYear, this.month, newDay, this.hour, this.minute, this.second);
         return this;
       }
       addMonths(months: number) {
         if (!months) return this;
-        const addedMonths = (this as any).month + months;
-        let newYear = (this as any).year + Math.floor((addedMonths - 1) / 12);
+        const addedMonths = this.month + months;
+        let newYear = this.year + Math.floor((addedMonths - 1) / 12);
         const newMonth = ((addedMonths - 1) % 12) + 1;
         if (newYear === 0) newYear = Math.sign(months) > 0 ? 1 : -1;
-        const newDay = Math.min((this as any).day, DateTime.getDaysOfMonthFromYear(newYear)[newMonth - 1]);
-        (this as any).toTimestamp(newYear, newMonth, newDay, (this as any).hour, (this as any).minute, (this as any).second);
+        const newDay = Math.min(this.day, DateTime.getDaysOfMonthFromYear(newYear)[newMonth - 1]);
+        this.toTimestamp(newYear, newMonth, newDay, this.hour, this.minute, this.second);
         return this;
       }
       get weekDay() {
-        let y = (this as any).year;
-        let m = (this as any).month;
+        let y = this.year;
+        let m = this.month;
         if (y < 0) y = y + 1;
         if (m < 3) { m += 12; y--; }
-        const h = ((this as any).day + Math.floor((13 * (m + 1)) / 5) + y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400)) % 7;
+        const h = (this.day + Math.floor((13 * (m + 1)) / 5) + y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400)) % 7;
         return h === 0 ? 7 : h;
       }
       get moonPhaseFraction() {
         const referenceNewMoon = new DateTime(-4713, 1, 1, 12, 0, 0);
-        let phaseFraction = ((this as any).timeStamp - referenceNewMoon.timeStamp) / ((window as any).TimeConstants.synodicMonth * (window as any).TimeConstants.secondsPerDay) % 1;
+        let phaseFraction = (this.timeStamp - referenceNewMoon.timeStamp) / (TimeConstants.synodicMonth * TimeConstants.secondsPerDay) % 1;
         return phaseFraction < 0 ? phaseFraction + 1 : phaseFraction;
       }
-      get fractionOfDay() { return ((this as any).hour * 3600 + (this as any).minute * 60 + (this as any).second) / (window as any).TimeConstants.secondsPerDay; }
-      get fractionOfDayFromNoon() { return ((((this as any).hour + 12) % 24) * 3600 + (this as any).minute * 60 + (this as any).second) / (window as any).TimeConstants.secondsPerDay; }
+      get fractionOfDay() { return (this.hour * 3600 + this.minute * 60 + this.second) / TimeConstants.secondsPerDay; }
+      get fractionOfDayFromNoon() { return (((this.hour + 12) % 24) * 3600 + this.minute * 60 + this.second) / TimeConstants.secondsPerDay; }
     }
-    Object.defineProperty(Time, 'monthName', { get: function() { return TimeManager.monthNames.EN[(this as any).month - 1]; } });
-    Object.defineProperty(Time, 'monthNameCN', { get: function() { return TimeManager.monthNames.CN[(this as any).month - 1]; } });
-    (window as any).DateTime = DateTime;
+    Object.defineProperty(Time, 'monthName', { get: function() { return TimeManager.monthNames.EN[this.month - 1]; } });
+    Object.defineProperty(Time, 'monthNameCN', { get: function() { return TimeManager.monthNames.CN[this.month - 1]; } });
+    window.DateTime = DateTime as Window['DateTime'];
   }
 
   init(): void {
@@ -586,8 +587,8 @@ export class TimeManager {
         catch (error: any) { this.log(`时间流逝处理错误: ${error.message}`, 'ERROR'); return this.originalTimePass!(passedSeconds); }
       };
       this.log('时间事件系统已激活', 'INFO');
-      try { (window as any).getFormattedDate = createDateFormatters().getFormattedDate; } catch(e: any) { this.log(`getFormattedDate错误: ${e.message}`, 'WARN'); }
-      try { (window as any).getShortFormattedDate = createDateFormatters().getShortFormattedDate; } catch(e: any) { this.log(`getShortFormattedDate错误: ${e.message}`, 'WARN'); }
+      try { window.getFormattedDate = createDateFormatters().getFormattedDate; } catch(e: any) { this.log(`getFormattedDate错误: ${e.message}`, 'WARN'); }
+      try { window.getShortFormattedDate = createDateFormatters().getShortFormattedDate; } catch(e: any) { this.log(`getShortFormattedDate错误: ${e.message}`, 'WARN'); }
       this.manager.core.on(':language', () => this.updateTimeLanguage());
     } catch (e: any) { this.log(`初始化时间系统失败: ${e.message}`, 'ERROR'); }
   }

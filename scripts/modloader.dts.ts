@@ -65,7 +65,7 @@ function analyzeImports(filePath: string): Set<string> {
     const code = fs.readFileSync(filePath, 'utf-8');
     const ast = parse(code, { sourceType: 'module', plugins: ['typescript'] });
     traverse(ast, {
-      ImportDeclaration(path) {
+      ImportDeclaration(path: { node: { source: { value: any; }; }; }) {
         const importPath = path.node.source.value;
         if (typeof importPath === 'string') {
           const pkg = extractPackageName(importPath);
@@ -88,7 +88,7 @@ function extractDependenciesFromPackage(packagesPath: string, packageName: strin
       const code = fs.readFileSync(filePath, 'utf-8');
       const ast = parse(code, { sourceType: 'module', plugins: ['typescript'] });
       traverse(ast, {
-        ImportDeclaration(path) {
+        ImportDeclaration(path: { node: { source: { value: any; }; }; }) {
           const importPath = path.node.source.value;
           if (typeof importPath === 'string') {
             const match = importPath.match(/\.\.\/+types\/([^\/]+)(?:\/|$)/);

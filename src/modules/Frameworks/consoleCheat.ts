@@ -41,7 +41,7 @@ class Console {
 
   executeJS(): ExecuteJSResult {
     let result: any;
-    const code = (window as any).T?.maplebirchJSCheatConsole as string;
+    const code = T?.maplebirchJSCheatConsole as string;
     const statusElement = $('#js-cheat-console-status');
     statusElement.empty().removeClass('success error visible');
 
@@ -109,7 +109,7 @@ class Console {
     ];
 
     builtins.forEach(name => {
-      if ((window as any)[name]) sandbox[name] = Object.freeze((window as any)[name]);
+      if (window[name]) sandbox[name] = Object.freeze(window[name]);
     });
 
     [Object, Array, Function, Number, String, Date, Boolean,
@@ -122,7 +122,7 @@ class Console {
       get: (target: any, prop: string | symbol) => {
         if (prop === Symbol.unscopables) return undefined;
         if (prop in target) return target[prop];
-        if (prop in window) return (window as any)[prop];
+        if (prop in window) return window[prop];
         return undefined;
       },
       set: (target: any, prop: string | symbol, value: any) => {
@@ -133,7 +133,7 @@ class Console {
         if (prop in window) {
           const descriptor = Object.getOwnPropertyDescriptor(window, prop);
           if (descriptor && descriptor.writable === false) throw new Error(lanSwitch(`Cannot modify read-only property: ${String(prop)}`, `不能修改只读属性: ${String(prop)}`));
-          (window as any)[prop] = value;
+          window[prop] = value;
           return true;
         }
         target.global[prop] = value;
@@ -162,7 +162,7 @@ class Console {
   }
 
   executeTwine(): ExecuteTwineResult {
-    const code = (window as any).T?.maplebirchTwineCheatConsole as string;
+    const code = T?.maplebirchTwineCheatConsole as string;
     const statusElement = $('#twine-cheat-console-status');
     statusElement.empty().removeClass('success error visible');
 

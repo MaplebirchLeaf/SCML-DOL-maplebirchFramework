@@ -89,9 +89,9 @@ export class zonesManager {
     this.core.lodash.forEach(databases, db => {
       this.core.lodash.forIn(db, (value, key) => {
         if (!this.core.lodash.isNil(value)) {
-          const current = (this as any)[key];
+          const current = this[key];
           const base = key === 'specialWidget' ? [] : {};
-          (this as any)[key] = merge(base, current, value, { mode: 'concat' });
+          this[key] = merge(base, current, value, { mode: 'concat' });
         }
       });
     });
