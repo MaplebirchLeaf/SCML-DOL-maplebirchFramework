@@ -18,6 +18,14 @@
         "@babel/traverse": "^7.24.7",
         "@rspack/cli": "^1.0.0",
         "@rspack/core": "^1.0.0",
+        "@scml/addon-mod-beauty-selector": "^1.0.4",
+        "@scml/addon-twee-replacer-linker": "^1.0.4",
+        "@scml/game-original-image-pack-mod": "^1.0.4",
+        "@scml/hook-img-loader": "^1.0.4",
+        "@scml/mod-loader-gui": "^1.0.4",
+        "@scml/mod-replacer-patch": "^1.0.4",
+        "@scml/mod-twee-replacer": "^1.0.4",
+        "@scml/sc2-modloader": "^1.0.4",
         "@types/bun": "^1.3.9",
         "@types/howler": "^2.2.12",
         "@types/jquery": "^3.5.29",
@@ -338,6 +346,24 @@
     "@rspack/dev-server": ["@rspack/dev-server@1.1.5", "", { "dependencies": { "chokidar": "^3.6.0", "http-proxy-middleware": "^2.0.9", "p-retry": "^6.2.0", "webpack-dev-server": "5.2.2", "ws": "^8.18.0" }, "peerDependencies": { "@rspack/core": "*" } }, "sha512-cwz0qc6iqqoJhyWqxP7ZqE2wyYNHkBMQUXxoQ0tNoZ4YNRkDyQ4HVJ/3oPSmMKbvJk/iJ16u7xZmwG6sK47q/A=="],
 
     "@rspack/lite-tapable": ["@rspack/lite-tapable@1.1.0", "", {}, "sha512-E2B0JhYFmVAwdDiG14+DW0Di4Ze4Jg10Pc4/lILUrd5DRCaklduz2OvJ5HYQ6G+hd+WTzqQb3QnDNfK4yvAFYw=="],
+
+    "@scml/addon-mod-beauty-selector": ["@scml/addon-mod-beauty-selector@1.0.4", "", { "dependencies": { "@scml/mod-sub-ui-angular-js": "1.0.4", "@scml/sc2-modloader": "1.0.4" } }, "sha512-snucNfb5S6NrztNqitU50QzTJPtAOj/Kl3+jX2RLIaGgZQ38UMuwgRkhSiBV/tuu+xIf8v2U7hj7+58wh73fag=="],
+
+    "@scml/addon-twee-replacer-linker": ["@scml/addon-twee-replacer-linker@1.0.4", "", { "dependencies": { "@scml/sc2-modloader": "1.0.4" } }, "sha512-kB6AtWPFMR9xi+t4xUap//j2ei14SF1OzPkUM+qZgh8qdZk9ojCdnWQr9pa0Ya0reyMbzDOxAD59eO6LwZS8mA=="],
+
+    "@scml/game-original-image-pack-mod": ["@scml/game-original-image-pack-mod@1.0.4", "", { "dependencies": { "@scml/sc2-modloader": "1.0.4" } }, "sha512-53KClX3An7YhiG/hkalPkydVDlaltgC1CyC6EG2q1BYYlXM7invAms2OEVgBQWTf+tSbHFVMvNbKFPkDcfV7mA=="],
+
+    "@scml/hook-img-loader": ["@scml/hook-img-loader@1.0.4", "", { "dependencies": { "@scml/sc2-modloader": "1.0.4" } }, "sha512-rbuKQ3tf0BnkXuNHPWXuTdda4jjuugpkHwWqQ015c+OrRVP2VhCUiYKjqjaZxBUxjYAn7kHgx/TpMOhi1YNHbA=="],
+
+    "@scml/mod-loader-gui": ["@scml/mod-loader-gui@1.0.4", "", { "dependencies": { "@scml/mod-sub-ui-angular-js": "1.0.4", "@scml/sc2-modloader": "1.0.4" } }, "sha512-9hwXlXrpMlRZu4U3eOrnbOPXPQp1bg/4ieUQ6FHYTVa5AvqNyfWTxh/ERpLA9MNYmWlmDqBMmE/h2WDTAWve2Q=="],
+
+    "@scml/mod-replacer-patch": ["@scml/mod-replacer-patch@1.0.4", "", { "dependencies": { "@scml/sc2-modloader": "1.0.4" } }, "sha512-rNEirrBdtHT31YoPMKM6q7Uu8iOVTNJQTHcOtV9pMGRgQAFEPYOaBVLeo+RPclrShAx+Fbxca0NLQZhny8qKFw=="],
+
+    "@scml/mod-sub-ui-angular-js": ["@scml/mod-sub-ui-angular-js@1.0.4", "", { "dependencies": { "@scml/sc2-modloader": "1.0.4" } }, "sha512-P404NuBXh4Zq55EM6GWBDo2dluI7QPd31xMFznmESeqdBKnRGj7rAdzMt1V4BAwlVq4aWdLFu5silDHdLXxv9g=="],
+
+    "@scml/mod-twee-replacer": ["@scml/mod-twee-replacer@1.0.4", "", { "dependencies": { "@scml/addon-twee-replacer-linker": "1.0.4", "@scml/sc2-modloader": "1.0.4" } }, "sha512-BYiRQ90ftzuY+j11RZ4qTbGm1+uErA6CyAKc0n0Bg247icHqw8SfwX7stMOFtEIe+L4POpxYNsWInzPay0tiXg=="],
+
+    "@scml/sc2-modloader": ["@scml/sc2-modloader@1.0.4", "", {}, "sha512-GLL9tjusBMs3WhIOOlzklXvGVDIYBRnfYzaxOm6HhFPe5RHw+r5KfJxHsNRJvBKVjSuWywBBRv/hA6qoc/5yXw=="],
 
     "@tybys/wasm-util": ["@tybys/wasm-util@0.10.1", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-9tTaPJLSiejZKx+Bmog4uSubteqTvFrVrURwkmHixBo0G4seD0zUxp98E1DzUBJxLQ3NPwXrGKDiVjwx/DpPsg=="],
 

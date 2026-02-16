@@ -1,12 +1,12 @@
-import { SC2DataManager } from './sugarcube-2-ModLoader/SC2DataManager';
-import { GameOriginalImagePack } from './GameOriginalImagePackMod/GameOriginalImagePack';
-import { BeautySelectorAddon } from './BeautySelectorAddon/BeautySelectorAddon';
-import { ImgLoaderHooker } from './ImageLoaderHook/ImgLoaderHooker';
-import { Gui } from './Mod_LoaderGui/Gui';
-import { ModInfo } from './sugarcube-2-ModLoader/ModLoader';
-import { ModUtils } from './sugarcube-2-ModLoader/Utils';
-import { ReplacePatcher } from './Mod_ReplacePatch/ReplacePatcher';
-import { TweeReplacer } from './TweeReplacer/TweeReplacer';
+import { SC2DataManager } from '@scml/sc2-modloader/SC2DataManager';
+import { GameOriginalImagePack } from '@scml/game-original-image-pack-mod/GameOriginalImagePack';
+import { BeautySelectorAddon } from '@scml/addon-mod-beauty-selector/BeautySelectorAddon';
+import { ImgLoaderHooker } from '@scml/hook-img-loader/ImgLoaderHooker';
+import { Gui } from '@scml/mod-loader-gui/Gui';
+import { ModInfo } from '@scml/sc2-modloader/ModLoader';
+import { ModUtils } from '@scml/sc2-modloader/Utils';
+import { ReplacePatcher } from '@scml/mod-replace-patch/ReplacePatcher';
+import { TweeReplacer } from '@scml/mod-twee-replacer/TweeReplacer';
 import { _languageSwitch } from '../src/database/SugarCubeMacros';
 
 declare global {

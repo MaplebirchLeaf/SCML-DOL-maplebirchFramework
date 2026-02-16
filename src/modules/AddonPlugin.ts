@@ -1,12 +1,12 @@
 // ./src/modules/AddonPlugin.ts
 
-import { TypeOrderItem } from '../../types/AddonMod_BeautySelector/BeautySelectorAddonType';
-import { ModZipReader } from '../../types/sugarcube-2-ModLoader/ModZipReader';
+import { TypeOrderItem } from '@scml/addon-mod-beauty-selector/BeautySelectorAddonType';
+import { ModZipReader } from '@scml/sc2-modloader/ModZipReader';
 import { c } from '../../types/AddonMod_BeautySelector/SC2DataManager-BbuyuRDn';
-import { SC2DataManager } from '../../types/sugarcube-2-ModLoader/SC2DataManager';
-import { ModUtils } from '../../types/sugarcube-2-ModLoader/Utils';
-import { ReplacePatcher } from '../../types/Mod_ReplacePatch/ReplacePatcher';
-import { TweeReplacerLinker } from '../../types/Addon_TweeReplacerLinker/TweeReplacerLinker';
+import { SC2DataManager } from '@scml/sc2-modloader/SC2DataManager';
+import { ModUtils } from '@scml/sc2-modloader/Utils';
+import { ReplacePatcher } from '@scml/mod-replacer-patch/ReplacePatcher';
+import { TweeReplacerLinker } from '@scml/addon-twee-replacer-linker/TweeReplacerLinker';
 import maplebirch, { MaplebirchCore, createlog } from '../core';
 import { TraitConfig } from './Frameworks/otherTools';
 import { ZoneWidgetConfig } from './Frameworks/zonesManager';

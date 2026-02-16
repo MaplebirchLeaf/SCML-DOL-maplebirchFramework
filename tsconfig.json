@@ -3,7 +3,16 @@
     "target": "es2022",
     "module": "esnext",
     "lib": ["es2022", "dom", "dom.iterable"],
-    "types":["bun"],
+    "types": [
+      "bun",
+      "@scml/addon-mod-beauty-selector",
+      "@scml/game-original-image-pack-mod",
+      "@scml/hook-img-loader",
+      "@scml/mod-loader-gui",
+      "@scml/mod-replacer-patch",
+      "@scml/mod-twee-replacer",
+      "@scml/sc2-modloader"
+    ],
     "moduleResolution": "bundler",
     "strict": false,
     "esModuleInterop": true,
@@ -18,12 +27,8 @@
     "stripInternal": true,
     "allowSyntheticDefaultImports": true,
     "declaration": true,
-    "declarationMap": true,
+    "declarationMap": true
   },
-  "include": [
-    "src/**/*",
-    "types/**/*.d.ts",
-    "scripts/**/*.ts"
-  ],
+  "include": ["src/**/*", "types/**/*.d.ts", "scripts/**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }
