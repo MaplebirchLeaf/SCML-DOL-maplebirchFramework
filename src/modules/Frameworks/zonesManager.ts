@@ -46,6 +46,7 @@ export class zonesManager {
   constructor(manager: ToolCollection) {
     this.log = createlog('zone');
     this.core = manager.core;
+    // prettier-ignore
     this.data = {
       Init                   : [], // 初始化脚本-静态变量(如setup)
       State                  : [], // 初始化变量-存档变量(如V.money)
@@ -99,13 +100,19 @@ export class zonesManager {
 
   onInit(...widgets: InitFunction[]) {
     this.core.lodash.forEach(widgets, widget => {
-      if (this.core.lodash.isString(widget)) { this.data.Init.push(widget); }
-      else { this.initFunction.push(widget); }
+      if (this.core.lodash.isString(widget)) {
+        this.data.Init.push(widget);
+      } else {
+        this.initFunction.push(widget);
+      }
     });
   }
 
   addTo(zone: string, ...widgets: (string | Function | ZoneWidgetConfig | [number, string | ZoneWidgetConfig])[]) {
-    if (!this.data[zone]) { this.log(`区域 ${zone} 不存在`, 'ERROR'); return; }
+    if (!this.data[zone]) {
+      this.log(`区域 ${zone} 不存在`, 'ERROR');
+      return;
+    }
     this.core.lodash.forEach(widgets, widget => {
       if (zone === 'CustomLinkZone') {
         let position = 0;
@@ -121,7 +128,7 @@ export class zonesManager {
               widget: w.widget[1],
               passage: w.passage,
               exclude: w.exclude,
-              match: w.match,
+              match: w.match
             };
           }
         }
@@ -143,7 +150,7 @@ export class zonesManager {
   #hashCode(str: string): string {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
-      hash = ((hash << 5) - hash) + str.charCodeAt(i);
+      hash = (hash << 5) - hash + str.charCodeAt(i);
       hash |= 0;
     }
     return Math.abs(hash).toString(16).substring(0, 8);
@@ -154,9 +161,13 @@ export class zonesManager {
     this.log(`执行 ${this.initFunction.length} 个初始化函数`, 'DEBUG');
     this.core.lodash.forEach(this.initFunction, initfunc => {
       try {
-        if (this.core.lodash.isFunction(initfunc)) { initfunc(); }
-        else if (this.core.lodash.isObject(initfunc) && 'init' in initfunc) { (initfunc as { init: Function }).init(); }
-        else if (this.core.lodash.isObject(initfunc) && 'func' in initfunc) { (initfunc as { func: Function }).func(); }
+        if (this.core.lodash.isFunction(initfunc)) {
+          initfunc();
+        } else if (this.core.lodash.isObject(initfunc) && 'init' in initfunc) {
+          (initfunc as { init: Function }).init();
+        } else if (this.core.lodash.isObject(initfunc) && 'func' in initfunc) {
+          (initfunc as { func: Function }).func();
+        }
       } catch (error: any) {
         this.log(`初始化函数执行失败: ${error.message}`, 'ERROR', error.stack);
       }
@@ -183,7 +194,8 @@ export class zonesManager {
       }
     };
 
-    return this.core.lodash.chain(this.data)
+    return this.core.lodash
+      .chain(this.data)
       .keys()
       .reject((zone: string) => ['BeforeLinkZone', 'AfterLinkZone', 'CustomLinkZone'].includes(zone))
       .map((zone: string) => {
@@ -199,10 +211,14 @@ export class zonesManager {
   }
 
   get #specials(): string {
-    return this.core.lodash.chain(this.specialWidget)
+    return this.core.lodash
+      .chain(this.specialWidget)
       .map((widget: string | Function) => {
-        if (this.core.lodash.isFunction(widget)) { return (widget as Function)(); }
-        else if (this.core.lodash.isString(widget)) { return widget; }
+        if (this.core.lodash.isFunction(widget)) {
+          return (widget as Function)();
+        } else if (this.core.lodash.isString(widget)) {
+          return widget;
+        }
         return '';
       })
       .join('')
@@ -214,11 +230,15 @@ export class zonesManager {
     if (this.core.lodash.isEmpty(this.data[zone])) return zone === 'CustomLinkZone' ? [] : '';
     const title = passageTitle ?? this.core.passage?.title;
     if (zone === 'CustomLinkZone') {
-      const sorted = this.core.lodash.chain(this.data[zone] as CustomLinkZoneItem[]).sortBy('position').value();
+      const sorted = this.core.lodash
+        .chain(this.data[zone] as CustomLinkZoneItem[])
+        .sortBy('position')
+        .value();
       const position = this.core.lodash.groupBy(sorted, 'position');
       return this.core.lodash.map(position, (items, posStr) => {
         const widgets = this.core.lodash.map(items, 'widget');
-        const macro = this.core.lodash.chain(widgets)
+        const macro = this.core.lodash
+          .chain(widgets)
           .map((w: string | ZoneWidgetConfig) => this.#render(w, title))
           .join('')
           .value();
@@ -235,21 +255,18 @@ export class zonesManager {
     if (this.core.lodash.isString(widget)) return `<<${widget}>>`;
     if (this.core.lodash.isObject(widget)) {
       if ('type' in widget && widget.type === 'function') return `<<run (${(widget as any).func?.toString()})()>>`;
-      
+
       const { exclude, match, passage, widget: widgetName } = widget as ZoneWidgetConfig;
-      
+
       if (!this.core.lodash.isNil(exclude)) {
         if (!this.core.lodash.includes(exclude, title)) return `<<${widgetName}>>`;
         return '';
       }
-      
+
       if (!this.core.lodash.isNil(match) && match instanceof RegExp && match.test(title)) return `<<${widgetName}>>`;
-      
+
       if (!this.core.lodash.isNil(passage)) {
-        const shouldInclude = 
-          (this.core.lodash.isString(passage) && passage === title) ||
-          (Array.isArray(passage) && this.core.lodash.includes(passage, title)) ||
-          (this.core.lodash.isEmpty(passage));
+        const shouldInclude = (this.core.lodash.isString(passage) && passage === title) || (Array.isArray(passage) && this.core.lodash.includes(passage, title)) || this.core.lodash.isEmpty(passage);
         if (shouldInclude) return `<<${widgetName}>>`;
         return '';
       }
@@ -262,7 +279,7 @@ export class zonesManager {
     const patterns = [
       { type: 'src', pattern: set.src },
       { type: 'srcmatch', pattern: set.srcmatch },
-      { type: 'srcmatchgroup', pattern: set.srcmatchgroup },
+      { type: 'srcmatchgroup', pattern: set.srcmatchgroup }
     ];
     for (const { type, pattern } of patterns) {
       if (this.core.lodash.isNil(pattern)) continue;
@@ -281,21 +298,25 @@ export class zonesManager {
       switch (type) {
         case 'src':
           if (set.to) result = source.replace(pattern, set.to);
-          if (set.applyafter) result = source.replace(pattern, (match) => match + set.applyafter);
-          if (set.applybefore) result = source.replace(pattern, (match) => set.applybefore + match);
+          if (set.applyafter) result = source.replace(pattern, match => match + set.applyafter);
+          if (set.applybefore) result = source.replace(pattern, match => set.applybefore + match);
           break;
         case 'srcmatch':
           if (set.to) result = source.replace(pattern, set.to);
-          if (set.applyafter) result = source.replace(pattern, (match) => match + set.applyafter);
-          if (set.applybefore) result = source.replace(pattern, (match) => set.applybefore + match);
+          if (set.applyafter) result = source.replace(pattern, match => match + set.applyafter);
+          if (set.applybefore) result = source.replace(pattern, match => set.applybefore + match);
           break;
         case 'srcmatchgroup':
           if (pattern instanceof RegExp) {
             const matches = source.match(pattern) || [];
             this.core.lodash.forEach(matches, (match: string) => {
-              if (set.to) { result = result.replace(match, set.to); }
-              else if (set.applyafter) { result = result.replace(match, match + set.applyafter); }
-              else if (set.applybefore) { result = result.replace(match, set.applybefore + match); }
+              if (set.to) {
+                result = result.replace(match, set.to);
+              } else if (set.applyafter) {
+                result = result.replace(match, match + set.applyafter);
+              } else if (set.applybefore) {
+                result = result.replace(match, set.applybefore + match);
+              }
             });
           }
           break;
@@ -310,10 +331,10 @@ export class zonesManager {
 
   #wrapSpecialPassages(passage: { content: string }, title: string) {
     const wrappers: Record<string, (content: string) => string> = {
-      'StoryCaption': this.core.lodash.identity,
-      'PassageHeader': (content: string) => `<div id='passage-header'>\n${content}\n<<maplebirchHeader>>\n</div>`,
-      'PassageFooter': (content: string) => `<div id='passage-footer'>\n<<maplebirchFooter>>\n${content}\n</div>`,
-      'default': (content: string) => `<div id='passage-content'>\n<<= maplebirch.dynamic.trigger('interrupt')>>\n${content}\n<<= maplebirch.dynamic.trigger('overlay')>>\n</div>`
+      StoryCaption: this.core.lodash.identity,
+      PassageHeader: (content: string) => `<div id='passage-header'>\n${content}\n<<maplebirchHeader>>\n</div>`,
+      PassageFooter: (content: string) => `<div id='passage-footer'>\n<<maplebirchFooter>>\n${content}\n</div>`,
+      default: (content: string) => `<div id='passage-content'>\n<<= maplebirch.dynamic.trigger('interrupt')>>\n${content}\n<<= maplebirch.dynamic.trigger('overlay')>>\n</div>`
     };
     const wrapper = wrappers[title] || wrappers['default'];
     passage.content = wrapper(passage.content);
@@ -330,8 +351,11 @@ export class zonesManager {
 
   async #patchPassage(type: 'before' | 'after', passage: any, title: string) {
     if (!this.patchedPassage.has(title) && type === 'before') {
-      if (this.core.lodash.includes(passage.tags, 'widget')) { if (!this.core.lodash.isEmpty(this.widgetPassage)) this.#applyContentPatches(passage, title, this.widgetPassage); }
-      else { if (!this.core.lodash.isEmpty(this.locationPassage)) this.#applyContentPatches(passage, title, this.locationPassage); }
+      if (this.core.lodash.includes(passage.tags, 'widget')) {
+        if (!this.core.lodash.isEmpty(this.widgetPassage)) this.#applyContentPatches(passage, title, this.widgetPassage);
+      } else {
+        if (!this.core.lodash.isEmpty(this.locationPassage)) this.#applyContentPatches(passage, title, this.locationPassage);
+      }
       this.patchedPassage.add(title);
     }
     if (type === 'after' && !this.core.lodash.includes(passage.tags, 'widget')) this.#wrapSpecialPassages(passage, title);
@@ -340,6 +364,7 @@ export class zonesManager {
 
   async #widgetInit(passageData: Map<string, any>) {
     this.widgethtml = this.#widgets + this.#specials;
+    // prettier-ignore
     const data = {
       id       : 0,
       name     : 'Maplebirch Frameworks Widgets',
@@ -362,7 +387,7 @@ export class zonesManager {
     const oldSCdata = manager.gSC2DataManager.getSC2DataInfoAfterPatch();
     const SCdata = oldSCdata.cloneSC2DataInfo();
     const passageData = SCdata.passageDataItems.map;
-    if (type === 'before') await this.#widgetInit(passageData).then(() => this.widgethtml = '');
+    if (type === 'before') await this.#widgetInit(passageData).then(() => (this.widgethtml = ''));
     for (const [title, passage] of passageData) {
       try {
         await this.#patchPassage(type, passage, title);

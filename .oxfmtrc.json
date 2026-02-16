@@ -1,7 +1,14 @@
 {
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
-  "printWidth": 100,
+  "printWidth": 200,
+  "tabWidth": 2,
+  "useTabs": false,
   "semi": true,
-  "singleQuote": false,
-  "trailingComma": "es5"
+  "singleQuote": true,
+  "trailingComma": "none",
+  "quoteProps": "as-needed",
+  "bracketSpacing": true,
+  "arrowParens": "avoid",
+  "bracketSameLine": true,
+  "proseWrap": "preserve"
 }

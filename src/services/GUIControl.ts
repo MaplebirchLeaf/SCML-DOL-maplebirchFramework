@@ -39,8 +39,8 @@ class GUIControl {
     this.core.idb.register('settings', { keyPath: 'key' });
     await this.core.idb.withTransaction(['settings'], 'readwrite', async (tx: any) => {
       const store = tx.objectStore('settings');
-      if (!await store.get('DEBUG')) await store.put({ key: 'DEBUG', value: false });
-      if (!await store.get('Language')) await store.put({ key: 'Language', value: 'EN' });
+      if (!(await store.get('DEBUG'))) await store.put({ key: 'DEBUG', value: false });
+      if (!(await store.get('Language'))) await store.put({ key: 'Language', value: 'EN' });
       const Extension = await store.get('Extension');
       const modules = Object.entries(this.core.dependencyGraph)
         .filter(([_, m]: [string, any]) => m.state === 'EXTENSION')
@@ -59,19 +59,21 @@ class GUIControl {
           if (existingMod) {
             existingMod.dependencies = mod.dependencies;
             if (mod.source) existingMod.source = mod.source;
-          } else if (mod.source) { Enabled.push(mod); }
+          } else if (mod.source) {
+            Enabled.push(mod);
+          }
         });
         await store.put(Extension);
       }
-      if (!await store.get('Script')) await store.put({ key: 'Script', value: { enabled: [], disabled: [] } });
+      if (!(await store.get('Script'))) await store.put({ key: 'Script', value: { enabled: [], disabled: [] } });
     });
-    const Script = await this.core.idb.withTransaction(['settings'], 'readonly', (tx: any) => tx.objectStore('settings').get('Script')) as Data;
+    const Script = (await this.core.idb.withTransaction(['settings'], 'readonly', (tx: any) => tx.objectStore('settings').get('Script'))) as Data;
     this.enabledScripts = Script.value.enabled;
     this.disabledScripts = Script.value.disabled;
   }
 
   async init(): Promise<void> {
-    const settings = await this.core.idb.withTransaction(['settings'], 'readonly', (tx: any) => tx.objectStore('settings').get('Extension')) as Data;
+    const settings = (await this.core.idb.withTransaction(['settings'], 'readonly', (tx: any) => tx.objectStore('settings').get('Extension'))) as Data;
 
     const Extension = settings.value;
     this.enabledModules = Extension.enabled.map((m: any) => ({
@@ -112,14 +114,12 @@ class GUIControl {
     if (action === 'enable') {
       const module = Extension.disabled.find(m => m.name === moduleName);
       if (!module) return false;
-      for (const dep of (module.dependencies || []))
-        if (disabled.has(dep)) return false;
+      for (const dep of module.dependencies || []) if (disabled.has(dep)) return false;
       return true;
     } else {
       const module = Extension.enabled.find(m => m.name === moduleName);
       if (!module) return false;
-      for (const enabled of Extension.enabled)
-        if ((enabled.dependencies || []).includes(moduleName)) return false;
+      for (const enabled of Extension.enabled) if ((enabled.dependencies || []).includes(moduleName)) return false;
       return true;
     }
   }
@@ -131,7 +131,7 @@ class GUIControl {
       const addDeps = (name: string) => {
         const module = Extension.disabled.find(m => m.name === name) || Extension.enabled.find(m => m.name === name);
         if (!module) return;
-        for (const dep of (module.dependencies || []))
+        for (const dep of module.dependencies || [])
           if (disabled.has(dep)) {
             result.add(dep);
             addDeps(dep);
@@ -157,7 +157,7 @@ class GUIControl {
     const result: string[] = [];
     Object.entries(this.core.dependencyGraph).forEach(([name, info]: [string, any]) => {
       if (info.state === 'EXTENSION') {
-        result.push(`[Extension] ${name} [${info.source||'unknown'}]`);
+        result.push(`[Extension] ${name} [${info.source || 'unknown'}]`);
       } else {
         result.push(`[Core] ${name} [${info.state}]`);
       }
@@ -214,127 +214,135 @@ class GUIControl {
               </div>
             </div>
           </div>`,
-          controller: ['$scope', '$compile', '$element', function ($scope: any, _$compile: any, _$element: any) {
-            const ctrl = this as any;
-            $scope.t = ctrl.translation = (text: string[]) => text[maplebirch.meta.Languages.indexOf(maplebirch.Language as 'EN' | 'CN')];
-            const callOnChange = (action: any, data: any) => {
-              try {
-                return $scope.$ctrl.data?.onChange?.(action, data) || false;
-              } catch (e) {
-                maplebirch.log(`Error in onChange: ${action}`, 'ERROR', e);
-                return false;
-              }
-            };
-
-            ctrl.$onInit = () => {
-              $scope.languages = $scope.$ctrl.data.text.Languages.map((lang: string[]) => ({
-                code: lang[0],
-                get name() { return maplebirch.auto(lang[1]); }
-              }));
-              $scope.isDEBUG = () => maplebirch.LogLevel === 'DEBUG';
-              $scope.selectedEnabledModule = $scope.selectedDisabledModule = -1;
-              $scope.selectedEnabledScript = $scope.selectedDisabledScript = -1;
-            };
-
-            $scope.changeLanguage = () =>
-              callOnChange('Language', {
-                Language: $scope.$ctrl.data.Language,
-                $ctrl: $scope.$ctrl.data
-              });
-
-            $scope.DEBUGMODE = (type: string) => convert(maplebirch.t(type === 'enable' ? 'enable' : 'disable', true), 'title') + $scope.t($scope.$ctrl.data.text.DEBUGMODE);
-            $scope.DEBUGSTATUS = () => $scope.t($scope.$ctrl.data.text.DEBUGSTATUS) + (maplebirch.LogLevel === 'DEBUG' ? $scope.t($scope.$ctrl.data.text.EnabledSTATUS) : $scope.t($scope.$ctrl.data.text.DisabledSTATUS));
-            $scope.EnableDisableItem = (action: string) => {
-              const enable = action === 'enable';
-              callOnChange('DEBUG', {
-                enabled: enable,
-                level: enable ? 'DEBUG' : 'INFO',
-                $ctrl: $scope.$ctrl.data
-              });
-            };
-
-            $scope.toggleModule = (action: 'enable' | 'disable') => {
-              const isEnable = action === 'enable';
-              const src = isEnable ? $scope.$ctrl.data.disabledModules : $scope.$ctrl.data.enabledModules;
-              const idx = isEnable ? $scope.selectedDisabledModule : $scope.selectedEnabledModule;
-              if (idx === -1 || !src[idx]) return;
-              const module = src[idx];
-              const Extension: ExtensionSettings = {
-                enabled: $scope.$ctrl.data.enabledModules.map((m: any) => ({
-                  name: m.name,
-                  dependencies: m.dependencies || []
-                })),
-                disabled: $scope.$ctrl.data.disabledModules.map((m: any) => ({
-                  name: m.name,
-                  dependencies: m.dependencies || []
-                }))
+          controller: [
+            '$scope',
+            '$compile',
+            '$element',
+            function ($scope: any, _$compile: any, _$element: any) {
+              const ctrl = this as any;
+              $scope.t = ctrl.translation = (text: string[]) => text[maplebirch.meta.Languages.indexOf(maplebirch.Language as 'EN' | 'CN')];
+              const callOnChange = (action: any, data: any) => {
+                try {
+                  return $scope.$ctrl.data?.onChange?.(action, data) || false;
+                } catch (e) {
+                  maplebirch.log(`Error in onChange: ${action}`, 'ERROR', e);
+                  return false;
+                }
               };
-              const cascadeModules = maplebirch.gui.cascadeModules(action, module.name, Extension);
-              cascadeModules.forEach((moduleName: string) => {
-                const allModules = [...$scope.$ctrl.data.enabledModules, ...$scope.$ctrl.data.disabledModules];
-                const mod = allModules.find((m: any) => m.name === moduleName);
-                if (!mod) return;
-                const srcArray = isEnable ? $scope.$ctrl.data.disabledModules : $scope.$ctrl.data.enabledModules;
-                const dstArray = isEnable ? $scope.$ctrl.data.enabledModules : $scope.$ctrl.data.disabledModules;
-                const srcIdx = srcArray.findIndex((m: any) => m.name === moduleName);
+
+              ctrl.$onInit = () => {
+                $scope.languages = $scope.$ctrl.data.text.Languages.map((lang: string[]) => ({
+                  code: lang[0],
+                  get name() {
+                    return maplebirch.auto(lang[1]);
+                  }
+                }));
+                $scope.isDEBUG = () => maplebirch.LogLevel === 'DEBUG';
+                $scope.selectedEnabledModule = $scope.selectedDisabledModule = -1;
+                $scope.selectedEnabledScript = $scope.selectedDisabledScript = -1;
+              };
+
+              $scope.changeLanguage = () =>
+                callOnChange('Language', {
+                  Language: $scope.$ctrl.data.Language,
+                  $ctrl: $scope.$ctrl.data
+                });
+
+              $scope.DEBUGMODE = (type: string) => convert(maplebirch.t(type === 'enable' ? 'enable' : 'disable', true), 'title') + $scope.t($scope.$ctrl.data.text.DEBUGMODE);
+              $scope.DEBUGSTATUS = () =>
+                $scope.t($scope.$ctrl.data.text.DEBUGSTATUS) + (maplebirch.LogLevel === 'DEBUG' ? $scope.t($scope.$ctrl.data.text.EnabledSTATUS) : $scope.t($scope.$ctrl.data.text.DisabledSTATUS));
+              $scope.EnableDisableItem = (action: string) => {
+                const enable = action === 'enable';
+                callOnChange('DEBUG', {
+                  enabled: enable,
+                  level: enable ? 'DEBUG' : 'INFO',
+                  $ctrl: $scope.$ctrl.data
+                });
+              };
+
+              $scope.toggleModule = (action: 'enable' | 'disable') => {
+                const isEnable = action === 'enable';
+                const src = isEnable ? $scope.$ctrl.data.disabledModules : $scope.$ctrl.data.enabledModules;
+                const idx = isEnable ? $scope.selectedDisabledModule : $scope.selectedEnabledModule;
+                if (idx === -1 || !src[idx]) return;
+                const module = src[idx];
+                const Extension: ExtensionSettings = {
+                  enabled: $scope.$ctrl.data.enabledModules.map((m: any) => ({
+                    name: m.name,
+                    dependencies: m.dependencies || []
+                  })),
+                  disabled: $scope.$ctrl.data.disabledModules.map((m: any) => ({
+                    name: m.name,
+                    dependencies: m.dependencies || []
+                  }))
+                };
+                const cascadeModules = maplebirch.gui.cascadeModules(action, module.name, Extension);
+                cascadeModules.forEach((moduleName: string) => {
+                  const allModules = [...$scope.$ctrl.data.enabledModules, ...$scope.$ctrl.data.disabledModules];
+                  const mod = allModules.find((m: any) => m.name === moduleName);
+                  if (!mod) return;
+                  const srcArray = isEnable ? $scope.$ctrl.data.disabledModules : $scope.$ctrl.data.enabledModules;
+                  const dstArray = isEnable ? $scope.$ctrl.data.enabledModules : $scope.$ctrl.data.disabledModules;
+                  const srcIdx = srcArray.findIndex((m: any) => m.name === moduleName);
+                  if (srcIdx !== -1) {
+                    srcArray.splice(srcIdx, 1);
+                    if (!dstArray.some((m: any) => m.name === moduleName)) dstArray.push(mod);
+                  }
+                });
+
+                callOnChange('toggleModule', {
+                  action,
+                  enabled: $scope.$ctrl.data.enabledModules,
+                  disabled: $scope.$ctrl.data.disabledModules,
+                  $ctrl: $scope.$ctrl.data
+                });
+
+                $scope.selectedDisabledModule = $scope.selectedEnabledModule = -1;
+              };
+
+              $scope.selectModule = (index: number, listType: string) => {
+                if (listType === 'enabled') {
+                  $scope.selectedEnabledModule = $scope.selectedEnabledModule === index ? -1 : index;
+                  $scope.selectedDisabledModule = -1;
+                } else {
+                  $scope.selectedDisabledModule = $scope.selectedDisabledModule === index ? -1 : index;
+                  $scope.selectedEnabledModule = -1;
+                }
+              };
+
+              $scope.toggleScript = (action: 'enable' | 'disable') => {
+                const isEnable = action === 'enable';
+                const src = isEnable ? $scope.$ctrl.data.disabledScripts : $scope.$ctrl.data.enabledScripts;
+                const idx = isEnable ? $scope.selectedDisabledScript : $scope.selectedEnabledScript;
+                if (idx === -1 || !src[idx]) return;
+                const script = src[idx];
+                const srcArray = isEnable ? $scope.$ctrl.data.disabledScripts : $scope.$ctrl.data.enabledScripts;
+                const dstArray = isEnable ? $scope.$ctrl.data.enabledScripts : $scope.$ctrl.data.disabledScripts;
+                const srcIdx = srcArray.findIndex((s: any) => s === script);
                 if (srcIdx !== -1) {
                   srcArray.splice(srcIdx, 1);
-                  if (!dstArray.some((m: any) => m.name === moduleName)) dstArray.push(mod);
+                  if (!dstArray.includes(script)) dstArray.push(script);
                 }
-              });
+                callOnChange('toggleScript', {
+                  action,
+                  enabled: $scope.$ctrl.data.enabledScripts,
+                  disabled: $scope.$ctrl.data.disabledScripts,
+                  $ctrl: $scope.$ctrl.data
+                });
+                $scope.selectedDisabledScript = $scope.selectedEnabledScript = -1;
+              };
 
-              callOnChange('toggleModule', {
-                action,
-                enabled: $scope.$ctrl.data.enabledModules,
-                disabled: $scope.$ctrl.data.disabledModules,
-                $ctrl: $scope.$ctrl.data
-              });
-
-              $scope.selectedDisabledModule = $scope.selectedEnabledModule = -1;
-            };
-
-            $scope.selectModule = (index: number, listType: string) => {
-              if (listType === 'enabled') {
-                $scope.selectedEnabledModule = ($scope.selectedEnabledModule === index) ? -1 : index;
-                $scope.selectedDisabledModule = -1;
-              } else {
-                $scope.selectedDisabledModule = ($scope.selectedDisabledModule === index) ? -1 : index;
-                $scope.selectedEnabledModule = -1;
-              }
-            };
-
-            $scope.toggleScript = (action: 'enable' | 'disable') => {
-              const isEnable = action === 'enable';
-              const src = isEnable ? $scope.$ctrl.data.disabledScripts : $scope.$ctrl.data.enabledScripts;
-              const idx = isEnable ? $scope.selectedDisabledScript : $scope.selectedEnabledScript;
-              if (idx === -1 || !src[idx]) return;
-              const script = src[idx];
-              const srcArray = isEnable ? $scope.$ctrl.data.disabledScripts : $scope.$ctrl.data.enabledScripts;
-              const dstArray = isEnable ? $scope.$ctrl.data.enabledScripts : $scope.$ctrl.data.disabledScripts;
-              const srcIdx = srcArray.findIndex((s: any) => s === script);
-              if (srcIdx !== -1) {
-                srcArray.splice(srcIdx, 1);
-                if (!dstArray.includes(script)) dstArray.push(script);
-              }
-              callOnChange('toggleScript', {
-                action,
-                enabled: $scope.$ctrl.data.enabledScripts,
-                disabled: $scope.$ctrl.data.disabledScripts,
-                $ctrl: $scope.$ctrl.data
-              });
-              $scope.selectedDisabledScript = $scope.selectedEnabledScript = -1;
-            };
-
-            $scope.selectScript = (index: number, listType: string) => {
-              if (listType === 'enabled') {
-                $scope.selectedEnabledScript = ($scope.selectedEnabledScript === index) ? -1 : index;
-                $scope.selectedDisabledScript = -1;
-              } else {
-                $scope.selectedDisabledScript = ($scope.selectedDisabledScript === index) ? -1 : index;
-                $scope.selectedEnabledScript = -1;
-              }
-            };
-          }]
+              $scope.selectScript = (index: number, listType: string) => {
+                if (listType === 'enabled') {
+                  $scope.selectedEnabledScript = $scope.selectedEnabledScript === index ? -1 : index;
+                  $scope.selectedDisabledScript = -1;
+                } else {
+                  $scope.selectedDisabledScript = $scope.selectedDisabledScript === index ? -1 : index;
+                  $scope.selectedEnabledScript = -1;
+                }
+              };
+            }
+          ]
         }
       };
 
@@ -412,4 +420,4 @@ class GUIControl {
   }
 }
 
-export default GUIControl
+export default GUIControl;

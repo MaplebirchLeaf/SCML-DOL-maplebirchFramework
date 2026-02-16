@@ -8,7 +8,7 @@ const CONFIG = {
   SRC_PROJECT_PATH: path.resolve(__dirname, '../scml-types'),
   DEST_TYPES_PATH: path.resolve(__dirname, '../types'),
   SRC_DIR: path.resolve(__dirname, '../src'),
-  GIT_REPO: 'https://github.com/Muromi-Rikka/scml-types.git',
+  GIT_REPO: 'https://github.com/Muromi-Rikka/scml-types.git'
 };
 
 function prepareSourceProject() {
@@ -38,7 +38,7 @@ function prepareSourceProject() {
   }
 }
 
-function getAllTypeScriptFiles(dir: string): string[] {
+function allTypeScriptFiles(dir: string): string[] {
   const files: string[] = [];
   const walk = (currentPath: string) => {
     for (const item of fs.readdirSync(currentPath, { withFileTypes: true })) {
@@ -55,7 +55,7 @@ function getAllTypeScriptFiles(dir: string): string[] {
 }
 
 function extractPackageName(importPath: string): string | null {
-  const match = importPath.match(/\.\.\/+types\/([^\/]+)(?:\/|$)/);
+  const match = importPath.match(/\.\.\/+types\/([^/]+)(?:\/|$)/);
   return match ? match[1] : null;
 }
 
@@ -65,7 +65,7 @@ function analyzeImports(filePath: string): Set<string> {
     const code = fs.readFileSync(filePath, 'utf-8');
     const ast = parse(code, { sourceType: 'module', plugins: ['typescript'] });
     traverse(ast, {
-      ImportDeclaration(path: { node: { source: { value: any; }; }; }) {
+      ImportDeclaration(path: { node: { source: { value: any } } }) {
         const importPath = path.node.source.value;
         if (typeof importPath === 'string') {
           const pkg = extractPackageName(importPath);
@@ -88,15 +88,13 @@ function extractDependenciesFromPackage(packagesPath: string, packageName: strin
       const code = fs.readFileSync(filePath, 'utf-8');
       const ast = parse(code, { sourceType: 'module', plugins: ['typescript'] });
       traverse(ast, {
-        ImportDeclaration(path: { node: { source: { value: any; }; }; }) {
+        ImportDeclaration(path: { node: { source: { value: any } } }) {
           const importPath = path.node.source.value;
           if (typeof importPath === 'string') {
-            const match = importPath.match(/\.\.\/+types\/([^\/]+)(?:\/|$)/);
+            const match = importPath.match(/\.\.\/+types\/([^/]+)(?:\/|$)/);
             if (match) {
               const depPackage = match[1];
-              if (!dependencies.has(depPackage)) {
-                dependencies.add(depPackage);
-              }
+              if (!dependencies.has(depPackage)) dependencies.add(depPackage);
             }
           }
         }
@@ -118,7 +116,7 @@ function collectAllDependencies(packagesPath: string, initialPackages: Set<strin
     processed.add(packageName);
 
     const dependencies = extractDependenciesFromPackage(packagesPath, packageName);
-    
+
     for (const depPackage of dependencies) {
       if (!allPackages.has(depPackage)) {
         allPackages.add(depPackage);
@@ -132,12 +130,12 @@ function collectAllDependencies(packagesPath: string, initialPackages: Set<strin
 
 function copyDirRecursive(srcDir: string, destDir: string): number {
   if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
-  
+
   let copiedCount = 0;
   for (const entry of fs.readdirSync(srcDir, { withFileTypes: true })) {
     const srcPath = path.join(srcDir, entry.name);
     const destPath = path.join(destDir, entry.name);
-    
+
     if (entry.isDirectory()) {
       copiedCount += copyDirRecursive(srcPath, destPath);
     } else if (entry.isFile() && entry.name.endsWith('.d.ts')) {
@@ -150,11 +148,11 @@ function copyDirRecursive(srcDir: string, destDir: string): number {
 
 async function copyTypeDefinitions() {
   prepareSourceProject();
-  
+
   if (!fs.existsSync(CONFIG.SRC_DIR)) return 0;
   if (!fs.existsSync(CONFIG.DEST_TYPES_PATH)) fs.mkdirSync(CONFIG.DEST_TYPES_PATH, { recursive: true });
 
-  const tsFiles = getAllTypeScriptFiles(CONFIG.SRC_DIR);
+  const tsFiles = allTypeScriptFiles(CONFIG.SRC_DIR);
   if (tsFiles.length === 0) {
     console.log('没有找到 TypeScript 源文件');
     return 0;
@@ -163,7 +161,7 @@ async function copyTypeDefinitions() {
   console.log(`分析 ${tsFiles.length} 个 TypeScript 文件...`);
   const neededPackages = new Set<string>();
   for (const file of tsFiles) analyzeImports(file).forEach(pkg => neededPackages.add(pkg));
-  
+
   if (neededPackages.size === 0) {
     console.log('未发现任何包依赖');
     return 0;
@@ -199,4 +197,4 @@ async function main() {
   }
 }
 
-main();
+void main();

@@ -1,25 +1,28 @@
-import { SC2DataManager } from "./sugarcube-2-ModLoader/SC2DataManager";
-import { GameOriginalImagePack } from "./GameOriginalImagePackMod/GameOriginalImagePack";
-import { BeautySelectorAddon } from "./BeautySelectorAddon/BeautySelectorAddon";
-import { ImgLoaderHooker } from "./ImageLoaderHook/ImgLoaderHooker";
-import { Gui } from "./Mod_LoaderGui/Gui";
-import { ModInfo } from "./sugarcube-2-ModLoader/ModLoader";
-import { SC2DataManager } from "./sugarcube-2-ModLoader/SC2DataManager";
-import { ModUtils } from "./sugarcube-2-ModLoader/Utils";
+import { SC2DataManager } from './sugarcube-2-ModLoader/SC2DataManager';
+import { GameOriginalImagePack } from './GameOriginalImagePackMod/GameOriginalImagePack';
+import { BeautySelectorAddon } from './BeautySelectorAddon/BeautySelectorAddon';
+import { ImgLoaderHooker } from './ImageLoaderHook/ImgLoaderHooker';
+import { Gui } from './Mod_LoaderGui/Gui';
+import { ModInfo } from './sugarcube-2-ModLoader/ModLoader';
+import { ModUtils } from './sugarcube-2-ModLoader/Utils';
 import { ReplacePatcher } from './Mod_ReplacePatch/ReplacePatcher';
-import { TweeReplacer } from "./TweeReplacer/TweeReplacer";
-import { _languageSwitch } from "../src/database/SugarCubeMacros";
+import { TweeReplacer } from './TweeReplacer/TweeReplacer';
+import { _languageSwitch } from '../src/database/SugarCubeMacros';
 
 declare global {
   interface Window {
-    modSC2DataManager: SC2DataManager;
-    modGameOriginalImagePack: GameOriginalImagePack;
-    addonTweeReplacer: TweeReplacer;
-    addonReplacePatcher: ReplacePatcher;
+    readonly modSC2DataManager: SC2DataManager;
+    readonly modGameOriginalImagePack: GameOriginalImagePack;
+    readonly addonTweeReplacer: TweeReplacer;
+    readonly addonReplacePatcher: ReplacePatcher;
+    readonly Time: typeof Time;
     DateTime: typeof DateTime;
     closeOverlay(): void;
     updateOptions(): void;
     lanSwitch: typeof _languageSwitch;
+    readonly V: typeof V;
+    readonly C: typeof C;
+    readonly T: typeof T;
   }
 
   const lanSwitch = _languageSwitch;
@@ -131,12 +134,14 @@ declare global {
   function wikifier(widget: string, ...args: any): DocumentFragment;
   function playerNormalPregnancyType(): string;
   function hasSexStat(input: string, required: number, modifiers?: boolean): boolean;
-  function clothesIndex(slot:string, itemToIndex:object): number;
-  function integrityKeyword(worn:object, slot:string): string;
+  function clothesIndex(slot: string, itemToIndex: object): number;
+  function integrityKeyword(worn: object, slot: string): string;
   let isPossibleLoveInterest: (name: string) => boolean;
   let combatListColor: (name: any, value: any, type?: any) => any;
   const combatActionColours: CombatActionColours;
-  interface CombatActionColours { [category: string]: { [attitude: string]: string[] } }
+  interface CombatActionColours {
+    [category: string]: { [attitude: string]: string[] };
+  }
 }
 
 export {};

@@ -70,7 +70,7 @@ export interface TimeTravelOptions {
 }
 
 function createDateFormatters() {
-  const getFormattedDate = function(date: DateTime, includeWeekday = false): string {
+  const getFormattedDate = function (date: DateTime, includeWeekday = false): string {
     const lang = maplebirch.Language || 'EN';
     if (lang === 'CN') {
       const formattedDate = `${date.month}月${date.day}日`;
@@ -87,19 +87,23 @@ function createDateFormatters() {
         const formattedDate = `the ${ordinalSuffixOf(date.day)} of ${date.monthName}`;
         return includeWeekday ? `${date.weekDayName} ${formattedDate}` : formattedDate;
       }
-      default: throw new Error(`Invalid date format: ${dateFormat}`);
+      default:
+        throw new Error(`Invalid date format: ${dateFormat}`);
     }
   };
 
-  const getShortFormattedDate = function(date: DateTime): string {
+  const getShortFormattedDate = function (date: DateTime): string {
     const lang = maplebirch.Language || 'EN';
     if (lang === 'CN') return `${date.month}月${date.day}日`;
     const dateFormat = maplebirch.lodash.get(V, 'options.dateFormat', 'en-US');
     switch (dateFormat) {
       case 'en-US':
-      case 'zh-CN': return `${date.monthName.slice(0, 3)} ${ordinalSuffixOf(date.day)}`;
-      case 'en-GB': return `${ordinalSuffixOf(date.day)} ${date.monthName.slice(0, 3)}`;
-      default: throw new Error(`Invalid date format: ${dateFormat}`);
+      case 'zh-CN':
+        return `${date.monthName.slice(0, 3)} ${ordinalSuffixOf(date.day)}`;
+      case 'en-GB':
+        return `${ordinalSuffixOf(date.day)} ${date.monthName.slice(0, 3)}`;
+      default:
+        throw new Error(`Invalid date format: ${dateFormat}`);
     }
   };
 
@@ -122,7 +126,7 @@ class TimeEvent {
     this.accumulate = options.accumulate;
     this.exact = !!options.exact;
     if (this.accumulate) {
-      if (!maplebirch.lodash.includes(['sec','min','hour','day','week','month','year'], this.accumulate.unit)) maplebirch.log(`TimeEvent(${id}): 无效累积单位: ${this.accumulate.unit}`, 'WARN');
+      if (!maplebirch.lodash.includes(['sec', 'min', 'hour', 'day', 'week', 'month', 'year'], this.accumulate.unit)) maplebirch.log(`TimeEvent(${id}): 无效累积单位: ${this.accumulate.unit}`, 'WARN');
       this.accumulator = 0;
       this.target = Math.max(1, Math.floor(this.accumulate.target || 1));
     }
@@ -163,28 +167,41 @@ class TimeEvent {
 
   private _execute(data: TimeData): boolean {
     let ok = false;
-    try { ok = !!this.cond(data); }
-    catch (e) { maplebirch.log(`[TimeEvent:${this.id}] cond error:`, 'ERROR', e); }
+    try {
+      ok = !!this.cond(data);
+    } catch (e) {
+      maplebirch.log(`[TimeEvent:${this.id}] cond error:`, 'ERROR', e);
+    }
     if (!ok || !this.action) return false;
-    try { this.action(data); }
-    catch (e) { maplebirch.log(`[TimeEvent:${this.id}] action error:`, 'ERROR', e); }
+    try {
+      this.action(data);
+    } catch (e) {
+      maplebirch.log(`[TimeEvent:${this.id}] action error:`, 'ERROR', e);
+    }
     return !!this.once;
   }
 
   private _isExactPointCrossed(prev?: DateLike, current?: DateLike): boolean {
     if (!prev || !current) return false;
-    switch(this.type) {
-      case 'onHour':  return prev.hour !== current.hour;
-      case 'onDay':   return prev.day !== current.day || prev.month !== current.month || prev.year !== current.year;
-      case 'onWeek':  return Math.floor(prev.timeStamp / 604800) !== Math.floor(current.timeStamp / 604800);
-      case 'onMonth': return prev.month !== current.month || prev.year !== current.year;
-      case 'onYear':  return prev.year !== current.year;
-      default:        return true;
+    switch (this.type) {
+      case 'onHour':
+        return prev.hour !== current.hour;
+      case 'onDay':
+        return prev.day !== current.day || prev.month !== current.month || prev.year !== current.year;
+      case 'onWeek':
+        return Math.floor(prev.timeStamp / 604800) !== Math.floor(current.timeStamp / 604800);
+      case 'onMonth':
+        return prev.month !== current.month || prev.year !== current.year;
+      case 'onYear':
+        return prev.year !== current.year;
+      default:
+        return true;
     }
   }
 }
 
 export class TimeManager {
+  // prettier-ignore
   private static readonly moonPhases = {
     new:            { EN: 'New Moon',         CN: '新月'   },
     waxingCrescent: { EN: 'Waxing Crescent',  CN: '蛾眉月' },
@@ -216,18 +233,23 @@ export class TimeManager {
   readonly log: (message: string, level?: string, ...objects: any[]) => void;
 
   constructor(private readonly manager: DynamicManager) {
-    this.manager = manager;
     this.log = manager.log;
     const eventTypes = ['onSec', 'onMin', 'onHour', 'onDay', 'onWeek', 'onMonth', 'onYear', 'onBefore', 'onThread', 'onAfter', 'onTimeTravel'];
-    this.manager.core.lodash.forEach(eventTypes, type => { 
-      this.timeEvents[type] = new Map(); 
-      this.sortedEventsCache[type] = null; 
+    this.manager.core.lodash.forEach(eventTypes, type => {
+      this.timeEvents[type] = new Map();
+      this.sortedEventsCache[type] = null;
     });
   }
 
   register(type: string, eventId: string, options: TimeEventOptions): boolean {
-    if (!(type in this.timeEvents)) { this.log(`未知的时间事件类型: ${type}`, 'ERROR'); return false; }
-    if (this.timeEvents[type].has(eventId)) { this.log(`事件ID已存在: ${type}.${eventId}`, 'WARN'); return false; }
+    if (!(type in this.timeEvents)) {
+      this.log(`未知的时间事件类型: ${type}`, 'ERROR');
+      return false;
+    }
+    if (this.timeEvents[type].has(eventId)) {
+      this.log(`事件ID已存在: ${type}.${eventId}`, 'WARN');
+      return false;
+    }
     this.timeEvents[type].set(eventId, new TimeEvent(eventId, type, options));
     this.sortedEventsCache[type] = null;
     this.log(`注册时间事件: ${type}.${eventId}`, 'DEBUG');
@@ -235,11 +257,14 @@ export class TimeManager {
   }
 
   unregister(type: string, eventId: string): boolean {
-    if (!this.timeEvents[type]) { this.log(`事件类型不存在: ${type}`, 'WARN'); return false; }
-    if (this.timeEvents[type].delete(eventId)) { 
-      this.sortedEventsCache[type] = null; 
-      this.log(`注销时间事件: ${type}.${eventId}`, 'DEBUG'); 
-      return true; 
+    if (!this.timeEvents[type]) {
+      this.log(`事件类型不存在: ${type}`, 'WARN');
+      return false;
+    }
+    if (this.timeEvents[type].delete(eventId)) {
+      this.sortedEventsCache[type] = null;
+      this.log(`注销时间事件: ${type}.${eventId}`, 'DEBUG');
+      return true;
     }
     this.log(`未找到事件: ${type}.${eventId}`, 'DEBUG');
     return false;
@@ -272,10 +297,10 @@ export class TimeManager {
       Time.setDate(targetDate);
       this.prevDate = prevDate;
       this.currentDate = targetDate;
-      this.manager.core.lodash.forEach(maplebirch.lodash.keys(this.cumulativeTime), key => this.cumulativeTime[key as keyof typeof this.cumulativeTime] = 0);
-      this.manager.core.lodash.forEach(maplebirch.lodash.keys(this.lastReportedCumulative), k => this.lastReportedCumulative[k as keyof typeof this.lastReportedCumulative] = 0);
+      this.manager.core.lodash.forEach(maplebirch.lodash.keys(this.cumulativeTime), key => (this.cumulativeTime[key as keyof typeof this.cumulativeTime] = 0));
+      this.manager.core.lodash.forEach(maplebirch.lodash.keys(this.lastReportedCumulative), k => (this.lastReportedCumulative[k as keyof typeof this.lastReportedCumulative] = 0));
       this._trigger('onTimeTravel', { prev: prevDate, current: targetDate, diffSeconds, direction: diffSeconds >= 0 ? 'forward' : 'backward', isLeap: DateTime.isLeapYear(targetDate.year) });
-      this.log(`时间穿越完成: ${prevDate} → ${targetDate} (${diffSeconds}秒)`, 'DEBUG');
+      this.log(`时间穿越完成: ${prevDate as any} → ${targetDate as any} (${diffSeconds}秒)`, 'DEBUG');
       return true;
     } catch (error: any) {
       this.log(`时间穿越失败: ${error.message}`, 'ERROR');
@@ -293,7 +318,8 @@ export class TimeManager {
       const lang = this.manager.core.Language || 'EN';
       const useLang = lang === 'CN' ? 'CN' : 'EN';
       this.manager.core.lodash.forEach(maplebirch.lodash.keys(Time.moonPhases), phase => {
-        if (TimeManager.moonPhases[phase as keyof typeof TimeManager.moonPhases] && TimeManager.moonPhases[phase as keyof typeof TimeManager.moonPhases][useLang]) (Time.moonPhases as any)[phase].description = TimeManager.moonPhases[phase as keyof typeof TimeManager.moonPhases][useLang];
+        if (TimeManager.moonPhases[phase as keyof typeof TimeManager.moonPhases] && TimeManager.moonPhases[phase as keyof typeof TimeManager.moonPhases][useLang])
+          (Time.moonPhases as any)[phase].description = TimeManager.moonPhases[phase as keyof typeof TimeManager.moonPhases][useLang];
       });
       if (TimeManager.monthNames[useLang]) Time.monthNames = [...TimeManager.monthNames[useLang]];
       if (TimeManager.daysOfWeek[useLang]) Time.daysOfWeek = [...TimeManager.daysOfWeek[useLang]];
@@ -321,13 +347,19 @@ export class TimeManager {
   }
 
   private _trigger(type: string, timeData: TimeData) {
-    if (!this.timeEvents[type]) { this.log(`事件类型未注册: ${type}`, 'WARN'); return; }
+    if (!this.timeEvents[type]) {
+      this.log(`事件类型未注册: ${type}`, 'WARN');
+      return;
+    }
     if (!this.sortedEventsCache[type]) this.sortedEventsCache[type] = Array.from(this.timeEvents[type].values()).sort((a, b) => b.priority - a.priority);
     const events = this.sortedEventsCache[type]!;
     const toRemove: string[] = [];
     for (const event of events) {
-      try { if (event.tryRun(timeData)) toRemove.push(event.id); }
-      catch (error: any) { this.log(`事件执行错误: ${type}.${event.id} - ${error.message}`, 'ERROR'); }
+      try {
+        if (event.tryRun(timeData)) toRemove.push(event.id);
+      } catch (error: any) {
+        this.log(`事件执行错误: ${type}.${event.id} - ${error.message}`, 'ERROR');
+      }
     }
     this.manager.core.lodash.forEach(toRemove, eventId => {
       this.timeEvents[type].delete(eventId);
@@ -373,23 +405,38 @@ export class TimeManager {
       for (const event of events) {
         if (triggeredThisCycle.has(event.id)) continue;
         try {
-          if (event.tryRun(data)) { toRemove.push(event.id); triggeredThisCycle.add(event.id); }
-          else { triggeredThisCycle.add(event.id); }
-        } catch (error: any) { this.log(`事件执行错误(safeTrigger): ${type}.${event.id} - ${error.message}`, 'ERROR'); }
+          if (event.tryRun(data)) {
+            toRemove.push(event.id);
+            triggeredThisCycle.add(event.id);
+          } else {
+            triggeredThisCycle.add(event.id);
+          }
+        } catch (error: any) {
+          this.log(`事件执行错误(safeTrigger): ${type}.${event.id} - ${error.message}`, 'ERROR');
+        }
       }
       this.manager.core.lodash.forEach(toRemove, eventId => {
-        if (this.timeEvents[type].delete(eventId)) { this.sortedEventsCache[type] = null; this.log(`移除一次性事件: ${type}.${eventId}`, 'DEBUG'); }
+        if (this.timeEvents[type].delete(eventId)) {
+          this.sortedEventsCache[type] = null;
+          this.log(`移除一次性事件: ${type}.${eventId}`, 'DEBUG');
+        }
       });
     };
     const changes: Record<string, number> = {};
-    this.manager.core.lodash.forEach(this.manager.core.lodash.keys(this.cumulativeTime), key => changes[key] = Math.max(0, (this.cumulativeTime as any)[key] - (this.lastReportedCumulative as any)[key]));
-    this.manager.core.lodash.forEach(this.manager.core.lodash.keys(this.lastReportedCumulative), k => (this.lastReportedCumulative as any)[k] = (this.cumulativeTime as any)[k] || 0);
+    this.manager.core.lodash.forEach(
+      this.manager.core.lodash.keys(this.cumulativeTime),
+      key => (changes[key] = Math.max(0, (this.cumulativeTime as any)[key] - (this.lastReportedCumulative as any)[key]))
+    );
+    this.manager.core.lodash.forEach(this.manager.core.lodash.keys(this.lastReportedCumulative), k => ((this.lastReportedCumulative as any)[k] = (this.cumulativeTime as any)[k] || 0));
     const enhancedData: TimeData = { ...timeData, changes, cumulative: { ...this.cumulativeTime } };
     enhancedData.exactPoints = {
       hour: timeData.prevDate && timeData.currentDate ? timeData.prevDate.hour !== timeData.currentDate.hour : false,
-      day: timeData.prevDate && timeData.currentDate ? (timeData.prevDate.day !== timeData.currentDate.day || timeData.prevDate.month !== timeData.currentDate.month || timeData.prevDate.year !== timeData.currentDate.year) : false,
+      day:
+        timeData.prevDate && timeData.currentDate
+          ? timeData.prevDate.day !== timeData.currentDate.day || timeData.prevDate.month !== timeData.currentDate.month || timeData.prevDate.year !== timeData.currentDate.year
+          : false,
       week: timeData.prevDate && timeData.currentDate ? Math.floor(timeData.prevDate.timeStamp / 604800) !== Math.floor(timeData.currentDate.timeStamp / 604800) : false,
-      month: timeData.prevDate && timeData.currentDate ? (timeData.prevDate.month !== timeData.currentDate.month || timeData.prevDate.year !== timeData.currentDate.year) : false,
+      month: timeData.prevDate && timeData.currentDate ? timeData.prevDate.month !== timeData.currentDate.month || timeData.prevDate.year !== timeData.currentDate.year : false,
       year: timeData.prevDate && timeData.currentDate ? timeData.prevDate.year !== timeData.currentDate.year : false
     };
     const unitEvents = [
@@ -401,7 +448,9 @@ export class TimeManager {
       { event: 'onMin', unit: 'min' },
       { event: 'onSec', unit: 'sec' }
     ];
-    this.manager.core.lodash.forEach(unitEvents, ({ event, unit }) => { if ((changes[unit] || 0) > 0) safeTrigger(event, enhancedData); });
+    this.manager.core.lodash.forEach(unitEvents, ({ event, unit }) => {
+      if ((changes[unit] || 0) > 0) safeTrigger(event, enhancedData);
+    });
     const compositeEvents = [
       { triggerUnits: ['year', 'month', 'week', 'day', 'hour', 'min'], event: 'onSec', unit: 'sec' },
       { triggerUnits: ['year', 'month', 'week', 'day', 'hour'], event: 'onMin', unit: 'min' },
@@ -412,7 +461,7 @@ export class TimeManager {
     ];
     this.manager.core.lodash.forEach(compositeEvents, ({ triggerUnits, event, unit }) => {
       if (this.manager.core.lodash.some(triggerUnits, u => (changes[u] || 0) > 0)) {
-        safeTrigger(event, { ...enhancedData, changes: { ...changes, [unit]: (changes[unit] > 0 ? changes[unit] : 1) } });
+        safeTrigger(event, { ...enhancedData, changes: { ...changes, [unit]: changes[unit] > 0 ? changes[unit] : 1 } });
       }
     });
     if (enhancedData.exactPoints!.hour) safeTrigger('onHour', enhancedData);
@@ -500,18 +549,32 @@ export class TimeManager {
         this.minute = Math.floor(remainingSeconds / TimeConstants.secondsPerMinute) % 60;
         this.second = remainingSeconds % 60;
         let approxYear = Math.floor(totalDays / 365.2425);
-        let year = 1 + approxYear; 
+        let year = 1 + approxYear;
         if (year <= 0) year = year <= 0 ? year - 1 : year;
         let daysSinceStart = DateTime.getTotalDaysSinceStart(year);
-        while (totalDays < daysSinceStart) { year--; if (year === 0) year = -1; daysSinceStart = DateTime.getTotalDaysSinceStart(year); }
-        while (totalDays >= daysSinceStart + DateTime.getDaysOfYear(year)) { daysSinceStart += DateTime.getDaysOfYear(year); year++; if (year === 0) year = 1; }
-        this.year = year; 
-        if (this.year === 0) { this.year = (timestamp >= 0) ? 1 : -1; daysSinceStart = DateTime.getTotalDaysSinceStart(this.year); }
-        totalDays -= daysSinceStart; 
+        while (totalDays < daysSinceStart) {
+          year--;
+          if (year === 0) year = -1;
+          daysSinceStart = DateTime.getTotalDaysSinceStart(year);
+        }
+        while (totalDays >= daysSinceStart + DateTime.getDaysOfYear(year)) {
+          daysSinceStart += DateTime.getDaysOfYear(year);
+          year++;
+          if (year === 0) year = 1;
+        }
+        this.year = year;
+        if (this.year === 0) {
+          this.year = timestamp >= 0 ? 1 : -1;
+          daysSinceStart = DateTime.getTotalDaysSinceStart(this.year);
+        }
+        totalDays -= daysSinceStart;
         const daysPerMonth = DateTime.getDaysOfMonthFromYear(this.year);
         let month = 0;
         let dayCount = totalDays;
-        while (dayCount >= daysPerMonth[month]) { dayCount -= daysPerMonth[month]; month++; }
+        while (dayCount >= daysPerMonth[month]) {
+          dayCount -= daysPerMonth[month];
+          month++;
+        }
         this.month = month + 1;
         this.day = dayCount + 1;
         this.timeStamp = timestamp;
@@ -559,20 +622,35 @@ export class TimeManager {
         let y = this.year;
         let m = this.month;
         if (y < 0) y = y + 1;
-        if (m < 3) { m += 12; y--; }
+        if (m < 3) {
+          m += 12;
+          y--;
+        }
         const h = (this.day + Math.floor((13 * (m + 1)) / 5) + y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400)) % 7;
         return h === 0 ? 7 : h;
       }
       get moonPhaseFraction() {
         const referenceNewMoon = new DateTime(-4713, 1, 1, 12, 0, 0);
-        let phaseFraction = (this.timeStamp - referenceNewMoon.timeStamp) / (TimeConstants.synodicMonth * TimeConstants.secondsPerDay) % 1;
+        let phaseFraction = ((this.timeStamp - referenceNewMoon.timeStamp) / (TimeConstants.synodicMonth * TimeConstants.secondsPerDay)) % 1;
         return phaseFraction < 0 ? phaseFraction + 1 : phaseFraction;
       }
-      get fractionOfDay() { return (this.hour * 3600 + this.minute * 60 + this.second) / TimeConstants.secondsPerDay; }
-      get fractionOfDayFromNoon() { return (((this.hour + 12) % 24) * 3600 + this.minute * 60 + this.second) / TimeConstants.secondsPerDay; }
+      get fractionOfDay() {
+        return (this.hour * 3600 + this.minute * 60 + this.second) / TimeConstants.secondsPerDay;
+      }
+      get fractionOfDayFromNoon() {
+        return (((this.hour + 12) % 24) * 3600 + this.minute * 60 + this.second) / TimeConstants.secondsPerDay;
+      }
     }
-    Object.defineProperty(Time, 'monthName', { get: function() { return TimeManager.monthNames.EN[this.month - 1]; } });
-    Object.defineProperty(Time, 'monthNameCN', { get: function() { return TimeManager.monthNames.CN[this.month - 1]; } });
+    Object.defineProperty(Time, 'monthName', {
+      get: function () {
+        return TimeManager.monthNames.EN[this.month - 1];
+      }
+    });
+    Object.defineProperty(Time, 'monthNameCN', {
+      get: function () {
+        return TimeManager.monthNames.CN[this.month - 1];
+      }
+    });
     window.DateTime = DateTime as Window['DateTime'];
   }
 
@@ -580,16 +658,36 @@ export class TimeManager {
     try {
       this._updateDateTime();
       this.updateTimeLanguage();
-      if (typeof Time.pass === 'function') { this.originalTimePass = Time.pass; }
-      else { this.originalTimePass = function (passedSeconds: number) { V.timeStamp += passedSeconds; return document.createDocumentFragment(); }; }
-      (Time as any).pass = (passedSeconds: number) => {
-        try { return this._handleTimePass(passedSeconds); }
-        catch (error: any) { this.log(`时间流逝处理错误: ${error.message}`, 'ERROR'); return this.originalTimePass!(passedSeconds); }
+      if (typeof window.Time.pass === 'function') {
+        this.originalTimePass = window.Time.pass.bind(window);
+      } else {
+        this.originalTimePass = function (passedSeconds: number) {
+          V.timeStamp += passedSeconds;
+          return document.createDocumentFragment();
+        };
+      }
+      window.Time.pass = (passedSeconds: number) => {
+        try {
+          return this._handleTimePass(passedSeconds);
+        } catch (error: any) {
+          this.log(`时间流逝处理错误: ${error.message}`, 'ERROR');
+          return this.originalTimePass!(passedSeconds);
+        }
       };
       this.log('时间事件系统已激活', 'INFO');
-      try { window.getFormattedDate = createDateFormatters().getFormattedDate; } catch(e: any) { this.log(`getFormattedDate错误: ${e.message}`, 'WARN'); }
-      try { window.getShortFormattedDate = createDateFormatters().getShortFormattedDate; } catch(e: any) { this.log(`getShortFormattedDate错误: ${e.message}`, 'WARN'); }
+      try {
+        window.getFormattedDate = createDateFormatters().getFormattedDate;
+      } catch (e: any) {
+        this.log(`getFormattedDate错误: ${e.message}`, 'WARN');
+      }
+      try {
+        window.getShortFormattedDate = createDateFormatters().getShortFormattedDate;
+      } catch (e: any) {
+        this.log(`getShortFormattedDate错误: ${e.message}`, 'WARN');
+      }
       this.manager.core.on(':language', () => this.updateTimeLanguage());
-    } catch (e: any) { this.log(`初始化时间系统失败: ${e.message}`, 'ERROR'); }
+    } catch (e: any) {
+      this.log(`初始化时间系统失败: ${e.message}`, 'ERROR');
+    }
   }
 }

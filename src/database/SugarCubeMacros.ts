@@ -21,8 +21,11 @@ interface LinkArg {
 }
 
 function macroTranslation(key: any, core: MaplebirchCore = maplebirch): string {
-  try { key = String(key); }
-  catch (e) { return ''; }
+  try {
+    key = String(key);
+  } catch {
+    return '';
+  }
   const translation = core.t(key);
   if (translation[0] !== '[' || translation[translation.length - 1] !== ']') return translation;
   const autoTranslated = core.auto(key);
@@ -66,9 +69,13 @@ function _languageSwitch(this: MacroContext | void, ...lanObj: any[]): string | 
     targetObj = lanObj[0];
   } else {
     const texts = Array.isArray(lanObj[0]) ? lanObj[0] : lanObj;
-    targetObj = _.transform(texts, (acc, text, index) => {
-      if (availableLangs[index]) acc[availableLangs[index]] = text;
-    }, {} as Record<string, string>);
+    targetObj = _.transform(
+      texts,
+      (acc, text, index) => {
+        if (availableLangs[index]) acc[availableLangs[index]] = text;
+      },
+      {} as Record<string, string>
+    );
   }
 
   if (!targetObj.hasOwnProperty(lancheck)) {
@@ -119,8 +126,11 @@ function _languageButton(this: MacroContext) {
 
     for (let i = 1; i < this.args.length; i++) {
       if (typeof this.args[i] === 'string') {
-        if (this.args[i].startsWith('class:')) { customClasses = this.args[i].substring(6); }
-        else if (this.args[i].startsWith('style:')) { inlineStyle = this.args[i].substring(6); }
+        if (this.args[i].startsWith('class:')) {
+          customClasses = this.args[i].substring(6);
+        } else if (this.args[i].startsWith('style:')) {
+          inlineStyle = this.args[i].substring(6);
+        }
       }
     }
 
@@ -160,18 +170,21 @@ function _languageButton(this: MacroContext) {
     }
 
     if (inlineStyle) $button.attr('style', inlineStyle);
-    else { $button.append(document.createTextNode(buttonText)); }
+    else {
+      $button.append(document.createTextNode(buttonText));
+    }
 
     const payloadContent = (this.payload[0]?.contents || '').trim() || '';
-    const macroThis = this;
+    const macroThis = this as MacroContext;
 
-    $button.ariaClick({
-      namespace: '.macros',
-      role: 'button',
-      one: false
-    }, this.createShadowWrapper(
-      payloadContent ? () => { maplebirch.SugarCube.Wikifier.wikifyEval(payloadContent, macroThis.passageObj); } : null
-    ));
+    $button.ariaClick(
+      {
+        namespace: '.macros',
+        role: 'button',
+        one: false
+      },
+      this.createShadowWrapper(payloadContent ? () => maplebirch.SugarCube.Wikifier.wikifyEval(payloadContent, macroThis.passageObj) : null)
+    );
 
     const updateButtonText = () => {
       const newText = macroTranslation(translationKey, maplebirch);
@@ -207,10 +220,15 @@ function _languageLink(this: MacroContext) {
       for (let i = 1; i < this.args.length; i++) {
         const arg = this.args[i];
         if (typeof arg === 'string') {
-          if (arg.startsWith('class:')) { customClasses = arg.substring(6); }
-          else if (arg.startsWith('style:')) { inlineStyle = arg.substring(6); }
-          else if (CONVERT_MODES.includes(arg)) { convertMode = arg; }
-          else if (!passageName) { passageName = arg; }
+          if (arg.startsWith('class:')) {
+            customClasses = arg.substring(6);
+          } else if (arg.startsWith('style:')) {
+            inlineStyle = arg.substring(6);
+          } else if (CONVERT_MODES.includes(arg)) {
+            convertMode = arg;
+          } else if (!passageName) {
+            passageName = arg;
+          }
         }
       }
     } else if (firstArg && typeof firstArg === 'object' && !Array.isArray(firstArg)) {
@@ -221,9 +239,13 @@ function _languageLink(this: MacroContext) {
         for (let i = 1; i < this.args.length; i++) {
           const arg = this.args[i];
           if (typeof arg === 'string') {
-            if (arg.startsWith('class:')) { customClasses = arg.substring(6); }
-            else if (arg.startsWith('style:')) { inlineStyle = arg.substring(6); }
-            else if (CONVERT_MODES.includes(arg)) { convertMode = arg; }
+            if (arg.startsWith('class:')) {
+              customClasses = arg.substring(6);
+            } else if (arg.startsWith('style:')) {
+              inlineStyle = arg.substring(6);
+            } else if (CONVERT_MODES.includes(arg)) {
+              convertMode = arg;
+            }
           }
         }
       } else {
@@ -253,19 +275,25 @@ function _languageLink(this: MacroContext) {
       }
     }
 
-    if (convertMode) { $link.attr('data-convert-mode', convertMode); linkText = convert(linkText, convertMode); }
+    if (convertMode) {
+      $link.attr('data-convert-mode', convertMode);
+      linkText = convert(linkText, convertMode);
+    }
     $link.append(document.createTextNode(linkText));
     const payloadContent = (this.payload[0]?.contents || '').trim() || '';
-    const macroThis = this;
+    const macroThis = this as MacroContext;
 
-    $link.ariaClick({
-      namespace: '.macros',
-      role: passageName != null ? 'link' : 'button',
-      one: passageName != null
-    }, this.createShadowWrapper(
-      payloadContent ? () => maplebirch.SugarCube.Wikifier.wikifyEval(payloadContent, macroThis.passageObj) : null,
-      passageName != null ? () => maplebirch.SugarCube.Engine.play(passageName) : null
-    ));
+    $link.ariaClick(
+      {
+        namespace: '.macros',
+        role: passageName != null ? 'link' : 'button',
+        one: passageName != null
+      },
+      this.createShadowWrapper(
+        payloadContent ? () => maplebirch.SugarCube.Wikifier.wikifyEval(payloadContent, macroThis.passageObj) : null,
+        passageName != null ? () => maplebirch.SugarCube.Engine.play(passageName) : null
+      )
+    );
 
     const updateLinkText = () => {
       let newText = macroTranslation(translationKey, maplebirch);
@@ -354,38 +382,42 @@ function _languageListbox(this: MacroContext) {
         if (typeof result !== 'object' || result === null) return this.error('表达式必须返回对象或数组');
         if (Array.isArray(result) || result instanceof Set) {
           const resultArray = Array.isArray(result) ? result : Array.from(result);
-          resultArray.forEach((val: any) => options.push({
-            label: String(val),
-            value: val,
-            type: 'dynamic',
-            exprIndex: dynamic.expressions.length - 1,
-            convertMode: dynConvertMode
-          }));
+          resultArray.forEach((val: any) =>
+            options.push({
+              label: String(val),
+              value: val,
+              type: 'dynamic',
+              exprIndex: dynamic.expressions.length - 1,
+              convertMode: dynConvertMode
+            })
+          );
         } else if (result instanceof Map) {
-          result.forEach((val: any, key: any) => options.push({
-            label: String(key),
-            value: val,
-            type: 'dynamic',
-            exprIndex: dynamic.expressions.length - 1,
-            convertMode: dynConvertMode
-          }));
+          result.forEach((val: any, key: any) =>
+            options.push({
+              label: String(key),
+              value: val,
+              type: 'dynamic',
+              exprIndex: dynamic.expressions.length - 1,
+              convertMode: dynConvertMode
+            })
+          );
         } else {
-          Object.keys(result).forEach((key: string) => options.push({
-            label: key,
-            value: result[key],
-            type: 'dynamic',
-            exprIndex: dynamic.expressions.length - 1,
-            convertMode: dynConvertMode
-          }));
+          Object.keys(result).forEach((key: string) =>
+            options.push({
+              label: key,
+              value: result[key],
+              type: 'dynamic',
+              exprIndex: dynamic.expressions.length - 1,
+              convertMode: dynConvertMode
+            })
+          );
         }
       }
     }
 
     if (options.length === 0) return this.error('没有指定选项');
     if (selectedIdx === -1) {
-      selectedIdx = config.autoselect ? options.findIndex((opt: any) =>
-        maplebirch.SugarCube.Util.sameValueZero(opt.value, State.getVar(varName))
-      ) : 0;
+      selectedIdx = config.autoselect ? options.findIndex((opt: any) => maplebirch.SugarCube.Util.sameValueZero(opt.value, State.getVar(varName))) : 0;
       if (selectedIdx === -1) selectedIdx = 0;
     }
 
@@ -396,9 +428,12 @@ function _languageListbox(this: MacroContext) {
         tabindex: 0
       })
       .addClass('macro-lanListbox')
-      .on('change.macros', this.createShadowWrapper(function (this: HTMLSelectElement) {
-        State.setVar(varName, options[Number(this.value)].value);
-      }));
+      .on(
+        'change.macros',
+        this.createShadowWrapper(function (this: HTMLSelectElement) {
+          State.setVar(varName, options[Number(this.value)].value);
+        })
+      );
 
     if (customClasses) {
       customClasses.split(/\s+/).forEach((cls: string) => {
@@ -483,38 +518,42 @@ function _languageListbox(this: MacroContext) {
 
           if (Array.isArray(res) || res instanceof Set) {
             const resArray = Array.isArray(res) ? res : Array.from(res);
-            resArray.forEach((v: any) => freshOpts.push({
-              label: String(v),
-              value: v,
-              type: 'dynamic',
-              exprIndex,
-              convertMode: dynConvertMode
-            }));
+            resArray.forEach((v: any) =>
+              freshOpts.push({
+                label: String(v),
+                value: v,
+                type: 'dynamic',
+                exprIndex,
+                convertMode: dynConvertMode
+              })
+            );
           } else if (res instanceof Map) {
-            res.forEach((v: any, k: any) => freshOpts.push({
-              label: String(k),
-              value: v,
-              type: 'dynamic',
-              exprIndex,
-              convertMode: dynConvertMode
-            }));
+            res.forEach((v: any, k: any) =>
+              freshOpts.push({
+                label: String(k),
+                value: v,
+                type: 'dynamic',
+                exprIndex,
+                convertMode: dynConvertMode
+              })
+            );
           } else {
-            Object.keys(res).forEach((k: string) => freshOpts.push({
-              label: k,
-              value: res[k],
-              type: 'dynamic',
-              exprIndex,
-              convertMode: dynConvertMode
-            }));
+            Object.keys(res).forEach((k: string) =>
+              freshOpts.push({
+                label: k,
+                value: res[k],
+                type: 'dynamic',
+                exprIndex,
+                convertMode: dynConvertMode
+              })
+            );
           }
         }
       }
 
       if (freshOpts.length > 0) {
         const currVal = State.getVar(varName);
-        const newIdx = config.autoselect ? freshOpts.findIndex((o: any) =>
-          maplebirch.SugarCube.Util.sameValueZero(o.value, currVal)
-        ) : selectedIdx;
+        const newIdx = config.autoselect ? freshOpts.findIndex((o: any) => maplebirch.SugarCube.Util.sameValueZero(o.value, currVal)) : selectedIdx;
 
         options.length = 0;
         freshOpts.forEach((o: any) => options.push(o));
@@ -591,8 +630,8 @@ function _radiobuttonsfrom(this: MacroContext): HTMLElement | void {
   }
 
   const hasContent = this.payload.length > 0;
-  const content = hasContent ? (this.payload[0]?.contents || '') : '';
-  const macroThis = this;
+  const content = hasContent ? this.payload[0]?.contents || '' : '';
+  const macroThis = this as MacroContext;
   const optionsData: Array<{ value: string; data: any; $label: ReturnType<typeof jQuery> }> = [];
 
   parsedOptions.forEach((option: [string, any], index: number) => {
@@ -608,9 +647,12 @@ function _radiobuttonsfrom(this: MacroContext): HTMLElement | void {
       const macroStr = `<<radiobutton '${varPath}' '${safeValue}' autocheck>>`;
       new maplebirch.SugarCube.Wikifier($temp[0], macroStr);
       if (hasContent) {
-        $temp.find('input[type="radio"]').on('change.macros', this.createShadowWrapper(function (this: HTMLInputElement) {
-          if (this.checked && content) maplebirch.SugarCube.Wikifier.wikifyEval(content, macroThis.passageObj);
-        }));
+        $temp.find('input[type="radio"]').on(
+          'change.macros',
+          this.createShadowWrapper(function (this: HTMLInputElement) {
+            if (this.checked && content) maplebirch.SugarCube.Wikifier.wikifyEval(content, macroThis.passageObj);
+          })
+        );
       }
       $temp.children().appendTo($label);
       const $textContainer = jQuery('<span>').addClass('radiobuttonsfrom-text').attr('data-option-index', index);
@@ -684,4 +726,4 @@ function _overlayReplace(name: string, type: string) {
   $.wiki(`<<replace #customOverlayContent>><<${key}>><</replace>>`);
 }
 
-export { _language, _languageSwitch, _languageButton, _languageLink, _languageListbox, _radiobuttonsfrom, _overlayReplace }
+export { _language, _languageSwitch, _languageButton, _languageLink, _languageListbox, _radiobuttonsfrom, _overlayReplace };

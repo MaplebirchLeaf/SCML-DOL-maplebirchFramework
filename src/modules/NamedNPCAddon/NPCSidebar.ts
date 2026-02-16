@@ -29,12 +29,15 @@ function loadFromMod(modZip: ModZipReader, npcName: string) {
     if (!display.has(npcName)) display.set(npcName, new Set());
     const npcSet = display.get(npcName);
     const folder = `img/ui/nnpc/${npcName.toLowerCase()}/`;
-     for (const file in modZip.zip.files) {
+    for (const file in modZip.zip.files) {
       if (file.startsWith(folder) && file !== folder) {
         const ext = file.split('.').pop().toLowerCase();
         if (formats.has(ext)) {
           const imgName = _.chain(file).split('/').last().split('.')[0].value();
-          if (imgName) { npcSet.add(imgName); paths.push(file); }
+          if (imgName) {
+            npcSet.add(imgName);
+            paths.push(file);
+          }
         }
       }
     }
@@ -48,7 +51,7 @@ function preprocess(options: LayerOptions) {
   nnpc.name = V.NPCList[0].fullDescription;
   const nnpc_name = nnpc.name;
   nnpc.show = V.options.maplebirch.npcsidebar.show ? true : false;
-  nnpc.model = (V.options.maplebirch.npcsidebar.model && setup.NPCNameList.includes(nnpc_name)) ? true : false;
+  nnpc.model = V.options.maplebirch.npcsidebar.model && setup.NPCNameList.includes(nnpc_name) ? true : false;
   nnpc.position = V.options.maplebirch.npcsidebar.position === 'front' ? 300 : -100;
   nnpc.dxfn = V.options.maplebirch.npcsidebar.dxfn ?? -48;
   nnpc.dyfn = V.options.maplebirch.npcsidebar.dyfn ?? -8;
@@ -63,7 +66,10 @@ function preprocess(options: LayerOptions) {
     options.filters.nnpc_tan = setup.colours.getSkinFilter(nnpc.skin_type, nnpc.tan);
     const npcData = V.maplebirch.npc[nnpc_name.toLowerCase()];
     const keys = ['head', 'face', 'neck', 'upper', 'lower', 'feet', 'legs', 'handheld', 'genitals', 'under_upper', 'under_lower', 'over_head', 'over_upper', 'over_lower', 'hands'];
-    const clothes_data = _.assign(_.reduce(keys, (acc, slot) => _.set(acc, slot, { index: 0, name: '', type: [] }), {}), npcData.clothes ?? {});
+    const clothes_data = _.assign(
+      _.reduce(keys, (acc, slot) => _.set(acc, slot, { index: 0, name: '', type: [] }), {}),
+      npcData.clothes ?? {}
+    );
     nnpc.clothes = {};
     _.forEach(keys, slot => {
       const index = _.get(clothes_data, `${slot}.index`, 0);
@@ -92,16 +98,23 @@ function preprocess(options: LayerOptions) {
     }
 
     nnpc.arm_left = _.some(setup.clothes_all_slots, slot => _.includes(['left_cover', 'clutch', 'cover_both'], nnpc_clothes[slot]?.holdPosition)) ? 'cover' : 'idle';
-    nnpc.arm_right = _.some(setup.clothes_all_slots, slot => _.includes(['right_cover', 'cover_both'], nnpc_clothes[slot]?.holdPosition)) ? 'cover' : (nnpc_clothes.handheld.name !== 'naked' && !_.includes(['left_cover', 'idle'], nnpc_clothes.handheld?.holdPosition)) || _.some(setup.clothes_all_slots, slot => nnpc_clothes[slot]?.holdPosition === 'hold') ? 'hold' : 'idle';
+    nnpc.arm_right = _.some(setup.clothes_all_slots, slot => _.includes(['right_cover', 'cover_both'], nnpc_clothes[slot]?.holdPosition))
+      ? 'cover'
+      : (nnpc_clothes.handheld.name !== 'naked' && !_.includes(['left_cover', 'idle'], nnpc_clothes.handheld?.holdPosition)) ||
+          _.some(setup.clothes_all_slots, slot => nnpc_clothes[slot]?.holdPosition === 'hold')
+        ? 'hold'
+        : 'idle';
 
     if (nnpc_clothes.under_upper.sleeve_img === 1) {
       nnpc.zarms = maplebirch.char.ZIndices.under_upper_arms - 0.1;
     } else if (nnpc_clothes.upper.sleeve_img === 1) {
-      nnpc.zarms = (nnpc.arm_left === 'cover' ? (nnpc.upper_tucked ? maplebirch.char.ZIndices.upper_arms_tucked : maplebirch.char.ZIndices.upper_arms) : maplebirch.char.ZIndices.under_upper_arms) - 0.1;
+      nnpc.zarms =
+        (nnpc.arm_left === 'cover' ? (nnpc.upper_tucked ? maplebirch.char.ZIndices.upper_arms_tucked : maplebirch.char.ZIndices.upper_arms) : maplebirch.char.ZIndices.under_upper_arms) - 0.1;
     } else if (nnpc_clothes.over_upper.index) {
       nnpc.zarms = maplebirch.char.ZIndices.over_upper_arms - 0.1;
     } else if (nnpc_clothes.upper.index) {
-      nnpc.zarms = (nnpc.arm_left === 'cover' ? (nnpc.upper_tucked ? maplebirch.char.ZIndices.upper_arms_tucked : maplebirch.char.ZIndices.upper_arms) : maplebirch.char.ZIndices.under_upper_arms) - 0.1;
+      nnpc.zarms =
+        (nnpc.arm_left === 'cover' ? (nnpc.upper_tucked ? maplebirch.char.ZIndices.upper_arms_tucked : maplebirch.char.ZIndices.upper_arms) : maplebirch.char.ZIndices.under_upper_arms) - 0.1;
     } else if (nnpc_clothes.under_upper.index) {
       nnpc.zarms = maplebirch.char.ZIndices.under_upper_arms - 0.1;
     } else {
@@ -128,7 +141,7 @@ function preprocess(options: LayerOptions) {
 
     nnpc.breasts = !nnpc_clothes.upper.type.includes('naked') || !nnpc_clothes.under_upper.type.includes('naked') ? 'cleavage' : 'default';
     nnpc.breast_size = [0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 5, 5, 6][Math.round(npcData?.bodydata.breastsize)] ?? 0;
-    nnpc.penis = (npcData?.bodydata.penis !== 'none') ? (npcData?.bodydata.virginity.penile ? 'virgin' : 'default') : false;
+    nnpc.penis = npcData?.bodydata.penis !== 'none' ? (npcData?.bodydata.virginity.penile ? 'virgin' : 'default') : false;
     nnpc.penis_size = Math.clamp(npcData?.bodydata.penissize, 1, 4);
     nnpc.genitals_chastity = nnpc_clothes.genitals.type.includes('chastity');
     nnpc.eye_colour = npcData?.bodydata.eyeColour;
@@ -137,7 +150,8 @@ function preprocess(options: LayerOptions) {
     options.filters.nnpc_brows = lookupColour(setup.colours.hair_map, nnpc.hair_colour, 'brows');
     options.filters.nnpc_hair = lookupColour(setup.colours.hair_map, nnpc.hair_colour, 'hair');
     const hairstyle = _.find(setup.hairstyles.sides, hs => hs.variable === npcData?.bodydata.hair_side_type);
-    nnpc.hair_sides_type = (hairstyle?.alt_head_type && _.includes(hairstyle?.alt_head_type, setup.clothes.head[clothesIndex('head', nnpc_clothes.head)].head_type)) ? hairstyle.alt : npcData?.bodydata.hair_side_type;
+    nnpc.hair_sides_type =
+      hairstyle?.alt_head_type && _.includes(hairstyle?.alt_head_type, setup.clothes.head[clothesIndex('head', nnpc_clothes.head)].head_type) ? hairstyle.alt : npcData?.bodydata.hair_side_type;
     nnpc.hair_fringe_type = npcData?.bodydata.hair_fringe_type;
     nnpc.hair_position = npcData?.bodydata.hair_position;
     nnpc.hair_length = ['short', 'shoulder', 'chest', 'navel', 'thighs', 'feet'][Math.trunc(npcData?.bodydata.hairlength / 200)];
@@ -151,8 +165,13 @@ function preprocess(options: LayerOptions) {
       if (!penis || compressed) return 0;
       if (clothes.genitals.type.includes('cage')) return Math.clamp(nnpc.penis_size, 0, Infinity);
     };
-    nnpc.alt_sleeve_state = (nnpc_clothes.upper.variable === 'schoolcardigan' && nnpc_clothes.upper.altposition !== 'alt') ? null : true;
-    nnpc.high_waist_suspenders = (nnpc_clothes.neck.name === 'suspenders' && nnpc_clothes.neck.altposition != 'alt' && _.includes(['retro shorts', 'retro trousers', 'baseball shorts', 'wide leg trousers'], nnpc_clothes.lower.name)) ? true : null;
+    nnpc.alt_sleeve_state = nnpc_clothes.upper.variable === 'schoolcardigan' && nnpc_clothes.upper.altposition !== 'alt' ? null : true;
+    nnpc.high_waist_suspenders =
+      nnpc_clothes.neck.name === 'suspenders' &&
+      nnpc_clothes.neck.altposition != 'alt' &&
+      _.includes(['retro shorts', 'retro trousers', 'baseball shorts', 'wide leg trousers'], nnpc_clothes.lower.name)
+        ? true
+        : null;
     nnpc.hood_mask = nnpc_clothes.head.mask_img === 1 && !(nnpc_clothes.head.hood && nnpc_clothes.head.outfitSecondary != null) ? true : null;
     nnpc.head_mask = [nnpc.close_up_mask];
     nnpc.upper_mask = [nnpc.close_up_mask];
@@ -165,7 +184,9 @@ function preprocess(options: LayerOptions) {
     } else if (nnpc_clothes.head.mask_img === 1) {
       const hair_all = ['curly pigtails', 'fluffy ponytail', 'thick sidetail', 'thick twintails', 'ribbon tail', 'thick ponytail', 'half-up'];
       const hair_featured = ['scorpion tails', 'thick pigtails', 'thick twintails'];
-      nnpc.head_mask.push(`img/clothes/head/${nnpc_clothes.head.variable}/${(nnpc_clothes.head.mask_img_ponytail === 1 && _.includes(hair_all, nnpc.hair_sides_type)) || (_.includes(hair_featured, nnpc.hair_sides_type) && _.includes(['furcap f', 'furcap m'], nnpc_clothes.head.variable)) ? 'mask_ponytail' : 'mask'}.png`);
+      nnpc.head_mask.push(
+        `img/clothes/head/${nnpc_clothes.head.variable}/${(nnpc_clothes.head.mask_img_ponytail === 1 && _.includes(hair_all, nnpc.hair_sides_type)) || (_.includes(hair_featured, nnpc.hair_sides_type) && _.includes(['furcap f', 'furcap m'], nnpc_clothes.head.variable)) ? 'mask_ponytail' : 'mask'}.png`
+      );
     }
     if (nnpc_clothes.upper.mask_img === 1) nnpc.upper_mask.push(gray_suffix(`img/clothes/upper/${nnpc_clothes.upper.variable}/${nnpc_clothes.upper.integrity}.png`, options.filters['nnpc_upper']));
     if (nnpc_clothes.lower.mask_img === 1) nnpc.lower_mask.push(gray_suffix(`img/clothes/lower/${nnpc_clothes.lower.variable}/${nnpc_clothes.lower.integrity}.png`, options.filters['nnpc_lower']));
@@ -198,9 +219,17 @@ const layers = {
       const genitals = options.maplebirch.nnpc.clothes.genitals;
       if (genitals.penisSize) {
         switch (options.maplebirch.nnpc.penis_size) {
-          case 0: size = 0; break;
-          case 1: case 2: size = 1; break;
-          case 3: case 4: size = 2; break;
+          case 0:
+            size = 0;
+            break;
+          case 1:
+          case 2:
+            size = 1;
+            break;
+          case 3:
+          case 4:
+            size = 2;
+            break;
         }
       }
       return `img/clothes/genitals/${genitals.variable}/${genitals.integrity}${size}.png`;
@@ -210,8 +239,8 @@ const layers = {
       return clothes.genitals.mainImage !== 0 && !clothes.genitals.hideUnderLower.includes(clothes.under_lower.name) && options.maplebirch.nnpc.show && options.maplebirch.nnpc.model;
     },
     zfn(options: LayerOptions) {
-      return (options.maplebirch.nnpc.crotch_exposed ? (maplebirch.char.ZIndices.penis_chastity + 0.1) : (maplebirch.char.ZIndices.penisunderclothes + 0.1)) + options.maplebirch.nnpc.position;
-    },
+      return (options.maplebirch.nnpc.crotch_exposed ? maplebirch.char.ZIndices.penis_chastity + 0.1 : maplebirch.char.ZIndices.penisunderclothes + 0.1) + options.maplebirch.nnpc.position;
+    }
   }),
   nnpc: {
     srcfn(options: LayerOptions) {
@@ -225,13 +254,14 @@ const layers = {
       const nnpc = options.maplebirch.nnpc;
       return !!nnpc.show && !nnpc.model && nnpc.name && setup.NPCNameList.includes(nnpc.name);
     },
-    zfn(options: LayerOptions) { return options.maplebirch.nnpc.position; },
+    zfn(options: LayerOptions) {
+      return options.maplebirch.nnpc.position;
+    },
     animation: 'idle'
-  },
-}
+  }
+};
 
 const NPCSidebar = (() => {
-
   class NPCSidebar {
     static get display() {
       return display;
@@ -241,9 +271,9 @@ const NPCSidebar = (() => {
 
     static hair_type(type: 'sides' | 'fringe') {
       const hair_name: Record<string, string> = {};
-      const HAIR_NAME = (style: any) => (maplebirch.modUtils.getMod('ModI18N') && maplebirch.Language === 'CN') ? style.name_cap : style.name;
-      if (type === 'sides') _.forEach(setup.hairstyles.sides, (style: { variable: string; }) => hair_name[convert(HAIR_NAME(style), 'title')] = style.variable);
-      if (type === 'fringe') _.forEach(setup.hairstyles.fringe, (style: { variable: string; }) => hair_name[convert(HAIR_NAME(style), 'title')] = style.variable);
+      const HAIR_NAME = (style: any) => (maplebirch.modUtils.getMod('ModI18N') && maplebirch.Language === 'CN' ? style.name_cap : style.name);
+      if (type === 'sides') _.forEach(setup.hairstyles.sides, (style: { variable: string }) => (hair_name[convert(HAIR_NAME(style), 'title')] = style.variable));
+      if (type === 'fringe') _.forEach(setup.hairstyles.fringe, (style: { variable: string }) => (hair_name[convert(HAIR_NAME(style), 'title')] = style.variable));
       return hair_name;
     }
 
@@ -255,6 +285,6 @@ const NPCSidebar = (() => {
   }
 
   return NPCSidebar;
-})()
+})();
 
-export default NPCSidebar
+export default NPCSidebar;
