@@ -42,7 +42,7 @@ class DynamicManager {
     return this.State.unregister(type, eventId);
   }
 
-  trigger(type: 'interrupt'|'overlay'): string {
+  trigger(type: 'interrupt' | 'overlay'): string {
     return this.State.trigger(type);
   }
 
@@ -57,8 +57,8 @@ class DynamicManager {
   delWeatherEvent(eventId: string): boolean {
     return this.Weather.unregister(eventId);
   }
-  
-  addWeather(data: WeatherException|WeatherTypeConfig): boolean | void {
+
+  addWeather(data: WeatherException | WeatherTypeConfig): boolean | void {
     return this.Weather.addWeatherData(data);
   }
 
@@ -71,9 +71,9 @@ class DynamicManager {
   }
 }
 
-(async function(maplebirch) {
+(function (maplebirch): void {
   'use strict';
-  await maplebirch.register('dynamic', Object.seal(new DynamicManager(maplebirch)), ['addon']);
-})(maplebirch)
+  void maplebirch.register('dynamic', Object.seal(new DynamicManager(maplebirch)), ['addon']);
+})(maplebirch);
 
-export default DynamicManager
+export default DynamicManager;

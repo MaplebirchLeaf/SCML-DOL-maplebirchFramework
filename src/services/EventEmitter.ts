@@ -15,6 +15,7 @@ class EventEmitter {
   private readonly afters: Map<string, EventCallback[]>;
 
   constructor(readonly core: MaplebirchCore) {
+    // prettier-ignore
     this.events = new Map([
       [':IndexedDB'      , []], // IDB数据库
       [':import'         , []], // 数据导入
@@ -49,10 +50,7 @@ class EventEmitter {
     }
     const internalId = description || `evt_${Math.random().toString(36).slice(2, 10)}_${Date.now()}`;
     listeners.push({ callback, description, internalId });
-    this.core.logger.log(
-      `注册事件监听器: ${eventName}${description ? ` (描述: ${description})` : ''} (当前: ${listeners.length})`, 
-      'DEBUG'
-    );
+    this.core.logger.log(`注册事件监听器: ${eventName}${description ? ` (描述: ${description})` : ''} (当前: ${listeners.length})`, 'DEBUG');
     return true;
   }
 
@@ -64,7 +62,7 @@ class EventEmitter {
     }
     const isFunc = this.core.lodash.isFunction(identifier);
     const Length = listeners.length;
-    this.core.lodash.remove(listeners, listener => isFunc ? listener.callback === identifier : (listener.description === identifier || listener.internalId === identifier));
+    this.core.lodash.remove(listeners, listener => (isFunc ? listener.callback === identifier : listener.description === identifier || listener.internalId === identifier));
     const removed = Length !== listeners.length;
     if (removed) {
       this.core.logger.log(`移除事件监听器: ${eventName}${isFunc ? ' (函数引用)' : ` (描述: ${identifier})`}`, 'DEBUG');
@@ -76,10 +74,13 @@ class EventEmitter {
 
   once(eventName: string, callback: EventCallback, description: string = ''): boolean {
     const onceWrapper: EventCallback = (...args) => {
-      try { 
+      try {
         const result = callback(...args);
-        if (result instanceof Promise) { result.finally(() => this.off(eventName, onceWrapper)); }
-        else { this.off(eventName, onceWrapper); }
+        if (result instanceof Promise) {
+          void result.finally(() => this.off(eventName, onceWrapper));
+        } else {
+          this.off(eventName, onceWrapper);
+        }
       } catch (error: any) {
         this.core.logger.log(`${eventName}事件once回调错误: ${error.message}`, 'ERROR');
         this.off(eventName, onceWrapper);
@@ -127,4 +128,4 @@ class EventEmitter {
   }
 }
 
-export default EventEmitter
+export default EventEmitter;

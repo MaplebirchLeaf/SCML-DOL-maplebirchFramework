@@ -18,7 +18,7 @@ interface result {
 
 interface MigrationUtils {
   readonly log: ReturnType<typeof createlog>;
-  resolvePath: (obj: Record<string, any>, path: string, createIfMissing?: boolean) => result|null;
+  resolvePath: (obj: Record<string, any>, path: string, createIfMissing?: boolean) => result | null;
   rename: (data: Record<string, any>, oldPath: string, newPath: string) => boolean;
   move: (data: Record<string, any>, oldPath: string, newPath: string) => boolean;
   remove: (data: Record<string, any>, path: string) => boolean;
@@ -28,14 +28,16 @@ interface MigrationUtils {
 
 class migration {
   static log = createlog('migration');
-  static create() { return new migration(); }
+  static create() {
+    return new migration();
+  }
   log = migration.log;
   migrations: step[] = [];
   utils: MigrationUtils;
 
   constructor() {
     this.migrations = [];
-    
+
     const renameFunc = (data: Record<string, any>, oldPath: string, newPath: string): boolean => {
       const source = this.utils.resolvePath(data, oldPath);
       if (!source?.parent[source.key]) return false;
@@ -92,7 +94,7 @@ class migration {
 
       fill: (target: Record<string, any>, defaults: Record<string, any>, options = {}) => {
         const mode = options.mode || 'merge';
-        const filterFn = (key: string, value: any, depth: number) => {
+        const filterFn = (key: string, _value: any, _depth: number) => {
           if (key === 'version') return false;
           return !Object.prototype.hasOwnProperty.call(target, key);
         };
@@ -107,7 +109,10 @@ class migration {
   }
 
   private _compareVersions(a: string, b: string) {
-    const parse = (v: string) => String(v || '0.0.0').split('.').map(Number);
+    const parse = (v: string) =>
+      String(v || '0.0.0')
+        .split('.')
+        .map(Number);
     const v1 = parse(a);
     const v2 = parse(b);
     for (let i = 0; i < Math.max(v1.length, v2.length); i++) {
@@ -120,7 +125,10 @@ class migration {
   add(fromVersion: string, toVersion: string, migrationFn: (data: any, utils: MigrationUtils) => void) {
     if (!_.isFunction(migrationFn)) return;
     const exists = _.some(this.migrations, m => m.fromVersion === fromVersion && m.toVersion === toVersion);
-    if (exists) { this.log(`重复迁移: ${fromVersion} -> ${toVersion}`, 'WARN'); return; }
+    if (exists) {
+      this.log(`重复迁移: ${fromVersion} -> ${toVersion}`, 'WARN');
+      return;
+    }
     this.migrations.push({ fromVersion, toVersion, migrationFn });
   }
 
@@ -129,17 +137,17 @@ class migration {
     let currentVersion = data.version as string;
     if (!/^\d+(\.\d+){0,2}$/.test(targetVersion)) this.log(`警告: 目标版本格式无效 ${targetVersion}`, 'WARN');
     if (this._compareVersions(currentVersion, targetVersion) >= 0) return;
-    const sortedMigrations = _.orderBy(
-      [...this.migrations],
-      [m => this._compareVersions(m.fromVersion, currentVersion), m => this._compareVersions(m.toVersion, targetVersion)],
-      ['asc', 'asc']
-    );
+    const sortedMigrations = _.orderBy([...this.migrations], [m => this._compareVersions(m.fromVersion, currentVersion), m => this._compareVersions(m.toVersion, targetVersion)], ['asc', 'asc']);
     let steps = 0;
     const MAX_STEPS = 100;
 
     while (this._compareVersions(currentVersion, targetVersion) < 0 && steps++ < MAX_STEPS) {
       const candidates = _.filter(sortedMigrations, m => this._compareVersions(m.fromVersion, currentVersion) === 0 && this._compareVersions(m.toVersion, targetVersion) <= 0);
-      const migration = _.reduce(candidates, (best, curr) => this._compareVersions(curr.toVersion, best.toVersion) > 0 ? curr : best, { toVersion: currentVersion, fromVersion: '', migrationFn: () => {} } as step);
+      const migration = _.reduce(candidates, (best, curr) => (this._compareVersions(curr.toVersion, best.toVersion) > 0 ? curr : best), {
+        toVersion: currentVersion,
+        fromVersion: '',
+        migrationFn: () => {}
+      } as step);
       if (!migration || migration.toVersion === currentVersion) {
         this.log(`迁移中断: ${currentVersion} -> ${targetVersion}`, 'WARN');
         break;
@@ -165,4 +173,4 @@ class migration {
   }
 }
 
-export default migration
+export default migration;

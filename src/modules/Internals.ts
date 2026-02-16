@@ -42,15 +42,18 @@ class Internals {
 
   languageManager() {
     const languageManager: LanguageManager = {
-      managers: { language: new Map(), lanSwitch: new Map(), lanButton: new Map(), lanLink: new Map(), lanListbox: new Map(), radiobuttonsfrom: new Map(), },
+      managers: { language: new Map(), lanSwitch: new Map(), lanButton: new Map(), lanLink: new Map(), lanListbox: new Map(), radiobuttonsfrom: new Map() },
       core: this.core,
       init(this: LanguageManager) {
         if (this.initialized) return;
         this.core!.on(':language', () => {
           for (const [macroType, manager] of Object.entries(this.managers)) {
             manager.forEach((updater: Function) => {
-              try { updater(); }
-              catch (e) { maplebirch.log(`Language update error for ${macroType}`, 'ERROR', e); }
+              try {
+                updater();
+              } catch (e) {
+                maplebirch.log(`Language update error for ${macroType}`, 'ERROR', e);
+              }
             });
           }
         });
@@ -80,8 +83,11 @@ class Internals {
     };
     Object.defineProperty(taskFn, 'toString', { value: () => name, writable: true, configurable: true });
     if ((Dynamic as any).stage === (Dynamic as any).Stage.Settled) {
-      try { taskFn(); }
-      catch (e) { console.warn(`Encountered an unexpected critical error while performing a dynamic render task`, name, e); }
+      try {
+        taskFn();
+      } catch (e) {
+        console.warn(`Encountered an unexpected critical error while performing a dynamic render task`, name, e);
+      }
     } else {
       (Dynamic as any).tasks.push(taskFn);
     }
@@ -173,13 +179,31 @@ class Internals {
       this.languageManager();
       setup.maplebirch.hint = (() => {
         const hint: any[] = [];
-        function push(...args: any[]) { args.forEach(item => { if (!hint.includes(item)) hint.push(item); }); }
-        return { push, get play() { return hint.map(item => `${item}`).join(''); } };
+        function push(...args: any[]) {
+          args.forEach(item => {
+            if (!hint.includes(item)) hint.push(item);
+          });
+        }
+        return {
+          push,
+          get play() {
+            return hint.map(item => `${item}`).join('');
+          }
+        };
       })();
       setup.maplebirch.content = (() => {
         const content: any[] = [];
-        function push(...args: any[]) { args.forEach(item => { if (!content.includes(item)) content.push(item); }); }
-        return { push, get play() { return content.map(item => `${item}`).join(''); } };
+        function push(...args: any[]) {
+          args.forEach(item => {
+            if (!content.includes(item)) content.push(item);
+          });
+        }
+        return {
+          push,
+          get play() {
+            return content.map(item => `${item}`).join('');
+          }
+        };
       })();
     });
 
@@ -192,36 +216,60 @@ class Internals {
       this.core.tool.macro.define('radiobuttonsfrom', _radiobuttonsfrom, null, false, true);
       this.core.tool.macro.define('maplebirchReplace', (name: string, type: string) => _overlayReplace(name, type));
       this.core.tool.macro.define('maplebirchTextOutput', this.core.tool.text.makeTextOutput());
-      this.core.tool.macro.defineS('maplebirchFrameworkVersions', this._showModVersions);
+      this.core.tool.macro.defineS('maplebirchFrameworkVersions', this._showModVersions.bind(this));
       this.core.tool.macro.defineS('maplebirchFrameworkInfo', () => this._showFrameworkInfo());
     });
 
-    this.core.tool.other.configureLocation('lake_ruin', {
-      condition: () => Weather.bloodMoon && !Weather.isSnow
-    }, { layer: 'base', element: 'bloodmoon' });
+    this.core.tool.other.configureLocation(
+      'lake_ruin',
+      {
+        condition: () => Weather.bloodMoon && !Weather.isSnow
+      },
+      { layer: 'base', element: 'bloodmoon' }
+    );
 
-    this.core.tool.other.configureLocation('lake_ruin', {
-      condition: () => Weather.bloodMoon && Weather.isSnow
-    }, { layer: 'base', element: 'bloodmoon_snow' });
+    this.core.tool.other.configureLocation(
+      'lake_ruin',
+      {
+        condition: () => Weather.bloodMoon && Weather.isSnow
+      },
+      { layer: 'base', element: 'bloodmoon_snow' }
+    );
 
     $(document).on('change', 'select[name="lanListbox-optionsmaplebirchnpcsidebarnnpc"]', () => {
       if (!maplebirch.modules.initPhase.preInitCompleted) return;
-      try { $.wiki('<<replace #customOverlayContent>><<maplebirchOptions>><</replace>>'); } catch (error) { this.log('图形选择错误:', 'ERROR', error); }
+      try {
+        $.wiki('<<replace #customOverlayContent>><<maplebirchOptions>><</replace>>');
+      } catch (error) {
+        this.log('图形选择错误:', 'ERROR', error);
+      }
     });
 
     $(document).on('change', 'select[name="lanListbox-optionsmaplebirchnpcsidebarfacevariant"]', () => {
       if (!maplebirch.modules.initPhase.preInitCompleted) return;
-      try { $.wiki('<<updatesidebarimg>>'); } catch (error) { this.log('姿态更新错误:', 'ERROR', error); }
+      try {
+        $.wiki('<<updatesidebarimg>>');
+      } catch (error) {
+        this.log('姿态更新错误:', 'ERROR', error);
+      }
     });
 
     $(document).on('change', 'select[name="lanListbox-optionsmaplebirchcharactercharartselect"]', () => {
       if (!maplebirch.modules.initPhase.preInitCompleted) return;
-      try { $.wiki('<<replace #customOverlayContent>><<maplebirchOptions>><</replace>>'); } catch (error) { this.log('渐变调整错误:', 'ERROR', error); }
+      try {
+        $.wiki('<<replace #customOverlayContent>><<maplebirchOptions>><</replace>>');
+      } catch (error) {
+        this.log('渐变调整错误:', 'ERROR', error);
+      }
     });
 
     $(document).on('change', 'select[name="lanListbox-optionsmaplebirchcharactercloseupselect"]', () => {
       if (!maplebirch.modules.initPhase.preInitCompleted) return;
-      try { $.wiki('<<replace #customOverlayContent>><<maplebirchOptions>><</replace>>'); } catch (error) { this.log('渐变调整错误:', 'ERROR', error); }
+      try {
+        $.wiki('<<replace #customOverlayContent>><<maplebirchOptions>><</replace>>');
+      } catch (error) {
+        this.log('渐变调整错误:', 'ERROR', error);
+      }
     });
 
     $(document).on('click', '.link-internal.macro-button', () => {
@@ -229,7 +277,7 @@ class Internals {
       if (this.updateTimer) clearTimeout(this.updateTimer);
       try {
         this.updateTimer = setTimeout(() => {
-          const count = ((V.options.maplebirch?.relationcount ?? 4) - 2);
+          const count = (V.options.maplebirch?.relationcount ?? 4) - 2;
           document.querySelectorAll('.relation-stat-list').forEach((list: Element) => (list as HTMLElement).style.setProperty('--maplebirch-relation-count', count.toString()));
         }, 100);
       } catch {}
@@ -242,7 +290,7 @@ class Internals {
   }
 }
 
-(async function(maplebirch) {
+(function (maplebirch): void {
   'use strict';
-  await maplebirch.register('Internals', Object.freeze(new Internals(maplebirch)), ['tool']);
-})(maplebirch)
+  void maplebirch.register('Internals', Object.freeze(new Internals(maplebirch)), ['tool']);
+})(maplebirch);

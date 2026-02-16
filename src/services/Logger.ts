@@ -11,6 +11,7 @@ interface LogConfig {
 type LogLevelKey = 'DEBUG' | 'INFO' | 'WARN' | 'ERROR';
 
 class Logger {
+  // prettier-ignore
   private static readonly LogConfig: Record<LogLevelKey, LogConfig> = {
     DEBUG: { level: 0, tag: '[调试]', style: 'color: #9E9E9E; font-weight: bold;' },
     INFO:  { level: 1, tag: '[信息]', style: 'color: #2E7D32; font-weight: bold;' },
@@ -33,12 +34,8 @@ class Logger {
 
   async fromIDB(): Promise<void> {
     try {
-      const DEBUG = await this.core.idb.withTransaction(
-        ['settings'], 
-        'readonly', 
-        async (tx: any) => await tx.objectStore('settings').get('DEBUG')
-      );
-      this.level = (this.core.lodash.get(DEBUG, 'value', false) as boolean) ? Logger.LogLevel.DEBUG as number : Logger.LogLevel.INFO as number;
+      const DEBUG = await this.core.idb.withTransaction(['settings'], 'readonly', async (tx: any) => await tx.objectStore('settings').get('DEBUG'));
+      this.level = (this.core.lodash.get(DEBUG, 'value', false) as boolean) ? (Logger.LogLevel.DEBUG as number) : (Logger.LogLevel.INFO as number);
     } catch {
       this.level = Logger.LogLevel.INFO as number;
     }
@@ -52,11 +49,19 @@ class Logger {
       console.log(`%c[maplebirch]${config.tag} ${message}`, config.style);
       objects?.forEach(o => console.dir(o));
       const modLogger = this.core.modUtils.getLogger();
-      if (lname === 'INFO')  { modLogger.log(message); }
-      else if (lname === 'WARN') { modLogger.warn(message); }
-      else if (lname === 'ERROR') { modLogger.error(message); }
+      if (lname === 'INFO') {
+        modLogger.log(message);
+      } else if (lname === 'WARN') {
+        modLogger.warn(message);
+      } else if (lname === 'ERROR') {
+        modLogger.error(message);
+      }
     } catch (e) {
-      try { console.error('[Logger] 写日志失败:', e); } catch { /* ignore */ }
+      try {
+        console.error('[Logger] 写日志失败:', e);
+      } catch {
+        /* ignore */
+      }
     }
   }
 
@@ -72,8 +77,8 @@ class Logger {
   }
 
   get LevelName(): string {
-    return Logger.LogLevel[this.level] as string || 'INFO';
+    return (Logger.LogLevel[this.level] as string) || 'INFO';
   }
 }
 
-export default Logger
+export default Logger;

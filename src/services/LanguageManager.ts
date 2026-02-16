@@ -4,7 +4,7 @@ import { Languages } from './../constants';
 import { MaplebirchCore } from '../core';
 
 export type Translation = Record<string, string>;
-type LanguageCode = 'EN'|'CN';
+type LanguageCode = 'EN' | 'CN';
 
 class LanguageManager {
   static readonly DEFAULT_LANGS: readonly LanguageCode[] = Languages as readonly LanguageCode[];
@@ -17,18 +17,14 @@ class LanguageManager {
   private fileHashes = new Map<string, string>();
 
   constructor(readonly core: MaplebirchCore) {
-    this.detectLang();
+    void this.detectLang();
     this.core.once(':IndexedDB', async () => this.initDB());
   }
 
   async detectLang(): Promise<void> {
     const check: LanguageCode = navigator.language.includes('zh') ? 'CN' : 'EN';
     try {
-      const Language = await this.core.idb.withTransaction(
-        ['settings'],
-        'readonly',
-        async (tx: any) => await tx.objectStore('settings').get('Language')
-      );
+      const Language = await this.core.idb.withTransaction(['settings'], 'readonly', async (tx: any) => await tx.objectStore('settings').get('Language'));
       this.language = (Language.value || check) as LanguageCode;
     } catch (err) {
       this.language = check;
@@ -36,9 +32,7 @@ class LanguageManager {
   }
 
   initDB(): void {
-    this.core.idb.register('language-metadata', { keyPath: 'key' }, [
-      { name: 'timestamp', keyPath: 'timestamp' }
-    ]);
+    this.core.idb.register('language-metadata', { keyPath: 'key' }, [{ name: 'timestamp', keyPath: 'timestamp' }]);
 
     this.core.idb.register('language-translations', { keyPath: 'key' }, [
       { name: 'mod', keyPath: 'mod' },
@@ -165,7 +159,7 @@ class LanguageManager {
 
       processed += batchKeys.length;
       yield {
-        progress: Math.min(100, Math.floor(processed / total * 100)),
+        progress: Math.min(100, Math.floor((processed / total) * 100)),
         current: processed,
         total
       };
@@ -177,7 +171,10 @@ class LanguageManager {
 
   t(key: string, space = false): string {
     const rec = this.translations.get(key);
-    if (!rec) { this.loadFromDB(key); return `[${key}]`; }
+    if (!rec) {
+      void this.loadFromDB(key);
+      return `[${key}]`;
+    }
     let result = this.core.lodash.get(rec, this.language, this.core.lodash.get(rec, 'EN', this.core.lodash.first(this.core.lodash.values(rec)) || `[${key}]`));
     if (this.language === 'EN' && space === true) return result + ' ';
     return result;
@@ -195,7 +192,7 @@ class LanguageManager {
         }
       }
     }
-    this.findKeyAsync(text);
+    void this.findKeyAsync(text);
     return text;
   }
 
@@ -304,15 +301,17 @@ class LanguageManager {
     }
   }
 
-  private async storeBatch(entries: Array<{
-    key: string,
-    translations: Record<string, string>,
-    mod: string
-  }>): Promise<void> {
+  private async storeBatch(
+    entries: Array<{
+      key: string;
+      translations: Record<string, string>;
+      mod: string;
+    }>
+  ): Promise<void> {
     if (!entries || entries.length === 0) return;
 
     try {
-      const map = new Map<string, { translations: Record<string, string>, mod: string }>();
+      const map = new Map<string, { translations: Record<string, string>; mod: string }>();
 
       for (const { key, translations, mod } of entries) {
         if (!map.has(key)) map.set(key, { translations: {}, mod });
@@ -372,16 +371,18 @@ class LanguageManager {
         await this.retrySmall(entries);
       } catch (e: any) {
         this.core.logger.log(`重试失败: ${e.message}`, 'ERROR');
-        this.core.idb.resetDatabase();
+        await this.core.idb.resetDatabase();
       }
     }
   }
 
-  private async retrySmall(entries: Array<{
-    key: string,
-    translations: Record<string, string>,
-    mod: string
-  }>): Promise<void> {
+  private async retrySmall(
+    entries: Array<{
+      key: string;
+      translations: Record<string, string>;
+      mod: string;
+    }>
+  ): Promise<void> {
     const small = Math.max(50, Math.floor(LanguageManager.BATCH_SIZE / 10));
 
     for (let i = 0; i < entries.length; i += small) {
@@ -522,4 +523,4 @@ class LanguageManager {
   }
 }
 
-export default LanguageManager
+export default LanguageManager;

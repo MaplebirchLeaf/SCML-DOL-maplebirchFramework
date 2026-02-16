@@ -1,7 +1,7 @@
 // ./src/modules/NamedNPC.ts
 
 import maplebirch, { MaplebirchCore, createlog } from '../core';
-import { clone, either, merge, contains, random,  } from '../utils';
+import { clone, either, merge, contains, random } from '../utils';
 import { Translation } from '../services/LanguageManager';
 import NPCSchedules, { ScheduleTime, ScheduleCondition, ScheduleLocation, SpecialSchedule } from './NamedNPCAddon/NPCSchedules';
 import NPCClothes, { ClothesConfig } from './NamedNPCAddon/NPCClothes';
@@ -53,21 +53,23 @@ export interface NPCConfig {
   [key: string]: any;
 }
 
-export const NamedNPC = ((core) => {
+export const NamedNPC = (core => {
   const insecurity = ['weak', 'looks', 'ethics', 'skill'] as const;
   const eyeColour = ['purple', 'dark blue', 'light blue', 'amber', 'hazel', 'green', 'red', 'pink', 'grey', 'light grey', 'lime green'] as const;
   const hairColour = ['red', 'black', 'brown', 'lightbrown', 'blond', 'platinumblond', 'strawberryblond', 'ginger'] as const;
 
+  // prettier-ignore
   const virginityTypes = {
-    anal: true,
-    oral: true,
-    penile: true,
-    vaginal: true,
+    anal       : true,
+    oral       : true,
+    penile     : true,
+    vaginal    : true,
     handholding: true,
-    temple: false,
-    kiss: true,
+    temple     : false,
+    kiss       : true
   } as const;
 
+  // prettier-ignore
   const pronounsMap = {
     m: {
       CN: { he: '他', his: '他的', hers: '他的', him: '他', himself: '他自己', man: '男人', boy: '男孩', men: '男人们' },
@@ -91,6 +93,7 @@ export const NamedNPC = ((core) => {
     }
   } as const;
 
+  // prettier-ignore
   const bodyPartMap = {
     penis: {
       CN: [['细小阴茎','废物阴茎','可怜阴茎','小小阴茎','迷你阴茎','微型阴茎'],'阴茎',['厚重肉棒','笨重肉棒','大号肉棒','粗大肉棒','狰狞肉棒','肥厚肉棒'],['硕大肉棒','庞大肉棒','巨大肉棒','极大肉棒','超大肉棒','宏伟肉棒']],
@@ -140,6 +143,9 @@ export const NamedNPC = ((core) => {
     vagina: string;
     breastsize: number;
     breastdesc: string;
+    breastsdesc: string;
+    bottomdesc: string;
+    ballsdesc: string;
     ballssize: number;
     outfits: string[];
     pregnancy: any;
@@ -169,8 +175,14 @@ export const NamedNPC = ((core) => {
       this.hairlength = data.hairlength ?? either(0, 200, 400, 600, 800, 1000);
       this.eyeColour = data.eyeColour ?? either([...eyeColour]);
       this.hairColour = data.hairColour ?? either([...hairColour]);
-      this.pronoun = data.pronoun ?? (['m', 'f', 'i', 'n', 't'].includes(this.gender) ? this.gender as 'm' | 'f' | 'i' | 'n' | 't' : either('m', 'f'));
-      if (this.gender !== 'none') core.modUtils.getMod('ModI18N') ? this.pronouns = { ...pronounsMap[this.pronoun].CN } : Object.defineProperty(this, 'pronouns', { get: () => pronounsMap[this.pronoun][maplebirch.Language as 'CN' | 'EN'] });
+      this.pronoun = data.pronoun ?? (['m', 'f', 'i', 'n', 't'].includes(this.gender) ? (this.gender as 'm' | 'f' | 'i' | 'n' | 't') : either('m', 'f'));
+      if (this.gender !== 'none') {
+        if (core.modUtils.getMod('ModI18N')) {
+          this.pronouns = { ...pronounsMap[this.pronoun].CN };
+        } else {
+          Object.defineProperty(this, 'pronouns', { get: () => pronounsMap[this.pronoun][maplebirch.Language] });
+        }
+      }
       this.setPronouns(data);
       this.bottomsize = data.bottomsize ?? random(4);
       this.bodyPartdescription();
@@ -179,6 +191,7 @@ export const NamedNPC = ((core) => {
       this.skincolour = data.skincolour ?? 0;
       this.init = data.init ?? 0;
       this.intro = data.intro ?? 0;
+      core.on(':language', () => this.bodyPartdescription());
     }
 
     setPronouns(data: NPCData) {
@@ -224,11 +237,21 @@ export const NamedNPC = ((core) => {
       this.outfits = Array.isArray(data.outfits) ? data.outfits : [];
       let defaultOutfit = 'femaleDefault';
       switch (this.gender) {
-        case 'm': defaultOutfit = 'maleDefault'; break;
-        case 'f': defaultOutfit = 'femaleDefault'; break;
-        case 'h': defaultOutfit = 'hermDefault'; break;
-        case 'n': defaultOutfit = 'neutralDefault'; break;
-        default:  defaultOutfit = 'femaleDefault'; break;
+        case 'm':
+          defaultOutfit = 'maleDefault';
+          break;
+        case 'f':
+          defaultOutfit = 'femaleDefault';
+          break;
+        case 'h':
+          defaultOutfit = 'hermDefault';
+          break;
+        case 'n':
+          defaultOutfit = 'neutralDefault';
+          break;
+        default:
+          defaultOutfit = 'femaleDefault';
+          break;
       }
       if (!this.outfits.includes(defaultOutfit)) this.outfits.push(defaultOutfit);
     }
@@ -246,7 +269,10 @@ export const NamedNPC = ((core) => {
             const canBePregnant = manager.pregnancy.canBePregnant.includes(this.nam);
             const pregnancyEnabledUndefined = pregnancyData.enabled == null;
             const incompletePregnancyEnabled = core.lodash.get(V, 'settings.incompletePregnancyEnabled');
-            const shouldInitialize = !isInfertile && typeEnabled && ((incompletePregnancyEnabled && pregnancyEnabledUndefined && !setup.pregnancy.ignoresIncompleteCheck.includes(this.nam)) || (canBePregnant && pregnancyEnabledUndefined));
+            const shouldInitialize =
+              !isInfertile &&
+              typeEnabled &&
+              ((incompletePregnancyEnabled && pregnancyEnabledUndefined && !setup.pregnancy.ignoresIncompleteCheck.includes(this.nam)) || (canBePregnant && pregnancyEnabledUndefined));
             if (shouldInitialize) {
               pregnancyData.fetus = [];
               pregnancyData.givenBirth = 0;
@@ -271,117 +297,83 @@ export const NamedNPC = ((core) => {
           }
           return pregnancyData;
         },
-        set: (value) => { pregnancyData = value; initialized = true; },
+        set: value => {
+          pregnancyData = value;
+          initialized = true;
+        }
       });
       if (!this.pregnancyAvoidance || (V.settings != null ? V.objectVersion.pregnancyAvoidance == null : false)) this.pregnancyAvoidance = 100;
     }
 
     bodyPartdescription() {
       this.descCache = this.descCache ?? {};
+
       if ((this.penis === 'clothed' && this.penissize > 0) || this.penisdesc === 'penis') {
-        Object.defineProperty(this, 'penisdesc', {
-          get: () => {
-            const cacheKey = `penis_${maplebirch.Language}_${this.penissize}`;
-            if (!this.descCache[cacheKey]) {
-              const sizeIndex = this.penissize - 1;
-              const options = core.lodash.get(bodyPartMap, ['penis', maplebirch.Language, sizeIndex]);
-              this.descCache[cacheKey] = options ? either(options) : '';
-            }
-            return this.descCache[cacheKey];
-          },
-          set: (value) => {
-            const cacheKey = `penis_${maplebirch.Language}_${this.penissize}`;
-            this.descCache[cacheKey] = value;
-          }
-        });
+        const cacheKey = `penis_${maplebirch.Language}_${this.penissize}`;
+        if (!this.descCache[cacheKey]) {
+          const sizeIndex = this.penissize - 1;
+          const options = core.lodash.get(bodyPartMap, ['penis', maplebirch.Language, sizeIndex]);
+          this.descCache[cacheKey] = options ? either(options) : '';
+        }
+        this.penisdesc = this.descCache[cacheKey];
       }
 
       if ((this.vagina === 'clothed' && this.breastsize > 0) || this.breastdesc === 'breasts') {
-        Object.defineProperty(this, 'breastdesc', {
-          get: () => {
-            const cacheKey = `breast_${maplebirch.Language}_${this.breastsize}`;
-            if (!this.descCache[cacheKey]) {
-              const sizeIndex = this.breastsize - 1;
-              const options = core.lodash.get(bodyPartMap, ['breast', maplebirch.Language, sizeIndex]);
-              this.descCache[cacheKey] = options ? either(options) : '';
-            }
-            return this.descCache[cacheKey];
-          },
-          set: (value) => {
-            const cacheKey = `breast_${maplebirch.Language}_${this.breastsize}`;
-            this.descCache[cacheKey] = value;
-          }
-        });
+        const cacheKey = `breast_${maplebirch.Language}_${this.breastsize}`;
+        if (!this.descCache[cacheKey]) {
+          const sizeIndex = this.breastsize - 1;
+          const options = core.lodash.get(bodyPartMap, ['breast', maplebirch.Language, sizeIndex]);
+          this.descCache[cacheKey] = options ? either(options) : '';
+        }
+        this.breastdesc = this.descCache[cacheKey];
       } else {
-        Object.defineProperty(this, 'breastdesc', {
-          get: () => {
-            const cacheKey = `breast_none_${maplebirch.Language}`;
-            if (!this.descCache[cacheKey]) {
-              const options = core.lodash.get(bodyPartMap, ['breast', maplebirch.Language, 0]);
-              this.descCache[cacheKey] = options ? either(options) : '';
-            }
-            return this.descCache[cacheKey];
-          },
-          set: (value) => {
-            const cacheKey = `breast_none_${maplebirch.Language}`;
-            this.descCache[cacheKey] = value;
-          }
-        });
+        const cacheKey = `breast_none_${maplebirch.Language}`;
+        if (!this.descCache[cacheKey]) {
+          const options = core.lodash.get(bodyPartMap, ['breast', maplebirch.Language, 0]);
+          this.descCache[cacheKey] = options ? either(options) : '';
+        }
+        this.breastdesc = this.descCache[cacheKey];
       }
 
-      Object.defineProperty(this, 'breastsdesc', {
-        get: () => {
-          const breastDesc = this.breastdesc;
-          return maplebirch.Language === 'CN' ? breastDesc : breastDesc.endsWith('s') ? breastDesc : `${breastDesc}s`
-        },
-        set: (value) => {
-          const cacheKey = `breastsdesc_${maplebirch.Language}`;
-          this.descCache[cacheKey] = value;
-        }
-      });
+      const breastDesc = this.breastdesc;
+      const breastsdescKey = `breastsdesc_${maplebirch.Language}`;
+      if (!this.descCache[breastsdescKey]) {
+        this.descCache[breastsdescKey] = maplebirch.Language === 'CN' ? breastDesc : breastDesc.endsWith('s') ? breastDesc : `${breastDesc}s`;
+      }
+      this.breastsdesc = this.descCache[breastsdescKey];
 
       if (this.bottomsize != null) {
-        Object.defineProperty(this, 'bottomdesc', {
-          get: () => {
-            const cacheKey = `bottom_${maplebirch.Language}_${this.bottomsize}`;
-            if (!this.descCache[cacheKey]) {
-              const options = core.lodash.get(bodyPartMap, ['bottom', maplebirch.Language, this.bottomsize]);
-              this.descCache[cacheKey] = options ? either(options) : '';
-            }
-            return this.descCache[cacheKey];
-          },
-          set: (value) => {
-            const cacheKey = `bottom_${maplebirch.Language}_${this.bottomsize}`;
-            this.descCache[cacheKey] = value;
-          }
-        });
+        const cacheKey = `bottom_${maplebirch.Language}_${this.bottomsize}`;
+        if (!this.descCache[cacheKey]) {
+          const options = core.lodash.get(bodyPartMap, ['bottom', maplebirch.Language, this.bottomsize]);
+          this.descCache[cacheKey] = options ? either(options) : '';
+        }
+        this.bottomdesc = this.descCache[cacheKey];
       }
 
       if (this.ballssize > 0) {
-        Object.defineProperty(this, 'ballsdesc', {
-          get: () => {
-            const cacheKey = `balls_${maplebirch.Language}_${this.ballssize}`;
-            if (!this.descCache[cacheKey]) {
-              const sizeIndex = this.ballssize - 1;
-              const options = core.lodash.get(bodyPartMap, ['balls', maplebirch.Language, sizeIndex]);
-              this.descCache[cacheKey] = options ? either(options) : '';
-            }
-            return this.descCache[cacheKey];
-          },
-          set: (value) => {
-            const cacheKey = `balls_${maplebirch.Language}_${this.ballssize}`;
-            this.descCache[cacheKey] = value;
-          }
-        });
+        const cacheKey = `balls_${maplebirch.Language}_${this.ballssize}`;
+        if (!this.descCache[cacheKey]) {
+          const sizeIndex = this.ballssize - 1;
+          const options = core.lodash.get(bodyPartMap, ['balls', maplebirch.Language, sizeIndex]);
+          this.descCache[cacheKey] = options ? either(options) : '';
+        }
+        this.ballsdesc = this.descCache[cacheKey];
       }
     }
   }
 
   function add(manager: NPCManager, npcData: NPCData, config: NPCConfig, translationsData?: Map<string, Translation>): boolean {
-    if (!npcData || !npcData.nam) { manager.log('提供的NPC数据无效', 'ERROR'); return false; }
+    if (!npcData || !npcData.nam) {
+      manager.log('提供的NPC数据无效', 'ERROR');
+      return false;
+    }
     const npcName = npcData.nam;
     let npcConfig = clone(config);
-    if (manager.data.has(npcName)) { manager.log(`NPC ${npcName} 已存在于mod数据中`, 'ERROR'); return false; }
+    if (manager.data.has(npcName)) {
+      manager.log(`NPC ${npcName} 已存在于mod数据中`, 'ERROR');
+      return false;
+    }
     if (typeof npcConfig !== 'object') npcConfig = {};
     if (Object.keys(npcConfig).length === 0) npcConfig.love = { maxValue: 50 };
     const newNPC = new NamedNPC(manager, npcData);
@@ -432,7 +424,10 @@ export const NamedNPC = ((core) => {
     const allNPCs = [...(V.NPCName || [])];
     for (const [npcName, npcEntry] of manager.data) {
       const modNPC = npcEntry.Data;
-      if (NowNames.has(npcName)) { skippedCount++; continue; }
+      if (NowNames.has(npcName)) {
+        skippedCount++;
+        continue;
+      }
       allNPCs.push(modNPC);
       manager.NPCNameList.push(npcName);
       addedCount++;
@@ -441,9 +436,10 @@ export const NamedNPC = ((core) => {
     V.NPCName = [...allNPCs];
     V.NPCNameList = manager.NPCNameList;
     updateCNPCProxy(manager);
-    const nameListStr = typeof setup.NPCNameList_cn_name === 'string'
-      ? setup.NPCNameList_cn_name
-      : "Avery,艾弗里|Bailey,贝利|Briar,布莱尔|Charlie,查里|Darryl,达里尔|Doren,多伦|Eden,伊甸|Gwylan,格威岚|Harper,哈珀|Jordan,约旦|Kylar,凯拉尔|Landry,兰德里|Leighton,礼顿|Mason,梅森|Morgan,摩根|River,瑞沃|Robin,罗宾|Sam,萨姆|Sirris,西里斯|Whitney,惠特尼|Winter,温特|Black Wolf,黑狼|Niki,尼奇|Quinn,奎恩|Remy,雷米|Alex,艾利克斯|Great Hawk,巨鹰|Wren,伦恩|Sydney,悉尼|Ivory Wraith,象牙怨灵|Zephyr,泽菲尔|Nona,诺娜|Lake couple,湖边情侣|the witch,巫女|Taylor,泰勒|Casey,凯西|Sterling,斯特林|Cass,卡斯";
+    const nameListStr =
+      typeof setup.NPCNameList_cn_name === 'string'
+        ? setup.NPCNameList_cn_name
+        : 'Avery,艾弗里|Bailey,贝利|Briar,布莱尔|Charlie,查里|Darryl,达里尔|Doren,多伦|Eden,伊甸|Gwylan,格威岚|Harper,哈珀|Jordan,约旦|Kylar,凯拉尔|Landry,兰德里|Leighton,礼顿|Mason,梅森|Morgan,摩根|River,瑞沃|Robin,罗宾|Sam,萨姆|Sirris,西里斯|Whitney,惠特尼|Winter,温特|Black Wolf,黑狼|Niki,尼奇|Quinn,奎恩|Remy,雷米|Alex,艾利克斯|Great Hawk,巨鹰|Wren,伦恩|Sydney,悉尼|Ivory Wraith,象牙怨灵|Zephyr,泽菲尔|Nona,诺娜|Lake couple,湖边情侣|the witch,巫女|Taylor,泰勒|Casey,凯西|Sterling,斯特林|Cass,卡斯';
     const namePairs = nameListStr.split('|');
     for (const pair of namePairs) {
       const parts = pair.split(',');
@@ -504,12 +500,15 @@ export const NamedNPC = ((core) => {
       const index = setup.NPCNameList.indexOf(name);
       Object.defineProperty(C.npc, name, {
         get: () => V.NPCName?.[index],
-        set: (val) => { if (V.NPCName) V.NPCName[index] = val; },
+        set: val => {
+          if (V.NPCName) V.NPCName[index] = val;
+        }
       });
       manager.log('更新 C.npc 代理映射', 'DEBUG');
     }
   }
 
+  // prettier-ignore
   Object.defineProperties(NamedNPC, {
     add:    { value: add },
     get:    { value: getNamedNPC },
@@ -518,6 +517,7 @@ export const NamedNPC = ((core) => {
     setup:  { value: updateNPCdata },
   })
 
+  // prettier-ignore
   return NamedNPC as typeof NamedNPC & {
     add:    typeof add,
     get:    typeof getNamedNPC,
@@ -525,34 +525,37 @@ export const NamedNPC = ((core) => {
     update: typeof onUpdate,
     setup:  typeof updateNPCdata
 	};
-})(maplebirch)
+})(maplebirch);
 
 class NPCManager {
   readonly log: ReturnType<typeof createlog>;
-  readonly data: Map<string,any> = new Map();
+  readonly data: Map<string, any> = new Map();
   NPCNameList: string[] = [];
+  // prettier-ignore
   readonly pregnancy: { [x:string]: Array<string> } = {
-    infertile:     ['Bailey', 'Leighton'],
-    typesEnabled:  ['human', 'wolf', 'wolfboy', 'wolfgirl', 'hawk', 'harpy'],
+    infertile    :     ['Bailey', 'Leighton'],
+    typesEnabled :  ['human', 'wolf', 'wolfboy', 'wolfgirl', 'hawk', 'harpy'],
     canBePregnant: ['Alex', 'Black Wolf', 'Great Hawk']
   };
+  // prettier-ignore
   readonly type: { [x:string]: Array<string> } = {
     loveInterestNpcs: [],
-    importantNPCs: [],
-    specialNPCs: [],
+    importantNPCs   : [],
+    specialNPCs     : [],
   };
   readonly customStats: { [x: string]: any } = {};
+  // prettier-ignore
   readonly romanceConditions: { [key: string]: (() => boolean)[] } = {
-    Robin:   [() => V.robinromance === 1],
+    Robin  : [() => V.robinromance === 1],
     Whitney: [() => V.whitneyromance === 1, () => C.npc.Whitney.state !== 'dungeon'],
-    Kylar:   [() => V.kylarenglish >= 1, () => C.npc.Kylar.state !== 'prison'],
-    Sydney:  [() => V.sydneyromance === 1],
-    Eden:    [() => V.syndromeeden === 1],
-    Avery:   [() => V.auriga_artefact, () => C.npc.Avery.state !== 'dismissed'],
+    Kylar  : [() => V.kylarenglish >= 1, () => C.npc.Kylar.state !== 'prison'],
+    Sydney : [() => V.sydneyromance === 1],
+    Eden   : [() => V.syndromeeden === 1],
+    Avery  : [() => V.auriga_artefact, () => C.npc.Avery.state !== 'dismissed'],
     'Black Wolf': [() => V.syndromewolves === 1, () => hasSexStat('deviancy', 3)],
     'Great Hawk': [() => V.syndromebird === 1],
-    Alex:    [() => V.farm_stage >= 7, () => V.alex_countdown === undefined],
-    Gwylan:  [() => V.gwylanSeen.includes('partners') || V.gwylanSeen.includes('romance')]
+    Alex   : [() => V.farm_stage >= 7, () => V.alex_countdown === undefined],
+    Gwylan : [() => V.gwylanSeen.includes('partners') || V.gwylanSeen.includes('romance')]
   };
   readonly NamedNPC: typeof NamedNPC = NamedNPC;
   readonly Schedule: typeof NPCSchedules = NPCSchedules;
@@ -567,11 +570,17 @@ class NPCManager {
     return this.NamedNPC.add(this, npcData, config, translationsData);
   }
 
-  addSchedule(npcName: string, scheduleConfig: ScheduleTime | ScheduleCondition, location: string | ScheduleLocation, id?: string | number, options: Partial<Omit<SpecialSchedule, 'condition' | 'location'>> = {}) {
+  addSchedule(
+    npcName: string,
+    scheduleConfig: ScheduleTime | ScheduleCondition,
+    location: string | ScheduleLocation,
+    id?: string | number,
+    options: Partial<Omit<SpecialSchedule, 'condition' | 'location'>> = {}
+  ) {
     return this.Schedule.add(npcName, scheduleConfig, location, id, options);
   }
 
-  addStats(statsObject: { [x: string]: any; hasOwnProperty: (arg0: string) => any; }) {
+  addStats(statsObject: { [x: string]: any; hasOwnProperty: (arg0: string) => any }) {
     if (!statsObject || typeof statsObject !== 'object') return;
     for (const statName in statsObject) {
       if (statsObject.hasOwnProperty(statName)) {
@@ -613,10 +622,10 @@ class NPCManager {
     }
     if (Array.isArray(T.importantNpcOrder)) this.type.importantNPCs.forEach(id => T.importantNpcOrder.pushUnique(id));
     if (Array.isArray(T.specialNPCs)) this.type.specialNPCs.forEach(id => T.specialNPCs.pushUnique(id));
-    return T.npcConfig = Config;
+    return (T.npcConfig = Config);
   }
 
-  applyStatDefaults(statDefaults: { [x: string]: any; }) {
+  applyStatDefaults(statDefaults: { [x: string]: any }) {
     if (!statDefaults || typeof statDefaults !== 'object') return statDefaults || {};
     for (const statName in this.customStats) {
       if (this.customStats.hasOwnProperty(statName)) {
@@ -631,10 +640,15 @@ class NPCManager {
         if (position !== false) {
           if (!T.importantNpcStats.includes(statName)) {
             let insertPosition: number;
-            if (typeof position === 'number') { insertPosition = Math.max(0, Math.min(position, T.importantNpcStats.length)); }
-            else if (position === 'first') { insertPosition = 0; }
-            else if (position === 'last') { insertPosition = T.importantNpcStats.length; }
-            else { insertPosition = Math.max(0, T.importantNpcStats.length - 1); }
+            if (typeof position === 'number') {
+              insertPosition = Math.max(0, Math.min(position, T.importantNpcStats.length));
+            } else if (position === 'first') {
+              insertPosition = 0;
+            } else if (position === 'last') {
+              insertPosition = T.importantNpcStats.length;
+            } else {
+              insertPosition = Math.max(0, T.importantNpcStats.length - 1);
+            }
             T.importantNpcStats.splice(insertPosition, 0, statName);
           }
         }
@@ -646,11 +660,13 @@ class NPCManager {
   vanillaInit(npcName: string) {
     const nam = npcName;
     const idx = V.NPCNameList.indexOf(nam);
-    Object.keys(this.customStats).forEach(stat => V.NPCName[idx][stat] = 0);
+    Object.keys(this.customStats).forEach(stat => (V.NPCName[idx][stat] = 0));
   }
 
   vanillaInject(npcName: string, npcno: number) {
-    try { this.core.combat.Speech.init(); } catch {};
+    try {
+      this.core.combat.Speech.init();
+    } catch {}
   }
 
   preInit() {
@@ -660,7 +676,7 @@ class NPCManager {
   async Init() {
     if (!['Start', 'Downgrade Waiting Room'].includes(this.core.passage?.title)) this.injectModNPCs();
     this.Schedule.init(this);
-    this.Clothes.init(this);
+    await this.Clothes.init(this);
     setupNpcData(this, 'init');
     isPossibleLoveInterest = (name: string) => isPossible(this, name);
   }
@@ -676,9 +692,9 @@ class NPCManager {
   }
 }
 
-(async function(maplebirch) {
+(function (maplebirch): void {
   'use strict';
-  await maplebirch.register('npc', Object.seal(new NPCManager(maplebirch)), ['char']);
-})(maplebirch)
+  void maplebirch.register('npc', Object.seal(new NPCManager(maplebirch)), ['char']);
+})(maplebirch);
 
 export default NPCManager;

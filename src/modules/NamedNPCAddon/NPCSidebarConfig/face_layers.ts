@@ -9,16 +9,16 @@ const face_layers = {
     zfn(options: LayerOptions) {
       if (options.maplebirch.nnpc.clothes.face.type.includes('glasses')) return maplebirch.char.ZIndices.over_head + options.maplebirch.nnpc.position!;
       return maplebirch.char.ZIndices.face + options.maplebirch.nnpc.position!;
-    },
+    }
   }),
   nnpc_face_acc: clothes_layer('face', 'acc', {
     zfn(options: LayerOptions) {
       if (options.maplebirch.nnpc.clothes.face.type.includes('glasses')) return maplebirch.char.ZIndices.over_head + options.maplebirch.nnpc.position!;
       return maplebirch.char.ZIndices.face + options.maplebirch.nnpc.position!;
-    },
+    }
   }),
   nnpc_face_back: clothes_back('face'),
   nnpc_face_back_acc: clothes_back_acc('face')
-}
+};
 
-export default face_layers
+export default face_layers;

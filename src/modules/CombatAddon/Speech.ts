@@ -23,15 +23,22 @@ const Speech = {
     if (!this.speechs.has(npc)) return '';
     const speechs = this.speechs.get(npc)!;
     for (const speech of speechs) {
-      if (speech.current > 0) { speech.current--; continue; }
-      try { if (speech.cond()) { speech.current = speech.cd; return speech.speech; } }
-      catch (e: any) {}
+      if (speech.current > 0) {
+        speech.current--;
+        continue;
+      }
+      try {
+        if (speech.cond()) {
+          speech.current = speech.cd;
+          return speech.speech;
+        }
+      } catch {}
     }
     return '';
   },
 
   init: function (): void {
-    this.speechs.forEach((speechs: any) => _.forEach(speechs, (speech) => speech.current = 0));
+    this.speechs.forEach((speechs: any) => _.forEach(speechs, speech => (speech.current = 0)));
   }
 };
 

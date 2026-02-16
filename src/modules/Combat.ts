@@ -23,7 +23,7 @@ class CombatManager {
   }
 
   _generateCombatAction() {
-    const self = this;
+    const self = this as this;
     return function () {
       let optionsTable = this.args[0];
       const actionType = this.args[1];
@@ -32,8 +32,11 @@ class CombatManager {
       const frag = document.createDocumentFragment();
       const el = (val: string) => document.createElement(val);
 
-      try { self.CombatAction.action(optionsTable, actionType, combatType); }
-      catch (e) { self.log('mod战斗动作对象错误', 'ERROR'); }
+      try {
+        self.CombatAction.action(optionsTable, actionType, combatType);
+      } catch (e) {
+        self.log('mod战斗动作对象错误', 'ERROR');
+      }
       if (self._.includes(['lists', 'limitedLists'], controls)) {
         const actions = self._.values(optionsTable);
         const listSpan = el('span');
@@ -95,7 +98,7 @@ class CombatManager {
   }
 
   _combatButtonAdjustments(name: string, extra: any) {
-    const self = this;
+    const self = this as this;
     jQuery(document).on('change', '#listbox-' + name, { name, extra }, function (e: any) {
       const action = V[e.data.name];
       let difficultyMacro = `<<${e.data.name}Difficulty${e.data.extra} ${action}>>`;
@@ -136,13 +139,13 @@ class CombatManager {
   }
 
   Init() {
-    combatListColor = this._combatListColor;
+    combatListColor = this._combatListColor.bind(this);
   }
 }
 
-(async function(maplebirch) {
+(function (maplebirch): void {
   'use strict';
-  await maplebirch.register('combat', Object.seal(new CombatManager(maplebirch)), ['npc']);
-})(maplebirch)
+  void maplebirch.register('combat', Object.seal(new CombatManager(maplebirch)), ['npc']);
+})(maplebirch);
 
-export default CombatManager
+export default CombatManager;

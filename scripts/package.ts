@@ -1,16 +1,16 @@
-import path from "node:path";
-import { mkdir, readdir, stat, readFile } from "node:fs/promises";
-import JSZip from "jszip";
+import path from 'node:path';
+import { mkdir, readdir, stat, readFile } from 'node:fs/promises';
+import JSZip from 'jszip';
 
 async function createModPackage() {
-  const rootDir = path.join(import.meta.dir, "..");
-  const distDir = path.join(rootDir, "dist");
-  const packageDir = path.join(rootDir, "package");
+  const rootDir = path.join(import.meta.dir, '..');
+  const distDir = path.join(rootDir, 'dist');
+  const packageDir = path.join(rootDir, 'package');
 
   await mkdir(packageDir, { recursive: true });
 
   const zip = new JSZip();
-  const bootTemplate = await Bun.file(path.join(rootDir, "boot.json")).json();
+  const bootTemplate = await Bun.file(path.join(rootDir, 'boot.json')).json();
   const version = (bootTemplate as { version?: string }).version;
 
   const styleFiles: string[] = [];
@@ -27,15 +27,12 @@ async function createModPackage() {
         await addFilesToZip(itemPath);
       } else {
         const relativePath = path.relative(distDir, itemPath);
-        const normalizedPath = relativePath.replace(/\\/g, "/");
+        const normalizedPath = relativePath.replace(/\\/g, '/');
         const fileContent = await readFile(itemPath);
 
-        if (normalizedPath.endsWith(".css")) {
+        if (normalizedPath.endsWith('.css')) {
           styleFiles.push(normalizedPath);
-        } else if (
-          normalizedPath.endsWith(".yaml") ||
-          normalizedPath.endsWith(".json")
-        ) {
+        } else if (normalizedPath.endsWith('.yaml') || normalizedPath.endsWith('.json')) {
           additionFiles.push(normalizedPath);
         }
 
@@ -48,23 +45,20 @@ async function createModPackage() {
 
   const modifiedBoot = {
     ...(bootTemplate as object),
-    scriptFileList_inject_early: ["inject_early.js"],
+    scriptFileList_inject_early: ['inject_early.js'],
     styleFileList: styleFiles,
-    additionFile: additionFiles,
+    additionFile: additionFiles
   };
 
-  zip.file("boot.json", JSON.stringify(modifiedBoot, null, 2));
+  zip.file('boot.json', JSON.stringify(modifiedBoot, null, 2));
 
   const zipBuffer = await zip.generateAsync({
-    type: "uint8array",
-    compression: "DEFLATE",
-    compressionOptions: { level: 9 },
+    type: 'uint8array',
+    compression: 'DEFLATE',
+    compressionOptions: { level: 9 }
   });
 
-  const zipPath = path.join(
-    packageDir,
-    `SCML-maplebirchFrameworks-${version}.zip`
-  );
+  const zipPath = path.join(packageDir, `SCML-maplebirchFrameworks-${version}.zip`);
   await Bun.write(zipPath, zipBuffer);
 
   console.log(`✓ 压缩包已生成: ${zipPath}`);

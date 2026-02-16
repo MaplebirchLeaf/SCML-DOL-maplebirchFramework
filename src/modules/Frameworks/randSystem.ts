@@ -12,7 +12,9 @@ interface randState {
 
 class randSystem {
   static log = createlog('rand');
-  static create() { return new randSystem(); }
+  static create() {
+    return new randSystem();
+  }
   log = randSystem.log;
   state: randState;
 
@@ -25,7 +27,7 @@ class randSystem {
   }
 
   set Seed(seed: number) {
-    this.state.seed = _.parseInt(seed.toString()) & 0x7FFFFFFF;
+    this.state.seed = _.parseInt(seed.toString()) & 0x7fffffff;
     this.state.history = [];
     this.state.pointer = 0;
   }
@@ -35,32 +37,32 @@ class randSystem {
   }
 
   get(max: number) {
-    if (this.state.seed === null) this.state.seed = Date.now() & 0x7FFFFFFF;
+    if (this.state.seed === null) this.state.seed = Date.now() & 0x7fffffff;
     if (this.state.pointer < this.state.history.length) {
       const value = this.state.history[this.state.pointer];
       this.state.pointer++;
-      return (value % (max + 1));
+      return value % (max + 1);
     }
-    this.state.seed = (this.state.seed * 1103515245 + 12345) & 0x7FFFFFFF;
-    const value = _.floor((this.state.seed / 0x7FFFFFFF) * 101);
+    this.state.seed = (this.state.seed * 1103515245 + 12345) & 0x7fffffff;
+    const value = _.floor((this.state.seed / 0x7fffffff) * 101);
     this.state.history.push(value);
     if (this.state.history.length > 100) {
       this.state.history.shift();
       this.state.pointer = _.max([0, this.state.pointer - 1]);
     }
     this.state.pointer++;
-    return (value % (max + 1));
+    return value % (max + 1);
   }
 
   get rng() {
-    if (this.state.seed === null) this.state.seed = Date.now() & 0x7FFFFFFF;
+    if (this.state.seed === null) this.state.seed = Date.now() & 0x7fffffff;
     if (this.state.pointer < this.state.history.length) {
       const value = this.state.history[this.state.pointer];
       this.state.pointer++;
       return (value % 100) + 1;
     }
-    this.state.seed = (this.state.seed * 1103515245 + 12345) & 0x7FFFFFFF;
-    const value = _.floor((this.state.seed / 0x7FFFFFFF) * 101);
+    this.state.seed = (this.state.seed * 1103515245 + 12345) & 0x7fffffff;
+    const value = _.floor((this.state.seed / 0x7fffffff) * 101);
     this.state.history.push(value);
     if (this.state.history.length > 100) {
       this.state.history.shift();
@@ -86,4 +88,4 @@ class randSystem {
   }
 }
 
-export default randSystem
+export default randSystem;

@@ -11,7 +11,7 @@ const feet_layers = {
       const check = nnpc.lower_tucked && !nnpc.clothes!.lower!.notuck && !nnpc.clothes!.feet!.notuck;
       if (check) return maplebirch.char.ZIndices.lower_tucked_feet + options.maplebirch.nnpc.position!;
       return maplebirch.char.ZIndices.feet + options.maplebirch.nnpc.position!;
-    },
+    }
   }),
   nnpc_feet_acc: clothes_layer('feet', 'acc', {
     zfn(options: LayerOptions) {
@@ -19,7 +19,7 @@ const feet_layers = {
       const check = nnpc.lower_tucked && !nnpc.clothes!.lower!.notuck && !nnpc.clothes!.feet!.notuck;
       if (check) return maplebirch.char.ZIndices.lower_tucked_feet + options.maplebirch.nnpc.position!;
       return maplebirch.char.ZIndices.feet + options.maplebirch.nnpc.position!;
-    },
+    }
   }),
   nnpc_feet_details: clothes_layer('feet', 'detail'),
   nnpc_feet_back: clothes_back('feet'),

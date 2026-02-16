@@ -15,16 +15,15 @@ export function production(rspack: typeof import('@rspack/core').rspack): Partia
             },
             mangle: {
               keep_classnames: true,
-              keep_fnames: true,
-              toplevel: true,
+              toplevel: true
             },
-            ecma: 2022,
-          },
-        }),
+            ecma: 2022
+          }
+        })
       ],
       usedExports: true,
       sideEffects: true,
-      concatenateModules: true,
-    },
+      concatenateModules: true
+    }
   };
 }

@@ -19,26 +19,28 @@ interface TimeEventOptions {
 
 const _ = maplebirch.lodash;
 
+// prettier-ignore
 const zoneMap: Record<string, string> = {
-  ModStatusBar:   'StatusBar',
-  ModMenuBig:     'MenuBig',
-  ModMenuSmall:   'MenuSmall',
-  iModInit:       'Init',
-  iModHeader:     'Header',
-  iModFooter:     'Footer',
-  iModOptions:    'Options',
-  iModSettings:   'Settings',
-  iModCheats:     'Cheats',
-  iModStatus:     'Status',
-  iModFame:       'Fame',
-  iModStatist:    'Statistics',
-  iModReady:      'State',
+  ModStatusBar  : 'StatusBar',
+  ModMenuBig    : 'MenuBig',
+  ModMenuSmall  : 'MenuSmall',
+  iModInit      : 'Init',
+  iModHeader    : 'Header',
+  iModFooter    : 'Footer',
+  iModOptions   : 'Options',
+  iModSettings  : 'Settings',
+  iModCheats    : 'Cheats',
+  iModStatus    : 'Status',
+  iModFame      : 'Fame',
+  iModStatist   : 'Statistics',
+  iModReady     : 'State',
   iModExtraStatist: 'Statistics',
-  iModInformation:  'Information',
-  ExtraLinkZone:    'AfterLinkZone',
+  iModInformation : 'Information',
+  ExtraLinkZone   : 'AfterLinkZone',
   ModCaptionAfterDescription: 'CaptionAfterDescription',
 };
 
+// prettier-ignore
 const methodPaths: Record<string, string> = {
   addTimeEvent:   'dynamic.regTimeEvent'      , // 添加时间事件
   addStateEvent:  'dynamic.regStateEvent'     , // 添加状态事件
@@ -84,7 +86,7 @@ interface SimpleFrameworks {
 
 const createFrameworkProxy = (): SimpleFrameworks => {
   const _ = maplebirch.lodash;
-  
+
   return new Proxy({} as SimpleFrameworks, {
     get: (target, prop: string) => {
       if (_.has(methodPaths, prop)) {
@@ -104,7 +106,7 @@ const createFrameworkProxy = (): SimpleFrameworks => {
       }
       return _.get(maplebirch, prop);
     },
-    
+
     set: (target, prop: string, value: any) => {
       _.set(maplebirch, prop, value);
       return true;

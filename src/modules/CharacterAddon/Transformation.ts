@@ -71,6 +71,7 @@ class Entry {
 class Transformation {
   private log: ReturnType<typeof createlog>;
   private config: Map<string, Entry> = new Map();
+  // prettier-ignore
   readonly decayConditions: { [key: string]: Array<() => boolean> } = {
     wolf: [
       () => V.wolfbuild >= 1,
@@ -101,8 +102,9 @@ class Transformation {
       () => playerNormalPregnancyType() !== 'fox'
     ]
   };
-  
-  private suppressConditions: { [key: string]: Array<(sourceName: string) => boolean> } = {
+
+  // prettier-ignore
+  readonly suppressConditions: { [key: string]: Array<(sourceName: string) => boolean> } = {
     wolf: [
       (sourceName: string) => sourceName !== 'wolf',
       () => V.worn.neck.name !== 'spiked collar',
@@ -129,7 +131,6 @@ class Transformation {
   };
 
   constructor(private manager: Character) {
-    this.manager = manager;
     this.log = manager.log;
     manager.core.once(':storyready', () => {
       manager.core.tool.macro.define('transform', (name: string, change: number) => this._transform(name, change));
@@ -147,7 +148,10 @@ class Transformation {
     const SCdata = oldSCdata.cloneSC2DataInfo();
     const file = SCdata.scriptFileItems.getByNameWithOrWithoutPath('effect.js');
     const replacements: [RegExp, string][] = [
-      [/errors\.pushUnique\(messageKey\);/g, 'if (maplebirch.char.transformation.message(messageKey, { element: element, sWikifier: sWikifier, fragment: fragment, wikifier: wikifier })) break;\n\t\t\t\t\terrors.pushUnique(messageKey);']
+      [
+        /errors\.pushUnique\(messageKey\);/g,
+        'if (maplebirch.char.transformation.message(messageKey, { element: element, sWikifier: sWikifier, fragment: fragment, wikifier: wikifier })) break;\n\t\t\t\t\terrors.pushUnique(messageKey);'
+      ]
     ];
     file.content = manager.replace(file.content, replacements);
     manager.addonReplacePatcher.gModUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
@@ -156,19 +160,19 @@ class Transformation {
   add(name: string, type: string, options: TransformationOption): this {
     const entry = new Entry(type, options.parts, options.traits, options);
     this.config.set(name, entry);
-    
+
     if (type === 'physical' && options.decay !== false && !this.decayConditions[name]) {
       this.decayConditions[name] = options.decayConditions ?? [() => V.maplebirch.transformation[name].build >= 1];
     }
-    
+
     if (type === 'physical' && options.suppress !== false && !this.suppressConditions[name]) {
       this.suppressConditions[name] = options.suppressConditions ?? [(sourceName: string) => sourceName !== name];
     }
-    
+
     if (options.pre && typeof options.pre === 'function') this.manager.use('pre', options.pre);
     if (options.post && typeof options.post === 'function') this.manager.use('post', options.post);
     if (options.layers && typeof options.layers === 'object') this.manager.use(options.layers);
-    
+
     if (typeof options.translations === 'object') {
       for (const key in options.translations) {
         if (options.translations.hasOwnProperty(key)) {
@@ -180,7 +184,7 @@ class Transformation {
         }
       }
     }
-    
+
     return this;
   }
 
@@ -193,79 +197,77 @@ class Transformation {
     const base = setup.transformations;
     const injected: Array<{ name: string; [x: string]: any }> = [];
     const baseNames = new Set<string>();
-    
+
     for (const tf of base) {
       if (tf?.name) baseNames.add(tf.name === 'fallenangel' ? 'fallenAngel' : tf.name);
     }
-    
+
     for (const [name, entry] of this.config) {
       if (!entry?.type) continue;
       injected.push({
         name,
-        get level() { return V.maplebirch?.transformation?.[name]?.level ?? 0; },
-        get build() { return V.maplebirch?.transformation?.[name]?.build ?? 0; },
+        get level() {
+          return V.maplebirch?.transformation?.[name]?.level ?? 0;
+        },
+        get build() {
+          return V.maplebirch?.transformation?.[name]?.build ?? 0;
+        },
         type: entry.type + 'Transform',
         parts: entry.parts || [],
         traits: entry.traits || []
       });
     }
-    
+
     setup.transformations = [...base, ...injected.filter(t => !baseNames.has(t.name))];
     V.maplebirch.transformation ??= {};
-    
+
     if (!V.transformationParts) V.transformationParts = {};
     if (!V.transformationParts.traits) V.transformationParts.traits = {};
-    
+
     const collectNames = (list: any[]): string[] => {
       if (!Array.isArray(list)) return [];
       return list.map(p => p?.name).filter(Boolean);
     };
-    
+
     for (const [name, entry] of this.config) {
-      if (!V.maplebirch.transformation[name]) {
-        V.maplebirch.transformation[name] = { level: 0, build: 0 };
-      }
-      
+      if (!V.maplebirch.transformation[name]) V.maplebirch.transformation[name] = { level: 0, build: 0 };
+
       if (entry.parts?.length) {
         if (!V.transformationParts[name]) V.transformationParts[name] = {};
         const original = V.transformationParts[name];
-        for (const partName of collectNames(entry.parts)) {
-          if (!(partName in original)) V.transformationParts[name][partName] = 'disabled';
-        }
+        for (const partName of collectNames(entry.parts)) if (!(partName in original)) V.transformationParts[name][partName] = 'disabled';
       }
-      
+
       if (entry.traits?.length) {
         if (!V.transformationParts.traits) V.transformationParts.traits = {};
         const original = V.transformationParts.traits;
-        for (const traitName of collectNames(entry.traits)) {
-          if (!(traitName in original)) V.transformationParts.traits[traitName] = 'disabled';
-        }
+        for (const traitName of collectNames(entry.traits)) if (!(traitName in original)) V.transformationParts.traits[traitName] = 'disabled';
       }
     }
   }
 
   _clear(): void {
     const valid = { names: new Set<string>(), traits: new Set<string>() };
-    
+
     if (Array.isArray(setup.transformations)) {
       setup.transformations.forEach((t: { name?: any; traits?: Array<{ name: any }> }) => {
         if (t?.name) valid.names.add(t.name === 'fallenangel' ? 'fallenAngel' : t.name);
         t?.traits?.forEach((trait: { name: any }) => trait?.name && valid.traits.add(trait.name));
       });
     }
-    
+
     if (V.maplebirch?.transformation) {
       Object.keys(V.maplebirch.transformation).forEach(name => {
         if (!valid.names.has(name)) delete V.maplebirch.transformation[name];
       });
     }
-    
+
     if (V.transformationParts) {
       Object.keys(V.transformationParts).forEach(name => {
         if (name === 'traits') return;
         if (!valid.names.has(name)) delete V.transformationParts[name];
       });
-      
+
       if (V.transformationParts.traits) {
         Object.keys(V.transformationParts.traits).forEach(trait => {
           if (!valid.traits.has(trait)) delete V.transformationParts.traits[trait];
@@ -278,30 +280,29 @@ class Transformation {
     const absChange = Math.abs(change);
     for (const [target, conditions] of Object.entries(this.suppressConditions)) {
       if (target === name) continue;
-      if (conditions.every((condition: (sourceName: string) => boolean) => condition(name))) {
-        this._transform(target, -absChange);
-      }
+      if (conditions.every((condition: (sourceName: string) => boolean) => condition(name))) this._transform(target, -absChange);
     }
   }
 
   _transform(name: string, change: number): void {
     if (!change) return;
-    
-    let type = '';
+
+    let _type = '';
     if (Array.isArray(setup.transformations)) {
       const transformation = setup.transformations.find((t: { name: string }) => t.name === name);
-      if (transformation) type = transformation.type;
+      if (transformation) _type = transformation.type;
     }
-    
+
+    // prettier-ignore
     switch (name) {
-      case 'wolf': V.wolfbuild = Math.clamp(V.wolfbuild + change, 0, 100); break;
-      case 'cat': V.catbuild = Math.clamp(V.catbuild + change, 0, 100); break;
-      case 'cow': V.cowbuild = Math.clamp(V.cowbuild + change, 0, 100); break;
-      case 'bird': V.birdbuild = Math.clamp(V.birdbuild + change, 0, 100); break;
-      case 'fox': V.foxbuild = Math.clamp(V.foxbuild + change, 0, 100); break;
-      case 'angel': V.angelbuild = Math.clamp(V.angelbuild + change, 0, 100); break;
+      case 'wolf'  : V.wolfbuild   = Math.clamp(V.wolfbuild + change, 0, 100); break;
+      case 'cat'   : V.catbuild    = Math.clamp(V.catbuild + change, 0, 100); break;
+      case 'cow'   : V.cowbuild    = Math.clamp(V.cowbuild + change, 0, 100); break;
+      case 'bird'  : V.birdbuild   = Math.clamp(V.birdbuild + change, 0, 100); break;
+      case 'fox'   : V.foxbuild    = Math.clamp(V.foxbuild + change, 0, 100); break;
+      case 'angel' : V.angelbuild  = Math.clamp(V.angelbuild + change, 0, 100); break;
       case 'fallen': V.fallenbuild = Math.clamp(V.fallenbuild + change, 0, 100); break;
-      case 'demon': V.demonbuild = Math.clamp(V.demonbuild + change, 0, 100); break;
+      case 'demon' : V.demonbuild  = Math.clamp(V.demonbuild + change, 0, 100); break;
       default: 
         const config = this.config.get(name);
         if (config) {
@@ -311,45 +312,38 @@ class Transformation {
         }
         break;
     }
-    
-    if (this.suppressConditions.hasOwnProperty(name) && change > 0 && 
-        !(V.worn.neck.name === 'familiar collar' && V.worn.neck.cursed === 1)) {
-      this.#suppress(name, change);
-    }
+
+    if (this.suppressConditions.hasOwnProperty(name) && change > 0 && !(V.worn.neck.name === 'familiar collar' && V.worn.neck.cursed === 1)) this.#suppress(name, change);
   }
 
   updateTransform(name: string): void {
     const entry = this.config.get(name);
     if (!entry) return;
-    
+
     const Build = V.maplebirch?.transformation?.[name]?.build ?? 0;
     const Level = V.maplebirch?.transformation?.[name]?.level ?? 0;
     const maxLevel = entry.level ?? 6;
-    
+
     if (Array.isArray(entry.update)) {
       const thresholds = entry.update;
       if (Level < maxLevel && Build >= thresholds[Level]) {
         V.maplebirch.transformation[name].level = Level + 1;
         this._updateParts(name, Level, Level + 1);
-        if (V.timeMessages && !V.timeMessages.includes(`${name}Up${Level + 1}`)) {
-          V.timeMessages.push(`${name}Up${Level + 1}`);
-        }
+        if (V.timeMessages && !V.timeMessages.includes(`${name}Up${Level + 1}`)) V.timeMessages.push(`${name}Up${Level + 1}`);
       } else if (Level > 0 && Build < thresholds[Level - 1]) {
         V.maplebirch.transformation[name].level = Level - 1;
         this._updateParts(name, Level, Level - 1);
-        if (V.timeMessages && !V.timeMessages.includes(`${name}Down${Level}`)) {
-          V.timeMessages.push(`${name}Down${Level}`);
-        }
+        if (V.timeMessages && !V.timeMessages.includes(`${name}Down${Level}`)) V.timeMessages.push(`${name}Down${Level}`);
       }
     }
   }
-  
+
   _updateParts(name: string, oldLevel: number, newLevel: number): void {
     const entry = this.config.get(name);
     if (!entry || !entry.parts) return;
-    
+
     V.transformationParts[name] ??= {};
-    
+
     for (const part of entry.parts) {
       if (!part.name || part.tfRequired === undefined) continue;
       if (newLevel >= part.tfRequired) {
@@ -358,7 +352,7 @@ class Transformation {
         V.transformationParts[name][part.name] = 'disabled';
       }
     }
-    
+
     if (entry.traits) {
       V.transformationParts.traits ??= {};
       for (const trait of entry.traits) {
@@ -383,7 +377,7 @@ class Transformation {
         this.#wikifier('fallenButNotOut', V.fallenangel);
       }
     }
-    
+
     // 动物转化
     if (V.settings.transformAnimalEnabled) {
       const transforms: Array<{ name: string; level: number; build: number }> = [
@@ -393,7 +387,7 @@ class Transformation {
         { name: 'bird', level: V.harpy, build: V.birdbuild },
         { name: 'fox', level: V.fox, build: V.foxbuild }
       ];
-      
+
       for (const [name, entry] of this.config) {
         if (entry.type === 'physical') {
           transforms.push({
@@ -403,10 +397,10 @@ class Transformation {
           });
         }
       }
-      
+
       const maxLevel = Math.max(...transforms.map(t => t.level));
       let selected: { name: string; level: number; build: number } | null = null;
-      
+
       if (maxLevel > 0) {
         const highest = transforms.filter(t => t.level === maxLevel);
         selected = highest[0];
@@ -417,16 +411,17 @@ class Transformation {
           if (highest.length === 1) selected = highest[0];
         }
       }
-      
+
       if (selected) {
+        // prettier-ignore
         const vanilla: { [key: string]: [string, number] } = {
           'wolf': ['wolfTransform', V.wolfgirl],
-          'cat': ['catTransform', V.cat],
-          'cow': ['cowTransform', V.cow],
+          'cat' : ['catTransform', V.cat],
+          'cow' : ['cowTransform', V.cow],
           'bird': ['harpyTransform', V.harpy],
-          'fox': ['foxTransform', V.fox]
+          'fox' : ['foxTransform', V.fox]
         };
-        
+
         if (vanilla[selected.name]) {
           const [macro, level] = vanilla[selected.name];
           this.#wikifier(macro, level);
@@ -435,7 +430,7 @@ class Transformation {
         }
       }
     }
-    
+
     // 其它类型
     for (const [name, entry] of this.config) {
       if (entry.type === 'physical') continue;
@@ -447,26 +442,28 @@ class Transformation {
     // 0.5.6：眷属项圈检查
     if (!(V.worn.neck.name === 'familiar collar' && V.worn.neck.cursed === 1)) {
       Object.entries(this.decayConditions).forEach(([animal, conditions]) => {
-        if (conditions.every((condition: () => boolean) => condition())) {
-          this._transform(animal, -1);
-        }
+        if (conditions.every((condition: () => boolean) => condition())) this._transform(animal, -1);
       });
     }
-    
+
     if (V.wolfgirl >= 6) this.#wikifier('def', 5);
-    
+
     this._transformationAlteration();
-    
-    V.physicalTransform = (V.cat > 0 || V.wolfgirl > 0 || V.cow > 0 || V.harpy > 0 || V.fox > 0 || 
-      Array.from(this.config.entries()).some(([name, entry]) => 
-        entry.type === 'physical' && (V.maplebirch?.transformation?.[name]?.level ?? 0) > 0
-      )) ? 1 : 0;
-    
-    if ((V.physicalTransform === 1 || V.specialTransform === 1) && 
-        !(V.hypnosis_traits?.peace && V.settings.hypnosisEnabled)) {
+
+    V.physicalTransform =
+      V.cat > 0 ||
+      V.wolfgirl > 0 ||
+      V.cow > 0 ||
+      V.harpy > 0 ||
+      V.fox > 0 ||
+      Array.from(this.config.entries()).some(([name, entry]) => entry.type === 'physical' && (V.maplebirch?.transformation?.[name]?.level ?? 0) > 0)
+        ? 1
+        : 0;
+
+    if ((V.physicalTransform === 1 || V.specialTransform === 1) && !(V.hypnosis_traits?.peace && V.settings.hypnosisEnabled)) {
       this.#handleHiddenTransformParts();
     }
-    
+
     // 0.5.6 转化历史
     for (const tf of ['angel', 'fallenangel', 'demon', 'dryad', 'wolfgirl', 'cat', 'cow', 'harpy', 'fox']) {
       const level = V[tf as keyof typeof V] as number;
@@ -476,7 +473,7 @@ class Transformation {
         if (!V.transformationHistory.includes(tf)) V.transformationHistory.push(tf);
       }
     }
-    
+
     for (const [name, entry] of this.config) {
       const level = V.maplebirch?.transformation?.[name]?.level ?? 0;
       const max = entry.level ?? 6;
@@ -489,12 +486,12 @@ class Transformation {
 
   #handleHiddenTransformParts(): void {
     let excludeWings = false;
-    
+
     if (V.harpy >= 6 && V.transformationParts.bird?.wings !== 'hidden') {
       if (V.angel >= 6 && V.transformationParts.angel?.wings !== 'hidden') excludeWings = true;
       if (V.fallenangel >= 2 && V.transformationParts.fallenAngel?.wings !== 'hidden') excludeWings = true;
       if (V.demon >= 6 && V.transformationParts.demon?.wings !== 'hidden') excludeWings = true;
-      
+
       if (!excludeWings) {
         for (const [name, entry] of this.config) {
           const wingsPart = entry.parts?.find(p => p.name === 'wings');
@@ -508,16 +505,16 @@ class Transformation {
         }
       }
     }
-    
+
     for (const key in V.transformationParts) {
       if (key === 'traits') continue;
       const parts = V.transformationParts[key];
       if (!parts) continue;
-      
+
       for (const [label, value] of Object.entries(parts as { [key: string]: any })) {
         if (value !== 'hidden' || ['pubes', 'pits'].includes(label)) continue;
         if (label === 'wings' && excludeWings) continue;
-        
+
         if (V.panicattacks >= 2) {
           V.transformationParts[key][label] = 'default';
           V.effectsmessage = 1;
@@ -530,70 +527,64 @@ class Transformation {
       }
     }
   }
-  
+
   message(key: string, tools: { element: (tag: string, text: any, className?: string) => void; wikifier: (macro: string, param: string) => void }): boolean {
     const match = key.match(/^([a-z]+)(Up|Down)(\d+)$/i);
     if (!match) return false;
-    
+
     const [, name, direction, levelStr] = match;
     const level = parseInt(levelStr);
     const entry = this.config.get(name);
-    
+
     if (!entry || !entry.message) return false;
-    
+
     const lang = maplebirch.Language as string;
     if (!entry.message[lang]) return false;
-    
+
     const messageArray = entry.message[lang][direction.toLowerCase() as 'up' | 'down'];
     if (!messageArray) return false;
-    
+
     const index = direction === 'Up' ? level - 1 : level;
     if (index < 0 || index >= messageArray.length) return false;
-    
+
     const messageText = messageArray[index];
     if (!messageText) return false;
-    
+
     tools.element('span', messageText, 'gold');
-    
+
     if (direction === 'Up' && level === entry.level) {
       const featName = name.charAt(0).toUpperCase() + name.slice(1);
       tools.wikifier('earnFeat', `'${featName}'`);
     }
-    
+
     return true;
   }
 
   get icon(): string {
-    const activeTfs = setup.transformations.filter((tf: { parts: any[]; level: number }) => 
-      tf.parts?.some((part: any) => tf.level >= part.tfRequired)
-    );
-    
+    const activeTfs = setup.transformations.filter((tf: { parts: any[]; level: number }) => tf.parts?.some((part: any) => tf.level >= part.tfRequired));
+
     if (activeTfs.length === 0) return '<<tficon "angel">>';
-    
+
     let highestTf = activeTfs[0];
-    for (let i = 1; i < activeTfs.length; i++) {
-      if (activeTfs[i].level > highestTf.level) highestTf = activeTfs[i];
-    }
-    
+    for (let i = 1; i < activeTfs.length; i++) if (activeTfs[i].level > highestTf.level) highestTf = activeTfs[i];
+
     const tfName = highestTf.name;
-    for (const [name, entry] of this.config) {
-      if (name === tfName && entry?.icon) return `<<icon '${entry.icon}'>>`;
-    }
-    
+    for (const [name, entry] of this.config) if (name === tfName && entry?.icon) return `<<icon '${entry.icon}'>>`;
+
     return `<<tficon '${tfName}'>>`;
   }
 
   setTransform(name: string, level: number | null): void {
     const entry = this.config.get(name);
     if (!entry) return;
-    
+
     const data: TransformData = V.maplebirch?.transformation?.[name];
     if (!data) return;
-    
+
     const maxLevel = entry.level ?? 6;
     const oldLevel = data.level ?? 0;
     let newLevel: number, newBuild: number;
-    
+
     if (level == null) {
       newLevel = maxLevel;
     } else if (level <= 0) {
@@ -601,7 +592,7 @@ class Transformation {
     } else {
       newLevel = Math.min(level, maxLevel);
     }
-    
+
     if (newLevel === 0) {
       newBuild = 0;
     } else if (Array.isArray(entry.update) && newLevel > 0) {
@@ -609,11 +600,11 @@ class Transformation {
     } else {
       newBuild = Math.round((newLevel / maxLevel) * (entry.build ?? 100));
     }
-    
+
     data.level = newLevel;
     data.build = newBuild;
     this._updateParts(name, oldLevel, newLevel);
   }
 }
 
-export default Transformation
+export default Transformation;

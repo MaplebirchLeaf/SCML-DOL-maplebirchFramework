@@ -10,14 +10,16 @@ interface TextHandler {
 }
 
 class Builder {
-  parent: htmlTools;
   auto: (text: string) => string;
   fragment: DocumentFragment;
   context: Record<string, any>;
 
-  constructor(parent: htmlTools, fragment: DocumentFragment, context: Record<string, any> = {}) {
-    this.parent = parent;
-    this.auto = parent.core.auto as (text: string) => string;
+  constructor(
+    readonly parent: htmlTools,
+    fragment: DocumentFragment,
+    context: Record<string, any> = {}
+  ) {
+    this.auto = parent.core.auto.bind(this) as (text: string) => string;
     this.fragment = fragment;
     this.context = context;
   }
@@ -67,9 +69,9 @@ class Builder {
   box(content: Node | string | null, style?: string) {
     const box = document.createElement('div');
     if (style) box.classList.add(style);
-    if (content == null) { 
-      this.fragment.appendChild(box); 
-      return this; 
+    if (content == null) {
+      this.fragment.appendChild(box);
+      return this;
     }
     if (content instanceof Node) {
       box.appendChild(content);
@@ -80,7 +82,7 @@ class Builder {
     this.fragment.appendChild(box);
     return this;
   }
-};
+}
 
 class htmlTools {
   core: ToolCollection['core'];
@@ -97,21 +99,17 @@ class htmlTools {
     return this.core.SugarCube.Wikifier as typeof Wikifier;
   }
 
-  replaceText(oldText: string | any, newText: string) {
+  replaceText(oldText: string, newText: string) {
     const passageContent = document.getElementById('passage-content');
     if (!passageContent) return;
     const targetText = window.lanSwitch(oldText);
     const actualNewText = window.lanSwitch(newText);
     const fullText = passageContent.textContent;
     if (!fullText || !fullText.includes(targetText)) return;
-    const walker = document.createTreeWalker(
-      passageContent,
-      NodeFilter.SHOW_TEXT,
-      null,
-    );
+    const walker = document.createTreeWalker(passageContent, NodeFilter.SHOW_TEXT, null);
     let node: Node | null;
     const nodesToReplace: Node[] = [];
-    while (node = walker.nextNode()) if (node.textContent && node.textContent.includes(targetText)) nodesToReplace.push(node);
+    while ((node = walker.nextNode())) if (node.textContent && node.textContent.includes(targetText)) nodesToReplace.push(node);
     nodesToReplace.forEach(node => {
       try {
         const containerId = `textReplace_${Date.now()}_${Math.random()}`;
@@ -121,14 +119,14 @@ class htmlTools {
         new this.core.SugarCube.Wikifier(null, `<<replace '#${containerId}'>>${actualNewText}<</replace>>`);
       } catch (error) {
         this.log('replaceText:', 'ERROR', error);
-        try { 
-          if (node.textContent) node.textContent = actualNewText; 
-        } catch (e) { }
+        try {
+          if (node.textContent) node.textContent = actualNewText;
+        } catch {}
       }
     });
   }
 
-  replaceLink(oldLink: string | any, newLink: string) {
+  replaceLink(oldLink: string, newLink: string) {
     const passageContent = document.getElementById('passage-content');
     if (!passageContent) return;
     const targetLink = window.lanSwitch(oldLink);
@@ -144,8 +142,10 @@ class htmlTools {
           new this.core.SugarCube.Wikifier(null, `<<replace '#${containerId}'>>${actualNewLink}<</replace>>`);
           break;
         } catch (error) {
-          this.log('replaceLink:', 'ERROR', error)
-          try { link.outerHTML = actualNewLink; } catch (e) {}
+          this.log('replaceLink:', 'ERROR', error);
+          try {
+            link.outerHTML = actualNewLink;
+          } catch {}
         }
       }
     }
@@ -157,7 +157,7 @@ class htmlTools {
       return false;
     }
     if (!this.store.has(key)) this.store.set(key, []);
-    const finalId = id ?? `ts_${random(0, 0xFFFFFFFF)}`;
+    const finalId = id ?? `ts_${random(0, 0xffffffff)}`;
     this.store.get(key)!.push({ id: finalId, fn: handler });
     this.log(`已注册处理器 [${key}] (ID: ${finalId})`, 'DEBUG');
     return finalId;
@@ -194,12 +194,20 @@ class htmlTools {
   renderFragment(keys: string | string[], context: Record<string, any> = {}): DocumentFragment {
     const fragment = document.createDocumentFragment();
     const tools = new Builder(this, fragment, context);
-    const list = Array.isArray(keys) ? keys.slice() : (keys == null ? [] : [keys]);
+    const list = Array.isArray(keys) ? keys.slice() : keys == null ? [] : [keys];
     for (const key of list) {
-      if (!this.store.has(key)) { this.log(`渲染片段: 未找到键值 [${key}]`, 'DEBUG'); continue; }
+      if (!this.store.has(key)) {
+        this.log(`渲染片段: 未找到键值 [${key}]`, 'DEBUG');
+        continue;
+      }
       const handlers = this.store.get(key)!.slice();
       this.log(`开始渲染键值 [${key}] (${handlers.length} 个处理器)`, 'DEBUG');
-      for (const { fn } of handlers) try { fn(tools); } catch (e: any) { this.log(`处理器错误 [${key}]: ${e?.message || e}`, 'ERROR'); }
+      for (const { fn } of handlers)
+        try {
+          fn(tools);
+        } catch (e: any) {
+          this.log(`处理器错误 [${key}]: ${e?.message || e}`, 'ERROR');
+        }
     }
     return fragment;
   }
@@ -224,14 +232,20 @@ class htmlTools {
 
   makeTextOutput(options: { CSV?: boolean } = {}) {
     const cfg = this.core.lodash.defaults({}, options, { CSV: true });
-    const self = this;
+    const self = this as this;
     return function (this: any) {
       const raw = this.args && this.args.length ? this.args[0] : null;
-      let keys: string|string[] | null = raw;
-      if (cfg.CSV && this.core.lodash.isString(raw) && raw.includes(',')) keys = this.core.lodash.chain(raw).split(',').map((s: string) => s.trim()).filter(Boolean).value();
+      let keys: string | string[] | null = raw;
+      if (cfg.CSV && this.core.lodash.isString(raw) && raw.includes(','))
+        keys = this.core.lodash
+          .chain(raw)
+          .split(',')
+          .map((s: string) => s.trim())
+          .filter(Boolean)
+          .value();
       self.render(this, keys as string | string[]);
     };
   }
 }
 
-export default htmlTools
+export default htmlTools;

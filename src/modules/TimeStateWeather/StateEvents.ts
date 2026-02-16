@@ -63,12 +63,19 @@ class StateEvent {
 
   private _check(): boolean {
     let ok = false;
-    try { ok = !!this.cond(); }
-    catch (e: any) { maplebirch.log(`[StateEvent:${this.id}] cond error:`, 'ERROR', e); return false; }
+    try {
+      ok = !!this.cond();
+    } catch (e: any) {
+      maplebirch.log(`[StateEvent:${this.id}] cond error:`, 'ERROR', e);
+      return false;
+    }
     if (!ok) return false;
     if (this.action) {
-      try { this.action(); }
-      catch (e: any) { maplebirch.log(`[StateEvent:${this.id}] action error:`, 'ERROR', e); }
+      try {
+        this.action();
+      } catch (e: any) {
+        maplebirch.log(`[StateEvent:${this.id}] action error:`, 'ERROR', e);
+      }
     }
     return !!this.once;
   }
@@ -79,10 +86,9 @@ export class StateManager {
   private readonly log: (message: string, level?: string, ...objects: any[]) => void;
 
   constructor(private readonly manager: DynamicManager) {
-    this.manager = manager;
     this.log = manager.log;
     const eventTypes = ['interrupt', 'overlay'];
-    eventTypes.forEach(type => this.stateEvents[type] = new Map());
+    eventTypes.forEach(type => (this.stateEvents[type] = new Map()));
   }
 
   trigger(type: 'interrupt' | 'overlay'): string {
@@ -99,7 +105,7 @@ export class StateManager {
     for (const event of sortedEvents) {
       const result = event.tryRun(passageName);
       if (result) {
-        const [hasOutput, hasAction, shouldRemove] = result;
+        const [hasOutput, , shouldRemove] = result;
         if (hasOutput && event.output) {
           if (shouldRemove) this.unregister('interrupt', event.id);
           return event.forceExit ? `<<${event.output}>><<exitAll>>` : `<<${event.output}>>`;
@@ -118,7 +124,7 @@ export class StateManager {
     for (const event of sortedEvents) {
       const result = event.tryRun(passageName);
       if (result) {
-        const [hasOutput, hasAction, shouldRemove] = result;
+        const [hasOutput, , shouldRemove] = result;
         if (hasOutput && event.output) outputs.push(`<<${event.output}>>`);
         if (shouldRemove) toRemove.push(event.id);
       }
@@ -128,16 +134,28 @@ export class StateManager {
   }
 
   register(type: string, eventId: string, options: StateEventOptions): boolean {
-    if (!(type in this.stateEvents)) { this.log(`未知的状态事件类型: ${type}`, 'ERROR'); return false; }
-    if (this.stateEvents[type].has(eventId)) { this.log(`事件ID已存在: ${type}.${eventId}`, 'WARN'); return false; }
+    if (!(type in this.stateEvents)) {
+      this.log(`未知的状态事件类型: ${type}`, 'ERROR');
+      return false;
+    }
+    if (this.stateEvents[type].has(eventId)) {
+      this.log(`事件ID已存在: ${type}.${eventId}`, 'WARN');
+      return false;
+    }
     this.stateEvents[type].set(eventId, new StateEvent(eventId, type, options));
     this.log(`注册状态事件: ${type}.${eventId}`, 'DEBUG');
     return true;
   }
 
   unregister(type: string, eventId: string): boolean {
-    if (!this.stateEvents[type]) { this.log(`事件类型不存在: ${type}`, 'WARN'); return false; }
-    if (this.stateEvents[type].delete(eventId)) { this.log(`注销时间事件: ${type}.${eventId}`, 'DEBUG'); return true; }
+    if (!this.stateEvents[type]) {
+      this.log(`事件类型不存在: ${type}`, 'WARN');
+      return false;
+    }
+    if (this.stateEvents[type].delete(eventId)) {
+      this.log(`注销时间事件: ${type}.${eventId}`, 'DEBUG');
+      return true;
+    }
     this.log(`未找到事件: ${type}.${eventId}`, 'DEBUG');
     return false;
   }

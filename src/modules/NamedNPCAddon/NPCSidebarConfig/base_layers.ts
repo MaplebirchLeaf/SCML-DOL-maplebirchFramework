@@ -78,7 +78,7 @@ const base_layers = {
     },
     srcfn(options: LayerOptions) {
       if (!options.maplebirch.nnpc.breasts) return '';
-      const suffix = (options.maplebirch.nnpc.breasts === 'cleavage' && (options.maplebirch.nnpc.breast_size || 0) >= 3) ? '_clothed.png' : '.png';
+      const suffix = options.maplebirch.nnpc.breasts === 'cleavage' && (options.maplebirch.nnpc.breast_size || 0) >= 3 ? '_clothed.png' : '.png';
       return `img/body/breasts/breasts${options.maplebirch.nnpc.breast_size || 0}${suffix}`;
     },
     showfn(options: LayerOptions) {
@@ -125,7 +125,7 @@ const base_layers = {
       return options.maplebirch.nnpc.show && options.maplebirch.nnpc.model;
     },
     zfn(options: LayerOptions) {
-      return (options.maplebirch.nnpc.arm_right === 'cover' || options.maplebirch.nnpc.arm_right === 'hold') ? maplebirch.char.ZIndices.arms_cover : options.maplebirch.nnpc.zarms!;
+      return options.maplebirch.nnpc.arm_right === 'cover' || options.maplebirch.nnpc.arm_right === 'hold' ? maplebirch.char.ZIndices.arms_cover : options.maplebirch.nnpc.zarms!;
     },
     dxfn(options: LayerOptions) {
       return options.maplebirch.nnpc.dxfn!;
@@ -159,7 +159,9 @@ const base_layers = {
     },
     zfn(options: LayerOptions) {
       if (!options.maplebirch.nnpc.crotch_exposed) return maplebirch.char.ZIndices.penisunderclothes + options.maplebirch.nnpc.position!;
-      return options.maplebirch.nnpc.genitals_chastity ? maplebirch.char.ZIndices.penis_chastity + options.maplebirch.nnpc.position! : maplebirch.char.ZIndices.penis + options.maplebirch.nnpc.position!;
+      return options.maplebirch.nnpc.genitals_chastity
+        ? maplebirch.char.ZIndices.penis_chastity + options.maplebirch.nnpc.position!
+        : maplebirch.char.ZIndices.penis + options.maplebirch.nnpc.position!;
     },
     dxfn(options: LayerOptions) {
       return options.maplebirch.nnpc.dxfn!;
@@ -189,7 +191,7 @@ const base_layers = {
     dyfn(options: LayerOptions) {
       return options.maplebirch.nnpc.dyfn!;
     },
-    filters: ['nnpc_tan'],
+    filters: ['nnpc_tan']
   },
   nnpc_ears: {
     masksrcfn(options: LayerOptions) {
@@ -231,7 +233,7 @@ const base_layers = {
     dyfn(options: LayerOptions) {
       return options.maplebirch.nnpc.dyfn!;
     },
-    filters: ['nnpc_tan'],
+    filters: ['nnpc_tan']
   },
   nnpc_sclera: {
     masksrcfn(options: LayerOptions) {
@@ -251,7 +253,7 @@ const base_layers = {
     },
     dyfn(options: LayerOptions) {
       return options.maplebirch.nnpc.dyfn!;
-    },
+    }
   },
   nnpc_iris: {
     masksrcfn(options: LayerOptions) {
@@ -297,7 +299,7 @@ const base_layers = {
     filters: ['nnpc_tan'],
     animationfn(options: LayerOptions) {
       return options.blink ? 'blink' : '';
-    },
+    }
   },
   nnpc_lashes: {
     masksrcfn(options: LayerOptions) {
@@ -376,10 +378,7 @@ const base_layers = {
       return !!options.maplebirch.nnpc.hair_sides_type && options.maplebirch.nnpc.show && options.maplebirch.nnpc.model;
     },
     zfn(options: LayerOptions) {
-      return (options.maplebirch.nnpc.hair_position === 'front' ?
-        maplebirch.char.ZIndices.hairforwards :
-        maplebirch.char.ZIndices.backhair) +
-        options.maplebirch.nnpc.position!;
+      return (options.maplebirch.nnpc.hair_position === 'front' ? maplebirch.char.ZIndices.hairforwards : maplebirch.char.ZIndices.backhair) + options.maplebirch.nnpc.position!;
     },
     dxfn(options: LayerOptions) {
       return options.maplebirch.nnpc.dxfn!;
@@ -392,8 +391,10 @@ const base_layers = {
   },
   nnpc_hair_fringe: {
     masksrcfn(options: LayerOptions) {
-      const fringe_mask_src = (['fro', 'afro pouf', 'afro puffs'].includes(options.maplebirch.nnpc.hair_sides_type!) && options.maplebirch.nnpc.hair_fringe_type === 'fro') ?
-        [options.maplebirch.nnpc.close_up_mask, `img/hair/fringe/${options.maplebirch.nnpc.hair_fringe_type}/mask.png`] : options.maplebirch.nnpc.close_up_mask;
+      const fringe_mask_src =
+        ['fro', 'afro pouf', 'afro puffs'].includes(options.maplebirch.nnpc.hair_sides_type!) && options.maplebirch.nnpc.hair_fringe_type === 'fro'
+          ? [options.maplebirch.nnpc.close_up_mask, `img/hair/fringe/${options.maplebirch.nnpc.hair_fringe_type}/mask.png`]
+          : options.maplebirch.nnpc.close_up_mask;
 
       return options.maplebirch.nnpc.head_mask ? options.maplebirch.nnpc.head_mask : fringe_mask_src;
     },
@@ -420,9 +421,27 @@ const base_layers = {
       return options.maplebirch.nnpc.head_mask;
     },
     srcfn(options: LayerOptions) {
-      const hairs = ['default', 'loose', 'curl', 'defined curl', 'neat', 'dreads', 'afro pouf', 'thick ponytail', 'all down', 'half-up', 'messy ponytail', 'ruffled', 'half up twintail', 'princess wave', 'space buns', 'sleek', 'bedhead'];
+      const hairs = [
+        'default',
+        'loose',
+        'curl',
+        'defined curl',
+        'neat',
+        'dreads',
+        'afro pouf',
+        'thick ponytail',
+        'all down',
+        'half-up',
+        'messy ponytail',
+        'ruffled',
+        'half up twintail',
+        'princess wave',
+        'space buns',
+        'sleek',
+        'bedhead'
+      ];
       const path = `img/hair/back/${options.maplebirch.nnpc.hair_sides_type}`;
-      if (options.hair_sides_length === 'feet' && ([...hairs, 'straight'].includes(options.maplebirch.nnpc.hair_sides_type!))) return `${path}/feet.png`;
+      if (options.hair_sides_length === 'feet' && [...hairs, 'straight'].includes(options.maplebirch.nnpc.hair_sides_type!)) return `${path}/feet.png`;
       if (options.hair_sides_length === 'thighs' && hairs.includes(options.maplebirch.nnpc.hair_sides_type!)) return `${path}/thighs.png`;
       if (options.hair_sides_length === 'navel' && options.maplebirch.nnpc.hair_sides_type === 'messy ponytail') return `${path}/navel.png`;
     },

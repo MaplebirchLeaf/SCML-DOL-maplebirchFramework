@@ -28,16 +28,8 @@ function clone(source: any, opt: { deep?: boolean; proto?: boolean } = {}, map =
     return copy;
   }
   if (ArrayBuffer.isView(source)) {
-    const Constructor = source.constructor as new (
-      buffer: ArrayBufferLike,
-      byteOffset?: number,
-      length?: number
-    ) => any;
-    return new Constructor(
-      source.buffer.slice(0),
-      source.byteOffset,
-      source.byteLength
-    );
+    const Constructor = source.constructor as new (buffer: ArrayBufferLike, byteOffset?: number, length?: number) => any;
+    return new Constructor(source.buffer.slice(0), source.byteOffset, source.byteLength);
   }
   if (source instanceof ArrayBuffer) return source.slice(0);
   if (typeof source === 'function') return source;
@@ -92,7 +84,9 @@ function merge(target: any, ...sources: any[]): any {
         t[key] = sv;
       } else if (Array.isArray(sv) && Array.isArray(tv)) {
         switch (mode) {
-          case 'concat': t[key] = [...tv, ...sv]; break;
+          case 'concat':
+            t[key] = [...tv, ...sv];
+            break;
           case 'merge':
             const max = Math.max(tv.length, sv.length);
             t[key] = Array.from({ length: max }, (_, i) => {
@@ -101,7 +95,8 @@ function merge(target: any, ...sources: any[]): any {
               else return sv[i];
             });
             break;
-          default: t[key] = [...sv];
+          default:
+            t[key] = [...sv];
         }
       } else if (typeof sv === 'object' && sv !== null && typeof tv === 'object' && tv !== null) {
         t[key] = mergeRec(tv, sv, depth + 1);
@@ -122,12 +117,7 @@ function merge(target: any, ...sources: any[]): any {
  * @example contains(['A','B'], 'a', 'all', {case:false}) // true
  * @example contains([{x:1}], {x:1}, 'all', {deep:true}) // true
  */
-function contains(
-  arr: any[],
-  value: any | any[],
-  mode: 'all' | 'any' | 'none' = 'all',
-  opt: { case?: boolean; compare?: Function; deep?: boolean } = {}
-): boolean {
+function contains(arr: any[], value: any, mode: 'all' | 'any' | 'none' = 'all', opt: { case?: boolean; compare?: Function; deep?: boolean } = {}): boolean {
   if (!Array.isArray(arr)) return false;
   const { case: cs = true, compare = null, deep = false } = opt;
   const match = (item: unknown, val: unknown) => {
@@ -139,10 +129,14 @@ function contains(
   };
   if (!Array.isArray(value)) return _.some(arr, item => match(item, value));
   switch (mode) {
-    case 'all': return _.every(value, v => _.some(arr, item => match(item, v)));
-    case 'any': return _.some(value, v => _.some(arr, item => match(item, v)));
-    case 'none': return _.every(value, v => !_.some(arr, item => match(item, v)));
-    default: throw new Error(`Invalid mode: '${mode}'. Expected 'all', 'any' or 'none'.`);
+    case 'all':
+      return _.every(value, v => _.some(arr, item => match(item, v)));
+    case 'any':
+      return _.some(value, v => _.some(arr, item => match(item, v)));
+    case 'none':
+      return _.every(value, v => !_.some(arr, item => match(item, v)));
+    default:
+      throw new Error(`Invalid mode: '${mode as string}'. Expected 'all', 'any' or 'none'.`);
   }
 }
 
@@ -275,7 +269,9 @@ class SelectCase {
   /** 子字符串匹配 */
   caseIncludes(subs: string | string[], result: any): this {
     if (!Array.isArray(subs)) subs = [subs];
-    _.each(subs, s => { if (typeof s !== 'string') throw new TypeError('substrings must be strings'); });
+    _.each(subs, s => {
+      if (typeof s !== 'string') throw new TypeError('substrings must be strings');
+    });
     this.#validateType('string');
     this.cases.push({ type: 'substring', condition: subs, result });
     return this;
@@ -309,22 +305,44 @@ class SelectCase {
     for (const { type, condition, result } of this.cases) {
       let matched = false;
       switch (type) {
-        case 'exact': matched = (input === condition); break;
-        case 'range': matched = (input >= condition[0] && input <= condition[1]); break;
-        case 'set': matched = _.includes(condition, input); break;
-        case 'substring': matched = typeof input === 'string' && _.some(condition, (sub: string) => _.includes(input, sub)); break;
-        case 'regex': matched = typeof input === 'string' && condition.test(input); break;
+        case 'exact':
+          matched = input === condition;
+          break;
+        case 'range':
+          matched = input >= condition[0] && input <= condition[1];
+          break;
+        case 'set':
+          matched = _.includes(condition, input);
+          break;
+        case 'substring':
+          matched = typeof input === 'string' && _.some(condition, (sub: string) => _.includes(input, sub));
+          break;
+        case 'regex':
+          matched = typeof input === 'string' && condition.test(input);
+          break;
         case 'comparison':
           const { comparator, value } = condition;
           switch (comparator) {
-            case '<': matched = (input < value); break;
-            case '<=': matched = (input <= value); break;
-            case '>': matched = (input > value); break;
-            case '>=': matched = (input >= value); break;
+            case '<':
+              matched = input < value;
+              break;
+            case '<=':
+              matched = input <= value;
+              break;
+            case '>':
+              matched = input > value;
+              break;
+            case '>=':
+              matched = input >= value;
+              break;
           }
           break;
         case 'predicate':
-          try { matched = condition(input, meta); } catch (e: any) { console.error(`SelectCase predicate error: ${_.get(e, 'message', '未知错误')}`); }
+          try {
+            matched = condition(input, meta);
+          } catch (e: any) {
+            console.error(`SelectCase predicate error: ${_.get(e, 'message', '未知错误')}`);
+          }
           break;
       }
       if (matched) return typeof result === 'function' ? result(input, meta) : result;
@@ -375,32 +393,49 @@ function loadImage(src: string): string | boolean | Promise<string | boolean> {
  * @example convert('HTTP API', 'title', {acronym:false}) // 'Http Api'
  * @example convert('HTTP API', 'title', {acronym:true}) // 'HTTP API'
  */
-function convert(str: string, mode: 'lower' | 'upper' | 'capitalize' | 'title' | 'camel' | 'pascal' | 'snake' | 'kebab' | 'constant' = 'lower', opt: { delimiter?: string; acronym?: boolean } = {}): string {
+function convert(
+  str: string,
+  mode: 'lower' | 'upper' | 'capitalize' | 'title' | 'camel' | 'pascal' | 'snake' | 'kebab' | 'constant' = 'lower',
+  opt: { delimiter?: string; acronym?: boolean } = {}
+): string {
   if (typeof str !== 'string') return str;
   const { delimiter = ' ', acronym = true } = opt;
   const splitWords = (s: string) => {
     if (s.includes(delimiter)) return s.split(delimiter);
-    return s.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2').split(' ');
+    return s
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+      .split(' ');
   };
   const isUpper = (s: string) => s === s.toUpperCase();
   const words = splitWords(str).filter(w => w.length > 0);
   if (words.length === 0) return '';
   switch (mode) {
-    case 'upper': return _.toUpper(str);
-    case 'lower': return _.toLower(str);
-    case 'capitalize': return _.capitalize(_.toLower(str));
-    case 'title': return _.startCase(_.toLower(str));
-    case 'camel': return _.camelCase(str);
-    case 'pascal': return _.upperFirst(_.camelCase(str));
-    case 'snake': return _.snakeCase(str);
-    case 'kebab': return _.kebabCase(str);
-    case 'constant': return _.snakeCase(str).toUpperCase();
-    default: return str;
+    case 'upper':
+      return _.toUpper(str);
+    case 'lower':
+      return _.toLower(str);
+    case 'capitalize':
+      return _.capitalize(_.toLower(str));
+    case 'title':
+      return _.startCase(_.toLower(str));
+    case 'camel':
+      return _.camelCase(str);
+    case 'pascal':
+      return _.upperFirst(_.camelCase(str));
+    case 'snake':
+      return _.snakeCase(str);
+    case 'kebab':
+      return _.kebabCase(str);
+    case 'constant':
+      return _.snakeCase(str).toUpperCase();
+    default:
+      return str;
   }
 }
 
 window.modImgLoaderHooker.maplebirchCheckImageExist = function (src: string) {
-  var _a;
+  var _a: { imgData: { getter: { invalid: any } } };
   if (this.imgLookupTable.has(src)) {
     const n = this.imgLookupTable.get(src);
     if (n && n.length > 0) {
@@ -413,19 +448,27 @@ window.modImgLoaderHooker.maplebirchCheckImageExist = function (src: string) {
     if (hooker.hookName === 'GameOriginalImagePackImageSideHook') {
       const n = window.modGameOriginalImagePack.selfImg.get(src);
       if (!n) continue;
-      try { if (!n.getter.invalid) return true; }
-      catch (e) { maybeExist = true; }
+      try {
+        if (!n.getter.invalid) return true;
+      } catch (e) {
+        maybeExist = true;
+      }
       continue;
     }
     try {
       if (hooker.checkImageExist) {
         const c = hooker.checkImageExist(src);
-        if (c === true) { return true; } else if (c == null) { maybeExist = true; continue; }
+        if (c === true) {
+          return true;
+        } else if (c == null) {
+          maybeExist = true;
+          continue;
+        }
       }
-    } catch (e) { }
+    } catch (e) {}
   }
-  return maybeExist ? undefined as any : false;
-}
+  return maybeExist ? (undefined as any) : false;
+};
 
 const tools = {
   clone: Object.freeze(clone),
@@ -440,6 +483,8 @@ const tools = {
 };
 
 const toolNames = ['clone', 'merge', 'equal', 'contains', 'SelectCase', 'random', 'either', 'loadImage', 'convert'];
-_.each(toolNames, name => { if (!window.hasOwnProperty(name)) Object.defineProperty(window, name, { value: (tools as any)[name], enumerable: true }); });
+_.each(toolNames, name => {
+  if (!window.hasOwnProperty(name)) Object.defineProperty(window, name, { value: (tools as any)[name], enumerable: true });
+});
 
-export { clone, equal, merge, contains, random, either, SelectCase, loadImage, convert }
+export { clone, equal, merge, contains, random, either, SelectCase, loadImage, convert };

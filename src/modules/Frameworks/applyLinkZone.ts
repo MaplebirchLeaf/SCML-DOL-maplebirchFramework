@@ -9,7 +9,7 @@ interface LinkZoneConfig {
   linkSelector: string;
   beforeMacro: () => string;
   afterMacro: () => string;
-  customMacro: () => { position: number; macro: string; }[];
+  customMacro: () => { position: number; macro: string }[];
   zoneStyle: Partial<CSSStyleDeclaration>;
   onBeforeApply?: () => void;
   onAfterApply?: (result: boolean, config: LinkZoneConfig) => void;
@@ -205,7 +205,7 @@ const applyLinkZone = ((core: MaplebirchCore) => {
     customMacro: () => core.tool.zone.play('CustomLinkZone'),
     zoneStyle: {
       display: 'none',
-      verticalAlign: 'top',
+      verticalAlign: 'top'
     } as Partial<CSSStyleDeclaration>,
     onBeforeApply: null,
     onAfterApply: null,
@@ -246,11 +246,7 @@ const applyLinkZone = ((core: MaplebirchCore) => {
     processMacroContent(element, macro, config);
   }
 
-  function processMacroContent(
-    element: Element,
-    macro: (() => void | string) | string,
-    config: LinkZoneConfig
-  ): void {
+  function processMacroContent(element: Element, macro: (() => void | string) | string, config: LinkZoneConfig): void {
     let macroContent: string | void;
     if (core.lodash.isFunction(macro)) {
       try {
@@ -270,10 +266,10 @@ const applyLinkZone = ((core: MaplebirchCore) => {
     }
 
     const tempContainer = document.createElement('div');
-    if (core.lodash.isFunction($.wiki)) {
+    if (core.lodash.isFunction(void $.wiki)) {
       ($(tempContainer) as any).wiki(macroContent);
     } else if (typeof Wikifier !== 'undefined') {
-      new (core.SugarCube.Wikifier)(tempContainer, macroContent as string);
+      new core.SugarCube.Wikifier(tempContainer, macroContent as string);
     } else {
       tempContainer.innerHTML = macroContent as string;
     }
@@ -285,14 +281,18 @@ const applyLinkZone = ((core: MaplebirchCore) => {
       newScript.textContent = script.textContent;
       script.replaceWith(newScript);
     });
-    element.childNodes.length > 0 ? (element as HTMLElement).style.display = 'block' : (element as HTMLElement).style.display = 'none';
+    if (element.childNodes.length > 0) {
+      (element as HTMLElement).style.display = 'block';
+    } else {
+      (element as HTMLElement).style.display = 'none';
+    }
     if (config.debug) log('[link] 添加内容到区域', 'DEBUG', macroContent);
   }
 
   Object.defineProperties(LinkZoneManager, {
     apply: { value: apply },
     add: { value: addContentToZones },
-    defaultConfig: { get: () => defaultConfig },
+    defaultConfig: { get: () => defaultConfig }
   });
 
   core.once(':storyready', () => {

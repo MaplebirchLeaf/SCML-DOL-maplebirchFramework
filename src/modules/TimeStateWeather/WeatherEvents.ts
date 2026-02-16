@@ -83,6 +83,7 @@ class WeatherEvent {
   }
 
   private _matchField(key: string, value: any): boolean {
+    // prettier-ignore
     const builtIn: Record<string, () => any> = {
       weather:   () => Weather.name,
       temp:      () => Weather.temperature,
@@ -105,7 +106,7 @@ class WeatherEvent {
       if (Array.isArray(value)) return value.includes(current);
       return current === value;
     }
-    const paths: (() => any)[] = [() => V[key],() => T[key],() => Weather[key],() => Time[key]];
+    const paths: (() => any)[] = [() => V[key], () => T[key], () => Weather[key], () => Time[key]];
     for (const getter of paths) {
       try {
         const current = getter();
@@ -118,21 +119,27 @@ class WeatherEvent {
           }
           return current === value;
         }
-      } catch (e) {}
+      } catch {}
     }
     return true;
   }
 
   executeEnter(): void {
     if (!this.onEnter) return;
-    try { this.onEnter(); }
-    catch (e: any) { maplebirch.log(`[WeatherEvent:${this.id}] onEnter error:`, 'ERROR', e); }
+    try {
+      this.onEnter();
+    } catch (e: any) {
+      maplebirch.log(`[WeatherEvent:${this.id}] onEnter error:`, 'ERROR', e);
+    }
   }
 
   executeExit(): void {
     if (!this.onExit) return;
-    try { this.onExit(); }
-    catch (e: any) { maplebirch.log(`[WeatherEvent:${this.id}] onExit error:`, 'ERROR', e); }
+    try {
+      this.onExit();
+    } catch (e: any) {
+      maplebirch.log(`[WeatherEvent:${this.id}] onExit error:`, 'ERROR', e);
+    }
   }
 
   shouldRemove(): boolean {
@@ -152,7 +159,6 @@ export class WeatherManager {
   private readonly log: (message: string, level?: string, ...objects: any[]) => void;
 
   constructor(private readonly manager: DynamicManager) {
-    this.manager = manager;
     this.log = manager.log;
     $(document).on(':onWeatherChange', () => this.manager.core.trigger(':onWeather'));
     this.manager.core.on(':onWeather', () => this._checkEvents());
@@ -218,7 +224,7 @@ export class WeatherManager {
   applyModifications(params: any): any {
     const layerName = params.name;
     if (!this.weatherTriggered) {
-      this.manager.core.trigger(':modifyWeather');
+      void this.manager.core.trigger(':modifyWeather');
       this.weatherTriggered = true;
     }
     if (this.layerModifications.has(layerName)) {
@@ -240,7 +246,7 @@ export class WeatherManager {
     return params;
   }
 
-  addWeatherData(data: WeatherException|WeatherTypeConfig): boolean|void {
+  addWeatherData(data: WeatherException | WeatherTypeConfig): boolean | void {
     if ('date' in data) {
       this.Exceptions.push(data as WeatherException);
       this.log(`暂存天气例外: ${(data as WeatherException).weatherType}`, 'DEBUG');
@@ -263,10 +269,12 @@ export class WeatherManager {
     const oldSCdata = manager.gSC2DataManager.getSC2DataInfoAfterPatch();
     const SCdata = oldSCdata.cloneSC2DataInfo();
     const file = SCdata.scriptFileItems.getByNameWithOrWithoutPath('00-layer-manager.js');
-    const replacements: [RegExp, string][] = [[
-      /const\s+layer\s*=\s*new\s+Weather\.Renderer\.Layer\(([^)]+)\);/,
-      'maplebirch.dynamic.Weather.applyModifications(params);\n\t\tconst layer = new Weather.Renderer.Layer(params.name, params.blur, params.zIndex, params.animation);'
-    ]];
+    const replacements: [RegExp, string][] = [
+      [
+        /const\s+layer\s*=\s*new\s+Weather\.Renderer\.Layer\(([^)]+)\);/,
+        'maplebirch.dynamic.Weather.applyModifications(params);\n\t\tconst layer = new Weather.Renderer.Layer(params.name, params.blur, params.zIndex, params.animation);'
+      ]
+    ];
     file.content = manager.replace(file.content, replacements);
     manager.addonReplacePatcher.gModUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
   }

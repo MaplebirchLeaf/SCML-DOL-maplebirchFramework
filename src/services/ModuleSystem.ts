@@ -31,7 +31,7 @@ class ModuleSystem {
     dependents: new Map(),
     allDependencies: new Map(),
     waitingQueue: new Map(),
-    source: new Map(),
+    source: new Map()
   };
 
   readonly initPhase: InitPhase = {
@@ -49,25 +49,15 @@ class ModuleSystem {
   private depthMemo = new Map<string, number>();
   private circularCheckCache = new Map<string, boolean>();
 
-  constructor(readonly core: MaplebirchCore) { }
+  constructor(readonly core: MaplebirchCore) {}
 
-  async register(
-    name: string,
-    module: any,
-    dependencies: string[] = [],
-    source: string = ''
-  ): Promise<boolean> {
+  async register(name: string, module: any, dependencies: string[] = [], source: string = ''): Promise<boolean> {
     if (source) return this.registerExtension(name, module, source);
     if (this.registry.modules.has(name)) {
       this.core.logger.log(`模块 ${name} 已注册`, 'WARN');
       return false;
     }
-    const moduleDependencies = [
-      ...new Set([
-        ...(module.dependencies || []),
-        ...(dependencies || [])
-      ])
-    ];
+    const moduleDependencies = [...new Set([...(module.dependencies || []), ...(dependencies || [])])];
     this.handleEarlyMount(name, module, moduleDependencies);
     const allDependencies = this.collectAllDependencies(moduleDependencies);
     if (this.hasCircularDependency(name, allDependencies)) {
@@ -83,11 +73,7 @@ class ModuleSystem {
     return true;
   }
 
-  private logModuleRegistration(
-    name: string,
-    directDeps: string[],
-    allDeps: Set<string>
-  ) {
+  private logModuleRegistration(name: string, directDeps: string[], allDeps: Set<string>) {
     if (directDeps.length > 0) {
       this.core.logger.log(`注册模块: ${name}, 依赖: [${directDeps.join(', ')}]`, 'DEBUG');
     } else {
@@ -96,11 +82,7 @@ class ModuleSystem {
     if (allDeps.size > directDeps.length) this.core.logger.log(`传递依赖: [${[...allDeps].join(', ')}]`, 'DEBUG');
   }
 
-  private async registerExtension(
-    name: string,
-    module: any,
-    source: string
-  ): Promise<boolean> {
+  private async registerExtension(name: string, module: any, source: string): Promise<boolean> {
     try {
       if ((this.core as any)[name] != null) {
         this.core.logger.log(`扩展模块 ${name} 挂载失败: 名称冲突`, 'WARN');
@@ -108,12 +90,8 @@ class ModuleSystem {
       }
       let Extension = null;
       try {
-        Extension = await this.core.idb.withTransaction(
-          ['settings'],
-          'readonly',
-          async (tx: any) => await tx.objectStore('settings').get('Extension')
-        );
-      } catch (e) { }
+        Extension = await this.core.idb.withTransaction(['settings'], 'readonly', async (tx: any) => await tx.objectStore('settings').get('Extension'));
+      } catch (e) {}
       if (this.core.lodash.get(Extension, 'value.disabled', []).some((m: any) => m.name === name)) {
         this.core.logger.log(`扩展模块 ${name} 被禁用，跳过注册`, 'DEBUG');
         return false;
@@ -179,12 +157,7 @@ class ModuleSystem {
     return allDeps;
   }
 
-  private storeModuleRegistration(
-    name: string,
-    module: any,
-    directDeps: string[],
-    allDeps: Set<string>
-  ) {
+  private storeModuleRegistration(name: string, module: any, directDeps: string[], allDeps: Set<string>) {
     this.registry.modules.set(name, module);
     this.registry.states.set(name, ModuleState.REGISTERED);
     this.registry.dependencies.set(name, new Set(directDeps));
@@ -199,10 +172,7 @@ class ModuleSystem {
   private processWaitingQueue(name: string) {
     const waitingModules = this.registry.waitingQueue.get(name);
     if (!waitingModules) return;
-    const pendingModules = [...waitingModules].filter(moduleName =>
-      this.registry.states.get(moduleName) === ModuleState.REGISTERED ||
-      this.registry.states.get(moduleName) === ModuleState.LOADED
-    );
+    const pendingModules = [...waitingModules].filter(moduleName => this.registry.states.get(moduleName) === ModuleState.REGISTERED || this.registry.states.get(moduleName) === ModuleState.LOADED);
     if (pendingModules.length > 0) queueMicrotask(() => this.core.lodash.forEach(pendingModules, moduleName => this.initModule(moduleName)));
     this.registry.waitingQueue.delete(name);
   }
@@ -279,16 +249,13 @@ class ModuleSystem {
     resolvers.forEach(resolve => {
       try {
         resolve();
-      } catch (e) { }
+      } catch (e) {}
     });
 
     this.waitingResolvers.delete(moduleName);
   }
 
-  private async checkDependencies(
-    moduleName: string,
-    isPreInit: boolean = false
-  ): Promise<boolean> {
+  private async checkDependencies(moduleName: string, isPreInit: boolean = false): Promise<boolean> {
     const allDeps = this.registry.allDependencies.get(moduleName);
     if (!allDeps || allDeps.size === 0) return true;
 
@@ -330,10 +297,7 @@ class ModuleSystem {
     for (const name of initOrder) await this.initModule(name, isPreInit);
   }
 
-  private async initModule(
-    moduleName: string,
-    isPreInit: boolean = false
-  ): Promise<boolean> {
+  private async initModule(moduleName: string, isPreInit: boolean = false): Promise<boolean> {
     const module = this.registry.modules.get(moduleName);
     if (!module) return false;
     const state = this.registry.states.get(moduleName);
@@ -466,4 +430,4 @@ class ModuleSystem {
   }
 }
 
-export default ModuleSystem
+export default ModuleSystem;

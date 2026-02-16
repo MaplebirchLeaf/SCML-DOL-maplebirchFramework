@@ -1,5 +1,6 @@
 // ./src/database/FrameworksReplace.ts
 
+// prettier-ignore
 const specialWidget = [
   `<<widget 'maplebirchTransformationMirror'>>
     <<set _modTransforms = []>>
@@ -60,6 +61,7 @@ const specialWidget = [
   <</widget>>`
 ]
 
+// prettier-ignore
 const defaultData = {
   Init   : '<<run maplebirch.tool.zone.storyInit()>>',
   State  : '<<run maplebirch.trigger(":variable")>>',
@@ -217,6 +219,7 @@ const defaultData = {
   NPCinject : `<<run maplebirch.npc.vanillaInject(_nam, _npcno)>>`
 }
 
+// prettier-ignore
 const locationPassage = {
   StoryCaption: [
     { src: '<<schoolday>>\n\t\t<br>', to: '<<schoolday>>\n\t\t<div id="maplebirchCaptionTextBox">\n\t\t<<maplebirchCaptionDescription>>\n\t\t<br>' },
@@ -229,6 +232,7 @@ const locationPassage = {
   ]
 }
 
+// prettier-ignore
 const widgetPassage = {
   Characteristics: [
     { src: '<<bodywriting>>', applyafter: '\n\n\t<<maplebirchCharaDescription>>' },
@@ -304,4 +308,4 @@ const widgetPassage = {
   ]
 }
 
-export { specialWidget, defaultData, locationPassage, widgetPassage }
+export { specialWidget, defaultData, locationPassage, widgetPassage };

@@ -5,7 +5,7 @@ import ToolCollection from '../ToolCollection';
 
 class defineMacros {
   readonly log: ReturnType<typeof createlog>;
-  readonly macros: string[]
+  readonly macros: string[];
   readonly statFunctions: { [x: string]: Function };
 
   constructor(readonly manager: ToolCollection) {
@@ -18,26 +18,40 @@ class defineMacros {
     return this.manager.core.SugarCube.Macro as typeof Macro;
   }
 
-  define(macroName: string, macroFunction: Function, tags?: string[], skipArgs?: string[]|boolean, isAsync: boolean = false) {
-    if (this.Macro.has(macroName)) { this.Macro.delete(macroName); this.log(`已删除现有宏: ${macroName}`, 'DEBUG'); }
+  define(macroName: string, macroFunction: Function, tags?: string[], skipArgs?: string[] | boolean, isAsync: boolean = false) {
+    if (this.Macro.has(macroName)) {
+      this.Macro.delete(macroName);
+      this.log(`已删除现有宏: ${macroName}`, 'DEBUG');
+    }
     const log = this.log;
     this.Macro.add(macroName, {
       isAsync: isAsync ? true : false,
       isWidget: isAsync ? false : true,
       tags,
       skipArgs,
-      handler() { try { macroFunction.apply(this, this.args); } catch (error) { log(`宏执行错误: ${macroName}\n${error}`, 'ERROR'); } },
+      handler() {
+        try {
+          macroFunction.apply(this, this.args);
+        } catch (error) {
+          log(`宏执行错误: ${macroName}\n${error}`, 'ERROR');
+        }
+      }
     });
     const index = this.macros.indexOf(macroName);
-    if (index === -1) { this.macros.push(macroName); }
-    else { this.macros[index] = macroName; }
+    if (index === -1) {
+      this.macros.push(macroName);
+    } else {
+      this.macros[index] = macroName;
+    }
     this.log(`已定义/更新宏: ${macroName}`, 'DEBUG');
   }
 
-  defineS(macroName: string, macroFunction: Function, tags?: string[], skipArgs?: string[]|boolean, maintainContext?: boolean) {
+  defineS(macroName: string, macroFunction: Function, tags?: string[], skipArgs?: string[] | boolean, maintainContext?: boolean) {
     this.define(
       macroName,
-      function () { $(this.output).wiki(macroFunction.apply(maintainContext ? this : null, this.args)); },
+      function () {
+        $(this.output).wiki(macroFunction.apply(maintainContext ? this : null, this.args));
+      },
       tags,
       skipArgs
     );
@@ -58,7 +72,9 @@ class defineMacros {
 
   create(name: string, fn: Function) {
     if (!this.statFunctions[name] && !this.Macro.get(name)) {
-      this.define(name, function() { this.output.append(fn(...this.args)); });
+      this.define(name, function () {
+        this.output.append(fn(...this.args));
+      });
       this.statFunctions[name] = fn;
       this.log(`已创建状态显示函数: ${name}`, 'DEBUG');
     } else {
@@ -73,4 +89,4 @@ class defineMacros {
   }
 }
 
-export default defineMacros
+export default defineMacros;

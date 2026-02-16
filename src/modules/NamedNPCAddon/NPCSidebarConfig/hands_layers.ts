@@ -9,7 +9,7 @@ const hands_layers = {
   nnpc_hands_left_detail: clothes_hand('left', 'detail'),
   nnpc_hands_right: clothes_hand('right', 'main'),
   nnpc_hands_right_acc: clothes_hand('right', 'acc'),
-  nnpc_hands_right_detail: clothes_hand('right', 'detail'),
-}
+  nnpc_hands_right_detail: clothes_hand('right', 'detail')
+};
 
-export default hands_layers
+export default hands_layers;

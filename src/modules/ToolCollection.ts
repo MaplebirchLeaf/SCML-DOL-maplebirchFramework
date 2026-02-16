@@ -12,7 +12,6 @@ import applyLinkZone from './Frameworks/applyLinkZone';
 import otherTools from './Frameworks/otherTools';
 
 class ToolCollection {
-  readonly utils: typeof utils;
   readonly console: Console;
   readonly migration: typeof migration;
   readonly rand: typeof randSystem;
@@ -23,8 +22,7 @@ class ToolCollection {
   readonly other: typeof otherTools;
   readonly createlog: typeof createlog = createlog;
 
-  constructor (readonly core: MaplebirchCore) {
-    this.utils = Object.freeze(utils);
+  constructor(readonly core: MaplebirchCore) {
     this.console = Object.seal(new Console(this));
     this.migration = Object.freeze(migration);
     this.rand = Object.freeze(randSystem);
@@ -35,7 +33,7 @@ class ToolCollection {
     this.other = Object.seal(otherTools);
   }
 
-  onInit(...widgets: (InitFunction[])) {
+  onInit(...widgets: InitFunction[]) {
     return this.zone.onInit(...widgets);
   }
 
@@ -49,11 +47,15 @@ class ToolCollection {
       this.other.applyBodywriting();
     });
   }
+
+  get utils(): typeof utils {
+    return utils;
+  }
 }
 
-(async function(maplebirch) {
+(function (maplebirch): void {
   'use strict';
-  await maplebirch.register('tool', Object.seal(new ToolCollection(maplebirch)), ['dynamic']);
-})(maplebirch)
+  void maplebirch.register('tool', Object.seal(new ToolCollection(maplebirch)), ['dynamic']);
+})(maplebirch);
 
-export default ToolCollection
+export default ToolCollection;

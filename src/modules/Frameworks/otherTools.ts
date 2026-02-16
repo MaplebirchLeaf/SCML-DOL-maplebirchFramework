@@ -42,7 +42,7 @@ interface LocationConfig {
 interface LocationUpdate {
   overwrite: boolean;
   config: LocationConfig;
-  customMapping: any | null;
+  customMapping: any;
 }
 
 interface BodywritingConfig {
@@ -65,7 +65,7 @@ interface BodywritingData {
   config?: BodywritingConfig;
 }
 
-const otherTools = ((core) => {
+const otherTools = (core => {
   const _ = core.lodash;
   const traitsTitle: string[] = [];
   const traitsData: Array<{
@@ -77,6 +77,7 @@ const otherTools = ((core) => {
   }> = [];
 
   class Traits {
+    // prettier-ignore
     static categories: Record<string, string> = {
       'General Traits'   : '一般特质',
       'Medicinal Traits' : '医疗特质',
@@ -103,23 +104,23 @@ const otherTools = ((core) => {
       _.forEach(traits, trait => {
         if (trait && trait.title && trait.name) {
           const mappedTitle = Traits.categories[trait.title] || trait.title;
-          const nameValue = _.isFunction(trait.name) ? trait.name() : trait.name as string;
+          const nameValue = _.isFunction(trait.name) ? trait.name() : (trait.name as string);
           const existingIndex = _.findIndex(traitsData, t => t.title === mappedTitle && t.name === nameValue);
           if (existingIndex >= 0) {
             traitsData[existingIndex] = {
               title: mappedTitle,
               name: nameValue,
               colour: _.isFunction(trait.colour) ? trait.colour() : trait.colour || '',
-              has   : _.isFunction(trait.has) ? trait.has() : trait.has || false,
-              text  : _.isFunction(trait.text) ? trait.text() : trait.text || ''
+              has: _.isFunction(trait.has) ? trait.has() : trait.has || false,
+              text: _.isFunction(trait.text) ? trait.text() : trait.text || ''
             };
           } else {
             traitsData.push({
               title: mappedTitle,
               name: nameValue,
               colour: _.isFunction(trait.colour) ? trait.colour() : trait.colour || '',
-              has   : _.isFunction(trait.has) ? trait.has() : trait.has || false,
-              text  : _.isFunction(trait.text) ? trait.text() : trait.text || ''
+              has: _.isFunction(trait.has) ? trait.has() : trait.has || false,
+              text: _.isFunction(trait.text) ? trait.text() : trait.text || ''
             });
           }
         }
@@ -144,12 +145,14 @@ const otherTools = ((core) => {
         } else {
           result.push({
             title: title,
-            traits: [{
-              name: trait.name,
-              colour: colourValue,
-              has: hasValue,
-              text: textValue
-            }]
+            traits: [
+              {
+                name: trait.name,
+                colour: colourValue,
+                has: hasValue,
+                text: textValue
+              }
+            ]
           });
           titleMap[title] = result.length - 1;
           if (!_.includes(traitsTitle, title)) {
@@ -157,7 +160,7 @@ const otherTools = ((core) => {
           }
         }
       });
-      return T.traitLists = result;
+      return (T.traitLists = result);
     }
   }
 
@@ -174,7 +177,7 @@ const otherTools = ((core) => {
         update.customMapping = config.customMapping || null;
       } else if (layer && element) {
         if (!update.config[layer]) update.config[layer] = {};
-        update.config[layer][element] = { ...(update.config[layer][element] || {}), ...config };
+        update.config[layer][element] = { ...update.config[layer][element], ...config };
       } else {
         update.config = Location.#deepMerge(update.config, config);
         if (config.customMapping) update.customMapping = config.customMapping;
@@ -257,13 +260,14 @@ const otherTools = ((core) => {
     }
   }
 
+  // prettier-ignore
   return {
-    addTraits: Traits.add,
-    configureLocation: Location.configure,
-    addBodywriting: Bodywriting.add,
-    injectTraits: Traits.inject,
-    applyLocation: Location.apply,
-    applyBodywriting: Bodywriting.apply,
+    addTraits        : Traits.add.bind(Traits),
+    configureLocation: Location.configure.bind(Location),
+    addBodywriting   : Bodywriting.add.bind(Bodywriting),
+    injectTraits     : Traits.inject.bind(Traits),
+    applyLocation    : Location.apply.bind(Location),
+    applyBodywriting : Bodywriting.apply.bind(Bodywriting)
   };
 })(maplebirch);
 

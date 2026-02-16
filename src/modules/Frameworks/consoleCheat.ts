@@ -32,7 +32,7 @@ interface ExecuteResult {
 class Console {
   private readonly log: (...args: any[]) => void;
   private readonly core: MaplebirchCore;
-  private readonly globalNamespace: Record<string, any> = {};
+  private readonly global: Record<string, any> = {};
 
   constructor(readonly manager: ToolCollection) {
     this.log = createlog('console');
@@ -64,7 +64,7 @@ class Console {
         success: true,
         result: result,
         message: message,
-        globals: this.globalNamespace
+        globals: this.global
       };
     } catch (error: any) {
       const errorMsg = error.message || lanSwitch('Unknown error', '未知错误');
@@ -87,63 +87,37 @@ class Console {
 
   private _executeJSCode(code: string): any {
     const sandbox: Record<string, any> = {
-      Math: Object.freeze(Math),
-      JSON: Object.freeze(JSON),
-      Date: Object.freeze(Date),
-      String: Object.freeze(String),
-      Number: Object.freeze(Number),
-      Array: Object.freeze(Array),
-      Object: Object.freeze(Object),
-      global: this.globalNamespace,
+      C: window.C,
+      V: window.V,
+      T: window.T,
+      global: this.global
     };
-
-    const builtins = [
-      'Boolean', 'RegExp', 'Error', 'EvalError', 'RangeError',
-      'ReferenceError', 'SyntaxError', 'TypeError', 'URIError',
-      'Function', 'Promise', 'Map', 'Set', 'WeakMap', 'WeakSet',
-      'Symbol', 'Proxy', 'Reflect', 'Intl', 'ArrayBuffer',
-      'SharedArrayBuffer', 'DataView', 'Float32Array', 'Float64Array',
-      'Int8Array', 'Int16Array', 'Int32Array', 'Uint8Array',
-      'Uint8ClampedArray', 'Uint16Array', 'Uint32Array',
-      'BigInt', 'BigInt64Array', 'BigUint64Array'
-    ];
-
-    builtins.forEach(name => {
-      if (window[name]) sandbox[name] = Object.freeze(window[name]);
-    });
-
-    [Object, Array, Function, Number, String, Date, Boolean,
-      RegExp, Error, Promise, Map, Set].forEach(ctor => {
-        if (ctor && ctor.prototype) Object.freeze(ctor.prototype);
-      });
 
     const sandboxProxy = new Proxy(sandbox, {
       has: () => true,
       get: (target: any, prop: string | symbol) => {
         if (prop === Symbol.unscopables) return undefined;
-        if (prop in target) return target[prop];
-        if (prop in window) return window[prop];
-        return undefined;
+        return target[prop] ?? window[prop];
       },
-      set: (target: any, prop: string | symbol, value: any) => {
-        if (prop in target)
-          throw new Error(lanSwitch(`Cannot modify built-in object: ${String(prop)}`, `不能修改内置对象: ${String(prop)}`));
-        if (prop === 'global')
-          throw new Error(lanSwitch('Cannot override global namespace', '不能覆盖 global 命名空间'));
+      set: (target, prop, value) => {
+        const propStr = String(prop);
+        if (propStr === 'C' || propStr === 'V' || propStr === 'T') {
+          window[prop] = value;
+          target[prop] = value;
+          return true;
+        }
+        if (propStr === 'global') throw new Error(lanSwitch('Cannot override global', '不能覆盖 global'));
         if (prop in window) {
-          const descriptor = Object.getOwnPropertyDescriptor(window, prop);
-          if (descriptor && descriptor.writable === false) throw new Error(lanSwitch(`Cannot modify read-only property: ${String(prop)}`, `不能修改只读属性: ${String(prop)}`));
           window[prop] = value;
           return true;
         }
-        target.global[prop] = value;
+        this.global[propStr] = value;
         return true;
       }
     });
-
-    const wrappedCode = `"use strict";try {${code}} catch(e) {return e;}`;
+    const wrappedCode = `"use strict"; try { ${code} } catch(e) { return e; }`;
     try {
-      const executor = new Function('sandbox', `with(sandbox) {return (function() {${wrappedCode}})();}`);
+      const executor = new Function('sandbox', `with(sandbox) { return (function() { ${wrappedCode} })(); }`);
       return executor(sandboxProxy);
     } catch (error) {
       return error;
@@ -200,7 +174,9 @@ class Console {
           }
 
           this._updateTwineStatus(lanSwitch('Execution successful, redirecting...', '执行成功，即将跳转...'), true);
-          setTimeout(() => { if (fragment.children.length > 0) document.getElementById('your-output-container')?.appendChild(fragment); }, 300);
+          setTimeout(() => {
+            if (fragment.children.length > 0) document.getElementById('your-output-container')?.appendChild(fragment);
+          }, 300);
 
           return {
             success: true,
@@ -249,7 +225,7 @@ class Console {
     } else if (type === 'twine') {
       return this.executeTwine() as ExecuteResult;
     } else {
-      this.log(`未知执行类型: ${type}`, 'ERROR');
+      this.log(`未知执行类型: ${type as any}`, 'ERROR');
       return {
         success: false,
         error: lanSwitch('Unknown execution type: ', '未知执行类型: ') + type,
@@ -259,4 +235,4 @@ class Console {
   }
 }
 
-export default Console
+export default Console;

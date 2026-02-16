@@ -10,7 +10,7 @@ const PlayMode = {
   SHUFFLE: 'shuffle'
 } as const;
 
-type PlayMode = typeof PlayMode[keyof typeof PlayMode];
+type PlayMode = (typeof PlayMode)[keyof typeof PlayMode];
 
 const PlayState = {
   IDLE: 'idle',
@@ -20,11 +20,11 @@ const PlayState = {
   STOPPED: 'stopped'
 } as const;
 
-type PlayState = typeof PlayState[keyof typeof PlayState];
+type PlayState = (typeof PlayState)[keyof typeof PlayState];
 
 interface TrackMeta {
-  title?: string,
-  artist?: string
+  title?: string;
+  artist?: string;
 }
 
 interface AudioEventData {
@@ -37,7 +37,11 @@ class Track {
   artist: string;
   duration: number = 0;
 
-  constructor(readonly key: string, readonly modName: string, meta: TrackMeta = {}) {
+  constructor(
+    readonly key: string,
+    readonly modName: string,
+    meta: TrackMeta = {}
+  ) {
     this.title = meta.title || key;
     this.artist = meta.artist || modName;
   }
@@ -54,11 +58,14 @@ class Playlist {
   shuffleOrder: number[] = [];
   shuffleIndex: number = -1;
 
-  constructor(readonly name: string) { }
+  constructor(readonly name: string) {}
 
   add(track: Track | Track[]) {
-    if (Array.isArray(track)) { this.tracks.push(...track); }
-    else { this.tracks.push(track); }
+    if (Array.isArray(track)) {
+      this.tracks.push(...track);
+    } else {
+      this.tracks.push(track);
+    }
   }
 
   remove(index: number) {
@@ -104,8 +111,11 @@ class Playlist {
 
     this.currentIndex++;
     if (this.currentIndex >= this.tracks.length) {
-      if (this.playMode === PlayMode.LOOP_ALL) { this.currentIndex = 0; }
-      else { return null; }
+      if (this.playMode === PlayMode.LOOP_ALL) {
+        this.currentIndex = 0;
+      } else {
+        return null;
+      }
     }
     return this.tracks[this.currentIndex];
   }
@@ -121,8 +131,11 @@ class Playlist {
     }
     this.currentIndex--;
     if (this.currentIndex < 0) {
-      if (this.playMode === PlayMode.LOOP_ALL) { this.currentIndex = this.tracks.length - 1; }
-      else { return null; }
+      if (this.playMode === PlayMode.LOOP_ALL) {
+        this.currentIndex = this.tracks.length - 1;
+      } else {
+        return null;
+      }
     }
     return this.tracks[this.currentIndex];
   }
@@ -142,7 +155,7 @@ class AudioManager {
   private volume: number = 1.0;
   private muted: boolean = false;
   private autoNext: boolean = true;
-  private cache = new Map<string, { howl: any, url: string }>();
+  private cache = new Map<string, { howl: any; url: string }>();
   private maxCache: number = 3;
   private progressTimer: any = null;
   private events = new Map<string, Set<Function>>();
@@ -156,17 +169,18 @@ class AudioManager {
   }
 
   private initDB() {
-    this.core.idb.register('audio-buffers', { keyPath: 'key' }, [
-      { name: 'mod', keyPath: 'mod', options: { unique: false } }
-    ]);
+    this.core.idb.register('audio-buffers', { keyPath: 'key' }, [{ name: 'mod', keyPath: 'mod', options: { unique: false } }]);
   }
 
   private handleAudioEvent(eventData: AudioEventData) {
     const listeners = this.events.get(eventData.type);
     if (!listeners) return;
     for (const listener of listeners) {
-      try { listener(eventData); }
-      catch (error) { this.log(`音频事件处理错误: ${eventData.type}`, 'ERROR', error); }
+      try {
+        listener(eventData);
+      } catch (error) {
+        this.log(`音频事件处理错误: ${eventData.type}`, 'ERROR', error);
+      }
     }
   }
 
@@ -190,14 +204,14 @@ class AudioManager {
   }
 
   private emit(event: string, ...args: any[]): void {
-    this.core.tracer.trigger(':audio', { type: event, data: args });
+    void this.core.trigger(':audio', { type: event, data: args });
   }
 
   private async store(key: string, arrayBuffer: ArrayBuffer, modName: string): Promise<boolean> {
     try {
       await this.core.idb.withTransaction(['audio-buffers'], 'readwrite', async (tx: any) => await tx.objectStore('audio-buffers').put({ key, arrayBuffer, mod: modName }));
       return true;
-    } catch (err) {
+    } catch {
       this.log(`存储音频失败: ${key}`, 'ERROR');
       return false;
     }
@@ -209,7 +223,7 @@ class AudioManager {
         const record = await tx.objectStore('audio-buffers').get(key);
         return record ? record.arrayBuffer : null;
       });
-    } catch (err) {
+    } catch {
       return null;
     }
   }
@@ -221,7 +235,7 @@ class AudioManager {
         const records = await index.getAll(modName);
         return records.map((r: any) => r.key);
       });
-    } catch (err) {
+    } catch {
       return [];
     }
   }
@@ -230,7 +244,7 @@ class AudioManager {
     try {
       await this.core.idb.withTransaction(['audio-buffers'], 'readwrite', async (tx: any) => await tx.objectStore('audio-buffers').delete(key));
       return true;
-    } catch (err) {
+    } catch {
       return false;
     }
   }
@@ -241,7 +255,7 @@ class AudioManager {
     return true;
   }
 
-  private async loadTrack(track: Track): Promise<{ howl: any, url: string }> {
+  private async loadTrack(track: Track): Promise<{ howl: any; url: string }> {
     if (this.cache.has(track.id)) return this.cache.get(track.id)!;
     const arrayBuffer = await this.get(track.key);
     if (!arrayBuffer) throw new Error(`音频未找到: ${track.key}`);
@@ -264,7 +278,7 @@ class AudioManager {
     return { howl, url };
   }
 
-  private cacheAdd(id: string, data: { howl: any, url: string }) {
+  private cacheAdd(id: string, data: { howl: any; url: string }) {
     if (this.cache.has(id)) return;
     this.cache.set(id, data);
     if (this.cache.size > this.maxCache) {
@@ -417,7 +431,7 @@ class AudioManager {
   private onEnd(): void {
     this.stopProgress();
     this.emit('end', this.currentTrack);
-    if (this.autoNext) this.next();
+    if (this.autoNext) void this.next();
   }
 
   async modPlaylist(modName: string): Promise<Playlist> {
@@ -460,7 +474,7 @@ class AudioManager {
     if (!modLoader) return false;
     const modZip = modLoader.getModZip(modName);
     if (!modZip?.modInfo?.bootJson?.additionFile) return false;
-    const audioFiles: Array<{ path: string, key: string }> = [];
+    const audioFiles: Array<{ path: string; key: string }> = [];
     modZip.modInfo.bootJson.additionFile.forEach((path: string) => {
       if (path.startsWith(`${audioFolder}/`)) {
         const ext = path.split('.').pop()?.toLowerCase();
@@ -478,7 +492,7 @@ class AudioManager {
       try {
         const arrayBuffer = await file.async('arraybuffer');
         await this.store(key, arrayBuffer, modName);
-      } catch (e) {
+      } catch {
         this.log(`加载失败: ${path}`, 'WARN');
       }
     }
@@ -527,9 +541,9 @@ class AudioManager {
   }
 }
 
-(async function(maplebirch) {
+(function (maplebirch): void {
   'use strict';
-  await maplebirch.register('audio', Object.seal(new AudioManager(maplebirch)), ['tool']);
-})(maplebirch)
+  void maplebirch.register('audio', Object.seal(new AudioManager(maplebirch)), ['tool']);
+})(maplebirch);
 
-export default AudioManager
+export default AudioManager;

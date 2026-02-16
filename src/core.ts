@@ -41,7 +41,6 @@ class MaplebirchCore {
   readonly manager: { modSC2DataManager: SC2DataManager; modLoaderGui: Gui };
   passage: any;
   onLoad: boolean;
-  readonly lodash: typeof lodash; 
   readonly yaml: typeof jsyaml;
   readonly howler: { Howl: typeof Howl; Howler: typeof Howler };
   readonly logger: Logger;
@@ -57,7 +56,7 @@ class MaplebirchCore {
   readonly var: Variables;
   readonly char: Character;
   readonly npc: NPCManager;
-  readonly combat: CombatManager
+  readonly combat: CombatManager;
 
   constructor(modSC2DataManager: SC2DataManager, modLoaderGui: Gui) {
     this.meta = { ...MaplebirchCore.meta };
@@ -65,7 +64,6 @@ class MaplebirchCore {
     this.manager = { modSC2DataManager, modLoaderGui };
     this.passage = null;
     this.onLoad = false;
-    this.lodash = Object.freeze(lodash);
     this.yaml = Object.freeze(jsyaml);
     this.howler = Object.freeze({ Howl, Howler });
     this.logger = Object.seal(new Logger(this));
@@ -75,7 +73,7 @@ class MaplebirchCore {
     this.modules = Object.seal(new ModuleSystem(this));
     this.gui = Object.seal(new GUIControl(this));
 
-    this.logger.fromIDB();
+    void this.logger.fromIDB();
     this.log(`开始设置初始化流程\n核心系统创建完成(v${MaplebirchCore.meta.version})`, 'INFO');
     const events = [':passageinit', ':passagestart', ':passagerender', ':passagedisplay', ':passageend', ':storyready'];
     events.forEach(event => $(document).on(event, (ev: any) => this.trigger(event, ev)));
@@ -87,7 +85,11 @@ class MaplebirchCore {
 
     this.once(':allModule', async () => {
       this.log('所有模块注册完成，开始预初始化', 'INFO');
-      try { await this.trigger(':IndexedDB').then(() => this.idb.init()); } catch { this.log(':IndexedDB注册错误', 'ERROR'); };
+      try {
+        await this.trigger(':IndexedDB').then(() => this.idb.init());
+      } catch {
+        this.log(':IndexedDB注册错误', 'ERROR');
+      }
       await this.pre();
     });
 
@@ -100,10 +102,11 @@ class MaplebirchCore {
       if (this.passage.title == 'Start' || this.passage.title == 'Downgrade Waiting Room') return;
       this.modules.initPhase.postInitExecuted = false;
       await this.init();
-      if (this.onLoad) await this.load().then(() => {
-        this.trigger(':onLoadSave');
-        this.onLoad = false;
-      });
+      if (this.onLoad)
+        await this.load().then(() => {
+          void this.trigger(':onLoadSave');
+          this.onLoad = false;
+        });
     });
 
     this.on(':passagerender', async () => {
@@ -119,13 +122,13 @@ class MaplebirchCore {
           setTimeout(tryPostInit, 5);
         }
       };
-      tryPostInit();
+      await tryPostInit();
     });
 
     this.once(':storyready', async () => {
       this.SugarCube.Save.onSave.add(async () => this.trigger(':onSave'));
       this.SugarCube.Save.onLoad.add(async () => {
-        this.trigger(':onLoad').then(() => this.onLoad = true);
+        await this.trigger(':onLoad').then(() => (this.onLoad = true));
         this.modules.initPhase.loadInitExecuted = false;
       });
     });
@@ -188,19 +191,17 @@ class MaplebirchCore {
 
   async disabled(modName: string): Promise<boolean> {
     const modLoadController = this.modUtils.getModLoadController();
-    const [enabledMods, disabledMods] = await Promise.all([
-      modLoadController.listModIndexDB(),
-      modLoadController.loadHiddenModList()
-    ]);
+    const [enabledMods, disabledMods] = await Promise.all([modLoadController.listModIndexDB(), modLoadController.loadHiddenModList()]);
     if (!enabledMods.includes(modName)) return false;
     enabledMods.splice(enabledMods.indexOf(modName), 1);
     if (!disabledMods.includes(modName)) disabledMods.push(modName);
-    await Promise.all([
-      modLoadController.overwriteModIndexDBModList(enabledMods),
-      modLoadController.overwriteModIndexDBHiddenModList(disabledMods)
-    ]);
+    await Promise.all([modLoadController.overwriteModIndexDBModList(enabledMods), modLoadController.overwriteModIndexDBHiddenModList(disabledMods)]);
     location.reload();
     return true;
+  }
+
+  get lodash(): typeof lodash {
+    return lodash;
   }
 
   set SugarCube(parts: SugarCubeObject) {
@@ -213,7 +214,7 @@ class MaplebirchCore {
 
   set Language(lang: string) {
     this.lang.setLanguage(lang);
-    this.tracer.trigger(':language');
+    void this.trigger(':language');
   }
 
   get Language(): string {
@@ -264,7 +265,9 @@ class MaplebirchCore {
 
 var maplebirch = new MaplebirchCore(window.modSC2DataManager, window.modLoaderGui);
 
-function createlog(prefix: string) { return (message: string, level: string = 'INFO', ...objects: any[]) => maplebirch.log(`[${prefix}] ${message}`, level, ...objects); }
+function createlog(prefix: string) {
+  return (message: string, level: string = 'INFO', ...objects: any[]) => maplebirch.log(`[${prefix}] ${message}`, level, ...objects);
+}
 
-export { MaplebirchCore, createlog }
+export { MaplebirchCore, createlog };
 export default maplebirch;
