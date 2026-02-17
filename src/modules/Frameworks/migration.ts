@@ -96,7 +96,7 @@ class migration {
         const mode = options.mode || 'merge';
         const filterFn = (key: string, _value: any, _depth: number) => {
           if (key === 'version') return false;
-          return !Object.prototype.hasOwnProperty.call(target, key);
+          return !Object.prototype.hasOwnProperty.call(target, key) || target[key] === undefined;
         };
         try {
           merge(target, defaults, { mode, filterFn });

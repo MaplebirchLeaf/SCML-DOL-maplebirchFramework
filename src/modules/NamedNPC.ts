@@ -191,7 +191,7 @@ export const NamedNPC = (core => {
       this.skincolour = data.skincolour ?? 0;
       this.init = data.init ?? 0;
       this.intro = data.intro ?? 0;
-      core.on(':language', () => this.bodyPartdescription());
+      core.on(':language', () => this.bodyPartdescription(), 'named NPC desc');
     }
 
     setPronouns(data: NPCData) {

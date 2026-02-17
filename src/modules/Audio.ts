@@ -165,7 +165,7 @@ class AudioManager {
     this.core.howler.Howler.mute(this.muted);
     this.core.howler.Howler.volume(this.volume);
     this.core.once(':IndexedDB', () => this.initDB());
-    this.core.on(':audio', (eventData: AudioEventData) => this.handleAudioEvent(eventData));
+    this.core.on(':audio', (eventData: AudioEventData) => this.handleAudioEvent(eventData), 'audio manager');
   }
 
   private initDB() {

@@ -10,6 +10,7 @@ import './modules/Internals';
 import './modules/Character';
 import './modules/NamedNPC';
 import './modules/Combat';
+import './database/State-variables';
 import './SFcompat';
 import maplebirch from './core';
 

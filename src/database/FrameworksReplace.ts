@@ -70,7 +70,7 @@ const defaultData = {
   Information : '<<maplebirchFrameworkInfo>>',
   Options: `
     <<setupOptions>>
-    <details>
+    <details open>
       <summary class='settingsHeader options'><span class='gold'><<lanSwitch 'Maplebirch Framework' '秋枫白桦框架'>></span></summary>
       <div class='settingsGrid'>
         <div class='settingsToggleItem'>

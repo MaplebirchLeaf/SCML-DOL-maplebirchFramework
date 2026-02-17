@@ -161,7 +161,7 @@ export class WeatherManager {
   constructor(private readonly manager: DynamicManager) {
     this.log = manager.log;
     $(document).on(':onWeatherChange', () => this.manager.core.trigger(':onWeather'));
-    this.manager.core.on(':onWeather', () => this._checkEvents());
+    this.manager.core.on(':onWeather', () => this._checkEvents(), 'weather change');
   }
 
   private _checkEvents(): void {
