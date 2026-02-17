@@ -15,25 +15,28 @@ import handheld_layers from './NPCSidebarConfig/handheld_layers';
 import legs_layers from './NPCSidebarConfig/legs_layers';
 import feet_layers from './NPCSidebarConfig/feet_layers';
 import NPCManager from '../NamedNPC';
-import { ModZipReader } from '../../../types/sugarcube-2-ModLoader/ModZipReader';
+import { ModZipReader } from '@scml/sc2-modloader/ModZipReader';
 
 const display = new Map();
 const _ = maplebirch.lodash;
 
-function loadFromMod(modZip: ModZipReader, npcName: string) {
+function loadFromMod(modZip: ModZipReader, npcName: string[]) {
   if (!Array.isArray(npcName) || _.isEmpty(npcName)) return [];
   const formats = new Set(['png', 'jpg', 'gif']);
   const paths = [];
   for (const name of npcName) {
-    const npcName = convert(name, 'capitalize');
-    if (!display.has(npcName)) display.set(npcName, new Set());
-    const npcSet = display.get(npcName);
-    const folder = `img/ui/nnpc/${npcName.toLowerCase()}/`;
+    const npcNameFormatted = convert(name, 'capitalize');
+    if (!display.has(npcNameFormatted)) {
+      display.set(npcNameFormatted, new Set());
+    }
+    const npcSet = display.get(npcNameFormatted);
+    const folder = `img/ui/nnpc/${npcNameFormatted.toLowerCase()}/`;
     for (const file in modZip.zip.files) {
       if (file.startsWith(folder) && file !== folder) {
         const ext = file.split('.').pop().toLowerCase();
         if (formats.has(ext)) {
-          const imgName = _.chain(file).split('/').last().split('.')[0].value();
+          const fileName = file.split('/').pop();
+          const imgName = fileName ? fileName.split('.')[0] : '';
           if (imgName) {
             npcSet.add(imgName);
             paths.push(file);
@@ -42,6 +45,7 @@ function loadFromMod(modZip: ModZipReader, npcName: string) {
       }
     }
   }
+
   return paths;
 }
 

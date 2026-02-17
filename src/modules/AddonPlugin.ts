@@ -2,11 +2,10 @@
 
 import { TypeOrderItem } from '@scml/addon-mod-beauty-selector/BeautySelectorAddonType';
 import { ModZipReader } from '@scml/sc2-modloader/ModZipReader';
-import { c } from '../../types/AddonMod_BeautySelector/SC2DataManager-BbuyuRDn';
 import { SC2DataManager } from '@scml/sc2-modloader/SC2DataManager';
 import { ModUtils } from '@scml/sc2-modloader/Utils';
 import { ReplacePatcher } from '@scml/mod-replacer-patch/ReplacePatcher';
-import { TweeReplacerLinker } from '@scml/addon-twee-replacer-linker/TweeReplacerLinker';
+import { TweeReplacer } from '@scml/mod-twee-replacer/TweeReplacer';
 import maplebirch, { MaplebirchCore, createlog } from '../core';
 import { TraitConfig } from './Frameworks/otherTools';
 import { ZoneWidgetConfig } from './Frameworks/zonesManager';
@@ -180,7 +179,7 @@ class Process {
     }
   }
 
-  private static async _injectBSAImages(addon: AddonPlugin, modName: string, modZip: c, imgPaths: string[]) {
+  private static async _injectBSAImages(addon: AddonPlugin, modName: string, modZip: ModZipReader, imgPaths: string[]) {
     try {
       const imgs = [];
       for (const imgPath of imgPaths) {
@@ -211,7 +210,7 @@ class Process {
       plugin.params = plugin.params || {};
       plugin.params['type'] = 'npc-sidebar';
       modInfo.imgs = imgs;
-      await window.addonBeautySelectorAddon.registerMod('BeautySelectorAddon', modInfo, modZip);
+      await window.addonBeautySelectorAddon.registerMod('BeautySelectorAddon', modInfo, modZip as any);
       addon.core.log(`成功注册 ${modName} 的 ${imgs.length} 个 NPC 侧边栏图片`, 'DEBUG');
     } catch (e: any) {
       addon.core.log(`注册 ${modName} 的 NPC 侧边栏图片失败: ${e.message}`, 'ERROR');
@@ -234,7 +233,7 @@ class AddonPlugin {
 
   constructor(
     readonly core: MaplebirchCore,
-    readonly addonTweeReplacer: TweeReplacerLinker,
+    readonly addonTweeReplacer: TweeReplacer,
     readonly addonReplacePatcher: ReplacePatcher
   ) {
     this.replace = replace;
@@ -436,7 +435,7 @@ async function modifyOptionsDateFormat(manager: AddonPlugin): Promise<void> {
   manager.addonTweeReplacer.gModUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
 }
 
-(function (maplebirch: MaplebirchCore, addonTweeReplacer: TweeReplacerLinker, addonReplacePatcher: ReplacePatcher): void {
+(function (maplebirch: MaplebirchCore, addonTweeReplacer: TweeReplacer, addonReplacePatcher: ReplacePatcher): void {
   'use strict';
   let order: TypeOrderItem[] = window.addonBeautySelectorAddon.typeOrderUsed;
   Object.defineProperty(window.addonBeautySelectorAddon, 'typeOrderUsed', {

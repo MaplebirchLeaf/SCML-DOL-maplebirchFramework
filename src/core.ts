@@ -86,44 +86,56 @@ class MaplebirchCore {
     this.once(':allModule', async () => {
       this.log('所有模块注册完成，开始预初始化', 'INFO');
       try {
-        await this.trigger(':IndexedDB').then(() => this.idb.init());
+        await this.trigger(':IndexedDB').then(async () => await this.idb.init().then(async () => await this.idb.checkStore()));
       } catch {
         this.log(':IndexedDB注册错误', 'ERROR');
       }
       await this.pre();
     });
 
-    this.on(':passageinit', async (ev: any) => {
-      this.passage = ev.passage;
-      if (!!this.passage && !this.passage.tags.includes('widget')) this.log(`处理段落: ${this.passage.title}`, 'INFO');
-    });
+    this.on(
+      ':passageinit',
+      async (ev: any) => {
+        this.passage = ev.passage;
+        if (!!this.passage && !this.passage.tags.includes('widget')) this.log(`处理段落: ${this.passage.title}`, 'INFO');
+      },
+      'collect passages'
+    );
 
-    this.on(':passagestart', async () => {
-      if (this.passage.title == 'Start' || this.passage.title == 'Downgrade Waiting Room') return;
-      this.modules.initPhase.postInitExecuted = false;
-      await this.init();
-      if (this.onLoad)
-        await this.load().then(() => {
-          void this.trigger(':onLoadSave');
-          this.onLoad = false;
-        });
-    });
+    this.on(
+      ':passagestart',
+      async () => {
+        if (this.passage.title == 'Start' || this.passage.title == 'Downgrade Waiting Room') return;
+        this.modules.initPhase.postInitExecuted = false;
+        await this.init();
+        if (this.onLoad)
+          await this.load().then(() => {
+            void this.trigger(':onLoadSave');
+            this.onLoad = false;
+          });
+      },
+      'loadInit'
+    );
 
-    this.on(':passagerender', async () => {
-      let retryCount = 0;
-      const tryPostInit = async () => {
-        if (this.modules.initPhase.loadInitExecuted) {
-          await this.post();
-        } else if (this.modules.initPhase.mainInitCompleted) {
-          if (this.onLoad) return;
-          await this.post();
-        } else if (retryCount < 10) {
-          retryCount++;
-          setTimeout(tryPostInit, 5);
-        }
-      };
-      await tryPostInit();
-    });
+    this.on(
+      ':passagerender',
+      async () => {
+        let retryCount = 0;
+        const tryPostInit = async () => {
+          if (this.modules.initPhase.loadInitExecuted) {
+            await this.post();
+          } else if (this.modules.initPhase.mainInitCompleted) {
+            if (this.onLoad) return;
+            await this.post();
+          } else if (retryCount < 10) {
+            retryCount++;
+            setTimeout(tryPostInit, 5);
+          }
+        };
+        await tryPostInit();
+      },
+      'postInit'
+    );
 
     this.once(':storyready', async () => {
       this.SugarCube.Save.onSave.add(async () => this.trigger(':onSave'));

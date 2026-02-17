@@ -370,7 +370,7 @@ class SelectCase {
  */
 function loadImage(src: string): string | boolean | Promise<string | boolean> {
   try {
-    if (window.modImgLoaderHooker.maplebirchCheckImageExist(src)) return maplebirch.modUtils.getImage(src);
+    if ((window.modImgLoaderHooker as any).maplebirchCheckImageExist(src)) return maplebirch.modUtils.getImage(src);
     return false;
   } catch (error) {
     return src;
@@ -434,7 +434,7 @@ function convert(
   }
 }
 
-window.modImgLoaderHooker.maplebirchCheckImageExist = function (src: string) {
+(window.modImgLoaderHooker as any).maplebirchCheckImageExist = function (src: string) {
   var _a: { imgData: { getter: { invalid: any } } };
   if (this.imgLookupTable.has(src)) {
     const n = this.imgLookupTable.get(src);

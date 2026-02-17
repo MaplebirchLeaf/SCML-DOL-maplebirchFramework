@@ -14,16 +14,16 @@ export default (env: unknown, argv: { mode?: string }): Configuration => {
       library: {
         name: 'maplebirch',
         type: 'window',
-        export: 'default',
-      },
+        export: 'default'
+      }
     },
     devtool: isProduction ? false : 'inline-source-map',
     resolve: {
       extensions: ['.ts', '.js'],
       alias: {
         '@': path.resolve(__dirname, 'src'),
-        'lodash-es': 'lodash-es',
-      },
+        'lodash-es': 'lodash-es'
+      }
     },
     module: {
       rules: [
@@ -35,32 +35,27 @@ export default (env: unknown, argv: { mode?: string }): Configuration => {
             options: {
               jsc: {
                 parser: {
-                  syntax: 'typescript',
-                },
+                  syntax: 'typescript'
+                }
               },
               env: {
-                targets: '> 0.5%, not dead, not ie 11',
-              },
-            },
+                targets: '> 0.5%, not dead, not ie 11'
+              }
+            }
           },
-          type: 'javascript/auto',
-        },
-      ],
+          type: 'javascript/auto'
+        }
+      ]
     },
     performance: {
-      hints: false,
-    },
-    plugins: [
-      new rspack.CopyRspackPlugin({
-        patterns: [{ from: 'public' }],
-      }),
-    ],
+      hints: false
+    }
   };
 
   if (isProduction) {
     return {
       ...config,
-      ...production(rspack),
+      ...production(rspack)
     };
   }
 

@@ -280,7 +280,7 @@ class Character {
     this.mask = mask;
     this.faceStyleSrcFn = faceStyleSrcFn;
     this.transformation = new Transformation(this);
-    this.core.on(':language', () => this._faceStyleSetupOption());
+    this.core.on(':language', () => this._faceStyleSetupOption(), 'face style setup options');
     this.core.once(':sugarcube', () => {
       const model = Renderer.CanvasModels.main;
       if (!model?.layers) return;
@@ -547,7 +547,7 @@ class Character {
   }
 
   Init() {
-    this.core.on('characterRender', async () => await this.render());
+    this.core.on('characterRender', async () => await this.render(), 'character render');
     this.transformation.inject();
   }
 

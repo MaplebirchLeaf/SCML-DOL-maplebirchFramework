@@ -5,6 +5,7 @@ import JSZip from 'jszip';
 async function createModPackage() {
   const rootDir = path.join(import.meta.dir, '..');
   const distDir = path.join(rootDir, 'dist');
+  const publicDir = path.join(rootDir, 'public');
   const packageDir = path.join(rootDir, 'package');
 
   await mkdir(packageDir, { recursive: true });
@@ -16,17 +17,28 @@ async function createModPackage() {
   const styleFiles: string[] = [];
   const additionFiles: string[] = [];
 
-  async function addFilesToZip(currentPath: string) {
+  const distFiles = ['inject_early.js', 'maplebirch.d.ts'];
+  for (const file of distFiles) {
+    const filePath = path.join(distDir, file);
+    try {
+      const fileContent = await readFile(filePath);
+      zip.file(file, fileContent);
+    } catch (error) {
+      console.warn(`警告: 找不到文件 ${file}，跳过`);
+    }
+  }
+
+  async function addPublicFilesToZip(currentPath: string, basePath = '') {
     const items = await readdir(currentPath);
 
     for (const item of items) {
       const itemPath = path.join(currentPath, item);
       const itemStat = await stat(itemPath);
+      const relativePath = path.join(basePath, item);
 
       if (itemStat.isDirectory()) {
-        await addFilesToZip(itemPath);
+        await addPublicFilesToZip(itemPath, relativePath);
       } else {
-        const relativePath = path.relative(distDir, itemPath);
         const normalizedPath = relativePath.replace(/\\/g, '/');
         const fileContent = await readFile(itemPath);
 
@@ -41,7 +53,7 @@ async function createModPackage() {
     }
   }
 
-  await addFilesToZip(distDir);
+  await addPublicFilesToZip(publicDir);
 
   const modifiedBoot = {
     ...(bootTemplate as object),

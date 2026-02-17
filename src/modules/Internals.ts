@@ -46,17 +46,21 @@ class Internals {
       core: this.core,
       init(this: LanguageManager) {
         if (this.initialized) return;
-        this.core!.on(':language', () => {
-          for (const [macroType, manager] of Object.entries(this.managers)) {
-            manager.forEach((updater: Function) => {
-              try {
-                updater();
-              } catch (e) {
-                maplebirch.log(`Language update error for ${macroType}`, 'ERROR', e);
-              }
-            });
-          }
-        });
+        this.core!.on(
+          ':language',
+          () => {
+            for (const [macroType, manager] of Object.entries(this.managers)) {
+              manager.forEach((updater: Function) => {
+                try {
+                  updater();
+                } catch (e) {
+                  maplebirch.log(`Language update error for ${macroType}`, 'ERROR', e);
+                }
+              });
+            }
+          },
+          'language macro manager'
+        );
         this.core!.once(':passagestart', () => Object.values(this.managers).forEach((manager: Map<Function, Function>) => manager.clear()));
         this.initialized = true;
       },
