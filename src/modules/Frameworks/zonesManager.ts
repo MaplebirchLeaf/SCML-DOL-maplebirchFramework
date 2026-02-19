@@ -400,7 +400,7 @@ export class zonesManager {
       }
     }
     SCdata.passageDataItems.back2Array();
-    manager.addonTweeReplacer.gModUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
+    manager.gModUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
     this.log('框架补丁应用完成', 'DEBUG');
   }
 }

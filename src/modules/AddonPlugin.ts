@@ -1,11 +1,9 @@
 // ./src/modules/AddonPlugin.ts
 
-import { TypeOrderItem } from '@scml/addon-mod-beauty-selector/BeautySelectorAddonType';
-import { ModZipReader } from '@scml/sc2-modloader/ModZipReader';
-import { SC2DataManager } from '@scml/sc2-modloader/SC2DataManager';
-import { ModUtils } from '@scml/sc2-modloader/Utils';
-import { ReplacePatcher } from '@scml/mod-replacer-patch/ReplacePatcher';
-import { TweeReplacer } from '@scml/mod-twee-replacer/TweeReplacer';
+import type { TypeOrderItem } from '@scml/addon-mod-beauty-selector/BeautySelectorAddonType';
+import type { ModZipReader } from '@scml/sc2-modloader/ModZipReader';
+import type { SC2DataManager } from '@scml/sc2-modloader/SC2DataManager';
+import type { ModUtils } from '@scml/sc2-modloader/Utils';
 import maplebirch, { MaplebirchCore, createlog } from '../core';
 import { TraitConfig } from './Frameworks/otherTools';
 import { ZoneWidgetConfig } from './Frameworks/zonesManager';
@@ -231,11 +229,7 @@ class AddonPlugin {
   jsFiles: FileItem[];
   moduleFiles: FileItem[];
 
-  constructor(
-    readonly core: MaplebirchCore,
-    readonly addonTweeReplacer: TweeReplacer,
-    readonly addonReplacePatcher: ReplacePatcher
-  ) {
+  constructor(readonly core: MaplebirchCore) {
     this.replace = replace;
     this.gSC2DataManager = this.core.manager.modSC2DataManager;
     this.gModUtils = this.core.modUtils;
@@ -432,10 +426,10 @@ async function modifyOptionsDateFormat(manager: AddonPlugin): Promise<void> {
   modify.content = replace(modify.content, replacements);
   passageData.set(OptionsOverlayTwinePath, modify);
   SCdata.passageDataItems.back2Array();
-  manager.addonTweeReplacer.gModUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
+  manager.gModUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
 }
 
-(function (maplebirch: MaplebirchCore, addonTweeReplacer: TweeReplacer, addonReplacePatcher: ReplacePatcher): void {
+(function (maplebirch: MaplebirchCore): void {
   'use strict';
   let order: TypeOrderItem[] = window.addonBeautySelectorAddon.typeOrderUsed;
   Object.defineProperty(window.addonBeautySelectorAddon, 'typeOrderUsed', {
@@ -450,7 +444,7 @@ async function modifyOptionsDateFormat(manager: AddonPlugin): Promise<void> {
       }
     }
   });
-  void maplebirch.register('addon', Object.seal(new AddonPlugin(maplebirch, addonTweeReplacer, addonReplacePatcher)), []);
-})(maplebirch, window.addonTweeReplacer, window.addonReplacePatcher);
+  void maplebirch.register('addon', Object.seal(new AddonPlugin(maplebirch)), []);
+})(maplebirch);
 
 export default AddonPlugin;

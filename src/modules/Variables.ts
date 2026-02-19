@@ -106,14 +106,12 @@ class Variables {
 
   Init() {
     try {
-      if (this.tool.core.passage?.title === 'Start2') {
-        V.maplebirch = clone({ ...defaultVar, version: this.version });
-        return;
-      }
-      this.migration.run(V.maplebirch, this.version);
-      $.wiki('<<maplebirchState>>');
+      if (this.tool.core.passage?.title === 'Start2') V.maplebirch = clone({ ...defaultVar, version: this.version });
     } catch (e: any) {
       this.log(`出现错误：${e?.message || e}`, 'ERROR');
+    } finally {
+      this.migration.run(V.maplebirch, this.version);
+      $.wiki('<<maplebirchState>>');
     }
   }
 

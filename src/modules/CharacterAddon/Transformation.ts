@@ -154,7 +154,7 @@ class Transformation {
       ]
     ];
     file.content = manager.replace(file.content, replacements);
-    manager.addonReplacePatcher.gModUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
+    manager.gModUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
   }
 
   add(name: string, type: string, options: TransformationOption): this {

@@ -1,10 +1,10 @@
 // ./src/core.ts
 
+import type { TwineSugarCube,  } from '../types/twine-sugarcube';
+import type { SC2DataManager } from '@scml/sc2-modloader/SC2DataManager';
+import type { Gui } from '@scml/mod-loader-gui/Gui';
 import jsyaml from 'js-yaml';
 import { Howl, Howler } from 'howler';
-import { SugarCubeObject } from 'twine-sugarcube';
-import { SC2DataManager } from '@scml/sc2-modloader/SC2DataManager';
-import { Gui } from '@scml/mod-loader-gui/Gui';
 import * as lodash from 'lodash-es';
 import { version, lastModifiedBy, lastUpdate, Languages } from './constants';
 import Logger from './services/Logger';
@@ -22,7 +22,7 @@ import Character from './modules/Character';
 import NPCManager from './modules/NamedNPC';
 import CombatManager from './modules/Combat';
 
-let jsSugarCube: SugarCubeObject;
+let jsSugarCube: TwineSugarCube;
 
 class MaplebirchCore {
   static meta = {
@@ -216,11 +216,11 @@ class MaplebirchCore {
     return lodash;
   }
 
-  set SugarCube(parts: SugarCubeObject) {
+  set SugarCube(parts: typeof jsSugarCube) {
     jsSugarCube = parts;
   }
 
-  get SugarCube(): SugarCubeObject {
+  get SugarCube(): typeof jsSugarCube {
     return jsSugarCube;
   }
 
