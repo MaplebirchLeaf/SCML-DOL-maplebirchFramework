@@ -1,4 +1,4 @@
-// ./src/modules/NamedNPCAddon/NPCSidebar.ts
+// types/npcsidebar-layers.d.ts
 
 interface Position {
   x?: number;

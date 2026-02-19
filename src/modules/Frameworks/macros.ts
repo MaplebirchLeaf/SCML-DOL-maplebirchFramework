@@ -1,6 +1,6 @@
 // .src/modules/Frameworks/macros.ts
 
-import { createlog } from '../../core';
+import { createlog, MaplebirchCore } from '../../core';
 import ToolCollection from '../ToolCollection';
 
 class defineMacros {
@@ -14,8 +14,8 @@ class defineMacros {
     this.statFunctions = {};
   }
 
-  get Macro() {
-    return this.manager.core.SugarCube.Macro as typeof Macro;
+  get Macro(): MaplebirchCore['SugarCube']['Macro'] {
+    return this.manager.core.SugarCube.Macro;
   }
 
   define(macroName: string, macroFunction: Function, tags?: string[], skipArgs?: string[] | boolean, isAsync: boolean = false) {
