@@ -7,3 +7,5 @@ types/*
 !types/global.d.ts
 !types/npcsidebar-layers.d.ts
 !types/twine-sugarcube.d
+!types/assets.d.ts
+!types/env.d.ts
