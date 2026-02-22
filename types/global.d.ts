@@ -1,3 +1,5 @@
+// types/global.d.ts
+
 import { SC2DataManager } from '@scml/sc2-modloader/SC2DataManager';
 import { GameOriginalImagePack } from '@scml/game-original-image-pack-mod/GameOriginalImagePack';
 import { BeautySelectorAddon } from '@scml/addon-mod-beauty-selector/BeautySelectorAddon';
@@ -121,15 +123,15 @@ declare global {
     getPreviousWeekdayDate(weekDay: number): DateTime;
     isWeekEnd(): boolean;
     monthNames: string[];
-  };
+  }
 
-  const Weather: { rain: boolean; thunder: boolean; snow: boolean; cloud: boolean; windy: boolean; fog: boolean; [key: string]: any };
+  const Weather: { rain: boolean; thunder: boolean; snow: boolean; cloud: boolean; windy: boolean; fog: boolean;[key: string]: any };
   function getFormattedDate(date: any, includeWeekday?: boolean): string;
   function getShortFormattedDate(date: any): string;
   function ordinalSuffixOf(i: number): string;
   const Dynamic: { [key: string]: any };
   function hairLengthStringToNumber(lengthStr: string): number;
-  const Renderer: { CanvasModels: { main: any }; [key: string]: any };
+  const Renderer: { CanvasModels: { main: any };[key: string]: any };
   const ZIndices: { [key: string]: number };
   function wikifier(widget: string, ...args: any): DocumentFragment;
   function playerNormalPregnancyType(): string;

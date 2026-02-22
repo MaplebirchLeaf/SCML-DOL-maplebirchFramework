@@ -50,7 +50,6 @@ class IndexedDBService {
     } finally {
       if (!this.ready) this.core.logger.log('IDB数据库初始化完成', 'INFO', this.stores);
       this.ready = true;
-      await this.checkStore();
     }
   }
 
@@ -69,7 +68,7 @@ class IndexedDBService {
     }
   }
 
-  private async checkStore(): Promise<void> {
+  async checkStore(): Promise<void> {
     if (!this.ready || !this.db) return;
     const dbStoreNames = Array.from(this.db.objectStoreNames);
     const storeNames = Array.from(this.stores.keys());

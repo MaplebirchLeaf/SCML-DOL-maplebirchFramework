@@ -1,10 +1,10 @@
 // ./src/core.ts
 
+import type { TwineSugarCube,  } from '../types/twine-sugarcube';
+import type { SC2DataManager } from '@scml/sc2-modloader/SC2DataManager';
+import type { Gui } from '@scml/mod-loader-gui/Gui';
 import jsyaml from 'js-yaml';
 import { Howl, Howler } from 'howler';
-import { SugarCubeObject } from 'twine-sugarcube';
-import { SC2DataManager } from '@scml/sc2-modloader/SC2DataManager';
-import { Gui } from '@scml/mod-loader-gui/Gui';
 import * as lodash from 'lodash-es';
 import { version, lastModifiedBy, lastUpdate, Languages } from './constants';
 import Logger from './services/Logger';
@@ -22,7 +22,7 @@ import Character from './modules/Character';
 import NPCManager from './modules/NamedNPC';
 import CombatManager from './modules/Combat';
 
-let jsSugarCube: SugarCubeObject;
+let jsSugarCube: TwineSugarCube;
 
 class MaplebirchCore {
   static meta = {
@@ -86,44 +86,56 @@ class MaplebirchCore {
     this.once(':allModule', async () => {
       this.log('所有模块注册完成，开始预初始化', 'INFO');
       try {
-        await this.trigger(':IndexedDB').then(() => this.idb.init());
+        await this.trigger(':IndexedDB').then(async () => await this.idb.init().then(async () => await this.idb.checkStore()));
       } catch {
         this.log(':IndexedDB注册错误', 'ERROR');
       }
       await this.pre();
     });
 
-    this.on(':passageinit', async (ev: any) => {
-      this.passage = ev.passage;
-      if (!!this.passage && !this.passage.tags.includes('widget')) this.log(`处理段落: ${this.passage.title}`, 'INFO');
-    });
+    this.on(
+      ':passageinit',
+      async (ev: any) => {
+        this.passage = ev.passage;
+        if (!!this.passage && !this.passage.tags.includes('widget')) this.log(`处理段落: ${this.passage.title}`, 'INFO');
+      },
+      'collect passages'
+    );
 
-    this.on(':passagestart', async () => {
-      if (this.passage.title == 'Start' || this.passage.title == 'Downgrade Waiting Room') return;
-      this.modules.initPhase.postInitExecuted = false;
-      await this.init();
-      if (this.onLoad)
-        await this.load().then(() => {
-          void this.trigger(':onLoadSave');
-          this.onLoad = false;
-        });
-    });
+    this.on(
+      ':passagestart',
+      async () => {
+        if (this.passage.title == 'Start' || this.passage.title == 'Downgrade Waiting Room') return;
+        this.modules.initPhase.postInitExecuted = false;
+        await this.init();
+        if (this.onLoad)
+          await this.load().then(() => {
+            void this.trigger(':onLoadSave');
+            this.onLoad = false;
+          });
+      },
+      'loadInit'
+    );
 
-    this.on(':passagerender', async () => {
-      let retryCount = 0;
-      const tryPostInit = async () => {
-        if (this.modules.initPhase.loadInitExecuted) {
-          await this.post();
-        } else if (this.modules.initPhase.mainInitCompleted) {
-          if (this.onLoad) return;
-          await this.post();
-        } else if (retryCount < 10) {
-          retryCount++;
-          setTimeout(tryPostInit, 5);
-        }
-      };
-      await tryPostInit();
-    });
+    this.on(
+      ':passagerender',
+      async () => {
+        let retryCount = 0;
+        const tryPostInit = async () => {
+          if (this.modules.initPhase.loadInitExecuted) {
+            await this.post();
+          } else if (this.modules.initPhase.mainInitCompleted) {
+            if (this.onLoad) return;
+            await this.post();
+          } else if (retryCount < 10) {
+            retryCount++;
+            setTimeout(tryPostInit, 5);
+          }
+        };
+        await tryPostInit();
+      },
+      'postInit'
+    );
 
     this.once(':storyready', async () => {
       this.SugarCube.Save.onSave.add(async () => this.trigger(':onSave'));
@@ -204,11 +216,11 @@ class MaplebirchCore {
     return lodash;
   }
 
-  set SugarCube(parts: SugarCubeObject) {
+  set SugarCube(parts: typeof jsSugarCube) {
     jsSugarCube = parts;
   }
 
-  get SugarCube(): SugarCubeObject {
+  get SugarCube(): typeof jsSugarCube {
     return jsSugarCube;
   }
 

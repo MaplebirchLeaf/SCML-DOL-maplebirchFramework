@@ -49,7 +49,7 @@ class Logger {
       console.log(`%c[maplebirch]${config.tag} ${message}`, config.style);
       objects?.forEach(o => console.dir(o));
       const modLogger = this.core.modUtils.getLogger();
-      if (lname === 'INFO') {
+      if (lname === 'INFO' && this.level === Logger.LogLevel.DEBUG) {
         modLogger.log(message);
       } else if (lname === 'WARN') {
         modLogger.warn(message);

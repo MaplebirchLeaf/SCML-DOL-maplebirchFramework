@@ -280,7 +280,7 @@ class Character {
     this.mask = mask;
     this.faceStyleSrcFn = faceStyleSrcFn;
     this.transformation = new Transformation(this);
-    this.core.on(':language', () => this._faceStyleSetupOption());
+    this.core.on(':language', () => this._faceStyleSetupOption(), 'face style setup options');
     this.core.once(':sugarcube', () => {
       const model = Renderer.CanvasModels.main;
       if (!model?.layers) return;
@@ -307,11 +307,11 @@ class Character {
     const SCdata = oldSCdata.cloneSC2DataInfo();
     const file = SCdata.scriptFileItems.getByNameWithOrWithoutPath('canvasmodel-main.js');
     const replacements = [
-      [/},\n\tpostprocess/g, '\tmaplebirch.char.process("pre", options);\n\t},\n\tpostprocess'],
-      [/},\n\tlayers/g, '\tmaplebirch.char.process("post", options);\n\t},\n\tlayers']
+      [/},\n\tpostprocess/, '\tmaplebirch.char.process("pre", options);\n\t},\n\tpostprocess'],
+      [/},\n\tlayers/, '\tmaplebirch.char.process("post", options);\n\t},\n\tlayers']
     ];
     file.content = manager.replace(file.content, replacements);
-    manager.addonReplacePatcher.gModUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
+    manager.gModUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
   }
 
   use(...args: any) {
@@ -364,7 +364,7 @@ class Character {
       passageData.set(file, modify);
     }
     SCdata.passageDataItems.back2Array();
-    manager.addonTweeReplacer.gModUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
+    manager.gModUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
   }
 
   async faceStyleImagePaths() {
@@ -547,7 +547,7 @@ class Character {
   }
 
   Init() {
-    this.core.on('characterRender', async () => await this.render());
+    this.core.on('characterRender', async () => await this.render(), 'character render');
     this.transformation.inject();
   }
 
