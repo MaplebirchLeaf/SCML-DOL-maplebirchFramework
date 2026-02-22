@@ -1,64 +1,10 @@
 // ./src/database/FrameworksReplace.ts
-
+import maplebirchTransformationMirror from "@/twee/maplebirchTransformationMirror.twee?raw"
+import maplebirchNPCHairStyleOptions from "@/twee/maplebirchNPCHairStyleOptions.twee?raw"
 // prettier-ignore
 const specialWidget = [
-  `<<widget 'maplebirchTransformationMirror'>>
-    <<set _modTransforms = []>>
-    <<if V.maplebirch?.transformation>><<for _modName range Object.keys(V.maplebirch.transformation)>><<if V.maplebirch.transformation[_modName].level > 0>><<set _modTransforms.push(_modName)>><</if>><</for>><</if>>
-    <<if _modTransforms.length>>
-      <<for _modName range _modTransforms>>
-        <<capture _modName>>
-          <<set _config to maplebirch.char.transformation.config.get(_modName)>>
-          <div class='settingsToggleItemWide'>
-            <<if _config.icon>><<icon _config.icon>><</if>>
-            <span class='gold bold'><<lanSwitch 'Mods: ' '模组：'>><<= maplebirch.t(_modName)>></span>
-            <<if $transformationParts[_modName]>><<for _partName, $_partValue range $transformationParts[_modName]>><<capture _partName, $_partValue>>
-              <<if $_partValue isnot 'disabled'>>
-                <<set _varPath to '$transformationParts.'+_modName+'.'+_partName>>
-                <div class='tf-part-item'><<= maplebirch.t(String(_partName))>>：<<lanListbox _varPath autoselect>><<option 'hidden' 'hidden'>><<option 'default' 'default'>><</lanListbox>></div>
-              <</if>>
-            <</capture>><</for>><</if>>
-          </div>
-        <</capture>>
-      <</for>>
-    <</if>>
-    <<if !_modTransforms.every(transform => V.transformationParts[transform]?.horns is 'disabled') && ['demon', 'cow'].every(transform => T[transform].horns is 'disabled') || 
-      !_modTransforms.every(transform => V.transformationParts[transform]?.tail is 'disabled') && ['demon', 'cat', 'cow', 'wolf', 'bird', 'fox'].every(transform => T[transform].tail is 'disabled') || 
-      !_modTransforms.every(transform => V.transformationParts[transform]?.wings is 'disabled') && ['angel', 'fallen', 'demon', 'bird'].every(transform => T[transform].wings is 'disabled')>>
-      <div class='settingsToggleItemWide no-numberify'>
-        <span class='gold bold'><<lanSwitch 'Layer Adjustments: ' '图层调整：'>></span>
-        <br><div class='no-numberify'>
-        <<if !_modTransforms.every(transform => V.transformationParts[transform]?.horns is 'disabled')>>
-          <<set _front_text to $hornslayer is 'front' ? 'Prioritise headwear over horns' : 'Prioritise horns over headwear'>>
-          <<set _front_value to $hornslayer is 'front' ? 'back' : 'front'>>
-          <<lanLink _front_text>><<run State.setVar('$hornslayer', _front_value)>><<run Engine.show()>><<updatesidebarimg true>><</lanLink>><br>
-        <</if>>
-        <<if !_modTransforms.every(transform => V.transformationParts[transform]?.tail is 'disabled')>>
-          <<set _tail_text = $taillayer === 'front' ? 'Push tail back' : 'Move tail forward'>>
-          <<set _tail_value = $taillayer === 'front' ? 'back' : 'front'>>
-          <<lanLink _tail_text>><<run State.setVar('$taillayer', _tail_value)>><<run Engine.show()>><<updatesidebarimg true>><</lanLink>><br>
-        <</if>>
-        <<if !_modTransforms.every(transform => V.transformationParts[transform]?.wings is 'disabled')>>
-          <<set _wings_text = $wingslayer === 'front' ? 'Push wings behind' : 'Move wings forward'>>
-          <<set _wings_value = $wingslayer === 'front' ? 'back' : 'front'>>
-          <<lanLink _wings_text>><<run State.setVar('$wingslayer', _wings_value)>><<run Engine.show()>><<updatesidebarimg true>><</lanLink>><br>
-        <</if>>
-      </div>
-      <<script>>jQuery('.passage').on('change', 'select.macro-lanListbox', function (e) { maplebirch.SugarCube.Wikifier.wikifyEval('<<updatesidebarimg true>>'); });<</script>>
-    <</if>>
-  <</widget>>`,
-  `<<widget 'maplebirchNPCHairStyleOptions'>>
-    <span class='gold'><<lanSwitch 'Hair Style: ' '发型：'>></span><span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Adjust hair style' '调整发型样式'>></span>">(?)</span><br> 
-    <<lanSwitch 'Sides: ' '侧发：'>><<lanListbox  '$NPCName[_npcId].hair_side_type' autoselect>><<optionsfrom maplebirch.npc.Sidebar.hair_type('sides')>><</lanListbox>><br>
-    <<lanSwitch 'Fringe: ' '刘海：'>><<lanListbox  '$NPCName[_npcId].hair_fringe_type' autoselect>><<optionsfrom maplebirch.npc.Sidebar.hair_type('fringe')>><</lanListbox>><br>
-    <<radiobuttonsfrom '$NPCName[_npcId].hair_position' 'front[Sides in front,两侧头发在身体前]|back[Sides behind,两侧头发在身体后]'>><</radiobuttonsfrom>><br>
-    <<numberStepper '<<lanSwitch "Length" "长度">>' $NPCName[_npcId].hairlength {max: 1000, callback: value => { V.NPCName[T.npcId].hairlength = value; $.wiki('<<replace #maplebirchNPCHairStyleOptions>><<maplebirchNPCHairStyleOptions>><</replace>>') }}>>
-    <<set _NPCHairLength to (function(v) { if (v < 200) return 'ear'; if (v < 400) return 'neck'; if (v < 600) return 'chest'; if (v < 800) return 'waist'; if (v < 1000) return 'knees'; return 'ankles'; })($NPCName[_npcId].hairlength)>>
-    <<radiobuttonsfrom '_NPCHairLength' 'ear[Ear,耳朵]|neck[Neck,颈部]|chest[Chest,胸前]|waist[Waist,腰际]|knees[Knees,膝盖]|ankles[Ankles,脚踝]'>>
-      <<set $NPCName[_npcId].hairlength to { ear:0, neck:200, chest:400, waist:600, knees:800, ankles:1000 }[_NPCHairLength]>>
-      <<replace #maplebirchNPCHairStyleOptions>><<maplebirchNPCHairStyleOptions>><</replace>>
-    <</radiobuttonsfrom>>
-  <</widget>>`
+  maplebirchTransformationMirror,
+  maplebirchNPCHairStyleOptions
 ]
 
 // prettier-ignore
