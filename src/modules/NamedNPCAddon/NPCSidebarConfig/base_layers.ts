@@ -105,7 +105,7 @@ const base_layers = {
       return options.maplebirch.nnpc.show && options.maplebirch.nnpc.model;
     },
     zfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.arm_left === 'cover' ? maplebirch.char.ZIndices.arms_cover : options.maplebirch.nnpc.zarms!;
+      return options.maplebirch.nnpc.arm_left === 'cover' ? maplebirch.char.ZIndices.left_cover_arm : options.maplebirch.nnpc.zarms!;
     },
     dxfn(options: LayerOptions) {
       return options.maplebirch.nnpc.dxfn!;
@@ -125,7 +125,7 @@ const base_layers = {
       return options.maplebirch.nnpc.show && options.maplebirch.nnpc.model;
     },
     zfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.arm_right === 'cover' || options.maplebirch.nnpc.arm_right === 'hold' ? maplebirch.char.ZIndices.arms_cover : options.maplebirch.nnpc.zarms!;
+      return options.maplebirch.nnpc.arm_right === 'cover' || options.maplebirch.nnpc.arm_right === 'hold' ? maplebirch.char.ZIndices.right_cover_arm : options.maplebirch.nnpc.zarms!;
     },
     dxfn(options: LayerOptions) {
       return options.maplebirch.nnpc.dxfn!;
@@ -405,7 +405,7 @@ const base_layers = {
       return !!options.maplebirch.nnpc.hair_fringe_type && options.maplebirch.nnpc.show && options.maplebirch.nnpc.model;
     },
     zfn(options: LayerOptions) {
-      return maplebirch.char.ZIndices.fronthair + options.maplebirch.nnpc.position!;
+      return maplebirch.char.ZIndices.front_hair + options.maplebirch.nnpc.position!;
     },
     dxfn(options: LayerOptions) {
       return options.maplebirch.nnpc.dxfn!;
