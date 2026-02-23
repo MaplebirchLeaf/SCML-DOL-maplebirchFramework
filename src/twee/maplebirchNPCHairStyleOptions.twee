@@ -1,0 +1,12 @@
+<<widget 'maplebirchNPCHairStyleOptions'>>
+  <span class='gold'><<lanSwitch 'Hair Style: ' '发型：'>></span><span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Adjust hair style' '调整发型样式'>></span>">(?)</span><br> 
+  <<lanSwitch 'Sides: ' '侧发：'>><<lanListbox  '$NPCName[_npcId].hair_side_type' autoselect>><<optionsfrom maplebirch.npc.Sidebar.hair_type('sides')>><</lanListbox>><br>
+  <<lanSwitch 'Fringe: ' '刘海：'>><<lanListbox  '$NPCName[_npcId].hair_fringe_type' autoselect>><<optionsfrom maplebirch.npc.Sidebar.hair_type('fringe')>><</lanListbox>><br>
+  <<radiobuttonsfrom '$NPCName[_npcId].hair_position' 'front[Sides in front,两侧头发在身体前]|back[Sides behind,两侧头发在身体后]'>><</radiobuttonsfrom>><br>
+  <<numberStepper '<<lanSwitch "Length" "长度">>' $NPCName[_npcId].hairlength {max: 1000, callback: value => { V.NPCName[T.npcId].hairlength = value; $.wiki('<<replace #maplebirchNPCHairStyleOptions>><<maplebirchNPCHairStyleOptions>><</replace>>') }}>>
+  <<set _NPCHairLength to (function(v) { if (v < 200) return 'ear'; if (v < 400) return 'neck'; if (v < 600) return 'chest'; if (v < 800) return 'waist'; if (v < 1000) return 'knees'; return 'ankles'; })($NPCName[_npcId].hairlength)>>
+  <<radiobuttonsfrom '_NPCHairLength' 'ear[Ear,耳朵]|neck[Neck,颈部]|chest[Chest,胸前]|waist[Waist,腰际]|knees[Knees,膝盖]|ankles[Ankles,脚踝]'>>
+    <<set $NPCName[_npcId].hairlength to { ear:0, neck:200, chest:400, waist:600, knees:800, ankles:1000 }[_NPCHairLength]>>
+    <<replace #maplebirchNPCHairStyleOptions>><<maplebirchNPCHairStyleOptions>><</replace>>
+  <</radiobuttonsfrom>>
+<</widget>>

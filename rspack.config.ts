@@ -19,7 +19,7 @@ export default (env: unknown, argv: { mode?: string }): Configuration => {
     },
     devtool: isProduction ? false : 'inline-source-map',
     resolve: {
-      extensions: ['.ts', '.js'],
+      extensions: ['.ts', '.js', '.twee'],
       alias: {
         '@': path.resolve(__dirname, 'src'),
         'lodash-es': 'lodash-es'
@@ -27,6 +27,11 @@ export default (env: unknown, argv: { mode?: string }): Configuration => {
     },
     module: {
       rules: [
+        {
+          test: /\.twee$/,
+          resourceQuery: /raw/,
+          type: 'asset/source',
+        },
         {
           test: /\.ts$/,
           exclude: /node_modules/,
