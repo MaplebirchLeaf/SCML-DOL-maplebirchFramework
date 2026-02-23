@@ -16,16 +16,16 @@ declare module 'twine-sugarcube' {
     isAsync?: boolean;
     isWidget?: boolean;
   }
+}
+
+declare global {
+  const C: { [x: string]: any };
+  const T: { [x: string]: any };
+  const V: { [x: string]: any };
 
   export interface JQueryAriaClickOptions {
     role?: string;
   }
-}
-
-declare global {
-  const C: { [x: string]: any; };
-  const T: { [x: string]: any; };
-  const V: { [x: string]: any; };
 }
 
 export type TwineSugarCube = typeof window.SugarCube & {

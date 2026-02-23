@@ -186,7 +186,7 @@ const layers: Record<string, LayerConfig> = {
       return !!options.show_hair && !!options.hair_fringe_type;
     },
     zfn() {
-      return maplebirch.char.ZIndices.fronthair;
+      return maplebirch.char.ZIndices.front_hair;
     },
     filtersfn(options: { hair_fringe_colour_style: string }) {
       return options.hair_fringe_colour_style === 'gradient' ? ['hair_fringe_close_up'] : ['hair_fringe'];
@@ -342,6 +342,7 @@ class Character {
 
   process(type: 'pre' | 'post', options: any) {
     const handlers = this.handlers[type] || [];
+    this.core.var.optionsCheck();
     for (const fn of handlers) {
       try {
         fn(options);
@@ -547,7 +548,7 @@ class Character {
   }
 
   Init() {
-    this.core.on('characterRender', async () => await this.render(), 'character render');
+    this.core.on(':modhint', async () => await this.render(), 'character render');
     this.transformation.inject();
   }
 

@@ -302,7 +302,16 @@ export const NamedNPC = (core => {
           initialized = true;
         }
       });
-      if (!this.pregnancyAvoidance || (V.settings != null ? V.objectVersion.pregnancyAvoidance == null : false)) this.pregnancyAvoidance = 100;
+      if (!this.pregnancyAvoidance || (V.settings != null ? V.objectVersion.pregnancyAvoidance == null : false)) {
+        const name = this.nam;
+        if (['Kylar', 'Black Wolf', 'Great Hawk', 'Eden', 'Ivory Wraith', 'Gwylan'].includes(name)) {
+          this.pregnancyAvoidance = 0;
+        } else if (['Robin', 'Whitney', 'Alex', 'Wren', 'Avery'].includes(name)) {
+          this.pregnancyAvoidance = 50;
+        } else {
+          this.pregnancyAvoidance = random(100);
+        }
+      }
     }
 
     bodyPartdescription() {
@@ -533,8 +542,8 @@ class NPCManager {
   NPCNameList: string[] = [];
   // prettier-ignore
   readonly pregnancy: { [x:string]: Array<string> } = {
-    infertile    :     ['Bailey', 'Leighton'],
-    typesEnabled :  ['human', 'wolf', 'wolfboy', 'wolfgirl', 'hawk', 'harpy'],
+    infertile    : ['Bailey', 'Leighton'],
+    typesEnabled : ['human', 'wolf', 'wolfboy', 'wolfgirl', 'hawk', 'harpy'],
     canBePregnant: ['Alex', 'Black Wolf', 'Great Hawk']
   };
   // prettier-ignore

@@ -32,10 +32,18 @@ interface AudioEventData {
   [key: string]: any;
 }
 
+interface AudioRecord {
+  key: string;
+  arrayBuffer: ArrayBuffer;
+  mod: string;
+  format: string;
+}
+
 class Track {
   title: string;
   artist: string;
   duration: number = 0;
+  format: string = 'mp3';
 
   constructor(
     readonly key: string,
@@ -207,9 +215,19 @@ class AudioManager {
     void this.core.trigger(':audio', { type: event, data: args });
   }
 
-  private async store(key: string, arrayBuffer: ArrayBuffer, modName: string): Promise<boolean> {
+  private async store(key: string, arrayBuffer: ArrayBuffer, modName: string, format: string = 'mp3'): Promise<boolean> {
     try {
-      await this.core.idb.withTransaction(['audio-buffers'], 'readwrite', async (tx: any) => await tx.objectStore('audio-buffers').put({ key, arrayBuffer, mod: modName }));
+      await this.core.idb.withTransaction(
+        ['audio-buffers'],
+        'readwrite',
+        async (tx: any) =>
+          await tx.objectStore('audio-buffers').put({
+            key,
+            arrayBuffer,
+            mod: modName,
+            format
+          })
+      );
       return true;
     } catch {
       this.log(`存储音频失败: ${key}`, 'ERROR');
@@ -217,24 +235,24 @@ class AudioManager {
     }
   }
 
-  private async get(key: string): Promise<ArrayBuffer | null> {
+  private async audioRecord(key: string): Promise<AudioRecord | null> {
     try {
-      return await this.core.idb.withTransaction(['audio-buffers'], 'readonly', async (tx: any) => {
-        const record = await tx.objectStore('audio-buffers').get(key);
-        return record ? record.arrayBuffer : null;
+      const record = await this.core.idb.withTransaction(['audio-buffers'], 'readonly', async (tx: any) => {
+        return await tx.objectStore('audio-buffers').get(key);
       });
+      return (record as AudioRecord) || null;
     } catch {
       return null;
     }
   }
 
-  private async modKeys(modName: string): Promise<string[]> {
+  private async modAudioRecords(modName: string): Promise<AudioRecord[]> {
     try {
-      return await this.core.idb.withTransaction(['audio-buffers'], 'readonly', async (tx: any) => {
+      const records = await this.core.idb.withTransaction(['audio-buffers'], 'readonly', async (tx: any) => {
         const index = tx.objectStore('audio-buffers').index('mod');
-        const records = await index.getAll(modName);
-        return records.map((r: any) => r.key);
+        return await index.getAll(modName);
       });
+      return records as AudioRecord[];
     } catch {
       return [];
     }
@@ -250,22 +268,45 @@ class AudioManager {
   }
 
   async modAudioClear(modName: string): Promise<boolean> {
-    const keys = await this.modKeys(modName);
-    for (const key of keys) await this.delete(key);
+    const records = await this.modAudioRecords(modName);
+    for (const record of records) await this.delete(record.key);
     return true;
+  }
+
+  private arrayBufferToBase64(arrayBuffer: ArrayBuffer): string {
+    const bytes = new Uint8Array(arrayBuffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+    return btoa(binary);
+  }
+
+  private mimeType(format: string): string {
+    const mimeTypes: Record<string, string> = {
+      mp3: 'audio/mpeg',
+      wav: 'audio/wav',
+      ogg: 'audio/ogg',
+      m4a: 'audio/mp4',
+      flac: 'audio/flac',
+      webm: 'audio/webm'
+    };
+    return mimeTypes[format] || 'audio/mpeg';
   }
 
   private async loadTrack(track: Track): Promise<{ howl: any; url: string }> {
     if (this.cache.has(track.id)) return this.cache.get(track.id)!;
-    const arrayBuffer = await this.get(track.key);
-    if (!arrayBuffer) throw new Error(`音频未找到: ${track.key}`);
-    const blob = new Blob([arrayBuffer]);
-    const url = URL.createObjectURL(blob);
+    const record = await this.audioRecord(track.key);
+    if (!record) throw new Error(`音频未找到: ${track.key}`);
+    const { arrayBuffer, format } = record;
+    track.format = format;
+    const base64 = this.arrayBufferToBase64(arrayBuffer);
+    const mimeType = this.mimeType(format);
+    const url = `data:${mimeType};base64,${base64}`;
     const howl = await new Promise<any>((resolve, reject) => {
       const h = new this.core.howler.Howl({
         src: [url],
         html5: false,
         volume: this.volume,
+        format: [format],
         onload: () => {
           track.duration = h.duration();
           resolve(h);
@@ -285,7 +326,6 @@ class AudioManager {
       const first = this.cache.keys().next().value;
       const old = this.cache.get(first);
       if (old?.howl) old.howl.unload();
-      if (old?.url) URL.revokeObjectURL(old.url);
       this.cache.delete(first);
     }
   }
@@ -437,8 +477,12 @@ class AudioManager {
   async modPlaylist(modName: string): Promise<Playlist> {
     if (this.playlists.has(modName)) return this.playlists.get(modName)!;
     const playlist = new Playlist(modName);
-    const keys = await this.modKeys(modName);
-    const tracks = keys.map(key => new Track(key, modName));
+    const records = await this.modAudioRecords(modName);
+    const tracks = records.map(record => {
+      const track = new Track(record.key, modName);
+      track.format = record.format;
+      return track;
+    });
     playlist.add(tracks);
     this.playlists.set(modName, playlist);
     return playlist;
@@ -459,6 +503,10 @@ class AudioManager {
     }
   }
 
+  get PlayMode(): PlayMode {
+    return this.activePlaylist ? this.activePlaylist.playMode : PlayMode.LOOP_ALL;
+  }
+
   set PlayMode(mode: PlayMode) {
     if (!this.activePlaylist) return;
     this.activePlaylist.mode(mode);
@@ -474,7 +522,7 @@ class AudioManager {
     if (!modLoader) return false;
     const modZip = modLoader.getModZip(modName);
     if (!modZip?.modInfo?.bootJson?.additionFile) return false;
-    const audioFiles: Array<{ path: string; key: string }> = [];
+    const audioFiles: Array<{ path: string; key: string; format: string }> = [];
     modZip.modInfo.bootJson.additionFile.forEach((path: string) => {
       if (path.startsWith(`${audioFolder}/`)) {
         const ext = path.split('.').pop()?.toLowerCase();
@@ -482,16 +530,20 @@ class AudioManager {
           let key = path.substring(audioFolder.length + 1);
           const lastDot = key.lastIndexOf('.');
           if (lastDot > 0) key = key.substring(0, lastDot);
-          audioFiles.push({ path, key });
+          audioFiles.push({
+            path,
+            key,
+            format: ext || 'mp3'
+          });
         }
       }
     });
-    for (const { path, key } of audioFiles) {
+    for (const { path, key, format } of audioFiles) {
       const file = modZip.zip.file(path);
       if (!file) continue;
       try {
         const arrayBuffer = await file.async('arraybuffer');
-        await this.store(key, arrayBuffer, modName);
+        await this.store(key, arrayBuffer, modName, format);
       } catch {
         this.log(`加载失败: ${path}`, 'WARN');
       }
@@ -502,16 +554,16 @@ class AudioManager {
 
   async addAudioFromFile(file: File, modName: string = 'custom'): Promise<boolean> {
     const ext = file.name.split('.').pop()?.toLowerCase();
-    if (!['mp3', 'wav', 'ogg', 'm4a', 'flac', 'webm'].includes(ext || '')) {
-      this.log('不支持的格式', 'WARN');
-      return false;
-    }
+    if (!['mp3', 'wav', 'ogg', 'm4a', 'flac', 'webm'].includes(ext || '')) return false;
     const key = file.name.substring(0, file.name.lastIndexOf('.'));
     const arrayBuffer = await file.arrayBuffer();
-    const success = await this.store(key, arrayBuffer, modName);
+    const format = ext || 'mp3';
+    const success = await this.store(key, arrayBuffer, modName, format);
     if (success) {
       const playlist = await this.modPlaylist(modName);
-      playlist.add(new Track(key, modName));
+      const track = new Track(key, modName);
+      track.format = format;
+      playlist.add(track);
     }
     return success;
   }
@@ -529,7 +581,6 @@ class AudioManager {
   clearCache(): void {
     this.cache.forEach(({ howl, url }) => {
       if (howl) howl.unload();
-      if (url) URL.revokeObjectURL(url);
     });
     this.cache.clear();
   }
@@ -538,6 +589,34 @@ class AudioManager {
     this.stop();
     this.clearCache();
     this.events.clear();
+  }
+
+  get Playlist(): Playlist | Promise<Playlist> {
+    const modName = T.modName;
+    if (this.playlists.has(modName)) return this.playlists.get(modName)!;
+    return this.modPlaylist(modName);
+  }
+
+  async preInit(): Promise<void> {
+    const records = (await this.core.idb.withTransaction(['audio-buffers'], 'readonly', async (tx: any) => await tx.objectStore('audio-buffers').getAll())) as AudioRecord[];
+    const recordsByMod = records.reduce(
+      (acc, record) => {
+        if (!acc[record.mod]) acc[record.mod] = [];
+        acc[record.mod].push(record);
+        return acc;
+      },
+      {} as Record<string, AudioRecord[]>
+    );
+    Object.entries(recordsByMod).forEach(([modName, modRecords]) => {
+      const playlist = new Playlist(modName);
+      const tracks = modRecords.map(record => {
+        const track = new Track(record.key, modName);
+        track.format = record.format;
+        return track;
+      });
+      playlist.add(tracks);
+      this.playlists.set(modName, playlist);
+    });
   }
 }
 

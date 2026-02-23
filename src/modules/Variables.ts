@@ -106,6 +106,7 @@ class Variables {
 
   Init() {
     try {
+      V.maplebirch ??= {};
       if (this.tool.core.passage?.title === 'Start2') V.maplebirch = clone({ ...defaultVar, version: this.version });
     } catch (e: any) {
       this.log(`出现错误：${e?.message || e}`, 'ERROR');
