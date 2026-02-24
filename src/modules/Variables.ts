@@ -1,6 +1,5 @@
 // ./src/modules/Variables.ts
 
-import { version } from '../constants';
 import { clone, merge } from '../utils';
 import maplebirch, { MaplebirchCore, createlog } from '../core';
 import migration from './Frameworks/migration';
@@ -75,7 +74,7 @@ class Variables {
   hairgradients: () => HairGradientsReturn;
 
   constructor(readonly core: MaplebirchCore) {
-    this.version = version;
+    this.version = '3.2.0';
     this.tool = this.core.tool;
     this.log = createlog('var');
     this.migration = new this.tool.migration();
@@ -118,6 +117,7 @@ class Variables {
 
   loadInit() {
     try {
+      V.maplebirch ??= {};
       this.optionsCheck();
       this.migration.run(V.maplebirch, this.version);
       $.wiki('<<maplebirchState>>');

@@ -7,16 +7,13 @@ import { ImgLoaderHooker } from '@scml/hook-img-loader/ImgLoaderHooker';
 import { Gui } from '@scml/mod-loader-gui/Gui';
 import { ModInfo } from '@scml/sc2-modloader/ModLoader';
 import { ModUtils } from '@scml/sc2-modloader/Utils';
-import { ReplacePatcher } from '@scml/mod-replace-patch/ReplacePatcher';
-import { TweeReplacer } from '@scml/mod-twee-replacer/TweeReplacer';
 import { _languageSwitch } from '../src/database/SugarCubeMacros';
 
 declare global {
   interface Window {
     readonly modSC2DataManager: SC2DataManager;
     readonly modGameOriginalImagePack: GameOriginalImagePack;
-    readonly addonTweeReplacer: TweeReplacer;
-    readonly addonReplacePatcher: ReplacePatcher;
+    readonly modImgLoaderHooker: ImgLoaderHooker;
     readonly Time: typeof Time;
     DateTime: typeof DateTime;
     closeOverlay(): void;
@@ -123,15 +120,15 @@ declare global {
     getPreviousWeekdayDate(weekDay: number): DateTime;
     isWeekEnd(): boolean;
     monthNames: string[];
-  }
+  };
 
-  const Weather: { rain: boolean; thunder: boolean; snow: boolean; cloud: boolean; windy: boolean; fog: boolean;[key: string]: any };
+  const Weather: { rain: boolean; thunder: boolean; snow: boolean; cloud: boolean; windy: boolean; fog: boolean; [key: string]: any };
   function getFormattedDate(date: any, includeWeekday?: boolean): string;
   function getShortFormattedDate(date: any): string;
   function ordinalSuffixOf(i: number): string;
   const Dynamic: { [key: string]: any };
   function hairLengthStringToNumber(lengthStr: string): number;
-  const Renderer: { CanvasModels: { main: any };[key: string]: any };
+  const Renderer: { CanvasModels: { main: any }; [key: string]: any };
   const ZIndices: { [key: string]: number };
   function wikifier(widget: string, ...args: any): DocumentFragment;
   function playerNormalPregnancyType(): string;

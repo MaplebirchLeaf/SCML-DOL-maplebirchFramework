@@ -108,33 +108,16 @@ class MaplebirchCore {
         if (this.passage.title == 'Start' || this.passage.title == 'Downgrade Waiting Room') return;
         this.modules.initPhase.postInitExecuted = false;
         await this.init();
-        if (this.onLoad)
+        if (this.onLoad) {
           await this.load().then(() => {
-            void this.trigger(':onLoadSave');
+            void this.trigger(':onLoadSave').then(async () => await this.post());
             this.onLoad = false;
           });
+        } else {
+          await this.post();
+        }
       },
       'loadInit'
-    );
-
-    this.on(
-      ':passagerender',
-      async () => {
-        let retryCount = 0;
-        const tryPostInit = async () => {
-          if (this.modules.initPhase.loadInitExecuted) {
-            await this.post();
-          } else if (this.modules.initPhase.mainInitCompleted) {
-            if (this.onLoad) return;
-            await this.post();
-          } else if (retryCount < 10) {
-            retryCount++;
-            setTimeout(tryPostInit, 5);
-          }
-        };
-        await tryPostInit();
-      },
-      'postInit'
     );
 
     this.once(':storyready', async () => {

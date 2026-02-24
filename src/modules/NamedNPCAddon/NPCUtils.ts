@@ -30,17 +30,13 @@ function npcSeenProperty(npcName: string) {
   _.defaults(V, { [SeenName]: [], [FirstSeenName]: '' });
   Object.defineProperty(V.maplebirch.npc[npcName], 'Seen', {
     get: () => V[SeenName],
-    set: val => {
-      V[SeenName] = val;
-    },
+    set: val => (V[SeenName] = val),
     configurable: true,
     enumerable: true
   });
   Object.defineProperty(V.maplebirch.npc[npcName], 'FirstSeen', {
     get: () => V[FirstSeenName],
-    set: val => {
-      V[FirstSeenName] = val;
-    },
+    set: val => (V[FirstSeenName] = val),
     configurable: true,
     enumerable: true
   });

@@ -1,5 +1,6 @@
 // ./src/utils.ts
 
+import { ImgLoaderHooker } from '@scml/hook-img-loader/ImgLoaderHooker';
 import maplebirch from './core';
 const _ = maplebirch.lodash;
 
@@ -363,21 +364,6 @@ class SelectCase {
 }
 
 /**
- * 加载图片（支持ModLoader）
- * @example loadImage('character.png').then(data => img.src = data)
- * @example await loadImage('https://example.com/image.jpg')
- * @example const data = loadImage('character.png'); // 同步返回
- */
-function loadImage(src: string): string | boolean | Promise<string | boolean> {
-  try {
-    if ((window.modImgLoaderHooker as any).maplebirchCheckImageExist(src)) return maplebirch.modUtils.getImage(src);
-    return false;
-  } catch (error) {
-    return src;
-  }
-}
-
-/**
  * 字符串格式转换
  * @example convert('Hello World') // 'hello world' (默认lower)
  * @example convert('hello world', 'upper') // 'HELLO WORLD'
@@ -434,41 +420,37 @@ function convert(
   }
 }
 
-(window.modImgLoaderHooker as any).maplebirchCheckImageExist = function (src: string) {
-  var _a: { imgData: { getter: { invalid: any } } };
-  if (this.imgLookupTable.has(src)) {
-    const n = this.imgLookupTable.get(src);
-    if (n && n.length > 0) {
-      const r = (_a = n[0]) === null || _a === void 0 ? void 0 : _a.imgData.getter.invalid;
-      if (!r) return true;
-    }
-  }
-  let maybeExist = false;
-  for (const hooker of this.sideHooker) {
+function checkImageExist(src: string, ImgLoaderHooker: ImgLoaderHooker) {
+  for (const hooker of ImgLoaderHooker.sideHooker) {
     if (hooker.hookName === 'GameOriginalImagePackImageSideHook') {
       const n = window.modGameOriginalImagePack.selfImg.get(src);
-      if (!n) continue;
-      try {
-        if (!n.getter.invalid) return true;
-      } catch (e) {
-        maybeExist = true;
-      }
+      if (n && !n.getter.invalid) return true;
       continue;
     }
-    try {
-      if (hooker.checkImageExist) {
+    if (hooker.checkImageExist) {
+      try {
         const c = hooker.checkImageExist(src);
-        if (c === true) {
-          return true;
-        } else if (c == null) {
-          maybeExist = true;
-          continue;
-        }
-      }
-    } catch (e) {}
+        if (c === true) return true;
+      } catch (e) {}
+    }
   }
-  return maybeExist ? (undefined as any) : false;
-};
+  return false;
+}
+
+/**
+ * 加载图片（支持ModLoader）
+ * @example loadImage('character.png').then(data => img.src = data)
+ * @example await loadImage('https://example.com/image.jpg')
+ * @example const data = loadImage('character.png'); // 同步返回
+ */
+function loadImage(src: string): string | boolean | Promise<string | boolean> {
+  try {
+    if (checkImageExist(src, window.modImgLoaderHooker)) return maplebirch.modUtils.getImage(src);
+    return false;
+  } catch (error) {
+    return src;
+  }
+}
 
 function widgets(...rawContents: string[]): string[] {
   return rawContents.map(content => {
