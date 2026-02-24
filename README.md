@@ -24,6 +24,29 @@
     }
   ]
 ```
+- **`boot.json`中的文件加载**(推荐): 对于使用了框架功能的 **`JavaScript`文件** 推荐在插件 `addonPlugin` 区域填写路径加载。
+```json
+"addonPlugin": [
+    {
+      "modName": "maplebirch",
+      "addonName": "maplebirchAddon",
+      "modVersion": "^2.7.0",
+      "params": {
+        "module": [
+          "maplebirch.js" // 紧随模组加载器inject_early完成时机之后的处理，非必要不推荐使用
+        ],
+        "script": [
+          "framework.js" // 模组加载器addonPlugin处理完成时机处理，推荐在此处填写你的JavaScript文件路径
+        ]
+      }
+    }
+  ]
+```
 ## 反馈与讨论
 
 ## 致谢
+- 感谢 [Lyoko-Jeremie](https://github.com/Lyoko-Jeremie) 制作的 [sugarcube-2-ModLoader](https://github.com/Lyoko-Jeremie/sugarcube-2-ModLoader) 为本模组提供了前置的基础支持。
+- 感谢 [狐千月](https://github.com/emicoto) 制作的 [简易框架](https://github.com/emicoto/SCMLSimpleFramework) 提供了重要的模组基础和制作灵感。
+- 感谢 [Muromi-Rikka](https://github.com/Muromi-Rikka) 对 [本框架](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework) 的代码优化。
+- 感谢 [苯环](https://github.com/Nephthelana) 、[零环](https://github.com/ZeroRing233) 、 [丧心](https://github.com/MissedHeart) 等模组制作者的代码引导。
+- 感谢 其它更多对于本框架进行反馈的游玩者们。
