@@ -1,11 +1,9 @@
 // ./src/database/FrameworksReplace.ts
-import maplebirchTransformationMirror from "@/twee/maplebirchTransformationMirror.twee?raw"
-import maplebirchNPCHairStyleOptions from "@/twee/maplebirchNPCHairStyleOptions.twee?raw"
-// prettier-ignore
-const specialWidget = [
-  maplebirchTransformationMirror,
-  maplebirchNPCHairStyleOptions
-]
+import { widgets } from '../utils';
+import TransformationMirror from '@/twee/TransformationMirror.twee?raw';
+import NPCHairStyleOptions from '@/twee/NPCHairStyleOptions.twee?raw';
+
+const specialWidget = widgets(TransformationMirror, NPCHairStyleOptions);
 
 // prettier-ignore
 const defaultData = {

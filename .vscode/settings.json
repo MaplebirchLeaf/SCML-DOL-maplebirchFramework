@@ -1,5 +1,6 @@
 {
   "twee3LanguageTools.storyformat.current": "sugarcube-2",
+  "twee3LanguageTools.sugarcube-2.warning.undefinedMacro": false,
   "oxc.fmt.configPath": ".oxfmtrc.json",
   "editor.defaultFormatter": "oxc.oxc-vscode",
   "editor.formatOnSave": true,

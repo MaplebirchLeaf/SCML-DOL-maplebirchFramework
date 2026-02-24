@@ -1,3 +1,5 @@
+:: Widget [widget]
+
 <<widget 'maplebirchTransformationMirror'>>
   <<set _modTransforms = []>>
   <<if V.maplebirch?.transformation>><<for _modName range Object.keys(V.maplebirch.transformation)>><<if V.maplebirch.transformation[_modName].level > 0>><<set _modTransforms.push(_modName)>><</if>><</for>><</if>>
