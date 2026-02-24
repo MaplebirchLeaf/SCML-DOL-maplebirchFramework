@@ -148,10 +148,7 @@ class migration {
         fromVersion: '',
         migrationFn: () => {}
       } as step);
-      if (!migration || migration.toVersion === currentVersion) {
-        this.log(`迁移中断: ${currentVersion} -> ${targetVersion}`, 'WARN');
-        break;
-      }
+      if (!migration || migration.toVersion === currentVersion) break;
       try {
         this.log(`迁移中: ${currentVersion} → ${migration.toVersion}`, 'DEBUG');
         migration.migrationFn(data, this.utils);
@@ -165,11 +162,7 @@ class migration {
         throw migrationError;
       }
     }
-
-    if (this._compareVersions(currentVersion, targetVersion) < 0) {
-      this.log(`强制设置版本: ${targetVersion}`, 'WARN');
-      data.version = targetVersion;
-    }
+    if (this._compareVersions(currentVersion, targetVersion) < 0) data.version = targetVersion;
   }
 }
 
