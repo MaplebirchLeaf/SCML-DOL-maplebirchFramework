@@ -1,11 +1,12 @@
 {
-  "name": "sc2-maplebirch-mod",
+  "name": "maplebirch",
   "version": "3.1.6",
   "private": true,
   "description": "SugarCube2-ModLoader-Degrees of Lewdity-Maplebirch Frameworks",
+  "type": "commonjs",
   "types": "dist/maplebirch.d.ts",
-  "packageManager": "bun@1",
   "scripts": {
+    "dev": "rspack serve",
     "clean": "bun run scripts/clean.ts",
     "build": "bun run rspack -- build --mode=production",
     "build:dev": "bun run rspack -- build --mode=development",
@@ -32,6 +33,7 @@
     "@scml/mod-loader-gui": "^1.0.4",
     "@scml/sc2-modloader": "^1.0.4",
     "@scml/sc2-verlnir": "^1.0.5",
+    "@types/adm-zip": "^0.5.7",
     "@types/bun": "^1.3.9",
     "@types/howler": "^2.2.12",
     "@types/jquery": "^3.5.29",
@@ -41,6 +43,7 @@
     "@types/lodash-es": "^4.17.8",
     "@types/node": "^25.2.3",
     "@types/twine-sugarcube": "^2.37.2",
+    "adm-zip": "^0.5.16",
     "oxfmt": "^0.32.0",
     "oxlint": "^1.47.0",
     "oxlint-tsgolint": "^0.12.2",
@@ -51,23 +54,51 @@
     "typescript": "^5.3.3",
     "webpack-bundle-analyzer": "^5.2.0"
   },
+  "packageManager": "bun@1",
   "scml": {
-    "name": "maplebirch",
     "nickName": {
       "en": "Maplebirch Frameworks",
       "cn": "秋枫白桦框架"
     },
-    "alias": ["Simple Frameworks"],
-    "scriptFileList": ["defineSugarCube.js"],
+    "alias": [
+      "Simple Frameworks"
+    ],
+    "scriptFileList": [
+      "defineSugarCube.js"
+    ],
     "dependenceInfo": [
-      { "modName": "ModLoader", "version": ">=2.0.0" },
-      { "modName": "ModLoaderGui", "version": ">=1.0.0" },
-      { "modName": "ModSubUiAngularJs", "version": ">=1.0.0" },
-      { "modName": "ConflictChecker", "version": ">=1.0.0" },
-      { "modName": "BeautySelectorAddon", "version": ">=2.0.0" },
-      { "modName": "ReplacePatcher", "version": ">=1.0.0" },
-      { "modName": "TweeReplacer", "version": ">=1.0.0" },
-      { "modName": "GameVersion", "version": ">=0.5.7.0" }
+      {
+        "modName": "ModLoader",
+        "version": ">=2.0.0"
+      },
+      {
+        "modName": "ModLoaderGui",
+        "version": ">=1.0.0"
+      },
+      {
+        "modName": "ModSubUiAngularJs",
+        "version": ">=1.0.0"
+      },
+      {
+        "modName": "ConflictChecker",
+        "version": ">=1.0.0"
+      },
+      {
+        "modName": "BeautySelectorAddon",
+        "version": ">=2.0.0"
+      },
+      {
+        "modName": "ReplacePatcher",
+        "version": ">=1.0.0"
+      },
+      {
+        "modName": "TweeReplacer",
+        "version": ">=1.0.0"
+      },
+      {
+        "modName": "GameVersion",
+        "version": ">=0.5.7.0"
+      }
     ]
   }
 }
