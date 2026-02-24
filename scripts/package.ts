@@ -1,6 +1,15 @@
 import path from 'node:path';
 import { mkdir, readdir, stat, readFile } from 'node:fs/promises';
+import { readPackageJSON } from 'pkg-types';
 import JSZip from 'jszip';
+
+interface ScmlConfig {
+  name: string;
+  nickName: { en: string; cn: string };
+  alias: string[];
+  scriptFileList: string[];
+  dependenceInfo: Array<{ modName: string; version: string }>;
+}
 
 async function createModPackage() {
   const rootDir = path.join(import.meta.dir, '..');
@@ -10,10 +19,13 @@ async function createModPackage() {
 
   await mkdir(packageDir, { recursive: true });
 
-  const zip = new JSZip();
-  const bootTemplate = await Bun.file(path.join(rootDir, 'boot.json')).json();
-  const version = (bootTemplate as { version?: string }).version;
+  const pkg = await readPackageJSON(rootDir);
+  if (!pkg?.version) throw new Error('package.json 中缺少 version');
+  const scml = (pkg as { scml?: ScmlConfig }).scml;
+  if (!scml) throw new Error('package.json 中缺少 scml 配置');
 
+  const version = pkg.version;
+  const zip = new JSZip();
   const styleFiles: string[] = [];
   const additionFiles: string[] = [];
 
@@ -55,14 +67,26 @@ async function createModPackage() {
 
   await addPublicFilesToZip(publicDir);
 
-  const modifiedBoot = {
-    ...(bootTemplate as object),
-    scriptFileList_inject_early: ['inject_early.js'],
+  const boot = {
+    name: scml.name,
+    nickName: scml.nickName,
+    alias: scml.alias,
+    version,
     styleFileList: styleFiles,
-    additionFile: additionFiles
+    tweeFileList: [],
+    imgFileList: [],
+    scriptFileList: scml.scriptFileList,
+    additionFile: additionFiles,
+    scriptFileList_inject_early: ['inject_early.js'],
+    scriptFileList_earlyload: [],
+    scriptFileList_preload: [],
+    additionBinaryFile: [],
+    additionDir: [],
+    addonPlugin: [],
+    dependenceInfo: scml.dependenceInfo
   };
 
-  zip.file('boot.json', JSON.stringify(modifiedBoot, null, 2));
+  zip.file('boot.json', JSON.stringify(boot, null, 2));
 
   const zipBuffer = await zip.generateAsync({
     type: 'uint8array',
