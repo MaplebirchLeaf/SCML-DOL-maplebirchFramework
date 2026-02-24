@@ -1,3 +1,5 @@
+:: Widget [widget]
+
 <<widget 'maplebirchNPCHairStyleOptions'>>
   <span class='gold'><<lanSwitch 'Hair Style: ' '发型：'>></span><span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Adjust hair style' '调整发型样式'>></span>">(?)</span><br> 
   <<lanSwitch 'Sides: ' '侧发：'>><<lanListbox  '$NPCName[_npcId].hair_side_type' autoselect>><<optionsfrom maplebirch.npc.Sidebar.hair_type('sides')>><</lanListbox>><br>

@@ -470,6 +470,13 @@ function convert(
   return maybeExist ? (undefined as any) : false;
 };
 
+function widgets(...rawContents: string[]): string[] {
+  return rawContents.map(content => {
+    const widgetStart = content.indexOf('<<widget');
+    return widgetStart >= 0 ? content.substring(widgetStart).trim() : content.trim();
+  });
+}
+
 const tools = {
   clone: Object.freeze(clone),
   merge: Object.freeze(merge),
@@ -487,4 +494,4 @@ _.each(toolNames, name => {
   if (!window.hasOwnProperty(name)) Object.defineProperty(window, name, { value: (tools as any)[name], enumerable: true });
 });
 
-export { clone, equal, merge, contains, random, either, SelectCase, loadImage, convert };
+export { clone, equal, merge, contains, random, either, SelectCase, loadImage, convert, widgets };
