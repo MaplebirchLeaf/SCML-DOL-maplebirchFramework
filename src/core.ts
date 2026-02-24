@@ -1,6 +1,6 @@
 // ./src/core.ts
 
-import type { TwineSugarCube,  } from '../types/twine-sugarcube';
+import type { TwineSugarCube } from '../types/twine-sugarcube';
 import type { SC2DataManager } from '@scml/sc2-modloader/SC2DataManager';
 import type { Gui } from '@scml/mod-loader-gui/Gui';
 import jsyaml from 'js-yaml';
@@ -32,7 +32,7 @@ class MaplebirchCore {
     modifiedby: lastModifiedBy,
     updateDate: lastUpdate,
     Languages: Languages,
-    early: ['addon', 'dynamic', 'tool'] as const,
+    early: ['addon', 'dynamic', 'tool', 'char'] as const,
     core: ['addon', 'dynamic', 'tool', 'audio', 'var', 'char', 'npc', 'combat'] as const
   };
 

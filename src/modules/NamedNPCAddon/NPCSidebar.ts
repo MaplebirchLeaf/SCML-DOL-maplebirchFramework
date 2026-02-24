@@ -26,9 +26,7 @@ function loadFromMod(modZip: ModZipReader, npcName: string[]) {
   const paths = [];
   for (const name of npcName) {
     const npcNameFormatted = convert(name, 'capitalize');
-    if (!display.has(npcNameFormatted)) {
-      display.set(npcNameFormatted, new Set());
-    }
+    if (!display.has(npcNameFormatted)) display.set(npcNameFormatted, new Set());
     const npcSet = display.get(npcNameFormatted);
     const folder = `img/ui/nnpc/${npcNameFormatted.toLowerCase()}/`;
     for (const file in modZip.zip.files) {
@@ -282,7 +280,12 @@ const NPCSidebar = (() => {
     }
 
     static init(manager: NPCManager) {
-      for (const npcName of manager.NPCNameList) if (!display.has(npcName)) display.set(npcName, new Set());
+      manager.core.once(':storyready', () => {
+        for (const npcName of manager.NPCNameList) {
+          if (!display.has(npcName)) display.set(npcName, new Set());
+          V.options.maplebirch.npcsidebar.display[npcName] ??= 'none';
+        }
+      });
       manager.core.char.use('pre', preprocess);
       manager.core.char.use(layers);
     }

@@ -40,7 +40,7 @@ class GUIControl {
     await this.core.idb.withTransaction(['settings'], 'readwrite', async (tx: any) => {
       const store = tx.objectStore('settings');
       if (!(await store.get('DEBUG'))) await store.put({ key: 'DEBUG', value: false });
-      if (!(await store.get('Language'))) await store.put({ key: 'Language', value: 'EN' });
+      if (!(await store.get('Language'))) await store.put({ key: 'Language', value: navigator.language.includes('zh') ? 'CN' : 'EN' });
       const Extension = await store.get('Extension');
       const modules = Object.entries(this.core.dependencyGraph)
         .filter(([_, m]: [string, any]) => m.state === 'EXTENSION')
