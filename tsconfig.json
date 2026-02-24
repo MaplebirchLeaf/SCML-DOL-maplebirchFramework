@@ -6,7 +6,7 @@
     "target": "es2022",
     "module": "esnext",
     "lib": ["es2022", "dom", "dom.iterable"],
-    "types": ["bun", "twine-sugarcube", "@scml/sc2-verlnir", "@scml/addon-mod-beauty-selector", "@scml/game-original-image-pack-mod", "@scml/hook-img-loader", "@scml/mod-loader-gui", "@scml/sc2-modloader"],
+    "types": ["bun", "twine-sugarcube"],
     "moduleResolution": "bundler",
     "strict": false,
     "esModuleInterop": true,
