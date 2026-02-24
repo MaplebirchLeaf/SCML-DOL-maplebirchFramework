@@ -48,5 +48,6 @@
 - 感谢 [Lyoko-Jeremie](https://github.com/Lyoko-Jeremie) 制作的 [sugarcube-2-ModLoader](https://github.com/Lyoko-Jeremie/sugarcube-2-ModLoader) 为本模组提供了前置的基础支持。
 - 感谢 [狐千月](https://github.com/emicoto) 制作的 [简易框架](https://github.com/emicoto/SCMLSimpleFramework) 提供了重要的模组基础和制作灵感。
 - 感谢 [Muromi-Rikka](https://github.com/Muromi-Rikka) 对 [本框架](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework) 的代码优化。
-- 感谢 [苯环](https://github.com/Nephthelana) 、[零环](https://github.com/ZeroRing233) 、 [丧心](https://github.com/MissedHeart) 等模组制作者的代码引导。
+- 感谢 [苯环](https://github.com/Nephthelana) 、 [零环](https://github.com/ZeroRing233) 、 [丧心](https://github.com/MissedHeart) 等模组制作者的代码引导。
+- 感谢 [Aoki Utage](https://github.com/AOKIUTAGE) 、 [miyakoAki4828](https://github.com/miyakoAki4828) 、 [HCPTangHY](https://github.com/HCPTangHY) 等在美化相关的制作引导。
 - 感谢 其它更多对于本框架进行反馈的游玩者们。
