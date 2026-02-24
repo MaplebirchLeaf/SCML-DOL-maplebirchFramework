@@ -1,9 +1,10 @@
 {
   "name": "sc2-maplebirch-mod",
-  "version": "1.0.0",
+  "version": "3.1.6",
   "private": true,
   "description": "SugarCube2-ModLoader-Degrees of Lewdity-Maplebirch Frameworks",
   "types": "dist/maplebirch.d.ts",
+  "packageManager": "bun@1",
   "scripts": {
     "clean": "bun run scripts/clean.ts",
     "build": "bun run rspack -- build --mode=production",
@@ -44,10 +45,29 @@
     "oxlint": "^1.47.0",
     "oxlint-tsgolint": "^0.12.2",
     "patch-package": "^8.0.1",
+    "pkg-types": "^2.3.0",
     "postinstall-postinstall": "^2.1.0",
     "tsup": "^8.5.1",
     "typescript": "^5.3.3",
     "webpack-bundle-analyzer": "^5.2.0"
   },
-  "packageManager": "bun@1"
+  "scml": {
+    "name": "maplebirch",
+    "nickName": {
+      "en": "Maplebirch Frameworks",
+      "cn": "秋枫白桦框架"
+    },
+    "alias": ["Simple Frameworks"],
+    "scriptFileList": ["defineSugarCube.js"],
+    "dependenceInfo": [
+      { "modName": "ModLoader", "version": ">=2.0.0" },
+      { "modName": "ModLoaderGui", "version": ">=1.0.0" },
+      { "modName": "ModSubUiAngularJs", "version": ">=1.0.0" },
+      { "modName": "ConflictChecker", "version": ">=1.0.0" },
+      { "modName": "BeautySelectorAddon", "version": ">=2.0.0" },
+      { "modName": "ReplacePatcher", "version": ">=1.0.0" },
+      { "modName": "TweeReplacer", "version": ">=1.0.0" },
+      { "modName": "GameVersion", "version": ">=0.5.7.0" }
+    ]
+  }
 }
