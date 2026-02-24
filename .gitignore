@@ -9,3 +9,4 @@ types/*
 !types/twine-sugarcube.d
 !types/assets.d.ts
 !types/env.d.ts
+game
