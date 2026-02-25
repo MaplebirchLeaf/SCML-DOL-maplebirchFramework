@@ -57,7 +57,7 @@ function faceStyleSrcFn(name: Function | string) {
       `img/face/default/${image}.png`,
       `img/face/default/default/${image}.png`
     ];
-    for (let i = 0; i < paths.length; i++) if (!!loadImage(paths[i])) return paths[i];
+    for (const path of paths) if (!!loadImage(path)) return path;
     return paths[paths.length - 1];
   };
 }

@@ -1,6 +1,5 @@
 // ./src/utils.ts
 
-import { ImgLoaderHooker } from '@scml/hook-img-loader/ImgLoaderHooker';
 import maplebirch from './core';
 const _ = maplebirch.lodash;
 
@@ -393,7 +392,6 @@ function convert(
       .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
       .split(' ');
   };
-  const isUpper = (s: string) => s === s.toUpperCase();
   const words = splitWords(str).filter(w => w.length > 0);
   if (words.length === 0) return '';
   switch (mode) {
@@ -420,33 +418,51 @@ function convert(
   }
 }
 
-function checkImageExist(src: string, ImgLoaderHooker: ImgLoaderHooker) {
-  for (const hooker of ImgLoaderHooker.sideHooker) {
+const imageCache = new Map<string, boolean>();
+
+function checkImageExist(src: string): boolean | Promise<boolean> {
+  if (imageCache.has(src)) return imageCache.get(src)!;
+
+  for (const hooker of window.modImgLoaderHooker.sideHooker) {
     if (hooker.hookName === 'GameOriginalImagePackImageSideHook') {
-      const n = window.modGameOriginalImagePack.selfImg.get(src);
-      if (n && !n.getter.invalid) return true;
+      const n = window.modGameOriginalImagePack?.selfImg.get(src);
+      if (n && !n.getter.invalid) return imageCache.set(src, true) && true;
       continue;
     }
-    if (hooker.checkImageExist) {
-      try {
-        const c = hooker.checkImageExist(src);
-        if (c === true) return true;
-      } catch (e) {}
-    }
+    if (hooker.checkImageExist?.(src) === true) return imageCache.set(src, true) && true;
   }
-  return false;
+
+  if (!window.modGameOriginalImagePack) {
+    if (!src) return imageCache.set(src, false) && false;
+    return new Promise<boolean>(resolve => {
+      const img = new Image();
+      img.onload = () => resolve(imageCache.set(src, true) && true);
+      img.onerror = () => {
+        resolve(imageCache.set(src, false) && false);
+        void Promise.resolve().then(() => {
+          Errors.Reporter.hide(true);
+          Renderer.clearCaches(T.modelclass);
+          $.wiki('<<updatesidebarimg>>');
+        });
+      };
+      img.src = src;
+    });
+  }
+
+  return imageCache.set(src, false) && false;
 }
 
 /**
- * 加载图片（支持ModLoader）
+ * 图片加载
  * @example loadImage('character.png').then(data => img.src = data)
  * @example await loadImage('https://example.com/image.jpg')
- * @example const data = loadImage('character.png'); // 同步返回
+ * @example const data = await loadImage('character.png');
  */
 function loadImage(src: string): string | boolean | Promise<string | boolean> {
   try {
-    if (checkImageExist(src, window.modImgLoaderHooker)) return maplebirch.modUtils.getImage(src);
-    return false;
+    const checkResult = checkImageExist(src);
+    if (checkResult instanceof Promise) return checkResult.then(exists => (exists ? maplebirch.modUtils.getImage(src) || exists : exists));
+    return checkResult ? maplebirch.modUtils.getImage(src) || checkResult : checkResult;
   } catch (error) {
     return src;
   }

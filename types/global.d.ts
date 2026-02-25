@@ -122,6 +122,41 @@ declare global {
     monthNames: string[];
   };
 
+  interface ErrorsConfig {
+    debug: boolean;
+    maxLogs: number;
+    showReporterSelector: string;
+  }
+
+  interface ErrorLogEntry {
+    message: string;
+    copyData?: any;
+  }
+
+  interface ErrorsReporter {
+    visible(): boolean;
+    reporterContainer(): HTMLElement;
+    messagesContainer(): HTMLElement;
+    paneContainer(): HTMLElement;
+    copyArea(): HTMLTextAreaElement;
+    toggle(): void;
+    show(): void;
+    update(): void;
+    hide(andClear?: boolean): void;
+    createEntry(error: ErrorLogEntry): HTMLElement;
+    copyAll(): void;
+  }
+
+  interface Errors {
+    config: ErrorsConfig;
+    log: ErrorLogEntry[];
+    registerMessage(message: string, copyData?: any, noClone?: boolean): ErrorLogEntry;
+    report(message: string, copyData?: any, noClone?: boolean): void;
+    Reporter: ErrorsReporter;
+  }
+
+  declare const Errors: Errors;
+
   const Weather: { rain: boolean; thunder: boolean; snow: boolean; cloud: boolean; windy: boolean; fog: boolean; [key: string]: any };
   function getFormattedDate(date: any, includeWeekday?: boolean): string;
   function getShortFormattedDate(date: any): string;
