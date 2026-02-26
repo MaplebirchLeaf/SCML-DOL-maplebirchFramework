@@ -274,18 +274,15 @@ class AddonPlugin {
     }
   }
 
-  async InjectEarlyLoad_start(_modName: string, _fileName: string): Promise<void> {
-    try {
-      await this.core.disabled('Simple Frameworks');
-    } catch {}
-  }
-
   async ModLoaderLoadEnd(): Promise<void> {
     await this.core.gui.init();
     await this.core.trigger(':modLoaderEnd');
   }
 
   async afterInjectEarlyLoad(): Promise<void> {
+    try {
+      await this.core.disabled('Simple Frameworks');
+    } catch {}
     await this.scriptFiles();
     await this._executeScripts(this.moduleFiles, 'Module');
     if (this.core.modules.initPhase.allRegisteredTriggered) await this.core.trigger(':allModule');

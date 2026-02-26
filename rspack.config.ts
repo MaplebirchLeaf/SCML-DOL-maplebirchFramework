@@ -61,40 +61,43 @@ function commonConfig(isProduction: boolean): Configuration {
 }
 
 function devServerConfig(): RspackOptions {
-  if (!existsSync('./game/index.html')) return {};
+  if (!existsSync('./game/Degrees of Lewdity.html')) return {};
+
+  const modListHandler = () => (_req: any, response: any) => {
+    const mods = existsSync('./game/mods')
+      ? readdirSync('./game/mods/')
+          .filter(f => f.endsWith('.zip'))
+          .map(f => `/mods/${f}`)
+      : [];
+    response.json([...mods, `/${modFilename}`]);
+  };
+
+  const modZipHandler = () => async (_req: any, response: any) => {
+    try {
+      const zip = await createZip(process.cwd());
+      response.send(zip);
+    } catch (error) {
+      console.error('Error creating zip:', error);
+      response.status(500).send('Internal Server Error');
+    }
+  };
 
   return {
     devServer: {
-      port: 5678,
+      port: 1451,
+      open: true,
       liveReload: false,
       hot: false,
-      static: 'game',
-      devMiddleware: {
-        writeToDisk: true
+      static: {
+        directory: 'game',
+        staticOptions: { index: 'Degrees of Lewdity.html' }
       },
+      devMiddleware: { writeToDisk: true },
       setupMiddlewares: (middlewares, devServer) => {
-        if (!devServer) {
-          throw new Error('@rspack/dev-server is not defined');
-        }
+        if (!devServer) throw new Error('@rspack/dev-server is not defined');
 
-        devServer.app?.get('/modList.json', (_req: any, response: any) => {
-          const mods = existsSync('./game/mods')
-            ? readdirSync('./game/mods/')
-                .filter(f => f.endsWith('.zip'))
-                .map(f => `/mods/${f}`)
-            : [];
-          response.json([...mods, `/${modFilename}`]);
-        });
-
-        devServer.app?.get(`/${modFilename}`, async (_req: any, response: any) => {
-          try {
-            const zip = await createZip(process.cwd());
-            response.send(zip);
-          } catch (error) {
-            console.error('Error creating zip:', error);
-            response.status(500).send('Internal Server Error');
-          }
-        });
+        devServer.app?.get('/modList.json', modListHandler());
+        devServer.app?.get(`/${modFilename}`, modZipHandler());
 
         return middlewares;
       }

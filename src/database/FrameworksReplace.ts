@@ -17,15 +17,12 @@ const defaultData = {
     <details open>
       <summary class='settingsHeader options'><span class='gold'><<lanSwitch 'Maplebirch Framework' '秋枫白桦框架'>></span></summary>
       <div class='settingsGrid'>
-        <div class='settingsToggleItem'>
-          <label><<checkbox '$options.maplebirch.npcschedules' false true autocheck>><<lanSwitch 'NPC Schedules' 'NPC 日程表'>></label>
-          <span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'After enabling, it overrides the original schedule location detection for Robin and Sydney.' '启用后覆盖原版的罗宾和悉尼的日程地点检测。'>></span>">(?)</span>
-        </div>
         <div class='settingsToggleItem maplebirch-relationcount-slider'><label>
-            <span class='gold'><<lanSwitch 'Total Number Of Social Status Displays' '社交栏状态显示总数'>></span>
-            <<numberslider '$options.maplebirch.relationcount' $options.maplebirch.relationcount 2 10 2 { value: v => \`\${v}\${lanSwitch(' types','种')}\`}>>
-            <span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Adjust the total number of status displays for Primary Relationships NPCs in the SOCIAL bar.' '调整社交栏中主要关系NPC的状态显示总数。'>></span>">(?)</span>
+          <span class='gold'><<lanSwitch 'Total Number Of Social Status Displays' '社交栏状态显示总数'>></span>
+          <<numberslider '$options.maplebirch.relationcount' $options.maplebirch.relationcount 2 10 2 { value: v => \`\${v}\${lanSwitch(' types','种')}\`}>>
+          <span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Adjust the total number of status displays for Primary Relationships NPCs in the SOCIAL bar.' '调整社交栏中主要关系NPC的状态显示总数。'>></span>">(?)</span>
         </label></div>
+        <div class='settingsToggleItem'></div>
         <div class='settingsToggleItemWide maplebirch-relationcount-slider'><label>
           <span class='gold'><<lanSwitch 'Close-up Mask Divider' '特写遮罩分割线'>></span><<numberslider '$options.maplebirch.character.mask' $options.maplebirch.character.mask -128 128 1 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => \`\${v}px\` }>>
           <<lanLink 'reset' 'capitalize'>><<set $options.maplebirch.character.mask to 0>><<updatesidebarimg>><<replace #customOverlayContent>><<maplebirchOptions>><</replace>><</lanLink>>

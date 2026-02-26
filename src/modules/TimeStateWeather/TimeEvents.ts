@@ -318,8 +318,8 @@ export class TimeManager {
       const lang = this.manager.core.Language || 'EN';
       const useLang = lang === 'CN' ? 'CN' : 'EN';
       this.manager.core.lodash.forEach(maplebirch.lodash.keys(Time.moonPhases), phase => {
-        if (TimeManager.moonPhases[phase as keyof typeof TimeManager.moonPhases] && TimeManager.moonPhases[phase as keyof typeof TimeManager.moonPhases][useLang])
-          (Time.moonPhases as any)[phase].description = TimeManager.moonPhases[phase as keyof typeof TimeManager.moonPhases][useLang];
+        const moonPhaseData = TimeManager.moonPhases[phase as keyof typeof TimeManager.moonPhases];
+        if (moonPhaseData && moonPhaseData[useLang]) Time.moonPhases[phase].description = moonPhaseData[useLang];
       });
       if (TimeManager.monthNames[useLang]) Time.monthNames = [...TimeManager.monthNames[useLang]];
       if (TimeManager.daysOfWeek[useLang]) Time.daysOfWeek = [...TimeManager.daysOfWeek[useLang]];
@@ -617,6 +617,9 @@ export class TimeManager {
         const newDay = Math.min(this.day, DateTime.getDaysOfMonthFromYear(newYear)[newMonth - 1]);
         this.toTimestamp(newYear, newMonth, newDay, this.hour, this.minute, this.second);
         return this;
+      }
+      get monthName() {
+        return Time.monthName;
       }
       get weekDay() {
         let y = this.year;

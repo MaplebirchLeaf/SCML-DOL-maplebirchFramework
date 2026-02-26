@@ -188,7 +188,7 @@ class GUIControl {
               </div>
               <input type='button' ng-click="EnableDisableItem('enable')" ng-value="DEBUGMODE('enable')" class='theme-button' />
               <input type='button' ng-click="EnableDisableItem('disable')" ng-value="DEBUGMODE('disable')" class='theme-button' />
-              <input type='text' readonly='true' ng-value='DEBUGSTATUS()' />
+              <input type='text' readonly='true' ng-value='DEBUGSTATUS()' /><br>
               <textarea ng-model='$ctrl.data.moduleText' readonly='true'></textarea>
               <div ng-if='isDEBUG()' class='module-settings-container'>
                 <div class='settings-panel'>

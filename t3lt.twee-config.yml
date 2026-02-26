@@ -20169,3 +20169,6 @@ sugarcube-2:
     lanLink:
       name: lanLink
       container: true
+    language:
+      name: language
+      container: true
