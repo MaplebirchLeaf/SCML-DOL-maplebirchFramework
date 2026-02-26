@@ -57,7 +57,7 @@
 
 - [**EventEmitter事件发射器**](docs/EventEmitter.md)
 - [**LanguageManager语言管理**](docs/LanguageManager.md)
-- [**ModuleSystem**](docs/ModuleSystem.md)
+- [**ModuleSystem模块系统**](docs/ModuleSystem.md)
 
 ## 反馈与讨论
 
