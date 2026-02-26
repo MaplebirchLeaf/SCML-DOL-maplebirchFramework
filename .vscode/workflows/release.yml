@@ -52,7 +52,7 @@ jobs:
             exit 0
           fi
 
-          PATTERN="##### (v\.${CURRENT_VERSION}更新日志):"
+          PATTERN="##### \(v\.${CURRENT_VERSION}更新日志\):"
           LOG_CONTENT=$(awk -v ver="$PATTERN" '
             $0 ~ ver {found=1; print; next}
             found && /^##### \(v\.[0-9]+\.[0-9]+\.[0-9]+更新日志\):/ {exit}
@@ -74,7 +74,7 @@ jobs:
           name: 'SCML-maplebirchFrameworks-version-${{ steps.get_version.outputs.VERSION }}'
           tag_name: release-v${{ steps.get_version.outputs.VERSION }}
           body: |
-            #### 更新内容
+            #### (v.${{ steps.get_version.outputs.VERSION }}更新日志)
             ${{ steps.extract_changelog.outputs.CHANGELOG }}
 
             #### 相关链接
