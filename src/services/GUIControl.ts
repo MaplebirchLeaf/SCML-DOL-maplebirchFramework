@@ -1,6 +1,6 @@
 // ./src/services/GUIControl.ts
 
-import { ModSubUiAngularJsService } from '@scml/mod-loader-gui/ModSubUiAngularJsService';
+import { ModSubUiAngularJsService } from '@scml/types/Mod_LoaderGui/ModSubUiAngularJsService';
 import maplebirch, { MaplebirchCore } from '../core';
 import { convert } from '../utils';
 import { Config } from './../constants';

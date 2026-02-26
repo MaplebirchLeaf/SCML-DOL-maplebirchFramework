@@ -1,8 +1,8 @@
 // ./src/core.ts
 
 import type { TwineSugarCube } from '../types/twine-sugarcube';
-import type { SC2DataManager } from '@scml/sc2-modloader/SC2DataManager';
-import type { Gui } from '@scml/mod-loader-gui/Gui';
+import type { SC2DataManager } from '@scml/types/sugarcube-2-ModLoader/SC2DataManager';
+import type { Gui } from '@scml/types/Mod_LoaderGui/Gui';
 import jsyaml from 'js-yaml';
 import { Howl, Howler } from 'howler';
 import * as lodash from 'lodash-es';
