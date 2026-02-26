@@ -37,11 +37,25 @@ jobs:
           fi
       - name: Extract Changelog
         run: |
-          VERSION="${{ steps.get_version.outputs.VERSION }}"
-          LOG=$(awk '{ gsub(/\r$/, "") } $0 ~ "^##### \\(" "v\\." VERSION "更新日志\\):" {f=1} f && /^##### \\(v\\.[0-9]+\\./ && !seen{exit} f' VERSION="$VERSION" UPDATE.md)
-          echo "changelog_body<<EOF" >> $GITHUB_OUTPUT
-          echo "$LOG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          CURRENT_VERSION="${{ steps.get_version.outputs.VERSION }}"
+          CHANGELOG_FILE="UPDATE.md"
+          if [ ! -f "$CHANGELOG_FILE" ]; then
+            echo "changelog_body=UPDATE.md file not found." >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          LOG_CONTENT=$(awk -v ver="v.${CURRENT_VERSION}更新日志):" '
+              { gsub(/\r$/, "") }
+              index($0, "##### (" ver) == 1 { found=1; print; next }
+              found && /^##### \(v\.[0-9]+\.[0-9]+\.[0-9]+更新日志\):/ { exit }
+              found { print }
+          ' "$CHANGELOG_FILE")
+          if [ -z "$LOG_CONTENT" ]; then
+            echo "changelog_body=No changelog found for v.$CURRENT_VERSION." >> $GITHUB_OUTPUT
+          else
+            echo "changelog_body<<EOF" >> $GITHUB_OUTPUT
+            echo "$LOG_CONTENT" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
       - name: Create Release
         uses: softprops/action-gh-release@v2
         env:
