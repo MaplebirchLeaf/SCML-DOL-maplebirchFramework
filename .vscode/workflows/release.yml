@@ -13,20 +13,25 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
+
       - name: Install dependencies
         run: bun install
+
       - name: Build and Package
         run: bun run build:all
+
       - name: Parse Version from Tag
         id: get_version
         run: |
           VERSION="${GITHUB_REF#refs/tags/release-v}"
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "TAG_NAME=release-v$VERSION" >> $GITHUB_OUTPUT
+
       - name: Verify Version Consistency
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
@@ -35,21 +40,25 @@ jobs:
             echo "Error: Version mismatch (package.json: $PKG_VERSION, tag: $TAG_VERSION)"
             exit 1
           fi
+
       - name: Extract Changelog
         id: extract_changelog
         run: |
           CURRENT_VERSION="${{ steps.get_version.outputs.VERSION }}"
           UPDATA_FILE="UPDATE.md"
+
           if [ ! -f "$UPDATA_FILE" ]; then
             echo "CHANGELOG=UPDATE.md 文件不存在。" >> $GITHUB_OUTPUT
             exit 0
           fi
+
           PATTERN="##### (v\.${CURRENT_VERSION}更新日志):"
           LOG_CONTENT=$(awk -v ver="$PATTERN" '
             $0 ~ ver {found=1; print; next}
             found && /^##### \(v\.[0-9]+\.[0-9]+\.[0-9]+更新日志\):/ {exit}
             found {print}
           ' "$UPDATA_FILE")
+
           if [ -z "$LOG_CONTENT" ]; then
             echo "CHANGELOG=未找到版本 v.$CURRENT_VERSION 的更新日志。" >> $GITHUB_OUTPUT
           else
@@ -58,6 +67,7 @@ jobs:
             echo "$ESCAPED" >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
           fi
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
