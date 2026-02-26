@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'release-v*'
+      - 'maplebirch-release-v*' # 触发器标签必须与创建发布时使用的标签前缀一致
 
 jobs:
   release:
@@ -13,6 +13,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 确保能获取到所有标签信息
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -28,59 +30,67 @@ jobs:
       - name: Parse Version from Tag
         id: get_version
         run: |
-          VERSION="${GITHUB_REF#refs/tags/release-v}"
+          VERSION="${GITHUB_REF#refs/tags/maplebirch-release-v}"
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "TAG_NAME=release-v$VERSION" >> $GITHUB_OUTPUT
+          echo "TAG_NAME=maplebirch-release-v$VERSION" >> $GITHUB_OUTPUT
 
       - name: Verify Version Consistency
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
           TAG_VERSION="${{ steps.get_version.outputs.VERSION }}"
           if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
-            echo "Error: Version mismatch (package.json: $PKG_VERSION, tag: $TAG_VERSION)"
+            echo "❌ Error: Version mismatch (package.json: $PKG_VERSION, tag: $TAG_VERSION)"
             exit 1
           fi
+          echo "✅ Version check passed."
 
       - name: Extract Changelog
         id: extract_changelog
         run: |
           CURRENT_VERSION="${{ steps.get_version.outputs.VERSION }}"
-          UPDATA_FILE="UPDATE.md"
+          CHANGELOG_FILE="UPDATE.md"
 
-          if [ ! -f "$UPDATA_FILE" ]; then
+          if [ ! -f "$CHANGELOG_FILE" ]; then
             echo "CHANGELOG=UPDATE.md 文件不存在。" >> $GITHUB_OUTPUT
             exit 0
           fi
 
-          PATTERN="##### \(v\.${CURRENT_VERSION}更新日志\):"
-          LOG_CONTENT=$(awk -v ver="$PATTERN" '
-            $0 ~ ver {found=1; print; next}
-            found && /^##### \(v\.[0-9]+\.[0-9]+\.[0-9]+更新日志\):/ {exit}
+          LOG_CONTENT=$(awk -v ver="v\\.${CURRENT_VERSION}" '
+            $0 ~ ver && /^#####|^##/ {found=1; print; next}
+            found && /^#####|^##/ {exit}
             found {print}
-          ' "$UPDATA_FILE")
+          ' "$CHANGELOG_FILE")
 
           if [ -z "$LOG_CONTENT" ]; then
             echo "CHANGELOG=未找到版本 v.$CURRENT_VERSION 的更新日志。" >> $GITHUB_OUTPUT
           else
-            ESCAPED=$(echo "$LOG_CONTENT" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e ':a;N;$!ba;s/\n/\\n/g')
-            echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
-            echo "$ESCAPED" >> $GITHUB_OUTPUT
+            ESCAPED=$(echo "$LOG_CONTENT" | sed -e ':a;N;$!ba;s/\\/\\\\/g' -e 's/"/\\"/g' -e 's/$/\\n/g' | tr -d '\n')
+            echo "changelog_body<<EOF" >> $GITHUB_OUTPUT
+            echo -e "${ESCAPED%\\n}" >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
           fi
 
+      - name: List Artifacts for Debugging
+        run: |
+          ls -la dist/ || true
+          ls -la package/ || true
+          echo "--- Listing zip files ---"
+          find . -name "*.zip" -type f | head -20
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: 'SCML-maplebirchFrameworks-version-${{ steps.get_version.outputs.VERSION }}'
-          tag_name: maplebirch-release-v${{ steps.get_version.outputs.VERSION }}
+          name: 'maplebirch-frameworks v${{ steps.get_version.outputs.VERSION }}'
+          tag_name: ${{ steps.get_version.outputs.TAG_NAME }}
           body: |
-            #### (v.${{ steps.get_version.outputs.VERSION }}更新日志)
-            ${{ steps.extract_changelog.outputs.CHANGELOG }}
-
+            ### 版本 v.${{ steps.get_version.outputs.VERSION }} 更新日志
+            ${{ steps.extract_changelog.outputs.changelog_body }}
             #### 相关链接
             - [秋枫白桦扩展](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchExpansion) - 包含侧边栏控件、作弊集、内置音乐盒等功能。
           draft: false
           prerelease: false
           generate_release_notes: false
           files: |
-            package/SCML-maplebirchFrameworks-*.zip
+            package/*.zip
