@@ -1,40 +1,50 @@
 name: maplebirchFramework
+
 on:
   push:
     tags:
       - 'maplebirch-release-v*'
+
 jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
+
       - name: Install dependencies
         run: bun install
+
       - name: Build and Package
         run: bun run build:all
+
       - name: Parse Version from Tag
         id: get_version
         run: |
           VERSION="${GITHUB_REF#refs/tags/maplebirch-release-v}"
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "TAG_NAME=maplebirch-release-v$VERSION" >> $GITHUB_OUTPUT
+
       - name: Verify Version Consistency
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
           TAG_VERSION="${{ steps.get_version.outputs.VERSION }}"
+
           if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
             echo "Error: Version mismatch (package.json: $PKG_VERSION, tag: $TAG_VERSION)"
             exit 1
           fi
+
       - name: Extract Changelog
         id: extract_changelog
         run: |
@@ -46,20 +56,27 @@ jobs:
             exit 0
           fi
 
-          LOG_CONTENT=$(awk -v ver="$CURRENT_VERSION" '
-            { gsub(/\r$/, "") }
-            $0 ~ "^##### \\(v\\." ver "更新日志\\):" { found=1; next }
-            found && /^##### \(v\.[0-9]+\.[0-9]+\.[0-9]+更新日志\):/ { exit }
-            found { print }
-          ' "$CHANGELOG_FILE")
+          TARGET_LINE="##### (v.${CURRENT_VERSION}更新日志):"
+          START_LINE=$(grep -n -F -x "$TARGET_LINE" "$CHANGELOG_FILE" | cut -d: -f1)
+
+          if [ -z "$START_LINE" ]; then
+            echo "changelog_body=No changelog found for v.$CURRENT_VERSION." >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          LOG_CONTENT=$(tail -n +$((START_LINE + 1)) "$CHANGELOG_FILE" | awk '
+            /^##### \(v\.[0-9]+\.[0-9]+\.[0-9]+更新日志\):/ {exit}
+            {print}
+          ')
 
           if [ -z "$LOG_CONTENT" ]; then
-            echo "changelog_body=No changelog found for v.$CURRENT_VERSION." >> $GITHUB_OUTPUT
+            echo "changelog_body=Changelog for v.$CURRENT_VERSION is empty." >> $GITHUB_OUTPUT
           else
             echo "changelog_body<<EOF" >> $GITHUB_OUTPUT
             echo "$LOG_CONTENT" >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
           fi
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         env:
@@ -69,8 +86,11 @@ jobs:
           tag_name: ${{ steps.get_version.outputs.TAG_NAME }}
           body: |
             #### v.${{ steps.get_version.outputs.VERSION }} 更新日志
+
             ${{ steps.extract_changelog.outputs.changelog_body }}
+
             #### 相关链接
+            - [完整更新日志](UPDATE.md) - 查看所有版本历史记录
             - [秋枫白桦扩展](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchExpansion) - 包含侧边栏控件、作弊集、内置音乐盒等功能。
           draft: false
           prerelease: false
