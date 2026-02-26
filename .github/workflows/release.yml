@@ -40,17 +40,19 @@ jobs:
         run: |
           CURRENT_VERSION="${{ steps.get_version.outputs.VERSION }}"
           CHANGELOG_FILE="UPDATE.md"
+
           if [ ! -f "$CHANGELOG_FILE" ]; then
             echo "changelog_body=UPDATE.md file not found." >> $GITHUB_OUTPUT
             exit 0
           fi
-          TARGET_STRING="##### (v.${CURRENT_VERSION}更新日志):"
-          LOG_CONTENT=$(awk -v target="$TARGET_STRING" '
+
+          LOG_CONTENT=$(awk -v ver="$CURRENT_VERSION" '
             { gsub(/\r$/, "") }
-            $0 == target { found=1; next }
+            $0 ~ "^##### \\(v\\." ver "更新日志\\):" { found=1; next }
             found && /^##### \(v\.[0-9]+\.[0-9]+\.[0-9]+更新日志\):/ { exit }
-            found { print } # 打印找到的内容
+            found { print }
           ' "$CHANGELOG_FILE")
+
           if [ -z "$LOG_CONTENT" ]; then
             echo "changelog_body=No changelog found for v.$CURRENT_VERSION." >> $GITHUB_OUTPUT
           else
