@@ -128,7 +128,6 @@ class MaplebirchCore {
       });
     });
 
-    this.ExModCount = 9;
     this.log('初始化流程设置结束', 'INFO');
   }
 
@@ -156,7 +155,7 @@ class MaplebirchCore {
     await this.tracer.trigger(evt, ...args);
   }
 
-  async register(name: string, module: any, dependencies: string[] = [], source?: string): Promise<boolean> {
+  register(name: string, module: any, dependencies: string[] = [], source?: string): boolean {
     return this.modules.register(name, module, dependencies, source);
   }
 
@@ -224,25 +223,12 @@ class MaplebirchCore {
     return this.logger.LevelName;
   }
 
-  set ExModCount(count: number) {
-    this.logger.log(`设置预期模块数量: ${count}`, 'DEBUG');
-    (this.modules as any).ExpectedModuleCount = count;
-  }
-
   getModule(name: string): any {
-    return (this.modules as any).registry.modules.get(name);
-  }
-
-  get expected(): number {
-    return (this.modules as any).initPhase.expectedCount;
-  }
-
-  get registered(): number {
-    return (this.modules as any).initPhase.registeredCount;
+    return this.modules.registry.modules.get(name);
   }
 
   get dependencyGraph(): any {
-    return (this.modules as any).dependencyGraph;
+    return this.modules.dependencyGraph;
   }
 
   get modLoader(): any {

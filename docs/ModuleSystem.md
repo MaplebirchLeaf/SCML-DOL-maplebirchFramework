@@ -1,0 +1,243 @@
+## ModuleSystem模块系统
+
+### 基本介绍
+
+`ModuleSystem`是框架的模块化加载与依赖管理系统。它负责管理模块的注册、依赖解析和生命周期初始化，确保模块按正确的顺序加载和执行。
+
+---
+
+### 核心功能
+
+#### **模块注册 (register)**
+
+- 注册一个新模块到系统中
+- **@param**:
+  - `name` (string): 模块名称
+  - `module` (any): 模块对象，需要包含初始化方法
+  - `dependencies` (string[]): 依赖模块列表，默认空数组
+  - `source` (string): 模块来源标识，用于扩展模块
+- **@return**: `boolean`，表示是否成功注册
+- **@example**:
+
+  ```javascript
+  // 注册一个普通模块
+  maplebirch.register('myModule', {
+    Init() {
+      console.log('模块初始化');
+    }
+  });
+
+  // 注册带依赖的模块
+  maplebirch.register(
+    'myModule2',
+    {
+      Init() {
+        console.log('依赖var和tool模块');
+      }
+    },
+    ['var', 'tool']
+  );
+
+  // 注册扩展模块
+  maplebirch.register(
+    'myExtension',
+    {
+      sayHello() {
+        return 'Hello World';
+      }
+    },
+    [],
+    'my-mod-name'
+  );
+  ```
+
+#### **模块查询 (getModule)**
+
+- 获取已注册的模块实例
+- **@param**: `name` (string): 模块名称
+- **@return**: 模块对象或undefined
+- **@example**:
+  ```javascript
+  const addonModule = maplebirch.getModule('addon');
+  ```
+
+#### **依赖关系图 (dependencyGraph)**
+
+- 获取所有模块的依赖关系图
+- **@return**: 包含所有模块依赖信息的对象
+- **@example**:
+  ```javascript
+  const graph = maplebirch.dependencyGraph;
+  console.log(graph.addon);
+  // 输出: {
+  //   dependencies: [],
+  //   dependents: ['dynamic', 'tool', ...],
+  //   state: 'MOUNTED',
+  //   allDependencies: [],
+  //   source: null
+  // }
+  ```
+
+---
+
+### 模块状态说明
+
+每个模块在整个生命周期中会经历以下状态：
+
+| 状态常量     | 值  | 说明                         |
+| :----------- | :-- | :--------------------------- |
+| `REGISTERED` | 0   | _模块已注册，但未初始化_     |
+| `LOADED`     | 1   | _模块已完成预初始化_         |
+| `MOUNTED`    | 2   | _模块已完成主初始化_         |
+| `EXTENSION`  | 3   | _扩展模块，已挂载到框架实例_ |
+| `ERROR`      | 4   | _模块初始化过程中发生错误_   |
+
+---
+
+### 模块初始化方法
+
+模块可以定义以下生命周期方法：
+
+#### **preInit()**
+
+_预初始化方法，在`maplebirch.pre()`时调用。用于轻量级初始化或资源预加载。_
+
+- **@example**:
+  ```javascript
+  preInit() {
+    this.cache = new Map();
+  }
+  ```
+
+#### **Init()**
+
+_主初始化方法，在`maplebirch.init()`时调用。必须实现，用于模块主要功能的初始化。_
+
+- **@example**:
+  ```javascript
+  Init() {
+    this.setupEventListeners();
+    this.loadConfig();
+  }
+  ```
+
+#### **loadInit()**
+
+_存档初始化方法，仅在加载存档时调用。用于恢复存档状态。_
+
+- **@example**:
+  ```javascript
+  loadInit() {
+    if (State.variables.myData) {
+      this.data = State.variables.myData;
+    }
+  }
+  ```
+
+#### **postInit()**
+
+_后初始化方法，在所有模块初始化完成后调用。用于执行清理或最终设置。_
+
+- **@example**:
+  ```javascript
+  postInit() {
+    this.cleanupTemporaryData();
+    this.finalizeSetup();
+  }
+  ```
+
+---
+
+### 完整模块示例
+
+```javascript
+class MyModule {
+  // 声明依赖模块
+  dependencies = ['addon', 'dynamic'];
+
+  // 预初始化
+  async preInit() {
+    console.log('MyModule 预初始化');
+    this.cache = new Map();
+  }
+
+  // 主初始化
+  async Init() {
+    console.log('MyModule 主初始化');
+    this.setup();
+  }
+
+  // 存档初始化
+  async loadInit() {
+    console.log('MyModule 存档初始化');
+    if (State.variables.myModuleData) {
+      this.data = State.variables.myModuleData;
+    }
+  }
+
+  // 后初始化
+  async postInit() {
+    console.log('MyModule 后初始化');
+    this.cleanup();
+  }
+
+  // 模块功能方法
+  setup() {
+    // 设置逻辑
+  }
+
+  cleanup() {
+    // 清理逻辑
+  }
+
+  // 自定义方法
+  myFunction() {
+    return 'Hello from MyModule';
+  }
+}
+
+// 注册模块
+maplebirch.register('myModule', new MyModule());
+```
+
+---
+
+### 依赖管理
+
+#### **声明依赖**
+
+```javascript
+// 在模块类中声明
+class MyModule {
+  dependencies = ['var', 'tool'];
+  // ...
+}
+
+// 或在注册时声明
+maplebirch.register('myModule', myModuleInstance, ['var', 'tool']);
+```
+
+#### **依赖规则**
+
+1. _模块会在其所有依赖初始化完成后才初始化_
+2. _支持传递依赖（模块A依赖B，B依赖C，则A依赖C）_
+3. _循环依赖会被自动检测并阻止_
+
+#### **依赖图查询**
+
+```javascript
+// 查看模块的依赖关系
+const graph = maplebirch.dependencyGraph;
+console.log('addon模块的依赖:', graph.addon.dependencies);
+console.log('依赖addon的模块:', graph.addon.dependents);
+```
+
+---
+
+### 注意事项
+
+1. **模块命名**: _避免使用保留名称，如`core`、`modules`等_
+2. **初始化顺序**: _依赖解析基于拓扑排序，确保理解排序逻辑_
+3. **错误处理**: _单个模块初始化失败不会影响其他模块_
+4. **禁用机制**: _模块可以从模组加载器配置中禁用_
+5. **扩展模块**: _扩展模块会挂载到`maplebirch`实例上，可用于全局访问_
