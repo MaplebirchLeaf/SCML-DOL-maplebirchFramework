@@ -23,7 +23,7 @@ jobs:
         run: bun install
 
       - name: Build and Package
-        run: bun build:all
+        run: bun run build:all
 
       - name: Parse Version from Tag
         id: get_version
