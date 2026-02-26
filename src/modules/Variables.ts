@@ -63,7 +63,7 @@ class Variables {
 				display  : {}
 			},
 			relationcount: 4,
-			npcschedules:  false
+			npcschedules : false,
 		};
 	}
 

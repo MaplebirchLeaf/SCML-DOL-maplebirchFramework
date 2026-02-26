@@ -43,7 +43,7 @@ declare global {
     timeStamp: number;
     get weekDay(): number;
     weekDayName: string;
-    monthName: string;
+    get monthName(): string;
     weekEnd: boolean;
     lastDayOfMonth: number;
     yearDay: number;
@@ -77,6 +77,7 @@ declare global {
     second: number;
     minute: number;
     hour: number;
+    monthNames: string[];
     weekDay: number;
     weekDayName: string;
     monthDay: number;
@@ -119,7 +120,6 @@ declare global {
     getNextWeekdayDate(weekDay: number): DateTime;
     getPreviousWeekdayDate(weekDay: number): DateTime;
     isWeekEnd(): boolean;
-    monthNames: string[];
   };
 
   interface ErrorsConfig {

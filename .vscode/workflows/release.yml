@@ -1,0 +1,76 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'release-v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install
+      - name: Build and Package
+        run: bun run build:all
+      - name: Parse Version from Tag
+        id: get_version
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/release-v}"
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "TAG_NAME=release-v$VERSION" >> $GITHUB_OUTPUT
+      - name: Verify Version Consistency
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          TAG_VERSION="${{ steps.get_version.outputs.VERSION }}"
+          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
+            echo "Error: Version mismatch (package.json: $PKG_VERSION, tag: $TAG_VERSION)"
+            exit 1
+          fi
+      - name: Extract Changelog
+        id: extract_changelog
+        run: |
+          CURRENT_VERSION="${{ steps.get_version.outputs.VERSION }}"
+          UPDATA_FILE="UPDATE.md"
+          if [ ! -f "$UPDATA_FILE" ]; then
+            echo "CHANGELOG=UPDATE.md 文件不存在。" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          PATTERN="##### (v\.${CURRENT_VERSION}更新日志):"
+          LOG_CONTENT=$(awk -v ver="$PATTERN" '
+            $0 ~ ver {found=1; print; next}
+            found && /^##### \(v\.[0-9]+\.[0-9]+\.[0-9]+更新日志\):/ {exit}
+            found {print}
+          ' "$UPDATA_FILE")
+          if [ -z "$LOG_CONTENT" ]; then
+            echo "CHANGELOG=未找到版本 v.$CURRENT_VERSION 的更新日志。" >> $GITHUB_OUTPUT
+          else
+            ESCAPED=$(echo "$LOG_CONTENT" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e ':a;N;$!ba;s/\n/\\n/g')
+            echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+            echo "$ESCAPED" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: 'SCML-maplebirchFrameworks-version-${{ steps.get_version.outputs.VERSION }}'
+          tag_name: release-v${{ steps.get_version.outputs.VERSION }}
+          body: |
+            #### 更新内容
+            ${{ steps.extract_changelog.outputs.CHANGELOG }}
+
+            #### 相关链接
+            - [秋枫白桦扩展](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchExpansion) - 包含侧边栏控件、作弊集、内置音乐盒等功能。
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+          files: |
+            SCML-maplebirchFrameworks-*.zip
