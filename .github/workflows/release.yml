@@ -13,8 +13,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -24,22 +22,8 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Debug - List files before build
-        run: |
-          echo "当前目录结构:"
-          ls -la
-          echo "UPDATE.md内容预览:"
-          head -30 UPDATE.md || echo "UPDATE.md文件不存在"
-
       - name: Build and Package
         run: bun run build:all
-      
-      - name: Debug - List files after build
-        run: |
-          echo "构建后目录结构:"
-          ls -la
-          echo "查找zip文件:"
-          find . -name "*.zip" -type f 2>/dev/null || echo "未找到zip文件"
 
       - name: Parse Version from Tag
         id: get_version
@@ -61,44 +45,23 @@ jobs:
         id: extract_changelog
         run: |
           CURRENT_VERSION="${{ steps.get_version.outputs.VERSION }}"
-          UPDATE_FILE="UPDATE.md"
-          
-          echo "当前版本: $CURRENT_VERSION"
-          echo "查找文件: $UPDATE_FILE"
-          
-          if [ ! -f "$UPDATE_FILE" ]; then
-            echo "错误: $UPDATE_FILE 文件不存在"
-            ls -la *.md
-            echo "CHANGELOG=$UPDATE_FILE 文件不存在。" >> $GITHUB_OUTPUT
+          UPDATA_FILE="UPDATE.md"
+
+          if [ ! -f "$UPDATA_FILE" ]; then
+            echo "CHANGELOG=UPDATE.md 文件不存在。" >> $GITHUB_OUTPUT
             exit 0
           fi
 
-          # 关键修正：使用更灵活的正则表达式
-          # 匹配 "##### (v.3.1.7更新日志):" 或 "##### (v3.1.7更新日志):"
-          PATTERN="##### \(v\.\{0,1\}${CURRENT_VERSION}更新日志\):"
-          echo "使用模式: $PATTERN"
-          
+          PATTERN="##### \(v\.${CURRENT_VERSION}更新日志\):"
           LOG_CONTENT=$(awk -v ver="$PATTERN" '
             $0 ~ ver {found=1; print; next}
             found && /^##### \(v\.[0-9]+\.[0-9]+\.[0-9]+更新日志\):/ {exit}
-            found && /^##### \(v[0-9]+\.[0-9]+\.[0-9]+更新日志\):/ {exit}
             found {print}
-          ' "$UPDATE_FILE")
-
-          if [ -z "$LOG_CONTENT" ]; then
-            echo "警告: 未找到版本 v.$CURRENT_VERSION 的更新日志"
-            echo "尝试其他匹配方式..."
-            # 尝试直接grep
-            grep_result=$(grep -A20 "##### (v\.\{0,1\}${CURRENT_VERSION}更新日志):" "$UPDATE_FILE" || true)
-            if [ -n "$grep_result" ]; then
-              LOG_CONTENT="$grep_result"
-            fi
-          fi
+          ' "$UPDATA_FILE")
 
           if [ -z "$LOG_CONTENT" ]; then
             echo "CHANGELOG=未找到版本 v.$CURRENT_VERSION 的更新日志。" >> $GITHUB_OUTPUT
           else
-            echo "找到日志内容，长度: ${#LOG_CONTENT}"
             ESCAPED=$(echo "$LOG_CONTENT" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e ':a;N;$!ba;s/\n/\\n/g')
             echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
             echo "$ESCAPED" >> $GITHUB_OUTPUT
@@ -109,7 +72,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: 'SCML-maplebirchFrameworks-version-${{ steps.get_version.outputs.VERSION }}'
-          tag_name: release-v${{ steps.get_version.outputs.VERSION }}
+          tag_name: maplebirch-release-v${{ steps.get_version.outputs.VERSION }}
           body: |
             #### (v.${{ steps.get_version.outputs.VERSION }}更新日志)
             ${{ steps.extract_changelog.outputs.CHANGELOG }}
@@ -118,4 +81,6 @@ jobs:
             - [秋枫白桦扩展](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchExpansion) - 包含侧边栏控件、作弊集、内置音乐盒等功能。
           draft: false
           prerelease: false
-          generate_release_notes: true
+          generate_release_notes: false
+          files: |
+            package/SCML-maplebirchFrameworks-*.zip
