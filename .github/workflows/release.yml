@@ -1,4 +1,4 @@
-name: maplebirchFramework
+name: maplebirchFrameworks
 on:
   push:
     tags:
