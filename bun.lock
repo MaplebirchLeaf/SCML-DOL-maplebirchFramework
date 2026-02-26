@@ -17,12 +17,8 @@
       "devDependencies": {
         "@rspack/cli": "^1.7.6",
         "@rspack/core": "^1.7.6",
-        "@scml/addon-mod-beauty-selector": "^1.0.6",
-        "@scml/game-original-image-pack-mod": "^1.0.6",
-        "@scml/hook-img-loader": "^1.0.6",
-        "@scml/mod-loader-gui": "^1.0.6",
-        "@scml/sc2-modloader": "^1.0.6",
-        "@scml/sc2-verlnir": "^1.0.6",
+        "@scml/sc2-verlnir": "^1.0.7",
+        "@scml/types": "^1.0.7",
         "@types/adm-zip": "^0.5.7",
         "@types/bun": "^1.3.9",
         "@types/howler": "^2.2.12",
@@ -329,19 +325,9 @@
 
     "@rspack/lite-tapable": ["@rspack/lite-tapable@1.1.0", "", {}, "sha512-E2B0JhYFmVAwdDiG14+DW0Di4Ze4Jg10Pc4/lILUrd5DRCaklduz2OvJ5HYQ6G+hd+WTzqQb3QnDNfK4yvAFYw=="],
 
-    "@scml/addon-mod-beauty-selector": ["@scml/addon-mod-beauty-selector@1.0.6", "", { "dependencies": { "@scml/mod-sub-ui-angular-js": "1.0.6", "@scml/sc2-modloader": "1.0.6" } }, "sha512-NxgdWCouRwt07TXwk8GEx7kjb9ygKIJVqjyDMkjyXayoO1TmNuDD+Z2VNNsWVQp9wx+fJk9Kp/kGss1Fr8P0cQ=="],
+    "@scml/sc2-verlnir": ["@scml/sc2-verlnir@1.0.7", "", {}, "sha512-Zbl5D/9S/aE6IF3K4TWIguKS3Y1AEApRGNbb8gIrYAy+YduDmOyPlbz/HKluyYtVKP1gnQ4VdIW2ANgrb+OlZw=="],
 
-    "@scml/game-original-image-pack-mod": ["@scml/game-original-image-pack-mod@1.0.6", "", { "dependencies": { "@scml/sc2-modloader": "1.0.6" } }, "sha512-GV1Dm73pAK7vY7J3AYyzOxTbjtbSDJDgaujPe1K3+5HrCgIMBsnSP5kT1Ba2cUL9b5mJGEhd3YXQR0R4YE4N/Q=="],
-
-    "@scml/hook-img-loader": ["@scml/hook-img-loader@1.0.6", "", { "dependencies": { "@scml/sc2-modloader": "1.0.6" } }, "sha512-ShIxfx1lcXV3XSgcVwGHO+3yQyVh1H+1oDgyJPIgedtmhJ9AifG0dojofDzricNdR+U5PLaOC1TfnxRfnv++lA=="],
-
-    "@scml/mod-loader-gui": ["@scml/mod-loader-gui@1.0.6", "", { "dependencies": { "@scml/mod-sub-ui-angular-js": "1.0.6", "@scml/sc2-modloader": "1.0.6" } }, "sha512-6z/LN8/PiAE8u0q8s9OEzvG7yqnKpVvJijzjU0YzV4mbXaCKYvhOohJhmQz+z5Ke9w1e9swPXvPtFMskfycXNA=="],
-
-    "@scml/mod-sub-ui-angular-js": ["@scml/mod-sub-ui-angular-js@1.0.6", "", { "dependencies": { "@scml/sc2-modloader": "1.0.6" } }, "sha512-rdU0juJ53J13P/IHiq168tt1H2tnWwvlDV2YH73SnNQh70koPkgd3rjqKsmSiB5F3hFM5VrwzlJESrW2/8ouAA=="],
-
-    "@scml/sc2-modloader": ["@scml/sc2-modloader@1.0.6", "", {}, "sha512-AewNuT4Q2Ehm22121feiK2OKveaRhLeOZObTnQBu0kS1gc1bfL/XhHuOGSOmu0pkrYT4F5yhGiXsSJD6SpNqow=="],
-
-    "@scml/sc2-verlnir": ["@scml/sc2-verlnir@1.0.6", "", {}, "sha512-nmDo6gDpBhYiJhBlA6K/H23pF/HCuXY8F/z/VqB+2duHloqSeDX16bqnUSCsl0VjU+79apOKSyi/bgTu/q9a/A=="],
+    "@scml/types": ["@scml/types@1.0.7", "", {}, "sha512-H4+jOUYPvvbeHkgN82hxOXEyIpSOiaK6M/fxjwR++gP0JAV2CriGJxBxYeaWqoPWuFWOFlSqTOd2Eu6XhnfgTw=="],
 
     "@tybys/wasm-util": ["@tybys/wasm-util@0.10.1", "", { "dependencies": { "tslib": "^2.4.0" } }, "sha512-9tTaPJLSiejZKx+Bmog4uSubteqTvFrVrURwkmHixBo0G4seD0zUxp98E1DzUBJxLQ3NPwXrGKDiVjwx/DpPsg=="],
 

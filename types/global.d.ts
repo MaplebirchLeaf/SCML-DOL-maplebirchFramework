@@ -1,12 +1,12 @@
 // types/global.d.ts
 
-import { SC2DataManager } from '@scml/sc2-modloader/SC2DataManager';
-import { GameOriginalImagePack } from '@scml/game-original-image-pack-mod/GameOriginalImagePack';
-import { BeautySelectorAddon } from '@scml/addon-mod-beauty-selector/BeautySelectorAddon';
-import { ImgLoaderHooker } from '@scml/hook-img-loader/ImgLoaderHooker';
-import { Gui } from '@scml/mod-loader-gui/Gui';
-import { ModInfo } from '@scml/sc2-modloader/ModLoader';
-import { ModUtils } from '@scml/sc2-modloader/Utils';
+import { SC2DataManager } from '@scml/types/sugarcube-2-ModLoader/SC2DataManager';
+import { GameOriginalImagePack } from '@scml/types/GameOriginalImagePackMod/GameOriginalImagePack';
+import { BeautySelectorAddon } from '@scml/types/AddonMod_BeautySelector/BeautySelectorAddon';
+import { ImgLoaderHooker } from '@scml/types/Hook_ImgLoader/ImgLoaderHooker';
+import { Gui } from '@scml/types/Mod_LoaderGui/Gui';
+import { ModInfo } from '@scml/types/sugarcube-2-ModLoader/ModLoader';
+import { ModUtils } from '@scml/types/sugarcube-2-ModLoader/Utils';
 import { _languageSwitch } from '../src/database/SugarCubeMacros';
 
 declare global {

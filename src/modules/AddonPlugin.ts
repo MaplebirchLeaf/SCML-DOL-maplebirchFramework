@@ -1,9 +1,9 @@
 // ./src/modules/AddonPlugin.ts
 
-import type { TypeOrderItem } from '@scml/addon-mod-beauty-selector/BeautySelectorAddonType';
-import type { ModZipReader } from '@scml/sc2-modloader/ModZipReader';
-import type { SC2DataManager } from '@scml/sc2-modloader/SC2DataManager';
-import type { ModUtils } from '@scml/sc2-modloader/Utils';
+import type { TypeOrderItem } from '@scml/types/AddonMod_BeautySelector/BeautySelectorAddonType';
+import type { ModZipReader } from '@scml/types/sugarcube-2-ModLoader/ModZipReader';
+import type { SC2DataManager } from '@scml/types/sugarcube-2-ModLoader/SC2DataManager';
+import type { ModUtils } from '@scml/types/sugarcube-2-ModLoader/Utils';
 import maplebirch, { MaplebirchCore, createlog } from '../core';
 import { TraitConfig } from './Frameworks/otherTools';
 import { ZoneWidgetConfig } from './Frameworks/zonesManager';
