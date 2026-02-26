@@ -18,9 +18,6 @@ interface InitPhase {
   mainInitCompleted: boolean;
   loadInitExecuted: boolean;
   postInitExecuted: boolean;
-  expectedCount: number;
-  registeredCount: number;
-  allRegisteredTriggered: boolean;
 }
 
 class ModuleSystem {
@@ -38,10 +35,7 @@ class ModuleSystem {
     preInitCompleted: false,
     mainInitCompleted: false,
     loadInitExecuted: false,
-    postInitExecuted: false,
-    expectedCount: 0,
-    registeredCount: 0,
-    allRegisteredTriggered: false
+    postInitExecuted: false
   };
 
   private preInitialized = new Set<string>();
@@ -51,7 +45,7 @@ class ModuleSystem {
 
   constructor(readonly core: MaplebirchCore) {}
 
-  async register(name: string, module: any, dependencies: string[] = [], source: string = ''): Promise<boolean> {
+  register(name: string, module: any, dependencies: string[] = [], source: string = ''): boolean {
     if (source) return this.registerExtension(name, module, source);
     if (this.registry.modules.has(name)) {
       this.core.logger.log(`模块 ${name} 已注册`, 'WARN');
@@ -66,8 +60,6 @@ class ModuleSystem {
     }
     this.storeModuleRegistration(name, module, moduleDependencies, allDependencies);
     this.logModuleRegistration(name, moduleDependencies, allDependencies);
-    this.initPhase.registeredCount++;
-    this.checkModuleRegistration();
     this.processWaitingQueue(name);
 
     return true;
@@ -82,18 +74,19 @@ class ModuleSystem {
     if (allDeps.size > directDeps.length) this.core.logger.log(`传递依赖: [${[...allDeps].join(', ')}]`, 'DEBUG');
   }
 
-  private async registerExtension(name: string, module: any, source: string): Promise<boolean> {
+  private async isModuleDisabled(name: string): Promise<boolean> {
+    try {
+      const Modules = await this.core.idb.withTransaction(['settings'], 'readonly', async (tx: any) => await tx.objectStore('settings').get('Modules'));
+      return this.core.lodash.get(Modules, 'value.disabled', []).some((m: any) => m.name === name);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  private registerExtension(name: string, module: any, source: string): boolean {
     try {
       if ((this.core as any)[name] != null) {
         this.core.logger.log(`扩展模块 ${name} 挂载失败: 名称冲突`, 'WARN');
-        return false;
-      }
-      let Extension = null;
-      try {
-        Extension = await this.core.idb.withTransaction(['settings'], 'readonly', async (tx: any) => await tx.objectStore('settings').get('Extension'));
-      } catch (e) {}
-      if (this.core.lodash.get(Extension, 'value.disabled', []).some((m: any) => m.name === name)) {
-        this.core.logger.log(`扩展模块 ${name} 被禁用，跳过注册`, 'DEBUG');
         return false;
       }
       (this.core as any)[name] = module;
@@ -177,11 +170,6 @@ class ModuleSystem {
     this.registry.waitingQueue.delete(name);
   }
 
-  set ExpectedModuleCount(count: number) {
-    this.initPhase.expectedCount = count;
-    this.checkModuleRegistration();
-  }
-
   get dependencyGraph() {
     const graph: any = {};
     this.registry.modules.forEach((_, name) => {
@@ -221,15 +209,6 @@ class ModuleSystem {
     if (this.initPhase.postInitExecuted || !this.initPhase.mainInitCompleted) return;
     await this.executePhaseInit('postInit', '后初始化');
     this.initPhase.postInitExecuted = true;
-  }
-
-  private checkModuleRegistration() {
-    if (this.initPhase.allRegisteredTriggered) return;
-    const { expectedCount, registeredCount } = this.initPhase;
-    if (registeredCount >= expectedCount) {
-      this.core.logger.log(`模块注册完成 (${registeredCount}/${expectedCount})`, 'DEBUG');
-      this.initPhase.allRegisteredTriggered = true;
-    }
   }
 
   private waitForModule(moduleName: string): Promise<void> {
@@ -303,6 +282,16 @@ class ModuleSystem {
     const state = this.registry.states.get(moduleName);
     if (state === ModuleState.EXTENSION) return true;
     if (state === ModuleState.MOUNTED || state === ModuleState.ERROR) return state === ModuleState.MOUNTED;
+    if (await this.isModuleDisabled(moduleName)) {
+      this.core.logger.log(`模块 ${moduleName} 被禁用，跳过初始化`, 'DEBUG');
+      this.registry.modules.delete(moduleName);
+      this.registry.states.delete(moduleName);
+      this.registry.dependencies.delete(moduleName);
+      this.registry.allDependencies.delete(moduleName);
+      this.registry.dependents.delete(moduleName);
+      this.resolveWaiters(moduleName);
+      return false;
+    }
     this.registry.states.set(moduleName, ModuleState.REGISTERED);
     if (!(await this.checkDependencies(moduleName, isPreInit))) return false;
     try {

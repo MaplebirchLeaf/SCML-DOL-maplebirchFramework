@@ -285,7 +285,7 @@ class AddonPlugin {
     } catch {}
     await this.scriptFiles();
     await this._executeScripts(this.moduleFiles, 'Module');
-    if (this.core.modules.initPhase.allRegisteredTriggered) await this.core.trigger(':allModule');
+    await this.core.trigger(':allModule');
   }
 
   async afterRegisterMod2Addon(): Promise<void> {
