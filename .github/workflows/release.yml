@@ -45,9 +45,10 @@ jobs:
             echo "changelog_body=UPDATE.md file not found." >> $GITHUB_OUTPUT
             exit 0
           fi
-          LOG_CONTENT=$(awk -v ver="v\\.${CURRENT_VERSION}" '
-            $0 ~ ver && /^#####|^##/ {found=1; print; next}
-            found && /^#####|^##/ {exit}
+          TARGET_PATTERN="^##### \\(v\\.${CURRENT_VERSION}更新日志\\):"
+          LOG_CONTENT=$(awk -v pattern="$TARGET_PATTERN" '
+            $0 ~ pattern {found=1; print; next} # 找到目标行，开始记录
+            found && /^##### \(v\.[0-9]+\.[0-9]+\.[0-9]+更新日志\):/ {exit}
             found {print}
           ' "$CHANGELOG_FILE")
           if [ -z "$LOG_CONTENT" ]; then
