@@ -44,20 +44,18 @@ jobs:
             echo "changelog_body=UPDATE.md file not found." >> $GITHUB_OUTPUT
             exit 0
           fi
-          TARGET_HEADER="##### (v.${CURRENT_VERSION}更新日志):"
-
-          LOG_CONTENT=$(awk -v target="$TARGET_HEADER" '
+          TARGET_STRING="##### (v.${CURRENT_VERSION}更新日志):"
+          LOG_CONTENT=$(awk -v target="$TARGET_STRING" '
             { gsub(/\r$/, "") }
-            $0 == target { found=1; print; next }
+            $0 == target { found=1; next }
             found && /^##### \(v\.[0-9]+\.[0-9]+\.[0-9]+更新日志\):/ { exit }
-            found { print }
+            found { print } # 打印找到的内容
           ' "$CHANGELOG_FILE")
           if [ -z "$LOG_CONTENT" ]; then
             echo "changelog_body=No changelog found for v.$CURRENT_VERSION." >> $GITHUB_OUTPUT
           else
-            LOG_BODY=$(echo "$LOG_CONTENT" | sed '1d')
             echo "changelog_body<<EOF" >> $GITHUB_OUTPUT
-            echo "$LOG_BODY" >> $GITHUB_OUTPUT
+            echo "$LOG_CONTENT" >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
           fi
       - name: Create Release
