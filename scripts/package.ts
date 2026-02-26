@@ -9,8 +9,9 @@ async function createModPackage() {
   const packageDir = path.join(rootDir, 'package');
   await mkdir(packageDir, { recursive: true });
   const pkg = await readPackageJSON(rootDir);
+  const gameVersion = pkg.scml.dependenceInfo.find((dep: { modName: string }) => dep.modName === 'GameVersion').version;
 
-  const zipPath = path.join(packageDir, `SCML-maplebirchFrameworks-${pkg.version}.zip`);
+  const zipPath = path.join(packageDir, `maplebirch-${gameVersion}-v${pkg.version}.mod.zip`);
 
   const zipBuffer = await createZip(rootDir);
 
