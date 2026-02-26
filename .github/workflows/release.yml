@@ -35,7 +35,6 @@ jobs:
             echo "Error: Version mismatch (package.json: $PKG_VERSION, tag: $TAG_VERSION)"
             exit 1
           fi
-          echo "Version check passed."
       - name: Extract Changelog
         id: extract_changelog
         run: |
@@ -45,9 +44,8 @@ jobs:
             echo "changelog_body=UPDATE.md file not found." >> $GITHUB_OUTPUT
             exit 0
           fi
-          TARGET_PATTERN="^##### \\(v\\.${CURRENT_VERSION}更新日志\\):"
-          LOG_CONTENT=$(awk -v pattern="$TARGET_PATTERN" '
-            $0 ~ pattern {found=1; print; next} # 找到目标行，开始记录
+          LOG_CONTENT=$(awk -v ver="v\\.${CURRENT_VERSION}" '
+            $0 ~ "^##### \\(" ver "更新日志\\):" {found=1; print; next}
             found && /^##### \(v\.[0-9]+\.[0-9]+\.[0-9]+更新日志\):/ {exit}
             found {print}
           ' "$CHANGELOG_FILE")
@@ -64,7 +62,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: 'maplebirch-frameworks v${{ steps.get_version.outputs.VERSION }}'
+          name: 'SCML-maplebirchFrameworks-version-${{ steps.get_version.outputs.VERSION }}'
           tag_name: ${{ steps.get_version.outputs.TAG_NAME }}
           body: |
             ### v.${{ steps.get_version.outputs.VERSION }} 更新日志
