@@ -50,7 +50,7 @@ jobs:
           name: 'SCML-maplebirchFrameworks-version-${{ steps.get_version.outputs.VERSION }}'
           tag_name: ${{ steps.get_version.outputs.TAG_NAME }}
           body: |
-            ### v.${{ steps.get_version.outputs.VERSION }} 更新日志
+            #### v.${{ steps.get_version.outputs.VERSION }} 更新日志
             ${{ steps.extract_changelog.outputs.changelog_body }}
             #### 相关链接
             - [秋枫白桦扩展](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchExpansion) - 包含侧边栏控件、作弊集、内置音乐盒等功能。
