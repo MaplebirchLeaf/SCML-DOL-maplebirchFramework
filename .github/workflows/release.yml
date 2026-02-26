@@ -1,51 +1,42 @@
 name: maplebirchFramework
-
 on:
   push:
     tags:
       - 'maplebirch-release-v*'
-
 jobs:
   release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
-
       - name: Install dependencies
         run: bun install
-
       - name: Build and Package
         run: bun run build:all
-
       - name: Parse Version from Tag
         id: get_version
         run: |
           VERSION="${GITHUB_REF#refs/tags/maplebirch-release-v}"
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "TAG_NAME=maplebirch-release-v$VERSION" >> $GITHUB_OUTPUT
-
       - name: Verify Version Consistency
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
           TAG_VERSION="${{ steps.get_version.outputs.VERSION }}"
-
           if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
             echo "Error: Version mismatch (package.json: $PKG_VERSION, tag: $TAG_VERSION)"
             exit 1
           fi
-
       - name: Extract Changelog
+        id: extract_changelog
         run: |
           CURRENT_VERSION="${{ steps.get_version.outputs.VERSION }}"
           CHANGELOG_FILE="UPDATE.md"
@@ -69,7 +60,6 @@ jobs:
             echo "$LOG_CONTENT" >> $GITHUB_OUTPUT
             echo "EOF" >> $GITHUB_OUTPUT
           fi
-
       - name: Create Release
         uses: softprops/action-gh-release@v2
         env:
@@ -79,7 +69,6 @@ jobs:
           tag_name: ${{ steps.get_version.outputs.TAG_NAME }}
           body: |
             #### v.${{ steps.get_version.outputs.VERSION }} 更新日志
-
             ${{ steps.extract_changelog.outputs.changelog_body }}
 
             #### 相关链接
