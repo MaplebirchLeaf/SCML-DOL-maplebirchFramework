@@ -58,7 +58,7 @@
 - [**工具函数Utilities**](docs/Utilities.md)
 - [**EventEmitter事件发射器**](docs/EventEmitter.md)
 - [**LanguageManager语言管理**](docs/LanguageManager.md)
-- [**ModuleSystem**](docs/ModuleSystem.md)
+- [**ModuleSystem模块系统**](docs/ModuleSystem.md)
 - **Dynamic动态事件**
   - [StateEvents状态事件](docs/Dynamic/StateEvents.md)
   - [TimeEvents时间事件](docs/Dynamic/TimeEvents.md)
