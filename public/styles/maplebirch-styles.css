@@ -74,7 +74,7 @@
   cursor: pointer;
   user-select: none;
   padding: 0.1em 0.5em;
-  font-size: 1.0em;
+  font-size: 1em;
 }
 
 #maplebirch .module-list-enabled > div:hover,
@@ -98,7 +98,7 @@
   width: 100%;
 }
 
-#maplebirch input[type="text"] {
+#maplebirch input[type='text'] {
   width: auto;
   max-width: 48px;
   box-sizing: border-box;
@@ -109,24 +109,24 @@
     flex-direction: row;
     flex-wrap: wrap;
   }
-  
+
   #maplebirch .settings-panel {
     flex: 1;
   }
 
-  #maplebirch input[type="text"] {
+  #maplebirch input[type='text'] {
     max-width: 24px;
   }
 }
 
 #modversions {
-	position: fixed;
-	right: 3px;
-	bottom: 1px;
-	font-size: 0.6em;
-	color: var(--600);
-	z-index: 1000;
-	background-color: transparent;
+  position: fixed;
+  right: 3px;
+  bottom: 1px;
+  font-size: 0.6em;
+  color: var(--600);
+  z-index: 1000;
+  background-color: transparent;
 }
 
 /* 控制台作弊器 */
@@ -169,20 +169,20 @@
   align-items: center;
 }
 
-#ConsoleCheat input[type="text"] {
+#ConsoleCheat input[type='text'] {
   flex: 1;
   padding: 0.4rem;
   background: var(--900);
   border: 1px solid var(--600);
   color: var(--000);
-  font-family: "Consolas";
+  font-family: 'Consolas';
   line-height: 1.4;
   min-width: 0;
   box-sizing: border-box;
   height: 2.2rem;
 }
 
-#ConsoleCheat input[type="text"]:focus {
+#ConsoleCheat input[type='text']:focus {
   border-color: var(--gold);
   outline: none;
 }
@@ -195,7 +195,7 @@
   white-space: nowrap;
   padding: 0.5rem 0.75rem;
   border: none;
-  font-family: "Consolas";
+  font-family: 'Consolas';
   font-size: 0.9rem;
   height: 2.2rem;
   display: flex;
@@ -213,7 +213,7 @@
   padding: 0.5rem;
   margin: 0.5rem 0;
   text-align: center;
-  font-family: "Consolas", monospace;
+  font-family: 'Consolas', monospace;
   font-size: 0.9rem;
   display: none;
   box-sizing: border-box;
@@ -245,7 +245,7 @@
   min-height: 1.5rem;
   width: 100%;
   background: rgba(0, 0, 0, 0.2);
-  font-family: "Consolas", monospace;
+  font-family: 'Consolas', monospace;
   font-size: 0.9rem;
   box-sizing: border-box;
   white-space: pre-wrap;
@@ -298,7 +298,7 @@
 }
 
 #ConsoleCheat summary.cheat-section::before {
-  content: "▶";
+  content: '▶';
   display: flex;
   align-items: center;
   margin-right: 0.5rem;
@@ -317,11 +317,11 @@
 #ConsoleCheat .cheat-code {
   display: block;
   color: #b7b7b7;
-  font-family: "Consolas", monospace;
+  font-family: 'Consolas', monospace;
   font-size: 0.85rem;
   margin: 0.5rem 0;
   word-break: break-all;
-  line-height: 1.0;
+  line-height: 1;
   background: var(--850);
   padding: 0.5rem;
   overflow-y: auto;
@@ -336,11 +336,11 @@
   font-size: 0.8rem;
 }
 
-#ConsoleCheat .cheat-code[data-type="JS"]::before {
+#ConsoleCheat .cheat-code[data-type='JS']::before {
   color: var(--blue-secondary);
 }
 
-#ConsoleCheat .cheat-code[data-type="Twine"]::before {
+#ConsoleCheat .cheat-code[data-type='Twine']::before {
   color: #ab66ff;
 }
 
@@ -351,12 +351,12 @@
     justify-content: center;
     gap: 0.5rem;
   }
-  
-  #ConsoleCheat input[type="text"] {
+
+  #ConsoleCheat input[type='text'] {
     width: 100%;
     flex: 0 0 100%;
   }
-  
+
   #ConsoleCheat button {
     flex: 0 0 auto;
     width: auto;
@@ -387,11 +387,17 @@
   flex: 1;
 }
 
-.maplebirch-relationcount-slider .macro-numberslider input[type="range"] {
+.maplebirch-relationcount-slider .macro-numberslider input[type='range'] {
   flex: 1;
 }
 
 .maplebirch-relationcount-slider .macro-numberslider span {
   min-width: 30px;
   text-align: center;
+}
+
+@media (max-width: 768px) {
+  .maplebirch-relationcount-slider label {
+    display: block;
+  }
 }
