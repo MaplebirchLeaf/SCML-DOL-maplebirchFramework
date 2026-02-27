@@ -91,6 +91,10 @@
 
 ## 反馈与讨论
 
+- [Discord](https://discord.com/channels/1103864219620884560/1433136946032410674)
+- [秋枫白桦框架反馈群: 1087715891(maplebirchFrameworks)](https://qm.qq.com/q/B4p8vaj1yo)
+- [百度贴吧](https://tieba.baidu.com/p/10049233469?pid=152986348799&cid=152989487455#152986348799)
+
 ## 更新日志
 
 - [完整更新日志](UPDATE.md) - 查看所有版本历史记录
