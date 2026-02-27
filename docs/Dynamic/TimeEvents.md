@@ -33,7 +33,7 @@ _可通过 `maplebirch.dynamic.Time` 或快捷接口 `maplebirchFrameworks.addTi
   maplebirch.dynamic.regTimeEvent('onDay', 'dailyCheck', {
     action: data => {
       // 每天执行的逻辑
-      State.variables.dayCounter = (State.variables.dayCounter || 0) + 1;
+      V.dayCounter = (V.dayCounter || 0) + 1;
     },
     cond: data => {
       // 只在白天触发
@@ -46,7 +46,7 @@ _可通过 `maplebirch.dynamic.Time` 或快捷接口 `maplebirchFrameworks.addTi
   // 使用快捷接口
   maplebirchFrameworks.addTimeEvent('onDay', 'dailyCheck', {
     action: data => {
-      State.variables.dayCounter = (State.variables.dayCounter || 0) + 1;
+      V.dayCounter = (V.dayCounter || 0) + 1;
     },
     cond: data => data.currentDate.hour >= 6 && data.currentDate.hour < 18,
     priority: 5,
@@ -144,8 +144,8 @@ _可通过 `maplebirch.dynamic.Time` 或快捷接口 `maplebirchFrameworks.addTi
 maplebirch.dynamic.regTimeEvent('onDay', 'dailyQuestRefresh', {
   action: data => {
     // 刷新每日任务
-    State.variables.dailyQuests = generateDailyQuests();
-    State.variables.lastQuestRefresh = data.currentDate.timeStamp;
+    V.dailyQuests = generateDailyQuests();
+    V.lastQuestRefresh = data.currentDate.timeStamp;
 
     // 显示刷新提示
     Wikifier.wikifyEval('<<notify "每日任务已刷新！">>');
@@ -192,11 +192,11 @@ maplebirch.dynamic.regTimeEvent('onMonth', 'seasonalEvent', {
 
     if (month === 3 || month === 4) {
       // 春季事件
-      State.variables.season = 'spring';
+      V.season = 'spring';
       startSpringEvent();
     } else if (month === 7 || month === 8) {
       // 夏季事件
-      State.variables.season = 'summer';
+      V.season = 'summer';
       startSummerEvent();
     }
     // ... 其他季节
@@ -225,8 +225,8 @@ maplebirch.dynamic.regTimeEvent('onTimeTravel', 'timeTravelEffects', {
     }
 
     // 记录时间旅行历史
-    State.variables.timeTravelHistory = State.variables.timeTravelHistory || [];
-    State.variables.timeTravelHistory.push({
+    V.timeTravelHistory = V.timeTravelHistory || [];
+    V.timeTravelHistory.push({
       from: data.prevDate,
       to: data.currentDate,
       timestamp: Date.now()
@@ -254,8 +254,8 @@ maplebirch.dynamic.regTimeEvent('onHour', 'specialConditionEvent', {
       data.currentDate.weekDay === 5 && // 周五
       data.currentDate.hour >= 14 &&
       data.currentDate.hour < 18 && // 下午2点到6点
-      State.variables.location === 'townSquare' && // 在城镇广场
-      State.variables.storyProgress >= 3
+      V.location === 'townSquare' && // 在城镇广场
+      V.storyProgress >= 3
     ); // 故事进度至少为3
   },
   priority: 12,

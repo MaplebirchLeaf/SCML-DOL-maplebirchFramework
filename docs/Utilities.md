@@ -186,7 +186,7 @@ loadImage('character.png').then(data => {
 <<script>>
   const imgData = await loadImage('npc_portrait.png');
   if (imgData) {
-    State.variables.npcImage = imgData;
+    V.npcImage = imgData;
   }
 <</script>>
 ```

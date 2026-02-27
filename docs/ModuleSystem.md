@@ -132,8 +132,8 @@
 - **@example**:
   ```javascript
   loadInit() {
-    if (State.variables.myData) {
-      this.data = State.variables.myData;
+    if (V.myData) {
+      this.data = V.myData;
     }
     console.log('存档数据恢复完成');
   }
@@ -176,8 +176,8 @@ class MyModule {
   // 存档初始化 - 恢复存档状态(每次读取存档时执行)
   async loadInit() {
     console.log('MyModule 存档初始化');
-    if (State.variables.myModuleData) {
-      this.data = State.variables.myModuleData;
+    if (V.myModuleData) {
+      this.data = V.myModuleData;
     }
   }
 

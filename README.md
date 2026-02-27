@@ -55,16 +55,22 @@
 
 ## 模块与功能
 
-- [**工具函数Utilities**](docs/Utilities.md)
-- [**EventEmitter事件发射器**](docs/EventEmitter.md)
-- [**LanguageManager语言管理**](docs/LanguageManager.md)
-- [**ModuleSystem模块系统**](docs/ModuleSystem.md)
-- **Dynamic动态事件**
-  - [StateEvents状态事件](docs/Dynamic/StateEvents.md)
-  - [TimeEvents时间事件](docs/Dynamic/TimeEvents.md)
-  - [WeatherEvents天气事件](docs/Dynamic/WeatherEvents.md)
-- **ToolCollection工具合集**
-  - [migration变量迁徙](docs/ToolCollection/migration.md)
+- [**工具函数**](docs/Utilities.md)
+- [**事件发射器**](docs/EventEmitter.md)
+- [**语言管理**](docs/LanguageManager.md)
+- [**模块系统**](docs/ModuleSystem.md)
+- [**动态事件**](docs/Dynamic/)
+  - [状态事件](docs/Dynamic/StateEvents.md)
+  - [时间事件](docs/Dynamic/TimeEvents.md)
+  - [天气事件](docs/Dynamic/WeatherEvents.md)
+- [**工具合集**](docs/ToolCollection/)
+  - [变量迁徙](docs/ToolCollection/migration.md)
+  - [随机数系统](docs/ToolCollection/randSystem.md)
+  - [文本工具](docs/ToolCollection/htmlTools.md)
+  - [区域管理](docs/ToolCollection/Framework.md)
+  - [特质注册](docs/ToolCollection/Traits.md)
+  - [地点配置](docs/ToolCollection/Location.md)
+  - [纹身注册](docs/ToolCollection/Bodywriting.md)
 
 ## 反馈与讨论
 
