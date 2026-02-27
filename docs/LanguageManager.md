@@ -56,7 +56,7 @@
   // 获取当前语言
   const currentLang = maplebirch.Language;
 
-  // 切换语言（这会触发页面文本的重新渲染）
+  // 切换语言(这会触发页面文本的重新渲染)
   maplebirch.Language = 'JA'; // 切换到日语
 
   // 监听语言切换事件
@@ -79,8 +79,8 @@ _自动扫描并导入模组 `translations/` 目录下所有支持格式的语�
 - **查找规则**:
   - 扫描 `translations/` 目录
   - 支持格式: `{language_code}.json`、`{language_code}.yml`、`{language_code}.yaml`
-  - 语言代码: 如 `en`、`cn`、`ja` 等（不区分大小写）
-  - 优先级: `json > yml > yaml`（同语言代码按此顺序选择第一个找到的文件）
+  - 语言代码: 如 `en`、`cn`、`ja` 等(不区分大小写)
+  - 优先级: `json > yml > yaml`(同语言代码按此顺序选择第一个找到的文件)
 - **示例配置**:
   ```json
   {

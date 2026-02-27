@@ -679,12 +679,12 @@ export class TimeManager {
       };
       this.log('时间事件系统已激活', 'INFO');
       try {
-        window.getFormattedDate = createDateFormatters().getFormattedDate;
+        this.manager.core.lodash.set(window, 'getFormattedDate', createDateFormatters().getFormattedDate);
       } catch (e: any) {
         this.log(`getFormattedDate错误: ${e.message}`, 'WARN');
       }
       try {
-        window.getShortFormattedDate = createDateFormatters().getShortFormattedDate;
+        this.manager.core.lodash.set(window, 'getShortFormattedDate', createDateFormatters().getShortFormattedDate);
       } catch (e: any) {
         this.log(`getShortFormattedDate错误: ${e.message}`, 'WARN');
       }
