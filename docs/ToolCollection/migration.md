@@ -1,9 +1,8 @@
-## migration数据迁移
+## 数据迁移 (migration)
 
 ### 基本介绍
 
 `migration` 是框架内置的数据版本迁移工具，用于处理数据结构变更时的版本升级。它允许开发者定义从旧版本到新版本的迁移步骤，确保数据在不同版本间的兼容性。
-
 _可通过 `maplebirch.tool.migration` 或快捷接口 `maplebirchFrameworks.migration()` 访问。_
 
 ---

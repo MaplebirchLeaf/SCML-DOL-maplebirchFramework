@@ -3,7 +3,6 @@
 ### 基本介绍
 
 `Traits` 是框架提供的角色特质管理系统，允许模组制作者添加自定义的角色特质。
-
 _可通过 `maplebirch.tool.other.addTraits()` 或快捷接口 `maplebirchFrameworks.addTraits()` 访问。_
 
 ---
@@ -68,7 +67,7 @@ _可通过 `maplebirch.tool.other.addTraits()` 或快捷接口 `maplebirchFramew
 {
   "modName": "maplebirch",
   "addonName": "maplebirchAddon",
-  "modVersion": "^2.7.0",
+  "modVersion": "^3.1.0",
   "params": {
     "framework": [
       {
@@ -179,7 +178,7 @@ maplebirch.tool.other.addTraits({
 {
   "modName": "maplebirch",
   "addonName": "maplebirchAddon",
-  "modVersion": "^2.7.0",
+  "modVersion": "^3.1.0",
   "params": {
     "framework": [
       {

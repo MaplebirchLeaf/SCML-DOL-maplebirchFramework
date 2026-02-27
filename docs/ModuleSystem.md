@@ -1,4 +1,4 @@
-## ModuleSystem模块系统
+## 模块系统 (ModuleSystem)
 
 ### 基本介绍
 
