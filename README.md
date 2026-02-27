@@ -118,3 +118,4 @@
 - [原版汉化仓库](https://github.com/Eltirosto/Degrees-of-Lewdity-Chinese-Localization)
   - [汉化仓库贡献者](https://github.com/Eltirosto/Degrees-of-Lewdity-Chinese-Localization/blob/main/CREDITS.md)
 - [DoL-Lyra](https://github.com/DoL-Lyra)
+- [Modloader说明文档](https://modloader.pages.dev/)
