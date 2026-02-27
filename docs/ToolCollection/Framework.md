@@ -2,25 +2,24 @@
 
 ### 基本介绍
 
-`zonesManager` 是框架的区域管理工具，允许模组制作者将自定义的小部件(widgets)添加到游戏的各个特定区域，如状态栏、菜单、页眉页脚等。它提供了一种结构化的方式来组织和控制游戏界面元素的显示。
-
+`zonesManager` 是框架的区域管理工具，允许模组制作者将自定义的部件(widgets)添加到游戏的各个特定区域，如状态栏、菜单、页眉页脚等。它提供了一种结构化的方式来组织和控制游戏界面元素的显示。
 _可通过 `maplebirch.tool` 或快捷接口 `maplebirchFrameworks.addto()` 访问。_
 
 ---
 
 ### 核心功能
 
-#### **添加小部件到区域 (addTo)**
+#### **添加部件到区域 (addTo)**
 
-- 将一个或多个小部件添加到指定区域
+- 将一个或多个部件添加到指定区域
 - **@param**:
   - `zone` (string): 目标区域名称
-  - `...widgets` (string | Function | ZoneWidgetConfig | [number, string | ZoneWidgetConfig]): 要添加的小部件
+  - `...widgets` (string | Function | ZoneWidgetConfig | [number, string | ZoneWidgetConfig]): 要添加的部件
 - **@return**: void
 - **@example**:
 
   ```javascript
-  // 添加一个小部件到状态栏
+  // 添加一个部件到状态栏
   maplebirch.tool.addTo('StatusBar', 'myStatusWidget');
 
   // 使用快捷接口
@@ -30,7 +29,7 @@ _可通过 `maplebirch.tool` 或快捷接口 `maplebirchFrameworks.addto()` 访�
 #### **初始化函数 (onInit)**
 
 - 注册在游戏初始化时执行的函数
-- **@param**: `...widgets` (InitFunction): 初始化函数或小部件
+- **@param**: `...widgets` (InitFunction): 初始化函数或部件
 - **@return**: void
 - **@example**:
   ```javascript
@@ -45,7 +44,7 @@ _可通过 `maplebirch.tool` 或快捷接口 `maplebirchFrameworks.addto()` 访�
 
 ### boot.json 配置方式
 
-除了通过 JavaScript API 注册小部件外，框架还支持在 `boot.json` 文件中通过 `addonPlugin` 配置来批量注册小部件。这种方式适合需要在模组加载时就静态注册的小部件。
+除了通过 JavaScript API 注册部件外，框架还支持在 `boot.json` 文件中通过 `addonPlugin` 配置来批量注册部件。这种方式适合需要在模组加载时就静态注册的部件。
 
 #### **配置结构**
 
@@ -75,16 +74,16 @@ _可通过 `maplebirch.tool` 或快捷接口 `maplebirchFrameworks.addto()` 访�
 #### **配置选项说明**
 
 - `addto` (string): 目标区域名称
-- `widget` (string | object): 小部件配置
+- `widget` (string | object): 部件配置
   - 字符串: widget 名称
-  - 对象: 完整的小部件配置对象
+  - 对象: 完整的部件配置对象
 
 #### **配置对象结构**
 
 ```javascript
 {
   "addto": "区域名称",             // 必填
-  "widget": {                     // 小部件配置
+  "widget": {                     // 部件配置
     "widget": "widget名称",       // 必填
     "passage": "段落名或数组",     // 可选，只在指定段落显示
     "exclude": ["段落1", "段落2"], // 可选，在这些段落不显示
@@ -119,7 +118,7 @@ _可通过 `maplebirch.tool` 或快捷接口 `maplebirchFrameworks.addto()` 访�
 }
 ```
 
-#### **带条件的小部件注册**
+#### **带条件的部件注册**
 
 ```json
 {
@@ -194,9 +193,9 @@ _可通过 `maplebirch.tool` 或快捷接口 `maplebirchFrameworks.addto()` 访�
 
 ---
 
-### 小部件类型
+### 部件类型
 
-#### **1. 字符串小部件**
+#### **1. 字符串部件**
 
 直接指定 widget 名称，会在指定区域调用该 widget。
 
@@ -206,18 +205,18 @@ maplebirch.tool.addTo('StatusBar', 'myWidget');
 
 // 对应的 widget 定义
 <<widget 'myWidget'>>
-  这是状态栏的小部件
+  这是状态栏的部件
 <</widget>>
 ```
 
-#### **2. 函数小部件**
+#### **2. 函数部件**
 
 添加一个 JavaScript 函数，函数会被包装为可执行的 widget。
 
 ```javascript
 // 添加一个函数到区域
 maplebirch.tool.addTo('StatusBar', function () {
-  console.log('状态栏小部件执行');
+  console.log('状态栏部件执行');
   return '动态内容';
 });
 
@@ -227,9 +226,9 @@ maplebirch.tool.addTo('StatusBar', () => {
 });
 ```
 
-#### **3. 配置对象小部件**
+#### **3. 配置对象部件**
 
-通过配置对象精确控制小部件的显示条件。
+通过配置对象精确控制部件的显示条件。
 
 ```javascript
 // 配置对象结构
@@ -243,15 +242,15 @@ interface ZoneWidgetConfig {
 }
 ```
 
-#### **4. 自定义链接位置小部件**
+#### **4. 自定义链接位置部件**
 
-仅用于 `CustomLinkZone` 区域，指定在小部件的特定链接位置插入。
+仅用于 `CustomLinkZone` 区域，指定在部件的特定链接位置插入。
 
 ```javascript
-// 在第一个链接位置添加小部件
+// 在第一个链接位置添加部件
 maplebirch.tool.addTo('CustomLinkZone', [0, 'myLinkWidget']);
 
-// 在第五个链接位置添加小部件
+// 在第五个链接位置添加部件
 maplebirch.tool.addTo('CustomLinkZone', [4, 'myLinkWidget']);
 ```
 
@@ -262,19 +261,19 @@ maplebirch.tool.addTo('CustomLinkZone', [4, 'myLinkWidget']);
 #### **示例1：基本区域添加**
 
 ```javascript
-// 注册一个状态栏小部件
+// 注册一个状态栏部件
 <<widget 'healthDisplay'>>
   生命值: <<print $health>> / <<print $maxHealth>>
 <</widget>>
 
-// 在游戏代码中将小部件添加到状态栏
+// 在游戏代码中将部件添加到状态栏
 maplebirch.tool.addTo('StatusBar', 'healthDisplay');
 ```
 
-#### **示例2：条件显示小部件**
+#### **示例2：条件显示部件**
 
 ```javascript
-// 只在特定段落显示的小部件
+// 只在特定段落显示的部件
 maplebirch.tool.addTo('StatusBar', {
   widget: 'combatStatus',
   passage: ['Combat', 'BossBattle'], // 只在战斗段落显示
@@ -288,10 +287,10 @@ maplebirch.tool.addTo('StatusBar', {
 });
 ```
 
-#### **示例3：函数小部件**
+#### **示例3：函数部件**
 
 ```javascript
-// 添加动态函数小部件
+// 添加动态函数部件
 maplebirch.tool.addTo('StatusBar', () => {
   const time = Time.hour;
   if (time >= 6 && time < 18) {
@@ -301,7 +300,7 @@ maplebirch.tool.addTo('StatusBar', () => {
   }
 });
 
-// 添加复杂的函数小部件
+// 添加复杂的函数部件
 maplebirch.tool.addTo('Information', function () {
   const { variables } = State;
   const location = variables.location || '未知';
@@ -346,7 +345,7 @@ maplebirch.tool.onInit(
 #### **示例5：自定义链接区域**
 
 ```javascript
-// 在链接区域添加小部件
+// 在链接区域添加部件
 <<widget 'linkSeparator'>>
   <hr>
 <</widget>>
@@ -437,7 +436,7 @@ maplebirch.tool.addTo('StatsMobile', 'mobileStats');
 
 ```javascript
 // my-mod-script.js
-// 在 JavaScript 中动态注册小部件
+// 在 JavaScript 中动态注册部件
 maplebirch.tool.onInit(() => {
   // 初始化模组数据
   setup.myMod = {
@@ -446,12 +445,12 @@ maplebirch.tool.onInit(() => {
   };
 });
 
-// 根据条件动态添加小部件
+// 根据条件动态添加部件
 if (setup.myMod.features.includes('customStats')) {
   maplebirch.tool.addTo('StatusBar', 'enhancedStats');
 }
 
-// 注册函数小部件
+// 注册函数部件
 maplebirch.tool.addTo('Information', () => {
   return `模组版本: ${setup.myMod.version}`;
 });
@@ -504,7 +503,7 @@ maplebirch.tool.addTo('State', () => {
 
 - **特殊语法**: 使用数组格式 `[position, widget]`
 - **position**: 链接位置索引(从0开始)
-- **widget**: 要插入的小部件
+- **widget**: 要插入的部件
 - **用途**: 在特定链接位置插入内容
 
 ```javascript

@@ -42,24 +42,25 @@ const zoneMap: Record<string, string> = {
 
 // prettier-ignore
 const methodPaths: Record<string, string> = {
-  addTimeEvent:   'dynamic.regTimeEvent'      , // 添加时间事件
-  addStateEvent:  'dynamic.regStateEvent'     , // 添加状态事件
+  addTimeEvent   :'dynamic.regTimeEvent'      , // 添加时间事件
+  addStateEvent  :'dynamic.regStateEvent'     , // 添加状态事件
   addWeatherEvent:'dynamic.regWeatherEvent'   , // 添加天气事件
-  timeTravel:     'dynamic.timeTravel'        , // 时间旅行
-  migration:      'tool.migration.create'     , // 创建迁移实例
-  rand:           'tool.rand.create'          , // 创建随机实例
-  addText:        'tool.text.reg'             , // 注册文本片段
-  addto:          'tool.addTo'                , // 添加到区域
-  onInit:         'tool.onInit'               , // 初始化回调
-  addTraits:      'tool.other.addTraits'      , // 添加特质
-  addLocation:    'tool.other.configureLocation', // 配置位置
-  addBodywriting: 'tool.other.addBodywriting' , // 添加涂鸦
-  addNPC:         'npc.add'                   , // 添加NPC
-  addNPCStats:    'npc.addStats'              , // 添加状态
-  addNPCClothes:  'npc.addClothes'            , // 添加服装
-  addNPCSchedule: 'npc.addSchedule'           , // 添加日程
-  addTransform:   'char.transformation.add'   , // 添加转化
-  addAction:      'combat.CombatAction.reg'   , // 添加战斗按钮
+  timeTravel     :'dynamic.timeTravel'        , // 时间旅行
+  useLayer       :'char.use'                  , // 图层注册
+  migration      :'tool.migration.create'     , // 创建迁移实例
+  rand           :'tool.rand.create'          , // 创建随机实例
+  addText        :'tool.text.reg'             , // 注册文本片段
+  addto          :'tool.addTo'                , // 添加到区域
+  onInit         :'tool.onInit'               , // 初始化回调
+  addTraits      :'tool.other.addTraits'      , // 添加特质
+  addLocation    :'tool.other.configureLocation', // 配置位置
+  addBodywriting :'tool.other.addBodywriting' , // 添加涂鸦
+  addNPC         :'npc.add'                   , // 添加NPC
+  addNPCStats    :'npc.addStats'              , // 添加状态
+  addNPCClothes  :'npc.addClothes'            , // 添加服装
+  addNPCSchedule :'npc.addSchedule'           , // 添加日程
+  addTransform   :'char.transformation.add'   , // 添加转化
+  addAction      :'combat.CombatAction.reg'   , // 添加战斗按钮
 };
 
 interface SimpleFrameworks {

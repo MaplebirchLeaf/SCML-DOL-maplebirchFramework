@@ -3,7 +3,6 @@
 ### 基本介绍
 
 `htmlTools` 是一个用于动态生成和操作 HTML 内容的文本构建工具。它提供了一套流畅的 API 来创建、渲染和管理文本内容，支持自动翻译、Wiki 语法解析、文本替换等功能，并集成了 SugarCube 宏系统。
-
 _可通过 `maplebirch.tool.text` 或快捷接口 `maplebirchFrameworks.addText()` 访问。_
 
 ---

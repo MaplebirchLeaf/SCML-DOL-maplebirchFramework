@@ -3,7 +3,6 @@
 ### 基本介绍
 
 `Location` 是框架提供的地点图片配置系统，允许模组制作者为游戏中的地点(location)配置不同的图片显示条件。通过这个系统，您可以根据天气、时间、事件等条件动态改变地点的外观。
-
 _可通过 `maplebirch.tool.other.configureLocation()` 访问。_
 
 ---

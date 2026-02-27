@@ -2,8 +2,12 @@
 
 import maplebirch from '../../core';
 
+type ActionType = 'leftaction' | 'rightaction' | 'feetaction' | 'mouthaction' | 'penisaction' | 'vaginaaction' | 'anusaction' | 'chestaction' | 'thighaction';
+
+type CombatType = 'Default' | 'Self' | 'Struggle' | 'Swarm' | 'Vore' | 'Machine' | 'Tentacle';
+
 interface ActionEntry {
-  actionType: any;
+  actionType: ActionType;
   cond: (ctx: Context) => boolean;
   display: (ctx: Context) => string;
   value: (ctx: Context) => any;
@@ -14,8 +18,8 @@ interface ActionEntry {
 }
 
 interface Context {
-  actionType?: any;
-  combatType?: string;
+  actionType?: ActionType;
+  combatType?: CombatType;
   encounterType?: string;
   action?: any;
   originalCount?: number;
@@ -24,13 +28,13 @@ interface Context {
 
 interface ActionConfig {
   id: string;
-  actionType: any;
+  actionType: ActionType;
   cond: (ctx: Context) => boolean;
   display: (ctx: Context) => string;
   value: (ctx: Context) => any;
   color?: string | ((ctx: Context) => string);
   difficulty?: string | ((ctx: Context) => string);
-  combatType?: string | ((ctx: Context) => string);
+  combatType?: CombatType | ((ctx: Context) => CombatType);
   order?: number | ((ctx: Context) => number);
 }
 
@@ -54,7 +58,7 @@ const CombatAction = {
         value,
         color: _.isFunction(color) ? color : () => color,
         difficulty: _.isFunction(difficulty) ? difficulty : () => difficulty,
-        combatType: _.isFunction(combatType) ? combatType : () => combatType,
+        combatType: _.isFunction(combatType) ? (combatType as (ctx: Context) => CombatType) : () => combatType,
         order: _.isFunction(order) ? order : () => order
       });
     });
@@ -72,7 +76,7 @@ const CombatAction = {
     return fnOrValue;
   },
 
-  action: function (optionsTable: OptionsTable, actionType: any, combatType?: string): OptionsTable {
+  action: function (optionsTable: OptionsTable, actionType: ActionType, combatType?: CombatType): OptionsTable {
     const ctx: Context = {
       actionType,
       combatType: combatType || 'Default',
@@ -82,7 +86,7 @@ const CombatAction = {
     const currentCombatType = ctx.combatType;
     const modActions: Array<{ id: string; display: string; value: any; order: number }> = [];
 
-    this.actions.forEach((entry: { actionType: any; combatType: any; cond: any; display: any; value: any; order: any }, id: any) => {
+    this.actions.forEach((entry: { actionType: ActionType; combatType: any; cond: any; display: any; value: any; order: any }, id: any) => {
       if (entry.actionType !== actionType) return;
 
       const entryCombatType = this._eval(entry.combatType, ctx) || 'Default';
@@ -119,7 +123,7 @@ const CombatAction = {
     return optionsTable;
   },
 
-  color: function (action: any, encounterType?: string): string | null {
+  color: function (action: any, encounterType?: CombatType): string | null {
     const ctx: Context = {
       action,
       encounterType: encounterType ?? 'Default'
@@ -135,7 +139,7 @@ const CombatAction = {
     return null;
   },
 
-  difficulty: function (action: any, combatType?: string): string | null {
+  difficulty: function (action: any, combatType?: CombatType): string | null {
     const ctx: Context = {
       action,
       combatType: combatType ?? 'Default'

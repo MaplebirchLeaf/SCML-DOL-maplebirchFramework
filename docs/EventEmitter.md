@@ -1,4 +1,4 @@
-## EventEmitter事件发射器
+## 事件发射器 (EventEmitter)
 
 ### 基本介绍
 

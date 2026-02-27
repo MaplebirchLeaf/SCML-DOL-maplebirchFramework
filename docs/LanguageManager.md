@@ -1,4 +1,4 @@
-## LanguageManager语言管理
+## 语言管理 (LanguageManager)
 
 ### 基本介绍
 

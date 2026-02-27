@@ -71,6 +71,21 @@
   - [特质注册](docs/ToolCollection/Traits.md)
   - [地点配置](docs/ToolCollection/Location.md)
   - [纹身注册](docs/ToolCollection/Bodywriting.md)
+- [**SugarCube宏**](docs/SugarCubeMacro.md)
+- [**音频管理**](docs/Audio.md)
+- [**角色管理**](docs/Character/)
+  - [侧边栏图层](docs/Character/Character.md)
+  - [转化管理](docs/Character/Transformation.md)
+- [**NPC管理**](docs/NamedNPC/)
+  - [NPC注册](docs/NamedNPC/NamedNPC.md)
+  - [NPC状态](docs/NamedNPC/NamedNPCStats.md)
+  - [NPC日程](docs/NamedNPC/NamedNPCSchedule.md)
+  - [NPC服装](docs/NamedNPC/NamedNPCClothes.md)
+  - [NPC侧边栏](docs/NamedNPC/NamedNPCSidebar.md)
+- [**战斗管理**](docs/Combat/)
+  - [战斗按钮](docs/Combat/Actions.md)
+  - [战斗异装](docs/Combat/Reaction.md)
+  - [战斗对话](docs/Combat/Speech.md)
 
 ## 反馈与讨论
 
