@@ -33,6 +33,9 @@ export async function createZip(rootDir: string) {
     }
   }
 
+  const readmePath = path.join(rootDir, 'README.md');
+  zip.addFile('README.md', await readFile(readmePath));
+
   async function addPublicFilesToZip(currentPath: string, basePath = '') {
     const entries = await readdir(currentPath, { withFileTypes: true });
 
