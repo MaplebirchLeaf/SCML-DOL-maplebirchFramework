@@ -100,7 +100,7 @@
 
 #### **preInit()**
 
-_在`afterInjectEarlyLoad`阶段调用。用于资源预加载和基础设置，此时没有setup变量和V变量。_
+*在`afterInjectEarlyLoad`阶段调用。*每个模块只会执行一次*，用于资源预加载和基础设置，此时没有setup变量和V变量。*
 
 - **@example**:
   ```javascript
@@ -113,7 +113,7 @@ _在`afterInjectEarlyLoad`阶段调用。用于资源预加载和基础设置，
 
 #### **Init()**
 
-_在`:passageinit`事件后调用。用于模块主初始化，此时已有setup变量和V变量。_
+*在`:passageinit`事件后调用。*每个模块只会执行一次*，用于模块主初始化，此时已有setup变量和V变量。*
 
 - **@example**:
   ```javascript
@@ -127,7 +127,7 @@ _在`:passageinit`事件后调用。用于模块主初始化，此时已有setup
 
 #### **loadInit()**
 
-_仅在读取存档时调用。用于恢复存档状态，此时有存档中的V变量。_
+*仅在读取存档时调用。*每次读取存档时都会执行*，用于恢复存档状态，此时有存档中的V变量。*
 
 - **@example**:
   ```javascript
@@ -141,7 +141,7 @@ _仅在读取存档时调用。用于恢复存档状态，此时有存档中的V
 
 #### **postInit()**
 
-_在每个段落开始时调用，在Init和loadInit之后执行。此时有当前V变量。_
+*在每个段落开始时调用，在Init和loadInit之后执行。*每个段落都会执行一次*，此时有当前V变量。*
 
 - **@example**:
   ```javascript
@@ -161,19 +161,19 @@ class MyModule {
   // 声明依赖模块
   dependencies = ['addon', 'dynamic'];
 
-  // 预初始化 - 资源预加载
+  // 预初始化 - 资源预加载(只执行一次)
   async preInit() {
     console.log('MyModule 预初始化');
     this.cache = new Map();
   }
 
-  // 主初始化 - 主要功能设置
+  // 主初始化 - 主要功能设置(只执行一次)
   async Init() {
     console.log('MyModule 主初始化');
     this.setup();
   }
 
-  // 存档初始化 - 恢复存档状态
+  // 存档初始化 - 恢复存档状态(每次读取存档时执行)
   async loadInit() {
     console.log('MyModule 存档初始化');
     if (State.variables.myModuleData) {
@@ -181,7 +181,7 @@ class MyModule {
     }
   }
 
-  // 后初始化 - 段落清理
+  // 后初始化 - 段落清理(每个段落执行一次)
   async postInit() {
     console.log('MyModule 后初始化');
     this.cleanup();
@@ -226,7 +226,7 @@ maplebirch.register('myModule', myModuleInstance, ['var', 'tool']);
 #### **依赖规则**
 
 1. _模块会在其所有依赖初始化完成后才初始化_
-2. _支持传递依赖（模块A依赖B，B依赖C，则A依赖C）_
+2. _支持传递依赖(模块A依赖B，B依赖C，则A依赖C)_
 3. _循环依赖会被自动检测并阻止_
 
 #### **依赖图查询**
@@ -245,5 +245,5 @@ console.log('依赖addon的模块:', graph.addon.dependents);
 1. **模块命名**: _避免使用保留名称，如`core`、`modules`等_
 2. **初始化顺序**: _依赖解析基于拓扑排序，确保理解排序逻辑_
 3. **错误处理**: _单个模块初始化失败不会影响其他模块_
-4. **禁用机制**: _模块可以从数据库配置中禁用_
+4. **禁用机制**: _模块可以从模组加载器配置中禁用_
 5. **扩展模块**: _扩展模块会挂载到`maplebirch`实例上，可用于全局访问_

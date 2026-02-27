@@ -40,7 +40,7 @@
     {
       "modName": "maplebirch",
       "addonName": "maplebirchAddon",
-      "modVersion": "^2.7.0",
+      "modVersion": "^3.1.0",
       "params": {
         "module": [
           "maplebirch.js" // 紧随模组加载器inject_early完成时机之后的处理，非必要不推荐使用
@@ -55,9 +55,16 @@
 
 ## 模块与功能
 
+- [**工具函数Utilities**](docs/Utilities.md)
 - [**EventEmitter事件发射器**](docs/EventEmitter.md)
 - [**LanguageManager语言管理**](docs/LanguageManager.md)
 - [**ModuleSystem**](docs/ModuleSystem.md)
+- **Dynamic动态事件**
+  - [StateEvents状态事件](docs/Dynamic/StateEvents.md)
+  - [TimeEvents时间事件](docs/Dynamic/TimeEvents.md)
+  - [WeatherEvents天气事件](docs/Dynamic/WeatherEvents.md)
+- **ToolCollection工具合集**
+  - [migration变量迁徙](docs/ToolCollection/migration.md)
 
 ## 反馈与讨论
 
