@@ -13,14 +13,14 @@
 - 注册一个新模块到系统中
 - **@param**:
   - `name` (string): 模块名称
-  - `module` (any): 模块对象，需要包含初始化方法
+  - `module` (any): 模块对象，可以包含初始化方法
   - `dependencies` (string[]): 依赖模块列表，默认空数组
   - `source` (string): 模块来源标识，用于扩展模块
 - **@return**: `boolean`，表示是否成功注册
 - **@example**:
 
   ```javascript
-  // 注册一个普通模块
+  // 注册一个简单模块
   maplebirch.register('myModule', {
     Init() {
       console.log('模块初始化');
@@ -96,34 +96,38 @@
 
 ### 模块初始化方法
 
-模块可以定义以下生命周期方法：
+模块可以定义以下生命周期方法，_所有方法都是可选的_：
 
 #### **preInit()**
 
-_预初始化方法，在`maplebirch.pre()`时调用。用于轻量级初始化或资源预加载。_
+_在`afterInjectEarlyLoad`阶段调用。用于资源预加载和基础设置，此时没有setup变量和V变量。_
 
 - **@example**:
   ```javascript
   preInit() {
+    // 预加载资源
     this.cache = new Map();
+    console.log('模块预初始化完成');
   }
   ```
 
 #### **Init()**
 
-_主初始化方法，在`maplebirch.init()`时调用。必须实现，用于模块主要功能的初始化。_
+_在`:passageinit`事件后调用。用于模块主初始化，此时已有setup变量和V变量。_
 
 - **@example**:
   ```javascript
   Init() {
+    // 主初始化逻辑
     this.setupEventListeners();
     this.loadConfig();
+    console.log('模块初始化完成');
   }
   ```
 
 #### **loadInit()**
 
-_存档初始化方法，仅在加载存档时调用。用于恢复存档状态。_
+_仅在读取存档时调用。用于恢复存档状态，此时有存档中的V变量。_
 
 - **@example**:
   ```javascript
@@ -131,18 +135,20 @@ _存档初始化方法，仅在加载存档时调用。用于恢复存档状态�
     if (State.variables.myData) {
       this.data = State.variables.myData;
     }
+    console.log('存档数据恢复完成');
   }
   ```
 
 #### **postInit()**
 
-_后初始化方法，在所有模块初始化完成后调用。用于执行清理或最终设置。_
+_在每个段落开始时调用，在Init和loadInit之后执行。此时有当前V变量。_
 
 - **@example**:
   ```javascript
   postInit() {
     this.cleanupTemporaryData();
     this.finalizeSetup();
+    console.log('段落后处理完成');
   }
   ```
 
@@ -155,19 +161,19 @@ class MyModule {
   // 声明依赖模块
   dependencies = ['addon', 'dynamic'];
 
-  // 预初始化
+  // 预初始化 - 资源预加载
   async preInit() {
     console.log('MyModule 预初始化');
     this.cache = new Map();
   }
 
-  // 主初始化
+  // 主初始化 - 主要功能设置
   async Init() {
     console.log('MyModule 主初始化');
     this.setup();
   }
 
-  // 存档初始化
+  // 存档初始化 - 恢复存档状态
   async loadInit() {
     console.log('MyModule 存档初始化');
     if (State.variables.myModuleData) {
@@ -175,7 +181,7 @@ class MyModule {
     }
   }
 
-  // 后初始化
+  // 后初始化 - 段落清理
   async postInit() {
     console.log('MyModule 后初始化');
     this.cleanup();
@@ -239,5 +245,5 @@ console.log('依赖addon的模块:', graph.addon.dependents);
 1. **模块命名**: _避免使用保留名称，如`core`、`modules`等_
 2. **初始化顺序**: _依赖解析基于拓扑排序，确保理解排序逻辑_
 3. **错误处理**: _单个模块初始化失败不会影响其他模块_
-4. **禁用机制**: _模块可以从模组加载器配置中禁用_
+4. **禁用机制**: _模块可以从数据库配置中禁用_
 5. **扩展模块**: _扩展模块会挂载到`maplebirch`实例上，可用于全局访问_
