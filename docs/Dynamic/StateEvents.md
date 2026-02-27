@@ -23,7 +23,7 @@ _可通过 `maplebirch.dynamic.State` 或快捷接口 `maplebirchFrameworks.addS
   // 注册一个中断事件
   maplebirch.dynamic.regStateEvent('interrupt', 'encounterBandit', {
     output: 'banditEncounter',
-    cond: () => State.variables.location === 'forest' && State.variables.time === 'night',
+    cond: () => V.location === 'forest' && V.time === 'night',
     priority: 5,
     once: true
   });
@@ -78,7 +78,7 @@ _可通过 `maplebirch.dynamic.State` 或快捷接口 `maplebirchFrameworks.addS
 // 1. 注册事件
 maplebirch.dynamic.regStateEvent('interrupt', 'forestBandit', {
   output: 'banditEncounter', // 对应下面定义的widget名称
-  cond: () => State.variables.location === 'forest',
+  cond: () => V.location === 'forest',
   priority: 10,
   once: false
 });
@@ -101,7 +101,7 @@ maplebirch.dynamic.regStateEvent('interrupt', 'forestBandit', {
 // 1. 注册潮湿状态提示
 maplebirch.dynamic.regStateEvent('overlay', 'wetStatus', {
   output: 'showWetStatus',
-  cond: () => State.variables.wetness > 70,
+  cond: () => V.wetness > 70,
   priority: 3
 });
 
@@ -119,7 +119,7 @@ maplebirch.dynamic.regStateEvent('overlay', 'wetStatus', {
 // 1. 注册事件
 maplebirch.dynamic.regStateEvent('interrupt', 'merchantEvent', {
   output: 'merchantEncounter',
-  cond: () => State.variables.day % 7 === 0,
+  cond: () => V.day % 7 === 0,
   priority: 8,
   once: true
 });

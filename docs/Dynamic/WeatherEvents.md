@@ -25,11 +25,11 @@ _可通过 `maplebirch.dynamic.Weather` 或快捷接口 `maplebirchFrameworks.ad
   maplebirch.dynamic.regWeatherEvent('rainyDay', {
     condition: () => Weather.name === 'rain',
     onEnter: () => {
-      State.variables.isRaining = true;
+      V.isRaining = true;
       Wikifier.wikifyEval('<<notify "开始下雨了">>');
     },
     onExit: () => {
-      State.variables.isRaining = false;
+      V.isRaining = false;
       Wikifier.wikifyEval('<<notify "雨停了">>');
     },
     priority: 5,
@@ -139,12 +139,12 @@ _可通过 `maplebirch.dynamic.Weather` 或快捷接口 `maplebirchFrameworks.ad
   maplebirch.dynamic.regWeatherEvent('acidRainEvent', {
     condition: () => Weather.name === 'acidRain',
     onEnter: () => {
-      State.variables.visibility = 0.4;
-      State.variables.health -= 2;
+      V.visibility = 0.4;
+      V.health -= 2;
       Wikifier.wikifyEval('<<notify "酸雨！能见度降低，健康受损">>');
     },
     onExit: () => {
-      State.variables.visibility = 1;
+      V.visibility = 1;
       Wikifier.wikifyEval('<<notify "酸雨停了">>');
     },
     priority: 8
@@ -175,11 +175,11 @@ _可通过 `maplebirch.dynamic.Weather` 或快捷接口 `maplebirchFrameworks.ad
       return today.month === 10 && today.day === 31 && Weather.name === 'fog';
     },
     onEnter: () => {
-      State.variables.halloweenMood = 3;
+      V.halloweenMood = 3;
       Wikifier.wikifyEval('<<notify "万圣节迷雾笼罩着大地...">>');
     },
     onExit: () => {
-      State.variables.halloweenMood = 1;
+      V.halloweenMood = 1;
     },
     once: true
   });
@@ -211,10 +211,10 @@ maplebirch.dynamic.regWeatherEvent('coldNight', {
   hour: { min: 20, max: 6 }, // 晚上8点到早上6点
   season: ['winter', 'autumn'], // 冬季或秋季
   onEnter: () => {
-    State.variables.feelsCold = true;
+    V.feelsCold = true;
   },
   onExit: () => {
-    State.variables.feelsCold = false;
+    V.feelsCold = false;
   }
 });
 ```
