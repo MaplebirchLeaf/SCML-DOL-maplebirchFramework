@@ -86,12 +86,10 @@
   - [NPC侧边栏](docs/NamedNPC/NamedNPCSidebar.md)
 - [**战斗管理**](docs/Combat/)
   - [战斗按钮](docs/Combat/Actions.md)
-  - [战斗异装](docs/Combat/Reaction.md)
+  - [战斗反应](docs/Combat/Reaction.md)
   - [战斗对话](docs/Combat/Speech.md)
 
 ## 反馈与讨论
-
-
 
 ## 更新日志
 
@@ -106,7 +104,7 @@
 - 感谢 [Aoki Utage](https://github.com/AOKIUTAGE) 、 [miyakoAki4828](https://github.com/miyakoAki4828) 、 [HCPTangHY](https://github.com/HCPTangHY) 等在美化相关的制作引导。
 - 感谢 其它更多对于本框架进行反馈的游玩者们。
 
-## 相关链接 
+## 相关链接
 
 - [Vrelnir 的博客](https://vrelnir.blogspot.com/)
 - [英文游戏维基](https://degreesoflewdity.miraheze.org/wiki/Main_Page)
