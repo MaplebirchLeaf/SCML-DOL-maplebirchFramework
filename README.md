@@ -97,3 +97,14 @@
 - 感谢 [苯环](https://github.com/Nephthelana) 、 [零环](https://github.com/ZeroRing233) 、 [丧心](https://github.com/MissedHeart) 等模组制作者的代码引导。
 - 感谢 [Aoki Utage](https://github.com/AOKIUTAGE) 、 [miyakoAki4828](https://github.com/miyakoAki4828) 、 [HCPTangHY](https://github.com/HCPTangHY) 等在美化相关的制作引导。
 - 感谢 其它更多对于本框架进行反馈的游玩者们。
+
+## 相关链接 
+
+- [Vrelnir 的博客](https://vrelnir.blogspot.com/)
+- [英文游戏维基](https://degreesoflewdity.miraheze.org/wiki/Main_Page)
+- [中文游戏维基](https://degreesoflewditycn.miraheze.org/wiki)
+- [官方 Discord](https://discord.gg/VznUtEh)
+- [游戏源码仓库](https://gitgud.io/Vrelnir/degrees-of-lewdity/-/tree/master)
+- [原版汉化仓库](https://github.com/Eltirosto/Degrees-of-Lewdity-Chinese-Localization)
+  - [汉化仓库贡献者](https://github.com/Eltirosto/Degrees-of-Lewdity-Chinese-Localization/blob/main/CREDITS.md)
+- [DoL-Lyra](https://github.com/DoL-Lyra)
