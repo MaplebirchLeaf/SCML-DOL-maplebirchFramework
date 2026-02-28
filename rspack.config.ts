@@ -69,7 +69,8 @@ function devServerConfig(): RspackOptions {
           .filter(f => f.endsWith('.zip'))
           .map(f => `/mods/${f}`)
       : [];
-    response.json([...mods, `/${modFilename}`]);
+    const modI18N = mods.find(m => m.includes('ModI18N'));
+    response.json([...(modI18N ? [modI18N] : []), ...mods.filter(m => !m.includes('ModI18N')), `/${modFilename}`]);
   };
 
   const modZipHandler = () => async (_req: any, response: any) => {
