@@ -42,7 +42,7 @@ img/ui/nnpc/[npc_name]/[image_name].[png|jpg|gif]
   "params": {
     "npc": {
       "Sidebar": {
-        "image": ["luna", "draven"]
+        "image": ["luna", "draven"] // NPC名称，推荐小写，画师模型配置图片路径还是 ui/nnpc/<npcName>/
       }
     }
   }
@@ -59,9 +59,9 @@ img/ui/nnpc/[npc_name]/[image_name].[png|jpg|gif]
   "params": {
     "npc": {
       "Sidebar": {
-        "image": ["Elara", "Merlin", "Draven"],
-        "clothes": ["data/npc/elven_clothes.yaml", "data/npc/wizard_wardrobe.json"],
-        "config": ["data/npc/elara_sidebar.yaml", "data/npc/merlin_sidebar.json"]
+        "image": ["Elara", "Merlin", "Draven"],  // NPC名称，推荐小写，画师模型配置图片路径还是 ui/nnpc/<npcName>/
+        "clothes": ["data/npc/elven_clothes.yaml", "data/npc/wizard_wardrobe.json"], // PC模型模式下NPC的服装数据，取自PC身上的衣着
+        "config": ["data/npc/elara_sidebar.yaml", "data/npc/merlin_sidebar.json"] // 动态的画师模型配置
       }
     }
   }
