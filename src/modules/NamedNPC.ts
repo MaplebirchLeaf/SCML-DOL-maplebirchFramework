@@ -84,7 +84,7 @@ export const NamedNPC = (core => {
       EN: { he: 'it', his: 'its', hers: 'its', him: 'it', himself: 'itself', man: 'thing', boy: 'little one', men: 'them' }
     },
     n: {
-      CN: { he: '她', his: '她的', hers: '她的', him: '她', himself: '她自己', man: '人', boy: '孩子', men: '人们' },
+      CN: { he: '他', his: '他的', hers: '他的', him: '他', himself: '他自己', man: '人', boy: '孩子', men: '人们' },
       EN: { he: 'they', his: 'their', hers: 'theirs', him: 'them', himself: 'themself', man: 'person', boy: 'kid', men: 'people' }
     },
     t: {
@@ -670,12 +670,14 @@ class NPCManager {
     const nam = npcName;
     const idx = V.NPCNameList.indexOf(nam);
     Object.keys(this.customStats).forEach(stat => (V.NPCName[idx][stat] = 0));
+    void this.core.trigger(':npcInit', npcName);
   }
 
   vanillaInject(npcName: string, npcno: number) {
     try {
       this.core.combat.Speech.init();
     } catch {}
+    void this.core.trigger(':npcInject', npcName, npcno);
   }
 
   preInit() {

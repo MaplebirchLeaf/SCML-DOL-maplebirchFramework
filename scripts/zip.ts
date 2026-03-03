@@ -11,7 +11,7 @@ interface ScmlConfig {
   dependenceInfo: Array<{ modName: string; version: string }>;
 }
 
-export async function createZip(rootDir: string) {
+export async function createZip(rootDir: string): Promise<Buffer> {
   const distDir = path.join(rootDir, 'dist');
   const publicDir = path.join(rootDir, 'public');
 
@@ -24,39 +24,39 @@ export async function createZip(rootDir: string) {
   const styleFiles: string[] = [];
   const additionFiles: string[] = [];
 
-  const distFiles = ['inject_early.js', 'maplebirch.d.ts'];
-  for (const file of distFiles) {
+  for (const file of ['inject_early.js', 'maplebirch.d.ts']) {
     try {
-      zip.addFile(file, await readFile(path.join(distDir, file)));
+      zip.addFile(path.posix.join('dist', file), await readFile(path.join(distDir, file)));
     } catch {
       console.warn(`警告: 找不到文件 ${file}，跳过`);
     }
   }
 
-  const readmePath = path.join(rootDir, 'README.md');
-  zip.addFile('README.md', await readFile(readmePath));
+  {
+    const readmePath = path.join(rootDir, 'README.md');
+    zip.addFile('README.md', await readFile(readmePath));
+    additionFiles.push('README.md');
+  }
 
+  const additionExts = ['.yaml', '.yml', '.json'];
   async function addPublicFilesToZip(currentPath: string, basePath = '') {
     const entries = await readdir(currentPath, { withFileTypes: true });
 
     for (const entry of entries) {
       const fullPath = path.join(currentPath, entry.name);
-      const relativePath = path.join(basePath, entry.name);
+      const normalizedPath = path.join(basePath, entry.name).replace(/\\/g, '/');
 
       if (entry.isDirectory()) {
-        await addPublicFilesToZip(fullPath, relativePath);
-      } else {
-        const normalizedPath = relativePath.replace(/\\/g, '/');
-        const fileContent = await readFile(fullPath);
-
-        if (normalizedPath.endsWith('.css')) {
-          styleFiles.push(normalizedPath);
-        } else if (normalizedPath.endsWith('.yaml') || normalizedPath.endsWith('.json')) {
-          additionFiles.push(normalizedPath);
-        }
-
-        zip.addFile(normalizedPath, fileContent);
+        await addPublicFilesToZip(fullPath, normalizedPath);
+        continue;
       }
+
+      const fileContent = await readFile(fullPath);
+
+      if (normalizedPath.endsWith('.css')) styleFiles.push(normalizedPath);
+      if (additionExts.some(ext => normalizedPath.endsWith(ext))) additionFiles.push(normalizedPath);
+
+      zip.addFile(normalizedPath, fileContent);
     }
   }
 
@@ -72,7 +72,7 @@ export async function createZip(rootDir: string) {
     imgFileList: [],
     scriptFileList: scml.scriptFileList,
     additionFile: additionFiles,
-    scriptFileList_inject_early: ['inject_early.js'],
+    scriptFileList_inject_early: ['dist/inject_early.js'],
     scriptFileList_earlyload: [],
     scriptFileList_preload: [],
     additionBinaryFile: [],

@@ -37,7 +37,7 @@ class randSystem {
   }
 
   get(max: number) {
-    if (this.state.seed === null) this.state.seed = Date.now() & 0x7fffffff;
+    if (this.state.seed == null) this.state.seed = Date.now() & 0x7fffffff;
     if (this.state.pointer < this.state.history.length) {
       const value = this.state.history[this.state.pointer];
       this.state.pointer++;

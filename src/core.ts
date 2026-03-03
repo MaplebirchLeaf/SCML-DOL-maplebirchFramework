@@ -6,6 +6,7 @@ import type { Gui } from '@scml/types/Mod_LoaderGui/Gui';
 import jsyaml from 'js-yaml';
 import { Howl, Howler } from 'howler';
 import * as lodash from 'lodash-es';
+import * as marked from 'marked';
 import { version, lastModifiedBy, lastUpdate, Languages } from './constants';
 import Logger from './services/Logger';
 import EventEmitter from './services/EventEmitter';
@@ -22,6 +23,29 @@ import Character from './modules/Character';
 import NPCManager from './modules/NamedNPC';
 import CombatManager from './modules/Combat';
 
+const renderer = new marked.Renderer();
+
+renderer.link = function ({ href, title, tokens }: marked.Tokens.Link) {
+  const linkText = marked.Parser.parseInline(tokens);
+  return `<a href='${href}' target='_blank'>${linkText}</a>`;
+};
+
+renderer.heading = function (token: marked.Tokens.Heading) {
+  const id = token.text
+    .toLowerCase()
+    .replace(/[^a-z0-9\u4e00-\u9fa5\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return `<h${token.depth} id='${id}'>${token.text}</h${token.depth}>`;
+};
+
+marked.setOptions({
+  renderer: renderer,
+  gfm: true,
+  breaks: true,
+  pedantic: false
+});
+
 let jsSugarCube: TwineSugarCube;
 
 class MaplebirchCore {
@@ -33,7 +57,7 @@ class MaplebirchCore {
     updateDate: lastUpdate,
     Languages: Languages,
     early: ['addon', 'dynamic', 'tool', 'char'] as const,
-    core: ['addon', 'dynamic', 'tool', 'audio', 'var', 'char', 'npc', 'combat'] as const
+    core: ['addon', 'dynamic', 'tool', 'audio', 'var', 'char', 'npc', 'combat']
   };
 
   readonly meta: typeof MaplebirchCore.meta;
@@ -155,6 +179,12 @@ class MaplebirchCore {
     await this.tracer.trigger(evt, ...args);
   }
 
+  use(...names: string[]): string[] {
+    const core = this.meta.core;
+    for (const name of names) if (!core.includes(name)) core.push(name);
+    return core;
+  }
+
   register(name: string, module: any, dependencies: string[] = [], source?: string): boolean {
     return this.modules.register(name, module, dependencies, source);
   }
@@ -196,6 +226,10 @@ class MaplebirchCore {
 
   get lodash(): typeof lodash {
     return lodash;
+  }
+
+  get marked(): typeof marked {
+    return marked;
   }
 
   set SugarCube(parts: typeof jsSugarCube) {

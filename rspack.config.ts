@@ -96,10 +96,8 @@ function devServerConfig(): RspackOptions {
       devMiddleware: { writeToDisk: true },
       setupMiddlewares: (middlewares, devServer) => {
         if (!devServer) throw new Error('@rspack/dev-server is not defined');
-
         devServer.app?.get('/modList.json', modListHandler());
         devServer.app?.get(`/${modFilename}`, modZipHandler());
-
         return middlewares;
       }
     }
