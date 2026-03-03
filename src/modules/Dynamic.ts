@@ -42,7 +42,7 @@ class DynamicManager {
     return this.State.unregister(type, eventId);
   }
 
-  trigger(type: 'interrupt' | 'overlay'): string {
+  trigger(type: 'gate' | 'append'): string {
     return this.State.trigger(type);
   }
 

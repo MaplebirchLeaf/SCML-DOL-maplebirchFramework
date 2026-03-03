@@ -334,7 +334,7 @@ export class zonesManager {
       StoryCaption: this.core.lodash.identity,
       PassageHeader: (content: string) => `<div id='passage-header'>\n${content}\n<<maplebirchHeader>>\n</div>`,
       PassageFooter: (content: string) => `<div id='passage-footer'>\n<<maplebirchFooter>>\n${content}\n</div>`,
-      default: (content: string) => `<div id='passage-content'>\n<<= maplebirch.dynamic.trigger('interrupt')>>\n${content}\n<<= maplebirch.dynamic.trigger('overlay')>>\n</div>`
+      default: (content: string) => `<div id='passage-content'>\n<<= maplebirch.dynamic.trigger('gate')>>\n${content}\n<div id='append'></div>\n</div>`
     };
     const wrapper = wrappers[title] || wrappers['default'];
     passage.content = wrapper(passage.content);

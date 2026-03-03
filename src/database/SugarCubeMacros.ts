@@ -78,11 +78,6 @@ function _languageSwitch(this: MacroContext | void, ...lanObj: any[]): string | 
     );
   }
 
-  if (!targetObj.hasOwnProperty(lancheck)) {
-    const available = Object.keys(targetObj);
-    maplebirch.Language = available.length > 0 ? available[0] : availableLangs[0];
-  }
-
   const context = this as MacroContext;
   if (context?.output) {
     try {
@@ -109,7 +104,7 @@ function _languageSwitch(this: MacroContext | void, ...lanObj: any[]): string | 
       return targetObj[lancheck];
     }
   } else {
-    return targetObj[lancheck];
+    return targetObj[lancheck] ?? lanObj[0];
   }
 }
 

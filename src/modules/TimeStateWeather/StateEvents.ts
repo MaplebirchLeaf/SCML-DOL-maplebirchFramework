@@ -9,7 +9,7 @@ export interface StateEventOptions {
   cond?: () => boolean;
   priority?: number;
   once?: boolean;
-  forceExit?: boolean;
+  forceExit?: boolean | (() => boolean);
   extra?: {
     passage?: string[];
     exclude?: string[];
@@ -34,7 +34,7 @@ class StateEvent {
     this.cond = options.cond || (() => true);
     this.priority = options.priority || 0;
     this.once = !!options.once;
-    this.forceExit = !!options.forceExit;
+    this.forceExit = typeof options.forceExit === 'function' ? options.forceExit : () => !!options.forceExit;
     this.extra = options.extra || {};
   }
 
@@ -43,7 +43,7 @@ class StateEvent {
   private cond: () => boolean = () => true;
   priority: number = 0;
   private once: boolean = false;
-  forceExit: boolean = false;
+  private forceExit: () => boolean = () => false;
   private extra: ExtraOptions = {};
 
   private _checkPassage(passageName?: string): boolean {
@@ -79,6 +79,17 @@ class StateEvent {
     }
     return !!this.once;
   }
+
+  shouldForceExit(): boolean {
+    let ok = false;
+    try {
+      ok = !!this.forceExit();
+    } catch (e: any) {
+      maplebirch.log(`[StateEvent:${this.id}] forceExit error:`, 'ERROR', e);
+      return false;
+    }
+    return ok;
+  }
 }
 
 export class StateManager {
@@ -87,40 +98,40 @@ export class StateManager {
 
   constructor(private readonly manager: DynamicManager) {
     this.log = manager.log;
-    const eventTypes = ['interrupt', 'overlay'];
+    const eventTypes = ['gate', 'append'];
     eventTypes.forEach(type => (this.stateEvents[type] = new Map()));
   }
 
-  trigger(type: 'interrupt' | 'overlay'): string {
+  trigger(type: 'gate' | 'append'): string {
     const passageName = this.manager.core.passage?.title;
-    if (type === 'interrupt') return this._processInterruptEvents(passageName);
-    if (type === 'overlay') return this._processOverlayEvents(passageName);
+    if (type === 'gate') return this._processGateEvents(passageName);
+    if (type === 'append') return this._processAppendEvents(passageName);
     return '';
   }
 
-  private _processInterruptEvents(passageName?: string): string {
-    const interruptEvents = this.stateEvents['interrupt'];
-    if (!interruptEvents?.size) return '';
-    const sortedEvents = Array.from(interruptEvents.values()).sort((a, b) => b.priority - a.priority);
+  private _processGateEvents(passageName?: string): string {
+    const gateEvents = this.stateEvents['gate'];
+    if (!gateEvents?.size) return '';
+    const sortedEvents = Array.from(gateEvents.values()).sort((a, b) => b.priority - a.priority);
     for (const event of sortedEvents) {
       const result = event.tryRun(passageName);
       if (result) {
         const [hasOutput, , shouldRemove] = result;
         if (hasOutput && event.output) {
-          if (shouldRemove) this.unregister('interrupt', event.id);
-          return event.forceExit ? `<<${event.output}>><<exitAll>>` : `<<${event.output}>>`;
+          if (shouldRemove) this.unregister('gate', event.id);
+          return event.shouldForceExit() ? `<<${event.output}>><<exitAll>>` : `<<${event.output}>>`;
         }
       }
     }
     return '';
   }
 
-  private _processOverlayEvents(passageName?: string): string {
-    const overlayEvents = this.stateEvents['overlay'];
-    if (!overlayEvents?.size) return '';
+  private _processAppendEvents(passageName?: string): string {
+    const appendEvents = this.stateEvents['append'];
+    if (!appendEvents?.size) return '';
     const outputs: string[] = [];
     const toRemove: string[] = [];
-    const sortedEvents = Array.from(overlayEvents.values()).sort((a, b) => b.priority - a.priority);
+    const sortedEvents = Array.from(appendEvents.values()).sort((a, b) => b.priority - a.priority);
     for (const event of sortedEvents) {
       const result = event.tryRun(passageName);
       if (result) {
@@ -129,7 +140,7 @@ export class StateManager {
         if (shouldRemove) toRemove.push(event.id);
       }
     }
-    for (const eventId of toRemove) this.unregister('overlay', eventId);
+    for (const eventId of toRemove) this.unregister('append', eventId);
     return outputs.join('');
   }
 
@@ -161,6 +172,7 @@ export class StateManager {
   }
 
   init(): void {
+    this.manager.core.on(':passagedisplay', () => new maplebirch.SugarCube.Wikifier(document.getElementById('append'), this.trigger('append')));
     this.log('状态事件系统已激活', 'INFO');
   }
 }

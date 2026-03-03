@@ -1,6 +1,6 @@
 // ./src/main.ts
 
-import './utils';
+import { clone, equal, merge, contains, random, either, SelectCase, loadImage, convert } from './utils';
 import './modules/AddonPlugin';
 import './modules/Dynamic';
 import './modules/ToolCollection';
@@ -15,3 +15,4 @@ import './SFcompat';
 import maplebirch from './core';
 
 export default maplebirch;
+export { clone, equal, merge, contains, random, either, SelectCase, loadImage, convert };

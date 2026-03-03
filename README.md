@@ -57,37 +57,37 @@
 
 ## 模块与功能
 
-- [**工具函数**](docs/Utilities.md)
-- [**事件发射器**](docs/EventEmitter.md)
-- [**语言管理**](docs/LanguageManager.md)
-- [**模块系统**](docs/ModuleSystem.md)
-- [**动态事件**](docs/Dynamic/)
-  - [状态事件](docs/Dynamic/StateEvents.md)
-  - [时间事件](docs/Dynamic/TimeEvents.md)
-  - [天气事件](docs/Dynamic/WeatherEvents.md)
-- [**工具合集**](docs/ToolCollection/)
-  - [变量迁徙](docs/ToolCollection/migration.md)
-  - [随机数系统](docs/ToolCollection/randSystem.md)
-  - [文本工具](docs/ToolCollection/htmlTools.md)
-  - [区域管理](docs/ToolCollection/Framework.md)
-  - [特质注册](docs/ToolCollection/Traits.md)
-  - [地点配置](docs/ToolCollection/Location.md)
-  - [纹身注册](docs/ToolCollection/Bodywriting.md)
-- [**SugarCube宏**](docs/SugarCubeMacro.md)
-- [**音频管理**](docs/Audio.md)
-- [**角色管理**](docs/Character/)
-  - [侧边栏图层](docs/Character/Character.md)
-  - [转化管理](docs/Character/Transformation.md)
-- [**NPC管理**](docs/NamedNPC/)
-  - [NPC注册](docs/NamedNPC/NamedNPC.md)
-  - [NPC状态](docs/NamedNPC/NamedNPCStats.md)
-  - [NPC日程](docs/NamedNPC/NamedNPCSchedule.md)
-  - [NPC服装](docs/NamedNPC/NamedNPCClothes.md)
-  - [NPC侧边栏](docs/NamedNPC/NamedNPCSidebar.md)
-- [**战斗管理**](docs/Combat/)
-  - [战斗按钮](docs/Combat/Actions.md)
-  - [战斗反应](docs/Combat/Reaction.md)
-  - [战斗对话](docs/Combat/Speech.md)
+- [**工具函数**][Utilities]
+- [**事件发射器**][EventEmitter]
+- [**语言管理**][LanguageManager]
+- [**模块系统**][ModuleSystem]
+- [**动态事件**][Dynamic]
+  - [状态事件][StateEvents]
+  - [时间事件][TimeEvents]
+  - [天气事件][WeatherEvents]
+- [**工具合集**][ToolCollection]
+  - [变量迁徙][Migration]
+  - [随机数系统][RandSystem]
+  - [文本工具][HtmlTools]
+  - [区域管理][Framework]
+  - [特质注册][Traits]
+  - [地点配置][Location]
+  - [纹身注册][Bodywriting]
+- [**SugarCube宏**][SugarCubeMacro]
+- [**音频管理**][Audio]
+- [**角色管理**][Character]
+  - [侧边栏图层][CharacterLayer]
+  - [转化管理][Transformation]
+- [**NPC管理**][NamedNPC]
+  - [NPC注册][NamedNPCAdd]
+  - [NPC状态][NamedNPCStats]
+  - [NPC日程][NamedNPCSchedule]
+  - [NPC服装][NamedNPCClothes]
+  - [NPC侧边栏][NamedNPCSidebar]
+- [**战斗管理**][Combat]
+  - [战斗按钮][CombatActions]
+  - [战斗反应][CombatReaction]
+  - [战斗对话][CombatSpeech]
 
 ## 反馈与讨论
 
@@ -119,3 +119,35 @@
   - [汉化仓库贡献者](https://github.com/Eltirosto/Degrees-of-Lewdity-Chinese-Localization/blob/main/CREDITS.md)
 - [DoL-Lyra](https://github.com/DoL-Lyra)
 - [Modloader说明文档](https://modloader.pages.dev/)
+
+[Utilities]: https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/docs/Utilities.md
+[EventEmitter]: https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/docs/EventEmitter.md
+[LanguageManager]: https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/docs/LanguageManager.md
+[ModuleSystem]: https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/docs/ModuleSystem.md
+[Dynamic]: https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/docs/Dynamic/
+[StateEvents]: https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/docs/Dynamic/StateEvents.md
+[TimeEvents]: https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/docs/Dynamic/TimeEvents.md
+[WeatherEvents]: https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/docs/Dynamic/WeatherEvents.md
+[ToolCollection]: https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/docs/ToolCollection/
+[Migration]: https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/docs/ToolCollection/migration.md
+[RandSystem]: https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/docs/ToolCollection/randSystem.md
+[HtmlTools]: https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/docs/ToolCollection/htmlTools.md
+[Framework]: https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/docs/ToolCollection/Framework.md
+[Traits]: https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/docs/ToolCollection/Traits.md
+[Location]: https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/docs/ToolCollection/Location.md
+[Bodywriting]: https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/docs/ToolCollection/Bodywriting.md
+[SugarCubeMacro]: https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/docs/SugarCubeMacro.md
+[Audio]: https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/docs/Audio.md
+[Character]: https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/docs/Character/
+[CharacterLayer]: https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/docs/Character/Character.md
+[Transformation]: https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/docs/Character/Transformation.md
+[NamedNPC]: https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/docs/NamedNPC/
+[NamedNPCAdd]: https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/docs/NamedNPC/NamedNPC.md
+[NamedNPCStats]: https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/docs/NamedNPC/NamedNPCStats.md
+[NamedNPCSchedule]: https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/docs/NamedNPC/NamedNPCSchedule.md
+[NamedNPCClothes]: https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/docs/NamedNPC/NamedNPCClothes.md
+[NamedNPCSidebar]: https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/docs/NamedNPC/NamedNPCSidebar.md
+[Combat]: https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/docs/Combat/
+[CombatActions]: https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/docs/Combat/Actions.md
+[CombatReaction]: https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/docs/Combat/Reaction.md
+[CombatSpeech]: https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/docs/Combat/Speech.md

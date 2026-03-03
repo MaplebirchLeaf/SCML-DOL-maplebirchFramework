@@ -2,8 +2,9 @@
 
 ### 基本介绍
 
-状态事件模块 (`StateEvents`) 是动态管理系统的一部分，用于处理游戏中的状态触发事件。框架会自动在段落开始和结束时检查并触发相应的事件，无需手动调用。
-_可通过 `maplebirch.dynamic.State` 或快捷接口 `maplebirchFrameworks.addStateEvent()` 访问。_
+状态事件模块 (`StateEvents`) 是动态管理系统的一部分，用于处理游戏中的状态触发事件。框架会在段落开始(gate)与段落结束(append)时自动检查并触发相应事件，无需手动调用。
+
+_可通过 `maplebirch.dynamic.State` 或快捷接口 `maplebirchFrameworks.addStateEvent` 访问。_
 
 ---
 
@@ -13,14 +14,14 @@ _可通过 `maplebirch.dynamic.State` 或快捷接口 `maplebirchFrameworks.addS
 
 - 注册一个新的状态事件
 - **@param**:
-  - `type` (string): 事件类型，支持 `'interrupt'`(中断)或 `'overlay'`(覆盖)
+  - `type` (string): 事件类型，支持 `'gate'`(拦截)或 `'append'`(追加)
   - `eventId` (string): 事件唯一标识符
   - `options` (StateEventOptions): 事件配置选项
 - **@return**: boolean，表示是否成功注册
 - **@example**:
   ```javascript
-  // 注册一个中断事件
-  maplebirch.dynamic.regStateEvent('interrupt', 'encounterBandit', {
+  // 注册一个拦截事件
+  maplebirch.dynamic.regStateEvent('gate', 'encounterBandit', {
     output: 'banditEncounter',
     cond: () => V.location === 'forest' && V.time === 'night',
     priority: 5,
@@ -28,7 +29,7 @@ _可通过 `maplebirch.dynamic.State` 或快捷接口 `maplebirchFrameworks.addS
   });
   ```
 
-#### **注销状态事件 (delStateEvent)**
+### **注销状态事件 (delStateEvent)**
 
 - 注销一个已注册的状态事件
 - **@param**:
@@ -37,7 +38,7 @@ _可通过 `maplebirch.dynamic.State` 或快捷接口 `maplebirchFrameworks.addS
 - **@return**: boolean，表示是否成功注销
 - **@example**:
   ```javascript
-  maplebirch.dynamic.delStateEvent('interrupt', 'encounterBandit');
+  maplebirch.dynamic.delStateEvent('gate', 'encounterBandit');
   ```
 
 ---
@@ -56,26 +57,28 @@ _可通过 `maplebirch.dynamic.State` 或快捷接口 `maplebirchFrameworks.addS
   <</widget>>
   ```
 
-#### **其他重要参数**
+#### **重要参数**
 
-| 参数            | 类型     | 说明                                         |
-| :-------------- | :------- | :------------------------------------------- |
-| `cond`          | function | 触发条件函数，返回布尔值                     |
-| `priority`      | number   | 优先级，数字越大优先级越高                   |
-| `once`          | boolean  | 是否只触发一次                               |
-| `forceExit`     | boolean  | 是否强制阻断当前段落剩余内容(仅中断事件有效) |
-| `extra.passage` | string[] | 仅在这些段落中触发                           |
-| `extra.exclude` | string[] | 在这些段落中不触发                           |
+| 参数            | 类型                | 说明                                         |
+| :-------------- | :------------------ | :------------------------------------------- |
+| `output`        | string              | 触发条件函数，插入目标宏                     |
+| `action`        | function            | 触发条件函数，执行函数内容                   |
+| `cond`          | function            | 触发条件函数，返回布尔值                     |
+| `priority`      | number              | 优先级，数字越大优先级越高                   |
+| `once`          | boolean             | 是否只触发一次                               |
+| `forceExit`     | boolean or function | 是否强制阻断当前段落剩余内容(仅中断事件有效) |
+| `extra.passage` | string[]            | 仅在这些段落中触发                           |
+| `extra.exclude` | string[]            | 在这些段落中不触发                           |
 
 ---
 
 ### 完整使用示例
 
-#### **示例1：中断事件(包含widget定义)**
+#### **示例1：拦截事件(包含widget定义)**
 
 ```javascript
 // 1. 注册事件
-maplebirch.dynamic.regStateEvent('interrupt', 'forestBandit', {
+maplebirch.dynamic.regStateEvent('gate', 'forestBandit', {
   output: 'banditEncounter', // 对应下面定义的widget名称
   cond: () => V.location === 'forest',
   priority: 10,
@@ -94,11 +97,11 @@ maplebirch.dynamic.regStateEvent('interrupt', 'forestBandit', {
 <</widget>>
 ```
 
-#### **示例2：覆盖事件(状态提示)**
+#### **示例2：追加事件(状态提示)**
 
 ```javascript
 // 1. 注册潮湿状态提示
-maplebirch.dynamic.regStateEvent('overlay', 'wetStatus', {
+maplebirch.dynamic.regStateEvent('append', 'wetStatus', {
   output: 'showWetStatus',
   cond: () => V.wetness > 70,
   priority: 3
@@ -116,7 +119,7 @@ maplebirch.dynamic.regStateEvent('overlay', 'wetStatus', {
 
 ```javascript
 // 1. 注册事件
-maplebirch.dynamic.regStateEvent('interrupt', 'merchantEvent', {
+maplebirch.dynamic.regStateEvent('gate', 'merchantEvent', {
   output: 'merchantEncounter',
   cond: () => V.day % 7 === 0,
   priority: 8,
@@ -142,7 +145,7 @@ maplebirch.dynamic.regStateEvent('interrupt', 'merchantEvent', {
 
 ### 事件类型说明
 
-#### **中断事件 (interrupt)**
+#### **拦截事件 (gate)**
 
 - **触发时机**: 段落开始时自动检查
 - **特点**:
@@ -150,7 +153,7 @@ maplebirch.dynamic.regStateEvent('interrupt', 'merchantEvent', {
   - 可配置 `forceExit` 强制退出当前段落
 - **Widget 要求**: 应包含完整的场景描述和用户选择
 
-#### **覆盖事件 (overlay)**
+#### **追加事件 (append)**
 
 - **触发时机**: 段落结束时自动检查
 - **特点**:
