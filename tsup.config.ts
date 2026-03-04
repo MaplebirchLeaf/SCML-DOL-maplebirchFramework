@@ -1,12 +1,12 @@
-import { defineConfig } from "tsup";
+import { defineConfig } from 'tsup';
 
 export default defineConfig({
   entry: {
-    maplebirch: "src/main.ts",
+    maplebirch: 'src/main.ts'
   },
-  outDir: "dist",
+  outDir: 'dist',
   dts: {
-    only: true,
+    only: true
   },
-  tsconfig: "tsconfig.json",
+  tsconfig: 'tsconfig.json'
 });

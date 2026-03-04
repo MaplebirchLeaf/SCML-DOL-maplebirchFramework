@@ -138,6 +138,7 @@ class Internals {
         <h3>[[<<lanSwitch 'Maplebirch Framework' '秋枫白桦框架'>>|'https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchframework']]</h3>
         <div class='m-2'><span class='gold'><<lanSwitch 'Version: ' '版本：'>></span>${this.core.meta.version}<br></div>
         <div class='m-2'><span class='gold'><<lanSwitch 'Author: ' '作者：'>></span>${this.core.meta.author}<br></div>
+        <div class='m-2'><span class='gold'><<lanSwitch 'Last Update: ' '最后更新：'>></span>${this.core.meta.updateDate}<br></div>
         <div class='m-2'><span class='gold'><<lanSwitch 'Last Modified By: ' '最后修改者：'>></span>${this.core.meta.modifiedby}<br></div>
       </div>`;
     this.#getModDependenceInfo();

@@ -43,7 +43,7 @@ export interface WeatherException {
 
 interface ModificationConfig {
   patch: any;
-  mode: 'concat'|'replace' | 'merge';
+  mode: 'concat' | 'replace' | 'merge';
 }
 
 class WeatherEvent {
@@ -209,13 +209,13 @@ export class WeatherManager {
     return false;
   }
 
-  addLayer(layerName: string, patch: any, mode: 'concat'|'replace' | 'merge' = 'replace'): this {
+  addLayer(layerName: string, patch: any, mode: 'concat' | 'replace' | 'merge' = 'replace'): this {
     if (!this.layerModifications.has(layerName)) this.layerModifications.set(layerName, []);
     this.layerModifications.get(layerName)!.push({ patch, mode });
     return this;
   }
 
-  addEffect(effectName: string, patch: any, mode: 'concat'|'replace' | 'merge' = 'replace'): this {
+  addEffect(effectName: string, patch: any, mode: 'concat' | 'replace' | 'merge' = 'replace'): this {
     if (!this.effectModifications.has(effectName)) this.effectModifications.set(effectName, []);
     this.effectModifications.get(effectName)!.push({ patch, mode });
     return this;

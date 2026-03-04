@@ -332,12 +332,12 @@ const NPCClothes = ((core: typeof maplebirch) => {
 
   // prettier-ignore
   return {
-    add: (...c: ClothesConfig[]) => vc.add(...c),
+    add     : (...c: ClothesConfig[]) => vc.add(...c),
     init,
-    import: (m: string, z: any, p: string | string[]) => sd.import(m, z, p),
-    load: (m?: string, f?: string) => NPCWardrobe.load(m, f),
+    import  : (m: string, z: any, p: string | string[]) => sd.import(m, z, p),
+    load    : (m?: string, f?: string) => NPCWardrobe.load(m, f),
     register: (n: string, l: string, k: string, c?: any) => NPCWardrobe.register(n, l, k, c),
-    worn: (n: string) => NPCWardrobe.worn(n),
+    worn    : (n: string) => NPCWardrobe.worn(n),
     get layers() { return sd.layers; },
     get wardrobe() { return NPCWardrobe.wardrobe; },
     get clothes() { return NPCWardrobe.clothes; }
