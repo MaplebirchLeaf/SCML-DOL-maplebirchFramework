@@ -21,7 +21,7 @@
     "stripInternal": true,
     "allowSyntheticDefaultImports": true,
     "declaration": true,
-    "declarationMap": true,
+    "declarationMap": true
   },
   "include": ["src/**/*", "types/**/*.d.ts", "scripts/**/*.ts"],
   "exclude": ["node_modules", "dist"]

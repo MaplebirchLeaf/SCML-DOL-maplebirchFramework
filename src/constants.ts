@@ -1,8 +1,8 @@
 // .src/constants.ts
 
+import { lastModifiedBy, lastUpdate } from '../package.json';
+
 const version = window.modUtils.getMod('maplebirch').version;
-const lastUpdate = '2026.03.01';
-const lastModifiedBy = '楓樺葉';
 const Languages = ['EN', 'CN'] as const;
 
 // prettier-ignore
