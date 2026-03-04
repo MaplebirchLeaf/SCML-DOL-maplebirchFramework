@@ -28,6 +28,16 @@ img/ui/nnpc/[npc_name]/[image_name].[png|jpg|gif]
 - `[npc_name]`: NPC 名称(小写，如：luna, draven)
 - `[image_name]`: 图片名称，将在游戏中作为显示选项
 
+例如：
+
+```
+img/ui/nnpc/luna/default.png
+img/ui/nnpc/luna/happy.png
+img/ui/nnpc/luna/angry.png
+```
+
+当 `boot.json` 中注册了 `luna` 后，以上图片会自动作为侧边栏可选图片。
+
 ---
 
 ### 在 boot.json 中配置
@@ -59,9 +69,11 @@ img/ui/nnpc/[npc_name]/[image_name].[png|jpg|gif]
   "params": {
     "npc": {
       "Sidebar": {
-        "image": ["Elara", "Merlin", "Draven"], // NPC名称，推荐小写，画师模型配置图片路径还是 ui/nnpc/<npcName>/
-        "clothes": ["data/npc/elven_clothes.yaml", "data/npc/wizard_wardrobe.json"], // PC模型模式下NPC的服装数据，取自PC身上的衣着
-        "config": ["data/npc/elara_sidebar.yaml", "data/npc/merlin_sidebar.json"] // 动态的画师模型配置
+        "image": ["Elara", "Merlin", "Draven"], // 静态侧边栏NPC，读取 img/ui/nnpc/<npcName>/ 目录中的图片
+
+        "clothes": ["data/npc/elven_clothes.yaml", "data/npc/wizard_wardrobe.json"], // 动态模型模式使用的NPC服装配置
+
+        "config": ["data/npc/elara_sidebar.yaml", "data/npc/merlin_sidebar.json"] // 动态模型图层配置
       }
     }
   }
@@ -84,50 +96,396 @@ img/ui/nnpc/[npc_name]/[image_name].[png|jpg|gif]
 
 ```yaml
 # data/npc/elara_sidebar.yaml
-- name: 'Elara' # NPC名称
-  body: 'img/npc/elara/body.png' # 基础身体图片
+
+- name: 'Elara' # NPC名称，需要与NPC系统中的ID一致
+
+  body: 'img/npc/elara/body.png' # 基础身体图片，所有图层的基础
 
   # 头部图层
   head:
-    - { img: 'img/npc/elara/hair.png', zIndex: auto } # 填写auto是自动配置图层，推荐使用
+    # 头发图层
+    - { img: 'img/npc/elara/hair.png', zIndex: auto } # auto 表示自动计算图层顺序
+
+    # 耳朵图层
     - { img: 'img/npc/elara/ears.png', zIndex: 7 }
 
   # 面部图层
   face:
+    # 默认表情
     - { img: 'img/npc/elara/face_default.png', zIndex: 10 }
+
+    # 条件图层：当NPC心情为 shy 或 happy 时显示
     - { img: 'img/npc/elara/blush.png', zIndex: 12, cond: "C.npc.Elara.mood === 'shy' || C.npc.Elara.mood === 'happy'" }
 
   # 上半身服装
   upper:
+    # 当NPC穿 elven_robe 时显示
     - { img: 'img/npc/elara/top_default.png', zIndex: 15, cond: "maplebirch.npc.Clothes.worn('Elara').upper.name === 'elven_robe'" }
 
   # 下半身服装
   lower:
+    # 当NPC穿 elven_skirt 时显示
     - { img: 'img/npc/elara/skirt_default.png', zIndex: 10, cond: "maplebirch.npc.Clothes.worn('Elara').lower.name === 'elven_skirt'" }
 ```
 
+**说明**：
+
+- `body` 为基础层
+- `head / face / upper / lower` 为逻辑图层组
+- `zIndex` 控制图层叠放顺序
+- `cond` 为条件表达式，返回 `true` 时图层才会渲染
+
+---
+
+#### 侧边栏图层配置 (JSON)
+
+```json
+[
+  {
+    "name": "Elara", // NPC名称
+    "body": "img/npc/elara/body.png", // 基础身体
+
+    "head": [
+      { "img": "img/npc/elara/hair.png", "zIndex": "auto" },
+      { "img": "img/npc/elara/ears.png", "zIndex": 7 }
+    ],
+
+    "face": [
+      { "img": "img/npc/elara/face_default.png", "zIndex": 10 },
+      {
+        "img": "img/npc/elara/blush.png",
+        "zIndex": 12,
+        "cond": "C.npc.Elara.mood === 'shy' || C.npc.Elara.mood === 'happy'"
+      }
+    ],
+
+    "upper": [
+      {
+        "img": "img/npc/elara/top_default.png",
+        "zIndex": 15,
+        "cond": "maplebirch.npc.Clothes.worn('Elara').upper.name === 'elven_robe'"
+      }
+    ],
+
+    "lower": [
+      {
+        "img": "img/npc/elara/skirt_default.png",
+        "zIndex": 10,
+        "cond": "maplebirch.npc.Clothes.worn('Elara').lower.name === 'elven_skirt'"
+      }
+    ]
+  }
+]
+```
+
+---
+
 #### 服装配置文件 (YAML)
 
+下面示例基于游戏原始服装结构进行简化展示。  
+由于完整配置较长，示例中会 **省略部分 slot 内部字段**（例如 `over_upper` 内的完整属性）。
+
 ```yaml
-# data/npc/elven_clothes.yaml
-# 服装套装定义
-elven_robes:
-  upper: { name: 'elven_robe', colour: 'silver' }
-  lower: { name: 'elven_skirt', colour: 'forest_green' }
-  head: { name: 'silver_tiara' }
+# 默认裸体配置（示例节选）
+naked:
+  over_upper:
+    index: 0
+    slot: over_upper
+    name: naked
+    name_cap: Naked
+    cn_name_cap: 赤裸
+    variable: naked
+    reveal: 1000
+    exposed: 2
+    type:
+      - naked
+    description: 一丝不挂
+    # ... 这里省略了完整的衣物参数定义
 
-hunting_gear:
-  upper: { name: 'leather_vest', colour: 'brown' }
-  lower: { name: 'riding_pants', colour: 'dark_brown' }
-  head: { name: 'leather_hood' }
+  over_lower:
+    index: 0
+    slot: over_lower
+    name: naked
+    reveal: 1000
+    vagina_exposed: 1
+    anus_exposed: 1
+    type:
+      - naked
+    description: 一丝不挂
+    # ... 省略其余字段
 
-# NPC服装注册
-Elara:
-  forest: 'elven_robes'
-  hunting_grounds:
-    key: 'hunting_gear'
-    cond: 'V.time.hour >= 6 && V.time.hour <= 18'
-  '*': 'elven_robes' # 默认服装
+  upper:
+    index: 0
+    slot: upper
+    name: naked
+    reveal: 1000
+    exposed: 2
+    type:
+      - naked
+    description: 一丝不挂
+    # ... 省略其余字段
+
+  lower:
+    index: 0
+    slot: lower
+    name: naked
+    reveal: 1000
+    vagina_exposed: 1
+    anus_exposed: 1
+    type:
+      - naked
+    description: 一丝不挂
+    # ... 省略其余字段
+
+  under_upper:
+    index: 0
+    slot: under_upper
+    name: naked
+    exposed: 1
+    type:
+      - naked
+    description: 一丝不挂
+    # ... 省略其余字段
+
+  under_lower:
+    index: 0
+    slot: under_lower
+    name: naked
+    exposed: 1
+    vagina_exposed: 1
+    anus_exposed: 1
+    type:
+      - naked
+    description: 一丝不挂
+    # ... 省略其余字段
+
+  head:
+    index: 0
+    slot: head
+    name: naked
+    reveal: 1
+    type:
+      - naked
+    description: 一丝不挂
+    # ... 省略其余字段
+
+  face:
+    index: 0
+    slot: face
+    name: naked
+    reveal: 1
+    type:
+      - naked
+    description: 一丝不挂
+    # ... 省略其余字段
+
+  neck:
+    index: 0
+    slot: neck
+    name: naked
+    reveal: 1
+    type:
+      - naked
+    description: 一丝不挂
+    # ... 省略其余字段
+
+  hands:
+    index: 0
+    slot: hands
+    name: naked
+    reveal: 1
+    type:
+      - naked
+    description: 一丝不挂
+    # ... 省略其余字段
+
+  legs:
+    index: 0
+    slot: legs
+    name: naked
+    reveal: 1
+    type:
+      - naked
+    description: 一丝不挂
+    # ... 省略其余字段
+
+  feet:
+    index: 0
+    slot: feet
+    name: naked
+    reveal: 1
+    type:
+      - naked
+    description: 一丝不挂
+    # ... 省略其余字段
+
+  genitals:
+    index: 0
+    slot: genitals
+    name: naked
+    reveal: 1
+    vagina_exposed: 1
+    anus_exposed: 1
+    type:
+      - naked
+    description: 一丝不挂
+    # ... 省略其余字段
+```
+
+---
+
+#### 服装配置文件 (JSON)
+
+下面示例为与上方 YAML 示例对应的 **JSON 格式服装配置**。  
+由于完整服装定义较长，示例中 **省略了部分 slot 内部字段**（例如 `over_upper`、`upper` 等内部的完整属性）。
+
+```json
+{
+  "naked": {
+    "over_upper": {
+      "index": 0,
+      "slot": "over_upper",
+      "name": "naked",
+      "name_cap": "Naked",
+      "cn_name_cap": "赤裸",
+      "variable": "naked",
+      "reveal": 1000,
+      "exposed": 2,
+      "type": ["naked"],
+      "description": "一丝不挂"
+      /* ... 这里省略完整服装字段 */
+    },
+
+    "over_lower": {
+      "index": 0,
+      "slot": "over_lower",
+      "name": "naked",
+      "reveal": 1000,
+      "vagina_exposed": 1,
+      "anus_exposed": 1,
+      "type": ["naked"],
+      "description": "一丝不挂"
+      /* ... 省略其余字段 */
+    },
+
+    "upper": {
+      "index": 0,
+      "slot": "upper",
+      "name": "naked",
+      "reveal": 1000,
+      "exposed": 2,
+      "type": ["naked"],
+      "description": "一丝不挂"
+      /* ... 省略其余字段 */
+    },
+
+    "lower": {
+      "index": 0,
+      "slot": "lower",
+      "name": "naked",
+      "reveal": 1000,
+      "vagina_exposed": 1,
+      "anus_exposed": 1,
+      "type": ["naked"],
+      "description": "一丝不挂"
+      /* ... 省略其余字段 */
+    },
+
+    "under_upper": {
+      "index": 0,
+      "slot": "under_upper",
+      "name": "naked",
+      "exposed": 1,
+      "type": ["naked"],
+      "description": "一丝不挂"
+      /* ... 省略其余字段 */
+    },
+
+    "under_lower": {
+      "index": 0,
+      "slot": "under_lower",
+      "name": "naked",
+      "exposed": 1,
+      "vagina_exposed": 1,
+      "anus_exposed": 1,
+      "type": ["naked"],
+      "description": "一丝不挂"
+      /* ... 省略其余字段 */
+    },
+
+    "head": {
+      "index": 0,
+      "slot": "head",
+      "name": "naked",
+      "reveal": 1,
+      "type": ["naked"],
+      "description": "一丝不挂"
+      /* ... 省略其余字段 */
+    },
+
+    "face": {
+      "index": 0,
+      "slot": "face",
+      "name": "naked",
+      "reveal": 1,
+      "type": ["naked"],
+      "description": "一丝不挂"
+      /* ... 省略其余字段 */
+    },
+
+    "neck": {
+      "index": 0,
+      "slot": "neck",
+      "name": "naked",
+      "reveal": 1,
+      "type": ["naked"],
+      "description": "一丝不挂"
+      /* ... 省略其余字段 */
+    },
+
+    "hands": {
+      "index": 0,
+      "slot": "hands",
+      "name": "naked",
+      "reveal": 1,
+      "type": ["naked"],
+      "description": "一丝不挂"
+      /* ... 省略其余字段 */
+    },
+
+    "legs": {
+      "index": 0,
+      "slot": "legs",
+      "name": "naked",
+      "reveal": 1,
+      "type": ["naked"],
+      "description": "一丝不挂"
+      /* ... 省略其余字段 */
+    },
+
+    "feet": {
+      "index": 0,
+      "slot": "feet",
+      "name": "naked",
+      "reveal": 1,
+      "type": ["naked"],
+      "description": "一丝不挂"
+      /* ... 省略其余字段 */
+    },
+
+    "genitals": {
+      "index": 0,
+      "slot": "genitals",
+      "name": "naked",
+      "reveal": 1,
+      "vagina_exposed": 1,
+      "anus_exposed": 1,
+      "type": ["naked"],
+      "description": "一丝不挂"
+      /* ... 省略其余字段 */
+    }
+  }
+}
 ```
 
 ---
