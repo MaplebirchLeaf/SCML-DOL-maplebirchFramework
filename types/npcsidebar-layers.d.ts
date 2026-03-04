@@ -304,7 +304,7 @@ interface CharZIndices {
   lashes: number;
   brow: number;
   mouth: number;
-  hairforwards: number;
+  hair_forward: number;
   backhair: number;
   fronthair: number;
   under_upper_arms: number;

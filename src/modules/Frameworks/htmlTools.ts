@@ -108,22 +108,7 @@ class htmlTools {
     if (!fullText || !fullText.includes(targetText)) return;
     const walker = document.createTreeWalker(passageContent, NodeFilter.SHOW_TEXT, null);
     let node: Node | null;
-    const nodesToReplace: Node[] = [];
-    while ((node = walker.nextNode())) if (node.textContent && node.textContent.includes(targetText)) nodesToReplace.push(node);
-    nodesToReplace.forEach(node => {
-      try {
-        const containerId = `textReplace_${Date.now()}_${Math.random()}`;
-        const container = document.createElement('span');
-        container.id = containerId;
-        node.parentNode?.replaceChild(container, node);
-        new this.core.SugarCube.Wikifier(null, `<<replace '#${containerId}'>>${actualNewText}<</replace>>`);
-      } catch (error) {
-        this.log('replaceText:', 'ERROR', error);
-        try {
-          if (node.textContent) node.textContent = actualNewText;
-        } catch {}
-      }
-    });
+    while ((node = walker.nextNode())) if (node.textContent && node.textContent.includes(targetText)) node.textContent = node.textContent.replace(targetText, actualNewText);
   }
 
   replaceLink(oldLink: string, newLink: string) {

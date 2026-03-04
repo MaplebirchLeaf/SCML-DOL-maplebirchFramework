@@ -17,12 +17,11 @@ const defaultData = {
     <details open>
       <summary class='settingsHeader options'><span class='gold'><<lanSwitch 'Maplebirch Framework' '秋枫白桦框架'>></span></summary>
       <div class='settingsGrid'>
-        <div class='settingsToggleItem maplebirch-relationcount-slider'><label>
+        <div class='settingsToggleItemWide maplebirch-relationcount-slider'><label>
           <span class='gold'><<lanSwitch 'Total Number Of Social Status Displays' '社交栏状态显示总数'>></span>
           <<numberslider '$options.maplebirch.relationcount' $options.maplebirch.relationcount 2 10 2 { value: v => \`\${v}\${lanSwitch(' types','种')}\`}>>
           <span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Adjust the total number of status displays for Primary Relationships NPCs in the SOCIAL bar.' '调整社交栏中主要关系NPC的状态显示总数。'>></span>">(?)</span>
         </label></div>
-        <div class='settingsToggleItem'></div>
         <div class='settingsToggleItemWide maplebirch-relationcount-slider'><label>
           <span class='gold'><<lanSwitch 'Close-up Mask Divider' '特写遮罩分割线'>></span><<numberslider '$options.maplebirch.character.mask' $options.maplebirch.character.mask -128 128 1 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => \`\${v}px\` }>>
           <<lanLink 'reset' 'capitalize'>><<set $options.maplebirch.character.mask to 0>><<updatesidebarimg>><<replace #customOverlayContent>><<maplebirchOptions>><</replace>><</lanLink>>
@@ -209,7 +208,7 @@ const widgetPassage = {
     { srcmatch: /\t\t\t<<NPC_CN_NAME _npc>>|\t\t\t_npc/, to: '\t\t<<if Object.keys(maplebirch.npc.data).includes(_npc) && maplebirch.SugarCube.Macro.has(_npc+"relationshiptext")>>\n\t\t\t<<= maplebirch.auto(_npc)>><<= "<<"+_npc+"relationshiptext>>">>\n\t\t<<else>>\n\t\t\t<<= maplebirch.auto(_npc)>>' },
     { src: '<</if>>\n\t<</switch>>\n<</widget>>', to: '<</if>>\n\t\t<</if>>\n\t<</switch>>\n<</widget>>' },
     { src: '<</if>>\n<</widget>>\n\n<<widget "initNNPCClothes">>', applybefore: '\t<<maplebirchNPCinit _nam>>\n\t' },
-    { src: '<</widget>>\n\n<<widget "npcrelationship">>', applybefore: '\t<<maplebirchNPCinject _nam _npcno>>\n\t' },
+    { src: '<</widget>>\n\n<<widget "npcrelationship">>', applybefore: '\t<<maplebirchNPCinject _nam _npcno>>\n' },
   ],
   'Widgets Settings': [
     { srcmatch: /\[(?:setup\.NPC_CN_NAME\()?_sortedNPCList\[\$_\w+\](?:\))?\]/, to: '[maplebirch.auto(_sortedNPCList[$_i])]' },

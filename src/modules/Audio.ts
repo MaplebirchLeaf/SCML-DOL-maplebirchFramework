@@ -591,10 +591,10 @@ class AudioManager {
     this.events.clear();
   }
 
-  get Playlist(): Playlist | Promise<Playlist> {
+  get Playlist(): Playlist {
     const modName = T.modName;
     if (this.playlists.has(modName)) return this.playlists.get(modName)!;
-    return this.modPlaylist(modName);
+    return new Playlist(modName);
   }
 
   async preInit(): Promise<void> {

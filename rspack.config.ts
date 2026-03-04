@@ -69,7 +69,8 @@ function devServerConfig(): RspackOptions {
           .filter(f => f.endsWith('.zip'))
           .map(f => `/mods/${f}`)
       : [];
-    response.json([...mods, `/${modFilename}`]);
+    const modI18N = mods.find(m => m.includes('ModI18N'));
+    response.json([...(modI18N ? [modI18N] : []), ...mods.filter(m => !m.includes('ModI18N')), `/${modFilename}`]);
   };
 
   const modZipHandler = () => async (_req: any, response: any) => {
@@ -95,10 +96,8 @@ function devServerConfig(): RspackOptions {
       devMiddleware: { writeToDisk: true },
       setupMiddlewares: (middlewares, devServer) => {
         if (!devServer) throw new Error('@rspack/dev-server is not defined');
-
         devServer.app?.get('/modList.json', modListHandler());
         devServer.app?.get(`/${modFilename}`, modZipHandler());
-
         return middlewares;
       }
     }

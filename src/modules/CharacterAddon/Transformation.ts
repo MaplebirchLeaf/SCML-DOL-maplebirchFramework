@@ -139,7 +139,7 @@ class Transformation {
     });
   }
 
-  #wikifier(widget: string, ...args: any[]): any {
+  wikifier(widget: string, ...args: any[]): any {
     return this.manager.core.SugarCube.Wikifier.wikifyEval('<<' + widget + (args.length ? ' ' + args.join(' ') : '') + '>>');
   }
 
@@ -370,11 +370,11 @@ class Transformation {
     // 神圣转化
     if (V.settings.transformDivineEnabled) {
       if ((V.demonbuild >= 5 && V.specialTransform !== 1) || (V.demon >= 1 && V.specialTransform === 1)) {
-        this.#wikifier('demonTransform', V.demon);
+        this.wikifier('demonTransform', V.demon);
       } else if ((V.angelbuild >= 5 && V.specialTransform !== 1) || (V.angel >= 1 && V.specialTransform === 1)) {
-        this.#wikifier('angelTransform', V.angel);
+        this.wikifier('angelTransform', V.angel);
       } else if (V.fallenangel >= 2) {
-        this.#wikifier('fallenButNotOut', V.fallenangel);
+        this.wikifier('fallenButNotOut', V.fallenangel);
       }
     }
 
@@ -424,7 +424,7 @@ class Transformation {
 
         if (vanilla[selected.name]) {
           const [macro, level] = vanilla[selected.name];
-          this.#wikifier(macro, level);
+          this.wikifier(macro, level);
         } else {
           this.updateTransform(selected.name);
         }
@@ -446,7 +446,7 @@ class Transformation {
       });
     }
 
-    if (V.wolfgirl >= 6) this.#wikifier('def', 5);
+    if (V.wolfgirl >= 6) this.wikifier('def', 5);
 
     this._transformationAlteration();
 
@@ -520,7 +520,7 @@ class Transformation {
           V.effectsmessage = 1;
           V.hiddenTransformMessage = 1;
         } else {
-          this.#wikifier('trauma', 15);
+          this.wikifier('trauma', 15);
           V.effectsmessage = 1;
           V.hiddenTransformMessage = 2;
         }

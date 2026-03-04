@@ -50,7 +50,7 @@ function loadFromMod(modZip: ModZipReader, npcName: string[]) {
 function preprocess(options: LayerOptions) {
   ((options.maplebirch as any) ??= {}).nnpc ??= {};
   const nnpc = options.maplebirch.nnpc;
-  nnpc.name = V.NPCList[0].fullDescription;
+  nnpc.name = V.npc.at(-1);
   const nnpc_name = nnpc.name;
   nnpc.show = V.options.maplebirch.npcsidebar.show ? true : false;
   nnpc.model = V.options.maplebirch.npcsidebar.model && setup.NPCNameList.includes(nnpc_name) ? true : false;
