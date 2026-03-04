@@ -89,7 +89,7 @@ img/ui/nnpc/[npc_name]/[image_name].[png|jpg|gif]
 
   # 头部图层
   head:
-    - { img: 'img/npc/elara/hair.png', zIndex: 5 }
+    - { img: 'img/npc/elara/hair.png', zIndex: auto } # 填写auto是自动配置图层，推荐使用
     - { img: 'img/npc/elara/ears.png', zIndex: 7 }
 
   # 面部图层
