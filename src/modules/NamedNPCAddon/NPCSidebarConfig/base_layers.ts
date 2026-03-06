@@ -405,7 +405,7 @@ const base_layers = {
       return !!options.maplebirch.nnpc.hair_fringe_type && options.maplebirch.nnpc.show && options.maplebirch.nnpc.model;
     },
     zfn(options: LayerOptions) {
-      return maplebirch.char.ZIndices.front_hair + options.maplebirch.nnpc.position!;
+      return maplebirch.char.ZIndices.fronthair + options.maplebirch.nnpc.position!;
     },
     dxfn(options: LayerOptions) {
       return options.maplebirch.nnpc.dxfn!;

@@ -186,7 +186,7 @@ const layers: Record<string, LayerConfig> = {
       return !!options.show_hair && !!options.hair_fringe_type;
     },
     zfn() {
-      return maplebirch.char.ZIndices.front_hair;
+      return maplebirch.char.ZIndices.fronthair;
     },
     filtersfn(options: { hair_fringe_colour_style: string }) {
       return options.hair_fringe_colour_style === 'gradient' ? ['hair_fringe_close_up'] : ['hair_fringe'];
