@@ -56,7 +56,7 @@ class MaplebirchCore {
     modifiedby: lastModifiedBy,
     updateDate: lastUpdate,
     Languages: Languages,
-    early: ['addon', 'dynamic', 'tool', 'char'] as const,
+    early: ['addon', 'dynamic', 'tool', 'char', 'npc'] as const,
     core: ['addon', 'dynamic', 'tool', 'audio', 'var', 'char', 'npc', 'combat']
   };
 
@@ -109,11 +109,7 @@ class MaplebirchCore {
 
     this.once(':allModule', async () => {
       this.log('所有模块注册完成，开始预初始化', 'INFO');
-      try {
-        await this.trigger(':IndexedDB').then(async () => await this.idb.init().then(async () => await this.idb.checkStore()));
-      } catch {
-        this.log(':IndexedDB注册错误', 'ERROR');
-      }
+      await this.trigger(':IndexedDB').then(async () => await this.idb.init().then(async () => await this.idb.checkStore()));
       await this.pre();
     });
 
@@ -232,11 +228,11 @@ class MaplebirchCore {
     return marked;
   }
 
-  set SugarCube(parts: typeof jsSugarCube) {
+  set SugarCube(parts: TwineSugarCube) {
     jsSugarCube = parts;
   }
 
-  get SugarCube(): typeof jsSugarCube {
+  get SugarCube(): TwineSugarCube {
     return jsSugarCube;
   }
 

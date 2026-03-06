@@ -1,5 +1,6 @@
 // ./src/modules/Internals.ts
 
+import type { TwineSugarCube } from '../../types/twine-sugarcube';
 import maplebirch, { MaplebirchCore, createlog } from '../core';
 import { _language, _languageSwitch, _languageButton, _languageLink, _languageListbox, _radiobuttonsfrom, _overlayReplace } from '../database/SugarCubeMacros';
 
@@ -38,6 +39,18 @@ class Internals {
     this.log = createlog('internals');
     this.updateTimer = null;
     this._ = core.lodash;
+    this.core.once(':sugarcube', () => {
+      this.core.tool.macro.define('language', _language, ['option'], false, false);
+      this.core.tool.macro.define('lanSwitch', _languageSwitch);
+      this.core.tool.macro.define('lanButton', _languageButton, null, false, true);
+      this.core.tool.macro.define('lanLink', _languageLink, null, false, true);
+      this.core.tool.macro.define('lanListbox', _languageListbox, ['option', 'optionsfrom'], ['optionsfrom'], true);
+      this.core.tool.macro.define('radiobuttonsfrom', _radiobuttonsfrom, null, false, true);
+      this.core.tool.macro.define('maplebirchReplace', (name: string, type: string) => _overlayReplace(name, type));
+      this.core.tool.macro.define('maplebirchTextOutput', this.core.tool.text.makeTextOutput());
+      this.core.tool.macro.defineS('maplebirchFrameworkVersions', this._showModVersions.bind(this));
+      this.core.tool.macro.defineS('maplebirchFrameworkInfo', () => this._showFrameworkInfo());
+    });
   }
 
   languageManager() {
@@ -210,19 +223,6 @@ class Internals {
           }
         };
       })();
-    });
-
-    this.core.once(':sugarcube', () => {
-      this.core.tool.macro.define('language', _language, ['option'], false, false);
-      this.core.tool.macro.define('lanSwitch', _languageSwitch);
-      this.core.tool.macro.define('lanButton', _languageButton, null, false, true);
-      this.core.tool.macro.define('lanLink', _languageLink, null, false, true);
-      this.core.tool.macro.define('lanListbox', _languageListbox, ['option', 'optionsfrom'], ['optionsfrom'], true);
-      this.core.tool.macro.define('radiobuttonsfrom', _radiobuttonsfrom, null, false, true);
-      this.core.tool.macro.define('maplebirchReplace', (name: string, type: string) => _overlayReplace(name, type));
-      this.core.tool.macro.define('maplebirchTextOutput', this.core.tool.text.makeTextOutput());
-      this.core.tool.macro.defineS('maplebirchFrameworkVersions', this._showModVersions.bind(this));
-      this.core.tool.macro.defineS('maplebirchFrameworkInfo', () => this._showFrameworkInfo());
     });
 
     this.core.tool.other.configureLocation(

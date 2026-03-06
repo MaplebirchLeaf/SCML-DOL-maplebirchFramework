@@ -16,7 +16,7 @@ class CombatManager {
     this.log = createlog('combat');
     this._ = core.lodash;
     this.Reaction.init();
-    this.core.once(':finally', () => {
+    this.core.once(':storyready', () => {
       this.core.tool.macro.define('generateCombatAction', this._generateCombatAction());
       this.core.tool.macro.define('combatButtonAdjustments', (name: string, extra: any) => this._combatButtonAdjustments(name, extra));
     });
