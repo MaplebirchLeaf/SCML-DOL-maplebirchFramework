@@ -26,41 +26,37 @@ export async function createZip(rootDir: string): Promise<Buffer> {
 
   for (const file of ['inject_early.js', 'maplebirch.d.ts']) {
     try {
-      zip.addFile(path.posix.join('dist', file), await readFile(path.join(distDir, file)));
+      const buf = await readFile(path.join(distDir, file));
+      zip.addFile(`dist/${file}`, buf);
     } catch {
       console.warn(`警告: 找不到文件 ${file}，跳过`);
     }
   }
 
-  {
-    const readmePath = path.join(rootDir, 'README.md');
-    zip.addFile('README.md', await readFile(readmePath));
-    additionFiles.push('README.md');
-  }
+  const readmePath = path.join(rootDir, 'README.md');
+  zip.addFile('README.md', await readFile(readmePath));
+  additionFiles.push('README.md');
+  const additionExt = new Set(['.yaml', '.yml', '.json']);
+  async function addPublic(dir: string, base = ''): Promise<void> {
+    const entries = await readdir(dir, { withFileTypes: true });
+    for (const e of entries) {
+      const full = path.join(dir, e.name);
+      const rel = path.join(base, e.name).replace(/\\/g, '/');
 
-  const additionExts = ['.yaml', '.yml', '.json'];
-  async function addPublicFilesToZip(currentPath: string, basePath = '') {
-    const entries = await readdir(currentPath, { withFileTypes: true });
-
-    for (const entry of entries) {
-      const fullPath = path.join(currentPath, entry.name);
-      const normalizedPath = path.join(basePath, entry.name).replace(/\\/g, '/');
-
-      if (entry.isDirectory()) {
-        await addPublicFilesToZip(fullPath, normalizedPath);
+      if (e.isDirectory()) {
+        await addPublic(full, rel);
         continue;
       }
 
-      const fileContent = await readFile(fullPath);
+      const buf = await readFile(full);
+      if (rel.endsWith('.css')) styleFiles.push(rel);
+      if ([...additionExt].some(ext => rel.endsWith(ext))) additionFiles.push(rel);
 
-      if (normalizedPath.endsWith('.css')) styleFiles.push(normalizedPath);
-      if (additionExts.some(ext => normalizedPath.endsWith(ext))) additionFiles.push(normalizedPath);
-
-      zip.addFile(normalizedPath, fileContent);
+      zip.addFile(rel, buf);
     }
   }
 
-  await addPublicFilesToZip(publicDir);
+  await addPublic(publicDir);
 
   const boot = {
     name: pkg.name,
@@ -71,10 +67,10 @@ export async function createZip(rootDir: string): Promise<Buffer> {
     tweeFileList: [],
     imgFileList: [],
     scriptFileList: scml.scriptFileList,
-    additionFile: additionFiles,
     scriptFileList_inject_early: ['dist/inject_early.js'],
     scriptFileList_earlyload: [],
     scriptFileList_preload: [],
+    additionFile: additionFiles,
     additionBinaryFile: [],
     additionDir: [],
     addonPlugin: [],

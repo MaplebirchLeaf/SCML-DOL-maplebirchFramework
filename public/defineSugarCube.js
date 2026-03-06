@@ -1,4 +1,4 @@
-(() => {
+(function (maplebirch) {
   'use strict';
   maplebirch.SugarCube = {
     Browser,
@@ -28,5 +28,5 @@
     storage,
     version
   };
-  maplebirch.trigger(':sugarcube');
-})();
+  void maplebirch.trigger(':sugarcube');
+})(window.maplebirch);

@@ -2,15 +2,8 @@
 
 import { clone, merge } from '../utils';
 import maplebirch, { MaplebirchCore, createlog } from '../core';
+import dataUpdate, { defaultVar } from '../database/State-variables';
 import migration from './Frameworks/migration';
-
-export const defaultVar = {
-  player: {
-    clothing: {}
-  },
-  npc: {},
-  transformation: {}
-};
 
 interface Color {
   [0]: string;
@@ -79,6 +72,7 @@ class Variables {
     this.log = createlog('var');
     this.migration = new this.tool.migration();
     this.hairgradients = hairgradients;
+    dataUpdate(this.migration);
     this.core.once(':passageend', () => this.optionsCheck());
   }
 
