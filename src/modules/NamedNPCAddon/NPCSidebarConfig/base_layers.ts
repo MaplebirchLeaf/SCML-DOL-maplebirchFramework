@@ -378,7 +378,7 @@ const base_layers = {
       return !!options.maplebirch.nnpc.hair_sides_type && options.maplebirch.nnpc.show && options.maplebirch.nnpc.model;
     },
     zfn(options: LayerOptions) {
-      return (options.maplebirch.nnpc.hair_position === 'front' ? maplebirch.char.ZIndices.hair_forward : maplebirch.char.ZIndices.backhair) + options.maplebirch.nnpc.position!;
+      return (options.maplebirch.nnpc.hair_position === 'front' ? maplebirch.char.ZIndices.hairforwards : maplebirch.char.ZIndices.backhair) + options.maplebirch.nnpc.position!;
     },
     dxfn(options: LayerOptions) {
       return options.maplebirch.nnpc.dxfn!;

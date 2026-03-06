@@ -163,7 +163,7 @@ const layers: Record<string, LayerConfig> = {
       return !!options.show_hair && !!options.hair_sides_type;
     },
     zfn(options: { hair_sides_position: string }) {
-      return options.hair_sides_position === 'front' ? maplebirch.char.ZIndices.hair_forward : maplebirch.char.ZIndices.backhair;
+      return options.hair_sides_position === 'front' ? maplebirch.char.ZIndices.hairforwards : maplebirch.char.ZIndices.backhair;
     },
     filtersfn(options: { hair_colour_style: string }) {
       return options.hair_colour_style === 'gradient' ? ['hair_close_up'] : ['hair'];
