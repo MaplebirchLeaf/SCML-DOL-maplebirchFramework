@@ -2,7 +2,14 @@
 
 import maplebirch from '../core';
 import { clone } from '../utils';
-import { defaultVar } from '../modules/Variables';
+
+export const defaultVar = {
+  player: {
+    clothing: {}
+  },
+  npc: {},
+  transformation: {}
+};
 
 function dataUpdate(migration: typeof maplebirch.var.migration): void {
   migration.add('0.0.0', '3.2.0', (data, utils) => {
@@ -17,4 +24,4 @@ function dataUpdate(migration: typeof maplebirch.var.migration): void {
   });
 }
 
-maplebirch.once(':modLoaderEnd', () => dataUpdate(maplebirch.var.migration));
+export default dataUpdate;
