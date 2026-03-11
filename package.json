@@ -1,6 +1,6 @@
 {
   "name": "maplebirch",
-  "version": "3.1.11",
+  "version": "3.1.12",
   "private": true,
   "description": "SugarCube2-ModLoader-Degrees of Lewdity-Maplebirch Frameworks",
   "type": "commonjs",
@@ -58,7 +58,7 @@
   },
   "packageManager": "bun@1.3.9",
   "lastModifiedBy": "楓樺葉",
-  "lastUpdate": "2026.03.06",
+  "lastUpdate": "2026.03.11",
   "scml": {
     "nickName": {
       "en": "Maplebirch Frameworks",

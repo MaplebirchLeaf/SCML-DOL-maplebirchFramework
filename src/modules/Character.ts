@@ -62,12 +62,13 @@ function faceStyleSrcFn(name: Function | string) {
   };
 }
 
-function mask(x = 0, swap = false, width = 256, height = 256): string {
+function mask(x = 0, rotation: number = 0, swap = false, width = 256, height = 256): string {
+  rotation = Math.max(-90, Math.min(90, rotation));
   const canvas = document.createElement('canvas');
   canvas.width = width * 2;
   canvas.height = height;
   const ctx = canvas.getContext('2d')!;
-  let splitX = Math.max(0, Math.min(width, width / 2 + x));
+  const splitX = Math.max(0, Math.min(width, width / 2 + x));
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   for (let frame = 0; frame < 2; frame++) {
     const offsetX = frame * width;
@@ -77,6 +78,21 @@ function mask(x = 0, swap = false, width = 256, height = 256): string {
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(whiteStart, 0, whiteWidth, height);
     }
+  }
+  if (rotation !== 0) {
+    const rad = (rotation * Math.PI) / 180;
+    const cos = Math.abs(Math.cos(rad));
+    const sin = Math.abs(Math.sin(rad));
+    const newWidth = Math.ceil(canvas.width * cos + canvas.height * sin);
+    const newHeight = Math.ceil(canvas.width * sin + canvas.height * cos);
+    const rotatedCanvas = document.createElement('canvas');
+    rotatedCanvas.width = newWidth;
+    rotatedCanvas.height = newHeight;
+    const rctx = rotatedCanvas.getContext('2d')!;
+    rctx.translate(newWidth / 2, newHeight / 2);
+    rctx.rotate(rad);
+    rctx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+    return rotatedCanvas.toDataURL('image/png');
   }
   return canvas.toDataURL('image/png');
 }
@@ -148,13 +164,13 @@ function preprocess(options: HairGradientPreprocessOptions) {
 
 const layers: Record<string, LayerConfig> = {
   hair_sides: {
-    masksrcfn(options: { head_mask_src: any; maplebirch: { char: { mask: number } } }) {
-      return [options.head_mask_src, mask(options.maplebirch.char.mask)];
+    masksrcfn(options: { head_mask_src: any; maplebirch: { char: { mask: number; rotation: number } } }) {
+      return [options.head_mask_src, mask(options.maplebirch.char.mask, options.maplebirch.char.rotation)];
     }
   },
   hair_sides_close_up: {
-    masksrcfn(options: { head_mask_src: any; maplebirch: { char: { mask: number } } }) {
-      return [options.head_mask_src, mask(options.maplebirch.char.mask, true)];
+    masksrcfn(options: { head_mask_src: any; maplebirch: { char: { mask: number; rotation: number } } }) {
+      return [options.head_mask_src, mask(options.maplebirch.char.mask, options.maplebirch.char.rotation, true)];
     },
     srcfn(options: { hair_sides_type: any; hair_sides_length: any }) {
       return `img/hair/sides/${options.hair_sides_type}/${options.hair_sides_length}.png`;
@@ -171,13 +187,13 @@ const layers: Record<string, LayerConfig> = {
     animation: 'idle'
   },
   hair_fringe: {
-    masksrcfn(options: { head_mask_src: any; fringe_mask_src: any; maplebirch: { char: { mask: number } } }) {
-      return [options.head_mask_src ? options.head_mask_src : options.fringe_mask_src, mask(options.maplebirch.char.mask)];
+    masksrcfn(options: { head_mask_src: any; fringe_mask_src: any; maplebirch: { char: { mask: number; rotation: number } } }) {
+      return [options.head_mask_src ? options.head_mask_src : options.fringe_mask_src, mask(options.maplebirch.char.mask, options.maplebirch.char.rotation)];
     }
   },
   hair_fringe_close_up: {
-    masksrcfn(options: { head_mask_src: any; fringe_mask_src: any; maplebirch: { char: { mask: number } } }) {
-      return [options.head_mask_src ? options.head_mask_src : options.fringe_mask_src, mask(options.maplebirch.char.mask, true)];
+    masksrcfn(options: { head_mask_src: any; fringe_mask_src: any; maplebirch: { char: { mask: number; rotation: number } } }) {
+      return [options.head_mask_src ? options.head_mask_src : options.fringe_mask_src, mask(options.maplebirch.char.mask, options.maplebirch.char.rotation, true)];
     },
     srcfn(options: { hair_fringe_type: any; hair_fringe_length: any }) {
       return `img/hair/fringe/${options.hair_fringe_type}/${options.hair_fringe_length}.png`;

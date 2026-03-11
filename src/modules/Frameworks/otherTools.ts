@@ -23,6 +23,14 @@ export interface TraitConfig {
   text: string | (() => string);
 }
 
+interface ResolvedTrait {
+  title: string;
+  name: string;
+  colour: string;
+  has: boolean;
+  text: string;
+}
+
 interface LocationConfigOptions {
   overwrite?: boolean;
   layer?: string;
@@ -68,13 +76,7 @@ interface BodywritingData {
 const otherTools = (core => {
   const _ = core.lodash;
   const traitsTitle: string[] = [];
-  const traitsData: Array<{
-    title: string;
-    name: string;
-    colour: string;
-    has: boolean;
-    text: string;
-  }> = [];
+  const traitsData: TraitConfig[] = [];
 
   class Traits {
     // prettier-ignore
@@ -89,6 +91,20 @@ const otherTools = (core => {
       'Acceptance Traits': '接纳特质'
     };
 
+    static #resolve(trait: TraitConfig, categories: Record<string, string>): ResolvedTrait {
+      const value = <T>(value: T | (() => T), fallback: T): T => {
+        if (_.isFunction(value)) return value();
+        return value ?? fallback;
+      };
+      return {
+        title: categories[trait.title] || trait.title,
+        name: value(trait.name, ''),
+        colour: value(trait.colour, ''),
+        has: value(trait.has, false),
+        text: value(trait.text, '')
+      };
+    }
+
     static #titleMap(data: TraitCategory[]): Record<string, number> {
       const titleMap: Record<string, number> = {};
       const traitLists = clone(data);
@@ -102,27 +118,25 @@ const otherTools = (core => {
 
     static add(...traits: Partial<TraitConfig>[]): void {
       _.forEach(traits, trait => {
-        if (trait && trait.title && trait.name) {
-          const mappedTitle = Traits.categories[trait.title] || trait.title;
-          const nameValue = _.isFunction(trait.name) ? trait.name() : (trait.name as string);
-          const existingIndex = _.findIndex(traitsData, t => t.title === mappedTitle && t.name === nameValue);
-          if (existingIndex >= 0) {
-            traitsData[existingIndex] = {
-              title: mappedTitle,
-              name: nameValue,
-              colour: _.isFunction(trait.colour) ? trait.colour() : trait.colour || '',
-              has: _.isFunction(trait.has) ? trait.has() : trait.has || false,
-              text: _.isFunction(trait.text) ? trait.text() : trait.text || ''
-            };
-          } else {
-            traitsData.push({
-              title: mappedTitle,
-              name: nameValue,
-              colour: _.isFunction(trait.colour) ? trait.colour() : trait.colour || '',
-              has: _.isFunction(trait.has) ? trait.has() : trait.has || false,
-              text: _.isFunction(trait.text) ? trait.text() : trait.text || ''
-            });
-          }
+        if (!trait || !trait.title || !trait.name) return;
+        const mappedTitle = Traits.categories[trait.title] || trait.title;
+        const nameValue = _.isFunction(trait.name) ? trait.name() : trait.name;
+        const existingIndex = _.findIndex(traitsData, item => {
+          const itemTitle = Traits.categories[item.title] || item.title;
+          const itemName = _.isFunction(item.name) ? item.name() : item.name;
+          return itemTitle === mappedTitle && itemName === nameValue;
+        });
+        const nextTrait: TraitConfig = {
+          title: trait.title,
+          name: trait.name,
+          colour: trait.colour || '',
+          has: trait.has || false,
+          text: trait.text || ''
+        };
+        if (existingIndex >= 0) {
+          traitsData[existingIndex] = nextTrait;
+        } else {
+          traitsData.push(nextTrait);
         }
       });
     }
@@ -130,34 +144,29 @@ const otherTools = (core => {
     static inject(data: TraitCategory[]): TraitCategory[] {
       const titleMap = Traits.#titleMap(data);
       const result = clone(data);
-      _.forEach(traitsData, trait => {
-        const title = trait.title;
-        const colourValue = trait.colour;
-        const hasValue = trait.has;
-        const textValue = trait.text;
-        if (_.has(titleMap, title)) {
-          result[titleMap[title]].traits.push({
+      _.forEach(traitsData, rawTrait => {
+        const trait = Traits.#resolve(rawTrait, Traits.categories);
+        if (_.has(titleMap, trait.title)) {
+          result[titleMap[trait.title]].traits.push({
             name: trait.name,
-            colour: colourValue,
-            has: hasValue,
-            text: textValue
+            colour: trait.colour,
+            has: trait.has,
+            text: trait.text
           });
         } else {
           result.push({
-            title: title,
+            title: trait.title,
             traits: [
               {
                 name: trait.name,
-                colour: colourValue,
-                has: hasValue,
-                text: textValue
+                colour: trait.colour,
+                has: trait.has,
+                text: trait.text
               }
             ]
           });
-          titleMap[title] = result.length - 1;
-          if (!_.includes(traitsTitle, title)) {
-            traitsTitle.push(title);
-          }
+          titleMap[trait.title] = result.length - 1;
+          if (!_.includes(traitsTitle, trait.title)) traitsTitle.push(trait.title);
         }
       });
       return (T.traitLists = result);
@@ -239,7 +248,11 @@ const otherTools = (core => {
           const config = data.config!;
           if (config.index === undefined) {
             let maxIndex = 0;
-            for (const writingKey in setup.bodywriting) if (setup.bodywriting[writingKey].index! > maxIndex) maxIndex = setup.bodywriting[writingKey].index!;
+            for (const writingKey in setup.bodywriting) {
+              if (setup.bodywriting[writingKey].index! > maxIndex) {
+                maxIndex = setup.bodywriting[writingKey].index!;
+              }
+            }
             config.index = maxIndex + 1;
           }
           const defaultConfig: BodywritingConfig = {
@@ -262,6 +275,9 @@ const otherTools = (core => {
 
   // prettier-ignore
   return {
+    traitsData,
+    locationData,
+    bodywritingData,
     addTraits        : Traits.add.bind(Traits),
     configureLocation: Location.configure.bind(Location),
     addBodywriting   : Bodywriting.add.bind(Bodywriting),

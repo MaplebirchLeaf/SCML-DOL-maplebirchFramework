@@ -154,13 +154,3 @@ maplebirch.char.use({
   }
 });
 ```
-
-### mask
-
-创建遮罩图片，用于控制图层的可见区域。
-
-```javascript
-// 创建遮罩
-const halfMask = maplebirch.char.mask(0.5); // 50% 遮罩
-const reversedMask = maplebirch.char.mask(0.3, true); // 30% 反向遮罩
-```

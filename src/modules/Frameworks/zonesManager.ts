@@ -66,7 +66,7 @@ export class zonesManager {
       MenuSmall              : [], // 小菜单
       CaptionAfterDescription: [], // 标题描述后
       HintMobile             : [], // 移动端图标(即疼痛上方)
-      StatsMobile            : [], // 移动端状态(即疼痛等)
+      MobileStats            : [], // 移动端状态(即疼痛等)
       CharaDescription       : [], // 角色描述
       DegreesBonusDisplay    : [], // 属性加成显示
       DegreesBox             : [], // 属性

@@ -58,9 +58,10 @@ class defineMacros {
   }
 
   statChange(statType: string, amount: number, colorClass: string, condition: () => boolean = () => true): DocumentFragment {
-    amount = Number(amount);
-    if (V.settings.blindStatsEnabled || !condition()) return document.createDocumentFragment();
     const fragment = document.createDocumentFragment();
+    amount = Math.trunc(Number(amount));
+    if (!Number.isFinite(amount) || amount === 0) return fragment;
+    if (V.settings.blindStatsEnabled || !condition()) return fragment;
     const span = document.createElement('span');
     span.className = colorClass;
     const prefix = amount < 0 ? '- ' : '+ ';
@@ -68,6 +69,21 @@ class defineMacros {
     fragment.appendChild(document.createTextNode(' | '));
     fragment.appendChild(span);
     return fragment;
+  }
+
+  grace(amount: number, expectedRank?: string): DocumentFragment {
+    const fragment = document.createDocumentFragment();
+    amount = Math.trunc(Number(amount));
+    if (!Number.isFinite(amount) || amount === 0) return fragment;
+    if (V.settings.blindStatsEnabled) return fragment;
+    let displayGrace = true;
+    const ranks = ['prospective', 'initiate', 'monk', 'priest', 'bishop'];
+    const playerRankValue = ranks.indexOf(V.temple_rank);
+    const expectedRankValue = expectedRank == null ? -1 : ranks.indexOf(expectedRank);
+    if (playerRankValue === -1) displayGrace = false;
+    if (expectedRankValue > 1) if (playerRankValue >= expectedRankValue) displayGrace = false;
+    if (!displayGrace) return fragment;
+    return this.statChange('Grace', amount, amount > 0 ? 'green' : 'red');
   }
 
   create(name: string, fn: Function) {
