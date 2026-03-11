@@ -8,6 +8,12 @@ import NPCClothes, { ClothesConfig } from './NamedNPCAddon/NPCClothes';
 import NPCSidebar from './NamedNPCAddon/NPCSidebar';
 import { convertNPCs, setupNpcData, isPossible } from './NamedNPCAddon/NPCUtils';
 
+const VanillaList = new Set(
+  'Avery|Bailey|Briar|Charlie|Darryl|Doren|Eden|Gwylan|Harper|Jordan|Kylar|Landry|Leighton|Mason|Morgan|River|Robin|Sam|Sirris|Whitney|Winter|Black Wolf|Niki|Quinn|Remy|Alex|Great Hawk|Wren|Sydney|Ivory Wraith|Zephyr'.split(
+    '|'
+  )
+);
+
 export interface NPCData {
   nam: string;
   gender?: 'm' | 'f' | 'h' | 'n' | 'none';
@@ -176,11 +182,13 @@ export const NamedNPC = (core => {
       this.eyeColour = data.eyeColour ?? either([...eyeColour]);
       this.hairColour = data.hairColour ?? either([...hairColour]);
       this.pronoun = data.pronoun ?? (['m', 'f', 'i', 'n', 't'].includes(this.gender) ? (this.gender as 'm' | 'f' | 'i' | 'n' | 't') : either('m', 'f'));
-      if (this.gender !== 'none') {
+      if (this.gender !== 'none' && !VanillaList.has(this.nam)) {
         if (core.modUtils.getMod('ModI18N')) {
           this.pronouns = { ...pronounsMap[this.pronoun].CN };
         } else {
-          Object.defineProperty(this, 'pronouns', { get: () => pronounsMap[this.pronoun][maplebirch.Language] });
+          Object.defineProperty(this, 'pronouns', {
+            get: () => pronounsMap[this.pronoun][maplebirch.Language]
+          });
         }
       }
       this.setPronouns(data);

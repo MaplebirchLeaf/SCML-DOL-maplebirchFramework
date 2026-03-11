@@ -22,10 +22,11 @@ const defaultData = {
           <<numberslider '$options.maplebirch.relationcount' $options.maplebirch.relationcount 2 10 2 { value: v => \`\${v}\${lanSwitch(' types','种')}\`}>>
           <span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Adjust the total number of status displays for Primary Relationships NPCs in the SOCIAL bar.' '调整社交栏中主要关系NPC的状态显示总数。'>></span>">(?)</span>
         </label></div>
-        <div class='settingsToggleItemWide maplebirch-relationcount-slider'><label>
+        <div class='settingsToggleItem maplebirch-relationcount-slider'><label>
           <span class='gold'><<lanSwitch 'Close-up Mask Divider' '特写遮罩分割线'>></span><<numberslider '$options.maplebirch.character.mask' $options.maplebirch.character.mask -128 128 1 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => \`\${v}px\` }>>
           <<lanLink 'reset' 'capitalize'>><<set $options.maplebirch.character.mask to 0>><<updatesidebarimg>><<replace #customOverlayContent>><<maplebirchOptions>><</replace>><</lanLink>>
         </label></div>
+        <div class='settingsToggleItem maplebirch-relationcount-slider'><label><span class='gold'><<lanSwitch 'Mask Rotation Angle' '遮罩旋转角度'>></span><<numberslider '$options.maplebirch.character.rotation' $options.maplebirch.character.rotation -90 90 1 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => \`\${v}°\` }>></label></div>
         <div class='settingsToggleItem'>
           <span class='gold'><<lanSwitch 'Standing illustration hair color gradient settings' '立绘发色渐变调整'>></span><br>
           <<radiobuttonsfrom '$options.maplebirch.character.charArt.type' 'fringe[Fringe,刘海]|sides[Sides,侧发]'>><<replace #customOverlayContent>><<maplebirchOptions>><</replace>><</radiobuttonsfrom>>
@@ -67,6 +68,7 @@ const defaultData = {
           <span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Front: Model appears in front. Back: Model appears behind.' '前置：模型显示在前面。后置：模型显示在后面。'>></span>">(?)</span><br>
           <div class='maplebirch-relationcount-slider'><span class='gold'><<lanSwitch 'Model Mask: ' '模型遮罩：'>></span><<lanLink 'reset' 'capitalize'>><<set $options.maplebirch.npcsidebar.mask to 0>><<updatesidebarimg>><<replace #customOverlayContent>><<maplebirchOptions>><</replace>><</lanLink>>
           <<numberslider '$options.maplebirch.npcsidebar.mask' $options.maplebirch.npcsidebar.mask -128 128 1 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => \`\${v}px\` }>></div>
+          <div class='maplebirch-relationcount-slider'><span class='gold'><<lanSwitch 'Rotation Angle' '旋转角度'>></span><<numberslider '$options.maplebirch.npcsidebar.rotation' $options.maplebirch.npcsidebar.rotation -90 90 1 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => \`\${v}°\` }>></div>
           <span class='gold'><<lanSwitch 'Canvas Model Offset: ' '画布模型偏移：'>></span><<lanLink 'reset' 'capitalize'>><<set $options.maplebirch.npcsidebar.dxfn to -48>><<set $options.maplebirch.npcsidebar.dyfn to -8>><<updatesidebarimg>><<replace #customOverlayContent>><<maplebirchOptions>><</replace>><</lanLink>><br>
           <div class='maplebirch-relationcount-slider'><label><<lanSwitch 'Horizontal Offset' '水平偏移'>><<numberslider '$options.maplebirch.npcsidebar.dxfn' $options.maplebirch.npcsidebar.dxfn -96 96 1 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => \`\${v}px\` }>></label></div>
           <div class='maplebirch-relationcount-slider'><label><<lanSwitch 'Vertical Offset' '垂直偏移'>><<numberslider '$options.maplebirch.npcsidebar.dyfn' $options.maplebirch.npcsidebar.dyfn -62 46 1 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => \`\${v}px\` }>></label></div>
@@ -168,7 +170,7 @@ const locationPassage = {
     { src: '</div>\n\t\t\t<div class="sidebarButtonSplit">', to: '</div>\n\t\t\t<div class="sidebarButtonSplit"><<maplebirchMenuSmall>></div>\n\t\t\t<div class="sidebarButtonSplit">' },
     { src: '<<goo>>', applybefore: '<<maplebirchCaptionAfterDescription>>\n\t\t' },
     { src: '<<if $options.sidebarStats isnot "disabled">>', applybefore: '<<maplebirchHintMobile>>\n\t\t\t' },
-    { src: '<<mobileStats>>', applyafter: '\n\t\t\t\t<<maplebirchStatsMobile>>' },
+    { src: '<<mobileStats>>', applyafter: '\n\t\t\t\t<<maplebirchMobileStats>>' },
   ]
 }
 
