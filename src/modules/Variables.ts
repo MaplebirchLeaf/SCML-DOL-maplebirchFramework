@@ -35,7 +35,8 @@ class Variables {
   static get options() {
 		return {
 			character: {
-				mask   : 0,
+				mask     : 0,
+        rotation : 0,
 				charArt: { type: 'fringe' as const, select: 'low-ombre', value: clone(hairgradients()) },
 				closeUp: { type: 'fringe' as const, select: 'low-ombre', value: clone(hairgradients()) },
 			},
@@ -52,6 +53,7 @@ class Variables {
 				freckles : false,
 				ears     : 'back',
 				mask     : 0,
+        rotation : 0,
 				nnpc     : false,
 				display  : {}
 			},

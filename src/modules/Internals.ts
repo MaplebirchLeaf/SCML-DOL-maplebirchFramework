@@ -1,6 +1,5 @@
 // ./src/modules/Internals.ts
 
-import type { TwineSugarCube } from '../../types/twine-sugarcube';
 import maplebirch, { MaplebirchCore, createlog } from '../core';
 import { _language, _languageSwitch, _languageButton, _languageLink, _languageListbox, _radiobuttonsfrom, _overlayReplace } from '../database/SugarCubeMacros';
 

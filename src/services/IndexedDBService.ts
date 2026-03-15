@@ -46,6 +46,7 @@ class IndexedDBService {
         upgrade: (db: IDBDatabase, _oldVersion: any, _newVersion: any, transaction: IDBTransaction) => this.createStores(db, transaction)
       });
     } catch (error: any) {
+      await this.deleteDatabase();
       await this.core.disabled('maplebirch');
     } finally {
       if (!this.ready) this.core.logger.log('IDB数据库初始化完成', 'INFO', this.stores);
