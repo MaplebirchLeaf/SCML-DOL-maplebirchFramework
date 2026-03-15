@@ -3,6 +3,9 @@
 import maplebirch from './core';
 const _ = maplebirch.lodash;
 
+type TypedArrayLike = Int8Array | Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array | BigInt64Array | BigUint64Array;
+const isTypedArray = (source: any): source is TypedArrayLike => ArrayBuffer.isView(source) && !(source instanceof DataView);
+
 /**
  * 深度克隆对象
  * @example clone({a:1, b:{c:2}}) // 深克隆对象
@@ -27,9 +30,10 @@ function clone(source: any, opt: { deep?: boolean; proto?: boolean } = {}, map =
     source.forEach(v => copy.add(deep ? clone(v, opt, map) : v));
     return copy;
   }
-  if (ArrayBuffer.isView(source)) {
+  if (source instanceof DataView) return new DataView(source.buffer.slice(0), source.byteOffset, source.byteLength);
+  if (isTypedArray(source)) {
     const Constructor = source.constructor as new (buffer: ArrayBufferLike, byteOffset?: number, length?: number) => any;
-    return new Constructor(source.buffer.slice(0), source.byteOffset, source.byteLength);
+    return new Constructor(source.buffer.slice(0), source.byteOffset, source.length);
   }
   if (source instanceof ArrayBuffer) return source.slice(0);
   if (typeof source === 'function') return source;
@@ -62,7 +66,7 @@ function equal(a: any, b: any): boolean {
 }
 
 /**
- * 递归合并对象
+ * 递归合并对象（原地修改 target）
  * @example merge({a:1}, {b:2}) // {a:1, b:2}
  * @example merge({arr:[1,2]}, {arr:[3,4]}, {mode:'concat'}) // {arr:[1,2,3,4]}
  * @example merge({arr:[1,2]}, {arr:[3]}, {mode:'merge'}) // {arr:[3,2]}
@@ -70,9 +74,14 @@ function equal(a: any, b: any): boolean {
  */
 function merge(target: any, ...sources: any[]): any {
   if (sources.length === 0) return target;
+  const isMergeOption = (value: any): boolean => {
+    if (!_.isPlainObject(value)) return false;
+    return _.has(value, 'mode') || _.has(value, 'filterFn');
+  };
   let opt: any = {};
   const last = sources[sources.length - 1];
-  if (sources.length > 1 && typeof last === 'object' && !Array.isArray(last) && last !== null) opt = sources.pop();
+  if (sources.length > 1 && isMergeOption(last)) opt = sources.pop();
+
   const { mode = 'replace', filterFn = null } = opt;
   const mergeRec = (t: any, s: any, depth = 1) => {
     if (s === null || typeof s !== 'object' || typeof s === 'function') return s;
@@ -91,14 +100,14 @@ function merge(target: any, ...sources: any[]): any {
             const max = Math.max(tv.length, sv.length);
             t[key] = Array.from({ length: max }, (_, i) => {
               if (i < tv.length && i < sv.length) return mergeRec(tv[i], sv[i], depth + 1);
-              else if (i < tv.length) return tv[i];
-              else return sv[i];
+              if (i < tv.length) return tv[i];
+              return sv[i];
             });
             break;
           default:
             t[key] = [...sv];
         }
-      } else if (typeof sv === 'object' && sv !== null && typeof tv === 'object' && tv !== null) {
+      } else if (_.isPlainObject(sv) && _.isPlainObject(tv)) {
         t[key] = mergeRec(tv, sv, depth + 1);
       } else {
         t[key] = sv;
@@ -127,14 +136,14 @@ function contains(arr: any[], value: any, mode: 'all' | 'any' | 'none' = 'all', 
     if (Number.isNaN(val)) return Number.isNaN(item);
     return item === val;
   };
-  if (!Array.isArray(value)) return _.some(arr, item => match(item, value));
+  const values = Array.isArray(value) ? value : [value];
   switch (mode) {
     case 'all':
-      return _.every(value, v => _.some(arr, item => match(item, v)));
+      return _.every(values, v => _.some(arr, item => match(item, v)));
     case 'any':
-      return _.some(value, v => _.some(arr, item => match(item, v)));
+      return _.some(values, v => _.some(arr, item => match(item, v)));
     case 'none':
-      return _.every(value, v => !_.some(arr, item => match(item, v)));
+      return _.every(values, v => !_.some(arr, item => match(item, v)));
     default:
       throw new Error(`Invalid mode: '${mode as string}'. Expected 'all', 'any' or 'none'.`);
   }
@@ -167,14 +176,18 @@ function random(min?: number | { min: number; max: number; float?: boolean }, ma
  * @example either(['a','b'],{null:true}) // 33%返回null，33%'a'，33%'b'
  */
 function either(itemsOrA: any, ...rest: any[]): any {
+  const isEitherOption = (value: any): boolean => {
+    if (!_.isPlainObject(value)) return false;
+    return _.has(value, 'weights') || _.has(value, 'null');
+  };
   let opt: any = {};
   let items: any[];
   if (Array.isArray(itemsOrA)) {
     items = itemsOrA;
-    if (rest.length && typeof rest[rest.length - 1] === 'object') opt = rest.pop();
+    if (rest.length && isEitherOption(rest[rest.length - 1])) opt = rest.pop();
   } else {
     items = [itemsOrA, ...rest];
-    if (typeof items[items.length - 1] === 'object' && !Array.isArray(items[items.length - 1])) opt = items.pop();
+    if (items.length && isEitherOption(items[items.length - 1])) opt = items.pop();
   }
   const { weights = null, null: allowNull = false } = opt;
   if (!items.length) return undefined;
@@ -402,7 +415,13 @@ function convert(
     case 'capitalize':
       return _.capitalize(_.toLower(str));
     case 'title':
-      return _.startCase(_.toLower(str));
+      if (!acronym) return _.startCase(_.toLower(str));
+      return words
+        .map(word => {
+          if (/^[A-Z0-9]+$/.test(word) && word.length > 1) return word;
+          return _.upperFirst(_.toLower(word));
+        })
+        .join(' ');
     case 'camel':
       return _.camelCase(str);
     case 'pascal':
@@ -418,6 +437,90 @@ function convert(
   }
 }
 
+/**
+ * 数值修整
+ * @example number('12.5') // 12.5
+ * @example number(undefined, 10) // 10
+ * @example number(120, 0, 0, 100) // 100
+ * @example number(5.8, 0, 0, 10, 'floor') // 5
+ * @example number(17, 0, 0, 100, 'round', {step:5}) // 15
+ * @example number(370, 0, 0, 360, 'none', {loop:true}) // 10
+ * @example number(75, 0, 0, 200, 'none', {percent:true}) // 37.5
+ */
+function number(
+  value: any,
+  fallback = 0,
+  min = -Infinity,
+  max = Infinity,
+  mode: 'none' | 'floor' | 'ceil' | 'round' | 'trunc' = 'none',
+  opt: {
+    step?: number;
+    percent?: boolean;
+    loop?: boolean;
+  } = {}
+): number {
+  const { step = 0, percent = false, loop = false } = opt;
+
+  let result = _.toNumber(value);
+  if (!_.isFinite(result)) result = fallback;
+
+  const hasRange = _.isFinite(min) && _.isFinite(max) && max >= min;
+  const range = max - min;
+
+  const clampValue = (num: number): number => _.clamp(num, min, max);
+  const loopValue = (num: number): number => {
+    if (!hasRange || range === 0) return min;
+    return ((((num - min) % range) + range) % range) + min;
+  };
+
+  result = loop ? loopValue(result) : clampValue(result);
+
+  if (_.isFinite(step) && step > 0) {
+    const offset = (result - min) / step;
+    switch (mode) {
+      case 'floor':
+        result = min + _.floor(offset) * step;
+        break;
+      case 'ceil':
+        result = min + _.ceil(offset) * step;
+        break;
+      case 'trunc':
+        result = min + Math.trunc(offset) * step;
+        break;
+      case 'round':
+        result = min + _.round(offset) * step;
+        break;
+      default:
+        result = min + offset * step;
+        break;
+    }
+  } else {
+    switch (mode) {
+      case 'floor':
+        result = _.floor(result);
+        break;
+      case 'ceil':
+        result = _.ceil(result);
+        break;
+      case 'trunc':
+        result = Math.trunc(result);
+        break;
+      case 'round':
+        result = _.round(result);
+        break;
+    }
+  }
+
+  result = loop ? loopValue(result) : clampValue(result);
+
+  if (percent) {
+    if (!hasRange || range === 0) return 0;
+    return _.clamp(((result - min) / range) * 100, 0, 100);
+  }
+
+  return result;
+}
+
 const imageCache = new Map<string, boolean>();
 
 function checkImageExist(src: string): boolean | Promise<boolean> {
@@ -426,19 +529,36 @@ function checkImageExist(src: string): boolean | Promise<boolean> {
   for (const hooker of window.modImgLoaderHooker.sideHooker) {
     if (hooker.hookName === 'GameOriginalImagePackImageSideHook') {
       const n = window.modGameOriginalImagePack?.selfImg.get(src);
-      if (n && !n.getter.invalid) return imageCache.set(src, true) && true;
+      if (n && !n.getter.invalid) {
+        imageCache.set(src, true);
+        return true;
+      }
       continue;
     }
-    if (hooker.checkImageExist?.(src) === true) return imageCache.set(src, true) && true;
+    if (hooker.checkImageExist?.(src) === true) {
+      imageCache.set(src, true);
+      return true;
+    }
   }
 
   if (!window.modGameOriginalImagePack) {
-    if (!src) return imageCache.set(src, false) && false;
+    if (!src) {
+      imageCache.set(src, false);
+      return false;
+    }
+
     return new Promise<boolean>(resolve => {
       const img = new Image();
-      img.onload = () => resolve(imageCache.set(src, true) && true);
+
+      img.onload = () => {
+        imageCache.set(src, true);
+        resolve(true);
+      };
+
       img.onerror = () => {
-        resolve(imageCache.set(src, false) && false);
+        imageCache.set(src, false);
+        resolve(false);
+
         void Promise.resolve().then(() => {
           Errors.Reporter.hide(true);
           Renderer.clearCaches(T.modelclass);
@@ -449,7 +569,8 @@ function checkImageExist(src: string): boolean | Promise<boolean> {
     });
   }
 
-  return imageCache.set(src, false) && false;
+  imageCache.set(src, false);
+  return false;
 }
 
 /**
@@ -468,6 +589,11 @@ function loadImage(src: string): string | boolean | Promise<string | boolean> {
   }
 }
 
+/**
+ * 提取 widget 内容
+ * @example widgets('abc <<widget "x">>123<</widget>>') // ['<<widget "x">>123<</widget>>']
+ * @example widgets('  <<widget "a">>A<</widget>>  ', 'text') // ['<<widget "a">>A<</widget>>', 'text']
+ */
 function widgets(...rawContents: string[]): string[] {
   return rawContents.map(content => {
     const widgetStart = content.indexOf('<<widget');
@@ -483,13 +609,14 @@ const tools = {
   SelectCase: Object.freeze(SelectCase),
   random: Object.freeze(random),
   either: Object.freeze(either),
-  loadImage: Object.freeze(loadImage),
-  convert: Object.freeze(convert)
+  convert: Object.freeze(convert),
+  number: Object.freeze(number),
+  loadImage: Object.freeze(loadImage)
 };
 
-const toolNames = ['clone', 'merge', 'equal', 'contains', 'SelectCase', 'random', 'either', 'loadImage', 'convert'];
+const toolNames = ['clone', 'merge', 'equal', 'contains', 'SelectCase', 'random', 'either', 'convert', 'number', 'loadImage'];
 _.each(toolNames, name => {
   if (!window.hasOwnProperty(name)) Object.defineProperty(window, name, { value: (tools as any)[name], enumerable: true });
 });
 
-export { clone, equal, merge, contains, random, either, SelectCase, loadImage, convert, widgets };
+export { clone, equal, merge, contains, random, either, SelectCase, convert, number, loadImage, widgets };

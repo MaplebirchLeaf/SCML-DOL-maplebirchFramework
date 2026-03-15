@@ -63,7 +63,7 @@ function preprocess(options: LayerOptions) {
   nnpc.facestyle = V.options.maplebirch.npcsidebar.facestyle ?? 'default';
   nnpc.facevariant = V.options.maplebirch.npcsidebar.facevariant ?? 'default';
   nnpc.ears_position = V.options.maplebirch.npcsidebar.ears ?? 'back';
-  nnpc.close_up_mask = maplebirch.char.mask(V.options.maplebirch.npcsidebar.mask);
+  nnpc.close_up_mask = maplebirch.char.mask(V.options.maplebirch.npcsidebar.mask, V.options.maplebirch.npcsidebar.rotation);
   if (nnpc_name && nnpc.model) {
     options.filters.nnpc_tan = setup.colours.getSkinFilter(nnpc.skin_type, nnpc.tan);
     const npcData = V.maplebirch.npc[nnpc_name.toLowerCase()];
