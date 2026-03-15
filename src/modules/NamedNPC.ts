@@ -182,14 +182,21 @@ export const NamedNPC = (core => {
       this.eyeColour = data.eyeColour ?? either([...eyeColour]);
       this.hairColour = data.hairColour ?? either([...hairColour]);
       this.pronoun = data.pronoun ?? (['m', 'f', 'i', 'n', 't'].includes(this.gender) ? (this.gender as 'm' | 'f' | 'i' | 'n' | 't') : either('m', 'f'));
-      if (this.gender !== 'none' && !VanillaList.has(this.nam)) {
-        if (core.modUtils.getMod('ModI18N')) {
-          this.pronouns = { ...pronounsMap[this.pronoun].CN };
-        } else {
-          Object.defineProperty(this, 'pronouns', {
-            get: () => pronounsMap[this.pronoun][maplebirch.Language]
-          });
-        }
+      if (this.gender !== 'none') {
+        Object.defineProperty(this, 'pronouns', {
+          get: () => {
+            const result = pronounsMap[this.pronoun][maplebirch.Language];
+            const hasModI18N = maplebirch.Language === 'CN' && core.modUtils.getMod('ModI18N') && VanillaList.has(this.nam);
+            if (hasModI18N && (this.pronoun === 'm' || this.pronoun === 'f')) {
+              return {
+                ...result,
+                his: result.he,
+                hers: result.he
+              };
+            }
+            return result;
+          }
+        });
       }
       this.setPronouns(data);
       this.bottomsize = data.bottomsize ?? random(4);
