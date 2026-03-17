@@ -12,13 +12,14 @@ function isPossible(manager: NPCManager, name: string) {
 }
 
 function convertNPCs(manager: NPCManager) {
-  if (!V.NPCName || !_.isArray(V.NPCName)) return;
-  _.forEach(V.NPCName, (npc, i) => {
-    if (npc?.nam && !(npc instanceof NamedNPC)) {
-      const newNpc = new NamedNPC(manager, npc);
-      for (const key in npc) if (!newNpc.hasOwnProperty(key) && key !== 'nam') newNpc[key] = npc[key];
-      V.NPCName[i] = newNpc;
-    }
+  if (!Array.isArray(V.NPCName)) return;
+  V.NPCName.forEach((npc, i) => {
+    if (!npc?.nam || npc instanceof NamedNPC) return;
+    const newNpc = new NamedNPC(manager, npc);
+    Object.keys(npc).forEach(key => {
+      if (key !== 'nam' && !Object.hasOwn(newNpc, key)) newNpc[key] = npc[key];
+    });
+    V.NPCName[i] = newNpc;
   });
 }
 
