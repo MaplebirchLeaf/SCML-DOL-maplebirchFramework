@@ -582,9 +582,14 @@ function checkImageExist(src: string): boolean | Promise<boolean> {
 function loadImage(src: string): string | boolean | Promise<string | boolean> {
   try {
     const checkResult = checkImageExist(src);
-    if (checkResult instanceof Promise) return checkResult.then(exists => (exists ? maplebirch.modUtils.getImage(src) || exists : exists));
-    return checkResult ? maplebirch.modUtils.getImage(src) || checkResult : checkResult;
-  } catch (error) {
+    const ImageResult = (): string | boolean | Promise<string | boolean> => {
+      const image = maplebirch.modUtils.getImage(src);
+      if (image instanceof Promise) return image.then(value => value || true);
+      return image || true;
+    };
+    if (checkResult instanceof Promise) return checkResult.then(exists => (exists ? ImageResult() : false));
+    return checkResult ? ImageResult() : false;
+  } catch {
     return src;
   }
 }

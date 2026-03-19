@@ -542,7 +542,8 @@ class AudioManager {
       const file = modZip.zip.file(path);
       if (!file) continue;
       try {
-        const arrayBuffer = await file.async('arraybuffer');
+        const uint8 = await file.async('uint8array');
+        const arrayBuffer = new Uint8Array(uint8).buffer;
         await this.store(key, arrayBuffer, modName, format);
       } catch {
         this.log(`加载失败: ${path}`, 'WARN');
