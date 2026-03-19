@@ -2,10 +2,10 @@
 
 import type { TwineSugarCube } from '../types/twine-sugarcube';
 import type { SC2DataManager } from '@scml/types/sugarcube-2-ModLoader/SC2DataManager';
+import type { ModUtils } from '@scml/types/sugarcube-2-ModLoader/Utils';
 import type { Gui } from '@scml/types/Mod_LoaderGui/Gui';
 import jsyaml from 'js-yaml';
 import { Howl, Howler } from 'howler';
-import * as lodash from 'lodash-es';
 import * as marked from 'marked';
 import { version, lastModifiedBy, lastUpdate, Languages } from './constants';
 import Logger from './services/Logger';
@@ -220,8 +220,8 @@ class MaplebirchCore {
     return true;
   }
 
-  get lodash(): typeof lodash {
-    return lodash;
+  get lodash(): ReturnType<ModUtils['getLodash']> {
+    return this.modUtils.getLodash();
   }
 
   get marked(): typeof marked {
@@ -261,12 +261,12 @@ class MaplebirchCore {
     return this.modules.dependencyGraph;
   }
 
-  get modLoader(): any {
-    return this.manager.modSC2DataManager?.getModLoader();
+  get modLoader(): ReturnType<SC2DataManager['getModLoader']> {
+    return this.manager.modSC2DataManager.getModLoader();
   }
 
-  get modUtils(): any {
-    return this.manager.modSC2DataManager?.getModUtils();
+  get modUtils(): ModUtils {
+    return this.manager.modSC2DataManager.getModUtils();
   }
 
   get gameVersion(): string {

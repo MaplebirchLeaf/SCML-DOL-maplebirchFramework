@@ -330,59 +330,42 @@ export const NamedNPC = (core => {
     }
 
     bodyPartdescription() {
-      this.descCache = this.descCache ?? {};
-
+      const cache = (this.descCache ??= {});
+      const lang = maplebirch.Language as 'CN' | 'EN';
+      const bottomSuffixMap = {
+        CN: ['屁股', '臀部', '臀部'],
+        EN: [' ass', ' bum', ' butt']
+      } as const;
+      const ballsSuffixMap = {
+        CN: ['睾丸', '睾丸', '蛋蛋'],
+        EN: ['testicles', 'balls']
+      } as const;
+      const pick = (value: unknown): string => (Array.isArray(value) ? either(value as string[]) : ((value ?? '') as string));
+      const cached = (key: string, factory: () => string): string => (cache[key] ??= factory());
+      const Part = (part: keyof typeof bodyPartMap, index: number): string => pick(core.lodash.get(bodyPartMap, [part, lang, index]));
+      const Suffix = (suffixMap: Record<'CN' | 'EN', readonly string[]>): string => pick(suffixMap[lang]);
+      const Combined = (key: string, part: keyof typeof bodyPartMap, index: number, suffixMap: Record<'CN' | 'EN', readonly string[]>): string =>
+        cached(key, () => {
+          const prefix = Part(part, index);
+          const suffix = Suffix(suffixMap);
+          return prefix ? `${prefix}${suffix}` : suffix;
+        });
       if ((this.penis === 'clothed' && this.penissize > 0) || this.penisdesc === 'penis') {
-        const cacheKey = `penis_${maplebirch.Language}_${this.penissize}`;
-        if (!this.descCache[cacheKey]) {
-          const sizeIndex = this.penissize - 1;
-          const options = core.lodash.get(bodyPartMap, ['penis', maplebirch.Language, sizeIndex]);
-          this.descCache[cacheKey] = options ? either(options) : '';
-        }
-        this.penisdesc = this.descCache[cacheKey];
+        const sizeIndex = this.penissize - 1;
+        this.penisdesc = cached(`penis_${lang}_${this.penissize}`, () => Part('penis', sizeIndex));
       }
-
-      if ((this.vagina === 'clothed' && this.breastsize > 0) || this.breastdesc === 'breasts') {
-        const cacheKey = `breast_${maplebirch.Language}_${this.breastsize}`;
-        if (!this.descCache[cacheKey]) {
-          const sizeIndex = this.breastsize - 1;
-          const options = core.lodash.get(bodyPartMap, ['breast', maplebirch.Language, sizeIndex]);
-          this.descCache[cacheKey] = options ? either(options) : '';
-        }
-        this.breastdesc = this.descCache[cacheKey];
-      } else {
-        const cacheKey = `breast_none_${maplebirch.Language}`;
-        if (!this.descCache[cacheKey]) {
-          const options = core.lodash.get(bodyPartMap, ['breast', maplebirch.Language, 0]);
-          this.descCache[cacheKey] = options ? either(options) : '';
-        }
-        this.breastdesc = this.descCache[cacheKey];
-      }
-
+      const breastIndex = (this.vagina === 'clothed' && this.breastsize > 0) || this.breastdesc === 'breasts' ? this.breastsize - 1 : 0;
+      this.breastdesc = cached(`breast_${lang}_${breastIndex}`, () => {
+        const raw = Part('breast', breastIndex);
+        if (lang === 'CN') return breastIndex === 0 ? raw : `${raw}乳房`;
+        return breastIndex === 0 ? raw : `${raw} breast`;
+      });
       const breastDesc = this.breastdesc;
-      const breastsdescKey = `breastsdesc_${maplebirch.Language}`;
-      if (!this.descCache[breastsdescKey]) {
-        this.descCache[breastsdescKey] = maplebirch.Language === 'CN' ? breastDesc : breastDesc.endsWith('s') ? breastDesc : `${breastDesc}s`;
-      }
-      this.breastsdesc = this.descCache[breastsdescKey];
-
-      if (this.bottomsize != null) {
-        const cacheKey = `bottom_${maplebirch.Language}_${this.bottomsize}`;
-        if (!this.descCache[cacheKey]) {
-          const options = core.lodash.get(bodyPartMap, ['bottom', maplebirch.Language, this.bottomsize]);
-          this.descCache[cacheKey] = options ? either(options) : '';
-        }
-        this.bottomdesc = this.descCache[cacheKey];
-      }
-
+      this.breastsdesc = cached(`breastsdesc_${lang}_${breastDesc}`, () => (lang === 'CN' ? breastDesc : breastDesc.endsWith('s') ? breastDesc : `${breastDesc}s`));
+      if (this.bottomsize != null) this.bottomdesc = Combined(`bottom_${lang}_${this.bottomsize}`, 'bottom', this.bottomsize, bottomSuffixMap);
       if (this.ballssize > 0) {
-        const cacheKey = `balls_${maplebirch.Language}_${this.ballssize}`;
-        if (!this.descCache[cacheKey]) {
-          const sizeIndex = this.ballssize - 1;
-          const options = core.lodash.get(bodyPartMap, ['balls', maplebirch.Language, sizeIndex]);
-          this.descCache[cacheKey] = options ? either(options) : '';
-        }
-        this.ballsdesc = this.descCache[cacheKey];
+        const sizeIndex = this.ballssize - 1;
+        this.ballsdesc = Combined(`balls_${lang}_${this.ballssize}`, 'balls', sizeIndex, ballsSuffixMap);
       }
     }
   }

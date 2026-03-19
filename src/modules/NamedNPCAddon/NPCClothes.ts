@@ -277,7 +277,7 @@ class NPCWardrobe {
       const file = modZip.zip.file(filePath);
       if (!file) throw new Error(`未找到文件: ${filePath}`);
 
-      const content = await file.async('text');
+      const content = await file.async('string');
       const data = filePath.endsWith('.json') ? JSON.parse(content) : filePath.endsWith('.yml') || filePath.endsWith('.yaml') ? maplebirch.yaml.load(content) : null;
 
       if (!data) throw new Error('无法解析配置文件');

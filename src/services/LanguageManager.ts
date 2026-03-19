@@ -71,7 +71,7 @@ class LanguageManager {
         foundAny = true;
         try {
           const file = modZip.zip.file(path);
-          const content = await file.async('text');
+          const content = await file.async('string');
           const data = this.parseFile(content, path);
           for await (const progress of this.processStream(modName, lang, data)) yield { ...progress, lang, type: 'process' };
           processedCount = Object.keys(data).length;
@@ -106,7 +106,7 @@ class LanguageManager {
       return;
     }
     try {
-      const content = await file.async('text');
+      const content = await file.async('string');
       const data = this.parseFile(content, path);
       for await (const progress of this.processStream(modName, lang, data)) yield { ...progress, lang, type: 'process' };
       yield { lang, count: Object.keys(data).length, error: null, type: 'complete' };
