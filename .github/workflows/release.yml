@@ -74,7 +74,7 @@ jobs:
 
           if [ -n "$PREV_TAG" ]; then
             COMPARE_URL="${{ github.server_url }}/${{ github.repository }}/compare/tags/$PREV_TAG...tags/$CURRENT_TAG"
-            echo "compare_md=- [Compare changes]($COMPARE_URL)" >> $GITHUB_OUTPUT
+            echo "compare_md=- [查看版本差异]($COMPARE_URL)" >> $GITHUB_OUTPUT
           fi
 
       - name: Extract Changelog
