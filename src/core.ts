@@ -57,7 +57,8 @@ class MaplebirchCore {
     updateDate: lastUpdate,
     Languages: Languages,
     early: ['addon', 'dynamic', 'tool', 'char', 'npc'] as const,
-    core: ['addon', 'dynamic', 'tool', 'audio', 'var', 'char', 'npc', 'combat']
+    core: ['addon', 'dynamic', 'tool', 'audio', 'var', 'char', 'npc', 'combat'] as const,
+    protected: ['addon', 'dynamic', 'tool', 'audio', 'var', 'char', 'npc', 'combat', 'internals'] as const
   };
 
   readonly meta: typeof MaplebirchCore.meta;
@@ -97,7 +98,6 @@ class MaplebirchCore {
     this.modules = Object.seal(new ModuleSystem(this));
     this.gui = Object.seal(new GUIControl(this));
 
-    void this.logger.fromIDB();
     this.log(`开始设置初始化流程\n核心系统创建完成(v${MaplebirchCore.meta.version})`, 'INFO');
     const events = [':passageinit', ':passagestart', ':passagerender', ':passagedisplay', ':passageend', ':storyready'];
     events.forEach(event => $(document).on(event, (ev: any) => this.trigger(event, ev)));
@@ -109,7 +109,11 @@ class MaplebirchCore {
 
     this.once(':allModule', async () => {
       this.log('所有模块注册完成，开始预初始化', 'INFO');
-      await this.trigger(':IndexedDB').then(async () => await this.idb.init().then(async () => await this.idb.checkStore()));
+      await this.trigger(':indexedDB');
+      await this.idb.init();
+      await this.idb.checkStore();
+      await this.logger.fromIDB();
+      await this.trigger(':idbReady');
       await this.pre();
     });
 
@@ -125,17 +129,16 @@ class MaplebirchCore {
     this.on(
       ':passagestart',
       async () => {
-        if (this.passage.title == 'Start' || this.passage.title == 'Downgrade Waiting Room') return;
+        if (!this.passage || this.passage.title === 'Start' || this.passage.title === 'Downgrade Waiting Room') return;
         this.modules.initPhase.postInitExecuted = false;
         await this.init();
-        if (this.onLoad) {
-          await this.load().then(() => {
-            void this.trigger(':onLoadSave').then(async () => await this.post());
-            this.onLoad = false;
-          });
-        } else {
+        if (!this.onLoad) {
           await this.post();
+          return;
         }
+        await this.load();
+        void this.trigger(':onLoadSave').then(async () => await this.post());
+        this.onLoad = false;
       },
       'loadInit'
     );
@@ -175,30 +178,24 @@ class MaplebirchCore {
     await this.tracer.trigger(evt, ...args);
   }
 
-  use(...names: string[]): string[] {
-    const core = this.meta.core;
-    for (const name of names) if (!core.includes(name)) core.push(name);
-    return core;
-  }
-
-  register(name: string, module: any, dependencies: string[] = [], source?: string): boolean {
-    return this.modules.register(name, module, dependencies, source);
+  register(name: string, module: any, dependencies: string[] = []): boolean {
+    return this.modules.register(name, module, dependencies);
   }
 
   async pre(): Promise<void> {
-    return await this.modules.preInit();
+    return await this.modules.init('pre');
   }
 
   async init(): Promise<void> {
-    return await this.modules.init();
+    return await this.modules.init('init');
   }
 
   async load(): Promise<void> {
-    return await this.modules.loadInit();
+    return await this.modules.init('load');
   }
 
   async post(): Promise<void> {
-    return await this.modules.postInit();
+    return await this.modules.init('post');
   }
 
   t(key: string, space: boolean = false): string {
@@ -237,8 +234,7 @@ class MaplebirchCore {
   }
 
   set Language(lang: string) {
-    this.lang.setLanguage(lang);
-    void this.trigger(':language');
+    void this.lang.normalizeLang(lang).then(() => this.trigger(':language'));
   }
 
   get Language(): string {

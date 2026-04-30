@@ -1,7 +1,7 @@
 // ./src/services/LanguageManager.ts
 
 import { Languages } from './../constants';
-import { MaplebirchCore } from '../core';
+import type { MaplebirchCore } from '../core';
 
 export type Translation = Record<string, string>;
 type LanguageCode = 'EN' | 'CN';
@@ -10,54 +10,55 @@ class LanguageManager {
   static readonly DEFAULT_LANGS: readonly LanguageCode[] = Languages as readonly LanguageCode[];
   static readonly BATCH_SIZE = 500;
 
-  language: LanguageCode = 'EN';
+  language: LanguageCode = navigator.language.includes('zh') ? 'CN' : 'EN';
   translations = new Map<string, Translation>();
   private cache = new Map<string, string>();
   private preloaded = false;
   private fileHashes = new Map<string, string>();
 
   constructor(readonly core: MaplebirchCore) {
-    void this.detectLang();
-    this.core.once(':IndexedDB', async () => this.initDB());
+    this.core.once(':indexedDB', () => this.initDB());
+    this.core.once(':idbReady', async () => await this.normalizeLang());
   }
 
-  async detectLang(): Promise<void> {
+  async normalizeLang(lang?: string): Promise<LanguageCode> {
     const check: LanguageCode = navigator.language.includes('zh') ? 'CN' : 'EN';
-    try {
-      const Language = await this.core.idb.withTransaction(['settings'], 'readonly', async (tx: any) => await tx.objectStore('settings').get('Language'));
-      this.language = (Language.value || check) as LanguageCode;
-    } catch (err) {
-      this.language = check;
-    }
+    const record = lang ? null : await this.core.idb.withTransaction(['settings'], 'readonly', async (tx: any) => await tx.objectStore('settings').get('Language')).catch(() => null);
+    const code = String(lang ?? record?.value ?? check).toUpperCase();
+    this.language = (LanguageManager.DEFAULT_LANGS as readonly string[]).includes(code) ? (code as LanguageCode) : check;
+    this.cache.clear();
+    this.core.logger.log(`语言设置为: ${this.language}`, 'DEBUG');
+    return this.language;
   }
 
   initDB(): void {
-    this.core.idb.register('language-metadata', { keyPath: 'key' }, [{ name: 'timestamp', keyPath: 'timestamp' }]);
+    this.core.idb.register('language-metadata', { keyPath: 'key' });
 
-    this.core.idb.register('language-translations', { keyPath: 'key' }, [
-      { name: 'mod', keyPath: 'mod' },
-      { name: 'language', keyPath: 'language', options: { unique: false } }
-    ]);
+    this.core.idb.register('language-translations', { keyPath: 'key' }, [{ name: 'mod', keyPath: 'mod' }]);
 
-    this.core.idb.register('language-text_index', { keyPath: ['key', 'language', 'text_value'] }, [
+    this.core.idb.register('language-text-index', { keyPath: ['key', 'language', 'text_value'] }, [
       { name: 'text_value', keyPath: 'text_value' },
       { name: 'key', keyPath: 'key' }
     ]);
   }
 
-  setLanguage(lang: string): void {
-    if (!lang) return;
-
-    this.language = lang.toUpperCase() as LanguageCode;
-    this.cache.clear();
-    this.core.logger.log(`语言设置为: ${this.language}`, 'DEBUG');
+  private modFile(modName: string, path: string, silent = false): any {
+    const modLoader = this.core.modLoader;
+    if (!modLoader) {
+      this.core.logger.log('Mod 加载器未设置', 'ERROR');
+      return null;
+    }
+    const modZip = modLoader.getModZip(modName);
+    if (!modZip) {
+      this.core.logger.log(`找不到 Mod: ${modName}`, 'ERROR');
+      return null;
+    }
+    const file = modZip.zip.file(path);
+    if (!file && !silent) this.core.logger.log(`文件未找到: ${path}`, 'ERROR');
+    return file || null;
   }
 
   async *importAll(modName: string, langs: readonly string[] = LanguageManager.DEFAULT_LANGS) {
-    if (!this.core.modLoader) {
-      this.core.logger.log('Mod 加载器未设置', 'ERROR');
-      return;
-    }
     for (const lang of langs) {
       const formats = ['json', 'yml', 'yaml'];
       let processedCount = 0;
@@ -65,12 +66,11 @@ class LanguageManager {
       let foundAny = false;
       for (const format of formats) {
         const path = `translations/${lang.toLowerCase()}.${format}`;
-        const modZip = this.core.modLoader.getModZip(modName);
-        if (!modZip || !modZip.zip.file(path)) continue;
+        const file = this.modFile(modName, path, true);
+        if (!file) continue;
         this.core.logger.log(`处理 ${lang} 翻译: ${path}`, 'DEBUG');
         foundAny = true;
         try {
-          const file = modZip.zip.file(path);
           const content = await file.async('string');
           const data = this.parseFile(content, path);
           for await (const progress of this.processStream(modName, lang, data)) yield { ...progress, lang, type: 'process' };
@@ -91,20 +91,8 @@ class LanguageManager {
   }
 
   async *load(modName: string, lang: string, path: string) {
-    if (!this.core.modLoader) {
-      this.core.logger.log('Mod 加载器未设置', 'ERROR');
-      return;
-    }
-    const modZip = this.core.modLoader.getModZip(modName);
-    if (!modZip) {
-      this.core.logger.log(`找不到 Mod: ${modName}`, 'ERROR');
-      return;
-    }
-    const file = modZip.zip.file(path);
-    if (!file) {
-      this.core.logger.log(`文件未找到: ${path}`, 'ERROR');
-      return;
-    }
+    const file = this.modFile(modName, path);
+    if (!file) return;
     try {
       const content = await file.async('string');
       const data = this.parseFile(content, path);
@@ -134,26 +122,23 @@ class LanguageManager {
       return;
     }
 
-    const existingKeys = await this.getKeysForMod(modName);
+    const existingKeys = await this.getKeysForMod(modName, lang);
     const newKeys = new Set(keys);
     const oldKeys = new Set([...existingKeys].filter(k => !newKeys.has(k)));
     if (oldKeys.size > 0) await this.cleanOldKeys(oldKeys, lang);
-    const batches = this.core.lodash.chunk(keys, 100);
     let processed = 0;
-    for (const batchKeys of batches) {
-      const batch: Record<string, string> = {};
 
-      for (const key of batchKeys) {
-        batch[key] = translations[key];
+    for (let i = 0; i < keys.length; i += LanguageManager.BATCH_SIZE) {
+      const batchKeys = keys.slice(i, i + LanguageManager.BATCH_SIZE);
+      const entries = batchKeys.map(key => {
         if (!this.translations.has(key)) this.translations.set(key, {});
         this.translations.get(key)![lang] = translations[key];
-      }
-
-      const entries = this.core.lodash.map(batch, (value, key) => ({
-        key,
-        translations: { [lang]: value },
-        mod: modName
-      }));
+        return {
+          key,
+          translations: { [lang]: translations[key] },
+          mod: modName
+        };
+      });
 
       await this.storeBatch(entries);
 
@@ -175,16 +160,17 @@ class LanguageManager {
       void this.loadFromDB(key);
       return `[${key}]`;
     }
-    let result = this.core.lodash.get(rec, this.language, this.core.lodash.get(rec, 'EN', this.core.lodash.first(this.core.lodash.values(rec)) || `[${key}]`));
+    const result = rec[this.language] || rec.EN || Object.values(rec)[0] || `[${key}]`;
     if (this.language === 'EN' && space === true) return result + ' ';
     return result;
   }
 
   auto(text: string): string {
     if (!text) return text;
-    if (this.isCurrentLang(text)) return text;
-    if (this.cache.has(text)) return this.t(this.cache.get(text)!);
+    const cached = this.cache.get(text);
+    if (cached) return this.t(cached);
     for (const [key, trans] of this.translations) {
+      if (trans[this.language] === text) return text;
       for (const lang in trans) {
         if (trans[lang] === text) {
           this.cache.set(text, key);
@@ -222,7 +208,7 @@ class LanguageManager {
     try {
       await this.core.idb.clearStore('language-metadata');
       await this.core.idb.clearStore('language-translations');
-      await this.core.idb.clearStore('language-text_index');
+      await this.core.idb.clearStore('language-text-index');
       this.preloaded = false;
       this.translations.clear();
       this.cache.clear();
@@ -233,35 +219,10 @@ class LanguageManager {
     }
   }
 
-  async cleanOld(): Promise<void> {
-    try {
-      await this.core.idb.withTransaction(['language-metadata'], 'readwrite', async (tx: any) => {
-        const store = tx.objectStore('language-metadata');
-        const all = await store.getAll();
-        const latest = new Map<string, any>();
-        for (const rec of all) {
-          const base = rec.key.split('_')[0];
-          if (!latest.has(base) || latest.get(base).timestamp < rec.timestamp) latest.set(base, rec);
-        }
-        for (const rec of all) {
-          const base = rec.key.split('_')[0];
-          if (latest.get(base).key !== rec.key) await store.delete(rec.key);
-        }
-        this.core.logger.log('清理旧版本完成', 'DEBUG');
-      });
-    } catch (err: any) {
-      this.core.logger.log(`清理失败: ${err.message}`, 'ERROR');
-    }
-  }
-
   private parseFile(content: string, path: string): any {
-    if (path.endsWith('.json')) {
-      return JSON.parse(content);
-    } else if (path.endsWith('.yml') || path.endsWith('.yaml')) {
-      return this.core.yaml.load(content);
-    } else {
-      throw new Error(`不支持的文件格式: ${path}`);
-    }
+    if (path.endsWith('.json')) return JSON.parse(content);
+    if (path.endsWith('.yml') || path.endsWith('.yaml')) return this.core.yaml.load(content);
+    throw new Error(`不支持的文件格式: ${path}`);
   }
 
   private async computeHash(data: any): Promise<string> {
@@ -274,27 +235,32 @@ class LanguageManager {
   }
 
   private async getFileHash(modName: string, lang: string): Promise<string | null> {
+    const key = `${modName}_${lang}`;
+    if (this.fileHashes.has(key)) return this.fileHashes.get(key)!;
     try {
       return await this.core.idb.withTransaction(['language-metadata'], 'readonly', async (tx: any) => {
         const store = tx.objectStore('language-metadata');
-        return (await store.get(`${modName}_${lang}`))?.hash || null;
+        const hash = (await store.get(key))?.hash || null;
+        if (hash) this.fileHashes.set(key, hash);
+        return hash;
       });
     } catch (err: any) {
-      this.core.logger.log(`获取哈希失败: ${modName}_${lang} - ${err.message}`, 'DEBUG');
+      this.core.logger.log(`获取哈希失败: ${key} - ${err.message}`, 'DEBUG');
       return null;
     }
   }
 
   private async saveFileHash(modName: string, lang: string, hash: string): Promise<void> {
+    const key = `${modName}_${lang}`;
     try {
       await this.core.idb.withTransaction(['language-metadata'], 'readwrite', async (tx: any) => {
         const store = tx.objectStore('language-metadata');
         await store.put({
-          key: `${modName}_${lang}`,
+          key,
           hash,
           timestamp: Date.now()
         });
-        this.fileHashes.set(`${modName}_${lang}`, hash);
+        this.fileHashes.set(key, hash);
       });
     } catch (err: any) {
       this.core.logger.log(`保存哈希失败: ${err.message}`, 'ERROR');
@@ -322,18 +288,19 @@ class LanguageManager {
 
       const keys = Array.from(map.keys());
 
-      await this.core.idb.withTransaction(['language-translations', 'language-text_index'], 'readwrite', async (tx: any) => {
+      await this.core.idb.withTransaction(['language-translations', 'language-text-index'], 'readwrite', async (tx: any) => {
         const tStore = tx.objectStore('language-translations');
-        const textStore = tx.objectStore('language-text_index');
+        const textStore = tx.objectStore('language-text-index');
         const keyIndex = textStore.index('key');
-
-        const existingArr = await Promise.all(keys.map(k => tStore.get(k)));
+        const records = await Promise.all(keys.map(k => tStore.get(k)));
+        const mergedMap = new Map<string, Record<string, string>>();
 
         for (let i = 0; i < keys.length; i++) {
           const key = keys[i];
-          const existing = existingArr[i];
+          const existing = records[i];
           const newBucket = map.get(key)!;
           const merged = existing ? { ...existing.translations, ...newBucket.translations } : newBucket.translations;
+          mergedMap.set(key, merged);
 
           await tStore.put({
             key,
@@ -352,7 +319,7 @@ class LanguageManager {
         }
 
         for (const key of keys) {
-          const translations = map.get(key)!.translations;
+          const translations = mergedMap.get(key)!;
           for (const lang in translations) {
             await textStore.add({
               text_value: translations[lang],
@@ -388,9 +355,9 @@ class LanguageManager {
     for (let i = 0; i < entries.length; i += small) {
       const chunk = entries.slice(i, i + small);
 
-      await this.core.idb.withTransaction(['language-translations', 'language-text_index'], 'readwrite', async (tx: any) => {
+      await this.core.idb.withTransaction(['language-translations', 'language-text-index'], 'readwrite', async (tx: any) => {
         const store = tx.objectStore('language-translations');
-        const textStore = tx.objectStore('language-text_index');
+        const textStore = tx.objectStore('language-text-index');
         const keyIndex = textStore.index('key');
 
         for (const { key, translations, mod } of chunk) {
@@ -410,9 +377,9 @@ class LanguageManager {
             cursor = await cursor.continue();
           }
 
-          for (const lang in translations) {
+          for (const lang in merged) {
             await textStore.add({
-              text_value: translations[lang],
+              text_value: merged[lang],
               key,
               language: lang
             });
@@ -424,16 +391,16 @@ class LanguageManager {
     this.core.logger.log('重试完成', 'DEBUG');
   }
 
-  private async getKeysForMod(modName: string): Promise<Set<string>> {
+  private async getKeysForMod(modName: string, lang: string): Promise<Set<string>> {
     try {
       return await this.core.idb.withTransaction(['language-translations'], 'readonly', async (tx: any) => {
         const store = tx.objectStore('language-translations');
         const index = store.index('mod');
         const records = await index.getAll(modName);
-        return new Set(records.map((r: any) => r.key));
+        return new Set(records.filter((r: any) => r.translations && Object.prototype.hasOwnProperty.call(r.translations, lang)).map((r: any) => r.key));
       });
     } catch (err: any) {
-      this.core.logger.log(`获取键失败: ${modName} - ${err.message}`, 'DEBUG');
+      this.core.logger.log(`获取键失败: ${modName}/${lang} - ${err.message}`, 'DEBUG');
       return new Set();
     }
   }
@@ -442,16 +409,16 @@ class LanguageManager {
     if (oldKeys.size === 0) return;
 
     try {
-      await this.core.idb.withTransaction(['language-translations', 'language-text_index'], 'readwrite', async (tx: any) => {
+      await this.core.idb.withTransaction(['language-translations', 'language-text-index'], 'readwrite', async (tx: any) => {
         const store = tx.objectStore('language-translations');
-        const textStore = tx.objectStore('language-text_index');
+        const textStore = tx.objectStore('language-text-index');
         const keyIndex = textStore.index('key');
 
         for (const key of Array.from(oldKeys)) {
           const record = await store.get(key);
           if (!record) continue;
 
-          if (record.translations && record.translations[lang]) {
+          if (record.translations && Object.prototype.hasOwnProperty.call(record.translations, lang)) {
             delete record.translations[lang];
 
             if (Object.keys(record.translations).length > 0) {
@@ -480,12 +447,9 @@ class LanguageManager {
       return await this.core.idb.withTransaction(['language-translations'], 'readonly', async (tx: any) => {
         const store = tx.objectStore('language-translations');
         const record = await store.get(key);
-
-        if (record) {
-          this.translations.set(key, record.translations || {});
-          return true;
-        }
-        return false;
+        if (!record) return false;
+        this.translations.set(key, record.translations || {});
+        return true;
       });
     } catch (err: any) {
       this.core.logger.log(`加载失败: ${key} - ${err.message}`, 'DEBUG');
@@ -495,31 +459,19 @@ class LanguageManager {
 
   private async findKeyAsync(text: string): Promise<string | null> {
     try {
-      return await this.core.idb.withTransaction(['language-text_index'], 'readonly', async (tx: any) => {
-        const store = tx.objectStore('language-text_index');
+      return await this.core.idb.withTransaction(['language-text-index'], 'readonly', async (tx: any) => {
+        const store = tx.objectStore('language-text-index');
         const index = store.index('text_value');
         const records = await index.getAll(text);
-
-        if (records.length > 0) {
-          const key = records[0].key;
-          this.cache.set(text, key);
-          return key;
-        }
-        return null;
+        if (records.length === 0) return null;
+        const key = records[0].key;
+        this.cache.set(text, key);
+        return key;
       });
     } catch (err: any) {
       this.core.logger.log(`查找失败: ${text} - ${err.message}`, 'DEBUG');
       return null;
     }
-  }
-
-  private isCurrentLang(text: string): boolean {
-    if (this.cache.has(text)) {
-      const key = this.cache.get(text)!;
-      const translations = this.translations.get(key);
-      if (translations && translations[this.language] === text) return true;
-    }
-    return this.core.lodash.some(Array.from(this.translations.values()), (translations: Translation) => translations[this.language] === text);
   }
 }
 

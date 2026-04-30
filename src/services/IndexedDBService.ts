@@ -1,7 +1,7 @@
 // ./src/services/IndexedDBService.ts
 
 import { version } from './../constants';
-import { MaplebirchCore } from '../core';
+import type { MaplebirchCore } from '../core';
 
 type StoreDefinition = {
   name: string;
@@ -19,14 +19,16 @@ class IndexedDBService {
 
   private db: any = null;
   private ready = false;
+  private opening: Promise<void> | null = null;
   private stores = new Map<string, StoreDefinition>();
 
   constructor(readonly core: MaplebirchCore) {
-    IndexedDBService.DATABASE_VERSION = parseInt(version.split('.')[0], 10);
+    const [major, minor, patch] = version.split('.').map(v => parseInt(v, 10) || 0);
+    IndexedDBService.DATABASE_VERSION = major * 10000 + minor * 100 + patch;
   }
 
   register(name: string, options: IDBObjectStoreParameters = { keyPath: 'id' }, indexes: Array<{ name: string; keyPath: string | string[]; options?: IDBIndexParameters }> = []): void {
-    if (typeof name !== 'string') {
+    if (typeof name !== 'string' || !name) {
       this.core.logger.log(`无效的存储名称: ${name as any}`, 'ERROR');
       return;
     }
@@ -40,17 +42,29 @@ class IndexedDBService {
 
   async init(): Promise<void> {
     if (this.ready) return;
+    if (this.opening) return this.opening;
+    this.opening = (async () => {
+      try {
+        const idbRef = this.core.modUtils.getIdbRef();
+        this.db = await idbRef.idb_openDB(IndexedDBService.DATABASE_NAME, IndexedDBService.DATABASE_VERSION, {
+          upgrade: (db: IDBDatabase, _oldVersion: any, _newVersion: any, transaction: IDBTransaction) => this.createStores(db, transaction)
+        });
+        this.ready = true;
+        this.core.logger.log('IDB数据库初始化完成', 'INFO', this.stores);
+      } catch (error: any) {
+        this.db = null;
+        this.ready = false;
+        this.core.logger.log(`IDB数据库初始化失败: ${error?.message || error}`, 'ERROR');
+        await this.deleteDatabase();
+        await this.core.disabled('maplebirch');
+        throw error;
+      }
+    })();
+
     try {
-      const idbRef = this.core.modUtils.getIdbRef();
-      this.db = await idbRef.idb_openDB(IndexedDBService.DATABASE_NAME, IndexedDBService.DATABASE_VERSION, {
-        upgrade: (db: IDBDatabase, _oldVersion: any, _newVersion: any, transaction: IDBTransaction) => this.createStores(db, transaction)
-      });
-    } catch (error: any) {
-      await this.deleteDatabase();
-      await this.core.disabled('maplebirch');
+      await this.opening;
     } finally {
-      if (!this.ready) this.core.logger.log('IDB数据库初始化完成', 'INFO', this.stores);
-      this.ready = true;
+      this.opening = null;
     }
   }
 
@@ -58,32 +72,30 @@ class IndexedDBService {
     for (const storeDef of this.stores.values()) {
       if (!db.objectStoreNames.contains(storeDef.name)) {
         const store = db.createObjectStore(storeDef.name, storeDef.options);
-        for (const indexDef of storeDef.indexes || []) {
-          try {
-            store.createIndex(indexDef.name, indexDef.keyPath, indexDef.options || {});
-          } catch (err) {
-            /* ignore */
-          }
-        }
+        for (const indexDef of storeDef.indexes || []) store.createIndex(indexDef.name, indexDef.keyPath, indexDef.options || {});
       }
     }
   }
 
   async checkStore(): Promise<void> {
-    if (!this.ready || !this.db) return;
+    if (!this.ready) await this.init();
+    if (!this.db) return;
     const dbStoreNames = Array.from(this.db.objectStoreNames);
     const storeNames = Array.from(this.stores.keys());
     for (const storeName of storeNames) {
       if (!dbStoreNames.includes(storeName)) {
+        this.core.logger.log(`IDB缺少存储: ${storeName}`, 'WARN');
         await this.resetDatabase();
         break;
       }
     }
   }
 
-  async withTransaction<T>(storeNames: string | string[], mode: IDBTransactionMode, callback: (tx: any) => Promise<T>): Promise<T> {
+  async withTransaction<T>(storeNames: string | string[], mode: IDBTransactionMode, callback: (tx: any) => T | Promise<T>): Promise<T> {
     if (!this.ready) await this.init();
+    if (!this.db) throw new Error('IDB数据库尚未初始化');
     const names = Array.isArray(storeNames) ? storeNames : [storeNames];
+    for (const name of names) if (!this.db.objectStoreNames.contains(name)) throw new Error(`IDB存储不存在: ${name}`);
     const tx = this.db.transaction(names, mode);
     try {
       const result = await callback(tx);
@@ -108,9 +120,10 @@ class IndexedDBService {
         this.db.close();
         this.db = null;
       }
+      this.ready = false;
+      this.opening = null;
       const idbRef = this.core.modUtils.getIdbRef();
       await idbRef.idb_deleteDB(IndexedDBService.DATABASE_NAME);
-      this.ready = false;
       return true;
     } catch (error: any) {
       this.core.logger.log(`删除数据库失败: ${error?.message || error}`, 'ERROR');

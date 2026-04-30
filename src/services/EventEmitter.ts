@@ -1,6 +1,6 @@
 // ./src/services/EventEmitter.ts
 
-import { MaplebirchCore } from '../core';
+import type { MaplebirchCore } from '../core';
 
 type EventCallback = (...args: any[]) => any;
 
@@ -17,7 +17,8 @@ class EventEmitter {
   constructor(readonly core: MaplebirchCore) {
     // prettier-ignore
     this.events = new Map([
-      [':IndexedDB'      , []], // IDB数据库
+      [':indexedDB'      , []], // IDB数据库
+      [':idbReady'       , []], // IDB数据库可读写
       [':import'         , []], // 数据导入
       [':allModule'      , []], // 所有模块注册
       [':variable'       , []], // V变量可注入时机
@@ -44,7 +45,7 @@ class EventEmitter {
       this.events.set(eventName, listeners);
       this.core.logger.log(`创建新事件类型: ${eventName}`, 'DEBUG');
     }
-    if (this.core.lodash.some(listeners, listener => listener.callback === callback)) {
+    if (listeners.some(listener => listener.callback === callback)) {
       this.core.logger.log(`回调函数已注册: ${eventName} (跳过重复)`, 'DEBUG');
       return false;
     }
@@ -60,30 +61,30 @@ class EventEmitter {
       this.core.logger.log(`无效事件名: ${eventName}`, 'WARN');
       return false;
     }
-    const isFunc = this.core.lodash.isFunction(identifier);
-    const Length = listeners.length;
-    this.core.lodash.remove(listeners, listener => (isFunc ? listener.callback === identifier : listener.description === identifier || listener.internalId === identifier));
-    const removed = Length !== listeners.length;
-    if (removed) {
-      this.core.logger.log(`移除事件监听器: ${eventName}${isFunc ? ' (函数引用)' : ` (描述: ${identifier})`}`, 'DEBUG');
-      return true;
+    const isFunc = typeof identifier === 'function';
+    const length = listeners.length;
+    for (let i = listeners.length - 1; i >= 0; i--) {
+      const listener = listeners[i];
+      if (isFunc ? listener.callback === identifier : listener.description === identifier || listener.internalId === identifier) listeners.splice(i, 1);
     }
-    this.core.logger.log(`未找到匹配的监听器: ${eventName} (标识符: ${isFunc ? '函数引用' : identifier})`, 'DEBUG');
-    return false;
+    if (length === listeners.length) {
+      this.core.logger.log(`未找到匹配的监听器: ${eventName} (标识符: ${isFunc ? '函数引用' : identifier})`, 'DEBUG');
+      return false;
+    }
+    this.core.logger.log(`移除事件监听器: ${eventName}${isFunc ? ' (函数引用)' : ` (描述: ${identifier})`}`, 'DEBUG');
+    return true;
   }
 
   once(eventName: string, callback: EventCallback, description: string = ''): boolean {
-    const onceWrapper: EventCallback = (...args) => {
+    let fired = false;
+    const onceWrapper: EventCallback = async (...args) => {
+      if (fired) return;
+      fired = true;
+      this.off(eventName, onceWrapper);
       try {
-        const result = callback(...args);
-        if (result instanceof Promise) {
-          void result.finally(() => this.off(eventName, onceWrapper));
-        } else {
-          this.off(eventName, onceWrapper);
-        }
+        return await callback(...args);
       } catch (error: any) {
-        this.core.logger.log(`${eventName}事件once回调错误: ${error.message}`, 'ERROR');
-        this.off(eventName, onceWrapper);
+        this.core.logger.log(`${eventName}事件once回调错误: ${error?.message || error}`, 'ERROR');
       }
     };
     return this.on(eventName, onceWrapper, description);
@@ -91,30 +92,28 @@ class EventEmitter {
 
   async trigger(eventName: string, ...args: any[]): Promise<void> {
     const listeners = this.events.get(eventName);
-    if (listeners && listeners.length > 0) {
-      const snapshot = this.core.lodash.clone(listeners);
+    if (listeners?.length) {
+      const snapshot = [...listeners];
       for (let i = 0; i < snapshot.length; i++) {
-        const listener = snapshot[i];
         try {
-          const result = listener.callback(...args);
-          if (result instanceof Promise) await result;
+          await snapshot[i].callback(...args);
         } catch (error: any) {
-          this.core.logger.log(`${eventName}事件处理错误: ${error.message}`, 'ERROR');
+          this.core.logger.log(`${eventName}事件处理错误: ${error?.message || error}`, 'ERROR');
         }
       }
     }
 
     const callbacks = this.afters.get(eventName);
-    if (callbacks) {
-      for (let i = 0; i < callbacks.length; i++) {
+    if (callbacks?.length) {
+      this.afters.delete(eventName);
+      const snapshot = [...callbacks];
+      for (let i = 0; i < snapshot.length; i++) {
         try {
-          const result = callbacks[i](...args);
-          if (result instanceof Promise) await result;
+          await snapshot[i](...args);
         } catch (error: any) {
-          this.core.logger.log(`${eventName}事件after回调错误: ${error.message}`, 'ERROR');
+          this.core.logger.log(`${eventName}事件after回调错误: ${error?.message || error}`, 'ERROR');
         }
       }
-      this.afters.delete(eventName);
     }
   }
 

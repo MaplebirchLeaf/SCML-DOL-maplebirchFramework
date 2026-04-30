@@ -120,7 +120,7 @@ class CombatManager {
 
 (function (maplebirch): void {
   'use strict';
-  void maplebirch.register('combat', Object.seal(new CombatManager(maplebirch)), ['npc']);
+  maplebirch.register('combat', Object.seal(new CombatManager(maplebirch)), ['npc']);
 })(maplebirch);
 
 export default CombatManager;

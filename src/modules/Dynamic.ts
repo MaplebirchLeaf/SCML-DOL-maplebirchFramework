@@ -73,7 +73,7 @@ class DynamicManager {
 
 (function (maplebirch): void {
   'use strict';
-  void maplebirch.register('dynamic', Object.seal(new DynamicManager(maplebirch)), ['addon']);
+  maplebirch.register('dynamic', Object.seal(new DynamicManager(maplebirch)), ['addon']);
 })(maplebirch);
 
 export default DynamicManager;
