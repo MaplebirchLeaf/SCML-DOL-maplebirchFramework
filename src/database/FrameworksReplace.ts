@@ -17,7 +17,8 @@ const defaultData = {
     <details open>
       <summary class='settingsHeader options'><span class='gold'><<lanSwitch 'Maplebirch Framework' '秋枫白桦框架'>></span></summary>
       <div class='settingsGrid'>
-        <div class='settingsToggleItemWide maplebirch-relationcount-slider'><label>
+        <div class='settingsToggleItem' style='text-align:center'><<lanButton 'reset framework settings to default' 'title' 'class:gold'>><<unset $options.maplebirch>><<run maplebirch.trigger(':rest-options')>><</lanButton>></div>
+        <div class='settingsToggleItem maplebirch-relationcount-slider'><label>
           <span class='gold'><<lanSwitch 'Total Number Of Social Status Displays' '社交栏状态显示总数'>></span>
           <<numberslider '$options.maplebirch.relationcount' $options.maplebirch.relationcount 2 10 2 { value: v => \`\${v}\${lanSwitch(' types','种')}\`}>>
           <span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Adjust the total number of status displays for Primary Relationships NPCs in the SOCIAL bar.' '调整社交栏中主要关系NPC的状态显示总数。'>></span>">(?)</span>
@@ -97,7 +98,7 @@ const defaultData = {
             <</if>>
             <<set _fixedName = \`$options.maplebirch.npcsidebar.display.\${$options.maplebirch.npcsidebar.nnpc}\`>>
             <<set _npcsidebarDisplay = ['none'].concat(Array.from(_npcsidebarSet))>>
-            <<lanSwitch 'Graphic Selection: ' '图形选择：'>><<radiobuttonsfrom _fixedName _npcsidebarDisplay>>
+            <<lanSwitch 'Graphic Selection: ' '图形选择：'>><<radiobuttonsfrom _fixedName _npcsidebarDisplay>><</radiobuttonsfrom>>
           <</if>>
         </div>
       </div>
@@ -237,16 +238,10 @@ const widgetPassage = {
     { src: '<</if>>\n\t\t<<if ![', to: '<</if>>\n\t\t<<maplebirchTransformationMirror>>\n\t\t<<if ![' },
     { src: '<<tficon $_icon>>', to: '<<= maplebirch.char.transformation.icon>>' },
   ],
-  'Widgets Ejaculation': [
-    { srcmatch: /<<if \$npc\[\$npcrow\.indexOf\(_nn\)\] is "Eden"\s*>>[\s\S]*?<<ejaculation-wraith _args\[0\]>>\s*/, to: '<<if !!maplebirch.combat.ejaculation(_nn, _args[0])>>\n\t\t\t\t<<= maplebirch.combat.ejaculation(_nn, _args[0])>>' },
-  ],
   'Widgets NPCs': [
     { src: '<<if $genderknown.includes($npc[_iii])>>', to: '<<if contains($genderknown, $npc)>>' },
     { srcmatch: /<<if \$npc\.length is 1 and \(\["Kylar","Sydney","Gwylan"\]\.includes\(\$npc\[0\]\)\)>>[\s\S]*?<<if \$npc\[0\] is "Sydney" and !\$sydneySeen\.includes\("herm"\)\s*>>[\s\S]*?<<set \$sydneySeen\.pushUnique\("herm"\)>>[\s\S]*?<<elseif \$npc\[0\] is "Kylar">>[\s\S]*?<<elseif \$npc\[0\] is "Gwylan" and !\$gwylanSeen\.includes\("herm"\)>>[\s\S]*?<<\/if>>/, to: '<<if $npc.some(npc => maplebirch.combat.Reaction.HermNameList.includes(npc))>>\n\t\t\t\t<<= maplebirch.combat.Reaction.check("herm")>>'},
     { srcmatch: /<<if \$npc\.length is 1 and \(\["Kylar","Sydney","Gwylan"\]\.includes\(\$npc\[0\]\)\)>>\s*<<if \$npc\[0\] is "Sydney" and !\$sydneySeen\.includes\("crossdress"\)\s*>>\s*<<set \$sydneySeen\.pushUnique\("crossdress"\)>>[\s\S]*?<<elseif \$npc\[0\] is "Kylar">>[\s\S]*?<<elseif \$npc\[0\] is "Gwylan" and !\$gwylanSeen\.includes\("crossdress"\)>>[\s\S]*?<<\/if>>/, to: '<<if $npc.some(npc => maplebirch.combat.Reaction.CDNameList.includes(npc))>>\n\t\t\t\t<<= maplebirch.combat.Reaction.check("crossdress")>>'},
-  ],
-  'Widgets Speech': [
-    { src: '<</if>>\n\t<</switch>>', to: '<</if>>\n\t\t<<default>><<set $_text_output to maplebirch.combat.Speech.output(_args[0])>>\n\t<</switch>>' },
   ]
 }
 

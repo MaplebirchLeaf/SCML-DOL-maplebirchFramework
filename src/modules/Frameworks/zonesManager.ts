@@ -323,15 +323,14 @@ export class zonesManager {
       }
       if (result !== source) return result;
     }
-    const patternType = set.src ? '字符串' : set.srcmatch ? '正则' : set.srcmatchgroup ? '正则组' : '未知';
-    const pattern = set.src || set.srcmatch?.toString() || set.srcmatchgroup?.toString() || '无';
-    this.log(`替换失败: 未找到匹配 (${patternType}: ${pattern})`, 'WARN');
+    const pattern = [set.src, set.srcmatch, set.srcmatchgroup].find(Boolean)?.toString() ?? '';
+    this.log(`替换失败: 未找到匹配 (${pattern})`, 'WARN');
     return source;
   }
 
   #wrapSpecialPassages(passage: { content: string }, title: string) {
     const wrappers: Record<string, (content: string) => string> = {
-      StoryCaption: this.core.lodash.identity,
+      StoryCaption: <T>(value: T): T => value,
       PassageHeader: (content: string) => `<div id='passage-header'>\n${content}\n<<maplebirchHeader>>\n</div>`,
       PassageFooter: (content: string) => `<div id='passage-footer'>\n<<maplebirchFooter>>\n${content}\n</div>`,
       default: (content: string) => `<div id='passage-content'>\n<<= maplebirch.dynamic.trigger('gate')>>\n${content}\n<div id='append'></div>\n</div>`
