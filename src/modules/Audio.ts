@@ -172,7 +172,7 @@ class AudioManager {
     this.log = createlog('audio');
     this.core.howler.Howler.mute(this.muted);
     this.core.howler.Howler.volume(this.volume);
-    this.core.once(':IndexedDB', () => this.initDB());
+    this.core.once(':indexedDB', () => this.initDB());
     this.core.on(':audio', (eventData: AudioEventData) => this.handleAudioEvent(eventData), 'audio manager');
   }
 
@@ -623,7 +623,7 @@ class AudioManager {
 
 (function (maplebirch): void {
   'use strict';
-  void maplebirch.register('audio', Object.seal(new AudioManager(maplebirch)), ['tool']);
+  maplebirch.register('audio', Object.seal(new AudioManager(maplebirch)), ['tool']);
 })(maplebirch);
 
 export default AudioManager;

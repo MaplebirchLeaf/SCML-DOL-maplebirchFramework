@@ -698,7 +698,7 @@ class NPCManager {
 
 (function (maplebirch): void {
   'use strict';
-  void maplebirch.register('npc', Object.seal(new NPCManager(maplebirch)), ['char']);
+  maplebirch.register('npc', Object.seal(new NPCManager(maplebirch)), ['char']);
 })(maplebirch);
 
 export default NPCManager;

@@ -25,8 +25,16 @@ interface AddonPluginConfig {
 
 interface ModInfo {
   name: string;
-  bootJson?: { addonPlugin?: Array<{ modName: string; addonName: string; params?: any }> };
+  bootJson?: {
+    addonPlugin?: Array<{
+      modName: string;
+      addonName: string;
+      modVersion?: string;
+      params?: any;
+    }>;
+  };
   modRef?: any;
+  imgs?: any[];
 }
 
 interface FileItem {
@@ -43,18 +51,21 @@ class Process {
         const { modName, config } = task as Task;
         if (config === true) {
           for await (const p of addon.core.lang.importAll(modName)) if (p.error) addon.core.log(`导入失败: ${p.lang}`, 'ERROR');
-        } else if (Array.isArray(config)) {
+          continue;
+        }
+        if (Array.isArray(config)) {
           addon.core.log(`为${modName}导入指定语言: ${config.join(', ')}`, 'DEBUG');
           for (const lang of config) {
             const filePath = `translations/${lang.toLowerCase()}.json`;
             for await (const p of addon.core.lang.load(modName, lang.toUpperCase(), filePath)) if (p.type === 'error') addon.core.log(`导入失败: ${p.lang}`, 'ERROR');
           }
-        } else if (typeof config === 'object') {
-          addon.core.log(`为${modName}导入自定义语言配置`, 'DEBUG');
-          for (const [lang, langConfig] of Object.entries(config)) {
-            const filePath = (langConfig as any).file || `translations/${lang.toLowerCase()}.json`;
-            for await (const p of addon.core.lang.load(modName, lang.toUpperCase(), filePath)) if (p.type === 'error') addon.core.log(`导入失败: ${p.lang}`, 'ERROR');
-          }
+          continue;
+        }
+        if (!config || typeof config !== 'object') continue;
+        addon.core.log(`为${modName}导入自定义语言配置`, 'DEBUG');
+        for (const [lang, langConfig] of Object.entries(config)) {
+          const filePath = (langConfig as any).file || `translations/${lang.toLowerCase()}.json`;
+          for await (const p of addon.core.lang.load(modName, lang.toUpperCase(), filePath)) if (p.type === 'error') addon.core.log(`导入失败: ${p.lang}`, 'ERROR');
         }
       }
       addon.processed.language = true;
@@ -63,7 +74,7 @@ class Process {
     }
   }
 
-  static async Audio(addon: AddonPlugin) {
+  static async Audio(addon: AddonPlugin): Promise<void> {
     if (addon.processed.audio || addon.queue.audio.length === 0) return;
     try {
       for (const task of addon.queue.audio) {
@@ -71,11 +82,12 @@ class Process {
         if (config === true) {
           addon.core.log(`为${modName}导入音频（默认路径）`, 'DEBUG');
           await addon.core.audio.importAllAudio(modName);
-        } else if (Array.isArray(config)) {
-          for (const path of config) {
-            addon.core.log(`为${modName}导入音频（路径: ${path}）`, 'DEBUG');
-            await addon.core.audio.importAllAudio(modName, path);
-          }
+          continue;
+        }
+        if (!Array.isArray(config)) continue;
+        for (const path of config) {
+          addon.core.log(`为${modName}导入音频（路径: ${path}）`, 'DEBUG');
+          await addon.core.audio.importAllAudio(modName, path);
         }
       }
       addon.processed.audio = true;
@@ -84,21 +96,27 @@ class Process {
     }
   }
 
-  static async Framework(addon: AddonPlugin) {
+  static async Framework(addon: AddonPlugin): Promise<void> {
     if (addon.processed.framework || addon.queue.framework.length === 0) return;
     try {
       for (const task of addon.queue.framework) {
         const { modName, config } = task;
         const configs = Array.isArray(config) ? config : [config];
         for (const singleConfig of configs) {
-          if (singleConfig.traits) {
-            if (!singleConfig.traits || !Array.isArray(singleConfig.traits) || singleConfig.traits.length === 0) return;
-            singleConfig.traits.forEach((trait: TraitConfig) => Process._addTrait(addon, trait));
-          } else if (singleConfig.addto && singleConfig.widget) {
-            Process._addMacro(addon, modName, singleConfig.addto, singleConfig.widget);
-          } else {
+          if (!singleConfig || typeof singleConfig !== 'object') {
             addon.core.log(`模块 ${modName} 的框架配置格式无效: ${JSON.stringify(singleConfig)}`, 'WARN');
+            continue;
           }
+          if (singleConfig.traits) {
+            if (!Array.isArray(singleConfig.traits) || singleConfig.traits.length === 0) continue;
+            singleConfig.traits.forEach((trait: TraitConfig) => Process._addTrait(addon, trait));
+            continue;
+          }
+          if (singleConfig.addto && singleConfig.widget) {
+            Process._addMacro(addon, modName, singleConfig.addto, singleConfig.widget);
+            continue;
+          }
+          addon.core.log(`模块 ${modName} 的框架配置格式无效: ${JSON.stringify(singleConfig)}`, 'WARN');
         }
       }
       addon.processed.framework = true;
@@ -107,7 +125,7 @@ class Process {
     }
   }
 
-  private static _addTrait(addon: AddonPlugin, traitConfig: TraitConfig) {
+  private static _addTrait(addon: AddonPlugin, traitConfig: TraitConfig): void {
     const { title, name, colour, has, text } = traitConfig;
     if (!title || !name) {
       addon.core.log(`无效的特质配置: ${JSON.stringify(traitConfig)}`, 'WARN');
@@ -124,52 +142,54 @@ class Process {
     } else {
       hasCond = () => has ?? false;
     }
-    const trait = { title: title, name: name, colour: colour ?? '', has: hasCond, text: text ?? '' } as TraitConfig;
+    const trait = { title, name, colour: colour ?? '', has: hasCond, text: text ?? '' } as TraitConfig;
     addon.core.tool.other.addTraits(trait);
   }
 
-  private static _addMacro(addon: AddonPlugin, modName: string, zone: string, widget: ZoneWidgetConfig) {
+  private static _addMacro(addon: AddonPlugin, modName: string, zone: string, widget: ZoneWidgetConfig): void {
     if (typeof widget === 'string') {
       addon.core.log(`为Mod ${modName}添加部件到区域: ${zone} (${widget as any})`, 'DEBUG');
       addon.core.tool.zone.addTo(zone, widget);
-    } else if (typeof widget === 'object' && widget.widget) {
+      return;
+    }
+    if (widget && typeof widget === 'object' && widget.widget) {
       const widgetObj = { widget: widget.widget, exclude: widget.exclude, match: widget.match, passage: widget.passage };
       addon.core.tool.zone.addTo(zone, widgetObj);
-    } else {
-      addon.core.log(`无效的部件配置: ${JSON.stringify(widget)}`, 'WARN');
+      return;
     }
+    addon.core.log(`无效的部件配置: ${JSON.stringify(widget)}`, 'WARN');
   }
 
-  static async NPC(addon: AddonPlugin) {
+  static async NPC(addon: AddonPlugin): Promise<void> {
     if (addon.processed.npc || addon.queue.npc.length === 0) return;
     try {
       for (const task of addon.queue.npc) {
         const { modName, modZip, config } = task;
-        if (typeof config !== 'object' || config === null) {
+        if (!config || typeof config !== 'object') {
           addon.core.log(`NPC 配置格式无效，跳过处理`, 'WARN');
           continue;
         }
-        if (config.NamedNPC && Array.isArray(config.NamedNPC)) {
+        if (Array.isArray(config.NamedNPC)) {
           for (const npcConfig of config.NamedNPC) {
-            if (typeof npcConfig !== 'object' || !npcConfig) continue;
+            if (!npcConfig || typeof npcConfig !== 'object') continue;
             const [data, options, translations] = npcConfig;
             if (data && typeof data === 'object') addon.core.npc.add(data, options ?? {}, translations ?? {});
           }
         }
         if (config.Stats && typeof config.Stats === 'object') addon.core.npc.addStats(config.Stats);
-        if (config.Sidebar && typeof config.Sidebar === 'object') {
-          const allImagePaths = [];
-          if (Array.isArray(config.Sidebar.clothes)) for (const filePath of config.Sidebar.clothes) await addon.core.npc.Clothes.load(modName, filePath);
-          if (Array.isArray(config.Sidebar.image)) {
-            const imagePaths = addon.core.npc.Sidebar.loadFromMod(modZip, config.Sidebar.image);
-            if (imagePaths.length > 0) allImagePaths.push(...imagePaths);
-          }
-          if (Array.isArray(config.Sidebar.config)) {
-            const clothesImagePaths = await addon.core.npc.Clothes.import(modName, modZip, config.Sidebar.config);
-            if (clothesImagePaths.length > 0) allImagePaths.push(...clothesImagePaths);
-          }
-          if (allImagePaths.length > 0) await Process._injectBSAImages(addon, modName, modZip, allImagePaths);
+        const sidebar = config.Sidebar;
+        if (!sidebar || typeof sidebar !== 'object' || !modZip) continue;
+        const allImagePaths: string[] = [];
+        if (Array.isArray(sidebar.clothes)) for (const filePath of sidebar.clothes) await addon.core.npc.Clothes.load(modName, filePath);
+        if (Array.isArray(sidebar.image)) {
+          const imagePaths = addon.core.npc.Sidebar.loadFromMod(modZip, sidebar.image);
+          if (imagePaths.length > 0) allImagePaths.push(...imagePaths);
         }
+        if (Array.isArray(sidebar.config)) {
+          const clothesImagePaths = await addon.core.npc.Clothes.import(modName, modZip, sidebar.config);
+          if (clothesImagePaths.length > 0) allImagePaths.push(...clothesImagePaths);
+        }
+        if (allImagePaths.length > 0) await Process._injectBSAImages(addon, modName, modZip, allImagePaths);
       }
       addon.processed.npc = true;
     } catch (e: any) {
@@ -177,7 +197,7 @@ class Process {
     }
   }
 
-  private static async _injectBSAImages(addon: AddonPlugin, modName: string, modZip: ModZipReader, imgPaths: string[]) {
+  private static async _injectBSAImages(addon: AddonPlugin, modName: string, modZip: ModZipReader, imgPaths: string[]): Promise<void> {
     try {
       const imgs = [];
       for (const imgPath of imgPaths) {
@@ -199,7 +219,8 @@ class Process {
       }
       if (imgs.length === 0) return;
       const modInfo = modZip.modInfo;
-      const plugins = modInfo.bootJson.addonPlugin;
+      const plugins = modInfo.bootJson?.addonPlugin;
+      if (!plugins) return;
       let plugin = plugins.find(p => p.modName === 'BeautySelectorAddon' && p.addonName === 'BeautySelectorAddon');
       if (!plugin) {
         plugin = { modName: 'BeautySelectorAddon', addonName: 'BeautySelectorAddon', modVersion: '^2.0.0', params: {} };
@@ -217,7 +238,7 @@ class Process {
 }
 
 class AddonPlugin {
-  replace: (content: string, replacements: (string | RegExp)[][]) => string;
+  replace: (content: string, replacements: [RegExp, string][]) => string;
   readonly gSC2DataManager: SC2DataManager;
   readonly gModUtils: ModUtils;
   info: Map<string, { addonName: string; mod: ModInfo; modZip: ModZipReader }>;
@@ -243,10 +264,10 @@ class AddonPlugin {
     this.processed = {};
     this.jsFiles = [];
     this.moduleFiles = [];
-    this.core.lodash.forEach(this.supportedConfigs, type => {
+    for (const type of this.supportedConfigs) {
       this.queue[type] = [];
       this.processed[type] = false;
-    });
+    }
     const theName = this.gModUtils.getNowRunningModName();
     if (!theName) {
       this.log('初始化失败: 无法获取当前Mod名称', 'ERROR');
@@ -265,13 +286,9 @@ class AddonPlugin {
   async registerMod(addonName: string, modInfo: ModInfo, modZip: ModZipReader): Promise<void> {
     this.info.set(modInfo.name, { addonName, mod: modInfo, modZip });
     const config = modInfo.bootJson?.addonPlugin?.find((p: any) => p.modName === 'maplebirch' && p.addonName === 'maplebirchAddon') as AddonPluginConfig;
-    if (config?.params) {
-      if (Object.keys(config.params).length > 0 && !this.core.lodash.includes(this.core.modList, modInfo.name)) this.core.modList.push(modInfo.name);
-      const typesToProcess = this.core.lodash.filter(this.supportedConfigs, type => type !== 'script');
-      this.core.lodash.forEach(typesToProcess, type => {
-        if (config.params![type]) this.queue[type].push({ modName: modInfo.name, modZip, config: config.params![type] });
-      });
-    }
+    if (!config?.params) return;
+    if (Object.keys(config.params).length > 0 && !this.core.modList.includes(modInfo.name)) this.core.modList.push(modInfo.name);
+    for (const type of this.supportedConfigs) if (type !== 'script' && config.params[type]) this.queue[type].push({ modName: modInfo.name, modZip, config: config.params[type] });
   }
 
   async ModLoaderLoadEnd(): Promise<void> {
@@ -280,9 +297,7 @@ class AddonPlugin {
   }
 
   async afterInjectEarlyLoad(): Promise<void> {
-    try {
-      await this.core.disabled('Simple Frameworks');
-    } catch {}
+    await this.core.disabled('Simple Frameworks');
     await this.scriptFiles();
     await this._executeScripts(this.moduleFiles, 'Module');
     await this.core.trigger(':allModule');
@@ -322,15 +337,20 @@ class AddonPlugin {
     try { await this.core.char.transformation.modifyEffect(this);        } catch { this.log('modifyEffect 出错', 'ERROR');            }
   }
 
-  private async _loadFilesArray(modName: string, modZip: ModZipReader, files: string[], isModule: boolean): Promise<void> {
+  private async _loadFilesArray(modName: string, modZip: ModZipReader, files: string[], type: 'Module' | 'Script'): Promise<void> {
+    const target = type === 'Module' ? this.moduleFiles : this.jsFiles;
     for (const filePath of files) {
-      const file = modZip.zip.file(filePath);
-      if (!file) continue;
-      const content = await file.async('string');
-      if (isModule) {
-        this.moduleFiles.push({ modName, filePath, content });
-      } else {
-        this.jsFiles.push({ modName, filePath, content });
+      try {
+        const key = `[${modName}]:${filePath}`;
+        if (target.some(file => `[${file.modName}]:${file.filePath}` === key)) continue;
+        const file = modZip.zip.file(filePath);
+        if (!file) {
+          this.log(`${type} 文件未找到: ${filePath} (来自 ${modName})`, 'WARN');
+          continue;
+        }
+        target.push({ modName, filePath, content: await file.async('string') });
+      } catch (e: any) {
+        this.log(`加载 ${type} 文件失败: ${filePath} (来自 ${modName}): ${e.message}`, 'ERROR');
       }
     }
   }
@@ -340,12 +360,13 @@ class AddonPlugin {
     if (!Array.isArray(modNames) || modNames.length === 0) return;
     for (const modName of modNames) {
       try {
-        const bootJson = (this.gModUtils.getMod(modName) as ModInfo).bootJson;
-        const config = bootJson?.addonPlugin?.find(p => p.modName === 'maplebirch' && p.addonName === 'maplebirchAddon') as AddonPluginConfig;
+        const mod = this.gModUtils.getMod(modName) as ModInfo;
         const modZip = this.gModUtils.getModZip(modName);
+        const config = mod?.bootJson?.addonPlugin?.find(p => p.modName === 'maplebirch' && p.addonName === 'maplebirchAddon') as AddonPluginConfig;
         if (!config?.params || !modZip) continue;
-        if (Array.isArray(config.params?.module)) await this._loadFilesArray(modName, modZip, config.params.module, true);
-        if (Array.isArray(config.params?.script)) await this._loadFilesArray(modName, modZip, config.params.script, false);
+        const { module, script } = config.params;
+        if (Array.isArray(module)) await this._loadFilesArray(modName, modZip, module, 'Module');
+        if (Array.isArray(script)) await this._loadFilesArray(modName, modZip, script, 'Script');
       } catch (e: any) {
         this.log(`加载模组脚本失败: ${modName} - ${e.message}`, 'ERROR');
       }
@@ -354,21 +375,24 @@ class AddonPlugin {
 
   private async _executeScripts(files: FileItem[], type: 'Script' | 'Module' = 'Script'): Promise<void> {
     if (files.length === 0) return;
-    const disabled = type === 'Script' ? this.core.gui.disabledScripts : [];
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      if (type === 'Script') {
-        const scriptKey = `[${file.modName}]:${file.filePath}`;
-        if (disabled.includes(scriptKey)) {
-          file.content = '';
-          continue;
-        }
+    const disabled = type === 'Script' ? new Set(this.core.gui.disabledScripts) : new Set<string>();
+    for (const file of files) {
+      const scriptKey = `[${file.modName}]:${file.filePath}`;
+      if (type === 'Script' && disabled.has(scriptKey)) {
+        file.content = '';
+        continue;
       }
-      const content = file.content;
-      try {
-        const func = new Function(content);
+      const execute = async () => {
+        const func = new Function(file.content);
         const result = func();
         if (result && typeof result.then === 'function') await result;
+      };
+      try {
+        if (type === 'Script') {
+          await execute();
+          continue;
+        }
+        await this.core.modules.runWithSource(file.modName, execute);
       } catch (e: any) {
         this.log(`执行 ${type} 文件失败: ${file.filePath} (来自 ${file.modName}): ${e.message}`, 'ERROR');
       } finally {
@@ -389,7 +413,7 @@ class AddonPlugin {
 function replace(content: string, replacements: [RegExp, string][]): string {
   const unmatched: number[] = [];
   let result = content;
-  maplebirch.lodash.forEach(replacements, ([regex, replaceStr], i) => {
+  replacements.forEach(([regex, replaceStr], i) => {
     if (regex.test(result)) {
       result = result.replace(regex, replaceStr);
     } else {
@@ -441,7 +465,7 @@ async function modifyOptionsDateFormat(manager: AddonPlugin): Promise<void> {
       }
     }
   });
-  void maplebirch.register('addon', Object.seal(new AddonPlugin(maplebirch)), []);
+  maplebirch.register('addon', Object.seal(new AddonPlugin(maplebirch)), []);
 })(maplebirch);
 
 export default AddonPlugin;

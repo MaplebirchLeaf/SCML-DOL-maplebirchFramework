@@ -25,10 +25,10 @@ const Config = {
 const ModuleState: {[key: string|number]: string|number} = (() => {
   const state: {[key: string|number]: string|number} = {
     REGISTERED: 0,
-    LOADED    : 1,
-    MOUNTED   : 2,
-    ERROR     : 3,
-    EXTENSION : 4
+    MOUNTED   : 1,
+    ERROR     : 2,
+    EXPOSED   : 3,
+    DISABLED  : 4
   };
   Object.entries(state).forEach(([key, value]) => state[value] = key);
   return state;

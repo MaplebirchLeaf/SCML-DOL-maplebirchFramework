@@ -296,5 +296,5 @@ class Internals {
 
 (function (maplebirch): void {
   'use strict';
-  void maplebirch.register('Internals', Object.freeze(new Internals(maplebirch)), ['tool']);
+  maplebirch.register('internals', Object.freeze(new Internals(maplebirch)), ['tool']);
 })(maplebirch);

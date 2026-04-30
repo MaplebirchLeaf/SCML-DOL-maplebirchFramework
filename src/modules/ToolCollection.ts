@@ -55,7 +55,7 @@ class ToolCollection {
 
 (function (maplebirch): void {
   'use strict';
-  void maplebirch.register('tool', Object.seal(new ToolCollection(maplebirch)), ['dynamic']);
+  maplebirch.register('tool', Object.seal(new ToolCollection(maplebirch)), ['dynamic']);
 })(maplebirch);
 
 export default ToolCollection;

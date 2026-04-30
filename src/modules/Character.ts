@@ -324,7 +324,7 @@ class Character {
     const oldSCdata = manager.gSC2DataManager.getSC2DataInfoAfterPatch();
     const SCdata = oldSCdata.cloneSC2DataInfo();
     const file = SCdata.scriptFileItems.getByNameWithOrWithoutPath('canvasmodel-main.js');
-    const replacements = [
+    const replacements: [RegExp, string][] = [
       [/},\n\tpostprocess/, '\tmaplebirch.char.process("pre", options);\n\t},\n\tpostprocess'],
       [/},\n\tlayers/, '\tmaplebirch.char.process("post", options);\n\t},\n\tlayers']
     ];
@@ -377,7 +377,7 @@ class Character {
     const files = ['Cheats', 'clothesTestingImageGenerate', 'Widgets Mirror', 'Widgets Settings'];
     for (const file of files) {
       const modify = passageData.get(file);
-      const replacements = [[/setup.faceStyleOptions.length gt/g, 'Object.keys(setup.faceStyleOptions).length gte']];
+      const replacements: [RegExp, string][] = [[/setup.faceStyleOptions.length gt/g, 'Object.keys(setup.faceStyleOptions).length gte']];
       if (file === 'Widgets Mirror') replacements.push([/Object.keys\(setup.faceVariantOptions\[\$facestyle\]\).length gt/g, 'Object.keys(setup.faceVariantOptions[$facestyle]).length gte']);
       modify.content = manager.replace(modify.content, replacements);
       passageData.set(file, modify);
@@ -577,7 +577,7 @@ class Character {
 
 (function (maplebirch): void {
   'use strict';
-  void maplebirch.register('char', Object.seal(new Character(maplebirch)), ['var']);
+  maplebirch.register('char', Object.seal(new Character(maplebirch)), ['var']);
 })(maplebirch);
 
 export default Character;

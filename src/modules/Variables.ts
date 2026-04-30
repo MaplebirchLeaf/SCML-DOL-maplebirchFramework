@@ -131,7 +131,7 @@ class Variables {
 
 (function (maplebirch): void {
   'use strict';
-  void maplebirch.register('var', Object.seal(new Variables(maplebirch)), ['tool']);
+  maplebirch.register('var', Object.seal(new Variables(maplebirch)), ['tool']);
 })(maplebirch);
 
 export default Variables;
