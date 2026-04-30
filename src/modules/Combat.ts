@@ -3,13 +3,11 @@
 import maplebirch, { MaplebirchCore, createlog } from '../core';
 import Reaction from './CombatAddon/Reaction';
 import CombatAction from './CombatAddon/CombatAction';
-import Speech from './CombatAddon/Speech';
 
 class CombatManager {
   readonly log: ReturnType<typeof createlog>;
   readonly Reaction: typeof Reaction = Reaction;
   readonly CombatAction: typeof CombatAction = CombatAction;
-  readonly Speech: typeof Speech = Speech;
   private readonly _: typeof maplebirch.lodash;
 
   constructor(readonly core: MaplebirchCore) {
@@ -113,29 +111,6 @@ class CombatManager {
       $('#' + e.data.name + 'Select').addClass(combatListColor(e.data.name, undefined, e.data.extra) + 'List');
     });
     return '';
-  }
-
-  ejaculation(index: string | number, ...args: string[]) {
-    const npcName = V.npc[V.npcrow.indexOf(index)];
-    const npc = V.NPCList[index];
-    if (!npc) return false;
-    const output = args[0] ? ' ' + args[0] : '';
-    if (npcName && maplebirch.SugarCube.Macro.has(`ejaculation-${npcName.toLowerCase()}`) && self._.includes(setup.NPCNameList, npcName)) return `<<ejaculation-${npcName.toLowerCase()}${output}>>`;
-    if (V.position === 'wall') {
-      if (V.walltype === 'pillory' || V.walltype === 'cleanpillory') {
-        return `<<ejaculation-pillory${output}>>`;
-      } else {
-        return `<<ejaculation-wall${output}>>`;
-      }
-    } else if (V.punishmentposition === 'gloryhole' || V.gloryhole) {
-      return `<<ejaculation-gloryhole${output}>>`;
-    } else if (V.NPCList[index].type === 'plant') {
-      return `<<ejaculation-plant${output}>>`;
-    } else if (V.NPCList[index].fullDescription === 'Ivory Wraith') {
-      return `<<ejaculation-wraith${output}>>`;
-    } else {
-      return '';
-    }
   }
 
   Init() {

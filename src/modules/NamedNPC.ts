@@ -182,23 +182,8 @@ export const NamedNPC = (core => {
       this.eyeColour = data.eyeColour ?? either([...eyeColour]);
       this.hairColour = data.hairColour ?? either([...hairColour]);
       this.pronoun = data.pronoun ?? (['m', 'f', 'i', 'n', 't'].includes(this.gender) ? (this.gender as 'm' | 'f' | 'i' | 'n' | 't') : either('m', 'f'));
-      if (this.gender !== 'none') {
-        Object.defineProperty(this, 'pronouns', {
-          get: () => {
-            const result = pronounsMap[this.pronoun][maplebirch.Language];
-            const hasModI18N = maplebirch.Language === 'CN' && core.modUtils.getMod('ModI18N') && VanillaList.has(this.nam);
-            if (hasModI18N && (this.pronoun === 'm' || this.pronoun === 'f')) {
-              return {
-                ...result,
-                his: result.he,
-                hers: result.he
-              };
-            }
-            return result;
-          }
-        });
-      }
-      this.setPronouns(data);
+      if (this.gender !== 'none') this.setPronouns();
+      this.setBodyTraits(data);
       this.bottomsize = data.bottomsize ?? random(4);
       this.bodyPartdescription();
       this.pregnancy = data.pregnancy ?? null;
@@ -206,10 +191,23 @@ export const NamedNPC = (core => {
       this.skincolour = data.skincolour ?? 0;
       this.init = data.init ?? 0;
       this.intro = data.intro ?? 0;
-      core.on(':language', () => this.bodyPartdescription(), 'named NPC desc');
+      core.on(
+        ':language',
+        () => {
+          this.setPronouns();
+          this.bodyPartdescription();
+        },
+        'Named NPC Desc'
+      );
     }
 
-    setPronouns(data: NPCData) {
+    setPronouns() {
+      const base = pronounsMap[this.pronoun][maplebirch.Language];
+      const useI18N = maplebirch.Language === 'CN' && core.modUtils.getMod('ModI18N') && VanillaList.has(this.nam) && ['m', 'f'].includes(this.pronoun);
+      this.pronouns = useI18N ? { ...base, his: base.he, hers: base.he } : base;
+    }
+
+    setBodyTraits(data: NPCData) {
       switch (this.gender) {
         case 'm':
           this.penis = data.penis ?? 'clothed';
@@ -672,9 +670,6 @@ class NPCManager {
   }
 
   vanillaInject(npcName: string, npcno: number) {
-    try {
-      this.core.combat.Speech.init();
-    } catch {}
     void this.core.trigger(':npcInject', npcName, npcno);
   }
 

@@ -76,6 +76,7 @@ class Variables {
     this.hairgradients = hairgradients;
     dataUpdate(this.migration);
     this.core.once(':passageend', () => this.optionsCheck());
+    this.core.on(':rest-options', () => this.optionsCheck());
   }
 
   #mapProcessing() {

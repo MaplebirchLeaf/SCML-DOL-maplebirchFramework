@@ -211,7 +211,7 @@ class GUIControl {
                   <option ng-repeat='lang in languages' value='{{lang.code}}'>{{lang.name}}</option>
                 </select>
                 <div ng-if='isDEBUG()' style='margin-left: auto;'>
-                  <input type='button' value='{{t($ctrl.data.text.ClearIndexedDB)}}' ng-click='maplebirch.idb.deleteDatabase()' class='theme-button' />
+                  <input type='button' value='{{t($ctrl.data.text.ClearIndexedDB)}}' ng-click='ClearIndexedDB()' class='theme-button' />
                 </div>
               </div>
               <input type='button' ng-click="EnableDisableItem('enable')" ng-value="DEBUGMODE('enable')" class='theme-button' />
@@ -257,6 +257,8 @@ class GUIControl {
                   return false;
                 }
               };
+
+              $scope.ClearIndexedDB = () => maplebirch.idb.deleteDatabase();
 
               ctrl.$onInit = () => {
                 $scope.languages = $scope.$ctrl.data.text.Languages.map((lang: string[]) => ({
