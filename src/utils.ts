@@ -18,6 +18,17 @@ function clone(source: any, opt: { deep?: boolean; proto?: boolean } = {}, map =
   if (map.has(source)) return map.get(source);
   if (source instanceof Date) return new Date(source.getTime());
   if (source instanceof RegExp) return new RegExp(source.source, source.flags);
+  if (typeof source === 'function') return source;
+  if (source instanceof ArrayBuffer) return source.slice(0);
+  if (source instanceof DataView) {
+    const buffer = source.buffer.slice(source.byteOffset, source.byteOffset + source.byteLength);
+    return new DataView(buffer);
+  }
+  if (isTypedArray(source)) {
+    const Constructor = source.constructor as new (buffer: ArrayBufferLike, byteOffset?: number, length?: number) => any;
+    const buffer = source.buffer.slice(source.byteOffset, source.byteOffset + source.byteLength);
+    return new Constructor(buffer, 0, source.length);
+  }
   if (source instanceof Map) {
     const copy = new Map();
     map.set(source, copy);
@@ -30,13 +41,6 @@ function clone(source: any, opt: { deep?: boolean; proto?: boolean } = {}, map =
     source.forEach(v => copy.add(deep ? clone(v, opt, map) : v));
     return copy;
   }
-  if (source instanceof DataView) return new DataView(source.buffer.slice(0), source.byteOffset, source.byteLength);
-  if (isTypedArray(source)) {
-    const Constructor = source.constructor as new (buffer: ArrayBufferLike, byteOffset?: number, length?: number) => any;
-    return new Constructor(source.buffer.slice(0), source.byteOffset, source.length);
-  }
-  if (source instanceof ArrayBuffer) return source.slice(0);
-  if (typeof source === 'function') return source;
   if (Array.isArray(source)) {
     const copy: any[] = [];
     map.set(source, copy);
@@ -66,7 +70,7 @@ function equal(a: any, b: any): boolean {
 }
 
 /**
- * 递归合并对象（原地修改 target）
+ * 递归合并对象
  * @example merge({a:1}, {b:2}) // {a:1, b:2}
  * @example merge({arr:[1,2]}, {arr:[3,4]}, {mode:'concat'}) // {arr:[1,2,3,4]}
  * @example merge({arr:[1,2]}, {arr:[3]}, {mode:'merge'}) // {arr:[3,2]}
@@ -85,7 +89,7 @@ function merge(target: any, ...sources: any[]): any {
   const { mode = 'replace', filterFn = null } = opt;
   const mergeRec = (t: any, s: any, depth = 1) => {
     if (s === null || typeof s !== 'object' || typeof s === 'function') return s;
-    for (const key in s) {
+    for (const key of Object.keys(s)) {
       const sv = s[key];
       const tv = t[key];
       if (filterFn && !filterFn(key, sv, depth, tv)) continue;
@@ -96,7 +100,7 @@ function merge(target: any, ...sources: any[]): any {
           case 'concat':
             t[key] = [...tv, ...sv];
             break;
-          case 'merge':
+          case 'merge': {
             const max = Math.max(tv.length, sv.length);
             t[key] = Array.from({ length: max }, (_, i) => {
               if (i < tv.length && i < sv.length) return mergeRec(tv[i], sv[i], depth + 1);
@@ -104,8 +108,10 @@ function merge(target: any, ...sources: any[]): any {
               return sv[i];
             });
             break;
+          }
           default:
             t[key] = [...sv];
+            break;
         }
       } else if (_.isPlainObject(sv) && _.isPlainObject(tv)) {
         t[key] = mergeRec(tv, sv, depth + 1);
@@ -126,7 +132,7 @@ function merge(target: any, ...sources: any[]): any {
  * @example contains(['A','B'], 'a', 'all', {case:false}) // true
  * @example contains([{x:1}], {x:1}, 'all', {deep:true}) // true
  */
-function contains(arr: any[], value: any, mode: 'all' | 'any' | 'none' = 'all', opt: { case?: boolean; compare?: Function; deep?: boolean } = {}): boolean {
+function contains(arr: any[], value: any, mode: 'all' | 'any' | 'none' = 'all', opt: { case?: boolean; compare?: (item: any, value: any) => boolean; deep?: boolean } = {}): boolean {
   if (!Array.isArray(arr)) return false;
   const { case: cs = true, compare = null, deep = false } = opt;
   const match = (item: unknown, val: unknown) => {
@@ -333,7 +339,7 @@ class SelectCase {
         case 'regex':
           matched = typeof input === 'string' && condition.test(input);
           break;
-        case 'comparison':
+        case 'comparison': {
           const { comparator, value } = condition;
           switch (comparator) {
             case '<':
@@ -350,6 +356,7 @@ class SelectCase {
               break;
           }
           break;
+        }
         case 'predicate':
           try {
             matched = condition(input, meta);
@@ -595,15 +602,21 @@ function loadImage(src: string): string | boolean | Promise<string | boolean> {
 }
 
 /**
- * 提取 widget 内容
- * @example widgets('abc <<widget "x">>123<</widget>>') // ['<<widget "x">>123<</widget>>']
- * @example widgets('  <<widget "a">>A<</widget>>  ', 'text') // ['<<widget "a">>A<</widget>>', 'text']
+ * 提取 Twee Passage / Widget 内容
+ * @example widgets(':: Widget [widget]\\n\\n<<widget "x">>123<</widget>>') // '<<widget "x">>123<</widget>>'
+ * @example widgets(a, b) // [aContent, bContent]
  */
-function widgets(...rawContents: string[]): string[] {
-  return rawContents.map(content => {
-    const widgetStart = content.indexOf('<<widget');
-    return widgetStart >= 0 ? content.substring(widgetStart).trim() : content.trim();
-  });
+function widgets(content: string): string;
+function widgets(...contents: string[]): string[];
+function widgets(...rawContents: string[]): string | string[] {
+  const parse = (content: string): string =>
+    String(content ?? '')
+      .replace(/^\uFEFF/, '')
+      .replace(/\r\n?/g, '\n')
+      .replace(/^::[^\n]*(?:\n[ \t]*)*/, '')
+      .trim();
+  const result = rawContents.map(parse);
+  return result.length === 1 ? result[0] : result;
 }
 
 const tools = {

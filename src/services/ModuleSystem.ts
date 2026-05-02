@@ -198,7 +198,6 @@ class ModuleSystem {
       allDependencies.add(depName);
       this.registry.dependencies.get(depName)?.forEach(collect);
     };
-
     directDependencies.forEach(collect);
     return allDependencies;
   }

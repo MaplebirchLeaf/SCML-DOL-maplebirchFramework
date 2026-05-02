@@ -4,6 +4,7 @@ import type { TwineSugarCube } from '../types/twine-sugarcube';
 import type { SC2DataManager } from '@scml/types/sugarcube-2-ModLoader/SC2DataManager';
 import type { ModUtils } from '@scml/types/sugarcube-2-ModLoader/Utils';
 import type { Gui } from '@scml/types/Mod_LoaderGui/Gui';
+import { author } from '../package.json';
 import jsyaml from 'js-yaml';
 import { Howl, Howler } from 'howler';
 import * as marked from 'marked';
@@ -51,7 +52,7 @@ let jsSugarCube: TwineSugarCube;
 class MaplebirchCore {
   static meta = {
     name: 'maplebirch Frameworks' as const,
-    author: '楓樺葉' as const,
+    author: author,
     version: version,
     modifiedby: lastModifiedBy,
     updateDate: lastUpdate,

@@ -20162,6 +20162,21 @@ sugarcube-2:
     lanListbox:
       name: lanListbox
       container: true
+      children:
+        - option
+        - optionsfrom
+      parameters:
+        - 'receiver |+ ...text'
+
+    option:
+      name: option
+      parameters:
+        - "text |+ text |+ ...('selected'|'lower'|'upper'|'capitalize'|'title'|'camel'|'pascal'|'snake'|'kebab'|'constant')"
+
+    optionsfrom:
+      name: optionsfrom
+      parameters:
+        - "text |+ ...('lower'|'upper'|'capitalize'|'title'|'camel'|'pascal'|'snake'|'kebab'|'constant')"
     radiobuttonsfrom:
       name: radiobuttonsfrom
       container: true
@@ -20173,3 +20188,8 @@ sugarcube-2:
     language:
       name: language
       container: true
+    lanButton:
+      name: lanButton
+      container: true
+    maplebirchOptions:
+      name: maplebirchOptions

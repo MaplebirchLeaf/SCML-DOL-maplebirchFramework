@@ -60,7 +60,6 @@ class IndexedDBService {
         throw error;
       }
     })();
-
     try {
       await this.opening;
     } finally {
