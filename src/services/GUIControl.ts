@@ -57,11 +57,9 @@ class GUIControl {
       const store = tx.objectStore('settings');
       if (!(await store.get('DEBUG'))) await store.put({ key: 'DEBUG', value: false });
       if (!(await store.get('Language'))) await store.put({ key: 'Language', value: navigator.language.includes('zh') ? 'CN' : 'EN' });
-
       await this.modulesStore(store, modNames);
       await this.scriptsStore(store, modNames);
     });
-
     await this.loadSettings();
   }
 
@@ -332,7 +330,6 @@ class GUIControl {
 
               $scope.EnableDisableItem = (action: string) => {
                 const enable = action === 'enable';
-
                 callOnChange('DEBUG', {
                   enabled: enable,
                   level: enable ? 'DEBUG' : 'INFO',

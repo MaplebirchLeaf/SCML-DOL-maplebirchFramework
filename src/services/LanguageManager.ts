@@ -33,9 +33,7 @@ class LanguageManager {
 
   initDB(): void {
     this.core.idb.register('language-metadata', { keyPath: 'key' });
-
     this.core.idb.register('language-translations', { keyPath: 'key' }, [{ name: 'mod', keyPath: 'mod' }]);
-
     this.core.idb.register('language-text-index', { keyPath: ['key', 'language', 'text_value'] }, [
       { name: 'text_value', keyPath: 'text_value' },
       { name: 'key', keyPath: 'key' }
@@ -84,9 +82,9 @@ class LanguageManager {
       if (!foundAny) {
         this.core.logger.log(`找不到 ${lang} 翻译文件`, 'WARN');
         yield { lang, count: 0, error: new Error('未找到翻译文件'), type: 'not_found' };
-      } else if (!error) {
-        yield { lang, count: processedCount, error: null, type: 'complete' };
+        continue;
       }
+      if (!error) yield { lang, count: processedCount, error: null, type: 'complete' };
     }
   }
 
@@ -161,8 +159,7 @@ class LanguageManager {
       return `[${key}]`;
     }
     const result = rec[this.language] || rec.EN || Object.values(rec)[0] || `[${key}]`;
-    if (this.language === 'EN' && space === true) return result + ' ';
-    return result;
+    return this.language === 'EN' && space === true ? result + ' ' : result;
   }
 
   auto(text: string): string {
@@ -172,10 +169,9 @@ class LanguageManager {
     for (const [key, trans] of this.translations) {
       if (trans[this.language] === text) return text;
       for (const lang in trans) {
-        if (trans[lang] === text) {
-          this.cache.set(text, key);
-          return this.t(key);
-        }
+        if (trans[lang] !== text) continue;
+        this.cache.set(text, key);
+        return this.t(key);
       }
     }
     void this.findKeyAsync(text);
@@ -239,8 +235,7 @@ class LanguageManager {
     if (this.fileHashes.has(key)) return this.fileHashes.get(key)!;
     try {
       return await this.core.idb.withTransaction(['language-metadata'], 'readonly', async (tx: any) => {
-        const store = tx.objectStore('language-metadata');
-        const hash = (await store.get(key))?.hash || null;
+        const hash = (await tx.objectStore('language-metadata').get(key))?.hash || null;
         if (hash) this.fileHashes.set(key, hash);
         return hash;
       });
@@ -254,12 +249,7 @@ class LanguageManager {
     const key = `${modName}_${lang}`;
     try {
       await this.core.idb.withTransaction(['language-metadata'], 'readwrite', async (tx: any) => {
-        const store = tx.objectStore('language-metadata');
-        await store.put({
-          key,
-          hash,
-          timestamp: Date.now()
-        });
+        await tx.objectStore('language-metadata').put({ key, hash });
         this.fileHashes.set(key, hash);
       });
     } catch (err: any) {
@@ -298,15 +288,14 @@ class LanguageManager {
         for (let i = 0; i < keys.length; i++) {
           const key = keys[i];
           const existing = records[i];
-          const newBucket = map.get(key)!;
-          const merged = existing ? { ...existing.translations, ...newBucket.translations } : newBucket.translations;
+          const bucket = map.get(key)!;
+          const merged = existing ? { ...existing.translations, ...bucket.translations } : bucket.translations;
           mergedMap.set(key, merged);
 
           await tStore.put({
             key,
             translations: merged,
-            mod: newBucket.mod || existing?.mod,
-            timestamp: Date.now()
+            mod: bucket.mod || existing?.mod
           });
         }
 
@@ -367,8 +356,7 @@ class LanguageManager {
           await store.put({
             key,
             translations: merged,
-            mod: mod || existing?.mod,
-            timestamp: Date.now()
+            mod: mod || existing?.mod
           });
 
           let cursor = await keyIndex.openCursor(IDBKeyRange.only(key));
@@ -416,9 +404,8 @@ class LanguageManager {
 
         for (const key of Array.from(oldKeys)) {
           const record = await store.get(key);
-          if (!record) continue;
 
-          if (record.translations && Object.prototype.hasOwnProperty.call(record.translations, lang)) {
+          if (record?.translations && Object.prototype.hasOwnProperty.call(record.translations, lang)) {
             delete record.translations[lang];
 
             if (Object.keys(record.translations).length > 0) {
@@ -445,8 +432,7 @@ class LanguageManager {
   private async loadFromDB(key: string): Promise<boolean> {
     try {
       return await this.core.idb.withTransaction(['language-translations'], 'readonly', async (tx: any) => {
-        const store = tx.objectStore('language-translations');
-        const record = await store.get(key);
+        const record = await tx.objectStore('language-translations').get(key);
         if (!record) return false;
         this.translations.set(key, record.translations || {});
         return true;

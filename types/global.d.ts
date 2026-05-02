@@ -30,10 +30,11 @@ declare global {
   const StartConfig: any;
 
   class DateTime {
-    static isLeapYear(year: number): boolean;
-    constructor(year?: number, month?: number, day?: number, hour?: number, minute?: number, second?: number);
-    constructor(timestamp: number);
-    constructor(dateTime: DateTime);
+    static readonly MIN_DATE: DateTime;
+    static readonly MAX_DATE: DateTime;
+
+    constructor(year?: number | DateTime, month?: number, day?: number, hour?: number, minute?: number, second?: number);
+
     year: number;
     month: number;
     day: number;
@@ -41,85 +42,122 @@ declare global {
     minute: number;
     second: number;
     timeStamp: number;
-    get weekDay(): number;
-    weekDayName: string;
-    get monthName(): string;
-    weekEnd: boolean;
-    lastDayOfMonth: number;
-    yearDay: number;
-    get moonPhaseFraction(): number;
-    get fractionOfDay(): number;
-    get fractionOfDayFromNoon(): number;
-    simplifiedDayFactor: number;
-    fractionOfYear: number;
-    seasonFactor: number;
+
+    static getTotalDaysSinceStart(year: number): number;
+    static isLeapYear(year: number): boolean;
+    static getDaysOfMonthFromYear(year: number): readonly number[];
     static getDaysOfYear(year: number): number;
-    static getDaysOfMonthFromYear(year: number): Array<number>;
-    compareWith(otherDateTime: DateTime, getSeconds?: boolean): { years: number; months: number; days: number; hours: number; minutes: number; seconds: number } | number;
+
+    toTimestamp(year: number, month: number, day: number, hour: number, minute: number, second: number): this;
+    fromTimestamp(timestamp: number): this;
+    compareWith(
+      otherDateTime: DateTime,
+      getSeconds?: boolean
+    ):
+      | number
+      | {
+          years: number;
+          months: number;
+          days: number;
+          hours: number;
+          minutes: number;
+          seconds: number;
+        };
     dayDifference(otherDateTime: DateTime): number;
     getFirstWeekdayOfMonth(weekDay: number): DateTime;
     getNextWeekdayDate(weekDay: number): DateTime;
     getPreviousWeekdayDate(weekDay: number): DateTime;
-    addYears(years: number): DateTime;
-    addMonths(months: number): DateTime;
-    addDays(days: number): DateTime;
-    addHours(hours: number): DateTime;
-    addMinutes(minutes: number): DateTime;
-    addSeconds(seconds: number): DateTime;
+
+    addYears(years: number): this;
+    addMonths(months: number): this;
+    addDays(days: number): this;
+    addHours(hours: number): this;
+    addMinutes(minutes: number): this;
+    addSeconds(seconds: number): this;
+
     isLastDayOfMonth(): boolean;
     isFirstDayOfMonth(): boolean;
     between(startDate: DateTime, endDate: DateTime): boolean;
+
+    readonly midnight: DateTime;
+    readonly dayState: string;
+    readonly weekDay: number;
+    readonly weekDayName: string;
+    readonly monthName: string;
+    readonly weekEnd: boolean;
+    readonly lastDayOfMonth: number;
+    readonly yearDay: number;
+    readonly moonPhaseFraction: number;
+    readonly fractionOfDay: number;
+    readonly fractionOfDayFromNoon: number;
+    readonly simplifiedDayFactor: number;
+    readonly fractionOfYear: number;
+    readonly seasonFactor: number;
   }
 
   const Time: {
-    date: DateTime;
-    holidayMonths: number[];
-    second: number;
-    minute: number;
-    hour: number;
-    monthNames: string[];
-    weekDay: number;
-    weekDayName: string;
-    monthDay: number;
-    month: number;
-    monthName: string;
-    year: number;
-    days: number;
-    season: string;
+    readonly date: DateTime;
+    readonly holidayMonths: number[];
+    readonly second: number;
+    readonly minute: number;
+    readonly hour: number;
+    readonly weekDay: number;
+    readonly weekDayName: string;
+    readonly monthDay: number;
+    readonly month: number;
+    readonly monthName: string;
+    readonly year: number;
+    readonly days: number;
+    readonly season: string;
+    readonly tomorrow: DateTime;
+    readonly yesterday: DateTime;
+    readonly schoolTerm: boolean;
+    readonly schoolDay: boolean;
+    readonly schoolTime: boolean;
+    readonly dayState: string;
+    readonly nextSchoolTermStartDate: DateTime;
+    readonly nextSchoolTermEndDate: DateTime;
+    readonly lastDayOfMonth: number;
+    readonly dayOfYear: number;
+    readonly secondsSinceMidnight: number;
+    readonly currentMoonPhase: string;
     startDate: DateTime;
-    tomorrow: DateTime;
-    yesterday: DateTime;
-    schoolTerm: boolean;
-    schoolDay: boolean;
-    schoolTime: boolean;
-    dayState: 'night' | 'dusk' | 'day' | 'dawn';
-    nextSchoolTermStartDate: DateTime;
-    nextSchoolTermEndDate: DateTime;
-    lastDayOfMonth: number;
-    dayOfYear: number;
-    secondsSinceMidnight: number;
-    currentMoonPhase: string;
-    moonPhases: Record<string, { start: number; end: number; description: string; endAlt?: number }>;
+    monthNames: string[];
     daysOfWeek: string[];
-    set(time: number | DateTime): void;
+    moonPhases: Record<
+      string,
+      {
+        start: number;
+        end: number;
+        endAlt?: number;
+        description: string;
+      }
+    >;
+
+    set(time?: number | DateTime): void;
     setDate(date: DateTime): void;
     setTime(hour: number, minute?: number): void;
-    setTimeRelative(hour: number, minute?: number): void;
-    pass(seconds: number): DocumentFragment;
+    setTimeRelative(hour?: number, minute?: number): void;
+    pass(seconds: number): any;
+    timeTravel(date: DateTime): any;
     isSchoolTerm(date: DateTime): boolean;
     isSchoolDay(date: DateTime): boolean;
     isSchoolTime(date: DateTime): boolean;
     getDayOfYear(date: DateTime): number;
     getSecondsSinceMidnight(date: DateTime): number;
-    getNextSchoolTermStartDate(date: DateTime): DateTime;
-    getNextSchoolTermEndDate(date: DateTime): DateTime;
     nextMoonPhase(targetPhase: string): DateTime;
     previousMoonPhase(targetPhase: string): DateTime;
     isBloodMoon(date?: DateTime): boolean;
-    getSeason(date: DateTime): 'winter' | 'spring' | 'summer' | 'autumn';
+    getSeason(date: DateTime): string;
+    getNextSchoolTermStartDate(date: DateTime): DateTime;
+    getNextSchoolTermEndDate(date: DateTime): DateTime;
     getNextWeekdayDate(weekDay: number): DateTime;
     getPreviousWeekdayDate(weekDay: number): DateTime;
     isWeekEnd(): boolean;
+    hasDatePassed(month: number, day: number): boolean;
+    betweenHours(from: number, to: number, pass?: number): boolean;
+    openingHours(minutes?: number): boolean;
+    readonly oxygenResaturationDuration: number;
   };
 
   interface ErrorsConfig {
