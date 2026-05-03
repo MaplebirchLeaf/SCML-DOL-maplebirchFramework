@@ -25,12 +25,12 @@
         <<option 'face-framing highlights' 'face-frame' 'title'>>
       <</lanListbox>>
       <<lanLink 'reset' 'capitalize'>><<set $options.maplebirch.character.charArt.value to maplebirch.var.hairgradients()>><<updatesidebarimg>><<replace #customOverlayContent>><<maplebirchOptions>><</replace>><</lanLink>>
-      <<set _charArtStart to `$options.maplebirch.character.charArt.value['${$options.maplebirch.character.charArt.type}']['${$options.maplebirch.character.charArt.select}'][0]`>><br>
-      <<lanSwitch 'Gradient Start: ' '渐变起点：'>><<numberbox _charArtStart $options.maplebirch.character.charArt.value[$options.maplebirch.character.charArt.type][$options.maplebirch.character.charArt.select][0]>>
-      <div class='maplebirch-relationcount-slider'><label><<numberslider _charArtStart $options.maplebirch.character.charArt.value[$options.maplebirch.character.charArt.type][$options.maplebirch.character.charArt.select][0] 0 1 0.01 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => `${Math.floor(v*100)}%` }>></label></div>
-      <<set _charArtEnd to `$options.maplebirch.character.charArt.value['${$options.maplebirch.character.charArt.type}']['${$options.maplebirch.character.charArt.select}'][1]`>><br>
-      <<lanSwitch 'Gradient End: ' '渐变终点：'>><<numberbox _charArtEnd $options.maplebirch.character.charArt.value[$options.maplebirch.character.charArt.type][$options.maplebirch.character.charArt.select][1]>>
-      <div class='maplebirch-relationcount-slider'><label><<numberslider _charArtEnd $options.maplebirch.character.charArt.value[$options.maplebirch.character.charArt.type][$options.maplebirch.character.charArt.select][1] 0 1 0.01 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => `${Math.floor(v*100)}%` }>></label></div>
+      <<set $_charArtStart to `$options.maplebirch.character.charArt.value['${$options.maplebirch.character.charArt.type}']['${$options.maplebirch.character.charArt.select}'][0]`>><br>
+      <<lanSwitch 'Gradient Start: ' '渐变起点：'>><<numberbox $_charArtStart $options.maplebirch.character.charArt.value[$options.maplebirch.character.charArt.type][$options.maplebirch.character.charArt.select][0]>>
+      <div class='maplebirch-relationcount-slider'><label><<numberslider $_charArtStart $options.maplebirch.character.charArt.value[$options.maplebirch.character.charArt.type][$options.maplebirch.character.charArt.select][0] 0 1 0.01 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => `${Math.floor(v*100)}%` }>></label></div>
+      <<set $_charArtEnd to `$options.maplebirch.character.charArt.value['${$options.maplebirch.character.charArt.type}']['${$options.maplebirch.character.charArt.select}'][1]`>><br>
+      <<lanSwitch 'Gradient End: ' '渐变终点：'>><<numberbox $_charArtEnd $options.maplebirch.character.charArt.value[$options.maplebirch.character.charArt.type][$options.maplebirch.character.charArt.select][1]>>
+      <div class='maplebirch-relationcount-slider'><label><<numberslider $_charArtEnd $options.maplebirch.character.charArt.value[$options.maplebirch.character.charArt.type][$options.maplebirch.character.charArt.select][1] 0 1 0.01 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => `${Math.floor(v*100)}%` }>></label></div>
     </div>
     <div class='settingsToggleItem'>
       <span class='gold'><<lanSwitch 'Close-up hair color gradient settings' '特写发色渐变调整'>></span><br>
@@ -42,12 +42,12 @@
         <<option 'face-framing highlights' 'face-frame' 'title'>>
       <</lanListbox>>
       <<lanLink 'reset' 'capitalize'>><<set $options.maplebirch.character.closeUp.value to maplebirch.var.hairgradients()>><<updatesidebarimg>><<replace #customOverlayContent>><<maplebirchOptions>><</replace>><</lanLink>>
-      <<set _closeUpStart to `$options.maplebirch.character.closeUp.value['${$options.maplebirch.character.closeUp.type}']['${$options.maplebirch.character.closeUp.select}'][0]`>><br>
-      <<lanSwitch 'Gradient Start: ' '渐变起点：'>><<numberbox _closeUpStart $options.maplebirch.character.closeUp.value[$options.maplebirch.character.closeUp.type][$options.maplebirch.character.closeUp.select][0]>>
-      <div class='maplebirch-relationcount-slider'><label><<numberslider _closeUpStart $options.maplebirch.character.closeUp.value[$options.maplebirch.character.closeUp.type][$options.maplebirch.character.closeUp.select][0] 0 1 0.01 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => `${Math.floor(v*100)}%` }>></label></div>
-      <<set _closeUpEnd to `$options.maplebirch.character.closeUp.value['${$options.maplebirch.character.closeUp.type}']['${$options.maplebirch.character.closeUp.select}'][1]`>><br>
-      <<lanSwitch 'Gradient End: ' '渐变终点：'>><<numberbox _closeUpEnd $options.maplebirch.character.closeUp.value[$options.maplebirch.character.closeUp.type][$options.maplebirch.character.closeUp.select][1]>>
-      <div class='maplebirch-relationcount-slider'><label><<numberslider _closeUpEnd $options.maplebirch.character.closeUp.value[$options.maplebirch.character.closeUp.type][$options.maplebirch.character.closeUp.select][1] 0 1 0.01 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => `${Math.floor(v*100)}%` }>></label></div>
+      <<set $_closeUpStart to `$options.maplebirch.character.closeUp.value['${$options.maplebirch.character.closeUp.type}']['${$options.maplebirch.character.closeUp.select}'][0]`>><br>
+      <<lanSwitch 'Gradient Start: ' '渐变起点：'>><<numberbox $_closeUpStart $options.maplebirch.character.closeUp.value[$options.maplebirch.character.closeUp.type][$options.maplebirch.character.closeUp.select][0]>>
+      <div class='maplebirch-relationcount-slider'><label><<numberslider $_closeUpStart $options.maplebirch.character.closeUp.value[$options.maplebirch.character.closeUp.type][$options.maplebirch.character.closeUp.select][0] 0 1 0.01 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => `${Math.floor(v*100)}%` }>></label></div>
+      <<set $_closeUpEnd to `$options.maplebirch.character.closeUp.value['${$options.maplebirch.character.closeUp.type}']['${$options.maplebirch.character.closeUp.select}'][1]`>><br>
+      <<lanSwitch 'Gradient End: ' '渐变终点：'>><<numberbox $_closeUpEnd $options.maplebirch.character.closeUp.value[$options.maplebirch.character.closeUp.type][$options.maplebirch.character.closeUp.select][1]>>
+      <div class='maplebirch-relationcount-slider'><label><<numberslider $_closeUpEnd $options.maplebirch.character.closeUp.value[$options.maplebirch.character.closeUp.type][$options.maplebirch.character.closeUp.select][1] 0 1 0.01 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => `${Math.floor(v*100)}%` }>></label></div>
     </div>
     <div class='settingsToggleItem'><label><<checkbox '$options.maplebirch.npcsidebar.show' false true autocheck>><<lanSwitch 'NPC Sidebar Image Display' 'NPC侧边栏图像显示'>></label><span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'After enabling the display, named NPCs will show their models when nearby.' '开启显示后命名NPC在附近将显示模型。'>></span>">(?)</span></div>
     <div class='settingsToggleItem'><label><<checkbox '$options.maplebirch.npcsidebar.model' false true autocheck>><<lanSwitch 'PC MODEL MODE' 'PC模型模式'>></label><span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'PC model mode is using the player character standing illustration data.' 'PC模型模式为是用玩家角色立绘数据。'>></span>">(?)</span></div>
@@ -63,8 +63,8 @@
     </div>
     <div class='settingsToggleItem'>
       <label><<checkbox '$options.maplebirch.npcsidebar.freckles' false true autocheck>><<lanSwitch 'Enable Freckles' '启用雀斑'>></label><br>
-      <<switch $options.maplebirch.npcsidebar.ears>><<case 'front'>><<set _npcsidebarEars to lanSwitch('Position hair in front of ears','置头发于耳朵前')>><<set _npcsidebarEarsPosition to 'back'>><<default>><<set _npcsidebarEars to lanSwitch('Tuck hair behind ears','置头发于耳朵后')>><<set _npcsidebarEarsPosition to 'front'>><</switch>>
-      <span class='gold'><<lanSwitch 'Ears Position: ' '耳朵位置：'>></span><<lanLink _npcsidebarEars 'class:teal'>><<set $options.maplebirch.npcsidebar.ears to _npcsidebarEarsPosition>><<updatesidebarimg>><<replace #customOverlayContent>><<maplebirchOptions>><</replace>><</lanLink>><br>
+      <<switch $options.maplebirch.npcsidebar.ears>><<case 'front'>><<set $_npcsidebarEars to lanSwitch('Position hair in front of ears','置头发于耳朵前')>><<set $_npcsidebarEarsPosition to 'back'>><<default>><<set $_npcsidebarEars to lanSwitch('Tuck hair behind ears','置头发于耳朵后')>><<set $_npcsidebarEarsPosition to 'front'>><</switch>>
+      <span class='gold'><<lanSwitch 'Ears Position: ' '耳朵位置：'>></span><<lanLink $_npcsidebarEars 'class:teal'>><<set $options.maplebirch.npcsidebar.ears to $_npcsidebarEarsPosition>><<updatesidebarimg>><<replace #customOverlayContent>><<maplebirchOptions>><</replace>><</lanLink>><br>
       <span class='gold'><<lanSwitch 'Face Style: ' '脸部类型：'>></span><label><<lanListbox '$options.maplebirch.npcsidebar.facevariant'>><<optionsfrom setup.faceStyleOptions>><</lanListbox>></label><br>
       <span class='gold'><<lanSwitch 'Face Demeanour: ' '脸部仪态：'>></span><label><<lanListbox '$options.maplebirch.npcsidebar.facevariant'>><<optionsfrom setup.faceVariantOptions[$options.maplebirch.npcsidebar.facestyle]>><</lanListbox>></label><br>
       <span class='gold'><<lanSwitch 'Skin Tone: ' '皮肤色调：'>></span><<set _npcsidebarSkinTone to ''>>
@@ -75,17 +75,17 @@
       <<numberStepper '<<lanSwitch "Tan" "日晒">>' $options.maplebirch.npcsidebar.tan {max: 100, callback: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }}>>
     </div>
     <div class='settingsToggleItemWide'>
-      <<set _npcsidebarName = {}>>
-      <<set setup.NPCNameList.forEach(name => T.npcsidebarName[maplebirch.auto(convert(name, 'title'))] = name)>>
-      <<lanListbox '$options.maplebirch.npcsidebar.nnpc' autoselect>><<optionsfrom _npcsidebarName>><</lanListbox>>
+      <<set $_npcsidebarName = {}>>
+      <<set setup.NPCNameList.forEach(name => $_npcsidebarName[maplebirch.auto(convert(name, 'title'))] = name)>>
+      <<lanListbox '$options.maplebirch.npcsidebar.nnpc' autoselect>><<optionsfrom $_npcsidebarName>><</lanListbox>>
       <<if $options.maplebirch.npcsidebar.nnpc>>
-        <<set _npcsidebarSet to maplebirch.npc.Sidebar.display.get($options.maplebirch.npcsidebar.nnpc) ?? new Set()>>
-        <<if !['none'].concat(Array.from(_npcsidebarSet)).includes($options.maplebirch.npcsidebar.display[$options.maplebirch.npcsidebar.nnpc])>>
+        <<set $_npcsidebarSet to maplebirch.npc.Sidebar.display.get($options.maplebirch.npcsidebar.nnpc) ?? new Set()>>
+        <<if !['none'].concat(Array.from($_npcsidebarSet)).includes($options.maplebirch.npcsidebar.display[$options.maplebirch.npcsidebar.nnpc])>>
           <<set $options.maplebirch.npcsidebar.display[$options.maplebirch.npcsidebar.nnpc] = 'none'>>
         <</if>>
-        <<set _fixedName = `$options.maplebirch.npcsidebar.display.${$options.maplebirch.npcsidebar.nnpc}`>>
-        <<set _npcsidebarDisplay = ['none'].concat(Array.from(_npcsidebarSet))>>
-        <<lanSwitch 'Graphic Selection: ' '图形选择：'>><<radiobuttonsfrom _fixedName _npcsidebarDisplay>><</radiobuttonsfrom>>
+        <<set $_fixedName = `$options.maplebirch.npcsidebar.display.${$options.maplebirch.npcsidebar.nnpc}`>>
+        <<set $_npcsidebarDisplay = ['none'].concat(Array.from($_npcsidebarSet))>>
+        <<lanSwitch 'Graphic Selection: ' '图形选择：'>><<radiobuttonsfrom $_fixedName $_npcsidebarDisplay>><</radiobuttonsfrom>>
       <</if>>
     </div>
   </div>

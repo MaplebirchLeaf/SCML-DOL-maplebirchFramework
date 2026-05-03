@@ -2,8 +2,8 @@
 
 import maplebirch from '../../core';
 import { merge } from '../../utils';
-import AddonPlugin from '../AddonPlugin';
-import DynamicManager from '../Dynamic';
+import type AddonPlugin from '../AddonPlugin';
+import type DynamicManager from '../Dynamic';
 
 export interface WeatherEventOptions {
   condition?: () => boolean;
@@ -47,6 +47,13 @@ interface ModificationConfig {
 }
 
 class WeatherEvent {
+  private condition?: () => boolean;
+  private onEnter?: () => void;
+  private onExit?: () => void;
+  private fields: Record<string, any>;
+  readonly once: boolean;
+  readonly priority: number;
+
   constructor(
     public readonly id: string,
     options: WeatherEventOptions = {}
@@ -60,29 +67,21 @@ class WeatherEvent {
     for (const [key, value] of Object.entries(options)) if (!['condition', 'onEnter', 'onExit', 'once', 'priority'].includes(key)) this.fields[key] = value;
   }
 
-  private condition?: () => boolean;
-  private onEnter?: () => void;
-  private onExit?: () => void;
-  private once: boolean = false;
-  priority: number = 0;
-  private fields: Record<string, any> = {};
-
   tryMatch(): boolean {
     try {
-      if (this.condition) return !!this.condition();
-      return this._matchFields();
+      return (!this.condition || !!this.condition()) && this.matchFields();
     } catch (e: any) {
       maplebirch.log(`[WeatherEvent:${this.id}] condition error:`, 'ERROR', e);
       return false;
     }
   }
 
-  private _matchFields(): boolean {
-    for (const [key, value] of Object.entries(this.fields)) if (!this._matchField(key, value)) return false;
+  private matchFields(): boolean {
+    for (const [key, value] of Object.entries(this.fields)) if (!this.matchField(key, value)) return false;
     return true;
   }
 
-  private _matchField(key: string, value: any): boolean {
+  private matchField(key: string, value: any): boolean {
     // prettier-ignore
     const builtIn: Record<string, () => any> = {
       weather:   () => Weather.name,
@@ -96,32 +95,27 @@ class WeatherEvent {
       overcast:  () => Weather.overcast,
       fog:       () => Weather.fog
     };
-    if (builtIn[key]) {
-      const current = builtIn[key]();
-      if (typeof value === 'object' && !Array.isArray(value)) {
-        if (value.min != null && current < value.min) return false;
-        if (value.max != null && current > value.max) return false;
-        return true;
-      }
-      if (Array.isArray(value)) return value.includes(current);
-      return current === value;
-    }
+
+    if (builtIn[key]) return this.matchValue(builtIn[key](), value);
+
     const paths: (() => any)[] = [() => V[key], () => T[key], () => Weather[key], () => Time[key]];
     for (const getter of paths) {
       try {
         const current = getter();
-        if (current !== undefined) {
-          if (Array.isArray(value)) return value.includes(current);
-          if (typeof value === 'object') {
-            if (value.min != null && current < value.min) return false;
-            if (value.max != null && current > value.max) return false;
-            return true;
-          }
-          return current === value;
-        }
+        if (current !== undefined) return this.matchValue(current, value);
       } catch {}
     }
-    return true;
+    return false;
+  }
+
+  private matchValue(current: any, value: any): boolean {
+    if (Array.isArray(value)) return value.includes(current);
+    if (value && typeof value === 'object') {
+      if (value.min != null && current < value.min) return false;
+      if (value.max != null && current > value.max) return false;
+      return true;
+    }
+    return current === value;
   }
 
   executeEnter(): void {
@@ -141,10 +135,6 @@ class WeatherEvent {
       maplebirch.log(`[WeatherEvent:${this.id}] onExit error:`, 'ERROR', e);
     }
   }
-
-  shouldRemove(): boolean {
-    return this.once;
-  }
 }
 
 export class WeatherManager {
@@ -155,16 +145,16 @@ export class WeatherManager {
   private readonly WeatherTypes: WeatherTypeConfig[] = [];
   private readonly layerModifications: Map<string, ModificationConfig[]> = new Map();
   private readonly effectModifications: Map<string, ModificationConfig[]> = new Map();
-  private weatherTriggered: boolean = false;
+  private weatherTriggered = false;
   private readonly log: (message: string, level?: string, ...objects: any[]) => void;
 
   constructor(private readonly manager: DynamicManager) {
     this.log = manager.log;
     $(document).on(':onWeatherChange', () => this.manager.core.trigger(':onWeather'));
-    this.manager.core.on(':onWeather', () => this._checkEvents(), 'weather change');
+    this.manager.core.on(':onWeather', () => this.checkEvents(), 'weather change');
   }
 
-  private _checkEvents(): void {
+  private checkEvents(): void {
     if (!this.sortedEventsCache) this.sortedEventsCache = Array.from(this.weatherEvents.values()).sort((a, b) => b.priority - a.priority);
     const toRemove: string[] = [];
     for (const event of this.sortedEventsCache) {
@@ -173,7 +163,7 @@ export class WeatherManager {
       if (isActive && !wasActive) {
         this.activeEvents.add(event.id);
         event.executeEnter();
-        if (event.shouldRemove()) toRemove.push(event.id);
+        if (event.once) toRemove.push(event.id);
       } else if (!isActive && wasActive) {
         this.activeEvents.delete(event.id);
         event.executeExit();
@@ -250,17 +240,17 @@ export class WeatherManager {
     if ('date' in data) {
       this.Exceptions.push(data as WeatherException);
       this.log(`暂存天气例外: ${(data as WeatherException).weatherType}`, 'DEBUG');
-    } else {
-      this.WeatherTypes.push(data as WeatherTypeConfig);
-      this.log(`暂存天气类型: ${(data as WeatherTypeConfig).name}`, 'DEBUG');
-      return true;
+      return;
     }
+    this.WeatherTypes.push(data as WeatherTypeConfig);
+    this.log(`暂存天气类型: ${(data as WeatherTypeConfig).name}`, 'DEBUG');
+    return true;
   }
 
   init(): void {
     for (const exception of this.Exceptions) setup.WeatherExceptions.push(exception);
     this.Exceptions.length = 0;
-    for (const weatherType of this.WeatherTypes) if (!setup.WeatherGeneration.weatherTypes.find((t: any) => t.name === weatherType.name)) setup.WeatherGeneration.weatherTypes.push(weatherType);
+    for (const weatherType of this.WeatherTypes) if (!setup.WeatherGeneration.weatherTypes.find((type: any) => type.name === weatherType.name)) setup.WeatherGeneration.weatherTypes.push(weatherType);
     this.WeatherTypes.length = 0;
     this.log('天气事件系统已激活', 'INFO');
   }

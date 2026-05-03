@@ -1,6 +1,6 @@
 // ./src/database/SugarCubeMacros.ts
 
-import maplebirch, { MaplebirchCore } from '../core';
+import maplebirch, { type MaplebirchCore } from '../core';
 import { convert } from '../utils';
 
 const _ = maplebirch.lodash;

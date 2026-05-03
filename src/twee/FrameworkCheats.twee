@@ -5,52 +5,70 @@
     <details class='JSCheatConsole'>
       <summary class='JSCheatConsole'><span class='light-blue'>JavaScript <<lanSwitch 'Code Cheater' '作弊器'>></span></summary>
       <div class='searchButtons'>
-        <div class='input-row'><<textbox '_maplebirchJSCheatConsole' ''>><<lanButton 'execute' 'capitalize'>><<run maplebirch.tool.console.execute('javascript')>><</lanButton>></div>
+        <div class='input-row'>
+          <<textbox '_maplebirchJSCheatConsole' ''>>
+          <<lanButton 'execute' 'capitalize'>><<run maplebirch.tool.console.execute('javascript')>><</lanButton>>
+        </div>
         <span id='js-cheat-console-status'></span>
       </div>
     </details>
     <details class='TwineCheatConsole'>
-      <summary class='TwineCheatConsole'><span class='brightpurple'>Twine <<lanSwitch 'Code Cheater' '作弊器'>></span></summary>
+      <summary class='TwineCheatConsole'>
+        <span class='brightpurple'>Twine <<lanSwitch 'Code Cheater' '作弊器'>></span>
+      </summary>
       <div class='searchButtons'>
-        <div class='input-row'><<textbox '_maplebirchTwineCheatConsole' ''>><<lanButton 'execute' 'capitalize'>><<run maplebirch.tool.console.execute('twine')>><</lanButton>></div>
+        <div class='input-row'>
+          <<textbox '_maplebirchTwineCheatConsole' ''>>
+          <<lanButton 'execute' 'capitalize'>><<run maplebirch.tool.console.execute('twine')>><</lanButton>>
+        </div>
         <span id='twine-cheat-console-status'></span>
       </div>
     </details>
   </div>
 </div>
 <div class='settingsGrid'>
+  <<set $_modNames to Object.keys(V.maplebirch?.transformation || {})>>
   <div class='settingsHeader options'><<lanSwitch 'Mods Transformation' '模组转化'>></div>
-  <<if Object.keys(V.maplebirch?.transformation).length>><div class='settingsToggleItem'>
-    <span class='gold'><<lanSwitch 'Transformation Type' '转化种类'>></span><br>
-    <<for _modName range Object.keys(V.maplebirch?.transformation)>>
-      <<capture _modName>>
-        <<set $_config to maplebirch.char.transformation.config.get(_modName)>>
-        <<if $_config.icon>><<icon $_config.icon>><</if>>
-        <<= maplebirch.t(_modName)>>：
-        <<lanLink 'set' 'capitalize'>><<run maplebirch.char.transformation.setTransform(_modName)>><<updatesidebarimg>><</lanLink>> | 
-        <<lanLink 'clear' 'capitalize'>><<run maplebirch.char.transformation.setTransform(_modName, 0)>><<updatesidebarimg>><</lanLink>>
-      <</capture>>
-      <br>
-    <</for>>
-  </div>
-  <div class='settingsToggleItem'>
-    <span class='gold'><<lanSwitch 'Transformation Points' '转化点数'>></span><br>
-    <<for _modName range Object.keys(V.maplebirch?.transformation || {})>>
-      <<capture _modName>>
-        <<set _config to maplebirch.char.transformation.config.get(_modName)>>
-        <<set _title to _config.icon ? `<<icon _config.icon>> ${maplebirch.t(_modName)}` : maplebirch.t(_modName)>>
-        <<set _value to $maplebirch.transformation[_modName].build ?? 0>>
-        <<numberStepper _title _value {
-          callback: (value) => { 
-            V.maplebirch.transformation[_modName].build = value; 
-            maplebirch.char.transformation.updateTransform(_modName);
-            Wikifier.wikifyEval('<<updatesidebarimg>>'); 
-          },
-          max: _config.build || 100, 
-          percentage: false, 
-          colorArr: ['--teal', '--purple']
-        }>>
-      <</capture>>
-    <</for>>
-  </div><</if>>
+  <<if $_modNames.length>>
+    <div class='settingsToggleItem'>
+      <span class='gold'><<lanSwitch 'Transformation Type' '转化种类'>></span><br>
+      <<for $_modName range $_modNames>>
+        <<capture $_modName>>
+          <<set $_config to maplebirch.char.transformation.config.get($_modName)>>
+          <<if $_config?.icon>><<icon $_config.icon>><</if>>
+          <<= maplebirch.t($_modName)>>：
+          <<lanLink 'set' 'capitalize'>>
+            <<run maplebirch.char.transformation.setTransform($_modName)>>
+            <<updatesidebarimg>>
+          <</lanLink>>
+          |
+          <<lanLink 'clear' 'capitalize'>>
+            <<run maplebirch.char.transformation.setTransform($_modName, 0)>>
+            <<updatesidebarimg>>
+          <</lanLink>>
+        <</capture>>
+        <br>
+      <</for>>
+    </div>
+    <div class='settingsToggleItem'>
+      <span class='gold'><<lanSwitch 'Transformation Points' '转化点数'>></span><br>
+      <<for $_modName range $_modNames>>
+        <<capture $_modName>>
+          <<set $_config to maplebirch.char.transformation.config.get($_modName)>>
+          <<set $_title to $_config?.icon ? `<<icon '${$_config.icon}'>> ${maplebirch.t($_modName)}` : maplebirch.t($_modName)>>
+          <<set $_value to V.maplebirch.transformation[$_modName].build ?? 0>>
+          <<numberStepper $_title $_value {
+            callback: (value) => {
+              V.maplebirch.transformation[$_modName].build = value;
+              maplebirch.char.transformation.updateTransform($_modName);
+              Wikifier.wikifyEval('<<updatesidebarimg>>');
+            },
+            max: $_config?.build || 100,
+            percentage: false,
+            colorArr: ['--teal', '--purple']
+          }>>
+        <</capture>>
+      <</for>>
+    </div>
+  <</if>>
 </div>

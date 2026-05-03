@@ -2,7 +2,7 @@
 
 import { TimeConstants } from '../../constants';
 import maplebirch from '../../core';
-import DynamicManager from '../Dynamic';
+import type DynamicManager from '../Dynamic';
 import patchDateTime from './DateTime';
 import patchTime from './Time';
 

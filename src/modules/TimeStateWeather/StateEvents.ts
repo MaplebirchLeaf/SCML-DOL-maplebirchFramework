@@ -1,7 +1,7 @@
 // .src/modules/TimeStateWeather/StateEvents.ts
 
 import maplebirch from '../../core';
-import DynamicManager from '../Dynamic';
+import type DynamicManager from '../Dynamic';
 
 export interface StateEventOptions {
   output?: string;
@@ -23,7 +23,20 @@ interface ExtraOptions {
   match?: RegExp;
 }
 
+interface StateEventResult {
+  hasOutput: boolean;
+  remove: boolean;
+}
+
 class StateEvent {
+  output?: string;
+  private action?: () => void;
+  private cond: () => boolean;
+  private once: boolean;
+  private forceExit: () => boolean;
+  private extra: ExtraOptions;
+  readonly priority: number;
+
   constructor(
     public readonly id: string,
     public readonly type: string,
@@ -38,15 +51,7 @@ class StateEvent {
     this.extra = options.extra || {};
   }
 
-  output?: string;
-  private action?: () => void;
-  private cond: () => boolean = () => true;
-  priority: number = 0;
-  private once: boolean = false;
-  private forceExit: () => boolean = () => false;
-  private extra: ExtraOptions = {};
-
-  private _checkPassage(passageName?: string): boolean {
+  private checkPassage(passageName?: string): boolean {
     if (!passageName) return true;
     const { passage, exclude, match } = this.extra;
     if (passage?.length && !passage.includes(passageName)) return false;
@@ -55,40 +60,40 @@ class StateEvent {
     return true;
   }
 
-  tryRun(passageName?: string): [boolean, boolean, boolean] | null {
-    if (!this._checkPassage(passageName)) return null;
-    if (!!this.cond()) return [!!this.output, !!this.action, this._check()];
-    return null;
+  tryRun(passageName?: string): StateEventResult | null {
+    if (!this.checkPassage(passageName)) return null;
+    if (!this.match()) return null;
+    this.runAction();
+    return {
+      hasOutput: !!this.output,
+      remove: this.once
+    };
   }
 
-  private _check(): boolean {
-    let ok = false;
+  private match(): boolean {
     try {
-      ok = !!this.cond();
+      return !!this.cond();
     } catch (e: any) {
       maplebirch.log(`[StateEvent:${this.id}] cond error:`, 'ERROR', e);
       return false;
     }
-    if (!ok) return false;
-    if (this.action) {
-      try {
-        this.action();
-      } catch (e: any) {
-        maplebirch.log(`[StateEvent:${this.id}] action error:`, 'ERROR', e);
-      }
+  }
+
+  private runAction(): void {
+    try {
+      this.action?.();
+    } catch (e: any) {
+      maplebirch.log(`[StateEvent:${this.id}] action error:`, 'ERROR', e);
     }
-    return !!this.once;
   }
 
   shouldForceExit(): boolean {
-    let ok = false;
     try {
-      ok = !!this.forceExit();
+      return !!this.forceExit();
     } catch (e: any) {
       maplebirch.log(`[StateEvent:${this.id}] forceExit error:`, 'ERROR', e);
       return false;
     }
-    return ok;
   }
 }
 
@@ -104,29 +109,25 @@ export class StateManager {
 
   trigger(type: 'gate' | 'append'): string {
     const passageName = this.manager.core.passage?.title;
-    if (type === 'gate') return this._processGateEvents(passageName);
-    if (type === 'append') return this._processAppendEvents(passageName);
+    if (type === 'gate') return this.processGateEvents(passageName);
+    if (type === 'append') return this.processAppendEvents(passageName);
     return '';
   }
 
-  private _processGateEvents(passageName?: string): string {
+  private processGateEvents(passageName?: string): string {
     const gateEvents = this.stateEvents['gate'];
     if (!gateEvents?.size) return '';
     const sortedEvents = Array.from(gateEvents.values()).sort((a, b) => b.priority - a.priority);
     for (const event of sortedEvents) {
       const result = event.tryRun(passageName);
-      if (result) {
-        const [hasOutput, , shouldRemove] = result;
-        if (hasOutput && event.output) {
-          if (shouldRemove) this.unregister('gate', event.id);
-          return event.shouldForceExit() ? `<<${event.output}>><<exitAll>>` : `<<${event.output}>>`;
-        }
-      }
+      if (!result) continue;
+      if (result.remove) this.unregister('gate', event.id);
+      if (result.hasOutput && event.output) return event.shouldForceExit() ? `<<${event.output}>><<exitAll>>` : `<<${event.output}>>`;
     }
     return '';
   }
 
-  private _processAppendEvents(passageName?: string): string {
+  private processAppendEvents(passageName?: string): string {
     const appendEvents = this.stateEvents['append'];
     if (!appendEvents?.size) return '';
     const outputs: string[] = [];
@@ -134,11 +135,9 @@ export class StateManager {
     const sortedEvents = Array.from(appendEvents.values()).sort((a, b) => b.priority - a.priority);
     for (const event of sortedEvents) {
       const result = event.tryRun(passageName);
-      if (result) {
-        const [hasOutput, , shouldRemove] = result;
-        if (hasOutput && event.output) outputs.push(`<<${event.output}>>`);
-        if (shouldRemove) toRemove.push(event.id);
-      }
+      if (!result) continue;
+      if (result.hasOutput && event.output) outputs.push(`<<${event.output}>>`);
+      if (result.remove) toRemove.push(event.id);
     }
     for (const eventId of toRemove) this.unregister('append', eventId);
     return outputs.join('');
@@ -164,7 +163,7 @@ export class StateManager {
       return false;
     }
     if (this.stateEvents[type].delete(eventId)) {
-      this.log(`注销时间事件: ${type}.${eventId}`, 'DEBUG');
+      this.log(`注销状态事件: ${type}.${eventId}`, 'DEBUG');
       return true;
     }
     this.log(`未找到事件: ${type}.${eventId}`, 'DEBUG');
