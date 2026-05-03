@@ -369,8 +369,9 @@ class AudioManager {
   async getPlaylist(modName: string): Promise<Playlist> {
     const cached = this.playlists.get(modName);
     if (cached) return cached;
-    const playlist = new Playlist(modName);
+    const playlist = this.playlist(modName);
     const records = await this.readRecords(modName);
+    playlist.clear();
     playlist.add(
       records.map(record => {
         const track = new Track(record.audioName, record.modName, {
@@ -381,7 +382,6 @@ class AudioManager {
         return track;
       })
     );
-    this.playlists.set(modName, playlist);
     return playlist;
   }
 
@@ -403,6 +403,8 @@ class AudioManager {
   }
 
   async import(modName: string, audioFolder = 'audio'): Promise<boolean> {
+    const folder = audioFolder.replace(/^\/+|\/+$/g, '');
+    const prefix = `${folder}/`;
     const modZip = maplebirch.modLoader?.getModZip(modName);
     if (!modZip?.modInfo?.bootJson?.additionFile) return false;
     const audioFiles: Array<{
@@ -411,10 +413,10 @@ class AudioManager {
       format: AudioFormat;
     }> = [];
     for (const path of modZip.modInfo.bootJson.additionFile as string[]) {
-      if (!path.startsWith(`${audioFolder}/`)) continue;
+      if (!path.startsWith(prefix)) continue;
       const format = path.split('.').pop()?.toLowerCase();
       if (!FORMAT_SET.has(format || '')) continue;
-      const relativePath = path.substring(audioFolder.length + 1);
+      const relativePath = path.substring(prefix.length);
       const dotIndex = relativePath.lastIndexOf('.');
       const audioName = dotIndex > 0 ? relativePath.substring(0, dotIndex) : relativePath;
       audioFiles.push({
@@ -506,8 +508,7 @@ class AudioManager {
     this.currentHowl = null;
   }
 
-  get Playlist(): Playlist {
-    const modName = T.modName;
+  playlist(modName: string): Playlist {
     let playlist = this.playlists.get(modName);
     if (!playlist) {
       playlist = new Playlist(modName);

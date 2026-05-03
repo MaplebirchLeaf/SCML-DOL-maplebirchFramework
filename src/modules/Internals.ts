@@ -1,23 +1,16 @@
 // ./src/modules/Internals.ts
 
-import maplebirch, { MaplebirchCore, createlog } from '../core';
+import maplebirch, { type MaplebirchCore, createlog } from '../core';
 import { _language, _languageSwitch, _languageButton, _languageLink, _languageListbox, _radiobuttonsfrom, _overlayReplace } from '../database/SugarCubeMacros';
 
+type Updater = () => void;
+type DynamicTask = (...args: any[]) => any;
+type TextItem = string | number | boolean | null | undefined;
+
 interface LanguageManager {
-  managers: {
-    language: Map<Function, Function>;
-    lanSwitch: Map<Function, Function>;
-    lanButton: Map<Function, Function>;
-    lanLink: Map<Function, Function>;
-    lanListbox: Map<Function, Function>;
-    radiobuttonsfrom: Map<Function, Function>;
-    [key: string]: Map<Function, Function>;
-  };
-  initialized?: boolean;
-  core?: MaplebirchCore;
-  init(this: LanguageManager): void;
-  add(this: LanguageManager, macroType: string, updater: Function): void;
-  remove(this: LanguageManager, macroType: string, updater: Function): void;
+  managers: Record<string, Set<Updater>>;
+  add(macroType: string, updater: Updater): void;
+  remove(macroType: string, updater: Updater): void;
 }
 
 interface ModInfo {
@@ -31,65 +24,70 @@ interface ModInfo {
 
 class Internals {
   readonly log: ReturnType<typeof createlog>;
-  updateTimer: any;
-  private readonly _: typeof maplebirch.lodash;
+
+  private relationTimer: ReturnType<typeof setTimeout> | null = null;
+  private modI18NPatched = false;
 
   constructor(readonly core: MaplebirchCore) {
     this.log = createlog('internals');
-    this.updateTimer = null;
-    this._ = core.lodash;
+
     this.core.once(':sugarcube', () => {
-      this.core.tool.macro.define('language', _language, ['option'], false, false);
-      this.core.tool.macro.define('lanSwitch', _languageSwitch);
-      this.core.tool.macro.define('lanButton', _languageButton, null, false, true);
-      this.core.tool.macro.define('lanLink', _languageLink, null, false, true);
-      this.core.tool.macro.define('lanListbox', _languageListbox, ['option', 'optionsfrom'], ['optionsfrom'], true);
-      this.core.tool.macro.define('radiobuttonsfrom', _radiobuttonsfrom, null, false, true);
-      this.core.tool.macro.define('maplebirchReplace', (name: string, type: string) => _overlayReplace(name, type));
-      this.core.tool.macro.define('maplebirchTextOutput', this.core.tool.text.makeTextOutput());
-      this.core.tool.macro.defineS('maplebirchFrameworkVersions', this._showModVersions.bind(this));
-      this.core.tool.macro.defineS('maplebirchFrameworkInfo', () => this._showFrameworkInfo());
+      const macro = this.core.tool.macro;
+      macro.define('language', _language, ['option'], false, false);
+      macro.define('lanSwitch', _languageSwitch);
+      macro.define('lanButton', _languageButton, null, false, true);
+      macro.define('lanLink', _languageLink, null, false, true);
+      macro.define('lanListbox', _languageListbox, ['option', 'optionsfrom'], ['optionsfrom'], true);
+      macro.define('radiobuttonsfrom', _radiobuttonsfrom, null, false, true);
+      macro.define('maplebirchReplace', (name: string, type: string) => _overlayReplace(name, type));
+      macro.define('maplebirchTextOutput', this.core.tool.text.makeTextOutput());
+      macro.defineS('maplebirchFrameworkVersions', this.showModVersions.bind(this));
+      macro.defineS('maplebirchFrameworkInfo', () => this.showFrameworkInfo());
     });
   }
 
-  languageManager() {
-    const languageManager: LanguageManager = {
-      managers: { language: new Map(), lanSwitch: new Map(), lanButton: new Map(), lanLink: new Map(), lanListbox: new Map(), radiobuttonsfrom: new Map() },
-      core: this.core,
-      init(this: LanguageManager) {
-        if (this.initialized) return;
-        this.core!.on(
-          ':language',
-          () => {
-            for (const [macroType, manager] of Object.entries(this.managers)) {
-              manager.forEach((updater: Function) => {
-                try {
-                  updater();
-                } catch (e) {
-                  maplebirch.log(`Language update error for ${macroType}`, 'ERROR', e);
-                }
-              });
-            }
-          },
-          'language macro manager'
-        );
-        this.core!.once(':passagestart', () => Object.values(this.managers).forEach((manager: Map<Function, Function>) => manager.clear()));
-        this.initialized = true;
-      },
-      add(this: LanguageManager, macroType: string, updater: Function) {
-        if (!this.managers[macroType]) this.managers[macroType] = new Map();
-        this.managers[macroType].set(updater, updater);
-        this.init();
-      },
-      remove(this: LanguageManager, macroType: string, updater: Function) {
-        this.managers[macroType]?.delete(updater);
-      }
+  languageManager(): void {
+    const managers: Record<string, Set<Updater>> = {
+      language: new Set(),
+      lanSwitch: new Set(),
+      lanButton: new Set(),
+      lanLink: new Set(),
+      lanListbox: new Set(),
+      radiobuttonsfrom: new Set()
     };
-    (setup as any).maplebirch.language = languageManager;
+
+    this.core.on(
+      ':language',
+      () => {
+        for (const [macroType, updaters] of Object.entries(managers)) {
+          for (const updater of updaters) {
+            try {
+              updater();
+            } catch (error) {
+              maplebirch.log(`Language update error for ${macroType}`, 'ERROR', error);
+            }
+          }
+        }
+      },
+      'language macro manager'
+    );
+
+    this.core.once(':passagestart', () => Object.values(managers).forEach(manager => manager.clear()));
+    setup.maplebirch ??= {};
+    setup.maplebirch.language = {
+      managers,
+      add(macroType: string, updater: Updater) {
+        managers[macroType] ??= new Set();
+        managers[macroType].add(updater);
+      },
+      remove(macroType: string, updater: Updater) {
+        managers[macroType]?.delete(updater);
+      }
+    } as LanguageManager;
   }
 
-  _fixDynamicTask(fn: Function, name: string): Function {
-    const taskFn = (...args: any[]) => {
+  fixDynamicTask(fn: DynamicTask, name: string): DynamicTask {
+    const task = (...args: any[]) => {
       try {
         return fn.apply(this, args);
       } catch (error) {
@@ -97,55 +95,51 @@ class Internals {
         return null;
       }
     };
-    Object.defineProperty(taskFn, 'toString', { value: () => name, writable: true, configurable: true });
+    Object.defineProperty(task, 'toString', {
+      value: () => name,
+      writable: true,
+      configurable: true
+    });
     if ((Dynamic as any).stage === (Dynamic as any).Stage.Settled) {
       try {
-        taskFn();
-      } catch (e) {
-        console.warn(`Encountered an unexpected critical error while performing a dynamic render task`, name, e);
+        task();
+      } catch (error) {
+        console.warn('Encountered an unexpected critical error while performing a dynamic render task', name, error);
       }
     } else {
-      (Dynamic as any).tasks.push(taskFn);
+      (Dynamic as any).tasks.push(task);
     }
-    return taskFn;
+    return task;
   }
 
-  #getModName(modinfo: ModInfo): string | false {
+  private modDisplayName(modinfo: ModInfo): string | false {
     if (!modinfo.nickName) return this.core.lang.auto(modinfo.name);
-    if (this._.isString(modinfo.nickName)) return this.core.lang.auto(modinfo.nickName as string);
-    if (this._.isObject(modinfo.nickName)) {
-      const translationsObj = this._.chain(modinfo.nickName)
-        .toPairs()
-        .reduce((acc: Record<string, string>, [lang, text]: [string, string]) => {
-          acc[lang.toUpperCase()] = text;
-          return acc;
-        }, {})
-        .value();
-      const mapKey = `modList_${modinfo.name}`;
-      if (!this.core.lang.has(mapKey)) this.core.lang.set(mapKey, translationsObj);
-      return this.core.lang.t(mapKey);
-    }
-    return false;
+    if (typeof modinfo.nickName === 'string') return this.core.lang.auto(modinfo.nickName);
+    if (!modinfo.nickName || typeof modinfo.nickName !== 'object') return false;
+    const translations: Record<string, string> = {};
+    for (const [language, text] of Object.entries(modinfo.nickName)) translations[language.toUpperCase()] = text;
+    const key = `modList_${modinfo.name}`;
+    if (!this.core.lang.has(key)) this.core.lang.set(key, translations);
+    return this.core.lang.t(key);
   }
 
-  #getModDependenceInfo() {
+  private collectFrameworkMods(): void {
     const modList = this.core.modUtils.getModListName();
-    for (let i = 0; i < modList.length; i++) {
-      const modName = modList[i];
-      const modinfo = this.core.modUtils.getMod(modName);
-      if (!modinfo) continue;
-      if (!modinfo.bootJson.dependenceInfo) continue;
-      if (modinfo.bootJson.dependenceInfo.some((dep: any) => dep.modName === 'maplebirch') && !this.core.modList.includes(modinfo.name)) this.core.modList.push(modinfo.name);
+    for (const modName of modList) {
+      const modinfo = this.core.modUtils.getMod(modName) as ModInfo | undefined;
+      if (!modinfo?.bootJson?.dependenceInfo) continue;
+      const dependsOnMaplebirch = modinfo.bootJson.dependenceInfo.some(dep => dep.modName === 'maplebirch');
+      if (dependsOnMaplebirch && !this.core.modList.includes(modinfo.name)) this.core.modList.push(modinfo.name);
     }
   }
 
-  _showModVersions(): string {
-    const html = `<div id='modversions'>Maplebirch Framework v${maplebirch.meta.version}|${maplebirch.modList.length}</div>`;
-    return html;
+  showModVersions(): string {
+    return `<div id='modversions'>Maplebirch Framework v${this.core.meta.version}|${this.core.modList.length}</div>`;
   }
 
-  _showFrameworkInfo(): string {
-    let html_1 = `
+  showFrameworkInfo(): string {
+    this.collectFrameworkMods();
+    const info = `
       <div class='p-2 text-align-center'>
         <h3>[[<<lanSwitch 'Maplebirch Framework' '秋枫白桦框架'>>|'https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchframework']]</h3>
         <div class='m-2'><span class='gold'><<lanSwitch 'Version: ' '版本：'>></span>${this.core.meta.version}<br></div>
@@ -153,75 +147,51 @@ class Internals {
         <div class='m-2'><span class='gold'><<lanSwitch 'Last Update: ' '最后更新：'>></span>${this.core.meta.updateDate}<br></div>
         <div class='m-2'><span class='gold'><<lanSwitch 'Last Modified By: ' '最后修改者：'>></span>${this.core.meta.modifiedby}<br></div>
       </div>`;
-    this.#getModDependenceInfo();
-    const modlist = this.core.modList;
-    const html: string[] = [];
-    for (let i = 0; i < modlist.length; i++) {
-      const modId = modlist[i];
-      const modinfo = this.core.modUtils.getMod(modId);
+    const mods: string[] = [];
+    for (const modId of this.core.modList) {
+      const modinfo = this.core.modUtils.getMod(modId) as ModInfo | undefined;
       if (!modinfo) continue;
-      const modname = this.#getModName(modinfo);
-      const modversion = modinfo.version;
-      const text = `<div class='modinfo'>・${modname}：v${modversion}</div>`;
-      html.push(text);
+      const name = this.modDisplayName(modinfo);
+      if (!name) continue;
+      mods.push(`<div class='modinfo'>・${name}：v${modinfo.version}</div>`);
     }
-    if (html.length > 0) html_1 += `<div class='p-2 text-align-center'><h3><<lanSwitch 'Framework Mod List' '框架模组列表'>></h3><div id='modlist'>${html.join('')}</div></div>`;
-    return html_1;
+    if (mods.length === 0) return info;
+    return info + `<div class='p-2 text-align-center'><h3><<lanSwitch 'Framework Mod List' '框架模组列表'>></h3><div id='modlist'>${mods.join('')}</div></div>`;
   }
 
-  compatibleModI18N() {
+  compatibleModI18N(): void {
+    if (this.modI18NPatched) return;
     const originalName = setup.NPC_CN_NAME;
-    setup.NPC_CN_NAME = (args: string) => {
-      if (!args || !this._.isString(args)) return args;
-      const originalResult = originalName(args);
-      if (originalResult !== args) return originalResult;
-      if (this.core.lang.has(args)) return this.core.auto(args);
-      return args;
-    };
     const originalTitle = setup.NPC_CN_TITLE;
-    setup.NPC_CN_TITLE = (str: string) => {
-      if (!str || !this._.isString(str)) return str;
-      const originalResult = originalTitle(str);
-      if (originalResult !== str) return originalResult;
-      if (this.core.lang.has(str)) return this.core.auto(str);
-      return str;
-    };
+    if (typeof originalName === 'function') {
+      setup.NPC_CN_NAME = (text: string) => {
+        if (!text || typeof text !== 'string') return text;
+        const result = originalName(text);
+        if (result !== text) return result;
+        if (this.core.lang.has(text)) return this.core.auto(text);
+        return text;
+      };
+    }
+    if (typeof originalTitle === 'function') {
+      setup.NPC_CN_TITLE = (text: string) => {
+        if (!text || typeof text !== 'string') return text;
+        const result = originalTitle(text);
+        if (result !== text) return result;
+        if (this.core.lang.has(text)) return this.core.auto(text);
+        return text;
+      };
+    }
+    this.modI18NPatched = true;
   }
 
-  preInit() {
-    this._.set(window, 'lanSwitch', Object.freeze(_languageSwitch));
+  preInit(): void {
+    (window as any).lanSwitch = Object.freeze(_languageSwitch);
 
     this.core.tool.onInit(() => {
-      setup.maplebirch = {};
+      setup.maplebirch ??= {};
       this.languageManager();
-      setup.maplebirch.hint = (() => {
-        const hint: any[] = [];
-        function push(...args: any[]) {
-          args.forEach(item => {
-            if (!hint.includes(item)) hint.push(item);
-          });
-        }
-        return {
-          push,
-          get play() {
-            return hint.map(item => `${item}`).join('');
-          }
-        };
-      })();
-      setup.maplebirch.content = (() => {
-        const content: any[] = [];
-        function push(...args: any[]) {
-          args.forEach(item => {
-            if (!content.includes(item)) content.push(item);
-          });
-        }
-        return {
-          push,
-          get play() {
-            return content.map(item => `${item}`).join('');
-          }
-        };
-      })();
+      setup.maplebirch.hint = this.uniqueTextStore();
+      setup.maplebirch.content = this.uniqueTextStore();
     });
 
     this.core.tool.other.configureLocation(
@@ -240,61 +210,71 @@ class Internals {
       { layer: 'base', element: 'bloodmoon_snow' }
     );
 
-    $(document).on('change', 'select[name="lanListbox-optionsmaplebirchnpcsidebarnnpc"]', () => {
+    this.optionOverlayEvents();
+    this.relationStyleEvent();
+  }
+
+  Init(): void {
+    Dynamic.task = (fn: DynamicTask, name: string) => this.fixDynamicTask(fn, name);
+    if (this.core.modUtils.getMod('ModI18N')) this.compatibleModI18N();
+  }
+
+  private uniqueTextStore(): { push: (...args: TextItem[]) => void; readonly play: string } {
+    const items: TextItem[] = [];
+    return {
+      push(...args: TextItem[]) {
+        for (const item of args) if (!items.includes(item)) items.push(item);
+      },
+      get play() {
+        return items.map(item => (item == null ? '' : typeof item === 'string' ? item : item.toString())).join('');
+      }
+    };
+  }
+
+  private optionOverlayEvents(): void {
+    const refreshOptions = () => {
       if (!maplebirch.modules.initPhase.preInitCompleted) return;
       try {
         $.wiki('<<replace #customOverlayContent>><<maplebirchOptions>><</replace>>');
       } catch (error) {
-        this.log('图形选择错误:', 'ERROR', error);
+        this.log('选项界面刷新错误:', 'ERROR', error);
       }
-    });
+    };
 
-    $(document).on('change', 'select[name="lanListbox-optionsmaplebirchnpcsidebarfacevariant"]', () => {
+    const updateSidebar = () => {
       if (!maplebirch.modules.initPhase.preInitCompleted) return;
       try {
         $.wiki('<<updatesidebarimg>>');
       } catch (error) {
-        this.log('姿态更新错误:', 'ERROR', error);
+        this.log('侧边栏图片更新错误:', 'ERROR', error);
       }
-    });
+    };
 
-    $(document).on('change', 'select[name="lanListbox-optionsmaplebirchcharactercharartselect"]', () => {
-      if (!maplebirch.modules.initPhase.preInitCompleted) return;
-      try {
-        $.wiki('<<replace #customOverlayContent>><<maplebirchOptions>><</replace>>');
-      } catch (error) {
-        this.log('渐变调整错误:', 'ERROR', error);
-      }
-    });
-
-    $(document).on('change', 'select[name="lanListbox-optionsmaplebirchcharactercloseupselect"]', () => {
-      if (!maplebirch.modules.initPhase.preInitCompleted) return;
-      try {
-        $.wiki('<<replace #customOverlayContent>><<maplebirchOptions>><</replace>>');
-      } catch (error) {
-        this.log('渐变调整错误:', 'ERROR', error);
-      }
-    });
-
-    $(document).on('click', '.link-internal.macro-button', () => {
-      if (!maplebirch.modules.initPhase.preInitCompleted) return;
-      if (this.updateTimer) clearTimeout(this.updateTimer);
-      try {
-        this.updateTimer = setTimeout(() => {
-          const count = (V.options.maplebirch?.relationcount ?? 4) - 2;
-          document.querySelectorAll('.relation-stat-list').forEach((list: Element) => (list as HTMLElement).style.setProperty('--maplebirch-relation-count', count.toString()));
-        }, 100);
-      } catch {}
-    });
+    $(document).on('change', 'select[name="lanListbox-optionsmaplebirchnpcsidebarnnpc"]', refreshOptions);
+    $(document).on('change', 'select[name="lanListbox-optionsmaplebirchcharactercharartselect"]', refreshOptions);
+    $(document).on('change', 'select[name="lanListbox-optionsmaplebirchcharactercloseupselect"]', refreshOptions);
+    $(document).on('change', 'select[name="lanListbox-optionsmaplebirchnpcsidebarfacevariant"]', updateSidebar);
   }
 
-  Init() {
-    Dynamic.task = (fn: Function, name: string) => this._fixDynamicTask(fn, name);
-    if (this.core.modUtils.getMod('ModI18N')) this.compatibleModI18N();
+  private relationStyleEvent(): void {
+    $(document).on('click', '.link-internal.macro-button', () => {
+      if (!maplebirch.modules.initPhase.preInitCompleted) return;
+      if (this.relationTimer) clearTimeout(this.relationTimer);
+      this.relationTimer = setTimeout(() => {
+        try {
+          const count = (V.options.maplebirch?.relationcount ?? 4) - 2;
+          document.querySelectorAll('.relation-stat-list').forEach(list => (list as HTMLElement).style.setProperty('--maplebirch-relation-count', count.toString()));
+        } catch (error) {
+          this.log('关系数量样式刷新错误:', 'ERROR', error);
+        }
+      }, 100);
+    });
   }
 }
 
 (function (maplebirch): void {
   'use strict';
-  maplebirch.register('internals', Object.freeze(new Internals(maplebirch)), ['tool']);
+  maplebirch.register('internals', Object.seal(new Internals(maplebirch)), ['tool']);
 })(maplebirch);
+
+export default Internals;

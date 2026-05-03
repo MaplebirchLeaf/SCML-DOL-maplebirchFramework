@@ -1,9 +1,9 @@
-// .src/modules/Frameworks/console.ts
+// ./src/modules/Frameworks/consoleCheat.ts
 
 import { createlog, type MaplebirchCore } from '../../core';
 import ToolCollection from '../ToolCollection';
 
-interface ExecuteJSResult {
+interface JSExecutionResult {
   success: boolean;
   result?: any;
   error?: string;
@@ -11,7 +11,7 @@ interface ExecuteJSResult {
   globals?: Record<string, any>;
 }
 
-interface ExecuteTwineResult {
+interface TwineExecutionResult {
   success: boolean;
   error?: string;
   message: string;
@@ -19,7 +19,7 @@ interface ExecuteTwineResult {
   parsedContent?: string;
 }
 
-interface ExecuteResult {
+interface ExecutionResult {
   success: boolean;
   result?: any;
   error?: string;
@@ -29,210 +29,210 @@ interface ExecuteResult {
   parsedContent?: string;
 }
 
-class Console {
-  private readonly log: (...args: any[]) => void;
+class CheatConsole {
+  private readonly log: ReturnType<typeof createlog>;
   private readonly core: MaplebirchCore;
-  private readonly global: Record<string, any> = {};
+  private readonly globals: Record<string, any> = {};
+
+  private readonly jsStatus = '#js-cheat-console-status';
+  private readonly twineStatus = '#twine-cheat-console-status';
+  private readonly twineOutputs = ['#twine-cheat-console-output', '#your-output-container'];
 
   constructor(readonly manager: ToolCollection) {
     this.log = createlog('console');
     this.core = manager.core;
   }
 
-  executeJS(): ExecuteJSResult {
-    let result: any;
+  executeJS(): JSExecutionResult {
     const code = T?.maplebirchJSCheatConsole as string;
-    const statusElement = $('#js-cheat-console-status');
-    statusElement.empty().removeClass('success error visible');
-
+    $(this.jsStatus).empty().removeClass('success error visible');
     if (typeof code !== 'string' || code.trim() === '') {
-      this._updateJSStatus(lanSwitch('Execution failed: Please enter valid JavaScript code.', '执行失败：请输入有效的 JavaScript 代码。'), false);
+      const error = lanSwitch('Please enter valid JavaScript code.', '请输入有效的 JavaScript 代码。');
+      const message = lanSwitch('Execution failed: Please enter valid JavaScript code.', '执行失败：请输入有效的 JavaScript 代码。');
+      this.showStatus(this.jsStatus, message, false);
       return {
         success: false,
-        error: lanSwitch('Please enter valid JavaScript code.', '请输入有效的 JavaScript 代码。'),
-        message: lanSwitch('Execution failed: Please enter valid JavaScript code.', '执行失败：请输入有效的 JavaScript 代码。')
+        error,
+        message
       };
     }
-
     try {
-      result = this._executeJSCode(code);
+      const result = this.runJavaScript(code);
       if (result instanceof Error) throw result;
-      const hasExplicitReturn = /\breturn\b\s*[^;]*;?$|return;/.test(code);
-      const message = hasExplicitReturn ? lanSwitch('Execution successful → ', '执行成功 → ') + this._formatResult(result) : lanSwitch('Code executed.', '代码已执行。');
-      this._updateJSStatus(message, true);
+      const hasReturn = /\breturn\b\s*[^;]*;?$|return;/.test(code);
+      const message = hasReturn ? lanSwitch('Execution successful → ', '执行成功 → ') + this.format(result) : lanSwitch('Code executed.', '代码已执行。');
+      this.showStatus(this.jsStatus, message, true);
       return {
         success: true,
-        result: result,
-        message: message,
-        globals: this.global
+        result,
+        message,
+        globals: this.globals
       };
     } catch (error: any) {
-      const errorMsg = error.message || lanSwitch('Unknown error', '未知错误');
-      const message = lanSwitch('Execution error → ', '执行错误 → ') + errorMsg;
-      this._updateJSStatus(message, false);
+      const errorText = error?.message || lanSwitch('Unknown error', '未知错误');
+      const message = lanSwitch('Execution error → ', '执行错误 → ') + errorText;
+      this.showStatus(this.jsStatus, message, false);
       return {
         success: false,
-        error: errorMsg,
-        message: message
+        error: errorText,
+        message
       };
     }
   }
 
-  private _updateJSStatus(message: string, isSuccess: boolean): void {
-    const statusElement = $('#js-cheat-console-status');
-    statusElement.text(message);
-    statusElement.removeClass('success error visible');
-    statusElement.addClass(isSuccess ? 'success visible' : 'error visible');
+  executeTwine(): TwineExecutionResult {
+    const code = T?.maplebirchTwineCheatConsole as string;
+    $(this.twineStatus).empty().removeClass('success error visible');
+    if (typeof code !== 'string' || code.trim() === '') {
+      const error = lanSwitch('Please enter valid Twine code.', '请输入有效的 Twine 代码。');
+      const message = lanSwitch('Execution failed: Please enter valid Twine code.', '执行失败：请输入有效的 Twine 代码。');
+      this.showStatus(this.twineStatus, message, false);
+      return {
+        success: false,
+        error,
+        message
+      };
+    }
+    try {
+      const fragment = document.createDocumentFragment();
+      const hasOutputMacro = /<<(?:link|goto|display)\b/i.test(code);
+      try {
+        new this.core.SugarCube.Wikifier(fragment, code);
+        if (hasOutputMacro) {
+          const target = this.linkTarget(code);
+          if (target) {
+            this.showStatus(this.twineStatus, lanSwitch('Execution successful, redirecting...', '执行成功，即将跳转...'), true);
+            setTimeout(() => this.core.SugarCube.Engine.play(target), 300);
+            return {
+              success: true,
+              message: lanSwitch('Code executed successfully.', '代码执行成功。'),
+              hasNavigation: true
+            };
+          }
+          const output = this.twineOutputs.map(selector => document.querySelector(selector)).find(Boolean);
+          if (output) output.appendChild(fragment.cloneNode(true));
+          this.showStatus(this.twineStatus, lanSwitch('Execution successful', '执行成功'), true);
+          return {
+            success: true,
+            message: lanSwitch('Code executed successfully.', '代码执行成功。'),
+            hasNavigation: true,
+            parsedContent: this.html(fragment)
+          };
+        }
+        this.showStatus(this.twineStatus, lanSwitch('Execution successful', '执行成功'), true);
+        return {
+          success: true,
+          message: lanSwitch('Code executed successfully.', '代码执行成功。'),
+          parsedContent: this.html(fragment)
+        };
+      } catch (error: any) {
+        const errorText = error?.message || lanSwitch('Wikifier parsing error', 'Wikifier 解析错误');
+        const message = lanSwitch('Parsing error: ', '解析错误: ') + errorText;
+        this.showStatus(this.twineStatus, message, false);
+        this.log('Twine代码解析失败', 'ERROR', error);
+        return {
+          success: false,
+          error: errorText,
+          message
+        };
+      }
+    } catch (error: any) {
+      const errorText = error?.message || lanSwitch('Unknown error', '未知错误');
+      const message = lanSwitch('Execution error: ', '执行错误: ') + errorText;
+      this.showStatus(this.twineStatus, message, false);
+      return {
+        success: false,
+        error: errorText,
+        message
+      };
+    }
   }
 
-  private _executeJSCode(code: string): any {
-    const sandbox: Record<string, any> = {
+  execute(type: 'javascript' | 'twine'): ExecutionResult {
+    if (type === 'javascript') return this.executeJS() as ExecutionResult;
+    if (type === 'twine') return this.executeTwine() as ExecutionResult;
+    const message = lanSwitch('Unknown execution type: ', '未知执行类型: ') + type;
+    this.log(`未知执行类型: ${type as any}`, 'ERROR');
+    return {
+      success: false,
+      error: message,
+      message
+    };
+  }
+
+  private runJavaScript(code: string): any {
+    const scope: Record<string, any> = {
       C: window.C,
       V: window.V,
       T: window.T,
-      global: this.global
+      global: this.globals
     };
 
-    const sandboxProxy = new Proxy(sandbox, {
+    const scoped = new Proxy(scope, {
       has: () => true,
-      get: (target: any, prop: string | symbol) => {
-        if (prop === Symbol.unscopables) return undefined;
-        return target[prop] ?? window[prop];
+
+      get: (target: Record<string, any>, key: string | symbol) => {
+        if (key === Symbol.unscopables) return undefined;
+        if (typeof key === 'symbol') return undefined;
+        if (key in target) return target[key];
+        return (window as any)[key];
       },
-      set: (target, prop, value) => {
-        const propStr = String(prop);
-        if (propStr === 'C' || propStr === 'V' || propStr === 'T') {
-          window[prop] = value;
-          target[prop] = value;
+
+      set: (target: Record<string, any>, key: string | symbol, value: any) => {
+        if (typeof key === 'symbol') return false;
+        if (key === 'C' || key === 'V' || key === 'T') {
+          (window as any)[key] = value;
+          target[key] = value;
           return true;
         }
-        if (propStr === 'global') throw new Error(lanSwitch('Cannot override global', '不能覆盖 global'));
-        if (prop in window) {
-          window[prop] = value;
+        if (key === 'global') throw new Error(lanSwitch('Cannot override global', '不能覆盖 global'));
+        if (key in window) {
+          (window as any)[key] = value;
           return true;
         }
-        this.global[propStr] = value;
+        this.globals[key] = value;
         return true;
       }
     });
-    const wrappedCode = `"use strict"; try { ${code} } catch(e) { return e; }`;
+
+    const body = `"use strict"; try { ${code} } catch(error) { return error; }`;
+
     try {
-      const executor = new Function('sandbox', `with(sandbox) { return (function() { ${wrappedCode} })(); }`);
-      return executor(sandboxProxy);
+      const executor = new Function('scope', `with(scope) { return (function() { ${body} })(); }`);
+      return executor(scoped);
     } catch (error) {
       return error;
     }
   }
 
-  private _formatResult(result: any): string {
-    if (result === null) return 'null';
-    if (result === undefined) return 'undefined';
-    if (typeof result === 'function') return 'function';
+  private linkTarget(code: string): string | null {
+    const match = code.match(/<<link\s+(?:['"]([^'"]+)['"]\s*['"]([^'"]+)['"]|\[\[([^\]]+)\|([^\]]+)\]\]).*?>>/i);
+    return match ? match[2] || match[4] || null : null;
+  }
+
+  private html(fragment: DocumentFragment): string {
+    const container = document.createElement('div');
+    container.appendChild(fragment.cloneNode(true));
+    return container.innerHTML;
+  }
+
+  private format(value: any): string {
+    if (value === null) return 'null';
+    if (value === undefined) return 'undefined';
+    if (typeof value === 'function') return 'function';
     try {
-      return JSON.stringify(result, null, 2);
+      return JSON.stringify(value, null, 2);
     } catch {
-      return String(result);
+      return String(value);
     }
   }
 
-  executeTwine(): ExecuteTwineResult {
-    const code = T?.maplebirchTwineCheatConsole as string;
-    const statusElement = $('#twine-cheat-console-status');
-    statusElement.empty().removeClass('success error visible');
-
-    if (typeof code !== 'string' || code.trim() === '') {
-      this._updateTwineStatus(lanSwitch('Execution failed: Please enter valid Twine code.', '执行失败：请输入有效的 Twine 代码。'), false);
-      return {
-        success: false,
-        error: lanSwitch('Please enter valid Twine code.', '请输入有效的 Twine 代码。'),
-        message: lanSwitch('Execution failed: Please enter valid Twine code.', '执行失败：请输入有效的 Twine 代码。')
-      };
-    }
-
-    try {
-      const fragment = document.createDocumentFragment();
-      const hasNavigation = /<<(?:link|goto|display)\b/i.test(code);
-
-      try {
-        new this.core.SugarCube.Wikifier(fragment, code);
-
-        if (hasNavigation) {
-          if (code.includes('<<link')) {
-            const match = code.match(/<<link\s+(?:['"]([^'"]+)['"]\s*['"]([^'"]+)['"]|\[\[([^\]]+)\|([^\]]+)\]\]).*?>>/i);
-            if (match) {
-              const target = match[2] || match[4];
-              if (target) {
-                this._updateTwineStatus(lanSwitch('Execution successful, redirecting...', '执行成功，即将跳转...'), true);
-                setTimeout(() => this.core.SugarCube.Engine.play(target), 300);
-                return {
-                  success: true,
-                  message: lanSwitch('Code executed successfully.', '代码执行成功。'),
-                  hasNavigation: true
-                };
-              }
-            }
-          }
-
-          this._updateTwineStatus(lanSwitch('Execution successful, redirecting...', '执行成功，即将跳转...'), true);
-          setTimeout(() => {
-            if (fragment.children.length > 0) document.getElementById('your-output-container')?.appendChild(fragment);
-          }, 300);
-
-          return {
-            success: true,
-            message: lanSwitch('Code executed successfully.', '代码执行成功。'),
-            hasNavigation: true
-          };
-        } else {
-          this._updateTwineStatus(lanSwitch('Execution successful', '执行成功'), true);
-          return {
-            success: true,
-            message: lanSwitch('Code executed successfully.', '代码执行成功。'),
-            parsedContent: (fragment as any as HTMLElement).innerHTML
-          };
-        }
-      } catch (wikifyError: any) {
-        const errorMsg = wikifyError.message || lanSwitch('Wikifier parsing error', 'Wikifier 解析错误');
-        this._updateTwineStatus(lanSwitch('Parsing error: ', '解析错误: ') + errorMsg, false);
-        this.log('Twine代码解析失败', 'ERROR', wikifyError);
-        return {
-          success: false,
-          error: errorMsg,
-          message: `解析错误: ${errorMsg}`
-        };
-      }
-    } catch (error: any) {
-      const errorMsg = error.message || lanSwitch('Unknown error', '未知错误');
-      this._updateTwineStatus(lanSwitch('Execution error: ', '执行错误: ') + errorMsg, false);
-      return {
-        success: false,
-        error: errorMsg,
-        message: lanSwitch('Execution error: ', '执行错误: ') + errorMsg
-      };
-    }
-  }
-
-  private _updateTwineStatus(message: string, isSuccess: boolean): void {
-    const statusElement = $('#twine-cheat-console-status');
-    statusElement.text(message);
-    statusElement.removeClass('success error visible');
-    statusElement.addClass(isSuccess ? 'success visible' : 'error visible');
-  }
-
-  public execute(type: 'javascript' | 'twine'): ExecuteResult {
-    if (type === 'javascript') {
-      return this.executeJS() as ExecuteResult;
-    } else if (type === 'twine') {
-      return this.executeTwine() as ExecuteResult;
-    } else {
-      this.log(`未知执行类型: ${type as any}`, 'ERROR');
-      return {
-        success: false,
-        error: lanSwitch('Unknown execution type: ', '未知执行类型: ') + type,
-        message: lanSwitch('Unknown execution type: ', '未知执行类型: ') + type
-      };
-    }
+  private showStatus(selector: string, message: string, success: boolean): void {
+    const status = $(selector);
+    status.text(message);
+    status.removeClass('success error visible');
+    status.addClass(success ? 'success visible' : 'error visible');
   }
 }
 
-export default Console;
+export default CheatConsole;

@@ -7,7 +7,7 @@ import migration from './Frameworks/migration';
 import randSystem from './Frameworks/randSystem';
 import defineMacros from './Frameworks/macros';
 import htmlTools from './Frameworks/htmlTools';
-import { zonesManager, InitFunction, ZoneWidgetConfig } from './Frameworks/zonesManager';
+import { zonesManager, type InitFunction, type ZoneWidgetConfig } from './Frameworks/zonesManager';
 import applyLinkZone from './Frameworks/applyLinkZone';
 import otherTools from './Frameworks/otherTools';
 
