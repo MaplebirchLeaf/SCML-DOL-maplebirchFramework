@@ -45,6 +45,7 @@ interface LocationConfig {
   reflective?: Record<string, any>;
   layerTop?: Record<string, any>;
   customMapping?: any;
+  [key: string]: any;
 }
 
 interface LocationUpdate {
@@ -74,9 +75,13 @@ interface BodywritingData {
 }
 
 const otherTools = (core => {
-  const _ = core.lodash;
-  const traitsTitle: string[] = [];
   const traitsData: TraitConfig[] = [];
+  const locationData: Record<string, LocationUpdate> = {};
+  const bodywritingData: Record<string, BodywritingData> = {};
+
+  function value<T>(input: T | (() => T) | undefined, fallback: T): T {
+    return typeof input === 'function' ? (input as () => T)() : (input ?? fallback);
+  }
 
   class Traits {
     // prettier-ignore
@@ -91,111 +96,103 @@ const otherTools = (core => {
       'Acceptance Traits': '接纳特质'
     };
 
-    static #resolve(trait: TraitConfig, categories: Record<string, string>): ResolvedTrait {
-      const value = <T>(value: T | (() => T), fallback: T): T => {
-        if (_.isFunction(value)) return value();
-        return value ?? fallback;
-      };
+    static add(...traits: Partial<TraitConfig>[]): void {
+      for (const trait of traits) {
+        if (!trait?.title || !trait.name) continue;
+        const title = Traits.categories[trait.title] || trait.title;
+        const name = value(trait.name, '');
+        if (!name) continue;
+        const next: TraitConfig = {
+          title: trait.title,
+          name: trait.name,
+          colour: trait.colour ?? '',
+          has: trait.has ?? false,
+          text: trait.text ?? ''
+        };
+        const index = traitsData.findIndex(item => {
+          const itemTitle = Traits.categories[item.title] || item.title;
+          const itemName = value(item.name, '');
+          return itemTitle === title && itemName === name;
+        });
+        if (index >= 0) {
+          traitsData[index] = next;
+        } else {
+          traitsData.push(next);
+        }
+      }
+    }
+
+    static inject(data: TraitCategory[]): TraitCategory[] {
+      const result = clone(data);
+      const titleMap: Record<string, number> = {};
+      result.forEach((category: TraitCategory, index: number) => {
+        const title = Traits.categories[category.title] || category.title;
+        titleMap[title] = index;
+        category.traits ??= [];
+      });
+      for (const rawTrait of traitsData) {
+        const trait = Traits.resolve(rawTrait);
+        const item = {
+          name: trait.name,
+          colour: trait.colour,
+          has: trait.has,
+          text: trait.text
+        };
+        if (Object.prototype.hasOwnProperty.call(titleMap, trait.title)) {
+          result[titleMap[trait.title]].traits.push(item);
+          continue;
+        }
+        result.push({
+          title: trait.title,
+          traits: [item]
+        });
+        titleMap[trait.title] = result.length - 1;
+      }
+
+      return (T.traitLists = result);
+    }
+
+    private static resolve(trait: TraitConfig): ResolvedTrait {
       return {
-        title: categories[trait.title] || trait.title,
+        title: Traits.categories[trait.title] || trait.title,
         name: value(trait.name, ''),
         colour: value(trait.colour, ''),
         has: value(trait.has, false),
         text: value(trait.text, '')
       };
     }
-
-    static #titleMap(data: TraitCategory[]): Record<string, number> {
-      const titleMap: Record<string, number> = {};
-      const traitLists = clone(data);
-      _.forEach(traitLists, (category: TraitCategory, index: number) => {
-        const mappedTitle = Traits.categories[category.title] || category.title;
-        titleMap[mappedTitle] = index;
-        if (!_.includes(traitsTitle, mappedTitle)) traitsTitle.push(mappedTitle);
-      });
-      return titleMap;
-    }
-
-    static add(...traits: Partial<TraitConfig>[]): void {
-      _.forEach(traits, trait => {
-        if (!trait || !trait.title || !trait.name) return;
-        const mappedTitle = Traits.categories[trait.title] || trait.title;
-        const nameValue = _.isFunction(trait.name) ? trait.name() : trait.name;
-        const existingIndex = _.findIndex(traitsData, item => {
-          const itemTitle = Traits.categories[item.title] || item.title;
-          const itemName = _.isFunction(item.name) ? item.name() : item.name;
-          return itemTitle === mappedTitle && itemName === nameValue;
-        });
-        const nextTrait: TraitConfig = {
-          title: trait.title,
-          name: trait.name,
-          colour: trait.colour || '',
-          has: trait.has || false,
-          text: trait.text || ''
-        };
-        if (existingIndex >= 0) {
-          traitsData[existingIndex] = nextTrait;
-        } else {
-          traitsData.push(nextTrait);
-        }
-      });
-    }
-
-    static inject(data: TraitCategory[]): TraitCategory[] {
-      const titleMap = Traits.#titleMap(data);
-      const result = clone(data);
-      _.forEach(traitsData, rawTrait => {
-        const trait = Traits.#resolve(rawTrait, Traits.categories);
-        if (_.has(titleMap, trait.title)) {
-          result[titleMap[trait.title]].traits.push({
-            name: trait.name,
-            colour: trait.colour,
-            has: trait.has,
-            text: trait.text
-          });
-        } else {
-          result.push({
-            title: trait.title,
-            traits: [
-              {
-                name: trait.name,
-                colour: trait.colour,
-                has: trait.has,
-                text: trait.text
-              }
-            ]
-          });
-          titleMap[trait.title] = result.length - 1;
-          if (!_.includes(traitsTitle, trait.title)) traitsTitle.push(trait.title);
-        }
-      });
-      return (T.traitLists = result);
-    }
   }
-
-  const locationData: Record<string, LocationUpdate> = {};
 
   class Location {
     static configure(locationId: string, config: LocationConfig, options: LocationConfigOptions = {}): boolean {
+      if (!locationId || !config) return false;
       const { overwrite = false, layer, element } = options;
-      if (!locationData[locationId]) locationData[locationId] = { overwrite: false, config: {}, customMapping: null };
+      locationData[locationId] ??= {
+        overwrite: false,
+        config: {},
+        customMapping: null
+      };
       const update = locationData[locationId];
       if (overwrite) {
         update.overwrite = true;
         update.config = clone(config);
         update.customMapping = config.customMapping || null;
-      } else if (layer && element) {
-        if (!update.config[layer]) update.config[layer] = {};
-        update.config[layer][element] = { ...update.config[layer][element], ...config };
-      } else {
-        update.config = Location.#deepMerge(update.config, config);
-        if (config.customMapping) update.customMapping = config.customMapping;
+        return true;
       }
+      if (layer && element) {
+        update.config[layer] ??= {};
+        update.config[layer][element] = merge({}, update.config[layer][element] || {}, config, { mode: 'merge' });
+        return true;
+      }
+      update.config = Location.merge(update.config, config);
+      if (config.customMapping) update.customMapping = config.customMapping;
       return true;
     }
 
     static apply(): void {
-      _.forIn(locationData, (update, locationId) => {
+      setup.LocationImages ??= {};
+      setup.Locations ??= {};
+      for (const [locationId, update] of Object.entries(locationData)) {
         const current = setup.LocationImages[locationId] || {};
         if (update.overwrite || !setup.LocationImages[locationId]) {
           setup.LocationImages[locationId] = {
@@ -206,26 +203,24 @@ const otherTools = (core => {
             layerTop: update.config.layerTop || current.layerTop
           };
         } else {
-          setup.LocationImages[locationId] = Location.#deepMerge(current, update.config);
+          setup.LocationImages[locationId] = Location.merge(current, update.config);
         }
         if (update.customMapping) setup.Locations[locationId] = update.customMapping;
-      });
-      _.keys(locationData).forEach(key => delete locationData[key]);
+        delete locationData[locationId];
+      }
     }
 
-    static #deepMerge(target: any, source: any): any {
-      const filterFn = (key: string, value: any, depth: number): boolean => {
-        if (depth === 1) return key === 'folder' || _.includes(['base', 'emissive', 'reflective', 'layerTop'], key);
-        return true;
-      };
-      return merge(target, source, { mode: 'merge', filterFn });
+    private static merge(target: any, source: any): any {
+      return merge(target, source, {
+        mode: 'merge',
+        filterFn: (key: string, _value: any, depth: number) => depth !== 1 || key === 'folder' || key === 'base' || key === 'emissive' || key === 'reflective' || key === 'layerTop'
+      });
     }
   }
 
-  const bodywritingData: Record<string, BodywritingData> = {};
-
   class Bodywriting {
     static add(key: string, config: BodywritingConfig): void {
+      if (!key || !config) return;
       bodywritingData[key] = {
         operation: 'add',
         config: clone(config)
@@ -233,43 +228,54 @@ const otherTools = (core => {
     }
 
     static delete(key: string): void {
-      bodywritingData[key] = { operation: 'del' };
+      if (!key) return;
+      bodywritingData[key] = {
+        operation: 'del'
+      };
     }
 
     static apply(): void {
-      _.forIn(bodywritingData, (data, key) => {
+      setup.bodywriting ??= {};
+      setup.bodywriting_namebyindex ??= {};
+      for (const [key, data] of Object.entries(bodywritingData)) {
         if (data.operation === 'del') {
-          if (setup.bodywriting[key]) {
-            const index = setup.bodywriting[key].index as number;
-            delete setup.bodywriting[key];
-            if (setup.bodywriting_namebyindex[index] === key) delete setup.bodywriting_namebyindex[index];
-          }
-        } else if (data.operation === 'add') {
-          const config = data.config!;
-          if (config.index === undefined) {
-            let maxIndex = 0;
-            for (const writingKey in setup.bodywriting) {
-              if (setup.bodywriting[writingKey].index! > maxIndex) {
-                maxIndex = setup.bodywriting[writingKey].index!;
-              }
-            }
-            config.index = maxIndex + 1;
-          }
-          const defaultConfig: BodywritingConfig = {
-            key: key,
-            type: 'text',
-            arrow: 0,
-            special: 'none',
-            gender: 'n',
-            lewd: 0,
-            degree: 0,
-            featSkip: true
-          };
-          setup.bodywriting[key] = { ...defaultConfig, ...config };
-          setup.bodywriting_namebyindex[config.index] = key;
+          Bodywriting.remove(key);
+        } else if (data.config) {
+          Bodywriting.set(key, data.config);
         }
-      });
-      _.keys(bodywritingData).forEach(key => delete bodywritingData[key]);
+        delete bodywritingData[key];
+      }
+    }
+
+    private static remove(key: string): void {
+      const item = setup.bodywriting[key];
+      if (!item) return;
+      const index = item.index;
+      delete setup.bodywriting[key];
+      if (setup.bodywriting_namebyindex[index] === key) delete setup.bodywriting_namebyindex[index];
+    }
+
+    private static set(key: string, config: BodywritingConfig): void {
+      if (config.index === undefined) {
+        let maxIndex = 0;
+        for (const item of Object.values(setup.bodywriting) as BodywritingConfig[]) {
+          const index = Number(item.index);
+          if (Number.isFinite(index) && index > maxIndex) maxIndex = index;
+        }
+        config.index = maxIndex + 1;
+      }
+      setup.bodywriting[key] = {
+        key,
+        type: 'text',
+        arrow: 0,
+        special: 'none',
+        gender: 'n',
+        lewd: 0,
+        degree: 0,
+        featSkip: true,
+        ...config
+      };
+      setup.bodywriting_namebyindex[config.index] = key;
     }
   }
 
@@ -279,10 +285,10 @@ const otherTools = (core => {
     locationData,
     bodywritingData,
     addTraits        : Traits.add.bind(Traits),
-    configureLocation: Location.configure.bind(Location),
-    addBodywriting   : Bodywriting.add.bind(Bodywriting),
     injectTraits     : Traits.inject.bind(Traits),
+    configureLocation: Location.configure.bind(Location),
     applyLocation    : Location.apply.bind(Location),
+    addBodywriting   : Bodywriting.add.bind(Bodywriting),
     applyBodywriting : Bodywriting.apply.bind(Bodywriting)
   };
 })(maplebirch);

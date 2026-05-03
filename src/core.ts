@@ -116,7 +116,7 @@ class MaplebirchCore {
       await this.idb.checkStore();
       await this.logger.fromIDB();
       await this.trigger(':idbReady');
-      await this.pre();
+      await this.modules.init('pre');
     });
 
     this.on(
@@ -133,13 +133,13 @@ class MaplebirchCore {
       async () => {
         if (!this.passage || this.passage.title === 'Start' || this.passage.title === 'Downgrade Waiting Room') return;
         this.modules.initPhase.postInitExecuted = false;
-        await this.init();
+        await this.modules.init('init');
         if (!this.onLoad) {
-          await this.post();
+          await this.modules.init('post');
           return;
         }
-        await this.load();
-        void this.trigger(':onLoadSave').then(async () => await this.post());
+        await this.modules.init('load');
+        void this.trigger(':onLoadSave').then(async () => await this.modules.init('post'));
         this.onLoad = false;
       },
       'loadInit'
@@ -182,22 +182,6 @@ class MaplebirchCore {
 
   register(name: string, module: any, dependencies: string[] = []): boolean {
     return this.modules.register(name, module, dependencies);
-  }
-
-  async pre(): Promise<void> {
-    return await this.modules.init('pre');
-  }
-
-  async init(): Promise<void> {
-    return await this.modules.init('init');
-  }
-
-  async load(): Promise<void> {
-    return await this.modules.init('load');
-  }
-
-  async post(): Promise<void> {
-    return await this.modules.init('post');
   }
 
   t(key: string, space: boolean = false): string {
@@ -251,7 +235,7 @@ class MaplebirchCore {
     return this.logger.LevelName;
   }
 
-  getModule(name: string): any {
+  get(name: string): any {
     return this.modules.registry.modules.get(name);
   }
 

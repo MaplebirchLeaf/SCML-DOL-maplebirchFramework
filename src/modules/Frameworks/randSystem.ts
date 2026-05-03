@@ -1,90 +1,95 @@
 // .src/modules/Frameworks/randSystem.ts
 
-import maplebirch, { createlog } from '../../core';
+import { createlog } from '../../core';
 
-const _ = maplebirch.lodash;
-
-interface randState {
+export interface RandState {
   seed: number | null;
   history: number[];
-  pointer: number;
+  index: number;
 }
 
 class randSystem {
-  static log = createlog('rand');
-  static create() {
-    return new randSystem();
-  }
-  log = randSystem.log;
-  state: randState;
+  static readonly log = createlog('rand');
 
-  constructor() {
-    this.state = {
-      seed: null,
-      history: [],
-      pointer: 0
-    };
+  static create(state: Partial<RandState> = {}): randSystem {
+    return new randSystem(state);
   }
 
-  set Seed(seed: number) {
-    this.state.seed = _.parseInt(seed.toString()) & 0x7fffffff;
+  readonly log = randSystem.log;
+  readonly state: RandState;
+
+  private readonly maxHistory = 100;
+  private readonly modulus = 0x100000000;
+
+  constructor(state: Partial<RandState> = {}) {
+    this.state = state as RandState;
+    this.normalize();
+  }
+
+  reset(seed: number = Date.now()): void {
+    const value = Math.trunc(Number(seed));
+    this.state.seed = Number.isFinite(value) ? value >>> 0 : Date.now() >>> 0;
     this.state.history = [];
-    this.state.pointer = 0;
+    this.state.index = 0;
   }
 
-  get Seed() {
+  int(max: number): number {
+    const limit = Math.max(0, Math.floor(Number(max) || 0));
+    return Math.floor((this.next() / this.modulus) * (limit + 1));
+  }
+
+  percent(): number {
+    return Math.floor((this.next() / this.modulus) * 100) + 1;
+  }
+
+  back(steps = 1): void {
+    if (steps <= 0) return;
+    this.state.index = Math.max(0, this.state.index - Math.floor(steps));
+  }
+
+  get seed(): number | null {
     return this.state.seed;
   }
 
-  get(max: number) {
-    if (this.state.seed == null) this.state.seed = Date.now() & 0x7fffffff;
-    if (this.state.pointer < this.state.history.length) {
-      const value = this.state.history[this.state.pointer];
-      this.state.pointer++;
-      return value % (max + 1);
-    }
-    this.state.seed = (this.state.seed * 1103515245 + 12345) & 0x7fffffff;
-    const value = _.floor((this.state.seed / 0x7fffffff) * 101);
-    this.state.history.push(value);
-    if (this.state.history.length > 100) {
-      this.state.history.shift();
-      this.state.pointer = _.max([0, this.state.pointer - 1]);
-    }
-    this.state.pointer++;
-    return value % (max + 1);
+  set seed(value: number) {
+    this.reset(value);
   }
 
-  get rng() {
-    if (this.state.seed === null) this.state.seed = Date.now() & 0x7fffffff;
-    if (this.state.pointer < this.state.history.length) {
-      const value = this.state.history[this.state.pointer];
-      this.state.pointer++;
-      return (value % 100) + 1;
-    }
-    this.state.seed = (this.state.seed * 1103515245 + 12345) & 0x7fffffff;
-    const value = _.floor((this.state.seed / 0x7fffffff) * 101);
-    this.state.history.push(value);
-    if (this.state.history.length > 100) {
-      this.state.history.shift();
-      this.state.pointer = _.max([0, this.state.pointer - 1]);
-    }
-    this.state.pointer++;
-    return (value % 100) + 1;
-  }
-
-  get history() {
+  get history(): number[] {
     return [...this.state.history];
   }
 
-  get pointer() {
-    return this.state.pointer;
+  get index(): number {
+    return this.state.index;
   }
 
-  backtrack(steps = 1) {
-    if (steps <= 0) return;
-    let newPointer = this.state.pointer - steps;
-    if (newPointer < 0) newPointer = 0;
-    this.state.pointer = newPointer;
+  private next(): number {
+    if (this.state.seed === null) this.reset();
+    if (this.state.index < this.state.history.length) return this.state.history[this.state.index++];
+    this.state.seed = (Math.imul(this.state.seed!, 1664525) + 1013904223) >>> 0;
+    this.state.history.push(this.state.seed);
+    if (this.state.history.length > this.maxHistory) {
+      this.state.history.shift();
+      this.state.index = Math.max(0, this.state.index - 1);
+    }
+    this.state.index++;
+    return this.state.seed;
+  }
+
+  private normalize(): void {
+    const seed = Math.trunc(Number(this.state.seed));
+    this.state.seed = Number.isFinite(seed) ? seed >>> 0 : null;
+    if (Array.isArray(this.state.history)) {
+      this.state.history = this.state.history
+        .map(value => Math.trunc(Number(value)))
+        .filter(Number.isFinite)
+        .map(value => value >>> 0)
+        .slice(-this.maxHistory);
+    } else {
+      this.state.history = [];
+    }
+    const index = Math.trunc(Number(this.state.index));
+    this.state.index = Number.isFinite(index) ? Math.max(0, Math.min(index, this.state.history.length)) : 0;
   }
 }
 

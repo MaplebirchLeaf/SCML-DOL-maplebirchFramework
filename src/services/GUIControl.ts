@@ -82,7 +82,7 @@ class GUIControl {
         return !!modName && modNames.has(modName);
       };
 
-      const addon = this.core.getModule('addon');
+      const addon = this.core.get('addon');
       const scripts: string[] = Array.from(new Set<string>(((addon?.jsFiles || []) as any[]).map((entry: any) => `[${entry.modName}]:${entry.filePath}`).filter(scriptValid)));
       const disabledScriptSet = new Set<string>((Script?.value?.disabled || []).filter(scriptValid));
       this.enabledModules = modules.filter(m => !disabledModuleNames.has(m.name));
@@ -216,7 +216,7 @@ class GUIControl {
   }
 
   get moduleList(): string {
-    const addon = this.core.getModule('addon');
+    const addon = this.core.get('addon');
     const result: string[] = [];
     Object.entries(this.core.dependencyGraph).forEach(([name, info]: [string, any]) => {
       const type = (info.protected ? 'protected' : info.state === 'EXPOSED' ? 'exposed' : info.mounted ? 'mounted' : 'module') as ModuleType;

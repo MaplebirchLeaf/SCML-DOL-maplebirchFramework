@@ -1,18 +1,22 @@
 // ./src/modules/Frameworks/applyLinkZone.ts
 
-import { MaplebirchCore, createlog } from '../../core';
-import maplebirch from '../../core';
+import maplebirch, { type MaplebirchCore, createlog } from '../../core';
 import { merge } from '../../utils';
+
+interface CustomZone {
+  position: number;
+  macro: string;
+}
 
 interface LinkZoneConfig {
   containerId: string;
   linkSelector: string;
   beforeMacro: () => string;
   afterMacro: () => string;
-  customMacro: () => { position: number; macro: string }[];
+  customMacro: () => CustomZone[];
   zoneStyle: Partial<CSSStyleDeclaration>;
-  onBeforeApply?: () => void;
-  onAfterApply?: (result: boolean, config: LinkZoneConfig) => void;
+  onBeforeApply?: (() => void) | null;
+  onAfterApply?: ((result: boolean, config: LinkZoneConfig) => void) | null;
   debug: boolean;
 }
 
@@ -21,176 +25,131 @@ const log = createlog('link');
 class LinkZoneManager {
   firstLink: Element | null = null;
   lastLink: Element | null = null;
-  allLinks: Element[] = [];
-  lineBreakBeforeFirstLink: ChildNode | null = null;
-  containerId: string;
-  linkSelector: string;
-  readonly log: ReturnType<typeof createlog>;
-  private readonly _: typeof maplebirch.lodash;
+  links: Element[] = [];
+  breakBeforeFirst: ChildNode | null = null;
 
-  constructor(containerId: string = 'passages', linkSelector: string = '.macro-link', logger: typeof log) {
+  readonly log: ReturnType<typeof createlog>;
+
+  constructor(
+    readonly containerId = 'passage-content',
+    readonly linkSelector = '.macro-link',
+    logger: typeof log = log
+  ) {
     this.log = logger;
-    this.containerId = containerId;
-    this.linkSelector = linkSelector;
-    this._ = maplebirch.lodash;
-    this._resetState();
   }
 
-  private _resetState(): void {
+  detect(): boolean {
     this.firstLink = null;
     this.lastLink = null;
-    this.allLinks = [];
-    this.lineBreakBeforeFirstLink = null;
-  }
-
-  detectLinks(): {
-    firstLink: Element;
-    lastLink: Element;
-    totalLinks: number;
-    lineBreakBeforeFirstLink: Node | null;
-  } | null {
-    this._resetState();
+    this.links = [];
+    this.breakBeforeFirst = null;
     const container = document.getElementById(this.containerId);
-    if (!container) return null;
-    const allLinks = container.querySelectorAll(this.linkSelector);
-    this.allLinks = this._.filter(Array.from(allLinks), (link: Element) => this._isElementVisible(link));
-    if (this._.isEmpty(this.allLinks)) return null;
-    this.firstLink = this._.first(this.allLinks);
-    this.lastLink = this._.last(this.allLinks);
-    this._detectLineBreakBeforeFirstLink();
-    return {
-      firstLink: this.firstLink!,
-      lastLink: this.lastLink!,
-      totalLinks: this.allLinks.length,
-      lineBreakBeforeFirstLink: this.lineBreakBeforeFirstLink
-    };
+    if (!container) return false;
+    this.links = Array.from(container.querySelectorAll(this.linkSelector)).filter(link => this.visible(link));
+    if (this.links.length === 0) return false;
+    this.firstLink = this.links[0];
+    this.lastLink = this.links[this.links.length - 1];
+    this.breakBeforeFirst = this.findBreakBefore(this.firstLink);
+    return true;
   }
 
-  private _detectLineBreakBeforeFirstLink(): void {
-    if (!this.firstLink) return;
-    let node = this.firstLink.previousSibling;
-    while (node) {
-      if (this._isLineBreakNode(node)) {
-        this.lineBreakBeforeFirstLink = node;
-        return;
-      }
-      node = node.previousSibling;
+  applyZones(config: LinkZoneConfig, customZones: CustomZone[]): boolean {
+    if (!this.detect()) {
+      if (config.debug) this.log('[link] 没有找到可见链接', 'DEBUG');
+      return false;
     }
+    this.applyBefore(config);
+    this.applyAfter(config);
+    for (const zone of customZones) this.applyCustom(zone.position, config);
+    return true;
   }
 
-  private _isLineBreakNode(node: Node): boolean {
-    if (!node) return false;
-    if (node.nodeType === Node.TEXT_NODE) return /\n/.test((node as Text).textContent || '');
-    if (node.nodeType === Node.ELEMENT_NODE) {
-      const element = node as Element;
-      if (this._.includes(['BR', 'HR'], element.nodeName)) return true;
-      const blockTags = ['DIV', 'P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'UL', 'OL', 'LI', 'TABLE'];
-      if (this._.includes(blockTags, element.nodeName)) return true;
-      const display = getComputedStyle(element).display;
-      return this._.includes(['block', 'flex', 'grid', 'table', 'table-row', 'table-cell'], display);
+  private applyBefore(config: LinkZoneConfig): void {
+    if (!this.firstLink || !this.breakBeforeFirst) return;
+    const zone = this.zone('beforeLinkZone', config);
+    this.insertAfterBreak(zone, this.breakBeforeFirst, this.firstLink);
+    if (config.debug) this.log('应用链接前区域', 'DEBUG', zone);
+  }
+
+  private applyAfter(config: LinkZoneConfig): void {
+    if (!this.lastLink) return;
+    const zone = this.zone('afterLinkZone', config);
+    this.lastLink.after(zone);
+    if (config.debug) this.log('应用链接后区域', 'DEBUG', zone);
+  }
+
+  private applyCustom(position: number, config: LinkZoneConfig): void {
+    if (position < 0 || position >= this.links.length) return;
+    const target = this.links[position];
+    if (!target) {
+      this.log(`[link] 未找到位置 ${position} 的链接`, 'WARN');
+      return;
     }
-    return false;
+    const zone = this.zone(null, config);
+    const breakNode = this.findBreakBefore(target);
+    zone.dataset.linkZonePosition = String(position);
+    this.insertAfterBreak(zone, breakNode, target);
+    if (config.debug) this.log(`[link] 在位置 ${position} 的链接前插入区域`, 'DEBUG', target);
   }
 
-  private _isElementVisible(element: Element): boolean {
-    if (!element || !(element as any).getBoundingClientRect) return false;
-    const { display, visibility, opacity } = getComputedStyle(element);
-    if (display === 'none' || visibility === 'hidden' || opacity === '0') return false;
-    const rect = element.getBoundingClientRect();
-    return rect.width > 0 && rect.height > 0;
-  }
-
-  private _createZoneElement(id: string | null, config: LinkZoneConfig): HTMLElement {
+  private zone(id: string | null, config: LinkZoneConfig): HTMLElement {
     const zone = document.createElement('div');
     if (id) zone.id = id;
     Object.assign(zone.style, config.zoneStyle);
     return zone;
   }
 
-  private _applyCustomLinkZone(position: number, config: LinkZoneConfig): HTMLElement | null {
-    if (position < 0 || position >= this.allLinks.length) return null;
-    const targetLink = this.allLinks[position];
-    if (!targetLink) {
-      this.log(`[link] 未找到位置 ${position} 的链接`, 'WARN');
-      return null;
+  private insertAfterBreak(zone: HTMLElement, breakNode: ChildNode | null, fallback: Element): void {
+    if (!breakNode) {
+      fallback.before(zone);
+      return;
     }
 
-    const zone = this._createZoneElement(null, config);
-    zone.setAttribute('data-link-zone-position', position.toString());
+    if (breakNode.nodeType !== Node.TEXT_NODE) {
+      breakNode.after(zone);
+      return;
+    }
 
-    let lineBreakNode: ChildNode | null = null;
-    let node = targetLink.previousSibling;
+    const text = breakNode.textContent || '';
+    const index = text.lastIndexOf('\n');
+
+    if (index === -1) {
+      breakNode.after(zone);
+      return;
+    }
+
+    breakNode.textContent = text.slice(0, index + 1);
+    breakNode.after(zone, document.createTextNode(text.slice(index + 1)));
+  }
+
+  private findBreakBefore(element: Element): ChildNode | null {
+    let node = element.previousSibling;
+
     while (node) {
-      if (this._isLineBreakNode(node)) {
-        lineBreakNode = node;
-        break;
-      }
+      if (this.isBreak(node)) return node;
       node = node.previousSibling;
     }
 
-    if (lineBreakNode) {
-      if (lineBreakNode.nodeType === Node.TEXT_NODE) {
-        const content = (lineBreakNode as Text).textContent || '';
-        const breakIndex = content.lastIndexOf('\n');
-        if (breakIndex === -1) {
-          lineBreakNode.after(zone);
-        } else {
-          const beforeText = content.substring(0, breakIndex + 1);
-          const afterText = content.substring(breakIndex + 1);
-          (lineBreakNode as Text).textContent = beforeText;
-          lineBreakNode.after(zone, document.createTextNode(afterText));
-        }
-      } else {
-        lineBreakNode.after(zone);
-      }
-    } else {
-      targetLink.before(zone);
-    }
-
-    this.log(`[link] 在位置 ${position} 的链接前插入区域（ID: ${zone.id}）`, 'DEBUG', targetLink);
-    return zone;
+    return null;
   }
 
-  applyZones(config: LinkZoneConfig): boolean {
-    const results = this.detectLinks();
-    if (!results) {
-      if (config.debug) this.log('[link] 没有找到可见链接', 'DEBUG');
-      return false;
-    }
-    this._applyBeforeLinkZone(config);
-    this._applyAfterLinkZone(config);
-    const macroArray = this._.isArray(config.customMacro()) ? config.customMacro() : [];
-    if (!this._.isEmpty(macroArray)) this._.forEach(macroArray, (zoneConfig: { position: number }) => this._applyCustomLinkZone(zoneConfig.position, config));
-    return true;
+  private isBreak(node: Node): boolean {
+    if (node.nodeType === Node.TEXT_NODE) return /\n/.test(node.textContent || '');
+    if (node.nodeType !== Node.ELEMENT_NODE) return false;
+    const element = node as Element;
+    const nodeName = element.nodeName;
+    const blockTags = ['DIV', 'P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'UL', 'OL', 'LI', 'TABLE'];
+    const blockDisplays = ['block', 'flex', 'grid', 'table', 'table-row', 'table-cell'];
+    if (nodeName === 'BR' || nodeName === 'HR') return true;
+    if (blockTags.includes(nodeName)) return true;
+    return blockDisplays.includes(getComputedStyle(element).display);
   }
 
-  private _applyBeforeLinkZone(config: LinkZoneConfig): void {
-    if (!this.firstLink || !this.lineBreakBeforeFirstLink) return;
-    const zone = this._createZoneElement('beforeLinkZone', config);
-
-    if (this.lineBreakBeforeFirstLink.nodeType === Node.TEXT_NODE) {
-      const content = (this.lineBreakBeforeFirstLink as Text).textContent || '';
-      const breakIndex = content.lastIndexOf('\n');
-      if (breakIndex === -1) {
-        this.lineBreakBeforeFirstLink.after(zone);
-      } else {
-        const beforeText = content.substring(0, breakIndex + 1);
-        const afterText = content.substring(breakIndex + 1);
-        (this.lineBreakBeforeFirstLink as Text).textContent = beforeText;
-        this.lineBreakBeforeFirstLink.after(zone, document.createTextNode(afterText));
-      }
-    } else {
-      this.lineBreakBeforeFirstLink.after(zone);
-    }
-
-    if (config.debug) this.log('应用链接前区域', 'DEBUG', zone);
-  }
-
-  private _applyAfterLinkZone(config: LinkZoneConfig): void {
-    if (!this.lastLink) return;
-    const zone = this._createZoneElement('afterLinkZone', config);
-    this.lastLink.after(zone);
-    if (config.debug) this.log('应用链接后区域', 'DEBUG', zone);
+  private visible(element: Element): boolean {
+    const style = getComputedStyle(element);
+    if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
+    const rect = element.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0;
   }
 }
 
@@ -206,7 +165,7 @@ const applyLinkZone = ((core: MaplebirchCore) => {
     zoneStyle: {
       display: 'none',
       verticalAlign: 'top'
-    } as Partial<CSSStyleDeclaration>,
+    },
     onBeforeApply: null,
     onAfterApply: null,
     debug: false
@@ -214,94 +173,63 @@ const applyLinkZone = ((core: MaplebirchCore) => {
 
   function apply(userConfig: Partial<LinkZoneConfig> = {}): boolean {
     const config = merge({} as LinkZoneConfig, defaultConfig, userConfig);
+    const zoneStyle: Partial<CSSStyleDeclaration> = {};
+    Object.assign(zoneStyle, defaultConfig.zoneStyle);
+    if (userConfig.zoneStyle) Object.assign(zoneStyle, userConfig.zoneStyle);
+    config.zoneStyle = zoneStyle;
+    const customMacro = config.customMacro();
+    const customZones = Array.isArray(customMacro) ? customMacro : [];
     config.onBeforeApply?.();
-    const linkZone = new LinkZoneManager(config.containerId, config.linkSelector, log);
-    const result = linkZone.applyZones(config);
-    if (result) addContentToZones(config);
+    document.getElementById('beforeLinkZone')?.remove();
+    document.getElementById('afterLinkZone')?.remove();
+    document.querySelectorAll('[data-link-zone-position]').forEach(zone => zone.remove());
+    const manager = new LinkZoneManager(config.containerId, config.linkSelector, log);
+    const result = manager.applyZones(config, customZones);
+    if (result) fillZones(config, customZones);
     config.onAfterApply?.(result, config);
     return result;
   }
 
-  function addContentToZones(config: LinkZoneConfig): void {
-    defaultZone('beforeLinkZone', config.beforeMacro, config);
-    defaultZone('afterLinkZone', config.afterMacro, config);
-    const macroArray = core.lodash.isArray(config.customMacro()) ? config.customMacro() : [];
-    if (!core.lodash.isEmpty(macroArray)) {
-      core.lodash.forEach(macroArray, (zoneConfig: { position: number; macro: string }) => {
-        const { position } = zoneConfig;
-        customZone(position, zoneConfig.macro, config);
-      });
-    }
+  function fillZones(config: LinkZoneConfig, customZones: CustomZone[]): void {
+    fill(document.getElementById('beforeLinkZone'), config.beforeMacro(), config);
+    fill(document.getElementById('afterLinkZone'), config.afterMacro(), config);
+    for (const zone of customZones) fill(document.querySelector(`[data-link-zone-position='${zone.position}']`), zone.macro, config);
   }
 
-  function defaultZone(zoneId: string, macro: (() => void | string) | string, config: LinkZoneConfig): void {
-    const element = document.getElementById(zoneId);
+  function fill(element: Element | null, macro: string, config: LinkZoneConfig): void {
     if (!element) return;
-    processMacroContent(element, macro, config);
-  }
-
-  function customZone(position: number, macro: string, config: LinkZoneConfig): void {
-    const element = document.querySelector(`[data-link-zone-position='${position}']`);
-    if (!element) return;
-    processMacroContent(element, macro, config);
-  }
-
-  function processMacroContent(element: Element, macro: (() => void | string) | string, config: LinkZoneConfig): void {
-    let macroContent: string | void;
-    if (core.lodash.isFunction(macro)) {
-      try {
-        macroContent = (macro as () => string)();
-      } catch (error: any) {
-        log(`[link] 执行宏函数出错: ${error.message}`, 'ERROR');
-        return;
-      }
-    } else {
-      macroContent = macro;
-    }
-
-    if (!macroContent) {
-      element.innerHTML = '';
-      (element as HTMLElement).style.display = 'none';
+    const html = element as HTMLElement;
+    html.innerHTML = '';
+    if (!macro) {
+      html.style.display = 'none';
       return;
     }
-
-    const tempContainer = document.createElement('div');
-    if (core.lodash.isFunction(void $.wiki)) {
-      ($(tempContainer) as any).wiki(macroContent);
-    } else if (typeof Wikifier !== 'undefined') {
-      new core.SugarCube.Wikifier(tempContainer, macroContent as string);
+    const container = document.createElement('div');
+    const wiki = ($(container) as any).wiki;
+    if (typeof wiki === 'function') {
+      ($(container) as any).wiki(macro);
+    } else if (core.SugarCube?.Wikifier) {
+      new core.SugarCube.Wikifier(container, macro);
     } else {
-      tempContainer.innerHTML = macroContent as string;
+      container.innerHTML = macro;
     }
-
-    element.innerHTML = '';
-    element.append(...tempContainer.childNodes);
-    element.querySelectorAll('script').forEach((script: HTMLScriptElement) => {
-      const newScript = document.createElement('script');
-      newScript.textContent = script.textContent;
-      script.replaceWith(newScript);
+    html.append(...Array.from(container.childNodes));
+    html.querySelectorAll('script').forEach(script => {
+      const replacement = document.createElement('script');
+      replacement.textContent = script.textContent;
+      script.replaceWith(replacement);
     });
-    if (element.childNodes.length > 0) {
-      (element as HTMLElement).style.display = 'block';
-    } else {
-      (element as HTMLElement).style.display = 'none';
-    }
-    if (config.debug) log('[link] 添加内容到区域', 'DEBUG', macroContent);
+    html.style.display = html.childNodes.length > 0 ? 'block' : 'none';
+    if (config.debug) log('[link] 添加内容到区域', 'DEBUG', macro);
   }
 
   Object.defineProperties(LinkZoneManager, {
     apply: { value: apply },
-    add: { value: addContentToZones },
+    add: { value: fillZones },
     defaultConfig: { get: () => defaultConfig }
   });
 
-  core.once(':storyready', () => {
-    document.getElementById('beforeLinkZone')?.remove();
-    document.getElementById('afterLinkZone')?.remove();
-    document.querySelectorAll('[data-link-zone-position]').forEach(zone => zone.remove());
-    apply({ debug: true });
-  });
-
+  core.once(':storyready', () => apply({ debug: true }));
   core.on(':passagedisplay', () => apply(), 'applylinkzone');
 
   return LinkZoneManager;

@@ -12,7 +12,7 @@ export interface ZoneWidgetConfig {
   passage?: string | string[];
   widget: string;
   type?: 'function';
-  func?: () => string;
+  func?: () => any;
 }
 
 interface CustomLinkZoneItem {
@@ -29,377 +29,357 @@ interface PatchSet {
   applybefore?: string;
 }
 
-export type InitFunction = Function | { init: Function } | { name: string; func: Function };
+type ZoneItem = string | ZoneWidgetConfig | CustomLinkZoneItem;
+type InitObject = { init: Function } | { name: string; func: Function };
+
+export type InitFunction = string | Function | InitObject;
 
 export class zonesManager {
   readonly log: ReturnType<typeof createlog>;
-  core: ToolCollection['core'];
-  data: Record<string, Array<string | ZoneWidgetConfig | CustomLinkZoneItem>>;
+  readonly core: ToolCollection['core'];
+
+  data: Record<string, ZoneItem[]>;
   initFunction: InitFunction[] = [];
   specialWidget: (string | Function)[] = specialWidget;
   defaultData: Record<string, string | Function> = defaultData;
   locationPassage: Record<string, PatchSet[]> = locationPassage;
   widgetPassage: Record<string, PatchSet[]> = widgetPassage;
-  patchedPassage: Set<string> = new Set();
-  widgethtml: string = '';
+  widgethtml = '';
+
+  private functions = new Map<string, Function>();
 
   constructor(manager: ToolCollection) {
     this.log = createlog('zone');
     this.core = manager.core;
     // prettier-ignore
     this.data = {
-      Init                   : [], // 初始化脚本-静态变量(如setup)
-      State                  : [], // 初始化变量-存档变量(如V.money)
-      Header                 : [], // 页眉
-      Footer                 : [], // 页脚
-      Information            : [], // 信息栏
-      Options                : [], // 选项栏
-      Cheats                 : [], // 作弊栏
-      Statistics             : [], // 统计栏
-      Journal                : [], // 日志尾部
-      BeforeLinkZone         : [], // 链接前区域
-      AfterLinkZone          : [], // 链接后区域
-      CustomLinkZone         : [], // 自定义位置链接区域
-      CaptionDescription     : [], // 标题描述
-      StatusBar              : [], // 状态栏
-      MenuBig                : [], // 大菜单
-      MenuSmall              : [], // 小菜单
-      CaptionAfterDescription: [], // 标题描述后
-      HintMobile             : [], // 移动端图标(即疼痛上方)
-      MobileStats            : [], // 移动端状态(即疼痛等)
-      CharaDescription       : [], // 角色描述
-      DegreesBonusDisplay    : [], // 属性加成显示
-      DegreesBox             : [], // 属性
-      SkillsBonusDisplay     : [], // 技能加成显示
-      SkillsBox              : [], // 技能
-      SubjectBoxBonusDisplay : [], // 学科加成显示
-      SchoolSubjectsBox      : [], // 学科
-      SchoolMarksText        : [], // 成绩
-      WeaponBox              : [], // 武器
-      ReputationModify       : [], // 声誉显示修改区
-      Reputation             : [], // 声誉
-      FameModify             : [], // 知名度显示修改区
-      Fame                   : [], // 知名度
-      StatusSocial           : [], // 自定义社交状态
-      NPCinit                : [], // NPC初遇初始化(详情看原版<<initnpc>>宏)
-      NPCinject              : [], // NPC生成初始化(详情看原版<<npc>>宏)
+      Init                   : [],
+      State                  : [],
+      Header                 : [],
+      Footer                 : [],
+      Information            : [],
+      Options                : [],
+      Cheats                 : [],
+      Statistics             : [],
+      Journal                : [],
+      BeforeLinkZone         : [],
+      AfterLinkZone          : [],
+      CustomLinkZone         : [],
+      CaptionDescription     : [],
+      StatusBar              : [],
+      MenuBig                : [],
+      MenuSmall              : [],
+      CaptionAfterDescription: [],
+      HintMobile             : [],
+      MobileStats            : [],
+      CharaDescription       : [],
+      DegreesBonusDisplay    : [],
+      DegreesBox             : [],
+      SkillsBonusDisplay     : [],
+      SkillsBox              : [],
+      SubjectBoxBonusDisplay : [],
+      SchoolSubjectsBox      : [],
+      SchoolMarksText        : [],
+      WeaponBox              : [],
+      ReputationModify       : [],
+      Reputation             : [],
+      FameModify             : [],
+      Fame                   : [],
+      StatusSocial           : [],
+      NPCinit                : [],
+      NPCinject              : [],
     };
   }
 
-  inject(...databases: Partial<Pick<zonesManager, 'specialWidget' | 'defaultData' | 'locationPassage' | 'widgetPassage'>>[]) {
-    this.core.lodash.forEach(databases, db => {
-      this.core.lodash.forIn(db, (value, key) => {
-        if (!this.core.lodash.isNil(value)) {
-          const current = this[key];
-          const base = key === 'specialWidget' ? [] : {};
-          this[key] = merge(base, current, value, { mode: 'concat' });
-        }
-      });
-    });
+  inject(...databases: Partial<Pick<zonesManager, 'specialWidget' | 'defaultData' | 'locationPassage' | 'widgetPassage'>>[]): void {
+    for (const db of databases) {
+      if (db.specialWidget) this.specialWidget = merge([], this.specialWidget, db.specialWidget, { mode: 'concat' });
+      if (db.defaultData) this.defaultData = merge({}, this.defaultData, db.defaultData, { mode: 'concat' });
+      if (db.locationPassage) this.locationPassage = merge({}, this.locationPassage, db.locationPassage, { mode: 'concat' });
+      if (db.widgetPassage) this.widgetPassage = merge({}, this.widgetPassage, db.widgetPassage, { mode: 'concat' });
+    }
   }
 
-  onInit(...widgets: InitFunction[]) {
-    this.core.lodash.forEach(widgets, widget => {
-      if (this.core.lodash.isString(widget)) {
+  onInit(...widgets: InitFunction[]): void {
+    for (const widget of widgets) {
+      if (typeof widget === 'string') {
         this.data.Init.push(widget);
       } else {
         this.initFunction.push(widget);
       }
-    });
+    }
   }
 
-  addTo(zone: string, ...widgets: (string | Function | ZoneWidgetConfig | [number, string | ZoneWidgetConfig])[]) {
-    if (!this.data[zone]) {
+  addTo(zone: string, ...widgets: (string | Function | ZoneWidgetConfig | [number, string | ZoneWidgetConfig])[]): void {
+    const target = this.data[zone];
+    if (!target) {
       this.log(`区域 ${zone} 不存在`, 'ERROR');
       return;
     }
-    this.core.lodash.forEach(widgets, widget => {
+    for (const widget of widgets) {
       if (zone === 'CustomLinkZone') {
-        let position = 0;
-        let pureWidget: string | ZoneWidgetConfig | null = null;
-        if (Array.isArray(widget) && widget.length === 2) {
-          position = widget[0] as number;
-          pureWidget = widget[1] as string | ZoneWidgetConfig;
-        } else if (this.core.lodash.isObject(widget) && 'widget' in widget) {
-          const w = widget as any;
-          if (w.widget && Array.isArray(w.widget) && w.widget.length === 2) {
-            position = w.widget[0];
-            pureWidget = {
-              widget: w.widget[1],
-              passage: w.passage,
-              exclude: w.exclude,
-              match: w.match
-            };
-          }
-        }
-        if (!this.core.lodash.isNil(pureWidget)) this.data[zone].push({ position, widget: pureWidget });
-      } else {
-        if (this.core.lodash.isString(widget)) {
-          this.data[zone].push(widget);
-        } else if (this.core.lodash.isFunction(widget)) {
-          const funcName = widget.name || `func_${this.#hashCode(widget.toString())}`;
-          this.initFunction.push({ name: funcName, func: widget });
-          this.data[zone].push(`run ${funcName}()`);
-        } else if (this.core.lodash.isObject(widget) && !this.core.lodash.isNil(widget) && 'widget' in widget) {
-          this.data[zone].push(widget as ZoneWidgetConfig);
-        }
+        const item = this.customLinkItem(widget);
+        if (item) target.push(item);
+        continue;
       }
-    });
-  }
-
-  #hashCode(str: string): string {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      hash = (hash << 5) - hash + str.charCodeAt(i);
-      hash |= 0;
+      if (typeof widget === 'string') {
+        target.push(widget);
+        continue;
+      }
+      if (typeof widget === 'function') {
+        const name = widget.name || `func_${this.hash(widget.toString())}`;
+        this.functions.set(name, widget);
+        target.push({ widget: name, type: 'function' });
+        continue;
+      }
+      if (widget && typeof widget === 'object' && 'widget' in widget) target.push(widget as ZoneWidgetConfig);
     }
-    return Math.abs(hash).toString(16).substring(0, 8);
   }
 
-  storyInit() {
+  storyInit(): void {
     if (this.initFunction.length === 0) return;
     this.log(`执行 ${this.initFunction.length} 个初始化函数`, 'DEBUG');
-    this.core.lodash.forEach(this.initFunction, initfunc => {
+    for (const item of this.initFunction) {
       try {
-        if (this.core.lodash.isFunction(initfunc)) {
-          initfunc();
-        } else if (this.core.lodash.isObject(initfunc) && 'init' in initfunc) {
-          (initfunc as { init: Function }).init();
-        } else if (this.core.lodash.isObject(initfunc) && 'func' in initfunc) {
-          (initfunc as { func: Function }).func();
+        if (typeof item === 'function') {
+          item();
+          continue;
         }
+        if (item && typeof item === 'object' && 'init' in item) {
+          item.init();
+          continue;
+        }
+        if (item && typeof item === 'object' && 'func' in item) item.func();
       } catch (error: any) {
-        this.log(`初始化函数执行失败: ${error.message}`, 'ERROR', error.stack);
+        this.log(`初始化函数执行失败: ${error?.message || error}`, 'ERROR', error);
       }
-    });
+    }
   }
 
-  get #widgets(): string {
-    const print = {
-      start: (zone: string) => {
-        let html = `<<widget 'maplebirch${zone}'>>\n\t`;
-        const defaultValue = this.defaultData[zone];
-        if (this.core.lodash.isFunction(defaultValue)) {
-          html += `${(defaultValue as Function)()}\n\t`;
-        } else if (this.core.lodash.isString(defaultValue)) {
-          html += `${defaultValue}\n\t`;
-        }
-        return html;
-      },
-      end: (zone: string, length: number) => {
-        let html = '\n<</widget>>\n\n';
-        const br = ['CaptionAfterDescription'];
-        if (br.includes(zone) && length > 0) html = `<br>\n\t${html}`;
-        return html;
-      }
-    };
-
-    return this.core.lodash
-      .chain(this.data)
-      .keys()
-      .reject((zone: string) => ['BeforeLinkZone', 'AfterLinkZone', 'CustomLinkZone'].includes(zone))
-      .map((zone: string) => {
-        const length = this.data[zone].length;
-        let _html = print.start(zone);
-        _html += `<<= maplebirch.tool.zone.play('${zone}')>>`;
-        _html += print.end(zone, length);
-        return _html;
-      })
-      .join('')
-      .thru((html: string) => `\r\n${html}`)
-      .value();
-  }
-
-  get #specials(): string {
-    return this.core.lodash
-      .chain(this.specialWidget)
-      .map((widget: string | Function) => {
-        if (this.core.lodash.isFunction(widget)) {
-          return (widget as Function)();
-        } else if (this.core.lodash.isString(widget)) {
-          return widget;
-        }
-        return '';
-      })
-      .join('')
-      .thru((html: string) => `\r\n${html}`)
-      .value();
+  call(name: string): any {
+    const fn = this.functions.get(name);
+    if (!fn) {
+      this.log(`区域函数不存在: ${name}`, 'WARN');
+      return;
+    }
+    return fn();
   }
 
   play(zone: string, passageTitle?: string): any {
-    if (this.core.lodash.isEmpty(this.data[zone])) return zone === 'CustomLinkZone' ? [] : '';
-    const title = passageTitle ?? this.core.passage?.title;
-    if (zone === 'CustomLinkZone') {
-      const sorted = this.core.lodash
-        .chain(this.data[zone] as CustomLinkZoneItem[])
-        .sortBy('position')
-        .value();
-      const position = this.core.lodash.groupBy(sorted, 'position');
-      return this.core.lodash.map(position, (items, posStr) => {
-        const widgets = this.core.lodash.map(items, 'widget');
-        const macro = this.core.lodash
-          .chain(widgets)
-          .map((w: string | ZoneWidgetConfig) => this.#render(w, title))
-          .join('')
-          .value();
-        return {
-          position: parseInt(posStr),
-          macro
-        };
-      });
+    const items = this.data[zone];
+    if (!items || items.length === 0) return zone === 'CustomLinkZone' ? [] : '';
+    const title = passageTitle ?? this.core.passage?.title ?? '';
+    if (zone !== 'CustomLinkZone') return items.map(item => this.render(item as string | ZoneWidgetConfig, title)).join('');
+    const groups = new Map<number, CustomLinkZoneItem[]>();
+    for (const item of items as CustomLinkZoneItem[]) {
+      if (!groups.has(item.position)) groups.set(item.position, []);
+      groups.get(item.position)!.push(item);
     }
-    return this.core.lodash.reduce(this.data[zone] as string[], (result: string, widget: string) => result + this.#render(widget, title), '');
+    return [...groups.entries()]
+      .sort(([a], [b]) => a - b)
+      .map(([position, links]) => ({
+        position,
+        macro: links.map(item => this.render(item.widget, title)).join('')
+      }));
   }
 
-  #render(widget: string | ZoneWidgetConfig, title: string): string {
-    if (this.core.lodash.isString(widget)) return `<<${widget}>>`;
-    if (this.core.lodash.isObject(widget)) {
-      if ('type' in widget && widget.type === 'function') return `<<run (${(widget as any).func?.toString()})()>>`;
-
-      const { exclude, match, passage, widget: widgetName } = widget as ZoneWidgetConfig;
-
-      if (!this.core.lodash.isNil(exclude)) {
-        if (!this.core.lodash.includes(exclude, title)) return `<<${widgetName}>>`;
-        return '';
-      }
-
-      if (!this.core.lodash.isNil(match) && match instanceof RegExp && match.test(title)) return `<<${widgetName}>>`;
-
-      if (!this.core.lodash.isNil(passage)) {
-        const shouldInclude = (this.core.lodash.isString(passage) && passage === title) || (Array.isArray(passage) && this.core.lodash.includes(passage, title)) || this.core.lodash.isEmpty(passage);
-        if (shouldInclude) return `<<${widgetName}>>`;
-        return '';
-      }
-      if (!this.core.lodash.isNil(widgetName)) return `<<${widgetName}>>`;
+  async patchModToGame(manager: AddonPlugin, type: 'before' | 'after'): Promise<void> {
+    const oldSCdata = manager.gSC2DataManager.getSC2DataInfoAfterPatch();
+    const SCdata = oldSCdata.cloneSC2DataInfo();
+    const passageData = SCdata.passageDataItems.map;
+    if (type === 'before') {
+      await this.widgetInit(passageData);
+      this.widgethtml = '';
     }
+    for (const [title, passage] of passageData) {
+      try {
+        await this.patchPassage(type, passage, title);
+      } catch (error: any) {
+        const message = error?.message || error;
+        this.log(`处理段落 ${title} 时出错: ${message}`, 'ERROR', error);
+        manager.log(`PatchScene: ${title} ${message}`);
+      }
+    }
+    SCdata.passageDataItems.back2Array();
+    manager.gModUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
+    this.log('框架补丁应用完成', 'DEBUG');
+  }
+
+  private get widgets(): string {
+    const zones = Object.keys(this.data).filter(zone => !['BeforeLinkZone', 'AfterLinkZone', 'CustomLinkZone'].includes(zone));
+    return (
+      '\r\n' +
+      zones
+        .map(zone => {
+          const content = this.defaultContent(zone);
+          const br = zone === 'CaptionAfterDescription' && this.data[zone].length > 0 ? '<br>\n\t' : '';
+          return `${br}<<widget 'maplebirch${zone}'>>\n\t${content}<<= maplebirch.tool.zone.play('${zone}')>>\n<</widget>>\n\n`;
+        })
+        .join('')
+    );
+  }
+
+  private get specials(): string {
+    return (
+      '\r\n' +
+      this.specialWidget
+        .map(widget => {
+          if (typeof widget === 'function') return widget();
+          if (typeof widget === 'string') return widget;
+          return '';
+        })
+        .join('')
+    );
+  }
+
+  private defaultContent(zone: string): string {
+    const value = this.defaultData[zone];
+    if (typeof value === 'function') return `${value()}\n\t`;
+    if (typeof value === 'string') return `${value}\n\t`;
     return '';
   }
 
-  #matchAndApply(set: PatchSet, source: string): string {
-    const patterns = [
-      { type: 'src', pattern: set.src },
-      { type: 'srcmatch', pattern: set.srcmatch },
-      { type: 'srcmatchgroup', pattern: set.srcmatchgroup }
-    ];
-    for (const { type, pattern } of patterns) {
-      if (this.core.lodash.isNil(pattern)) continue;
-      let matched = false;
-      switch (type) {
-        case 'src':
-          if (this.core.lodash.isString(pattern) && source.includes(pattern)) matched = true;
-          break;
-        case 'srcmatch':
-        case 'srcmatchgroup':
-          if (pattern instanceof RegExp) matched = pattern.test(source);
-          break;
-      }
-      if (!matched) continue;
-      let result = source;
-      switch (type) {
-        case 'src':
-          if (set.to) result = source.replace(pattern, set.to);
-          if (set.applyafter) result = source.replace(pattern, match => match + set.applyafter);
-          if (set.applybefore) result = source.replace(pattern, match => set.applybefore + match);
-          break;
-        case 'srcmatch':
-          if (set.to) result = source.replace(pattern, set.to);
-          if (set.applyafter) result = source.replace(pattern, match => match + set.applyafter);
-          if (set.applybefore) result = source.replace(pattern, match => set.applybefore + match);
-          break;
-        case 'srcmatchgroup':
-          if (pattern instanceof RegExp) {
-            const matches = source.match(pattern) || [];
-            this.core.lodash.forEach(matches, (match: string) => {
-              if (set.to) {
-                result = result.replace(match, set.to);
-              } else if (set.applyafter) {
-                result = result.replace(match, match + set.applyafter);
-              } else if (set.applybefore) {
-                result = result.replace(match, set.applybefore + match);
-              }
-            });
+  private render(widget: string | ZoneWidgetConfig | CustomLinkZoneItem, title: string): string {
+    if (typeof widget === 'string') return `<<${widget}>>`;
+    if (!widget || typeof widget !== 'object') return '';
+    if ('position' in widget) return this.render(widget.widget, title);
+    if (widget.type === 'function') {
+      if (widget.func) this.functions.set(widget.widget, widget.func);
+      return `<<run maplebirch.tool.zone.call(${JSON.stringify(widget.widget)})>>`;
+    }
+    if (!this.shouldRender(widget, title)) return '';
+    return widget.widget ? `<<${widget.widget}>>` : '';
+  }
+
+  private shouldRender(config: ZoneWidgetConfig, title: string): boolean {
+    if (config.exclude?.includes(title)) return false;
+    if (config.match instanceof RegExp) {
+      config.match.lastIndex = 0;
+      if (!config.match.test(title)) return false;
+    }
+    if (config.passage == null) return true;
+    if (typeof config.passage === 'string') return config.passage === '' || config.passage === title;
+    if (Array.isArray(config.passage)) return config.passage.length === 0 || config.passage.includes(title);
+    return true;
+  }
+
+  private customLinkItem(widget: string | Function | ZoneWidgetConfig | [number, string | ZoneWidgetConfig]): CustomLinkZoneItem | null {
+    if (Array.isArray(widget) && widget.length === 2) {
+      return {
+        position: Number(widget[0]) || 0,
+        widget: widget[1]
+      };
+    }
+    if (typeof widget === 'string') {
+      return {
+        position: 0,
+        widget
+      };
+    }
+    if (widget && typeof widget === 'object' && 'widget' in widget) {
+      const raw = widget as any;
+      if (Array.isArray(raw.widget) && raw.widget.length === 2) {
+        const [position, widgetName] = raw.widget;
+        return {
+          position: Number(position) || 0,
+          widget: {
+            ...raw,
+            widget: widgetName
           }
-          break;
+        };
       }
-      if (result !== source) return result;
+      return {
+        position: 0,
+        widget: widget as ZoneWidgetConfig
+      };
+    }
+    return null;
+  }
+
+  private matchAndApply(set: PatchSet, source: string): string {
+    if (set.src && source.includes(set.src)) return this.applyPatch(source, set.src, set);
+    if (set.srcmatch instanceof RegExp) {
+      set.srcmatch.lastIndex = 0;
+      if (set.srcmatch.test(source)) return this.applyPatch(source, set.srcmatch, set);
+    }
+    if (set.srcmatchgroup instanceof RegExp) {
+      set.srcmatchgroup.lastIndex = 0;
+      const matches = source.match(set.srcmatchgroup);
+      if (matches?.length) {
+        let result = source;
+        for (const match of matches) result = this.applyPatch(result, match, set);
+        return result;
+      }
     }
     const pattern = [set.src, set.srcmatch, set.srcmatchgroup].find(Boolean)?.toString() ?? '';
     this.log(`替换失败: 未找到匹配 (${pattern})`, 'WARN');
     return source;
   }
 
-  #wrapSpecialPassages(passage: { content: string }, title: string) {
-    const wrappers: Record<string, (content: string) => string> = {
-      StoryCaption: <T>(value: T): T => value,
-      PassageHeader: (content: string) => `<div id='passage-header'>\n${content}\n<<maplebirchHeader>>\n</div>`,
-      PassageFooter: (content: string) => `<div id='passage-footer'>\n<<maplebirchFooter>>\n${content}\n</div>`,
-      default: (content: string) => `<div id='passage-content'>\n<<= maplebirch.dynamic.trigger('gate')>>\n${content}\n<div id='append'></div>\n</div>`
-    };
-    const wrapper = wrappers[title] || wrappers['default'];
-    passage.content = wrapper(passage.content);
-    return passage;
+  private applyPatch(source: string, pattern: string | RegExp, set: PatchSet): string {
+    if (set.to != null) return source.replace(pattern, set.to);
+    if (set.applyafter != null) return source.replace(pattern, match => match + set.applyafter);
+    if (set.applybefore != null) return source.replace(pattern, match => set.applybefore + match);
+    return source;
   }
 
-  #applyContentPatches(passage: { content: string }, title: string, patchSets: Record<string, PatchSet[]>) {
-    if (!patchSets || !patchSets[title]) return passage;
-    let source = String(passage.content);
-    for (const set of patchSets[title]) source = this.#matchAndApply(set, source);
-    passage.content = source;
-    return passage;
-  }
-
-  async #patchPassage(type: 'before' | 'after', passage: any, title: string) {
-    if (!this.patchedPassage.has(title) && type === 'before') {
-      if (this.core.lodash.includes(passage.tags, 'widget')) {
-        if (!this.core.lodash.isEmpty(this.widgetPassage)) this.#applyContentPatches(passage, title, this.widgetPassage);
-      } else {
-        if (!this.core.lodash.isEmpty(this.locationPassage)) this.#applyContentPatches(passage, title, this.locationPassage);
-      }
-      this.patchedPassage.add(title);
+  private wrapSpecialPassage(passage: { content: string }, title: string): void {
+    if (title === 'StoryCaption') return;
+    if (title === 'PassageHeader') {
+      passage.content = `<div id='passage-header'>\n${passage.content}\n<<maplebirchHeader>>\n</div>`;
+      return;
     }
-    if (type === 'after' && !this.core.lodash.includes(passage.tags, 'widget')) this.#wrapSpecialPassages(passage, title);
-    return passage;
+    if (title === 'PassageFooter') {
+      passage.content = `<div id='passage-footer'>\n<<maplebirchFooter>>\n${passage.content}\n</div>`;
+      return;
+    }
+    passage.content = `<div id='passage-content'>\n<<= maplebirch.dynamic.trigger('gate')>>\n${passage.content}\n<div id='append'></div>\n</div>`;
   }
 
-  async #widgetInit(passageData: Map<string, any>) {
-    this.widgethtml = this.#widgets + this.#specials;
+  private applyContentPatches(passage: { content: string }, title: string, patchSets: Record<string, PatchSet[]>): void {
+    const sets = patchSets[title];
+    if (!sets?.length) return;
+    let content = String(passage.content);
+    for (const set of sets) content = this.matchAndApply(set, content);
+    passage.content = content;
+  }
+
+  private async patchPassage(type: 'before' | 'after', passage: any, title: string): Promise<void> {
+    const isWidget = Array.isArray(passage.tags) && passage.tags.includes('widget');
+    if (type === 'before') {
+      this.applyContentPatches(passage, title, isWidget ? this.widgetPassage : this.locationPassage);
+      return;
+    }
+    if (!isWidget) this.wrapSpecialPassage(passage, title);
+  }
+
+  private async widgetInit(passageData: Map<string, any>): Promise<Map<string, any>> {
+    this.widgethtml = this.widgets + this.specials;
     // prettier-ignore
     const data = {
-      id       : 0,
-      name     : 'Maplebirch Frameworks Widgets',
-      position : '100,100',
-      size     : '100,100',
-      tags     : ['widget'],
-      content  : this.widgethtml
+      id      : 0,
+      name    : 'Maplebirch Frameworks Widgets',
+      position: '100,100',
+      size    : '100,100',
+      tags    : ['widget'],
+      content : this.widgethtml
     };
     passageData.set('Maplebirch Frameworks Widgets', data);
     this.log('创建宏部件段落: Maplebirch Frameworks Widgets', 'DEBUG', [clone(this.widgethtml)]);
     const storyInit = passageData.get('StoryInit');
-    if (!this.core.lodash.isNil(storyInit)) {
+    if (storyInit && !String(storyInit.content).includes('<<maplebirchInit>>')) {
       storyInit.content += '\n<<maplebirchInit>>\n';
       passageData.set('StoryInit', storyInit);
     }
     return passageData;
   }
 
-  async patchModToGame(manager: AddonPlugin, type: 'before' | 'after') {
-    const oldSCdata = manager.gSC2DataManager.getSC2DataInfoAfterPatch();
-    const SCdata = oldSCdata.cloneSC2DataInfo();
-    const passageData = SCdata.passageDataItems.map;
-    if (type === 'before') await this.#widgetInit(passageData).then(() => (this.widgethtml = ''));
-    for (const [title, passage] of passageData) {
-      try {
-        await this.#patchPassage(type, passage, title);
-      } catch (e: any) {
-        const errorMsg = this.core.lodash.has(e, 'message') ? e.message : e;
-        this.log(`处理段落 ${title} 时出错: ${errorMsg}`, 'ERROR');
-        manager.log(`PatchScene: ${title} ${errorMsg}`);
-      } finally {
-        this.patchedPassage.clear();
-      }
+  private hash(str: string): string {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash << 5) - hash + str.charCodeAt(i);
+      hash |= 0;
     }
-    SCdata.passageDataItems.back2Array();
-    manager.gModUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
-    this.log('框架补丁应用完成', 'DEBUG');
+    return Math.abs(hash).toString(16).slice(0, 8);
   }
 }
