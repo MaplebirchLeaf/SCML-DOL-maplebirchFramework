@@ -387,7 +387,7 @@ export const NamedNPC = (core => {
         (newNPC as any)[statName] = 0;
       }
     }
-    if (typeof translationsData === 'object') for (const key in translationsData) if (translationsData.hasOwnProperty(key)) core.lang.translations.set(key, translationsData[key]);
+    if (typeof translationsData === 'object') for (const key in translationsData) if (translationsData.hasOwnProperty(key)) core.lang.set(key, translationsData[key]);
     manager.data.set(npcName, { Data: newNPC, Config: npcConfig });
     manager.log(`成功注入NPC: ${npcName}`, 'DEBUG');
     return true;
@@ -451,7 +451,7 @@ export const NamedNPC = (core => {
       if (parts.length === 2) {
         const enName = parts[0].trim();
         const cnName = parts[1].trim();
-        if (enName && cnName) core.lang.translations.set(enName, { EN: enName, CN: cnName });
+        if (enName && cnName) core.lang.set(enName, { EN: enName, CN: cnName });
       }
     }
     manager.log(`更新完成: 添加 ${addedCount} 个NPC, 跳过 ${skippedCount} 个重复NPC`, 'DEBUG');

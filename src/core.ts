@@ -8,7 +8,8 @@ import { author } from '../package.json';
 import jsyaml from 'js-yaml';
 import { Howl, Howler } from 'howler';
 import * as marked from 'marked';
-import { version, lastModifiedBy, lastUpdate, Languages } from './constants';
+import { lastModifiedBy, lastUpdate } from '../package.json';
+import { version, Languages } from './constants';
 import Logger from './services/Logger';
 import EventEmitter from './services/EventEmitter';
 import IndexedDBService from './services/IndexedDBService';
@@ -105,7 +106,7 @@ class MaplebirchCore {
 
     this.once(':import', async () => {
       await this.lang.preload();
-      for await (const p of this.lang.importAll('maplebirch')) if (p.error) this.log(`导入失败: ${p.lang}`, 'ERROR');
+      for await (const p of this.lang.import('maplebirch')) if (p.type === 'error') this.log(`导入失败: ${p.language}`, 'ERROR');
     });
 
     this.once(':allModule', async () => {
@@ -235,7 +236,7 @@ class MaplebirchCore {
   }
 
   set Language(lang: string) {
-    void this.lang.normalizeLang(lang).then(() => this.trigger(':language'));
+    void this.lang.setLanguage(lang).then(() => this.trigger(':language'));
   }
 
   get Language(): string {

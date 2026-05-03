@@ -3,6 +3,7 @@
 import { createlog } from '../../core';
 import maplebirch from '../../core';
 import { Translation } from '../../services/LanguageManager';
+import type AddonPlugin from '../AddonPlugin';
 import Character from '../Character';
 
 interface Part {
@@ -143,7 +144,7 @@ class Transformation {
     return this.manager.core.SugarCube.Wikifier.wikifyEval('<<' + widget + (args.length ? ' ' + args.join(' ') : '') + '>>');
   }
 
-  async modifyEffect(manager: any): Promise<void> {
+  async modifyEffect(manager: AddonPlugin): Promise<void> {
     const oldSCdata = manager.gSC2DataManager.getSC2DataInfoAfterPatch();
     const SCdata = oldSCdata.cloneSC2DataInfo();
     const file = SCdata.scriptFileItems.getByNameWithOrWithoutPath('effect.js');
@@ -177,7 +178,7 @@ class Transformation {
       for (const key in options.translations) {
         if (options.translations.hasOwnProperty(key)) {
           try {
-            this.manager.core.lang.translations.set(key, options.translations[key]);
+            this.manager.core.lang.set(key, options.translations[key]);
           } catch (error: any) {
             this.log(`设置翻译键失败: ${key} - ${error.message}`, 'ERROR');
           }

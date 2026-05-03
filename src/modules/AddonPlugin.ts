@@ -4,7 +4,8 @@ import type { TypeOrderItem } from '@scml/types/AddonMod_BeautySelector/BeautySe
 import type { ModZipReader } from '@scml/types/sugarcube-2-ModLoader/ModZipReader';
 import type { SC2DataManager } from '@scml/types/sugarcube-2-ModLoader/SC2DataManager';
 import type { ModUtils } from '@scml/types/sugarcube-2-ModLoader/Utils';
-import maplebirch, { MaplebirchCore, createlog } from '../core';
+import { Languages, type LanguageCode } from '../constants';
+import maplebirch, { type MaplebirchCore, createlog } from '../core';
 import { TraitConfig } from './Frameworks/otherTools';
 import { ZoneWidgetConfig } from './Frameworks/zonesManager';
 
@@ -49,28 +50,39 @@ class Process {
     try {
       for (const task of addon.queue.language) {
         const { modName, config } = task as Task;
-        if (config === true) {
-          for await (const p of addon.core.lang.importAll(modName)) if (p.error) addon.core.log(`导入失败: ${p.lang}`, 'ERROR');
-          continue;
-        }
         if (Array.isArray(config)) {
-          addon.core.log(`为${modName}导入指定语言: ${config.join(', ')}`, 'DEBUG');
-          for (const lang of config) {
-            const filePath = `translations/${lang.toLowerCase()}.json`;
-            for await (const p of addon.core.lang.load(modName, lang.toUpperCase(), filePath)) if (p.type === 'error') addon.core.log(`导入失败: ${p.lang}`, 'ERROR');
+          const languages = config.map(lang => String(lang).toUpperCase()).filter((lang): lang is LanguageCode => (Languages as readonly string[]).includes(lang));
+          if (languages.length === 0) {
+            addon.core.log(`模块 ${modName} 的语言配置为空或无效`, 'WARN');
+            continue;
           }
+          addon.core.log(`为 ${modName} 导入语言: ${languages.join(', ')}`, 'DEBUG');
+          for await (const progress of addon.core.lang.import(modName, languages)) if (progress.type === 'error') addon.core.log(`导入失败: ${progress.language}`, 'ERROR');
           continue;
         }
-        if (!config || typeof config !== 'object') continue;
-        addon.core.log(`为${modName}导入自定义语言配置`, 'DEBUG');
-        for (const [lang, langConfig] of Object.entries(config)) {
-          const filePath = (langConfig as any).file || `translations/${lang.toLowerCase()}.json`;
-          for await (const p of addon.core.lang.load(modName, lang.toUpperCase(), filePath)) if (p.type === 'error') addon.core.log(`导入失败: ${p.lang}`, 'ERROR');
+        if (!config || typeof config !== 'object') {
+          addon.core.log(`模块 ${modName} 的语言配置格式无效`, 'WARN');
+          continue;
+        }
+        addon.core.log(`为 ${modName} 导入自定义语言文件`, 'DEBUG');
+        for (const [languageName, languageConfig] of Object.entries(config)) {
+          const language = String(languageName).toUpperCase();
+          if (!(Languages as readonly string[]).includes(language)) {
+            addon.core.log(`跳过不支持的语言: ${languageName}`, 'WARN');
+            continue;
+          }
+          const filePath = (languageConfig as any)?.file;
+          if (typeof filePath !== 'string' || !filePath.trim()) {
+            addon.core.log(`语言 ${language} 缺少有效的 file 配置`, 'WARN');
+            continue;
+          }
+          for await (const progress of addon.core.lang.importFile(modName, language as LanguageCode, filePath))
+            if (progress.type === 'error') addon.core.log(`导入失败: ${progress.language}`, 'ERROR');
         }
       }
       addon.processed.language = true;
-    } catch (e: any) {
-      addon.core.log(`语言配置处理失败: ${e.message}`, 'ERROR');
+    } catch (error: any) {
+      addon.core.log(`语言配置处理失败: ${error.message}`, 'ERROR');
     }
   }
 
@@ -78,21 +90,23 @@ class Process {
     if (addon.processed.audio || addon.queue.audio.length === 0) return;
     try {
       for (const task of addon.queue.audio) {
-        const { modName, config } = task;
-        if (config === true) {
-          addon.core.log(`为${modName}导入音频（默认路径）`, 'DEBUG');
-          await addon.core.audio.importAllAudio(modName);
+        const { modName, config } = task as Task;
+        if (!Array.isArray(config) || config.length === 0) {
+          addon.core.log(`模块 ${modName} 的音频配置为空或无效`, 'WARN');
           continue;
         }
-        if (!Array.isArray(config)) continue;
-        for (const path of config) {
-          addon.core.log(`为${modName}导入音频（路径: ${path}）`, 'DEBUG');
-          await addon.core.audio.importAllAudio(modName, path);
+        for (const folder of config) {
+          if (typeof folder !== 'string' || !folder.trim()) {
+            addon.core.log(`模块 ${modName} 的音频目录无效: ${String(folder)}`, 'WARN');
+            continue;
+          }
+          addon.core.log(`为 ${modName} 导入音频目录: ${folder}`, 'DEBUG');
+          await addon.core.audio.import(modName, folder);
         }
       }
       addon.processed.audio = true;
-    } catch (e: any) {
-      addon.core.log(`音频配置处理失败: ${e.message}`, 'ERROR');
+    } catch (error: any) {
+      addon.core.log(`音频配置处理失败: ${error.message}`, 'ERROR');
     }
   }
 

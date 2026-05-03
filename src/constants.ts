@@ -2,11 +2,13 @@
 
 import { lastModifiedBy, lastUpdate } from '../package.json';
 
-const version = window.modUtils.getMod('maplebirch').version;
-const Languages = ['EN', 'CN'] as const;
+export type LanguageCode = (typeof Languages)[number];
+
+export const version = window.modUtils.getMod('maplebirch').version;
+export const Languages = ['EN', 'CN'] as const;
 
 // prettier-ignore
-const Config = {
+export const Config = {
   Title            : ['Maplebirch Framworks', '秋枫白桦框架'],
   DEBUG            : ['DEBUG MODE', '调试模式'],
   DEBUGSTATUS      : ['DEBUG MODE STATUS', '调试模式状态'],
@@ -22,7 +24,7 @@ const Config = {
 };
 
 // prettier-ignore
-const ModuleState: {[key: string|number]: string|number} = (() => {
+export const ModuleState: {[key: string|number]: string|number} = (() => {
   const state: {[key: string|number]: string|number} = {
     REGISTERED: 0,
     MOUNTED   : 1,
@@ -34,7 +36,7 @@ const ModuleState: {[key: string|number]: string|number} = (() => {
   return state;
 })();
 
-const TimeConstants = (() => {
+export const TimeConstants = (() => {
   const secondsPerDay = 86400;
   const secondsPerHour = 3600;
   const secondsPerMinute = 60;
@@ -73,5 +75,3 @@ const TimeConstants = (() => {
     MAX_DATE
   });
 })();
-
-export { version, lastUpdate, lastModifiedBy, Languages, Config, ModuleState, TimeConstants };

@@ -122,7 +122,7 @@ class Internals {
         }, {})
         .value();
       const mapKey = `modList_${modinfo.name}`;
-      if (!this.core.lang.translations.has(mapKey)) this.core.lang.translations.set(mapKey, translationsObj);
+      if (!this.core.lang.has(mapKey)) this.core.lang.set(mapKey, translationsObj);
       return this.core.lang.t(mapKey);
     }
     return false;
@@ -175,7 +175,7 @@ class Internals {
       if (!args || !this._.isString(args)) return args;
       const originalResult = originalName(args);
       if (originalResult !== args) return originalResult;
-      if (this.core.lang.translations.has(args)) return this.core.auto(args);
+      if (this.core.lang.has(args)) return this.core.auto(args);
       return args;
     };
     const originalTitle = setup.NPC_CN_TITLE;
@@ -183,7 +183,7 @@ class Internals {
       if (!str || !this._.isString(str)) return str;
       const originalResult = originalTitle(str);
       if (originalResult !== str) return originalResult;
-      if (this.core.lang.translations.has(str)) return this.core.auto(str);
+      if (this.core.lang.has(str)) return this.core.auto(str);
       return str;
     };
   }

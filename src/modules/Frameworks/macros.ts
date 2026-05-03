@@ -1,6 +1,6 @@
 // .src/modules/Frameworks/macros.ts
 
-import { createlog, MaplebirchCore } from '../../core';
+import { createlog, type MaplebirchCore } from '../../core';
 import ToolCollection from '../ToolCollection';
 
 class defineMacros {
