@@ -521,10 +521,6 @@ async function modifyOptionsDateFormat(manager: AddonPlugin): Promise<void> {
   const passageData = SCdata.passageDataItems.map;
   const passageTitle = 'Options Overlay';
   const passage = passageData.get(passageTitle);
-  if (!passage) {
-    manager.log(`未找到段落: ${passageTitle}`, 'WARN');
-    return;
-  }
   const replacements: [RegExp, string][] = [
     [
       /<label\s+class="en-GB">\s*<<radiobutton\s*"\$options\.dateFormat"\s*"en-GB"\s*autocheck\s*>>\s*([^<]+)<\/label>/,
@@ -554,7 +550,6 @@ async function modifyOptionsDateFormat(manager: AddonPlugin): Promise<void> {
     },
     set(value: TypeOrderItem[]) {
       order = value;
-
       if (T?.modelclass) {
         Renderer.clearCaches(T.modelclass);
         $.wiki('<<updatesidebarimg>>');

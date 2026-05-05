@@ -153,13 +153,14 @@ class LanguageManager {
   }
 
   t(translationKey: string, space = false): string {
-    const translation = this.translations.get(translationKey);
-    if (!translation) {
+    const record = this.translations.get(translationKey);
+    if (!record || typeof record !== 'object') {
+      if (record !== undefined) this.translations.delete(translationKey);
       void this.loadTranslation(translationKey);
       return `[${translationKey}]`;
     }
-    const result = translation[this.language] || translation.EN || Object.values(translation)[0] || `[${translationKey}]`;
-    return this.language === 'EN' && space ? result + ' ' : result;
+    const result = record[this.language] ?? record.EN ?? Object.values(record).find(value => typeof value === 'string' && value.length > 0) ?? `[${translationKey}]`;
+    return this.language === 'EN' && space && result[0] !== '[' ? result + ' ' : result;
   }
 
   auto(text: string): string {
@@ -198,7 +199,9 @@ class LanguageManager {
   }
 
   has(translationKey: string): boolean {
-    return this.translations.has(translationKey);
+    const record = this.translations.get(translationKey);
+    if (!record || typeof record !== 'object') return false;
+    return Boolean(record[this.language] ?? record.EN ?? Object.values(record).find(value => typeof value === 'string' && value.length > 0));
   }
 
   set(translationKey: string, translations: Record<string, unknown>): boolean {

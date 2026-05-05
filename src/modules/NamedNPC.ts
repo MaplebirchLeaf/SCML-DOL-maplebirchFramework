@@ -191,14 +191,14 @@ export const NamedNPC = (core => {
       this.skincolour = data.skincolour ?? 0;
       this.init = data.init ?? 0;
       this.intro = data.intro ?? 0;
-      core.on(
-        ':language',
-        () => {
-          this.setPronouns();
-          this.bodyPartdescription();
-        },
-        'Named NPC Desc'
-      );
+      //core.on(
+      //':language',
+      //() => {
+      //this.setPronouns();
+      //this.bodyPartdescription();
+      //},
+      //'Named NPC Desc'
+      //);
     }
 
     setPronouns() {

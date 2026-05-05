@@ -529,14 +529,33 @@ function number(
 }
 
 const imageCache = new Map<string, boolean>();
+const imagePending = new Map<string, Promise<boolean>>();
+
+let sidebarRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+
+function queueSidebarRefresh(delay = 100) {
+  if (sidebarRefreshTimer) return;
+  sidebarRefreshTimer = setTimeout(() => {
+    sidebarRefreshTimer = null;
+    try {
+      Errors.Reporter.hide(true);
+      Renderer.clearCaches(T.modelclass);
+      $.wiki('<<updatesidebarimg>>');
+    } catch {}
+  }, delay);
+}
 
 function checkImageExist(src: string): boolean | Promise<boolean> {
   if (imageCache.has(src)) return imageCache.get(src)!;
-
-  for (const hooker of window.modImgLoaderHooker.sideHooker) {
+  if (imagePending.has(src)) return imagePending.get(src)!;
+  if (!src) {
+    imageCache.set(src, false);
+    return false;
+  }
+  for (const hooker of window.modImgLoaderHooker?.sideHooker ?? []) {
     if (hooker.hookName === 'GameOriginalImagePackImageSideHook') {
-      const n = window.modGameOriginalImagePack?.selfImg.get(src);
-      if (n && !n.getter.invalid) {
+      const image = window.modGameOriginalImagePack?.selfImg.get(src);
+      if (image && !image.getter.invalid) {
         imageCache.set(src, true);
         return true;
       }
@@ -547,37 +566,31 @@ function checkImageExist(src: string): boolean | Promise<boolean> {
       return true;
     }
   }
-
-  if (!window.modGameOriginalImagePack) {
-    if (!src) {
-      imageCache.set(src, false);
-      return false;
-    }
-
-    return new Promise<boolean>(resolve => {
-      const img = new Image();
-
-      img.onload = () => {
-        imageCache.set(src, true);
-        resolve(true);
-      };
-
-      img.onerror = () => {
-        imageCache.set(src, false);
-        resolve(false);
-
-        void Promise.resolve().then(() => {
-          Errors.Reporter.hide(true);
-          Renderer.clearCaches(T.modelclass);
-          $.wiki('<<updatesidebarimg>>');
-        });
-      };
-      img.src = src;
-    });
+  if (window.modGameOriginalImagePack) {
+    imageCache.set(src, false);
+    return false;
   }
-
-  imageCache.set(src, false);
-  return false;
+  const pending = new Promise<boolean>(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      img.onload = null;
+      img.onerror = null;
+      imageCache.set(src, true);
+      resolve(true);
+    };
+    img.onerror = () => {
+      img.onload = null;
+      img.onerror = null;
+      imageCache.set(src, false);
+      resolve(false);
+      queueSidebarRefresh(100);
+    };
+    img.src = src;
+  }).finally(() => {
+    imagePending.delete(src);
+  });
+  imagePending.set(src, pending);
+  return pending;
 }
 
 /**
@@ -589,13 +602,13 @@ function checkImageExist(src: string): boolean | Promise<boolean> {
 function loadImage(src: string): string | boolean | Promise<string | boolean> {
   try {
     const checkResult = checkImageExist(src);
-    const ImageResult = (): string | boolean | Promise<string | boolean> => {
+    const imageResult = (): string | boolean | Promise<string | boolean> => {
       const image = maplebirch.modUtils.getImage(src);
       if (image instanceof Promise) return image.then(value => value || true);
       return image || true;
     };
-    if (checkResult instanceof Promise) return checkResult.then(exists => (exists ? ImageResult() : false));
-    return checkResult ? ImageResult() : false;
+    if (checkResult instanceof Promise) return checkResult.then(exists => (exists ? imageResult() : false));
+    return checkResult ? imageResult() : false;
   } catch {
     return src;
   }
