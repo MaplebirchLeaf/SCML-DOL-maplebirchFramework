@@ -13,17 +13,22 @@ interface FaceStyleOptions {
 
 interface HairGradientOptions {
   style: string;
-  colours: { [x: string]: string | number };
+  colours: string[];
 }
 
 interface HairGradientPreprocessOptions {
   hair_sides_length: string;
+  hair_fringe_length: string;
   hair_colour_style?: string;
   hair_colour_gradient?: HairGradientOptions;
   hair_sides_type?: string;
+  hair_sides_position?: string;
   hair_fringe_colour_style?: string;
   hair_fringe_colour_gradient?: HairGradientOptions;
   hair_fringe_type?: string;
+  show_hair?: boolean;
+  headMask?: string[];
+  fringe_mask_src?: string | null;
   maplebirch?: {
     char?: {
       mask_src?: string;
@@ -47,10 +52,16 @@ interface LayerConfig {
   [key: string]: any;
 }
 
-function faceStyleSrcFn(name: Function | string) {
-  const Name = typeof name === 'function' ? name : () => name;
+type FaceStyleNameFn = (options: FaceStyleOptions) => string;
+type CharacterProcessType = 'pre' | 'post';
+type CharacterProcessHandler = (options: any) => void;
+type CharacterProcessInput = CharacterProcessHandler | Function;
+type CharacterLayerMap = Record<string, LayerConfig>;
+
+function faceStyleSrcFn(name: FaceStyleNameFn | string) {
+  const getName: FaceStyleNameFn = typeof name === 'function' ? name : () => name;
   return function (layerOptions: FaceStyleOptions): string {
-    const image = Name(layerOptions);
+    const image = getName(layerOptions);
     const paths = [
       `img/face/${layerOptions.facestyle}/${layerOptions.facevariant}/${image}.png`,
       `img/face/${layerOptions.facestyle}/${image}.png`,
@@ -63,14 +74,20 @@ function faceStyleSrcFn(name: Function | string) {
   };
 }
 
-function mask(x = 0, rotation: number = 0, swap = false, width = 256, height = 256): string {
+const maskCache = new Map<string, string>();
+
+function mask(x = 0, rotation = 0, swap = false, width = 256, height = 256): string {
   rotation = Math.max(-90, Math.min(90, rotation));
+  x = Math.max(-width / 2, Math.min(width / 2, x));
+  const cacheKey = `${x}|${rotation}|${swap}|${width}|${height}`;
+  const cached = maskCache.get(cacheKey);
+  if (cached) return cached;
   const canvas = document.createElement('canvas');
   canvas.width = width * 2;
   canvas.height = height;
-  const ctx = canvas.getContext('2d')!;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return '';
   const splitX = Math.max(0, Math.min(width, width / 2 + x));
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
   for (let frame = 0; frame < 2; frame++) {
     const offsetX = frame * width;
     const whiteStart = swap ? offsetX + splitX : offsetX;
@@ -80,6 +97,7 @@ function mask(x = 0, rotation: number = 0, swap = false, width = 256, height = 2
       ctx.fillRect(whiteStart, 0, whiteWidth, height);
     }
   }
+  let result: string;
   if (rotation !== 0) {
     const rad = (rotation * Math.PI) / 180;
     const cos = Math.abs(Math.cos(rad));
@@ -89,96 +107,89 @@ function mask(x = 0, rotation: number = 0, swap = false, width = 256, height = 2
     const rotatedCanvas = document.createElement('canvas');
     rotatedCanvas.width = newWidth;
     rotatedCanvas.height = newHeight;
-    const rctx = rotatedCanvas.getContext('2d')!;
+    const rctx = rotatedCanvas.getContext('2d');
+    if (!rctx) return '';
     rctx.translate(newWidth / 2, newHeight / 2);
     rctx.rotate(rad);
     rctx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
-    return rotatedCanvas.toDataURL('image/png');
+    result = rotatedCanvas.toDataURL('image/png');
+  } else {
+    result = canvas.toDataURL('image/png');
   }
-  return canvas.toDataURL('image/png');
+  maskCache.set(cacheKey, result);
+  return result;
 }
 
-function hairColourGradient(
-  part: string,
-  gradient: HairGradientOptions,
-  hairType: string,
-  hairLength: number,
-  prefilterName: string,
-  type: 'charArt' | 'closeUp'
-): {
-  blend: {
-    colors: Array<[number, string]>;
-    lengthFunctions?: Array<Function>;
-    [key: string]: any;
-  };
-  brightness: {
-    gradient: any;
-    values: any;
-    adjustments: [number, number][][];
-  };
-  blendMode: string;
-  [key: string]: any;
-} {
-  const filterPrototypeLibrary = setup.colours!.hairgradients_prototypes![part][gradient.style];
-  const filterPrototype = filterPrototypeLibrary[hairType] || filterPrototypeLibrary.all!;
-  const storedPositions = V.options?.maplebirch.character[type].value[part][gradient.style];
+function hairColourGradient(part: string, gradient: HairGradientOptions, hairType: string, hairLength: number, prefilterName: string, type: 'charArt' | 'closeUp'): any {
+  const filterPrototypeLibrary = setup.colours?.hairgradients_prototypes?.[part]?.[gradient.style];
+  if (!filterPrototypeLibrary) return Renderer.emptyLayerFilter();
+  const filterPrototype = filterPrototypeLibrary[hairType] || filterPrototypeLibrary.all;
+  if (!filterPrototype) return Renderer.emptyLayerFilter();
+  const storedPositions = V.options?.maplebirch?.character?.[type]?.value?.[part]?.[gradient.style];
   const blend = clone(filterPrototype);
   if (storedPositions && storedPositions.length === blend.colors.length) for (let i = 0; i < blend.colors.length; i++) blend.colors[i][0] = Math.max(0, Math.min(1, storedPositions[i]));
   const filter = {
-    blend: blend,
+    blend,
     brightness: {
       gradient: filterPrototype.gradient,
       values: filterPrototype.values,
-      adjustments: [[], []] as [number, number][][]
+      adjustments: blend.colors.map(() => [0, 0] as [number, number])
     },
     blendMode: 'hard-light' as const
   };
-  for (const colorIndex in filter.blend.colors) {
-    let lengthValue = filter.blend.lengthFunctions![0](hairLength, filter.blend.colors[colorIndex][0]);
+  for (let index = 0; index < filter.blend.colors.length; index++) {
+    const color = filter.blend.colors[index];
+    const lengthFn = filter.blend.lengthFunctions?.[0];
+    let lengthValue = typeof lengthFn === 'function' ? lengthFn(hairLength, color[0]) : color[0];
     lengthValue = Math.max(0, Math.min(1, lengthValue));
-    const colorData = setup.colours!.hair_map[gradient.colours[colorIndex] as string].canvasfilter;
-    filter.brightness.adjustments[colorIndex as any as number][0] = lengthValue;
-    filter.brightness.adjustments[colorIndex as any as number][1] = colorData.brightness || 0;
-    filter.blend.colors[colorIndex as any as number][0] = lengthValue;
-    filter.blend.colors[colorIndex as any as number][1] = colorData.blend!;
+    const colourKey = gradient.colours[index];
+    const colorData = setup.colours?.hair_map?.[colourKey]?.canvasfilter;
+    if (!colorData) continue;
+    filter.brightness.adjustments[index][0] = lengthValue;
+    filter.brightness.adjustments[index][1] = colorData.brightness || 0;
+    color[0] = lengthValue;
+    color[1] = colorData.blend;
   }
-  Renderer.mergeLayerData(filter, setup.colours.sprite_prefilters[prefilterName], true);
+
+  const prefilter = setup.colours?.sprite_prefilters?.[prefilterName];
+  if (prefilter) Renderer.mergeLayerData(filter, prefilter, true);
   return filter;
 }
 
 function preprocess(options: HairGradientPreprocessOptions) {
   (options.maplebirch ??= {}).char ??= {};
-  options.maplebirch.char.mask_src = mask(V.options.maplebirch.character.mask, V.options.maplebirch.character.rotation);
-  options.maplebirch.char.mask_src_close_up = mask(V.options.maplebirch.character.mask, V.options.maplebirch.character.rotation, true);
+  const characterOptions = V.options?.maplebirch?.character ?? {};
+  options.maplebirch.char.mask_src = mask(characterOptions.mask ?? 0, characterOptions.rotation ?? 0);
+  options.maplebirch.char.mask_src_close_up = mask(characterOptions.mask ?? 0, characterOptions.rotation ?? 0, true);
   const gradients = (style: string, key: string, part: string, type: string, lengthKey: string, prefilter: string) => {
-    if (options[style] === 'gradient') {
-      const gradient = options[key] as HairGradientOptions;
-      const hairType = options[type] as string;
-      const length = hairLengthStringToNumber(options[lengthKey] as string);
-      options.filters = options.filters || {};
-      options.filters[prefilter] = hairColourGradient(part, gradient, hairType, length, prefilter, 'charArt');
-      options.filters[`${prefilter}_close_up`] = hairColourGradient(part, gradient, hairType, length, prefilter, 'closeUp');
-    }
+    if (options[style] !== 'gradient') return;
+    const gradient = options[key] as HairGradientOptions | undefined;
+    if (!gradient) return;
+    const hairType = options[type] as string;
+    const length = hairLengthStringToNumber(options[lengthKey] as string);
+    options.filters ??= {};
+    options.filters[prefilter] = hairColourGradient(part, gradient, hairType, length, prefilter, 'charArt');
+    options.filters[`${prefilter}_close_up`] = hairColourGradient(part, gradient, hairType, length, prefilter, 'closeUp');
   };
   gradients('hair_colour_style', 'hair_colour_gradient', 'sides', 'hair_sides_type', 'hair_sides_length', 'hair');
-  gradients('hair_fringe_colour_style', 'hair_fringe_colour_gradient', 'fringe', 'hair_fringe_type', 'hair_sides_length', 'hair_fringe');
+  gradients('hair_fringe_colour_style', 'hair_fringe_colour_gradient', 'fringe', 'hair_fringe_type', 'hair_fringe_length', 'hair_fringe');
 }
 
-const layers: Record<string, LayerConfig> = {
+const layers: CharacterLayerMap = {
   hair_sides: {
     masksrcfn(options: HairGradientPreprocessOptions) {
-      return options.head_mask_src ? options.head_mask_src : options.maplebirch.char.mask_src;
+      return options.headMask?.length ? options.headMask : options.maplebirch?.char?.mask_src;
     }
   },
   hair_sides_close_up: {
     masksrcfn(options: HairGradientPreprocessOptions) {
-      return options.maplebirch.char.mask_src_close_up;
+      return options.maplebirch?.char?.mask_src_close_up;
     },
     srcfn(options: HairGradientPreprocessOptions) {
       return `img/hair/sides/${options.hair_sides_type}/${options.hair_sides_length}.png`;
     },
     showfn(options: HairGradientPreprocessOptions) {
-      return !!options.show_hair && !!options.hair_sides_type && !options.head_mask_src;
+      return !!options.show_hair && !!options.hair_sides_type && !options.headMask?.length;
     },
     zfn(options: HairGradientPreprocessOptions) {
       return options.hair_sides_position === 'front' ? maplebirch.char.ZIndices.hair_forward : maplebirch.char.ZIndices.backhair;
@@ -190,18 +201,18 @@ const layers: Record<string, LayerConfig> = {
   },
   hair_fringe: {
     masksrcfn(options: HairGradientPreprocessOptions) {
-      return options.head_mask_src || options.fringe_mask_src ? (options.head_mask_src ? options.head_mask_src : options.fringe_mask_src) : options.maplebirch.char.mask_src;
+      return options.headMask?.length ? options.headMask : options.fringe_mask_src || options.maplebirch?.char?.mask_src;
     }
   },
   hair_fringe_close_up: {
     masksrcfn(options: HairGradientPreprocessOptions) {
-      return options.maplebirch.char.mask_src_close_up;
+      return options.maplebirch?.char?.mask_src_close_up;
     },
     srcfn(options: HairGradientPreprocessOptions) {
       return `img/hair/fringe/${options.hair_fringe_type}/${options.hair_fringe_length}.png`;
     },
     showfn(options: HairGradientPreprocessOptions) {
-      return !!options.show_hair && !!options.hair_fringe_type && !(options.head_mask_src || options.fringe_mask_src);
+      return !!options.show_hair && !!options.hair_fringe_type && !options.headMask?.length && !options.fringe_mask_src;
     },
     zfn() {
       return maplebirch.char.ZIndices.front_hair;
@@ -221,42 +232,42 @@ const layers: Record<string, LayerConfig> = {
     srcfn: faceStyleSrcFn('eyes')
   },
   sclera: {
-    srcfn: faceStyleSrcFn((options: { eyes_bloodshot: any }) => (options.eyes_bloodshot ? 'sclera-bloodshot' : 'sclera'))
+    srcfn: faceStyleSrcFn((options: FaceStyleOptions) => (options.eyes_bloodshot ? 'sclera-bloodshot' : 'sclera'))
   },
   left_iris: {
-    srcfn: faceStyleSrcFn((options: { trauma: any; eyes_half: any }) => {
+    srcfn: faceStyleSrcFn((options: FaceStyleOptions) => {
       const iris = options.trauma ? 'iris-empty' : 'iris';
       const half = options.eyes_half ? '-half-closed' : '';
       return `${iris}${half}`;
     })
   },
   right_iris: {
-    srcfn: faceStyleSrcFn((options: { trauma: any; eyes_half: any }) => {
+    srcfn: faceStyleSrcFn((options: FaceStyleOptions) => {
       const iris = options.trauma ? 'iris-empty' : 'iris';
       const half = options.eyes_half ? '-half-closed' : '';
       return `${iris}${half}`;
     })
   },
   eyelids: {
-    srcfn: faceStyleSrcFn((options: { eyes_half: any }) => {
+    srcfn: faceStyleSrcFn((options: FaceStyleOptions) => {
       const half = options.eyes_half ? '-half-closed' : '';
       return `eyelids${half}`;
     })
   },
   lashes: {
-    srcfn: faceStyleSrcFn((options: { eyes_half: any }) => {
+    srcfn: faceStyleSrcFn((options: FaceStyleOptions) => {
       const half = options.eyes_half ? '-half-closed' : '';
       return `lashes${half}`;
     })
   },
   makeup_eyeshadow: {
-    srcfn: faceStyleSrcFn((options: { eyes_half: any }) => {
+    srcfn: faceStyleSrcFn((options: FaceStyleOptions) => {
       const half = options.eyes_half ? '-half-closed' : '';
       return `makeup/eyeshadow${half}`;
     })
   },
   makeup_mascara: {
-    srcfn: faceStyleSrcFn((options: { eyes_half: any }) => {
+    srcfn: faceStyleSrcFn((options: FaceStyleOptions) => {
       const half = options.eyes_half ? '-half-closed' : '';
       return `makeup/mascara${half}`;
     })
@@ -265,22 +276,22 @@ const layers: Record<string, LayerConfig> = {
     srcfn: faceStyleSrcFn('blusher')
   },
   brows: {
-    srcfn: faceStyleSrcFn((options: { brows: any }) => `brow-${options.brows}`)
+    srcfn: faceStyleSrcFn((options: FaceStyleOptions) => `brow-${options.brows}`)
   },
   mouth: {
-    srcfn: faceStyleSrcFn((options: { mouth: any }) => `mouth-${options.mouth}`)
+    srcfn: faceStyleSrcFn((options: FaceStyleOptions) => `mouth-${options.mouth}`)
   },
   makeup_lipstick: {
-    srcfn: faceStyleSrcFn((options: { mouth: any }) => `lipstick-${options.mouth}`)
+    srcfn: faceStyleSrcFn((options: FaceStyleOptions) => `lipstick-${options.mouth}`)
   },
   blush: {
-    srcfn: faceStyleSrcFn((options: { blush: any }) => `blush${options.blush}`)
+    srcfn: faceStyleSrcFn((options: FaceStyleOptions) => `blush-${options.blush}`)
   },
   tears: {
-    srcfn: faceStyleSrcFn((options: { tears: any }) => `tear${options.tears}`)
+    srcfn: faceStyleSrcFn((options: FaceStyleOptions) => `tears-${options.tears}`)
   },
   makeup_mascara_tears: {
-    srcfn: faceStyleSrcFn((options: { mascara_running: any }) => `makeup/mascara${options.mascara_running}`)
+    srcfn: faceStyleSrcFn((options: FaceStyleOptions) => `makeup/mascara${options.mascara_running}`)
   }
 };
 
@@ -289,16 +300,16 @@ class Character {
   readonly mask = mask;
   readonly faceStyleSrcFn = faceStyleSrcFn;
   readonly faceStyleMap: Map<string, string[]> = new Map();
-  readonly handlers: { [x: string]: any } = { pre: [], post: [] };
-  layers: object = {};
+  readonly handlers: Record<CharacterProcessType, CharacterProcessHandler[]> = {
+    pre: [],
+    post: []
+  };
   readonly transformation: Transformation;
+  layers: CharacterLayerMap = {};
 
   constructor(readonly core: MaplebirchCore) {
     this.log = createlog('char');
-    this.mask = mask;
-    this.faceStyleSrcFn = faceStyleSrcFn;
     this.transformation = new Transformation(this);
-    this.core.on(':language', () => this._faceStyleSetupOption(), 'face style setup options');
     this.core.once(':sugarcube', () => {
       const model = Renderer.CanvasModels.main;
       if (!model?.layers) return;
@@ -307,11 +318,12 @@ class Character {
         get: () =>
           merge(originalLayers, this.layers, {
             mode: 'merge',
-            filterFn: (key: any, value: null, depth: number) => (depth > 3 || value == null ? false : true)
+            filterFn: (_key: any, value: any, depth: number) => depth <= 3 && value != null
           }),
         enumerable: true,
         configurable: true
       });
+      if (Renderer.CanvasModelCaches?.main) Renderer.CanvasModelCaches.main = {};
     });
     this.core.tool.onInit(() => this._faceStyleSetupOption());
   }
@@ -332,7 +344,9 @@ class Character {
     manager.gModUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
   }
 
-  use(...args: any) {
+  use(type: CharacterProcessType, fn: CharacterProcessInput): this;
+  use(layerMap: CharacterLayerMap): this;
+  use(...args: any[]): this {
     if (args.length === 0) {
       this.log('use 调用无参数', 'WARN');
       return this;
@@ -340,32 +354,31 @@ class Character {
     if (args.length === 2) {
       const [type, fn] = args;
       if ((type === 'pre' || type === 'post') && typeof fn === 'function') {
-        this.handlers[type].push(fn);
+        this.handlers[type].push(fn as CharacterProcessHandler);
       } else {
         this.log(`use 参数类型错误: ${typeof type}, ${typeof fn}`, 'ERROR');
       }
       return this;
     }
     if (args.length === 1 && args[0] && typeof args[0] === 'object') {
-      const obj = args[0];
-      this.layers = merge(this.layers, obj, {
+      this.layers = merge(this.layers, args[0], {
         mode: 'merge',
-        filterFn: (key: any, value: null, depth: number) => (depth > 3 || value == null ? false : true)
+        filterFn: (_key: any, value: any, depth: number) => depth <= 3 && value != null
       });
       return this;
     }
-    this.log(`use 调用格式错误: ${args}`, 'ERROR');
+    this.log('use 调用格式错误', 'ERROR');
     return this;
   }
 
-  process(type: 'pre' | 'post', options: any) {
+  process(type: CharacterProcessType, options: any) {
     const handlers = this.handlers[type] || [];
     this.core.var.optionsCheck();
     for (const fn of handlers) {
       try {
         fn(options);
-      } catch (e: any) {
-        this.log(`${type}process 错误: ${e.message}`, 'ERROR');
+      } catch (error: any) {
+        this.log(`${type}process 错误: ${error?.message || error}`, 'ERROR', error);
       }
     }
   }
@@ -377,6 +390,7 @@ class Character {
     const files = ['Cheats', 'clothesTestingImageGenerate', 'Widgets Mirror', 'Widgets Settings'];
     for (const file of files) {
       const modify = passageData.get(file);
+      if (!modify?.content) continue;
       const replacements: [RegExp, string][] = [[/setup.faceStyleOptions.length gt/g, 'Object.keys(setup.faceStyleOptions).length gte']];
       if (file === 'Widgets Mirror') replacements.push([/Object.keys\(setup.faceVariantOptions\[\$facestyle\]\).length gt/g, 'Object.keys(setup.faceVariantOptions[$facestyle]).length gte']);
       modify.content = manager.replace(modify.content, replacements);
@@ -389,8 +403,10 @@ class Character {
   async faceStyleImagePaths() {
     for (const modName of this.core.modUtils.getModListNameNoAlias()) {
       try {
+        const mod = this.core.modUtils.getMod(modName);
         const modZip = this.core.modUtils.getModZip(modName);
-        if (!this.core.modUtils.getMod(modName).bootJson.addonPlugin?.some((p: { modName: string }) => p.modName === 'BeautySelectorAddon') || !modZip) continue;
+        const hasBeautySelectorAddon = mod.bootJson.addonPlugin?.some((plugin: { modName: string }) => plugin.modName === 'BeautySelectorAddon');
+        if (!hasBeautySelectorAddon || !modZip) continue;
         for (const filePath of Object.keys(modZip.zip.files)) {
           const faceIndex = filePath.indexOf('img/face/');
           if (faceIndex === -1) continue;
@@ -399,45 +415,60 @@ class Character {
           const firstFolder = pathParts[0];
           const secondFolder = pathParts[1];
           if (firstFolder === 'default') {
-            if (!this.faceStyleMap.has('default')) this.faceStyleMap.set('default', []);
-            if (pathParts.length >= 3 && secondFolder && !['aloof', 'catty', 'default', 'foxy', 'gloomy', 'sweet'].includes(secondFolder)) {
-              const variants = this.faceStyleMap.get('default') as any;
-              if (!variants.includes(secondFolder)) variants.push(secondFolder);
-            }
+            this.addFaceOption('default');
+            const isBuiltinVariant = ['aloof', 'catty', 'default', 'foxy', 'gloomy', 'sweet'].includes(secondFolder);
+            if (pathParts.length >= 3 && secondFolder && !isBuiltinVariant) this.addFaceOption('default', secondFolder);
           } else if (firstFolder !== 'masks') {
-            if (!this.faceStyleMap.has(firstFolder)) this.faceStyleMap.set(firstFolder, []);
-            if (pathParts.length >= 3 && secondFolder) {
-              const variants = this.faceStyleMap.get(firstFolder) as any;
-              if (!variants.includes(secondFolder)) variants.push(secondFolder);
-            }
+            this.addFaceOption(firstFolder);
+            if (pathParts.length >= 3 && secondFolder) this.addFaceOption(firstFolder, secondFolder);
           }
         }
         if (this.faceStyleMap.size > 0 && !this.core.modList.includes(modName)) this.core.modList.push(modName);
-      } catch (e) {
-        this.log(`${modName}:`, 'ERROR', e);
+      } catch (error) {
+        this.log(`${modName}:`, 'ERROR', error);
       }
     }
   }
 
-  private _faceStyleSetupOption() {
-    const faceStyleValues = Object.values(setup.faceStyleOptions) as string[];
-    for (const value of faceStyleValues) if (!this.faceStyleMap.has(value)) this.faceStyleMap.set(value, []);
-    for (const [style, variantObj] of Object.entries(setup.faceVariantOptions || {})) {
-      if (!this.faceStyleMap.has(style)) this.faceStyleMap.set(style, []);
-      const variants = this.faceStyleMap.get(style)!;
-      for (const value of Object.values(variantObj as Record<string, string>)) if (!variants.includes(value)) variants.push(value);
+  private addFaceOption(style: string, variant?: string) {
+    const variants = this.faceStyleMap.get(style) ?? [];
+    if (!this.faceStyleMap.has(style)) this.faceStyleMap.set(style, variants);
+    if (variant && !variants.includes(variant)) variants.push(variant);
+  }
+
+  private label(key: string, fallback = key) {
+    try {
+      return this.core.auto(key) || fallback;
+    } catch {
+      this.log(`缺少语言文本: ${key}`, 'WARN');
+      return fallback;
     }
-    setup.faceStyleOptions = {};
-    for (const [style] of this.faceStyleMap) setup.faceStyleOptions[convert(this.core.auto(style === 'default' ? 'traditional' : style), 'capitalize')] = style;
-    setup.faceVariantOptions = {};
+  }
+
+  private _faceStyleSetupOption() {
+    const currentStyleOptions = setup.faceStyleOptions || {};
+    const currentVariantOptions = setup.faceVariantOptions || {};
+    for (const value of Object.values(currentStyleOptions) as string[]) this.addFaceOption(value);
+    for (const [style, variantObj] of Object.entries(currentVariantOptions)) {
+      this.addFaceOption(style);
+      for (const value of Object.values(variantObj as Record<string, string>)) this.addFaceOption(style, value);
+    }
+    const nextStyleOptions: Record<string, string> = {};
+    const nextVariantOptions: Record<string, Record<string, string>> = {};
+    for (const [style] of this.faceStyleMap) {
+      const key = style === 'default' ? 'traditional' : style;
+      nextStyleOptions[convert(this.label(key), 'capitalize')] = style;
+    }
     for (const [style, variants] of this.faceStyleMap) {
       if (variants.length === 0) continue;
-      setup.faceVariantOptions[style] = {};
+      nextVariantOptions[style] = {};
       for (const variant of variants) {
-        const translatedName = this.core.auto(variant === 'default' ? 'gentle' : variant);
-        setup.faceVariantOptions[style][convert(translatedName, 'capitalize')] = variant;
+        const key = variant === 'default' ? 'gentle' : variant;
+        nextVariantOptions[style][convert(this.label(key), 'capitalize')] = variant;
       }
     }
+    setup.faceStyleOptions = nextStyleOptions;
+    setup.faceVariantOptions = nextVariantOptions;
   }
 
   async #renderCharacter() {
@@ -471,7 +502,7 @@ class Character {
       container.appendChild(mainCanvas.canvas);
       this.#adjustCanvasSize(container);
     } catch (error) {
-      this.log('角色渲染错误:', 'ERROR');
+      this.log('角色渲染错误:', 'ERROR', error);
     } finally {
       T.modelclass = originalModelClass;
       T.modeloptions = originalModelOptions;
@@ -566,7 +597,7 @@ class Character {
   }
 
   Init() {
-    this.core.on(':modhint', async () => await this.render(), 'character render');
+    this.core.on(':modhint', () => void this.render(), 'character render');
     this.transformation.inject();
   }
 

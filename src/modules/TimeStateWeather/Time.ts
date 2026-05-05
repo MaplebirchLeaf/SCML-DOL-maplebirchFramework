@@ -399,7 +399,6 @@ function patchTime(): void {
       configurable: true
     }
   });
-
   timePatched = true;
 }
 

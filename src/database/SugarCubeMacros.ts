@@ -137,7 +137,7 @@ function _languageSwitch(this: MacroContext | void, ...lanObj: any[]): string | 
   if (!context?.output) return target[currentLanguage] ?? target[languages[0]] ?? text(lanObj[0]);
   try {
     const $container = jQuery('<span style="display: contents;"></span>');
-    const render = () => wiki($container, target[maplebirch.Language] || target[languages[0]] || '');
+    const render = () => wiki($container, target[maplebirch.Language] ?? target[languages[0]] ?? '');
     render();
     jQuery(context.output).append($container);
     setup.maplebirch?.language?.add('lanSwitch', render);
@@ -157,6 +157,7 @@ function _languageButton(this: MacroContext): void {
     const content = (payload[0]?.contents || '').trim();
     const source = text(this.args[0]);
     const { classes, style, convertMode } = readStyle(this.args);
+    const passageObj = this.passageObj;
     if (!source) return this.error('<<lanButton>> 参数必须是字符串、函数或带 text 属性的对象');
     let buttonText = macroTranslation(source, maplebirch);
     if (convertMode) buttonText = convert(buttonText, convertMode);
@@ -170,7 +171,7 @@ function _languageButton(this: MacroContext): void {
         role: 'button',
         one: false
       },
-      this.createShadowWrapper(content ? () => maplebirch.SugarCube.Wikifier.wikifyEval(content, this.passageObj) : null)
+      this.createShadowWrapper(content ? () => maplebirch.SugarCube.Wikifier.wikifyEval(content, passageObj) : null)
     );
     const update = () => {
       let nextText = macroTranslation(source, maplebirch);
@@ -195,6 +196,7 @@ function _languageLink(this: MacroContext): void {
     const content = (payload[0]?.contents || '').trim();
     const firstArg = this.args[0];
     const { classes, style, convertMode } = readStyle(this.args);
+    const passageObj = this.passageObj;
     let source = '';
     let passageName: string | null = null;
     if (typeof firstArg === 'string' || typeof firstArg === 'function') {
@@ -238,10 +240,7 @@ function _languageLink(this: MacroContext): void {
         role: passageName != null ? 'link' : 'button',
         one: passageName != null
       },
-      this.createShadowWrapper(
-        content ? () => maplebirch.SugarCube.Wikifier.wikifyEval(content, this.passageObj) : null,
-        passageName != null ? () => maplebirch.SugarCube.Engine.play(passageName) : null
-      )
+      this.createShadowWrapper(content ? () => maplebirch.SugarCube.Wikifier.wikifyEval(content, passageObj) : null, passageName != null ? () => maplebirch.SugarCube.Engine.play(passageName) : null)
     );
     const update = () => {
       let nextText = macroTranslation(source, maplebirch);
@@ -406,15 +405,15 @@ function _languageListbox(this: MacroContext): void {
     const create = (items: ListboxOption[], index: number) => {
       $select.empty();
       items.forEach((option, i) => {
-        let displayText = macroTranslation(option.label, maplebirch) || option.label;
-        if (option.convertMode) displayText = convert(displayText, option.convertMode);
+        let displayText = macroTranslation(option?.label ?? '', maplebirch) || text(option?.label);
+        if (option?.convertMode) displayText = convert(displayText, option.convertMode);
         jQuery(document.createElement('option'))
           .val(i)
           .text(displayText)
-          .attr('data-translation-key', option.label)
-          .attr('data-convert-mode', option.convertMode || '')
-          .attr('data-opt-type', option.type)
-          .attr('data-expr-index', option.exprIndex ?? -1)
+          .attr('data-translation-key', option?.label ?? '')
+          .attr('data-convert-mode', option?.convertMode ?? '')
+          .attr('data-opt-type', option?.type ?? '')
+          .attr('data-expr-index', option?.exprIndex ?? -1)
           .prop('selected', i === index)
           .appendTo($select);
       });
@@ -422,7 +421,6 @@ function _languageListbox(this: MacroContext): void {
     create(options, selectedIdx);
     $select.appendTo(this.output);
     State.setVar(varName, options[selectedIdx].value);
-    this.lanListboxCache ??= {};
     const update = () => {
       const currentValue = State.getVar(varName);
       const currentIndex = options.findIndex(option => maplebirch.SugarCube.Util.sameValueZero(option.value, currentValue));
@@ -509,21 +507,26 @@ function _radiobuttonsfrom(this: MacroContext): HTMLElement | void {
   const update = () => {
     const language = maplebirch.Language;
     options.forEach((option, index) => {
-      const $text = $container.find(`.radiobuttonsfrom-text[data-option-index="${index}"]`);
-      let displayText = '';
-      if (Array.isArray(option.data)) {
-        displayText = text(option.data[0] || option.value);
-        if (language === 'CN' && option.data.length > 1) displayText = text(option.data[1]);
-      } else if (option.data && typeof option.data === 'object') {
-        displayText = text(option.data[language] || option.data.EN || option.value);
-      } else {
-        displayText = text(option.data);
-      }
-      $text.empty();
-      if (/<[^>]+>/.test(displayText)) {
-        $text.html(displayText);
-      } else {
-        $text.text(displayText);
+      try {
+        const $text = $container.find(`.radiobuttonsfrom-text[data-option-index="${index}"]`);
+        const data = option?.data;
+        let displayText = '';
+        if (Array.isArray(data)) {
+          displayText = text(data[0] ?? option.value);
+          if (language === 'CN' && data.length > 1) displayText = text(data[1] ?? data[0] ?? option.value);
+        } else if (data && typeof data === 'object') {
+          displayText = text((data as Record<string, any>)[language] ?? (data as Record<string, any>).EN ?? (data as Record<string, any>).CN ?? option.value);
+        } else {
+          displayText = text(data ?? option.value);
+        }
+        $text.empty();
+        if (/<[^>]+>/.test(displayText)) {
+          $text.html(displayText);
+        } else {
+          $text.text(displayText);
+        }
+      } catch (error) {
+        maplebirch.log(`radiobuttonsfrom 更新选项失败: ${index}`, 'ERROR', error, option);
       }
     });
   };
