@@ -1,4 +1,4 @@
-// ./src/modules/NamedNPCAddon/NPCSiderbarConfig/hands_layers.ts
+// ./src/modules/NamedNPCAddon/NPCSidebarConfig/hands_layers.ts
 
 import { clothes_layer, clothes_hand } from './functions';
 

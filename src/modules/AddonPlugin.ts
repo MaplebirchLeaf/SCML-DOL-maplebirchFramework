@@ -196,9 +196,9 @@ class Process {
         const sidebar = config.Sidebar;
         if (!sidebar || typeof sidebar !== 'object' || !modZip) continue;
         const imagePaths: string[] = [];
-        if (Array.isArray(sidebar.clothes)) for (const filePath of sidebar.clothes) await addon.core.npc.Clothes.load(modName, filePath);
+        if (Array.isArray(sidebar.clothes)) for (const filePath of sidebar.clothes) await addon.core.npc.Clothes.loadWardrobe(modName, filePath);
         if (Array.isArray(sidebar.image)) imagePaths.push(...addon.core.npc.Sidebar.loadFromMod(modZip, sidebar.image));
-        if (Array.isArray(sidebar.config)) imagePaths.push(...(await addon.core.npc.Clothes.import(modName, modZip, sidebar.config)));
+        if (Array.isArray(sidebar.config)) imagePaths.push(...(await addon.core.npc.Clothes.importArt(modName, modZip, sidebar.config)));
         if (imagePaths.length > 0) await Process.injectBSAImages(addon, modName, modZip, imagePaths);
       }
       addon.processed.npc = true;

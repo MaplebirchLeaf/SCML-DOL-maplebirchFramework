@@ -46,7 +46,7 @@ class Internals {
     });
   }
 
-  languageManager(): void {
+  language(): void {
     const managers: Record<string, Set<Updater>> = {
       language: new Set(),
       lanSwitch: new Set(),
@@ -73,7 +73,6 @@ class Internals {
     );
 
     this.core.once(':passagestart', () => Object.values(managers).forEach(manager => manager.clear()));
-    setup.maplebirch ??= {};
     setup.maplebirch.language = {
       managers,
       add(macroType: string, updater: Updater) {
@@ -189,7 +188,7 @@ class Internals {
 
     this.core.tool.onInit(() => {
       setup.maplebirch ??= {};
-      this.languageManager();
+      this.language();
       setup.maplebirch.hint = this.uniqueTextStore();
       setup.maplebirch.content = this.uniqueTextStore();
     });
