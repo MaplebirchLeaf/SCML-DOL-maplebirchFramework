@@ -4,7 +4,7 @@
 <details open>
   <summary class='settingsHeader options'><span class='gold'><<lanSwitch 'Maplebirch Framework' '秋枫白桦框架'>></span></summary>
   <div class='settingsGrid'>
-    <div class='settingsToggleItem' style='text-align:center'><<lanButton 'reset framework settings to default' 'title' 'class:gold'>><<unset $options.maplebirch>><<run maplebirch.trigger(':rest-options')>><</lanButton>></div>
+    <div class='settingsToggleItem' style='text-align:center'><<lanButton 'reset framework settings to default' 'title' 'class:gold'>><<unset $options.maplebirch>><<run maplebirch.trigger(':rest-options')>><<replace #customOverlayContent>><<maplebirchOptions>><</replace>><</lanButton>></div>
     <div class='settingsToggleItem maplebirch-relationcount-slider'><label>
       <span class='gold'><<lanSwitch 'Total Number Of Social Status Displays' '社交栏状态显示总数'>></span>
       <<numberslider '$options.maplebirch.relationcount' $options.maplebirch.relationcount 2 10 2 { value: v => `${v}${lanSwitch(' types','种')}`}>>
