@@ -56,7 +56,7 @@ export interface NPCData {
 
 export interface NPCConfig {
   love?: { maxValue: number };
-  loveAlias?: [string, string] | (() => string);
+  loveAlias?: [string, string] | (() => string | [string, string]);
   important?: boolean | (() => boolean);
   special?: boolean | (() => boolean);
   loveInterest?: boolean | (() => boolean);
@@ -485,9 +485,12 @@ export const NamedNPC = (core => {
 
   function setupLoveAlias(npcName: string, loveAliasConfig: NPCConfig['loveAlias']) {
     if (typeof loveAliasConfig === 'function') {
-      setup.loveAlias[npcName] = loveAliasConfig;
+      setup.loveAlias[npcName] = () => {
+        const alias = loveAliasConfig();
+        return Array.isArray(alias) && alias.length >= 2 ? lanSwitch(alias[0], alias[1]) : alias;
+      };
     } else if (Array.isArray(loveAliasConfig) && loveAliasConfig.length >= 2) {
-      const [cnAlias, enAlias] = loveAliasConfig;
+      const [enAlias, cnAlias] = loveAliasConfig;
       setup.loveAlias[npcName] = () => lanSwitch(enAlias, cnAlias);
     } else {
       setup.loveAlias[npcName] = () => lanSwitch('Affection', '好感');
