@@ -3,7 +3,7 @@
 ### 基本介绍
 
 `migration` 是框架内置的数据版本迁移工具，用于处理数据结构变更时的版本升级。它允许开发者定义从旧版本到新版本的迁移步骤，确保数据在不同版本间的兼容性。
-_可通过 `maplebirch.tool.migration` 或快捷接口 `maplebirchFrameworks.migration()` 访问。_
+_可通过 `maplebirch.tool.migration` 访问。_
 
 ---
 
@@ -11,7 +11,7 @@ _可通过 `maplebirch.tool.migration` 或快捷接口 `maplebirchFrameworks.mig
 
 #### **创建迁移实例 (create)**
 
-_注意事项_
+_补充说明_
 **版本号格式**: _必须使用语义化版本号，如 `1.0.0`_
 **迁移顺序**: _迁移步骤会按版本号升序执行_
 
@@ -24,7 +24,7 @@ _注意事项_
   const migrator = maplebirch.tool.migration.create();
 
   // 快捷访问方式
-  const migrator = maplebirchFrameworks.migration();
+  const migrator = new maplebirch.tool.migration();
   ```
 
 #### **添加迁移步骤 (add)**
@@ -189,7 +189,7 @@ migrator.add('2.0.0', '2.1.0', (data, utils) => {
 ```javascript
 // 创建迁移器(两种方式均可)
 const migrator = maplebirch.tool.migration.create();
-// const migrator = maplebirchFrameworks.migration();
+// const migrator = new maplebirch.tool.migration();
 
 // 添加迁移步骤
 migrator.add('1.0.0', '1.1.0', (data, utils) => {

@@ -98,8 +98,6 @@ const widgetPassage = {
   ],
   'Widgets NPCs': [
     { src: '<<if $genderknown.includes($npc[_iii])>>', to: '<<if contains($genderknown, $npc)>>' },
-    { srcmatch: /<<if \$npc\.length is 1 and \(\["Kylar","Sydney","Gwylan"\]\.includes\(\$npc\[0\]\)\)>>[\s\S]*?<<if \$npc\[0\] is "Sydney" and !\$sydneySeen\.includes\("herm"\)\s*>>[\s\S]*?<<set \$sydneySeen\.pushUnique\("herm"\)>>[\s\S]*?<<elseif \$npc\[0\] is "Kylar">>[\s\S]*?<<elseif \$npc\[0\] is "Gwylan" and !\$gwylanSeen\.includes\("herm"\)>>[\s\S]*?<<\/if>>/, to: '<<if $npc.some(npc => maplebirch.combat.Reaction.HermNameList.includes(npc))>>\n\t\t\t\t<<= maplebirch.combat.Reaction.check("herm")>>'},
-    { srcmatch: /<<if \$npc\.length is 1 and \(\["Kylar","Sydney","Gwylan"\]\.includes\(\$npc\[0\]\)\)>>\s*<<if \$npc\[0\] is "Sydney" and !\$sydneySeen\.includes\("crossdress"\)\s*>>\s*<<set \$sydneySeen\.pushUnique\("crossdress"\)>>[\s\S]*?<<elseif \$npc\[0\] is "Kylar">>[\s\S]*?<<elseif \$npc\[0\] is "Gwylan" and !\$gwylanSeen\.includes\("crossdress"\)>>[\s\S]*?<<\/if>>/, to: '<<if $npc.some(npc => maplebirch.combat.Reaction.CDNameList.includes(npc))>>\n\t\t\t\t<<= maplebirch.combat.Reaction.check("crossdress")>>'},
   ]
 }
 

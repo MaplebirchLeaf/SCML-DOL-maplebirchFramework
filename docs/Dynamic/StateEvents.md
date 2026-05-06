@@ -4,7 +4,7 @@
 
 状态事件模块 (`StateEvents`) 是动态管理系统的一部分，用于处理游戏中的状态触发事件。框架会在段落开始(gate)与段落结束(append)时自动检查并触发相应事件，无需手动调用。
 
-_可通过 `maplebirch.dynamic.State` 或快捷接口 `maplebirchFrameworks.addStateEvent` 访问。_
+_可通过 `maplebirch.dynamic.State` 访问。_
 
 ---
 
@@ -163,7 +163,7 @@ maplebirch.dynamic.regStateEvent('gate', 'merchantEvent', {
 
 ---
 
-### 注意事项
+### 补充说明
 
 1. **Widget 定义**: _必须在游戏中与 `output` 同名的 widget_
 2. **性能考虑**: _widget 内容不应过于复杂，避免影响游戏性能_
