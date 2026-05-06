@@ -261,7 +261,7 @@ setup.myMod.initCombat?.();
 - 感谢所有对本框架进行反馈的玩家与作者。
 
 ## 相关链接
-
+- <img decoding="async" src="https://gitgud.io/uploads/-/system/user/avatar/9096/avatar.png" width="24" alt=""> <b>游戏作者</b> $\color{purple} {Vrelnir}$
 - [Vrelnir 的博客](https://vrelnir.blogspot.com/)
 - [英文游戏维基](https://degreesoflewdity.miraheze.org/wiki/Main_Page)
 - [中文游戏维基](https://degreesoflewditycn.miraheze.org/wiki)
