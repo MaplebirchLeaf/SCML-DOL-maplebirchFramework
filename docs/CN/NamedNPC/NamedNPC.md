@@ -135,7 +135,7 @@ maplebirch.npc.add(
     important: true,
     special: true,
     romance: [() => V.completedDravenQuest, () => V.dravenTrust >= 50],
-    loveAlias: ['忠诚', 'Loyalty']
+    loveAlias: ['Loyalty', '忠诚']
   }
 );
 ```
@@ -263,7 +263,7 @@ maplebirch.npc.add(
 | :-------------- | :--------------------------- | :---------------- |
 | `love`          | object                       | 好感度配置        |
 | `love.maxValue` | number                       | 最大好感度值      |
-| `loveAlias`     | [string, string] 或 function | 好感度别名(中/英) |
+| `loveAlias`     | [string, string] 或 function | 好感度别名，数组顺序为 `[英文, 中文]` |
 | `important`     | boolean 或 function          | 是否为重要NPC     |
 | `special`       | boolean 或 function          | 是否为特殊NPC     |
 | `loveInterest`  | boolean 或 function          | 是否为可恋爱对象  |
@@ -277,12 +277,12 @@ maplebirch.npc.add(
   love: { maxValue: 100 },
 
   // 好感度别名(静态)
-  loveAlias: ['好感', 'Affection'],
+  loveAlias: ['Affection', '好感'],
 
   // 好感度别名(动态)
   loveAlias: () => {
     const trustLevel = V.playerTrust || 0;
-    return trustLevel > 50 ? ['信赖', 'Trust'] : ['好感', 'Affection'];
+    return trustLevel > 50 ? ['Trust', '信赖'] : ['Affection', '好感'];
   },
 
   // 重要NPC
