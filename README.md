@@ -1,4 +1,13 @@
+[中文](README.md) | [English](README.EN.md)
+
 # SCML-DOL-maplebirchFramework
+
+[![Author](https://img.shields.io/badge/Author-MaplebirchLeaf-purple)](https://github.com/MaplebirchLeaf)
+[![GitHub release](https://img.shields.io/github/v/release/MaplebirchLeaf/SCML-DOL-maplebirchFramework)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/releases/latest)
+[![GitHub downloads](https://img.shields.io/github/downloads/MaplebirchLeaf/SCML-DOL-maplebirchFramework/total)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/releases/latest)
+[![GitHub stars](https://img.shields.io/github/stars/MaplebirchLeaf/SCML-DOL-maplebirchFramework)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/stargazers)
+[![GitHub issues](https://img.shields.io/github/issues-raw/MaplebirchLeaf/SCML-DOL-maplebirchFramework)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/issues)
+[![ModLoader](https://img.shields.io/badge/ModLoader-SugarCube2-blue)](https://modloader.pages.dev/)
 
 `maplebirchFramework` 是基于 **SugarCube2 ModLoader** 为 **Degrees of Lewdity** 制作的模组开发框架。它主要为其它模组提供更方便的脚本加载、语言与音频导入、区域注入、NPC 注册、战斗按钮、角色图层、转化、动态事件和常用工具函数。
 
@@ -263,32 +272,32 @@ setup.myMod.initCombat?.();
 - [DoL-Lyra](https://github.com/DoL-Lyra)
 - [ModLoader 说明文档](https://modloader.pages.dev/)
 
-[BootJson]: docs/BootJson.md
-[Utilities]: docs/Utilities.md
-[EventEmitter]: docs/EventEmitter.md
-[LanguageManager]: docs/LanguageManager.md
-[SugarCubeMacro]: docs/SugarCubeMacro.md
-[Audio]: docs/Audio.md
-[Dynamic]: docs/Dynamic/
-[StateEvents]: docs/Dynamic/StateEvents.md
-[TimeEvents]: docs/Dynamic/TimeEvents.md
-[WeatherEvents]: docs/Dynamic/WeatherEvents.md
-[ToolCollection]: docs/ToolCollection/
-[Migration]: docs/ToolCollection/migration.md
-[RandSystem]: docs/ToolCollection/randSystem.md
-[HtmlTools]: docs/ToolCollection/htmlTools.md
-[Framework]: docs/ToolCollection/Framework.md
-[Traits]: docs/ToolCollection/Traits.md
-[Location]: docs/ToolCollection/Location.md
-[Bodywriting]: docs/ToolCollection/Bodywriting.md
-[Character]: docs/Character/
-[CharacterLayer]: docs/Character/Character.md
-[Transformation]: docs/Character/Transformation.md
-[NamedNPC]: docs/NamedNPC/
-[NamedNPCAdd]: docs/NamedNPC/NamedNPC.md
-[NamedNPCStats]: docs/NamedNPC/NamedNPCStats.md
-[NamedNPCSchedule]: docs/NamedNPC/NamedNPCSchedule.md
-[NamedNPCClothes]: docs/NamedNPC/NamedNPCClothes.md
-[NamedNPCSidebar]: docs/NamedNPC/NamedNPCSidebar.md
-[Combat]: docs/Combat/
-[CombatActions]: docs/Combat/Actions.md
+[BootJson]: docs/CN/BootJson.md
+[Utilities]: docs/CN/Utilities.md
+[EventEmitter]: docs/CN/EventEmitter.md
+[LanguageManager]: docs/CN/LanguageManager.md
+[SugarCubeMacro]: docs/CN/SugarCubeMacro.md
+[Audio]: docs/CN/Audio.md
+[Dynamic]: docs/CN/Dynamic/
+[StateEvents]: docs/CN/Dynamic/StateEvents.md
+[TimeEvents]: docs/CN/Dynamic/TimeEvents.md
+[WeatherEvents]: docs/CN/Dynamic/WeatherEvents.md
+[ToolCollection]: docs/CN/ToolCollection/
+[Migration]: docs/CN/ToolCollection/migration.md
+[RandSystem]: docs/CN/ToolCollection/randSystem.md
+[HtmlTools]: docs/CN/ToolCollection/htmlTools.md
+[Framework]: docs/CN/ToolCollection/Framework.md
+[Traits]: docs/CN/ToolCollection/Traits.md
+[Location]: docs/CN/ToolCollection/Location.md
+[Bodywriting]: docs/CN/ToolCollection/Bodywriting.md
+[Character]: docs/CN/Character/
+[CharacterLayer]: docs/CN/Character/Character.md
+[Transformation]: docs/CN/Character/Transformation.md
+[NamedNPC]: docs/CN/NamedNPC/
+[NamedNPCAdd]: docs/CN/NamedNPC/NamedNPC.md
+[NamedNPCStats]: docs/CN/NamedNPC/NamedNPCStats.md
+[NamedNPCSchedule]: docs/CN/NamedNPC/NamedNPCSchedule.md
+[NamedNPCClothes]: docs/CN/NamedNPC/NamedNPCClothes.md
+[NamedNPCSidebar]: docs/CN/NamedNPC/NamedNPCSidebar.md
+[Combat]: docs/CN/Combat/
+[CombatActions]: docs/CN/Combat/Actions.md
