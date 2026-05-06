@@ -3,7 +3,7 @@
 ## 基本介绍
 
 转化系统允许模组制作者为游戏添加自定义的形态变化，如兽化、神圣化、恶魔化等。通过此系统，您可以定义角色在不同转化阶段的外观、特性、条件和效果。
-_可通过 `maplebirch.char.transformation.add` 或 `maplebirchFrameworks.addTransform` 注册。_
+_可通过 `maplebirch.char.transformation.add` 注册。_
 
 ---
 

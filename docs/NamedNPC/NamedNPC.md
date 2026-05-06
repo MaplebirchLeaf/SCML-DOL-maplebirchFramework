@@ -3,7 +3,7 @@
 ### 基本介绍
 
 NPC 系统允许模组制作者在游戏中添加自定义的非玩家角色(NPC)。通过此系统，您可以定义角色的外貌、性格、关系状态、日程安排和特殊能力。
-_可通过 `maplebirch.npc.add` 或 `maplebirchFrameworks.addNPC` 来进行模组NPC的注册。_
+_可通过 `maplebirch.npc.add` 来进行模组 NPC 的注册。_
 
 ---
 
@@ -62,7 +62,7 @@ maplebirch.npc.add(
 
 - 男性: 47%
 - 女性: 47%
-- 人妖: 5%
+- 扶她: 5%
 - 中性: 1%
 
 #### 不安全感类型
@@ -170,7 +170,7 @@ maplebirch.npc.add(
 {
   "modName": "maplebirch",
   "addonName": "maplebirchAddon",
-  "modVersion": "^3.1.0",
+  "modVersion": "^需要的框架版本",
   "params": {
     "npc": {
       "NamedNPC": [
@@ -197,7 +197,7 @@ maplebirch.npc.add(
 {
   "modName": "maplebirch",
   "addonName": "maplebirchAddon",
-  "modVersion": "^3.1.0",
+  "modVersion": "^需要的框架版本",
   "params": {
     "npc": {
       "NamedNPC": [

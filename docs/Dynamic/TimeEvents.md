@@ -3,7 +3,7 @@
 ### 基本介绍
 
 时间事件模块 (`TimeEvents`) 是动态管理系统的一部分，用于处理游戏中的时间相关事件。它允许开发者注册在特定时间点或时间间隔触发的事件，如每小时、每天、每月等定时事件，以及时间旅行时的事件处理。
-_可通过 `maplebirch.dynamic.Time` 或快捷接口 `maplebirchFrameworks.addTimeEvent()` 访问。_
+_可通过 `maplebirch.dynamic.Time` 访问。_
 
 ---
 
@@ -43,7 +43,7 @@ _可通过 `maplebirch.dynamic.Time` 或快捷接口 `maplebirchFrameworks.addTi
   });
 
   // 使用快捷接口
-  maplebirchFrameworks.addTimeEvent('onDay', 'dailyCheck', {
+  maplebirch.dynamic.regTimeEvent('onDay', 'dailyCheck', {
     action: data => {
       V.dayCounter = (V.dayCounter || 0) + 1;
     },
@@ -286,7 +286,7 @@ maplebirch.dynamic.regTimeEvent('onHour', 'specialConditionEvent', {
 
 ---
 
-### 注意事项
+### 补充说明
 
 1. **事件执行顺序**: _按优先级从高到低执行_
 2. **时间旅行影响**: _时间旅行会触发 `onTimeTravel` 事件，并重新计算累积时间_

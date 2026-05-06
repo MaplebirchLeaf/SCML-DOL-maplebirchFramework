@@ -48,7 +48,7 @@ img/ui/nnpc/luna/angry.png
 {
   "modName": "maplebirch",
   "addonName": "maplebirchAddon",
-  "modVersion": "^3.1.0",
+  "modVersion": "^需要的框架版本",
   "params": {
     "npc": {
       "Sidebar": {
@@ -65,7 +65,7 @@ img/ui/nnpc/luna/angry.png
 {
   "modName": "maplebirch",
   "addonName": "maplebirchAddon",
-  "modVersion": "^3.1.0",
+  "modVersion": "^需要的框架版本",
   "params": {
     "npc": {
       "Sidebar": {

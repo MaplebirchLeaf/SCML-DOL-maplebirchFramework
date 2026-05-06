@@ -3,7 +3,7 @@
 ### 基本介绍
 
 NPC 日程系统允许模组制作者为 NPC 定义详细的日常活动安排，包括固定时间、条件触发、特殊事件等。系统支持时间范围、条件判断、优先级控制和复杂依赖关系。
-_可通过 `maplebirch.npc.addSchedule` 或 `maplebirch.npc.addNPCSchedule` 来注册NPC日程。_
+_可通过 `maplebirch.npc.addSchedule` 来注册 NPC 日程。_
 
 ---
 

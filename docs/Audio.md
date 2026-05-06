@@ -16,7 +16,7 @@
 {
   "modName": "maplebirch",
   "addonName": "maplebirchAddon",
-  "modVersion": "^3.1.0",
+  "modVersion": "^需要的框架版本",
   "params": {
     "audio": true
   }
@@ -44,7 +44,7 @@
 {
   "modName": "maplebirch",
   "addonName": "maplebirchAddon",
-  "modVersion": "^3.1.0",
+  "modVersion": "^需要的框架版本",
   "params": {
     "audio": true
   }
@@ -55,7 +55,7 @@
 {
   "modName": "maplebirch",
   "addonName": "maplebirchAddon",
-  "modVersion": "^3.1.0",
+  "modVersion": "^需要的框架版本",
   "params": {
     "audio": ["bgm", "sfx/weapons", "sfx/ui"]
   }
