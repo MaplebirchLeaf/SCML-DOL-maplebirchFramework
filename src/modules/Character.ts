@@ -310,6 +310,7 @@ class Character {
   constructor(readonly core: MaplebirchCore) {
     this.log = createlog('char');
     this.transformation = new Transformation(this);
+    this.core.on(':language', () => this._faceStyleSetupOption(), 'face style setup options');
     this.core.once(':sugarcube', () => {
       const model = Renderer.CanvasModels.main;
       if (!model?.layers) return;

@@ -432,7 +432,7 @@ const NPCSidebar = (() => {
       const hair_name: Record<string, string> = {};
       const styles = type === 'sides' ? setup.hairstyles.sides : setup.hairstyles.fringe;
       styles.forEach((style: any) => {
-        const name = maplebirch.modUtils.getMod('ModI18N') && maplebirch.Language === 'CN' ? style.name_cap : style.name;
+        const name = maplebirch.modUtils.getModListNameNoAlias().includes('ModI18N') && maplebirch.Language === 'CN' ? style.name_cap : style.name;
         hair_name[convert(name, 'title')] = style.variable;
       });
       return hair_name;

@@ -215,7 +215,7 @@ class Internals {
 
   Init(): void {
     Dynamic.task = (fn: DynamicTask, name: string) => this.fixDynamicTask(fn, name);
-    if (this.core.modUtils.getMod('ModI18N')) this.compatibleModI18N();
+    if (this.core.modUtils.getModListNameNoAlias().includes('ModI18N')) this.compatibleModI18N();
   }
 
   private uniqueTextStore(): { push: (...args: TextItem[]) => void; readonly play: string } {

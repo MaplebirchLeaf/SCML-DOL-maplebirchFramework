@@ -1,8 +1,20 @@
 # Module System
 
-`ModuleSystem` manages framework module registration, dependency order, and lifecycle hooks. Most content mods do not need to create framework modules; use this only when your mod intentionally extends the framework itself.
+`ModuleSystem` manages framework module registration, dependency order, and lifecycle hooks. Most content mods do not need to register framework modules directly; use this only when a mod intentionally extends framework behavior.
 
 ## Registering A Module
+
+```javascript
+maplebirch.register(name, module, dependencies);
+```
+
+| Argument | Description |
+| :--- | :--- |
+| `name` | Module name |
+| `module` | Module object, optionally with lifecycle methods |
+| `dependencies` | Optional dependency names |
+
+Example:
 
 ```javascript
 maplebirch.register('myModule', {
@@ -19,36 +31,78 @@ maplebirch.register(
   'myModule',
   {
     Init() {
-      console.log('runs after var and tool');
+      console.log('runs after tool and npc');
     }
   },
-  ['var', 'tool']
+  ['tool', 'npc']
 );
 ```
 
-An extension module can also provide a source name:
+The module object can also declare `dependencies`; they are merged with dependencies passed to `register`.
 
 ```javascript
 maplebirch.register(
-  'myExtension',
+  'myModule',
   {
-    sayHello() {
-      return 'Hello';
-    }
+    dependencies: ['tool'],
+    Init() {}
   },
-  [],
-  'my-mod-name'
+  ['npc']
 );
 ```
+
+## Exposed Modules
+
+If a module object has `exposed: true`, it is registered as `EXPOSED` and mounted directly onto `maplebirch[name]`.
+
+```javascript
+maplebirch.register('myApi', {
+  exposed: true,
+  hello() {
+    return 'Hello';
+  }
+});
+
+maplebirch.myApi.hello();
+```
+
+Exposed modules do not run through the normal initialization flow and are not treated as disableable modules by the module GUI. Registration fails if the target name is already occupied.
 
 ## Reading Modules
 
 ```javascript
-const addon = maplebirch.getModule('addon');
+const npcModule = maplebirch.get('npc');
 const graph = maplebirch.dependencyGraph;
 ```
 
-`dependencyGraph` contains each module's dependencies, dependents, state, transitive dependencies, and source.
+`dependencyGraph` contains dependency and status information for each registered module.
+
+Common fields:
+
+| Field | Description |
+| :--- | :--- |
+| `protected` | Whether this is a protected module |
+| `mounted` | Whether this belongs to the framework core mount list |
+| `early` | Whether it is mounted early after `preInit` |
+| `dependencies` | Direct dependencies |
+| `dependents` | Modules that depend on this module |
+| `allDependencies` | Transitive dependencies |
+| `state` | Current module state |
+| `source` | Source mod name when recorded by the loader |
+
+## Module States
+
+Current `ModuleState` values:
+
+| State | Value | Meaning |
+| :--- | :--- | :--- |
+| `REGISTERED` | `0` | Registered and waiting for initialization |
+| `MOUNTED` | `1` | Main initialization completed |
+| `ERROR` | `2` | Initialization failed |
+| `EXPOSED` | `3` | Exposed module mounted directly on the framework object |
+| `DISABLED` | `4` | Disabled and skipped |
+
+Completing `preInit` does not change the public module state. The module enters `MOUNTED` only after main initialization succeeds.
 
 ## Lifecycle Hooks
 
@@ -56,16 +110,16 @@ All hooks are optional.
 
 | Hook | Timing | Typical use |
 | :--- | :--- | :--- |
-| `preInit()` | Early load stage | Prepare caches or static resources |
-| `Init()` | After `:passageinit` | Main setup when `setup` and `V` exist |
-| `loadInit()` | When a save is loaded | Restore save-dependent state |
-| `postInit()` | Each passage start | Refresh passage-scoped behavior |
+| `preInit()` | After `:allModule`, once IndexedDB and logging are ready | Prepare resources, config, or caches |
+| `Init()` | During `:passagestart` when normal gameplay begins | Main setup with `setup` and `V` available |
+| `loadInit()` | After loading a save | Restore save-dependent state |
+| `postInit()` | Each passage start after main/load init | Refresh passage-scoped behavior |
 
 Example:
 
 ```javascript
 class MyModule {
-  dependencies = ['addon', 'dynamic'];
+  dependencies = ['tool'];
 
   async preInit() {
     this.cache = new Map();
@@ -76,25 +130,27 @@ class MyModule {
   }
 
   async loadInit() {
-    this.data = V.myModuleData;
+    this.restoreFromSave();
   }
 
   async postInit() {
-    this.cleanup();
+    this.refreshPassageState();
   }
 
   setup() {}
-  cleanup() {}
+  restoreFromSave() {}
+  refreshPassageState() {}
 }
 
-maplebirch.register('myModule', new MyModule());
+maplebirch.register('myModule', new MyModule(), ['npc']);
 ```
 
 ## Dependency Rules
 
-- A module initializes after its dependencies.
-- Transitive dependencies are resolved automatically.
-- Circular dependencies are detected and blocked.
-- A failed module does not stop unrelated modules from initializing.
+- A module initializes after all dependencies are satisfied.
+- Transitive dependencies are collected automatically.
+- `EXPOSED` dependencies are treated as satisfied.
+- If a dependency becomes `ERROR` or `DISABLED`, dependent modules will not continue initialization.
+- Circular dependencies are detected during registration.
 
-Use names that are unlikely to collide with framework internals, such as a mod-prefixed module name.
+Use mod-prefixed names to avoid collisions with framework modules or other mods.

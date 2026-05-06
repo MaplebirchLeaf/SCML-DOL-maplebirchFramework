@@ -1,249 +1,178 @@
 ## 模块系统 (ModuleSystem)
 
-### 基本介绍
-
-`ModuleSystem`是框架的模块化加载与依赖管理系统。它负责管理模块的注册、依赖解析和生命周期初始化，确保模块按正确的顺序加载和执行。
+`ModuleSystem` 是框架的模块注册、依赖排序与生命周期调度系统。一般内容模组通常不需要直接注册框架模块；只有在你明确要扩展框架内部能力时，才建议使用这一套接口。
 
 ---
 
-### 核心功能
+## 注册模块
 
-#### **模块注册 (register)**
+```javascript
+maplebirch.register(name, module, dependencies);
+```
 
-- 注册一个新模块到系统中
-- **@param**:
-  - `name` (string): 模块名称
-  - `module` (any): 模块对象，可以包含初始化方法
-  - `dependencies` (string[]): 依赖模块列表，默认空数组
-  - `source` (string): 模块来源标识，用于扩展模块
-- **@return**: `boolean`，表示是否成功注册
-- **@example**:
+| 参数 | 说明 |
+| :--- | :--- |
+| `name` | 模块名称 |
+| `module` | 模块对象，可以定义生命周期方法 |
+| `dependencies` | 依赖模块名称数组，可选 |
 
-  ```javascript
-  // 注册一个简单模块
-  maplebirch.register('myModule', {
-    Init() {
-      console.log('模块初始化');
-    }
-  });
+示例：
 
-  // 注册带依赖的模块
-  maplebirch.register(
-    'myModule2',
-    {
-      Init() {
-        console.log('依赖var和tool模块');
-      }
-    },
-    ['var', 'tool']
-  );
-
-  // 注册扩展模块
-  maplebirch.register(
-    'myExtension',
-    {
-      sayHello() {
-        return 'Hello World';
-      }
-    },
-    [],
-    'my-mod-name'
-  );
-  ```
-
-#### **模块查询 (getModule)**
-
-- 获取已注册的模块实例
-- **@param**: `name` (string): 模块名称
-- **@return**: 模块对象或undefined
-- **@example**:
-  ```javascript
-  const addonModule = maplebirch.getModule('addon');
-  ```
-
-#### **依赖关系图 (dependencyGraph)**
-
-- 获取所有模块的依赖关系图
-- **@return**: 包含所有模块依赖信息的对象
-- **@example**:
-  ```javascript
-  const graph = maplebirch.dependencyGraph;
-  console.log(graph.addon);
-  // 输出: {
-  //   dependencies: [],
-  //   dependents: ['dynamic', 'tool', ...],
-  //   state: 'MOUNTED',
-  //   allDependencies: [],
-  //   source: null
-  // }
-  ```
-
----
-
-### 模块状态说明
-
-每个模块在整个生命周期中会经历以下状态：
-
-| 状态常量     | 值  | 说明                         |
-| :----------- | :-- | :--------------------------- |
-| `REGISTERED` | 0   | _模块已注册，但未初始化_     |
-| `LOADED`     | 1   | _模块已完成预初始化_         |
-| `MOUNTED`    | 2   | _模块已完成主初始化_         |
-| `EXTENSION`  | 3   | _扩展模块，已挂载到框架实例_ |
-| `ERROR`      | 4   | _模块初始化过程中发生错误_   |
-
----
-
-### 模块初始化方法
-
-模块可以定义以下生命周期方法，_所有方法都是可选的_：
-
-#### **preInit()**
-
-*在`afterInjectEarlyLoad`阶段调用。*每个模块只会执行一次*，用于资源预加载和基础设置，此时没有setup变量和V变量。*
-
-- **@example**:
-  ```javascript
-  preInit() {
-    // 预加载资源
-    this.cache = new Map();
-    console.log('模块预初始化完成');
-  }
-  ```
-
-#### **Init()**
-
-*在`:passageinit`事件后调用。*每个模块只会执行一次*，用于模块主初始化，此时已有setup变量和V变量。*
-
-- **@example**:
-  ```javascript
+```javascript
+maplebirch.register('myModule', {
   Init() {
-    // 主初始化逻辑
-    this.setupEventListeners();
-    this.loadConfig();
-    console.log('模块初始化完成');
+    console.log('module initialized');
   }
-  ```
+});
+```
 
-#### **loadInit()**
+带依赖：
 
-*仅在读取存档时调用。*每次读取存档时都会执行*，用于恢复存档状态，此时有存档中的V变量。*
-
-- **@example**:
-  ```javascript
-  loadInit() {
-    if (V.myData) {
-      this.data = V.myData;
+```javascript
+maplebirch.register(
+  'myModule',
+  {
+    Init() {
+      console.log('runs after tool and npc');
     }
-    console.log('存档数据恢复完成');
-  }
-  ```
+  },
+  ['tool', 'npc']
+);
+```
 
-#### **postInit()**
+模块对象也可以声明 `dependencies`，会和注册时传入的依赖合并：
 
-*在每个段落开始时调用，在Init和loadInit之后执行。*每个段落都会执行一次*，此时有当前V变量。*
-
-- **@example**:
-  ```javascript
-  postInit() {
-    this.cleanupTemporaryData();
-    this.finalizeSetup();
-    console.log('段落后处理完成');
-  }
-  ```
+```javascript
+maplebirch.register(
+  'myModule',
+  {
+    dependencies: ['tool'],
+    Init() {}
+  },
+  ['npc']
+);
+```
 
 ---
 
-### 完整模块示例
+## 暴露模块
+
+如果模块对象带有 `exposed: true`，注册后会被标记为 `EXPOSED`，并直接挂载到 `maplebirch[name]`。
+
+```javascript
+maplebirch.register('myApi', {
+  exposed: true,
+  hello() {
+    return 'Hello';
+  }
+});
+
+maplebirch.myApi.hello();
+```
+
+暴露模块不会参与普通初始化流程，也不会被禁用界面当作可禁用模块处理。若名称已被占用，注册会失败。
+
+---
+
+## 查询模块
+
+```javascript
+const npcModule = maplebirch.get('npc');
+const graph = maplebirch.dependencyGraph;
+```
+
+`dependencyGraph` 会返回每个模块的依赖、被依赖关系、状态、来源和是否为核心挂载模块等信息：
+
+```javascript
+console.log(maplebirch.dependencyGraph.npc);
+```
+
+常见字段：
+
+| 字段 | 说明 |
+| :--- | :--- |
+| `protected` | 是否为受保护模块 |
+| `mounted` | 是否属于框架核心挂载列表 |
+| `early` | 是否会在预初始化阶段提前挂载 |
+| `dependencies` | 直接依赖 |
+| `dependents` | 依赖该模块的模块 |
+| `allDependencies` | 传递依赖 |
+| `state` | 当前模块状态 |
+| `source` | 来源模组名，通常由框架加载流程记录 |
+
+---
+
+## 模块状态
+
+当前状态定义来自 `ModuleState`：
+
+| 状态 | 值 | 说明 |
+| :--- | :--- | :--- |
+| `REGISTERED` | `0` | 已注册，等待初始化 |
+| `MOUNTED` | `1` | 已完成主初始化 |
+| `ERROR` | `2` | 初始化失败 |
+| `EXPOSED` | `3` | 暴露模块，已直接挂载到框架对象 |
+| `DISABLED` | `4` | 被禁用，跳过初始化 |
+
+预初始化完成不会改变模块状态，而是记录在模块系统内部的 `preInitialized` 集合中；主初始化完成后才会进入 `MOUNTED`。
+
+---
+
+## 生命周期方法
+
+模块对象可以定义以下方法，全部可选：
+
+| 方法 | 调用时机 | 用途 |
+| :--- | :--- | :--- |
+| `preInit()` | `:allModule` 后，IndexedDB 与日志准备完成后 | 提前准备资源、配置、缓存 |
+| `Init()` | 首次进入正常游戏段落的 `:passagestart` 阶段 | 主初始化，此时可使用 `setup` 和 `V` |
+| `loadInit()` | 读档后进入段落时 | 恢复和存档相关的状态 |
+| `postInit()` | 每次段落开始，主初始化或读档初始化后 | 刷新段落级逻辑 |
+
+示例：
 
 ```javascript
 class MyModule {
-  // 声明依赖模块
-  dependencies = ['addon', 'dynamic'];
+  dependencies = ['tool'];
 
-  // 预初始化 - 资源预加载(只执行一次)
   async preInit() {
-    console.log('MyModule 预初始化');
     this.cache = new Map();
   }
 
-  // 主初始化 - 主要功能设置(只执行一次)
   async Init() {
-    console.log('MyModule 主初始化');
     this.setup();
   }
 
-  // 存档初始化 - 恢复存档状态(每次读取存档时执行)
   async loadInit() {
-    console.log('MyModule 存档初始化');
-    if (V.myModuleData) {
-      this.data = V.myModuleData;
-    }
+    this.restoreFromSave();
   }
 
-  // 后初始化 - 段落清理(每个段落执行一次)
   async postInit() {
-    console.log('MyModule 后初始化');
-    this.cleanup();
+    this.refreshPassageState();
   }
 
-  // 模块功能方法
-  setup() {
-    // 设置逻辑
-  }
-
-  cleanup() {
-    // 清理逻辑
-  }
-
-  // 自定义方法
-  myFunction() {
-    return 'Hello from MyModule';
-  }
+  setup() {}
+  restoreFromSave() {}
+  refreshPassageState() {}
 }
 
-// 注册模块
-maplebirch.register('myModule', new MyModule());
+maplebirch.register('myModule', new MyModule(), ['npc']);
 ```
 
 ---
 
-### 依赖管理
+## 依赖规则
 
-#### **声明依赖**
-
-```javascript
-// 在模块类中声明
-class MyModule {
-  dependencies = ['var', 'tool'];
-  // ...
-}
-
-// 或在注册时声明
-maplebirch.register('myModule', myModuleInstance, ['var', 'tool']);
-```
-
-#### **依赖规则**
-
-1. _模块会在其所有依赖初始化完成后才初始化_
-2. _支持传递依赖(模块A依赖B，B依赖C，则A依赖C)_
-3. _循环依赖会被自动检测并阻止_
-
-#### **依赖图查询**
-
-```javascript
-// 查看模块的依赖关系
-const graph = maplebirch.dependencyGraph;
-console.log('addon模块的依赖:', graph.addon.dependencies);
-console.log('依赖addon的模块:', graph.addon.dependents);
-```
+- 模块会在所有依赖满足后再初始化。
+- 依赖会做传递收集，例如 A 依赖 B，B 依赖 C，则 A 会等待 C。
+- `EXPOSED` 模块会被视为已满足依赖。
+- 依赖进入 `ERROR` 或 `DISABLED` 时，依赖它的模块不会继续初始化。
+- 循环依赖会在注册时被检测并阻止。
 
 ---
 
-### 补充说明
+## 补充说明
 
-1. **模块命名**: _避免使用保留名称，如`core`、`modules`等_
-2. **初始化顺序**: _依赖解析基于拓扑排序，确保理解排序逻辑_
-3. **错误处理**: _单个模块初始化失败不会影响其他模块_
-4. **禁用机制**: _模块可以从模组加载器配置中禁用_
-5. **扩展模块**: _扩展模块会挂载到`maplebirch`实例上，可用于全局访问_
+- 内容型模组多数情况下应优先使用 `script` 加载普通脚本，而不是注册框架模块。
+- 模块名称建议带模组前缀，避免和框架内置模块或其它模组冲突。
+- 受保护模块不会被禁用界面关闭。
