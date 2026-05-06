@@ -186,6 +186,7 @@ Complete Chinese docs:
 
 ## Links
 
+- <img decoding="async" src="https://gitgud.io/uploads/-/system/user/avatar/9096/avatar.png" width="24" alt=""> <b>Game Autor</b> $\color{purple} {Vrelnir}$
 - [Degrees of Lewdity source](https://gitgud.io/Vrelnir/degrees-of-lewdity/-/tree/master)
 - [ModLoader documentation](https://modloader.pages.dev/)
 - [Chinese localization repository](https://github.com/Eltirosto/Degrees-of-Lewdity-Chinese-Localization)
