@@ -2,12 +2,14 @@
 
 # SCML-DOL-maplebirchFramework
 
-[![Author](https://img.shields.io/badge/Author-MaplebirchLeaf-purple)](https://github.com/MaplebirchLeaf)
+[![Author](https://img.shields.io/badge/Author-Vrelnir-purple)](https://vrelnir.blogspot.com/)
 [![GitHub release](https://img.shields.io/github/v/release/MaplebirchLeaf/SCML-DOL-maplebirchFramework)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/releases/latest)
 [![GitHub downloads](https://img.shields.io/github/downloads/MaplebirchLeaf/SCML-DOL-maplebirchFramework/total)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/releases/latest)
 [![GitHub stars](https://img.shields.io/github/stars/MaplebirchLeaf/SCML-DOL-maplebirchFramework)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues-raw/MaplebirchLeaf/SCML-DOL-maplebirchFramework)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/issues)
 [![ModLoader](https://img.shields.io/badge/ModLoader-SugarCube2-blue)](https://modloader.pages.dev/)
+[![Original Game](https://img.shields.io/badge/Original%20Game-Degrees%20of%20Lewdity-purple)](https://gitgud.io/Vrelnir/degrees-of-lewdity)
+[![Chinese Localization](https://img.shields.io/badge/Chinese%20Localization-DOL--CHS-red)](https://github.com/Eltirosto/Degrees-of-Lewdity-Chinese-Localization)
 
 `maplebirchFramework` 是基于 **SugarCube2 ModLoader** 为 **Degrees of Lewdity** 制作的模组开发框架。它主要为其它模组提供更方便的脚本加载、语言与音频导入、区域注入、NPC 注册、战斗按钮、角色图层、转化、动态事件和常用工具函数。
 
