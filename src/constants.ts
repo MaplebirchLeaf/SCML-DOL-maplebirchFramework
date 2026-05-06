@@ -1,7 +1,5 @@
 // .src/constants.ts
 
-import { lastModifiedBy, lastUpdate } from '../package.json';
-
 export type LanguageCode = (typeof Languages)[number];
 
 export const version = window.modUtils.getMod('maplebirch').version;

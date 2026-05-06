@@ -1,127 +1,204 @@
 # NPC Schedule
 
-NPC schedules define where an NPC should be at a given time, condition, or special event.
+NPC schedules define where an NPC should be during specific hours, conditions, or special events.
 
 Use:
 
 ```javascript
-maplebirch.npc.addSchedule(npcName, scheduleConfig, location, id, options);
+maplebirch.npc.addSchedule(npcName, config);
 ```
 
-## Basic Usage
+The current API accepts two arguments: the NPC name and either a schedule config object or a builder function.
+
+## Config Object
 
 ```javascript
-maplebirch.npc.addSchedule('Luna', 9, 'school');
-maplebirch.npc.addSchedule('Luna', [14, 16], 'library');
-
-maplebirch.npc.addSchedule(
-  'Luna',
-  date => date.weekEnd && date.hour >= 10,
-  'park',
-  'weekend_park'
-);
+maplebirch.npc.addSchedule('Luna', {
+  daily: [
+    { time: 8, location: 'school' },
+    { time: [14, 16], location: 'library' },
+    { time: 18, location: 'home' }
+  ],
+  special: [
+    {
+      id: 'rainy_night',
+      condition: date => Weather.name === 'rain' && date.hour >= 18,
+      location: 'home',
+      override: true
+    }
+  ]
+});
 ```
 
-## Signature
+## Daily Schedule
+
+`daily` is for fixed hourly locations.
+
+| Field | Description |
+| :--- | :--- |
+| `time` | Hour, or `[startHour, endHour]` |
+| `location` | Location id |
 
 ```javascript
-addSchedule(
-  npcName,
-  scheduleConfig,
-  location,
-  id,
-  options
-);
+daily: [
+  { time: 9, location: 'school' },
+  { time: [13, 15], location: 'gym' }
+]
+```
+
+## Special Schedule
+
+`special` is for conditional schedules. When a condition matches, it can override the daily location.
+
+| Field | Description |
+| :--- | :--- |
+| `id` | Optional schedule id |
+| `condition` | Function receiving an enhanced date object |
+| `location` | Location id or function |
+| `override` | Prioritize before other special schedules |
+| `before` | Sort before another special schedule |
+| `after` | Sort after another special schedule |
+| `insteadOf` | Replace another special schedule in ordering |
+
+```javascript
+special: [
+  {
+    id: 'weekend_park',
+    condition: date => date.weekEnd && Weather.name !== 'rain',
+    location: 'park'
+  }
+]
+```
+
+## Builder Function
+
+For more complex schedules, pass a function. It receives a `Schedule` instance.
+
+```javascript
+maplebirch.npc.addSchedule('Robin', schedule => {
+  schedule
+    .at(7, 'home')
+    .at([8, 15], 'school')
+    .at(16, 'library')
+    .at(18, 'home');
+
+  schedule.when(
+    date => date.weekEnd,
+    date => {
+      if (Weather.name === 'rain') return 'home';
+      if (V.money >= 100) return 'mall';
+      return 'park';
+    },
+    { id: 'weekend_activity' }
+  );
+});
+```
+
+## Schedule.at()
+
+```javascript
+schedule.at(time, location);
 ```
 
 | Argument | Description |
 | :--- | :--- |
-| `npcName` | NPC name |
-| `scheduleConfig` | Hour, hour range, or condition function |
-| `location` | Location string or function |
-| `id` | Optional schedule id |
-| `options` | Special ordering or override behavior |
-
-## Fixed Time
+| `time` | Hour, or `[startHour, endHour]` |
+| `location` | Location id |
 
 ```javascript
-maplebirch.npc.addSchedule('Robin', 8, 'school');
-maplebirch.npc.addSchedule('Robin', 12, 'cafeteria');
-maplebirch.npc.addSchedule('Robin', [18, 22], 'home');
+schedule.at(8, 'school');
+schedule.at([19, 22], 'dormitory');
 ```
 
-## Conditional Schedule
+## Schedule.when()
 
 ```javascript
-maplebirch.npc.addSchedule(
-  'Alex',
-  date => date.weekEnd && date.weather === 'sunny',
-  'farm_field',
-  'sunny_weekend'
-);
+schedule.when(condition, location, options);
+```
 
-maplebirch.npc.addSchedule(
-  'Whitney',
-  date => C.npc.Whitney?.love >= 30 && date.weekEnd && date.hour >= 18,
+| Argument | Description |
+| :--- | :--- |
+| `condition` | Condition function |
+| `location` | Location id, location function, or another `Schedule` |
+| `options` | Special schedule options |
+
+```javascript
+schedule.when(
+  date => C.npc.Robin?.love >= 30 && date.weekEnd,
   'arcade',
-  'weekend_arcade'
+  { id: 'weekend_arcade' }
 );
 ```
 
-## Dynamic Location
+Dynamic location:
 
 ```javascript
-maplebirch.npc.addSchedule(
-  'Robin',
+schedule.when(
   date => date.weekEnd,
   date => {
-    if (date.weather === 'rain') return 'home';
-    if (V.money >= 100) return 'mall';
+    if (Weather.name === 'rain') return 'home';
     return 'park';
   },
-  'robin_weekend'
+  { id: 'weather_weekend' }
 );
 ```
-
-## Options
-
-```javascript
-maplebirch.npc.addSchedule(
-  'Doctor',
-  date => V.emergency,
-  'hospital_emergency_room',
-  'emergency_call',
-  { override: true }
-);
-
-maplebirch.npc.addSchedule(
-  'Robin',
-  date => C.npc.Robin?.health < 30,
-  'hospital',
-  'robin_sick',
-  { insteadOf: 'school_day' }
-);
-```
-
-Common options:
-
-| Option | Description |
-| :--- | :--- |
-| `override` | Override other schedules |
-| `insteadOf` | Replace a specific schedule |
-| `before` | Run before another schedule |
-| `after` | Run after another schedule |
 
 ## Schedule Manager
 
 ```javascript
-const robinSchedule = maplebirch.npc.Schedule.get('Robin');
+const schedule = maplebirch.npc.Schedule.get('Robin');
 
-console.log(robinSchedule.location);
+console.log(schedule.location);
 console.log(maplebirch.npc.Schedule.location);
-
-maplebirch.npc.Schedule.remove('Robin', 'weekend_mall');
-maplebirch.npc.Schedule.clear('Robin');
 ```
 
-The date object passed to schedule functions includes helpers such as `weekEnd`, `schoolDay`, `spring`, `summer`, `night`, `weather`, `isHour()`, `isBetween()`, `isAfter()`, and `isBefore()`.
+Update a special schedule:
+
+```javascript
+maplebirch.npc.Schedule.update('Robin', 'weekend_arcade', {
+  location: 'mall'
+});
+```
+
+Remove a special schedule:
+
+```javascript
+maplebirch.npc.Schedule.remove('Robin', 'weekend_arcade');
+```
+
+Clear schedules:
+
+```javascript
+maplebirch.npc.Schedule.clear('Robin');
+maplebirch.npc.Schedule.clearAll();
+```
+
+## Enhanced Date
+
+Schedule conditions and dynamic locations receive an enhanced date object based on `DateTime` and `Time`.
+
+Common properties:
+
+| Property | Description |
+| :--- | :--- |
+| `schoolDay` | Whether it is a school day |
+| `weekEnd` | Whether it is a weekend |
+| `spring` / `summer` / `autumn` / `winter` | Current season |
+| `dawn` / `daytime` / `dusk` / `night` | Current day state |
+| `schedule` | A new `Schedule` instance for nested schedule logic |
+
+Common methods:
+
+```javascript
+date.isAt(9);
+date.isAt([14, 30]);
+date.isAfter(12);
+date.isBefore(18);
+date.isBetween(9, 17);
+date.isBetween([8, 30], [12, 0]);
+date.isHour(8, 12, 18);
+date.isHourBetween(9, 16);
+date.isMinuteBetween(0, 30);
+```
+
+`daily` stores locations by hour. `special` schedules are sorted before evaluation; `override: true` schedules are checked before normal special schedules.

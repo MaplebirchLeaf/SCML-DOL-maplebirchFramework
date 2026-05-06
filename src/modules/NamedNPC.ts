@@ -12,7 +12,7 @@ type LanguageCode = 'CN' | 'EN';
 type PronounCode = 'm' | 'f' | 'i' | 'n' | 't';
 type TranslationInput = Map<string, Translation> | Record<string, Translation>;
 
-const VanillaList = new Set(
+const vanillaList = new Set(
   'Avery|Bailey|Briar|Charlie|Darryl|Doren|Eden|Gwylan|Harper|Jordan|Kylar|Landry|Leighton|Mason|Morgan|River|Robin|Sam|Sirris|Whitney|Winter|Black Wolf|Niki|Quinn|Remy|Alex|Great Hawk|Wren|Sydney|Ivory Wraith|Zephyr'.split(
     '|'
   )
@@ -203,7 +203,7 @@ export const NamedNPC = (core => {
       const lang: LanguageCode = maplebirch.Language === 'CN' ? 'CN' : 'EN';
       const pronoun = (this.pronoun in pronounsMap ? this.pronoun : 'n') as PronounCode;
       const base = pronounsMap[pronoun][lang];
-      const useI18N = lang === 'CN' && core.modUtils.getMod('ModI18N') && VanillaList.has(this.nam) && ['m', 'f'].includes(pronoun);
+      const useI18N = lang === 'CN' && core.modUtils.getModListNameNoAlias().includes('ModI18N') && vanillaList.has(this.nam) && ['m', 'f'].includes(pronoun);
       this.pronouns = useI18N ? { ...base, his: base.he, hers: base.he } : { ...base };
     }
 
@@ -604,6 +604,17 @@ class NPCManager {
 
   constructor(readonly core: MaplebirchCore) {
     this.log = createlog('npc');
+    this.core.on(
+      ':language',
+      () => {
+        if (!Array.isArray(V.NPCName)) return;
+        V.NPCName.forEach((npc: any) => {
+          if (typeof npc.setPronouns === 'function') npc.setPronouns();
+          if (typeof npc.bodyPartdescription === 'function') npc.bodyPartdescription();
+        });
+      },
+      'Named NPC Desc'
+    );
   }
 
   add(npcData: NPCData, config: NPCConfig = {}, translationsData?: TranslationInput) {
