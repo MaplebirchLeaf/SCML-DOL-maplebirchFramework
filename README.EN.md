@@ -8,7 +8,7 @@
 [![GitHub stars](https://img.shields.io/github/stars/MaplebirchLeaf/SCML-DOL-maplebirchFramework)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/stargazers)
 [![GitHub issues](https://img.shields.io/github/issues-raw/MaplebirchLeaf/SCML-DOL-maplebirchFramework)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/issues)
 [![ModLoader](https://img.shields.io/badge/ModLoader-SugarCube2-blue)](https://modloader.pages.dev/)
-[![Original Game](https://img.shields.io/badge/Original%20Game-Degrees%20of%20Lewdity-purple)](https://gitgud.io/Vrelnir/degrees-of-lewdity)
+[![Vanilla Game](https://img.shields.io/badge/Vanilla%20Game-Degrees%20of%20Lewdity-purple)](https://gitgud.io/Vrelnir/degrees-of-lewdity)
 [![Chinese Localization](https://img.shields.io/badge/Chinese%20Localization-DOL--CHS-red)](https://github.com/Eltirosto/Degrees-of-Lewdity-Chinese-Localization)
 
 `maplebirchFramework` is a **SugarCube2 ModLoader** framework for **Degrees of Lewdity** mods. It provides helper APIs for script loading, language and audio import, UI zone injection, NPC registration, combat actions, character layers, transformations, dynamic events, and general utility functions.
