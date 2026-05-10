@@ -4,14 +4,14 @@
 
 [![Author](https://img.shields.io/badge/By-Vrelnir-purple)](https://vrelnir.blogspot.com/)
 [![Game](https://img.shields.io/badge/Game-DoL-purple)](https://gitgud.io/Vrelnir/degrees-of-lewdity)
-[![ModLoader](https://img.shields.io/badge/SC2-ModLoader-blue)](https://modloader.pages.dev/)
+[![ModLoader](https://img.shields.io/badge/SC2-ModLoader-blue)](https://github.com/Lyoko-Jeremie/sugarcube-2-ModLoader)
 [![CHS](https://img.shields.io/badge/CHS-DOL--CHS-red)](https://github.com/Eltirosto/Degrees-of-Lewdity-Chinese-Localization)
 [![Release](https://img.shields.io/github/v/release/MaplebirchLeaf/SCML-DOL-maplebirchFramework?label=release)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/MaplebirchLeaf/SCML-DOL-maplebirchFramework/total?label=downloads)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/releases/latest)
 [![Stars](https://img.shields.io/github/stars/MaplebirchLeaf/SCML-DOL-maplebirchFramework?label=stars)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/stargazers)
 [![Issues](https://img.shields.io/github/issues-raw/MaplebirchLeaf/SCML-DOL-maplebirchFramework?label=issues)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/issues)
 
-`maplebirchFramework` 是基于 **SugarCube2 ModLoader** 为 **Degrees of Lewdity** 制作的模组开发框架。它主要为其它模组提供更方便的脚本加载、语言与音频导入、区域注入、NPC 注册、战斗按钮、角色图层、转化、动态事件和常用工具函数。
+**`maplebirchFramework`** 是基于 **_SugarCube2 ModLoader_** 为 **_Degrees of Lewdity_** 制作的模组开发框架。它主要为其它模组提供更方便的脚本加载、语言与音频导入、区域注入、NPC 注册、战斗按钮、角色图层、转化、动态事件和常用工具函数。
 
 框架的使用重点是“让模组作者少直接改原版内容，多通过稳定接口追加内容”。如果你的模组需要向游戏界面插入新内容、为 NPC 增加数据、注册动态事件，或把多语言、音频、脚本资源整理成统一加载流程，本框架可以作为基础依赖使用。
 
@@ -22,7 +22,9 @@
 - [基本介绍](#基本介绍)
 - [安装与依赖](#安装与依赖)
 - [脚本加载](#脚本加载)
+- [模组加密](#模组加密)
 - [推荐写法](#推荐写法)
+- [类型包](#类型包)
 - [模块与功能](#模块与功能)
 - [boot.json 配置](#bootjson-配置)
 - [反馈与讨论](#反馈与讨论)
@@ -32,7 +34,7 @@
 
 ## 基本介绍
 
-本框架的目标不是替代游戏本体逻辑，而是为模组作者提供一组更稳定、更容易复用的扩展接口。你可以把常见的模组内容拆成不同文件，通过 `boot.json` 统一加载，再在脚本中使用 `maplebirch` 提供的工具注册功能。
+本框架的目标不是替代游戏本体逻辑，而是为模组作者提供一组更稳定、更容易复用的扩展接口。你可以把常见的模组内容拆成不同文件，通过 **`boot.json`** 统一加载，再在脚本中使用 **`maplebirch`** 提供的工具注册功能。
 
 和直接修改原版 passage 或 widget 相比，框架更适合“追加式”的模组开发方式：把你的内容注册到框架提供的区域、事件或管理器中，由框架在合适的加载时机合并到游戏里。这样可以让模组文件结构更清楚，也能减少和其它模组互相覆盖同一段原版文本的情况。
 
@@ -44,10 +46,10 @@
 - 向游戏选项页、状态栏、菜单、链接区域等位置追加 widget。
 - 注册自定义 SugarCube 宏、文本构建器和页面文本处理。
 - 注册时间事件、状态事件、天气事件。
-- 添加命名 NPC、NPC 状态、NPC 日程、NPC 服装与 NPC 侧边栏显示。
+- 添加命名 NPC、NPC 状态、NPC 日程、NPC 服装、NPC 侧边栏、NPC 转化与 NPC 怀孕扩展。
 - 添加角色侧边栏图层、面部样式、转化内容。
 - 向战斗界面添加自定义动作按钮。
-- 使用 `clone`、`merge`、`random`、`either`、`number` 等常用工具函数。
+- 使用 `source.clone()`、`Object.merge()`、`list.contains()`、`list.either()`、`Math.clamp()` 等常用工具函数。
 
 如果你正在制作的是内容型模组，可以优先阅读 `NPC 管理`、`动态事件`、`区域管理` 和 `语言管理`。如果你正在制作 UI 或工具型模组，可以优先阅读 `boot.json 配置`、`SugarCube 宏`、`文本工具` 和 `工具函数`。如果你的模组涉及角色外观或战斗行为，则建议从 `角色管理`、`转化管理` 和 `战斗按钮` 开始。
 
@@ -55,7 +57,7 @@
 
 ## 安装与依赖
 
-请从仓库 **Releases** 下载框架文件，并作为 ModLoader 模组加载。
+请从仓库 **_Releases_** 下载框架文件，并作为 **ModLoader** 模组加载。
 
 其它模组如果调用了 `maplebirch` 的接口，建议显式声明对本框架的依赖。这样玩家在加载模组时能更容易发现缺少前置的问题，也方便模组加载器按依赖关系安排加载顺序。
 
@@ -74,7 +76,7 @@
 
 ## 脚本加载
 
-推荐使用 `maplebirchAddon` 加载依赖框架的 JavaScript 文件：
+推荐使用 **`maplebirchAddon`** 加载依赖框架的 JavaScript 文件：
 
 ```json
 "addonPlugin": [
@@ -91,7 +93,7 @@
 
 一般模组逻辑写入 `script` 即可。只有需要在框架模块注册阶段执行的代码，才放入 `module`。
 
-`script` 的定位是普通模组脚本入口，适合注册 NPC、事件、区域 widget、战斗按钮、角色图层等内容。`module` 的执行时机更早，主要给需要扩展框架模块系统的代码使用；如果你不确定是否需要它，通常就是不需要。
+**`script`** 的定位是普通模组脚本入口，适合注册 NPC、事件、区域 widget、战斗按钮、角色图层等内容。**`module`** 的执行时机更早，主要给需要扩展框架模块系统的代码使用；_如果你不确定是否需要它，通常就是不需要_。
 
 ```json
 "params": {
@@ -100,9 +102,28 @@
 }
 ```
 
+## 模组加密
+
+框架本体不加密。依赖框架的其它模组如果需要加密，请使用配套工具生成加密壳 `.modpack`。加密壳会在 `earlyload` 阶段向框架请求凭证验证，验证通过后解密真实模组，并交给 ModLoader 懒加载。
+
+配套工具：[DOL Mod Protection Tools](https://github.com/MaplebirchLeaf/dol-mod-protection-tools)
+
+加密后的 `.modpack` 只暴露壳 `boot.json`、earlyload 解密器和 `.crypt` 分片；原始 `boot.json`、`auth.json`、脚本和资源都会进入加密 payload。玩家首次加载时输入凭证，通过后会记住密码；关闭弹窗或验证失败时，框架会禁用该加密模组。
+
+`auth.json` 由配套工具生成或放入原始 zip 根目录，转换后不会明文留在壳包里。最小配置如下：
+
+```json
+{
+  "key": "main",
+  "publicKey": "BASE64_SPKI_PUBLIC_KEY"
+}
+```
+
+可选字段包括 `subject`、`name`、`prompt` 和 `date`。完整说明见配套工具仓库 README。
+
 ## 推荐写法
 
-框架大多数功能都通过全局对象 `maplebirch` 访问。建议把注册代码集中放在一个入口脚本中，例如 `framework.js`：
+框架大多数功能都通过全局对象 **`maplebirch`** 访问。建议把注册代码集中放在一个入口脚本中，例如 **`framework.js`**：
 
 ```javascript
 maplebirch.tool.addTo('Options', 'MyModOptions');
@@ -149,13 +170,34 @@ setup.myMod.initCombat?.();
 
 也可以让每个文件在被加载时直接完成注册。两种方式都可以，选择更适合你模组规模的写法即可。
 
-一般建议：
+**一般建议：**
 
 - 配置类内容优先写入 `boot.json`，如语言、音频、区域 widget、基础 NPC 资源。
 - 需要条件判断、函数逻辑、复杂注册时写入 JavaScript 文件。
 - 普通模组脚本使用 `script`；确实需要更早执行并参与框架模块扩展时再使用 `module`。
 - 命名时尽量带上模组前缀，例如 `myMod.dailyCheck`、`myModTrust`，减少与其它模组冲突。
 - 文本、按钮和选项说明尽量使用语言文件或语言宏管理，避免以后补多语言时到处查找硬编码文本。
+
+## 类型包
+
+如果你的模组使用 TypeScript 或希望在编辑器中获得 `maplebirch` API 补全，可以安装框架的类型声明包：
+
+```bash
+npm install -D @scml-maplebirch/types
+```
+
+然后在 `tsconfig.json` 中加入：
+
+```json
+{
+  "compilerOptions": {
+    "types": ["@types/twine-sugarcube", "@scml-maplebirch/types"],
+    "skipLibCheck": true
+  }
+}
+```
+
+这个包只提供类型声明，不包含框架运行时代码；玩家仍然需要在 ModLoader 中加载 `maplebirchFramework` 本体。类型包版本建议与模组依赖的框架版本保持接近。
 
 ## 模块与功能
 
@@ -186,6 +228,8 @@ setup.myMod.initCombat?.();
   - [特质注册][Traits]
   - [地点配置][Location]
   - [纹身注册][Bodywriting]
+  - [食物注册][Foodstuff]
+  - [古董注册][Antiques]
 - [角色管理][Character]
   - [侧边栏图层][CharacterLayer]
   - [转化管理][Transformation]
@@ -195,12 +239,15 @@ setup.myMod.initCombat?.();
   - [NPC 日程][NamedNPCSchedule]
   - [NPC 服装][NamedNPCClothes]
   - [NPC 侧边栏][NamedNPCSidebar]
+  - [NPC 转化][NamedNPCTransformation]
+  - [NPC 怀孕][NamedNPCPregnancy]
 - [战斗管理][Combat]
   - [战斗按钮][CombatActions]
+- [云存档服务][CloudServices]
 
 ## boot.json 配置
 
-`maplebirchAddon` 可通过配置处理常见资源和功能：
+**`maplebirchAddon`** 可通过配置处理常见资源和功能：
 
 下面是一个较完整的配置骨架。实际使用时不需要保留所有字段，只写你的模组需要的部分即可。
 
@@ -236,7 +283,7 @@ setup.myMod.initCombat?.();
 | :---------- | :---------------------------------------------- |
 | `language`  | 导入 `CN` / `EN` 翻译文件，或指定自定义语言文件 |
 | `audio`     | 导入模组内的音频目录                            |
-| `framework` | 添加区域 widget 或注册特质                      |
+| `framework` | 添加区域 widget，注册特质、纹身、食物或古董     |
 | `npc`       | 注册 NPC、NPC 状态、NPC 侧边栏图片和服装资源    |
 | `module`    | 早期脚本，适合框架模块扩展                      |
 | `script`    | 常规模组脚本，推荐多数情况下使用                |
@@ -246,8 +293,8 @@ setup.myMod.initCombat?.();
 ## 反馈与讨论
 
 - [Discord](https://discord.com/channels/1103864219620884560/1433136946032410674)
+- [反馈交流群(1087715891)](https://qm.qq.com/q/B4p8vaj1yo) **_[maplebirchFrameworks]_**
 - [百度贴吧](https://tieba.baidu.com/p/10049233469?pid=152986348799&cid=152989487455#152986348799)
-- [反馈群：1087715891(maplebirchFrameworks)](https://qm.qq.com/q/B4p8vaj1yo)
 
 ## 更新日志
 
@@ -293,6 +340,8 @@ setup.myMod.initCombat?.();
 [Traits]: docs/CN/ToolCollection/Traits.md
 [Location]: docs/CN/ToolCollection/Location.md
 [Bodywriting]: docs/CN/ToolCollection/Bodywriting.md
+[Foodstuff]: docs/CN/ToolCollection/Foodstuff.md
+[Antiques]: docs/CN/ToolCollection/Antiques.md
 [Character]: docs/CN/Character/
 [CharacterLayer]: docs/CN/Character/Character.md
 [Transformation]: docs/CN/Character/Transformation.md
@@ -302,5 +351,8 @@ setup.myMod.initCombat?.();
 [NamedNPCSchedule]: docs/CN/NamedNPC/NamedNPCSchedule.md
 [NamedNPCClothes]: docs/CN/NamedNPC/NamedNPCClothes.md
 [NamedNPCSidebar]: docs/CN/NamedNPC/NamedNPCSidebar.md
+[NamedNPCTransformation]: docs/CN/NamedNPC/NamedNPCTransformation.md
+[NamedNPCPregnancy]: docs/CN/NamedNPC/NamedNPCPregnancy.md
 [Combat]: docs/CN/Combat/
 [CombatActions]: docs/CN/Combat/Actions.md
+[CloudServices]: cloud-services/README.md
