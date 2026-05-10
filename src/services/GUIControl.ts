@@ -70,21 +70,19 @@ class GUIControl {
 
   private async loadSettings(): Promise<void> {
     const modNames = await this.modNames();
-
     await this.core.idb.withTransaction(['settings'], 'readonly', async (tx: any) => {
       const store = tx.objectStore('settings');
       const Modules = (await store.get('Modules')) as SettingRecord<ModulesStore> | undefined;
       const Script = (await store.get('Script')) as SettingRecord<ScriptStore> | undefined;
       const modules = this.currentModules(modNames);
       const disabledModuleNames = new Set((Modules?.value?.disabled || []).map(m => m.name));
-      const scriptValid = (script: string) => {
+      const script_valid = (script: string) => {
         const modName = script.match(/^\[([^\]]+)\]:/)?.[1] || '';
         return !!modName && modNames.has(modName);
       };
-
       const addon = this.core.get('addon');
-      const scripts: string[] = Array.from(new Set<string>(((addon?.jsFiles || []) as any[]).map((entry: any) => `[${entry.modName}]:${entry.filePath}`).filter(scriptValid)));
-      const disabledScriptSet = new Set<string>((Script?.value?.disabled || []).filter(scriptValid));
+      const scripts: string[] = Array.from(new Set<string>(((addon?.jsFiles || []) as any[]).map((entry: any) => `[${entry.modName}]:${entry.filePath}`).filter(script_valid)));
+      const disabledScriptSet = new Set<string>((Script?.value?.disabled || []).filter(script_valid));
       this.enabledModules = modules.filter(m => !disabledModuleNames.has(m.name));
       this.disabledModules = modules.filter(m => disabledModuleNames.has(m.name));
       this.enabledScripts = scripts.filter(s => !disabledScriptSet.has(s));
@@ -100,7 +98,6 @@ class GUIControl {
 
   private currentModules(modNames: Set<string>): ModuleInfo[] {
     const graph = this.core.dependencyGraph;
-
     return Object.entries(graph)
       .map(([name, info]: [string, any]) => ({
         name,
@@ -130,24 +127,20 @@ class GUIControl {
     const record = (await store.get('Modules')) as SettingRecord<ModulesStore> | undefined;
     const visibleNames = new Set(this.currentModules(modNames).map(m => m.name));
     const next = new Map<string, ModuleDisabledRecord>();
-
     for (const item of record?.value?.disabled || []) {
       const rec = { name: item.name, source: item.source || '' };
       if (visibleNames.has(rec.name) || (!!rec.source && modNames.has(rec.source))) next.set(rec.name, rec);
     }
-
     await store.put({ key: 'Modules', value: { disabled: Array.from(next.values()) } });
   }
 
   private async scriptsStore(store: any, modNames: Set<string>): Promise<void> {
     const record = (await store.get('Script')) as SettingRecord<ScriptStore> | undefined;
     const disabled = new Set<string>();
-
     for (const script of record?.value?.disabled || []) {
       const modName = script.match(/^\[([^\]]+)\]:/)?.[1] || '';
       if (modName && modNames.has(modName)) disabled.add(script);
     }
-
     await store.put({ key: 'Script', value: { disabled: Array.from(disabled) } });
   }
 

@@ -60,31 +60,6 @@
 'Push wings behind': 置翅膀于后
 'Move wings forward': 置翅膀于前
 
-'View All': 查看全部
-'View Headgear': 查看外衣(头套)
-'View Over Tops': 查看外衣(上装)
-'View Over Bottoms': 查看外衣(下装)
-'View Over Outfits': 查看外衣(套装)
-'View Outfits': 查看套装
-'View Tops': 查看上装
-'View Bottoms': 查看下装
-'View Under Outfits': 查看内衣(套装)
-'View Under Tops': 查看内衣(上装)
-'View Under Bottoms': 查看内衣(下装)
-'View Head Accessories': 查看头饰
-'View Face Accessories': 查看面饰
-'View Neck Accessories': 查看颈饰
-'View Handheld Items': 查看手持物品
-'View Hand Accessories': 查看手饰
-'View Legwear': 查看袜子
-'View Shoes': 查看鞋类
-'View Genital Wear': 查看性器佩饰
-'Changing Room': 更衣室
-'Return Clothes': 归还衣服
-'Buy Clothes': 购买衣物
-'Buy Clothes And Send To Wardrobe': 购买衣物并送至衣柜
-'Leave': 离开
-
 'None': 无
 
 'male': 男性
@@ -142,3 +117,11 @@
 'priest': 司祭
 
 'reset framework settings to default': 重置框架设置为默认
+
+'framework.notice.desc': '秋枫白桦框架用于为 Degrees of Lewdity 模组提供加载、扩展与兼容支持。启用本框架后，游戏内容可能会受到框架本身或相关模组的影响。'
+'framework.notice.issue.title': '反馈问题前，请先确认问题来源：'
+'framework.notice.issue.mod': '如果问题出现在某个具体模组的内容中，请优先联系该模组作者。'
+'framework.notice.issue.framework': '如果问题与框架的加载、接口、兼容性或基础功能有关，请再向框架作者反馈。'
+'framework.notice.issue.report': '反馈时建议附上框架版本、游戏版本、已启用模组列表、报错截图或复现步骤。'
+'framework.notice.verify': '我已阅读并理解上述说明'
+'framework.notice.confirm': '我已知晓'

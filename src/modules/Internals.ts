@@ -43,6 +43,7 @@ class Internals {
       macro.define('maplebirchTextOutput', this.core.tool.text.makeTextOutput());
       macro.defineS('maplebirchFrameworkVersions', this.showModVersions.bind(this));
       macro.defineS('maplebirchFrameworkInfo', () => this.showFrameworkInfo());
+      macro.defineS('maplebirchFrameworkNotice', () => this.showFrameworkNotice());
     });
   }
 
@@ -158,6 +159,38 @@ class Internals {
     return info + `<div class='p-2 text-align-center'><h3><<lanSwitch 'Framework Mod List' '框架模组列表'>></h3><div id='modlist'>${mods.join('')}</div></div>`;
   }
 
+  showFrameworkNotice(): string {
+    const titleSource = "<<lanSwitch 'Welcome to' '欢迎使用'>>[[<<lanSwitch 'Maplebirch Framework' '秋枫白桦框架'>>|https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchframework]]";
+    const title = $('<div>').wiki(titleSource).html() || titleSource;
+    const t = (key: string) => this.core.t(key);
+    T.maplebirchNoticeLinksEnabled = Links.enabled;
+    T.maplebirchNoticeVerify = false;
+    Links.enabled = false;
+    $('#story').addClass('gateBlur');
+    $('#ui-bar').addClass('gateBlur');
+    return `
+      <<dialog ${JSON.stringify(title)} 'class' true>>
+        ${t('framework.notice.desc')}<br><br>
+        <b>${t('framework.notice.issue.title')}</b><br>
+        <ol><li>${t('framework.notice.issue.mod')}</li><li>${t('framework.notice.issue.framework')}</li><li>${t('framework.notice.issue.report')}</li></ol>
+        <div class='text-align-center'>
+          <label><<checkbox '_maplebirchNoticeVerify' false true autocheck>>${t('framework.notice.verify')}</label><br>
+          <div class='m-2'>
+            <<button ${JSON.stringify(t('framework.notice.confirm'))}>>
+              <<if _maplebirchNoticeVerify>>
+                <<set Links.enabled to _maplebirchNoticeLinksEnabled>>
+                <<run $('#story').removeClass('gateBlur')>>
+                <<run $('#ui-bar').removeClass('gateBlur')>>
+                <<run localStorage.setItem('maplebirchFrameworkNotice', 'true')>>
+                <<dialogclose>>
+              <</if>>
+            <</button>>
+          </div>
+        </div>
+      <</dialog>>
+    `;
+  }
+
   compatibleModI18N(): void {
     if (this.modI18NPatched) return;
     const originalName = setup.NPC_CN_NAME;
@@ -185,6 +218,16 @@ class Internals {
 
   preInit(): void {
     (window as any).lanSwitch = Object.freeze(_languageSwitch);
+
+    this.core.dynamic.regStateEvent('gate', 'notice', {
+      output: 'maplebirchFrameworkNotice',
+      priority: 1000,
+      once: false,
+      cond: () => localStorage.getItem('verifiedAge') === 'true' && !localStorage.getItem('maplebirchFrameworkNotice'),
+      extra: {
+        passage: ['Start']
+      }
+    });
 
     this.core.tool.onInit(() => {
       setup.maplebirch ??= {};

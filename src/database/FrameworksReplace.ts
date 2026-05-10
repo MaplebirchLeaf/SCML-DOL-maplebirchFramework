@@ -22,6 +22,9 @@ const defaultData = {
 
 // prettier-ignore
 const locationPassage = {
+  Start: [
+    { src: '<</dialog>>', applybefore: '\t<<onclose>><<maplebirchFrameworkNotice>>\n\t\t' },
+  ],
   StoryCaption: [
     { src: '<<questmarker>>', applyafter: '\n\t\t<<maplebirchCaptionDescription>>' },
     { src: '<<allurecaption>>', applybefore: '<<maplebirchStatusBar>>\n\t\t\t' },
