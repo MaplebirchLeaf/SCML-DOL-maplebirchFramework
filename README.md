@@ -2,14 +2,14 @@
 
 # SCML-DOL-maplebirchFramework
 
-[![Author](https://img.shields.io/badge/Author-Vrelnir-purple)](https://vrelnir.blogspot.com/)
-[![GitHub release](https://img.shields.io/github/v/release/MaplebirchLeaf/SCML-DOL-maplebirchFramework)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/releases/latest)
-[![GitHub downloads](https://img.shields.io/github/downloads/MaplebirchLeaf/SCML-DOL-maplebirchFramework/total)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/releases/latest)
-[![GitHub stars](https://img.shields.io/github/stars/MaplebirchLeaf/SCML-DOL-maplebirchFramework)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/stargazers)
-[![GitHub issues](https://img.shields.io/github/issues-raw/MaplebirchLeaf/SCML-DOL-maplebirchFramework)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/issues)
-[![ModLoader](https://img.shields.io/badge/ModLoader-SugarCube2-blue)](https://modloader.pages.dev/)
-[![Original Game](https://img.shields.io/badge/Original%20Game-Degrees%20of%20Lewdity-purple)](https://gitgud.io/Vrelnir/degrees-of-lewdity)
-[![Chinese Localization](https://img.shields.io/badge/Chinese%20Localization-DOL--CHS-red)](https://github.com/Eltirosto/Degrees-of-Lewdity-Chinese-Localization)
+[![Author](https://img.shields.io/badge/By-Vrelnir-purple)](https://vrelnir.blogspot.com/)
+[![Game](https://img.shields.io/badge/Game-DoL-purple)](https://gitgud.io/Vrelnir/degrees-of-lewdity)
+[![ModLoader](https://img.shields.io/badge/SC2-ModLoader-blue)](https://modloader.pages.dev/)
+[![CHS](https://img.shields.io/badge/CHS-DOL--CHS-red)](https://github.com/Eltirosto/Degrees-of-Lewdity-Chinese-Localization)
+[![Release](https://img.shields.io/github/v/release/MaplebirchLeaf/SCML-DOL-maplebirchFramework?label=release)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/MaplebirchLeaf/SCML-DOL-maplebirchFramework/total?label=downloads)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/releases/latest)
+[![Stars](https://img.shields.io/github/stars/MaplebirchLeaf/SCML-DOL-maplebirchFramework?label=stars)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/stargazers)
+[![Issues](https://img.shields.io/github/issues-raw/MaplebirchLeaf/SCML-DOL-maplebirchFramework?label=issues)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/issues)
 
 `maplebirchFramework` 是基于 **SugarCube2 ModLoader** 为 **Degrees of Lewdity** 制作的模组开发框架。它主要为其它模组提供更方便的脚本加载、语言与音频导入、区域注入、NPC 注册、战斗按钮、角色图层、转化、动态事件和常用工具函数。
 
@@ -232,14 +232,14 @@ setup.myMod.initCombat?.();
 ]
 ```
 
-| 参数 | 用途 |
-| :--- | :--- |
-| `language` | 导入 `CN` / `EN` 翻译文件，或指定自定义语言文件 |
-| `audio` | 导入模组内的音频目录 |
-| `framework` | 添加区域 widget 或注册特质 |
-| `npc` | 注册 NPC、NPC 状态、NPC 侧边栏图片和服装资源 |
-| `module` | 早期脚本，适合框架模块扩展 |
-| `script` | 常规模组脚本，推荐多数情况下使用 |
+| 参数        | 用途                                            |
+| :---------- | :---------------------------------------------- |
+| `language`  | 导入 `CN` / `EN` 翻译文件，或指定自定义语言文件 |
+| `audio`     | 导入模组内的音频目录                            |
+| `framework` | 添加区域 widget 或注册特质                      |
+| `npc`       | 注册 NPC、NPC 状态、NPC 侧边栏图片和服装资源    |
+| `module`    | 早期脚本，适合框架模块扩展                      |
+| `script`    | 常规模组脚本，推荐多数情况下使用                |
 
 更完整的配置说明见 [boot.json 配置][BootJson]。
 
@@ -263,6 +263,7 @@ setup.myMod.initCombat?.();
 - 感谢所有对本框架进行反馈的玩家与作者。
 
 ## 相关链接
+
 - <img decoding="async" src="https://gitgud.io/uploads/-/system/user/avatar/9096/avatar.png" width="24" alt=""> <b>游戏作者</b> $\color{purple} {Vrelnir}$
 - [Vrelnir 的博客](https://vrelnir.blogspot.com/)
 - [英文游戏维基](https://degreesoflewdity.miraheze.org/wiki/Main_Page)

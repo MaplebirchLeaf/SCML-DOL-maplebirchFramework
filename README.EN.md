@@ -2,14 +2,14 @@
 
 # SCML-DOL-maplebirchFramework
 
-[![Author](https://img.shields.io/badge/Author-Vrelnir-purple)](https://vrelnir.blogspot.com/)
-[![GitHub release](https://img.shields.io/github/v/release/MaplebirchLeaf/SCML-DOL-maplebirchFramework)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/releases/latest)
-[![GitHub downloads](https://img.shields.io/github/downloads/MaplebirchLeaf/SCML-DOL-maplebirchFramework/total)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/releases/latest)
-[![GitHub stars](https://img.shields.io/github/stars/MaplebirchLeaf/SCML-DOL-maplebirchFramework)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/stargazers)
-[![GitHub issues](https://img.shields.io/github/issues-raw/MaplebirchLeaf/SCML-DOL-maplebirchFramework)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/issues)
-[![ModLoader](https://img.shields.io/badge/ModLoader-SugarCube2-blue)](https://modloader.pages.dev/)
-[![Original Game](https://img.shields.io/badge/Original%20Game-Degrees%20of%20Lewdity-purple)](https://gitgud.io/Vrelnir/degrees-of-lewdity)
-[![Chinese Localization](https://img.shields.io/badge/Chinese%20Localization-DOL--CHS-red)](https://github.com/Eltirosto/Degrees-of-Lewdity-Chinese-Localization)
+[![Author](https://img.shields.io/badge/By-Vrelnir-purple)](https://vrelnir.blogspot.com/)
+[![Game](https://img.shields.io/badge/Game-DoL-purple)](https://gitgud.io/Vrelnir/degrees-of-lewdity)
+[![ModLoader](https://img.shields.io/badge/SC2-ModLoader-blue)](https://modloader.pages.dev/)
+[![CHS](https://img.shields.io/badge/CHS-DOL--CHS-red)](https://github.com/Eltirosto/Degrees-of-Lewdity-Chinese-Localization)
+[![Release](https://img.shields.io/github/v/release/MaplebirchLeaf/SCML-DOL-maplebirchFramework?label=release)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/MaplebirchLeaf/SCML-DOL-maplebirchFramework/total?label=downloads)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/releases/latest)
+[![Stars](https://img.shields.io/github/stars/MaplebirchLeaf/SCML-DOL-maplebirchFramework?label=stars)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/stargazers)
+[![Issues](https://img.shields.io/github/issues-raw/MaplebirchLeaf/SCML-DOL-maplebirchFramework?label=issues)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/issues)
 
 `maplebirchFramework` is a **SugarCube2 ModLoader** framework for **Degrees of Lewdity** mods. It provides helper APIs for script loading, language and audio import, UI zone injection, NPC registration, combat actions, character layers, transformations, dynamic events, and general utility functions.
 

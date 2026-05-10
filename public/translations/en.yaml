@@ -60,31 +60,6 @@
 'Push wings behind': Push wings behind
 'Move wings forward': Move wings forward
 
-'View All': View All
-'View Headgear': View Headgear
-'View Over Tops': View Over Tops
-'View Over Bottoms': View Over Bottoms
-'View Over Outfits': View Over Outfits
-'View Outfits': View Outfits
-'View Tops': View Tops
-'View Bottoms': View Bottoms
-'View Under Outfits': View Under Outfits
-'View Under Tops': View Under Tops
-'View Under Bottoms': View Under Bottoms
-'View Head Accessories': View Head Accessories
-'View Face Accessories': View Face Accessories
-'View Neck Accessories': View Neck Accessories
-'View Handheld Items': View Handheld Items
-'View Hand Accessories': View Hand Accessories
-'View Legwear': View Legwear
-'View Shoes': View Shoes
-'View Genital Wear': View Genital Wear
-'Changing Room': Changing Room
-'Return Clothes': Return Clothes
-'Buy Clothes': Buy Clothes
-'Buy Clothes And Send To Wardrobe': Buy Clothes And Send To Wardrobe
-'Leave': Leave
-
 'None': None
 
 'male': male
@@ -142,3 +117,11 @@
 'priest': priest
 
 'reset framework settings to default': 重置框架设置为默认
+
+'framework.notice.desc': 'Maplebirch Framework provides loading, extension, and compatibility support for Degrees of Lewdity mods. When enabled, the game may be affected by the framework itself or by related mods.'
+'framework.notice.issue.title': 'Before reporting an issue, please check where it comes from:'
+'framework.notice.issue.mod': 'If the issue appears in the content of a specific mod, please contact that mod author first.'
+'framework.notice.issue.framework': 'If the issue is related to framework loading, APIs, compatibility, or core framework features, please report it to the framework author.'
+'framework.notice.issue.report': 'When reporting an issue, please include the framework version, game version, enabled mod list, error screenshots, or reproduction steps if possible.'
+'framework.notice.verify': 'I have read and understood the notice above'
+'framework.notice.confirm': 'I Understand'

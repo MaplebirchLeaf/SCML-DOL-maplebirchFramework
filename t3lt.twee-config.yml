@@ -20156,41 +20156,184 @@ sugarcube-2:
         - '|+ "cap"'
       tags:
         - text
+    language:
+      name: language
+      container: true
+      children:
+        - option
+      skipArgs: true
+      description: |-
+        根据当前 maplebirch.Language 渲染对应语言内容。
+
+        示例：
+
+        <<language>>
+          <<option 'CN'>>
+            中文内容
+          <<option 'EN'>>
+            English content
+        <</language>>
     lanSwitch:
       name: lanSwitch
+      skipArgs: true
+      description: |-
+        根据当前语言输出不同文本。
+
+        示例：
+
+        <<lanSwitch '中文' 'English'>>
+
+        或：
+
+        <<lanSwitch { CN: '中文', EN: 'English' }>>
+    lanButton:
+      name: lanButton
+      container: true
+      skipArgs: true
+      description: >-
+        多语言按钮。
+
+
+        示例：
+
+
+        <<lanButton 'start game' 'title' 'class:main-button'>>
+          <<goto 'Start'>>
+        <</lanButton>>
+
+
+        支持参数：
+
+        class:xxx
+
+        style:xxx
+
+        lower / upper / capitalize / title / camel / pascal / snake / kebab /
+        constant
+    lanLink:
+      name: lanLink
+      container: true
+      skipArgs: true
+      description: >-
+        多语言链接。
+
+
+        示例：
+
+
+        <<lanLink 'go home' 'Home'>><</lanLink>>
+
+
+        或：
+
+
+        <<lanLink { text: 'go home', link: 'Home' }>>
+
+
+        支持参数：
+
+        class:xxx
+
+        style:xxx
+
+        lower / upper / capitalize / title / camel / pascal / snake / kebab /
+        constant
     lanListbox:
       name: lanListbox
       container: true
       children:
         - option
         - optionsfrom
-      parameters:
-        - receiver |+ ...text
+      skipArgs: true
+      description: |-
+        maplebirch 多语言下拉框。
+
+        示例：
+
+        <<lanListbox '$options.maplebirch.character.charArt.select' autoselect>>
+          <<option 'low ombré' 'low-ombre' 'title'>>
+          <<option 'high ombré' 'high-ombre' 'title'>>
+          <<option 'split' 'split' 'title'>>
+          <<option 'face-framing highlights' 'face-frame' 'title'>>
+        <</lanListbox>>
+
+        支持参数：
+        autoselect
+        class:xxx
+        style:xxx
     option:
       name: option
-      parameters:
-        - text |+ text |+
-          ...('selected'|'lower'|'upper'|'capitalize'|'title'|'camel'|'pascal'|'snake'|'kebab'|'constant')
+      skipArgs: true
+      parents:
+        - language
+        - lanListbox
+        - listbox
+        - cycle
+      description: |-
+        选项子宏。
+
+        在 language 中：
+
+        <<language>>
+          <<option 'CN'>>中文内容
+          <<option 'EN'>>English content
+        <</language>>
+
+        在 lanListbox 中：
+
+        <<lanListbox '$xxx' autoselect>>
+          <<option 'low ombré' 'low-ombre' 'title'>>
+          <<option 'high ombré' 'high-ombre' 'title'>>
+        <</lanListbox>>
+
+        注意：
+        这里必须 skipArgs: true，否则 T3LT 会按 SugarCube 原生 option 校验，
+        第三个参数只认 selected，不认 title / upper / lower 等 maplebirch 转换模式。
     optionsfrom:
       name: optionsfrom
-      parameters:
-        - text |+
-          ...('lower'|'upper'|'capitalize'|'title'|'camel'|'pascal'|'snake'|'kebab'|'constant')
+      skipArgs: true
+      parents:
+        - lanListbox
+      description: |-
+        lanListbox 的动态选项来源。
+
+        示例：
+
+        <<lanListbox '$selectedItem'>>
+          <<optionsfrom $items>>
+        <</lanListbox>>
+
+        或：
+
+        <<lanListbox '$selectedItem'>>
+          <<optionsfrom $items 'title'>>
+        <</lanListbox>>
     radiobuttonsfrom:
       name: radiobuttonsfrom
       container: true
-    maplebirchNPCHairStyleOptions:
-      name: maplebirchNPCHairStyleOptions
-    lanLink:
-      name: lanLink
-      container: true
-    language:
-      name: language
-      container: true
-    lanButton:
-      name: lanButton
-      container: true
+      skipArgs: true
+      description: |-
+        根据数组或字符串生成一组 radio button。
+
+        示例：
+
+        <<radiobuttonsfrom '$choice' 'A|B|C'>><</radiobuttonsfrom>>
+
+        自定义分隔符：
+
+        <<radiobuttonsfrom '$choice' 'A|B|C' ' / '>><</radiobuttonsfrom>>
+    maplebirchReplace:
+      name: maplebirchReplace
+      skipArgs: true
+      description: |-
+        替换或切换 maplebirch overlay 内容。
+
+        示例：
+
+        <<maplebirchReplace 'inventory' 'content'>>
     maplebirchOptions:
       name: maplebirchOptions
+    maplebirchNPCHairStyleOptions:
+      name: maplebirchNPCHairStyleOptions
     maplebirchTransformationPartSelect:
       name: maplebirchTransformationPartSelect
