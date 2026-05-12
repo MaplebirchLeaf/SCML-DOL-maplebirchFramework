@@ -104,13 +104,13 @@
 
 ## 模组加密
 
-框架可以为其它依赖 `maplebirch` 的模组提供加密验证。没有 `auth.json` 的模组会直接放行；带有 `auth.json` 的模组会在首次加载时要求玩家输入作者提供的凭证，验证通过后会记住解出的密码。
+为其它依赖**本框架**的模组提供加密验证。没有 `auth.json` 的模组会直接放行；带有 `auth.json` 的模组会在首次加载时要求玩家输入作者提供的凭证，验证通过后会记住解出的密码。
 
 受保护模组的根目录可放置 `auth.json`：
 
 ```json
 {
-  "key": "CoolMod",
+  "key": "MyMod",
   "publicKey": {
     "kty": "EC",
     "crv": "P-256",
@@ -119,7 +119,7 @@
   },
   "prompt": {
     "title": "模组加密",
-    "label": "Cool Mod 凭证",
+    "label": "My Mod 凭证",
     "placeholder": "输入凭证",
     "hint": "请输入作者提供的凭证。"
   }
@@ -128,14 +128,14 @@
 
 `auth.json` 支持的字段如下：
 
-| 字段        | 必填 | 用途                                                   |
-| :---------- | :--- | :----------------------------------------------------- |
-| `key`       | 是   | 凭证标识                                               |
-| `publicKey` | 是   | 校验凭证签名的公钥，支持 JWK 对象或 SPKI base64 字符串 |
-| `subject`   | 否   | 凭证绑定对象，默认使用模组名                           |
-| `name`      | 否   | 弹窗中显示的模组名称                                   |
+| 字段        | 必填 | 用途                                                       |
+| :---------- | :--- | :--------------------------------------------------------- |
+| `key`       | 是   | 凭证标识                                                   |
+| `publicKey` | 是   | 校验凭证签名的公钥，支持 JWK 对象或 SPKI base64 字符串     |
+| `subject`   | 否   | 凭证绑定对象，默认使用模组名                               |
+| `name`      | 否   | 弹窗中显示的模组名称                                       |
 | `prompt`    | 否   | 自定义弹窗文案，如 `title`、`label`、`placeholder`、`hint` |
-| `date`      | 否   | 日期凭证配置，如 `timezone`、`graceDays`               |
+| `date`      | 否   | 日期凭证配置，如 `timezone`、`graceDays`                   |
 
 如果需要指定加密配置文件路径，或使用配套工具写入的 guard 校验，可在 `boot.json` 的 `maplebirchAddon.params` 中增加 `auth`：
 
@@ -152,7 +152,7 @@
 }
 ```
 
-`guard` 不通过时框架会禁用该模组。密钥生成、凭证生成和 `.zip` 转 `.modpack` 可使用配套工具：[maplebirch-author-tools](https://github.com/MaplebirchLeaf/maplebirch-author-tools)。
+`guard` 不通过时框架会禁用该模组。密钥生成、凭证生成和 `.zip` 转 `.modpack` 可使用配套工具：[dol-mod-protection-tools](https://github.com/MaplebirchLeaf/dol-mod-protection-tools)。
 
 ## 推荐写法
 
@@ -293,7 +293,7 @@ setup.myMod.initCombat?.();
 | :---------- | :---------------------------------------------- |
 | `language`  | 导入 `CN` / `EN` 翻译文件，或指定自定义语言文件 |
 | `audio`     | 导入模组内的音频目录                            |
-| `auth`      | 指定受保护模组的加密配置文件和 guard 校验        |
+| `auth`      | 指定受保护模组的加密配置文件和 guard 校验       |
 | `framework` | 添加区域 widget 或注册特质                      |
 | `npc`       | 注册 NPC、NPC 状态、NPC 侧边栏图片和服装资源    |
 | `module`    | 早期脚本，适合框架模块扩展                      |
