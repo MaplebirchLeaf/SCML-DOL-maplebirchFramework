@@ -125,3 +125,12 @@
 'framework.notice.issue.report': '反馈时建议附上框架版本、游戏版本、已启用模组列表、报错截图或复现步骤。'
 'framework.notice.verify': '我已阅读并理解上述说明'
 'framework.notice.confirm': '我已知晓'
+
+'credential.auth.title': '模组凭证'
+'credential.auth.label': '凭证'
+'credential.auth.placeholder': '输入凭证'
+'credential.auth.hint': '这个受保护模组首次解锁需要有效凭证。'
+'credential.auth.unlock': '解锁'
+'credential.auth.error.format': '凭证格式无效'
+'credential.auth.error.signature': '凭证签名无效'
+'credential.auth.error.mismatch': '凭证与模组不匹配'

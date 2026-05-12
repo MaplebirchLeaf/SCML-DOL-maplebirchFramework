@@ -12,8 +12,9 @@
     "build": "bun run rspack -- build --mode=production",
     "build:dev": "bun run rspack -- build --mode=development",
     "build:types": "tsup",
-    "package": "bun run scripts/package.ts",
-    "build:all": "bun run prep && bun run build && bun run build:types && bun run package",
+    "package:zip": "bun run scripts/package.ts",
+    "package:modpack": "bun run scripts/modpack.ts",
+    "build:all": "bun run prep && bun run build && bun run build:types && bun run package:modpack",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "fmt": "oxfmt",
@@ -58,7 +59,7 @@
   },
   "packageManager": "bun@1.3.9",
   "lastModifiedBy": "楓樺葉",
-  "lastUpdate": "2026.05.07",
+  "lastUpdate": "2026.05.12",
   "scml": {
     "nickName": {
       "en": "Maplebirch Frameworks",

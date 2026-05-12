@@ -7,12 +7,18 @@ async function createModPackage() {
   const rootDir = path.join(import.meta.dir, '..');
   const packageDir = path.join(rootDir, 'package');
   await mkdir(packageDir, { recursive: true });
+
   const pkg = await readPackageJSON(rootDir);
   const gameVersion = pkg.scml.dependenceInfo.find((dep: { modName: string }) => dep.modName === 'GameVersion').version.match(/\d+(\.\d+)*/)?.[0];
-  const zipPath = path.join(packageDir, `maplebirch-${gameVersion}-v${pkg.version}.mod.zip`);
+  const baseName = `maplebirch-${gameVersion}-v${pkg.version}`;
+  const zipPath = path.join(packageDir, `${baseName}.mod.zip`);
   const zipBuffer = await createZip(rootDir);
+
   await Bun.write(zipPath, zipBuffer);
-  console.log(`✓ 压缩包已生成: ${zipPath}`);
+  console.log(`Zip package generated: ${zipPath}`);
 }
 
-createModPackage().catch(console.error);
+createModPackage().catch(error => {
+  console.error(error);
+  process.exit(1);
+});

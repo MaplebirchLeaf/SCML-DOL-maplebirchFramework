@@ -13,6 +13,7 @@ import { version, Languages } from './constants';
 import Logger from './services/Logger';
 import EventEmitter from './services/EventEmitter';
 import IndexedDBService from './services/IndexedDBService';
+import CredentialVault from './services/CredentialVault';
 import LanguageManager from './services/LanguageManager';
 import ModuleSystem from './services/ModuleSystem';
 import GUIControl from './services/GUIControl';
@@ -73,6 +74,7 @@ class MaplebirchCore {
   readonly logger: Logger;
   readonly tracer: EventEmitter;
   readonly idb: IndexedDBService;
+  readonly credential: CredentialVault;
   readonly lang: LanguageManager;
   readonly modules: ModuleSystem;
   readonly gui: GUIControl;
@@ -97,17 +99,13 @@ class MaplebirchCore {
     this.tracer = Object.seal(new EventEmitter(this));
     this.idb = Object.seal(new IndexedDBService(this));
     this.lang = Object.seal(new LanguageManager(this));
+    this.credential = Object.seal(new CredentialVault(this));
     this.modules = Object.seal(new ModuleSystem(this));
     this.gui = Object.seal(new GUIControl(this));
 
     this.log(`开始设置初始化流程\n核心系统创建完成(v${MaplebirchCore.meta.version})`, 'INFO');
     const events = [':passageinit', ':passagestart', ':passagerender', ':passagedisplay', ':passageend', ':storyready'];
     events.forEach(event => $(document).on(event, (ev: any) => this.trigger(event, ev)));
-
-    this.once(':import', async () => {
-      await this.lang.preload();
-      for await (const p of this.lang.import('maplebirch')) if (p.type === 'error') this.log(`导入失败: ${p.language}`, 'ERROR');
-    });
 
     this.once(':allModule', async () => {
       this.log('所有模块注册完成，开始预初始化', 'INFO');
@@ -116,6 +114,8 @@ class MaplebirchCore {
       await this.idb.checkStore();
       await this.logger.fromIDB();
       await this.trigger(':idbReady');
+      await this.lang.preload();
+      for await (const p of this.lang.import('maplebirch')) if (p.type === 'error') this.log(`导入失败: ${p.language}`, 'ERROR');
       await this.modules.init('pre');
     });
 
@@ -192,14 +192,20 @@ class MaplebirchCore {
     return this.lang.auto(text);
   }
 
-  async disabled(modName: string): Promise<boolean> {
+  async disabled(modNames: string | string[], reload: boolean = true): Promise<boolean> {
     const modLoadController = this.modUtils.getModLoadController();
-    const [enabledMods, disabledMods] = await Promise.all([modLoadController.listModIndexDB(), modLoadController.loadHiddenModList()]);
-    if (!enabledMods.includes(modName)) return false;
-    enabledMods.splice(enabledMods.indexOf(modName), 1);
-    if (!disabledMods.includes(modName)) disabledMods.push(modName);
-    await Promise.all([modLoadController.overwriteModIndexDBModList(enabledMods), modLoadController.overwriteModIndexDBHiddenModList(disabledMods)]);
-    location.reload();
+    const [enabledModsRaw = [], disabledModsRaw = []] = await Promise.all([modLoadController.listModIndexDB(), modLoadController.loadHiddenModList()]);
+    const enabledMods = [...new Set(enabledModsRaw.map(name => name.trim()).filter(Boolean))];
+    const disabledMods = [...new Set(disabledModsRaw.map(name => name.trim()).filter(Boolean))];
+    const enabledSet = new Set(enabledMods);
+    const disabledSet = new Set(disabledMods);
+    const targets = new Set((Array.isArray(modNames) ? modNames : [modNames]).map(name => name.trim()).filter(name => name && enabledSet.has(name)));
+    if (targets.size === 0) return false;
+    const nextEnabledMods = enabledMods.filter(modName => !targets.has(modName));
+    const nextDisabledMods = [...disabledMods, ...[...targets].filter(modName => !disabledSet.has(modName))];
+    if (nextEnabledMods.length === enabledMods.length && nextDisabledMods.length === disabledMods.length) return false;
+    await Promise.all([modLoadController.overwriteModIndexDBModList(nextEnabledMods), modLoadController.overwriteModIndexDBHiddenModList(nextDisabledMods)]);
+    if (reload) location.reload();
     return true;
   }
 
