@@ -125,3 +125,12 @@
 'framework.notice.issue.report': 'When reporting an issue, please include the framework version, game version, enabled mod list, error screenshots, or reproduction steps if possible.'
 'framework.notice.verify': 'I have read and understood the notice above'
 'framework.notice.confirm': 'I Understand'
+
+'credential.auth.title': 'Mod Credential'
+'credential.auth.label': 'credential'
+'credential.auth.placeholder': 'Enter credential'
+'credential.auth.hint': 'This protected mod needs a valid credential for its first unlock.'
+'credential.auth.unlock': 'Unlock'
+'credential.auth.error.format': 'Invalid credential format'
+'credential.auth.error.signature': 'Invalid credential signature'
+'credential.auth.error.mismatch': 'Credential does not match this mod'

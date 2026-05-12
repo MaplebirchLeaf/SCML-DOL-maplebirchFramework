@@ -4,6 +4,7 @@ import type { TypeOrderItem } from '@scml/types/AddonMod_BeautySelector/BeautySe
 import type { ModZipReader } from '@scml/types/sugarcube-2-ModLoader/ModZipReader';
 import type { SC2DataManager } from '@scml/types/sugarcube-2-ModLoader/SC2DataManager';
 import type { ModUtils } from '@scml/types/sugarcube-2-ModLoader/Utils';
+import type { AuthConfig } from '../services/CredentialVault';
 import type { TraitConfig } from './Frameworks/otherTools';
 import type { ZoneWidgetConfig } from './Frameworks/zonesManager';
 import { Languages, type LanguageCode } from '../constants';
@@ -14,6 +15,17 @@ type FileType = 'Module' | 'Script';
 
 type LanguageConfig = string[] | Partial<Record<string, string | { file: string }>>;
 type AudioConfig = string[];
+type AuthGuardParam = {
+  nonce?: string;
+  digest?: string;
+};
+type AuthParam =
+  | boolean
+  | {
+      required?: boolean;
+      file?: string;
+      guard?: AuthGuardParam;
+    };
 
 type RawTraitConfig = {
   title?: string;
@@ -23,14 +35,12 @@ type RawTraitConfig = {
   text?: string | (() => string);
 };
 
-type FrameworkConfig =
-  | {
-      traits: RawTraitConfig[];
-    }
-  | {
-      addto: string;
-      widget: string | ZoneWidgetConfig | [number, string | ZoneWidgetConfig];
-    };
+type FrameworkConfig = { traits: RawTraitConfig[] } | { addto: string; widget: string | ZoneWidgetConfig | [number, string | ZoneWidgetConfig] };
+
+type RawAuthConfig = Partial<Omit<AuthConfig, 'key' | 'publicKey'>> & {
+  key?: unknown;
+  publicKey?: unknown;
+};
 
 interface Task<T = any> {
   modName: string;
@@ -46,6 +56,7 @@ interface AddonPluginConfig {
     npc?: any;
     module?: string[];
     script?: string[];
+    auth?: AuthParam;
     [key: string]: any;
   };
 }
@@ -68,6 +79,13 @@ interface FileItem {
   modName: string;
   filePath: string;
   content: string;
+}
+
+interface AuthTask {
+  modName: string;
+  config: AuthConfig;
+  authorized: boolean;
+  guard?: AuthGuardParam;
 }
 
 class Process {
@@ -337,6 +355,11 @@ class AddonPlugin {
   };
   jsFiles: FileItem[] = [];
   moduleFiles: FileItem[] = [];
+  authQueue: AuthTask[] = [];
+
+  private authPassed = new Map<string, boolean>();
+  private modsToDisable = new Set<string>();
+
   constructor(readonly core: MaplebirchCore) {
     this.gSC2DataManager = this.core.manager.modSC2DataManager;
     this.gModUtils = this.core.modUtils;
@@ -362,6 +385,8 @@ class AddonPlugin {
   async registerMod(addonName: string, modInfo: ModInfo, modZip: ModZipReader): Promise<void> {
     this.info.set(modInfo.name, { addonName, mod: modInfo, modZip });
     const config = modInfo.bootJson?.addonPlugin?.find(plugin => plugin.modName === 'maplebirch' && plugin.addonName === 'maplebirchAddon') as AddonPluginConfig | undefined;
+    const authorized = await this.checkAuth(modInfo.name, modZip, config?.params?.auth);
+    if (!authorized) return;
     if (!config?.params) return;
     if (Object.keys(config.params).length > 0 && !this.core.modList.includes(modInfo.name)) this.core.modList.push(modInfo.name);
     for (const type of this.supportedConfigs) {
@@ -388,26 +413,105 @@ class AddonPlugin {
   }
 
   async afterRegisterMod2Addon(): Promise<void> {
+    await this.enforceAuthQueue();
     try {
       await this.core.char.faceStyleImagePaths();
     } catch (error: any) {
       this.core.log(`faceStyleImagePaths函数错误: ${error?.message || error}`, 'ERROR');
     }
-
     await this.executeScripts(this.jsFiles, 'Script');
-
     this.processed.script = true;
+  }
+
+  private async checkAuth(modName: string, modZip: ModZipReader, authParam?: AuthParam): Promise<boolean> {
+    const cached = this.authPassed.get(modName);
+    if (cached !== undefined) return cached;
+    const authObject = authParam && typeof authParam === 'object' ? authParam : undefined;
+    const authFile = typeof authObject?.file === 'string' && authObject.file.trim() ? authObject.file.trim().replace(/\\/g, '/') : 'auth.json';
+    const required = authParam === true || Boolean(authObject && authObject.required !== false);
+    const guard = authObject?.guard && typeof authObject.guard === 'object' ? authObject.guard : undefined;
+    const file = modZip.zip.file(authFile);
+    if (!file) {
+      if (required) {
+        this.log(`auth.json 错误: ${modName} - ${authFile}`, 'WARN');
+        this.authPassed.set(modName, false);
+        this.modsToDisable.add(modName);
+        return false;
+      }
+      this.authPassed.set(modName, true);
+      return true;
+    }
+    try {
+      const raw = JSON.parse(await file.async('string')) as RawAuthConfig | null;
+      if (!raw || typeof raw !== 'object' || typeof raw.key !== 'string' || !raw.key || !raw.publicKey || (typeof raw.publicKey !== 'string' && typeof raw.publicKey !== 'object')) {
+        this.log(`auth.json 错误: ${modName}`, 'WARN');
+        this.authPassed.set(modName, false);
+        this.modsToDisable.add(modName);
+        return false;
+      }
+      const config = raw as AuthConfig;
+      const subject = config.subject || modName;
+      const saved = await this.core.credential.readPassword(subject, config.key);
+      const authorized = Boolean(saved && (await this.verifyAuthGuard(modName, config, guard, saved)));
+      if (!this.authQueue.some(task => task.modName === modName && task.config.key === config.key)) this.authQueue.push({ modName, config, authorized, guard });
+      this.authPassed.set(modName, authorized);
+      return authorized;
+    } catch (error: any) {
+      this.log(`auth.json 错误: ${modName} - ${error?.message || error}`, 'ERROR');
+      this.authPassed.set(modName, false);
+      this.modsToDisable.add(modName);
+      return false;
+    }
+  }
+
+  private async verifyAuthGuard(modName: string, config: AuthConfig, guard: AuthGuardParam | undefined, password: string): Promise<boolean> {
+    if (!guard) return true;
+    if (typeof guard.nonce !== 'string' || !guard.nonce || typeof guard.digest !== 'string' || !guard.digest) {
+      this.log(`auth guard 配置错误: ${modName}`, 'WARN');
+      this.modsToDisable.add(modName);
+      return false;
+    }
+    const subject = config.subject || modName;
+    const digest = await this.core.credential.digest(subject, config.key, guard.nonce, password);
+    if (digest === guard.digest) return true;
+    this.log(`auth guard 校验失败: ${modName}`, 'WARN');
+    this.modsToDisable.add(modName);
+    return false;
+  }
+
+  private async enforceAuthQueue(): Promise<void> {
+    let unlockedAny = false;
+    const disableTargets = new Set<string>(this.modsToDisable);
+    for (const task of this.authQueue) {
+      if (task.authorized || disableTargets.has(task.modName)) continue;
+      const subject = task.config.subject || task.modName;
+      const saved = await this.core.credential.readPassword(subject, task.config.key);
+      if (saved && (await this.verifyAuthGuard(task.modName, task.config, task.guard, saved))) {
+        unlockedAny = true;
+        this.authPassed.set(task.modName, true);
+        continue;
+      }
+      const password = await this.core.credential.prompt(task.modName, task.config);
+      if (password && (await this.verifyAuthGuard(task.modName, task.config, task.guard, password))) {
+        unlockedAny = true;
+        this.authPassed.set(task.modName, true);
+        continue;
+      }
+      disableTargets.add(task.modName);
+      this.authPassed.set(task.modName, false);
+    }
+    if (disableTargets.size > 0) {
+      await this.core.disabled([...disableTargets]);
+      return;
+    }
+    if (unlockedAny) location.reload();
   }
 
   async beforePatchModToGame(): Promise<void> {
     await this.core.trigger(':import');
     await this.dataReplace();
     await this.processInit();
-    try {
-      await this.core.tool.zone.patchModToGame(this, 'before');
-    } catch (error: any) {
-      this.log(`区域数据修改失败: ${error?.message || error}`, 'ERROR');
-    }
+    await this.core.tool.zone.patchModToGame(this, 'before');
   }
 
   async afterPatchModToGame(): Promise<void> {
@@ -423,6 +527,8 @@ class AddonPlugin {
         const modZip = this.gModUtils.getModZip(modName);
         const config = mod?.bootJson?.addonPlugin?.find(plugin => plugin.modName === 'maplebirch' && plugin.addonName === 'maplebirchAddon') as AddonPluginConfig | undefined;
         if (!config?.params || !modZip) continue;
+        const authorized = await this.checkAuth(modName, modZip, config.params.auth);
+        if (!authorized) continue;
         if (Array.isArray(config.params.module)) await this.loadFiles(modName, modZip, config.params.module, 'Module');
         if (Array.isArray(config.params.script)) await this.loadFiles(modName, modZip, config.params.script, 'Script');
       } catch (error: any) {
