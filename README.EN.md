@@ -82,7 +82,7 @@ Most mod logic should use `script`. Use `module` only when you intentionally nee
 
 The framework itself is not encrypted. Other mods that depend on the framework can use the companion author tools to build an encrypted shell `.modpack`. The shell asks the framework to verify a credential during `earlyload`, decrypts the real mod, then injects it through ModLoader lazy loading.
 
-Author tools: [maplebirch-author-tools](https://github.com/MaplebirchLeaf/maplebirch-author-tools)
+Author tools: [DOL Mod Protection Tools](https://github.com/MaplebirchLeaf/dol-mod-protection-tools)
 
 The generated `.modpack` only exposes a shell `boot.json`, an earlyload decryptor, and `.crypt` chunks. The original `boot.json`, `auth.json`, scripts, and assets are stored inside the encrypted payload. On first load, the player enters a credential; after successful verification, the password is cached. Closing the dialog or failing verification disables that encrypted mod.
 

@@ -105,7 +105,7 @@
 
 框架本体不加密。依赖框架的其它模组如果需要加密，请使用配套工具生成加密壳 `.modpack`。加密壳会在 `earlyload` 阶段向框架请求凭证验证，验证通过后解密真实模组，并交给 ModLoader 懒加载。
 
-配套工具：[maplebirch-author-tools](https://github.com/MaplebirchLeaf/maplebirch-author-tools)
+配套工具：[DOL Mod Protection Tools](https://github.com/MaplebirchLeaf/dol-mod-protection-tools)
 
 加密后的 `.modpack` 只暴露壳 `boot.json`、earlyload 解密器和 `.crypt` 分片；原始 `boot.json`、`auth.json`、脚本和资源都会进入加密 payload。玩家首次加载时输入凭证，通过后会记住密码；关闭弹窗或验证失败时，框架会禁用该加密模组。
 
@@ -266,8 +266,8 @@ setup.myMod.initCombat?.();
 ## 反馈与讨论
 
 - [Discord](https://discord.com/channels/1103864219620884560/1433136946032410674)
+- [反馈交流群(1087715891)](https://qm.qq.com/q/B4p8vaj1yo) **_[maplebirchFrameworks]_**
 - [百度贴吧](https://tieba.baidu.com/p/10049233469?pid=152986348799&cid=152989487455#152986348799)
-- [反馈群：1087715891(maplebirchFrameworks)](https://qm.qq.com/q/B4p8vaj1yo)
 
 ## 更新日志
 
