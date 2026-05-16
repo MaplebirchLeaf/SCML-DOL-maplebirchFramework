@@ -2,8 +2,8 @@
 import { widgets } from '../utils';
 import TransformationMirror from '@/twee/TransformationMirror.twee?raw';
 import NPCHairStyleOptions from '@/twee/NPCHairStyleOptions.twee?raw';
-import FrameworkOptions from '@/twee/FrameworkOptions?raw';
-import FrameworkCheats from '@/twee/FrameworkCheats?raw';
+import Options from '@/twee/Options.twee?raw';
+import Cheats from '@/twee/Cheats.twee?raw';
 
 const specialWidget = widgets(TransformationMirror, NPCHairStyleOptions);
 
@@ -14,8 +14,8 @@ const defaultData = {
   Header : '',
   Footer : '<<maplebirchFrameworkVersions>>',
   Information : '<<maplebirchFrameworkInfo>>',
-  Options: widgets(FrameworkOptions),
-  Cheats: widgets(FrameworkCheats),
+  Options: widgets(Options),
+  Cheats: widgets(Cheats),
   NPCinit   : `<<run maplebirch.npc.vanillaInit(_nam)>>`,
   NPCinject : `<<run maplebirch.npc.vanillaInject(_nam, _npcno)>>`
 }

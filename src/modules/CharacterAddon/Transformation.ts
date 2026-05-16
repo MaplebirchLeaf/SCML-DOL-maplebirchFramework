@@ -142,7 +142,7 @@ class Transformation {
   }
 
   async modifyEffect(manager: AddonPlugin): Promise<void> {
-    const oldSCdata = manager.gSC2DataManager.getSC2DataInfoAfterPatch();
+    const oldSCdata = manager.SC2DataManager.getSC2DataInfoAfterPatch();
     const SCdata = oldSCdata.cloneSC2DataInfo();
     const file = SCdata.scriptFileItems.getByNameWithOrWithoutPath('effect.js');
     const replacements: [RegExp, string][] = [
@@ -152,7 +152,7 @@ class Transformation {
       ]
     ];
     file.content = manager.replace(file.content, replacements);
-    manager.gModUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
+    manager.modUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
   }
 
   add(name: string, type: string, options: TransformationOption): this {

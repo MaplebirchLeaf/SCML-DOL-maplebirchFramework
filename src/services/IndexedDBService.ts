@@ -1,5 +1,6 @@
 // ./src/services/IndexedDBService.ts
 
+import { openDB, deleteDB, type IDBPDatabase } from 'idb';
 import { version } from './../constants';
 import type { MaplebirchCore } from '../core';
 
@@ -17,7 +18,7 @@ class IndexedDBService {
   static DATABASE_NAME = 'maplebirch';
   static DATABASE_VERSION: number;
 
-  private db: any = null;
+  private db: IDBPDatabase<unknown> | null = null;
   private ready = false;
   private opening: Promise<void> | null = null;
   private stores = new Map<string, StoreDefinition>();
@@ -45,10 +46,7 @@ class IndexedDBService {
     if (this.opening) return this.opening;
     this.opening = (async () => {
       try {
-        const idbRef = this.core.modUtils.getIdbRef();
-        this.db = await idbRef.idb_openDB(IndexedDBService.DATABASE_NAME, IndexedDBService.DATABASE_VERSION, {
-          upgrade: (db: IDBDatabase, _oldVersion: any, _newVersion: any, transaction: IDBTransaction) => this.createStores(db, transaction)
-        });
+        this.db = await openDB(IndexedDBService.DATABASE_NAME, IndexedDBService.DATABASE_VERSION, { upgrade: db => this.createStores(db) });
         this.ready = true;
         this.core.logger.log('IDB数据库初始化完成', 'INFO', this.stores);
       } catch (error: any) {
@@ -67,7 +65,7 @@ class IndexedDBService {
     }
   }
 
-  private createStores(db: IDBDatabase, _transaction: IDBTransaction): void {
+  private createStores(db: IDBPDatabase<unknown>): void {
     for (const storeDef of this.stores.values()) {
       if (!db.objectStoreNames.contains(storeDef.name)) {
         const store = db.createObjectStore(storeDef.name, storeDef.options);
@@ -121,8 +119,7 @@ class IndexedDBService {
       }
       this.ready = false;
       this.opening = null;
-      const idbRef = this.core.modUtils.getIdbRef();
-      await idbRef.idb_deleteDB(IndexedDBService.DATABASE_NAME);
+      await deleteDB(IndexedDBService.DATABASE_NAME);
       return true;
     } catch (error: any) {
       this.core.logger.log(`删除数据库失败: ${error?.message || error}`, 'ERROR');

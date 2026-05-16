@@ -256,7 +256,7 @@ export class WeatherManager {
   }
 
   async modifyWeatherJavaScript(manager: AddonPlugin): Promise<void> {
-    const oldSCdata = manager.gSC2DataManager.getSC2DataInfoAfterPatch();
+    const oldSCdata = manager.SC2DataManager.getSC2DataInfoAfterPatch();
     const SCdata = oldSCdata.cloneSC2DataInfo();
     const file = SCdata.scriptFileItems.getByNameWithOrWithoutPath('00-layer-manager.js');
     const replacements: [RegExp, string][] = [
@@ -266,6 +266,6 @@ export class WeatherManager {
       ]
     ];
     file.content = manager.replace(file.content, replacements);
-    manager.gModUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
+    manager.modUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
   }
 }

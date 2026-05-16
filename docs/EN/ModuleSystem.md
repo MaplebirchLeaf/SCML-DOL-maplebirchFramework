@@ -8,11 +8,11 @@
 maplebirch.register(name, module, dependencies);
 ```
 
-| Argument | Description |
-| :--- | :--- |
-| `name` | Module name |
-| `module` | Module object, optionally with lifecycle methods |
-| `dependencies` | Optional dependency names |
+| Argument       | Description                                      |
+| :------------- | :----------------------------------------------- |
+| `name`         | Module name                                      |
+| `module`       | Module object, optionally with lifecycle methods |
+| `dependencies` | Optional dependency names                        |
 
 Example:
 
@@ -79,28 +79,28 @@ const graph = maplebirch.dependencyGraph;
 
 Common fields:
 
-| Field | Description |
-| :--- | :--- |
-| `protected` | Whether this is a protected module |
-| `mounted` | Whether this belongs to the framework core mount list |
-| `early` | Whether it is mounted early after `preInit` |
-| `dependencies` | Direct dependencies |
-| `dependents` | Modules that depend on this module |
-| `allDependencies` | Transitive dependencies |
-| `state` | Current module state |
-| `source` | Source mod name when recorded by the loader |
+| Field             | Description                                           |
+| :---------------- | :---------------------------------------------------- |
+| `protected`       | Whether this is a protected module                    |
+| `mounted`         | Whether this belongs to the framework core mount list |
+| `early`           | Whether it is mounted early after `preInit`           |
+| `dependencies`    | Direct dependencies                                   |
+| `dependents`      | Modules that depend on this module                    |
+| `allDependencies` | Transitive dependencies                               |
+| `state`           | Current module state                                  |
+| `source`          | Source mod name when recorded by the loader           |
 
 ## Module States
 
 Current `ModuleState` values:
 
-| State | Value | Meaning |
-| :--- | :--- | :--- |
-| `REGISTERED` | `0` | Registered and waiting for initialization |
-| `MOUNTED` | `1` | Main initialization completed |
-| `ERROR` | `2` | Initialization failed |
-| `EXPOSED` | `3` | Exposed module mounted directly on the framework object |
-| `DISABLED` | `4` | Disabled and skipped |
+| State        | Value | Meaning                                                 |
+| :----------- | :---- | :------------------------------------------------------ |
+| `REGISTERED` | `0`   | Registered and waiting for initialization               |
+| `MOUNTED`    | `1`   | Main initialization completed                           |
+| `ERROR`      | `2`   | Initialization failed                                   |
+| `EXPOSED`    | `3`   | Exposed module mounted directly on the framework object |
+| `DISABLED`   | `4`   | Disabled and skipped                                    |
 
 Completing `preInit` does not change the public module state. The module enters `MOUNTED` only after main initialization succeeds.
 
@@ -108,12 +108,12 @@ Completing `preInit` does not change the public module state. The module enters 
 
 All hooks are optional.
 
-| Hook | Timing | Typical use |
-| :--- | :--- | :--- |
-| `preInit()` | After `:allModule`, once IndexedDB and logging are ready | Prepare resources, config, or caches |
-| `Init()` | During `:passagestart` when normal gameplay begins | Main setup with `setup` and `V` available |
-| `loadInit()` | After loading a save | Restore save-dependent state |
-| `postInit()` | Each passage start after main/load init | Refresh passage-scoped behavior |
+| Hook         | Timing                                                             | Typical use                               |
+| :----------- | :----------------------------------------------------------------- | :---------------------------------------- |
+| `preInit()`  | After `afterInjectEarlyLoad`, once IndexedDB and logging are ready | Prepare resources, config, or caches      |
+| `Init()`     | During `:passagestart` when normal gameplay begins                 | Main setup with `setup` and `V` available |
+| `loadInit()` | After loading a save                                               | Restore save-dependent state              |
+| `postInit()` | Each passage start after main/load init                            | Refresh passage-scoped behavior           |
 
 Example:
 

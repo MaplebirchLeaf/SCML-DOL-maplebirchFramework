@@ -42,7 +42,7 @@ function loadFromMod(modZip: ModZipReader, npcNames: string[]) {
   if (!modZip || !Array.isArray(npcNames) || npcNames.length === 0) return [];
   const paths: string[] = [];
   for (const name of npcNames) {
-    const npcName = convert(name, 'capitalize');
+    const npcName = convert(name, 'title');
     if (!display.has(npcName)) display.set(npcName, new Set());
     const npcSet = display.get(npcName)!;
     const folder = `img/ui/nnpc/${npcName.toLowerCase()}/`;

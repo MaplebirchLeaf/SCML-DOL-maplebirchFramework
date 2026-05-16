@@ -217,7 +217,7 @@ class NPCSidebarArt {
       dataArray.forEach((item: any, index: number) => {
         if (!item?.name) return;
 
-        const npcName = convert(item.name, 'capitalize');
+        const npcName = convert(item.name, 'title');
         const key = dataArray.length > 1 ? `${modName}_${fileName}_${index}` : fileName;
 
         if (item.body) imagePaths.push(item.body);
