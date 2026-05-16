@@ -20,7 +20,6 @@ class EventEmitter {
       [':indexedDB'      , []], // IDB数据库
       [':idbReady'       , []], // IDB数据库可读写
       [':import'         , []], // 数据导入
-      [':allModule'      , []], // 所有模块注册
       [':variable'       , []], // V变量可注入时机
       [':onSave'         , []], // 存档
       [':onLoad'         , []], // 读档

@@ -183,17 +183,17 @@ export class zonesManager {
       }));
   }
 
-  async patchModToGame(manager: AddonPlugin, type: 'before' | 'after'): Promise<void> {
-    const oldSCdata = manager.gSC2DataManager.getSC2DataInfoAfterPatch();
+  patchModToGame(manager: AddonPlugin, type: 'before' | 'after'): void {
+    const oldSCdata = manager.SC2DataManager.getSC2DataInfoAfterPatch();
     const SCdata = oldSCdata.cloneSC2DataInfo();
     const passageData = SCdata.passageDataItems.map;
     if (type === 'before') {
-      await this.widgetInit(passageData);
+      this.widgetInit(passageData);
       this.widgethtml = '';
     }
     for (const [title, passage] of passageData) {
       try {
-        await this.patchPassage(type, passage, title);
+        this.patchPassage(type, passage, title);
       } catch (error: any) {
         const message = error?.message || error;
         this.log(`处理段落 ${title} 时出错: ${message}`, 'ERROR', error);
@@ -201,7 +201,7 @@ export class zonesManager {
       }
     }
     SCdata.passageDataItems.back2Array();
-    manager.gModUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
+    manager.modUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
     this.log('框架补丁应用完成', 'DEBUG');
   }
 
@@ -344,7 +344,7 @@ export class zonesManager {
     passage.content = content;
   }
 
-  private async patchPassage(type: 'before' | 'after', passage: any, title: string): Promise<void> {
+  private patchPassage(type: 'before' | 'after', passage: any, title: string): void {
     const isWidget = Array.isArray(passage.tags) && passage.tags.includes('widget');
     if (type === 'before') {
       this.applyContentPatches(passage, title, isWidget ? this.widgetPassage : this.locationPassage);
@@ -353,7 +353,7 @@ export class zonesManager {
     if (!isWidget) this.wrapSpecialPassage(passage, title);
   }
 
-  private async widgetInit(passageData: Map<string, any>): Promise<Map<string, any>> {
+  private widgetInit(passageData: Map<string, any>): Map<string, any> {
     this.widgethtml = this.widgets + this.specials;
     // prettier-ignore
     const data = {

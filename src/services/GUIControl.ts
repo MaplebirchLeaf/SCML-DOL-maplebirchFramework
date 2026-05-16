@@ -2,7 +2,8 @@
 
 import type { ModSubUiAngularJsService } from '@scml/types/Mod_LoaderGui/ModSubUiAngularJsService';
 import maplebirch, { type MaplebirchCore } from '../core';
-import { convert } from '../utils';
+import Gui from '@/twee/Gui.twee?raw';
+import { widgets, convert } from '../utils';
 import { Config } from './../constants';
 
 type ModuleType = 'protected' | 'mounted' | 'exposed' | 'module';
@@ -226,55 +227,7 @@ class GUIControl {
         componentName: 'maplebirchControlComponent',
         componentOptions: {
           bindings: { data: '<' },
-          template: `
-          <div id='maplebirch'>
-            <div class='title-container'>{{t($ctrl.data.text.Title)}}</div>
-            <div class='content-container'>
-              <div style='display: flex; align-items: center;'>
-                <label>{{t($ctrl.data.text.LanguageSelection)}}</label>
-                <select ng-model='$ctrl.data.Language' ng-change='changeLanguage()'>
-                  <option ng-repeat='lang in languages' value='{{lang.code}}'>{{lang.name}}</option>
-                </select>
-                <div ng-if='isDEBUG()' style='margin-left: auto;'>
-                  <input type='button' value='{{t($ctrl.data.text.ClearIndexedDB)}}' ng-click='ClearIndexedDB()' class='theme-button' />
-                </div>
-              </div>
-              <input type='button' ng-click="EnableDisableItem('enable')" ng-value="DEBUGMODE('enable')" class='theme-button' />
-              <input type='button' ng-click="EnableDisableItem('disable')" ng-value="DEBUGMODE('disable')" class='theme-button' />
-              <input type='text' readonly='true' ng-value='DEBUGSTATUS()' /><br>
-              <textarea ng-model='$ctrl.data.moduleText' readonly='true'></textarea>
-              <div ng-if='isDEBUG()' class='module-settings-container'>
-                <div class='settings-panel'>
-                  <div class='module-list-enabled'>
-                    <div ng-repeat='module in $ctrl.data.enabledModules track by $index' ng-click="selectModule($index, 'enabled')" ng-class="{'selected': selectedEnabledModule === $index}">
-                      {{typeLabel(module.type)}} {{module.name}} [{{module.source || module.type}}]
-                    </div>
-                  </div>
-                  <input type='button' value='{{t($ctrl.data.text.DisableModule)}}' ng-click="toggleModule('disable')" class='theme-button' />
-                  <input type='button' value='{{t($ctrl.data.text.EnableModule)}}' ng-click="toggleModule('enable')" class='theme-button' />
-                  <div class='module-list-disabled'>
-                    <div ng-repeat='module in $ctrl.data.disabledModules track by $index' ng-click="selectModule($index, 'disabled')" ng-class="{'selected': selectedDisabledModule === $index}">
-                      {{typeLabel(module.type)}} {{module.name}} [{{module.source || module.type}}]
-                    </div>
-                  </div>
-                </div>
-                <div class='settings-panel'>
-                  <div class='module-list-enabled'>
-                    <div ng-repeat='script in $ctrl.data.enabledScripts track by $index' ng-click="selectScript($index, 'enabled')" ng-class="{'selected': selectedEnabledScript === $index}">
-                      {{script}}
-                    </div>
-                  </div>
-                  <input type='button' value='{{t($ctrl.data.text.DisableScript)}}' ng-click="toggleScript('disable')" class='theme-button' />
-                  <input type='button' value='{{t($ctrl.data.text.EnableScript)}}' ng-click="toggleScript('enable')" class='theme-button' />
-                  <div class='module-list-disabled'>
-                    <div ng-repeat='script in $ctrl.data.disabledScripts track by $index' ng-click="selectScript($index, 'disabled')" ng-class="{'selected': selectedDisabledScript === $index}">
-                      {{script}}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>`,
+          template: widgets(Gui),
           controller: [
             '$scope',
             '$compile',

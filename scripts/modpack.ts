@@ -1,8 +1,7 @@
 import AdmZip from 'adm-zip';
 import path from 'node:path';
 import { mkdir } from 'node:fs/promises';
-import { readPackageJSON } from 'pkg-types';
-import { createZip } from './zip';
+import { createZip, resolvePackageInfo, type PackageAsset } from './zip';
 
 const MAGIC_NUMBER = new Uint8Array([0x4a, 0x65, 0x72, 0x65, 0x6d, 0x69, 0x65, 0x4d, 0x6f, 0x64, 0x4c, 0x6f, 0x61, 0x64, 0x65, 0x72]);
 const MOD_META_PROTOCOL_VERSION = 1;
@@ -90,22 +89,15 @@ function serializeBsonDocument(value: Record<string, any>): Uint8Array {
 
   for (const [key, item] of Object.entries(value)) {
     if (item === undefined) continue;
-    push(
-      Uint8Array.of(
-        typeof item === 'string'
-          ? 0x02
-          : typeof item === 'number'
-            ? 0x10
-            : typeof item === 'boolean'
-              ? 0x08
-              : item && typeof item === 'object' && !Array.isArray(item)
-                ? 0x03
-                : (() => {
-                    throw new Error(`Unsupported BSON value for key "${key}"`);
-                  })()
-      )
-    );
+    let type = 0x00;
 
+    if (typeof item === "string") type = 0x02;
+    else if (typeof item === "number") type = 0x10;
+    else if (typeof item === "boolean") type = 0x08;
+    else if (item && typeof item === "object" && !Array.isArray(item)) type = 0x03;
+    else throw new Error(`Unsupported BSON value for key "${key}"`);
+
+    push(Uint8Array.of(type));
     push(TEXT_ENCODER.encode(`${key}\0`));
 
     if (typeof item === 'string') {
@@ -222,14 +214,20 @@ export function createModPackFromZip(modName: string, zipBuffer: Buffer): Buffer
   const files = readZipFiles(zipBuffer);
   const bootFile = files.get('boot.json');
   if (!bootFile) throw new Error('boot.json not found in zip');
-
   return buildModPack(createParts(modName, files, bootFile));
+}
+
+export async function createModPackPackage(rootDir: string, zipBuffer?: Buffer): Promise<PackageAsset> {
+  const info = await resolvePackageInfo(rootDir);
+  return {
+    fileName: `${info.baseName}.modpack`,
+    buffer: createModPackFromZip(info.name, zipBuffer ?? (await createZip(rootDir)))
+  };
 }
 
 function readZipFiles(zipBuffer: Buffer): Map<string, Uint8Array> {
   const zip = new AdmZip(zipBuffer);
   const files = new Map<string, Uint8Array>();
-
   for (const entry of zip.getEntries()) if (!entry.isDirectory) files.set(entry.entryName.replace(/\\/g, '/'), entry.getData());
   return files;
 }
@@ -327,16 +325,11 @@ function writeBlock(target: Uint8Array, offset: number, block: BlockData): numbe
 async function main() {
   const rootDir = path.join(import.meta.dir, '..');
   const packageDir = path.join(rootDir, 'package');
+  const modPackPackage = await createModPackPackage(rootDir);
+  const target = path.join(packageDir, modPackPackage.fileName);
   await mkdir(packageDir, { recursive: true });
-
-  const pkg = await readPackageJSON(rootDir);
-  const gameVersion = pkg.scml.dependenceInfo.find((dep: { modName: string }) => dep.modName === 'GameVersion').version.match(/\d+(\.\d+)*/)?.[0];
-  const modPackPath = path.join(packageDir, `maplebirch-${gameVersion}-v${pkg.version}.modpack`);
-  const zipBuffer = await createZip(rootDir);
-  const modPackBuffer = createModPackFromZip(pkg.name, zipBuffer);
-
-  await Bun.write(modPackPath, modPackBuffer);
-  console.log(`ModPack generated: ${modPackPath}`);
+  await Bun.write(target, modPackPackage.buffer);
+  console.log(`ModPack generated: ${target}`);
 }
 
 if (import.meta.main) {

@@ -334,7 +334,7 @@ class Character {
   }
 
   async modifyPCModel(manager: AddonPlugin) {
-    const oldSCdata = manager.gSC2DataManager.getSC2DataInfoAfterPatch();
+    const oldSCdata = manager.SC2DataManager.getSC2DataInfoAfterPatch();
     const SCdata = oldSCdata.cloneSC2DataInfo();
     const file = SCdata.scriptFileItems.getByNameWithOrWithoutPath('canvasmodel-main.js');
     const replacements: [RegExp, string][] = [
@@ -342,7 +342,7 @@ class Character {
       [/},\n\tlayers/, '\tmaplebirch.char.process("post", options);\n\t},\n\tlayers']
     ];
     file.content = manager.replace(file.content, replacements);
-    manager.gModUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
+    manager.modUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
   }
 
   use(type: CharacterProcessType, fn: CharacterProcessInput): this;
@@ -385,7 +385,7 @@ class Character {
   }
 
   async modifyFaceStyle(manager: AddonPlugin) {
-    const oldSCdata = manager.gSC2DataManager.getSC2DataInfoAfterPatch();
+    const oldSCdata = manager.SC2DataManager.getSC2DataInfoAfterPatch();
     const SCdata = oldSCdata.cloneSC2DataInfo();
     const passageData = SCdata.passageDataItems.map;
     const files = ['Cheats', 'clothesTestingImageGenerate', 'Widgets Mirror', 'Widgets Settings'];
@@ -398,7 +398,7 @@ class Character {
       passageData.set(file, modify);
     }
     SCdata.passageDataItems.back2Array();
-    manager.gModUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
+    manager.modUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
   }
 
   async faceStyleImagePaths() {
@@ -426,7 +426,7 @@ class Character {
         }
         if (this.faceStyleMap.size > 0 && !this.core.modList.includes(modName)) this.core.modList.push(modName);
       } catch (error) {
-        this.log(`${modName}:`, 'ERROR', error);
+        this.log(`[faceStyleImagePaths] ${modName}:`, 'ERROR', error);
       }
     }
   }
@@ -458,14 +458,14 @@ class Character {
     const nextVariantOptions: Record<string, Record<string, string>> = {};
     for (const [style] of this.faceStyleMap) {
       const key = style === 'default' ? 'traditional' : style;
-      nextStyleOptions[convert(this.label(key), 'capitalize')] = style;
+      nextStyleOptions[convert(this.label(key), 'title')] = style;
     }
     for (const [style, variants] of this.faceStyleMap) {
       if (variants.length === 0) continue;
       nextVariantOptions[style] = {};
       for (const variant of variants) {
         const key = variant === 'default' ? 'gentle' : variant;
-        nextVariantOptions[style][convert(this.label(key), 'capitalize')] = variant;
+        nextVariantOptions[style][convert(this.label(key), 'title')] = variant;
       }
     }
     setup.faceStyleOptions = nextStyleOptions;

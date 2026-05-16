@@ -68,7 +68,6 @@ class MaplebirchCore {
   modList: string[];
   readonly manager: { modSC2DataManager: SC2DataManager; modLoaderGui: Gui };
   passage: any;
-  onLoad: boolean;
   readonly yaml: typeof jsyaml;
   readonly howler: { Howl: typeof Howl; Howler: typeof Howler };
   readonly logger: Logger;
@@ -92,7 +91,6 @@ class MaplebirchCore {
     this.modList = [];
     this.manager = { modSC2DataManager, modLoaderGui };
     this.passage = null;
-    this.onLoad = false;
     this.yaml = Object.freeze(jsyaml);
     this.howler = Object.freeze({ Howl, Howler });
     this.logger = Object.seal(new Logger(this));
@@ -102,58 +100,7 @@ class MaplebirchCore {
     this.credential = Object.seal(new CredentialVault(this));
     this.modules = Object.seal(new ModuleSystem(this));
     this.gui = Object.seal(new GUIControl(this));
-
-    this.log(`开始设置初始化流程\n核心系统创建完成(v${MaplebirchCore.meta.version})`, 'INFO');
-    const events = [':passageinit', ':passagestart', ':passagerender', ':passagedisplay', ':passageend', ':storyready'];
-    events.forEach(event => $(document).on(event, (ev: any) => this.trigger(event, ev)));
-
-    this.once(':allModule', async () => {
-      this.log('所有模块注册完成，开始预初始化', 'INFO');
-      await this.trigger(':indexedDB');
-      await this.idb.init();
-      await this.idb.checkStore();
-      await this.logger.fromIDB();
-      await this.trigger(':idbReady');
-      await this.lang.preload();
-      for await (const p of this.lang.import('maplebirch')) if (p.type === 'error') this.log(`导入失败: ${p.language}`, 'ERROR');
-      await this.modules.init('pre');
-    });
-
-    this.on(
-      ':passageinit',
-      async (ev: any) => {
-        this.passage = ev.passage;
-        if (!!this.passage && !this.passage.tags.includes('widget')) this.log(`处理段落: ${this.passage.title}`, 'INFO');
-      },
-      'collect passages'
-    );
-
-    this.on(
-      ':passagestart',
-      async () => {
-        if (!this.passage || this.passage.title === 'Start' || this.passage.title === 'Downgrade Waiting Room') return;
-        this.modules.initPhase.postInitExecuted = false;
-        await this.modules.init('init');
-        if (!this.onLoad) {
-          await this.modules.init('post');
-          return;
-        }
-        await this.modules.init('load');
-        void this.trigger(':onLoadSave').then(async () => await this.modules.init('post'));
-        this.onLoad = false;
-      },
-      'loadInit'
-    );
-
-    this.once(':storyready', async () => {
-      this.SugarCube.Save.onSave.add(async () => this.trigger(':onSave'));
-      this.SugarCube.Save.onLoad.add(async () => {
-        await this.trigger(':onLoad').then(() => (this.onLoad = true));
-        this.modules.initPhase.loadInitExecuted = false;
-      });
-    });
-
-    this.log('初始化流程设置结束', 'INFO');
+    this.log(`框架核心系统创建完成(v${MaplebirchCore.meta.version})`, 'INFO');
   }
 
   log(msg: string, level: string = 'INFO', ...objs: any[]): void {
