@@ -194,9 +194,7 @@ class CredentialVault {
         createdAt: Date.now()
       });
     }
-    const register = (this.core.modUtils as any).lazyRegisterNewModZipData;
-    if (typeof register !== 'function') throw new Error('ModLoader 懒加载接口不可用');
-    if (await register.call(this.core.modUtils, result.data, options.lazyOptions)) return true;
+    if (await this.core.modUtils.lazyRegisterNewModZipData.call(this.core.modUtils, result.data, options.lazyOptions)) return true;
     this.core.log(`模组加密验证失败，已禁用: ${modName}`, 'ERROR');
     await this.core.disabled(modName, false);
     return false;
