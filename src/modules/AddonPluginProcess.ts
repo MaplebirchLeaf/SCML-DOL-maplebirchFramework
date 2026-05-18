@@ -257,7 +257,7 @@ class AddonPluginProcess {
       params.type = 'npc-sidebar';
       plugin.params = params;
       modInfo.imgs = imgs;
-      await window.addonBeautySelectorAddon.registerMod('BeautySelectorAddon', modInfo, modZip as any);
+      await window.addonBeautySelectorAddon.registerMod('BeautySelectorAddon', modInfo, modZip);
       addon.core.log(`成功注册 ${modName} 的 ${imgs.length} 个 NPC 侧边栏图片`, 'DEBUG');
     } catch (error: any) {
       addon.core.log(`注册 ${modName} 的 NPC 侧边栏图片失败: ${error?.message || error}`, 'ERROR');
