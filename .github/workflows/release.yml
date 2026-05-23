@@ -4,17 +4,73 @@ on:
   push:
     tags:
       - 'maplebirch-release-v*'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        required: false
+        default: ''
+      extra_build_refs:
+        required: false
+        default: 'dol-v0.5.8.10'
 
 jobs:
-  release:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.release.outputs.VERSION }}
+      tag_name: ${{ steps.release.outputs.TAG_NAME }}
+      build_matrix: ${{ steps.matrix.outputs.BUILD_MATRIX }}
+    steps:
+      - name: Resolve release refs
+        id: release
+        env:
+          RELEASE_TAG_INPUT: ${{ inputs.release_tag }}
+        run: |
+          TAG_NAME="${RELEASE_TAG_INPUT:-${GITHUB_REF_NAME}}"
+          if [[ "$TAG_NAME" != maplebirch-release-v* ]]; then
+            echo "Error: release tag must match maplebirch-release-v* (got: $TAG_NAME)"
+            exit 1
+          fi
+
+          VERSION="${TAG_NAME#maplebirch-release-v}"
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "TAG_NAME=$TAG_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Build matrix
+        id: matrix
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.TAG_NAME }}
+          EXTRA_BUILD_REFS: ${{ inputs.extra_build_refs || vars.RELEASE_EXTRA_BUILD_REFS || 'dol-v0.5.8.10' }}
+        run: |
+          node <<'NODE' >> "$GITHUB_OUTPUT"
+          const releaseTag = process.env.RELEASE_TAG;
+          const extras = (process.env.EXTRA_BUILD_REFS || '')
+            .split(/[\n,]/)
+            .map(ref => ref.trim())
+            .filter(Boolean);
+
+          const refs = [releaseTag, ...extras.filter(ref => ref !== releaseTag)];
+          const include = refs.map(ref => ({
+            ref,
+            label: ref.replace(/^refs\/(?:heads|tags)\//, '').replace(/[^A-Za-z0-9._-]+/g, '-')
+          }));
+
+          console.log(`BUILD_MATRIX=${JSON.stringify({ include })}`);
+          NODE
+
+  build:
+    needs: prepare
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.build_matrix) }}
     steps:
-      - name: Checkout code
+      - name: Checkout ${{ matrix.ref }}
         uses: actions/checkout@v4
         with:
+          ref: ${{ matrix.ref }}
           fetch-depth: 0
 
       - name: Setup Bun
@@ -25,51 +81,68 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Build and Package
-        run: bun run build:all
-
-      - name: Parse Version from Tag
-        id: get_version
-        run: |
-          VERSION="${GITHUB_REF#refs/tags/maplebirch-release-v}"
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "TAG_NAME=maplebirch-release-v$VERSION" >> $GITHUB_OUTPUT
-
       - name: Verify Version Consistency
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
-          TAG_VERSION="${{ steps.get_version.outputs.VERSION }}"
+          TAG_VERSION="${{ needs.prepare.outputs.version }}"
           if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
-            echo "Error: Version mismatch (package.json: $PKG_VERSION, tag: $TAG_VERSION)"
+            echo "Error: Version mismatch on ${{ matrix.ref }} (package.json: $PKG_VERSION, tag: $TAG_VERSION)"
             exit 1
           fi
+
+      - name: Build and Package
+        run: bun run build:all
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ matrix.label }}
+          path: package/*.modpack
+          if-no-files-found: error
+
+  release:
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.tag_name }}
+          fetch-depth: 0
+
+      - name: Download package artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
 
       - name: Find Previous Tag
         id: prev_tag
         run: |
-          CURRENT_TAG="${{ steps.get_version.outputs.TAG_NAME }}"
+          CURRENT_TAG="${{ needs.prepare.outputs.tag_name }}"
           PREV_TAG=$(git tag --list 'maplebirch-release-v*' --sort=-version:refname | grep -Fxv "$CURRENT_TAG" | head -n 1 || true)
-          echo "PREV_TAG=$PREV_TAG" >> $GITHUB_OUTPUT
+          echo "PREV_TAG=$PREV_TAG" >> "$GITHUB_OUTPUT"
 
       - name: Build Compare Link
         id: compare_link
         run: |
-          CURRENT_TAG="${{ steps.get_version.outputs.TAG_NAME }}"
+          CURRENT_TAG="${{ needs.prepare.outputs.tag_name }}"
           PREV_TAG="${{ steps.prev_tag.outputs.PREV_TAG }}"
 
           if [ -n "$PREV_TAG" ]; then
             COMPARE_URL="${{ github.server_url }}/${{ github.repository }}/compare/tags/$PREV_TAG...tags/$CURRENT_TAG"
-            echo "compare_md=- [查看版本差异]($COMPARE_URL)" >> $GITHUB_OUTPUT
+            echo "compare_md=- [查看版本差异]($COMPARE_URL)" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Extract Changelog
         id: extract_changelog
         run: |
-          CURRENT_VERSION="${{ steps.get_version.outputs.VERSION }}"
+          CURRENT_VERSION="${{ needs.prepare.outputs.version }}"
           CHANGELOG_FILE="UPDATE.md"
 
           if [ ! -f "$CHANGELOG_FILE" ]; then
-            echo "changelog_body=UPDATE.md file not found." >> $GITHUB_OUTPUT
+            echo "changelog_body=UPDATE.md file not found." >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -81,11 +154,11 @@ jobs:
           ' "$CHANGELOG_FILE")
 
           if [ -z "$LOG_CONTENT" ]; then
-            echo "changelog_body=No changelog found for v.$CURRENT_VERSION." >> $GITHUB_OUTPUT
+            echo "changelog_body=No changelog found for v.$CURRENT_VERSION." >> "$GITHUB_OUTPUT"
           else
-            echo "changelog_body<<EOF" >> $GITHUB_OUTPUT
-            echo "$LOG_CONTENT" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
+            echo "changelog_body<<EOF" >> "$GITHUB_OUTPUT"
+            echo "$LOG_CONTENT" >> "$GITHUB_OUTPUT"
+            echo "EOF" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Create Release
@@ -93,10 +166,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: 'SCML-maplebirchFrameworks-version-${{ steps.get_version.outputs.VERSION }}'
-          tag_name: ${{ steps.get_version.outputs.TAG_NAME }}
+          name: 'SCML-maplebirchFrameworks-version-${{ needs.prepare.outputs.version }}'
+          tag_name: ${{ needs.prepare.outputs.tag_name }}
           body: |
-            #### v.${{ steps.get_version.outputs.VERSION }} 更新日志
+            #### v.${{ needs.prepare.outputs.version }} 更新日志
             ${{ steps.extract_changelog.outputs.changelog_body }}
 
             #### 相关链接
@@ -106,5 +179,4 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: false
-          files: |
-            package/*.modpack
+          files: release-assets/**/*.modpack
