@@ -453,14 +453,18 @@ class Character {
     for (const modName of this.core.modUtils.getModListNameNoAlias()) {
       try {
         const mod = this.core.modUtils.getMod(modName);
-        const modZip = this.core.modUtils.getModZip(modName);
-        const hasBeautySelectorAddon = mod.bootJson.addonPlugin?.some((plugin: { modName: string }) => plugin.modName === 'BeautySelectorAddon');
-        if (!hasBeautySelectorAddon || !modZip) continue;
-        for (const filePath of Object.keys(modZip.zip.files)) {
+        const hasBeautySelectorAddon = mod?.bootJson.addonPlugin?.some((plugin: { modName: string }) => plugin.modName === 'BeautySelectorAddon');
+        if (!hasBeautySelectorAddon) continue;
+        const zip = this.core.modUtils.getModZip(modName)?.getZipFile?.();
+        const files = zip?.files;
+        if (!files) continue;
+        let hasFacePath = false;
+        for (const filePath of Object.keys(files)) {
           const faceIndex = filePath.indexOf('img/face/');
           if (faceIndex === -1) continue;
           const pathParts = filePath.substring(faceIndex + 9).split('/');
           if (pathParts.length < 2) continue;
+          hasFacePath = true;
           const firstFolder = pathParts[0];
           const secondFolder = pathParts[1];
           if (firstFolder === 'default') {
@@ -472,7 +476,7 @@ class Character {
             if (pathParts.length >= 3 && secondFolder) this.addFaceOption(firstFolder, secondFolder);
           }
         }
-        if (this.faceStyleMap.size > 0 && !this.core.modList.includes(modName)) this.core.modList.push(modName);
+        if (hasFacePath && !this.core.modList.includes(modName)) this.core.modList.push(modName);
       } catch (error) {
         this.log(`[faceStyleImagePaths] ${modName}:`, 'ERROR', error);
       }
