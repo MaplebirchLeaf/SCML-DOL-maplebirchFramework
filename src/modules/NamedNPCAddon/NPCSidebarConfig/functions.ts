@@ -1,7 +1,7 @@
 // ./src/modules/NamedNPCAddon/NPCSidebarConfig/functions.ts
 
 import maplebirch from '../../../core';
-import { clone, loadImage } from '../../../utils';
+import { clone } from '../../../utils';
 
 type NPCSidebarOptions = {
   filters?: Record<string, any>;
@@ -40,18 +40,29 @@ function compareVersion(version: unknown, target: string) {
   return 0;
 }
 
+function gameVersion() {
+  try {
+    return maplebirch.gameVersion;
+  } catch {
+    return undefined;
+  }
+}
+
 function legacyImagePathsEnabled() {
-  const version = (setup as any).version ?? (setup as any).gameVersion ?? (V as any).version ?? (V as any).gameVersion ?? (State as any)?.variables?.version;
+  const version =
+    gameVersion() ??
+    (globalThis as any).StartConfig?.version ??
+    (setup as any).version ??
+    (setup as any).gameVersion ??
+    (V as any).version ??
+    (V as any).gameVersion ??
+    (State as any)?.variables?.version;
   return versionParts(version).length > 0 && compareVersion(version, '0.5.9.0') < 0;
 }
 
 function imagePath(path: string, ...fallbacks: string[]) {
-  const candidates = legacyImagePathsEnabled() ? [...fallbacks.map(legacyImagePath), legacyImagePath(path), ...fallbacks, path] : [path, ...fallbacks, legacyImagePath(path), ...fallbacks.map(legacyImagePath)];
-  for (const candidate of new Set(candidates)) {
-    const image = loadImage(candidate);
-    if (!(image instanceof Promise) && image) return candidate;
-  }
-  return candidates[0] ?? path;
+  if (!legacyImagePathsEnabled()) return path;
+  return fallbacks[0] ?? legacyImagePath(path);
 }
 
 function lookupColour(dict: { [x: string]: any }, key: string, prefilterName?: string) {
@@ -134,7 +145,7 @@ function clothes_layer(slot: string, type: ClothesType, overrides: any = {}) {
       if (type === 'detail') {
         const alt = clothes.altposition === 'alt' ? '-alt' : '';
         const pattern = clothes.pattern ? clothes.pattern.replace(/ /g, '-') : '';
-        return imagePath(`img/clothes/${folder}/${clothes.variable}/${pattern}${alt}.png`, `img/clothes/${slot}/${clothes.variable}/${pattern}${alt}.png`);
+        return imagePath(`img/clothes/${folder}/${clothes.variable}/${pattern}${alt}.png`, legacyImagePath(`img/clothes/${slot}/${clothes.variable}/${pattern}${alt}.png`));
       }
       const down = (nnpc.hood_down || clothes.hoodposition === 'down') && clothes.hoodposition != null && clothes.outfitPrimary?.head != null;
       const alt = clothes.altposition === 'alt' && (type === 'main' ? !clothes.altdisabled?.includes('full') : type === 'acc' ? !clothes.altdisabled?.includes('acc') : false);
@@ -152,7 +163,7 @@ function clothes_layer(slot: string, type: ClothesType, overrides: any = {}) {
       }
       const filters = layerFilters(slot, type, clothes);
       const path = `img/clothes/${folder}/${clothes.variable}/${prefix}${pattern}${suffix}.png`;
-      return gray_suffix(imagePath(path, path.replace(`/clothes/${folder}/`, `/clothes/${slot}/`)), options.filters?.[filters[0]]);
+      return gray_suffix(imagePath(path, legacyImagePath(path.replace(`/clothes/${folder}/`, `/clothes/${slot}/`))), options.filters?.[filters[0]]);
     },
 
     showfn(options: NPCSidebarOptions) {
@@ -180,7 +191,7 @@ function clothes_breasts(slot: string, type: ClothesType, overrides: any = {}) {
       const nnpc = options.maplebirch.nnpc;
       const clothes = nnpc.clothes[slot];
       const folder = typeof normaliseFileName === 'function' ? normaliseFileName(slot) : slot;
-      if (type === 'main' && clothes.mask_img === 1) return [nnpc.close_up_mask, imagePath(`img/clothes/${folder}/${clothes.variable}/mask-${clothes.integrity}.png`, `img/clothes/${slot}/${clothes.variable}/mask-${clothes.integrity}.png`)];
+      if (type === 'main' && clothes.mask_img === 1) return [nnpc.close_up_mask, imagePath(`img/clothes/${folder}/${clothes.variable}/mask-${clothes.integrity}.png`, legacyImagePath(`img/clothes/${slot}/${clothes.variable}/mask-${clothes.integrity}.png`))];
       return nnpc.close_up_mask;
     },
 
@@ -201,7 +212,7 @@ function clothes_breasts(slot: string, type: ClothesType, overrides: any = {}) {
       }
       if (type === 'detail') {
         const pattern = clothes.pattern ? `-${clothes.pattern.replace(/ /g, '-')}` : '';
-        return imagePath(`img/clothes/${folder}/${clothes.variable}/${breastSize}${pattern}.png`, `img/clothes/${slot}/${clothes.variable}/${breastSize}${pattern}.png`);
+        return imagePath(`img/clothes/${folder}/${clothes.variable}/${breastSize}${pattern}.png`, legacyImagePath(`img/clothes/${slot}/${clothes.variable}/${breastSize}${pattern}.png`));
       }
       const alt = clothes.altposition === 'alt' && type === 'main' && !clothes.altdisabled?.includes('breasts');
       let pattern = '';
@@ -214,7 +225,7 @@ function clothes_breasts(slot: string, type: ClothesType, overrides: any = {}) {
       }
       const filters = layerFilters(slot, type, clothes);
       const path = `img/clothes/${folder}/${clothes.variable}/${breastSize}${extension}${pattern}${alt ? '-alt' : ''}.png`;
-      return gray_suffix(imagePath(path, path.replace(`/clothes/${folder}/`, `/clothes/${slot}/`)), options.filters?.[filters[0]]);
+      return gray_suffix(imagePath(path, legacyImagePath(path.replace(`/clothes/${folder}/`, `/clothes/${slot}/`))), options.filters?.[filters[0]]);
     },
 
     showfn(options: NPCSidebarOptions) {
@@ -281,7 +292,7 @@ function clothes_arm(slot: string, side: Side, overrides: any = {}) {
       const pattern = clothes.sleeve_colour === 'pattern' && clothes.pattern ? `-${clothes.pattern.replace(/ /g, '-')}` : '';
       const filter = sleeveFilter(slot, clothes.sleeve_colour, clothes)[0];
       const path = `img/clothes/${folder}/${clothes.variable}/${side}-${armState(options, side)}${alt}${pattern}${rolled}.png`;
-      return gray_suffix(imagePath(path, path.replace(`/clothes/${folder}/`, `/clothes/${slot}/`)), options.filters?.[filter]);
+      return gray_suffix(imagePath(path, legacyImagePath(path.replace(`/clothes/${folder}/`, `/clothes/${slot}/`))), options.filters?.[filter]);
     },
 
     showfn(options: NPCSidebarOptions) {
@@ -315,7 +326,7 @@ function clothes_arm_acc(slot: string, side: Side, overrides: any = {}) {
       const suffix = altPosition ? '-alt-acc' : '-acc';
       const filter = sleeveFilter(slot, clothes.accessory_colour_sidebar, clothes)[0];
       const path = `img/clothes/${folder}/${clothes.variable}/${side}-${armState(options, side)}${suffix}.png`;
-      return gray_suffix(imagePath(path, path.replace(`/clothes/${folder}/`, `/clothes/${slot}/`)), options.filters?.[filter]);
+      return gray_suffix(imagePath(path, legacyImagePath(path.replace(`/clothes/${folder}/`, `/clothes/${slot}/`))), options.filters?.[filter]);
     },
 
     showfn(options: NPCSidebarOptions) {
@@ -364,7 +375,7 @@ function clothes_back(slot: string, overrides: any = {}) {
       const pattern = clothes.pattern && !['tertiary', 'secondary'].includes(clothes.pattern_layer) ? `-${clothes.pattern.replace(/ /g, '-')}` : '';
       const filter = backFilter(slot, clothes.back_img_colour)[0];
       const path = `img/clothes/${folder}/${clothes.variable}/${prefix}${suffix}${pattern}.png`;
-      return gray_suffix(imagePath(path, path.replace(`/clothes/${folder}/`, `/clothes/${slot}/`)), options.filters?.[filter]);
+      return gray_suffix(imagePath(path, legacyImagePath(path.replace(`/clothes/${folder}/`, `/clothes/${slot}/`))), options.filters?.[filter]);
     },
 
     showfn(options: NPCSidebarOptions) {
@@ -401,7 +412,7 @@ function clothes_back_acc(slot: string, overrides: any = {}) {
       const pattern = clothes.pattern && clothes.pattern_layer === 'secondary' ? `-${clothes.pattern.replace(/ /g, '-')}` : '';
       const filter = backFilter(slot, clothes.back_img_acc_colour)[0];
       const path = `img/clothes/${folder}/${clothes.variable}/${prefix}${suffix}${pattern}-acc.png`;
-      return gray_suffix(imagePath(path, path.replace(`/clothes/${folder}/`, `/clothes/${slot}/`)), options.filters?.[filter]);
+      return gray_suffix(imagePath(path, legacyImagePath(path.replace(`/clothes/${folder}/`, `/clothes/${slot}/`))), options.filters?.[filter]);
     },
 
     showfn(options: NPCSidebarOptions) {
@@ -445,7 +456,7 @@ function clothes_hand(side: Side, type: ClothesType, overrides: any = {}) {
       const folder = normaliseFileName?.('hands') ?? 'hands';
       if (type === 'detail') {
         const pattern = hands.pattern ? `-${hands.pattern.replace(/ /g, '-')}` : '';
-        return imagePath(`img/clothes/${folder}/${hands.variable}/${suffix}${pattern}.png`, `img/clothes/hands/${hands.variable}/${suffix}${pattern}.png`);
+        return imagePath(`img/clothes/${folder}/${hands.variable}/${suffix}${pattern}.png`, legacyImagePath(`img/clothes/hands/${hands.variable}/${suffix}${pattern}.png`));
       }
       let pattern = '';
       let extension = '';
@@ -456,7 +467,7 @@ function clothes_hand(side: Side, type: ClothesType, overrides: any = {}) {
       }
       const path = `img/clothes/${folder}/${hands.variable}/${suffix}${pattern}${extension}.png`;
       const filter = type === 'main' ? 'nnpc_hands' : 'nnpc_hands_acc';
-      return gray_suffix(imagePath(path, path.replace(`/clothes/${folder}/`, '/clothes/hands/')), options.filters?.[filter]);
+      return gray_suffix(imagePath(path, legacyImagePath(path.replace(`/clothes/${folder}/`, '/clothes/hands/'))), options.filters?.[filter]);
     },
 
     showfn(options: NPCSidebarOptions) {

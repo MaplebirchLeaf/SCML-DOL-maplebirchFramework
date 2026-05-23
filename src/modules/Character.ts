@@ -77,8 +77,24 @@ function faceStyleSrcFn(name: FaceStyleNameFn | string) {
   };
 }
 
+function faceStyleRootSrcFn(name: FaceStyleNameFn | string) {
+  const getName: FaceStyleNameFn = typeof name === 'function' ? name : () => name;
+  return function (layerOptions: FaceStyleOptions): string {
+    const image = getName(layerOptions);
+    if (characterLegacyImagePathsEnabled()) return `img/face/${layerOptions.facestyle}/${image}.png`;
+    return faceStyleSrcFn(name)(layerOptions);
+  };
+}
+
 function characterLegacyImagePathsEnabled() {
-  const version = (setup as any).version ?? (setup as any).gameVersion ?? (V as any).version ?? (V as any).gameVersion ?? (State as any)?.variables?.version;
+  const version =
+    gameVersion() ??
+    (globalThis as any).StartConfig?.version ??
+    (setup as any).version ??
+    (setup as any).gameVersion ??
+    (V as any).version ??
+    (V as any).gameVersion ??
+    (State as any)?.variables?.version;
   const match = String(version ?? '').match(/\d+(?:\.\d+)*/);
   if (!match) return false;
   const left = match[0].split('.').map(part => Number(part) || 0);
@@ -92,6 +108,14 @@ function characterLegacyImagePathsEnabled() {
 
 function characterImagePath(path: string, legacyPath = path.replace(/-/g, '')) {
   return characterLegacyImagePathsEnabled() ? legacyPath : path;
+}
+
+function gameVersion() {
+  try {
+    return maplebirch.gameVersion;
+  } catch {
+    return undefined;
+  }
 }
 
 const maskCache = new Map<string, string>();
@@ -303,16 +327,16 @@ const layers: CharacterLayerMap = {
     srcfn: faceStyleSrcFn((options: FaceStyleOptions) => `brow-${options.brows}`)
   },
   mouth: {
-    srcfn: faceStyleSrcFn((options: FaceStyleOptions) => `mouth-${options.mouth}`)
+    srcfn: faceStyleRootSrcFn((options: FaceStyleOptions) => `mouth-${options.mouth}`)
   },
   makeup_lipstick: {
-    srcfn: faceStyleSrcFn((options: FaceStyleOptions) => `lipstick-${options.mouth}`)
+    srcfn: faceStyleRootSrcFn((options: FaceStyleOptions) => `lipstick-${options.mouth}`)
   },
   blush: {
-    srcfn: faceStyleSrcFn((options: FaceStyleOptions) => characterImagePath(`blush-${options.blush}`, `blush${options.blush}`))
+    srcfn: faceStyleRootSrcFn((options: FaceStyleOptions) => characterImagePath(`blush-${options.blush}`, `blush${options.blush}`))
   },
   tears: {
-    srcfn: faceStyleSrcFn((options: FaceStyleOptions) => characterImagePath(`tears-${options.tears}`, `tear${options.tears}`))
+    srcfn: faceStyleRootSrcFn((options: FaceStyleOptions) => characterImagePath(`tears-${options.tears}`, `tear${options.tears}`))
   },
   makeup_mascara_tears: {
     srcfn: faceStyleSrcFn((options: FaceStyleOptions) => `makeup/mascara${options.mascara_running}`)

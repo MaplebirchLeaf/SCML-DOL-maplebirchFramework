@@ -179,8 +179,10 @@ const base_layers = {
       const underLower = nnpc.clothes.under_lower;
       if (underLower.type?.includes('strap-on') && underLower.state === 'waist') return '';
       const folder = nnpc.balls ? 'penis' : 'penis-no-balls';
+      const legacyFolder = nnpc.balls ? 'penis' : 'penisnoballs';
       const legacyPrefix = String(nnpc.penis).includes('virgin') ? 'penis_virgin' : 'penis';
-      return imagePath(`img/body/${folder}/${nnpc.penis}.png`, `img/body/penis/${legacyPrefix}${nnpc.penis_size || 0}.png`);
+      const legacySize = Math.max(1, Math.min((nnpc.penis_size || 0) - 2, 4));
+      return imagePath(`img/body/${folder}/${nnpc.penis}.png`, `img/body/${legacyFolder}/${legacyPrefix}${legacySize}.png`);
     },
 
     showfn(options: NPCSidebarOptions) {
