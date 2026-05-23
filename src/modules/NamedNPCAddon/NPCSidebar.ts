@@ -3,7 +3,7 @@
 import type { ModZipReader } from '@scml/types/sugarcube-2-ModLoader/ModZipReader';
 import maplebirch from '../../core';
 import { convert } from '../../utils';
-import { lookupColour, clothes_layer, imagePath } from './NPCSidebarConfig/functions';
+import { lookupColour, clothes_layer } from './NPCSidebarConfig/functions';
 import base_layers from './NPCSidebarConfig/base_layers';
 import head_layers from './NPCSidebarConfig/head_layers';
 import face_layers from './NPCSidebarConfig/face_layers';
@@ -316,34 +316,34 @@ function setupMaskData(nnpc: Record<string, any>) {
   const thickTails = ['scorpion tails', 'thick pigtails', 'thick twintails'];
   const furCap = ['furcap f', 'furcap m'];
 
-  if (clothes.upper.mask_img === 1 && clothes.upper.name === 'cocoon') nnpc.head_mask.push(imagePath('img/clothes/upper/cocoon/mask.png'));
+  if (clothes.upper.mask_img === 1 && clothes.upper.name === 'cocoon') nnpc.head_mask.push('img/clothes/upper/cocoon/mask.png');
 
   if (clothes.over_head.mask_img === 1 && !(nnpc.hood_down && clothes.over_head.hood && clothes.over_head.outfitSecondary !== undefined)) {
-    nnpc.head_mask.push(imagePath(`img/clothes/over_head/${clothes.over_head.variable}/mask.png`, `img/clothes/head/${clothes.over_head.variable}/mask.png`));
+    nnpc.head_mask.push(`img/clothes/head/${clothes.over_head.variable}/mask.png`);
   }
 
   if (clothes.head.mask_img === 1 && !(nnpc.hood_down && clothes.head.hood && clothes.head.outfitSecondary !== undefined)) {
     const ponytail = (clothes.head.mask_img_ponytail === 1 && hairTails.includes(nnpc.hair_sides_type)) || (thickTails.includes(nnpc.hair_sides_type) && furCap.includes(clothes.head.variable));
-    nnpc.head_mask.push(imagePath(`img/clothes/head/${clothes.head.variable}/${ponytail ? 'mask-ponytail' : 'mask'}.png`));
+    nnpc.head_mask.push(`img/clothes/head/${clothes.head.variable}/${ponytail ? 'mask_ponytail' : 'mask'}.png`);
   }
 
-  if (clothes.handheld.mask_img === 1) nnpc.head_mask.push(imagePath(`img/clothes/handheld/${clothes.handheld.variable}/mask.png`));
+  if (clothes.handheld.mask_img === 1) nnpc.head_mask.push(`img/clothes/handheld/${clothes.handheld.variable}/mask.png`);
 
   if (['fro', 'afro pouf', 'afro puffs'].includes(nnpc.hair_sides_type) && nnpc.hair_fringe_type === 'fro') {
-    nnpc.fringe_mask_src = imagePath(`img/hair/fringe/${nnpc.hair_fringe_type}/mask.png`);
+    nnpc.fringe_mask_src = `img/hair/fringe/${nnpc.hair_fringe_type}/mask.png`;
   } else {
     nnpc.fringe_mask_src = null;
   }
 
-  if (clothes.upper.mask_img === 1) nnpc.upper_mask.push(imagePath(`img/clothes/upper/${clothes.upper.variable}/${clothes.upper.integrity}.png`));
-  if (clothes.lower.mask_img === 1) nnpc.lower_mask.push(imagePath(`img/clothes/lower/${clothes.lower.variable}/${clothes.lower.integrity}.png`));
+  if (clothes.upper.mask_img === 1) nnpc.upper_mask.push(`img/clothes/upper/${clothes.upper.variable}/${clothes.upper.integrity}.png`);
+  if (clothes.lower.mask_img === 1) nnpc.lower_mask.push(`img/clothes/lower/${clothes.lower.variable}/${clothes.lower.integrity}.png`);
 
   if (nnpc.lower_tucked && !clothes.lower.notuck && !clothes.feet.notuck) {
-    nnpc.feet_clip_src = imagePath(`img/clothes/feet/${clothes.feet.variable}/mask.png`);
+    nnpc.feet_clip_src = `img/clothes/feet/${clothes.feet.variable}/mask.png`;
     nnpc.lower_mask.push(nnpc.feet_clip_src);
     nnpc.legs_mask.push(nnpc.feet_clip_src);
   } else if (!clothes.feet.notuck) {
-    nnpc.legs_mask.push(imagePath(`img/clothes/feet/${clothes.feet.variable}/mask.png`));
+    nnpc.legs_mask.push(`img/clothes/feet/${clothes.feet.variable}/mask.png`);
   } else {
     nnpc.feet_clip_src = null;
   }
@@ -377,7 +377,13 @@ const layers = {
     srcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch!.nnpc!;
       const genitals = nnpc.clothes.genitals;
-      return imagePath(`img/clothes/genitals/${genitals.variable}/${genitals.integrity}.png`);
+      let size = '';
+      if (genitals.penisSize) {
+        if (nnpc.penis_size <= 0) size = '0';
+        else if (nnpc.penis_size <= 2) size = '1';
+        else if (nnpc.penis_size <= 4) size = '2';
+      }
+      return `img/clothes/genitals/${genitals.variable}/${genitals.integrity}${size}.png`;
     },
 
     showfn(options: NPCSidebarOptions) {
@@ -404,7 +410,7 @@ const layers = {
       const artKey = maplebirch.npc.Clothes.art?.get?.(nnpc.name)?.key;
       if (!selected) return;
       if (selected === 'none' || selected === artKey) return;
-      return imagePath(`img/ui/nnpc/${nnpc.name.toLowerCase()}/${selected}.png`);
+      return `img/ui/nnpc/${nnpc.name.toLowerCase()}/${selected}.png`;
     },
 
     showfn(options: NPCSidebarOptions) {

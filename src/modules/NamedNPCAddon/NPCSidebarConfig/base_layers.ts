@@ -1,7 +1,7 @@
 // ./src/modules/NamedNPCAddon/NPCSidebarConfig/base_layers.ts
 
 import maplebirch from '../../../core';
-import { imagePath, nnpc_sidepart } from './functions';
+import { nnpc_sidepart } from './functions';
 
 type NPCSidebarOptions = {
   filters?: Record<string, any>;
@@ -20,7 +20,7 @@ const base_layers = {
     },
     srcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
-      if (nnpc.model) return imagePath('img/body/base-classic.png', 'img/body/basenoarms-classic.png');
+      if (nnpc.model) return 'img/body/basenoarms-classic.png';
       const selected = V.options.maplebirch.npcsidebar.display[nnpc.name];
       const art = maplebirch.npc.Clothes.art.get(nnpc.name);
       if (!selected) return;
@@ -51,7 +51,7 @@ const base_layers = {
     },
     srcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
-      if (nnpc.model) return imagePath('img/body/base-head.png', 'img/body/basehead.png');
+      if (nnpc.model) return 'img/body/basehead.png';
       const selected = V.options.maplebirch.npcsidebar.display[nnpc.name];
       const art = maplebirch.npc.Clothes.art.get(nnpc.name);
       if (!selected) return;
@@ -93,8 +93,8 @@ const base_layers = {
     srcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
       if (!nnpc.breasts) return '';
-      const breastType = nnpc.breasts === 'cleavage' && (nnpc.breast_size ?? 0) >= 3 ? 'clothed' : 'breasts';
-      return imagePath(`img/body/breasts/${breastType}-${nnpc.breast_size ?? 0}.png`, `img/body/breasts/breasts${nnpc.breast_size ?? 0}${breastType === 'clothed' ? '_clothed' : ''}.png`);
+      const suffix = nnpc.breasts === 'cleavage' && (nnpc.breast_size ?? 0) >= 3 ? '_clothed' : '';
+      return `img/body/breasts/breasts${nnpc.breast_size ?? 0}${suffix}.png`;
     },
     showfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
@@ -119,8 +119,7 @@ const base_layers = {
     },
     srcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
-      if (nnpc.arm_left === 'cover') return imagePath('img/body/left-arm-cover.png', 'img/body/leftarmidle-classic.png');
-      return imagePath('img/body/left-arm-idle-classic.png', 'img/body/leftarmidle-classic.png');
+      return 'img/body/leftarmidle-classic.png';
     },
     showfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
@@ -146,8 +145,7 @@ const base_layers = {
     },
     srcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
-      if (nnpc.arm_right === 'idle') return imagePath('img/body/right-arm-idle-classic.png', 'img/body/rightarmidle-classic.png');
-      return imagePath(`img/body/right-arm-${nnpc.arm_right}.png`, 'img/body/rightarmidle-classic.png');
+      return 'img/body/rightarmidle-classic.png';
     },
     showfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
@@ -175,14 +173,13 @@ const base_layers = {
     srcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
       if (!nnpc.name) return '';
-      if (nnpc.genitals_chastity) return imagePath('img/body/penis/chastity.png', 'img/body/penis/penis_chastity.png');
+      if (nnpc.genitals_chastity) return 'img/body/penis/penis_chastity.png';
       const underLower = nnpc.clothes.under_lower;
       if (underLower.type?.includes('strap-on') && underLower.state === 'waist') return '';
-      const folder = nnpc.balls ? 'penis' : 'penis-no-balls';
-      const legacyFolder = nnpc.balls ? 'penis' : 'penisnoballs';
+      const folder = nnpc.balls ? 'penis' : 'penisnoballs';
       const legacyPrefix = String(nnpc.penis).includes('virgin') ? 'penis_virgin' : 'penis';
       const legacySize = Math.max(1, Math.min((nnpc.penis_size || 0) - 2, 4));
-      return imagePath(`img/body/${folder}/${nnpc.penis}.png`, `img/body/${legacyFolder}/${legacyPrefix}${legacySize}.png`);
+      return `img/body/${folder}/${legacyPrefix}${legacySize}.png`;
     },
 
     showfn(options: NPCSidebarOptions) {

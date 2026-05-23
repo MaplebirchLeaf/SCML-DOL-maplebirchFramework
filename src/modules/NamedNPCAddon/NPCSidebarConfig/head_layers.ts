@@ -1,6 +1,6 @@
 // ./src/modules/NamedNPCAddon/NPCSidebarConfig/head_layers.ts
 
-import { gray_suffix, imagePath, clothes_layer, clothes_back, clothes_back_acc } from './functions';
+import { gray_suffix, clothes_layer, clothes_back, clothes_back_acc } from './functions';
 
 type NPCSidebarOptions = {
   filters?: Record<string, any>;
@@ -22,7 +22,7 @@ const head_layers = {
       const nnpc = options.maplebirch.nnpc;
       const head = nnpc.clothes.head;
       const integrity = head.accessory_integrity_img ? nnpc.clothes.upper.integrity : head.integrity;
-      const pattern = head.pattern && !['tertiary', 'secondary'].includes(head.pattern_layer) ? `-${head.pattern.replace(/ /g, '-')}` : '';
+      const pattern = head.pattern && !['tertiary', 'secondary'].includes(head.pattern_layer) ? `_${head.pattern.replace(/ /g, '_')}` : '';
       return gray_suffix(`img/clothes/head/${head.variable}/${integrity}${pattern}.png`, options.filters?.nnpc_head);
     },
 
@@ -36,8 +36,8 @@ const head_layers = {
     srcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
       const head = nnpc.clothes.head;
-      const integrity = head.accessory_integrity_img ? `-${nnpc.clothes.upper.integrity}` : '';
-      const pattern = head.pattern && head.pattern_layer === 'secondary' ? `-${head.pattern.replace(/ /g, '-')}` : '';
+      const integrity = head.accessory_integrity_img ? `_${nnpc.clothes.upper.integrity}` : '';
+      const pattern = head.pattern && head.pattern_layer === 'secondary' ? `_${head.pattern.replace(/ /g, '_')}` : '';
       return gray_suffix(`img/clothes/head/${head.variable}/acc${integrity}${pattern}.png`, options.filters?.nnpc_head_acc);
     },
 
@@ -52,8 +52,8 @@ const head_layers = {
     srcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
       const head = nnpc.clothes.head;
-      const pattern = head.pattern ? head.pattern.replace(/ /g, '-') : '';
-      return imagePath(`img/clothes/head/${head.variable}/${pattern}.png`);
+      const pattern = head.pattern ? head.pattern.replace(/ /g, '_') : '';
+      return `img/clothes/head/${head.variable}/${pattern}.png`;
     },
 
     showfn(options: NPCSidebarOptions) {

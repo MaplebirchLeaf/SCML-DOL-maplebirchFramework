@@ -1,7 +1,7 @@
 // ./src/modules/NamedNPCAddon/NPCSidebarConfig/neck_layers.ts
 
 import maplebirch from '../../../core';
-import { gray_suffix, imagePath, clothes_layer } from './functions';
+import { gray_suffix, clothes_layer } from './functions';
 
 type NPCSidebarOptions = {
   filters?: Record<string, any>;
@@ -16,7 +16,7 @@ const neck_layers = {
   nnpc_neck_main: clothes_layer('neck', 'main', {
     masksrcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
-      if (nnpc.high_waist_suspenders) return [nnpc.close_up_mask, imagePath('img/clothes/neck/suspenders/mask.png')];
+      if (nnpc.high_waist_suspenders) return [nnpc.close_up_mask, 'img/clothes/neck/suspenders/mask.png'];
       return nnpc.close_up_mask;
     },
 
@@ -24,8 +24,8 @@ const neck_layers = {
       const nnpc = options.maplebirch.nnpc;
       const neck = nnpc.clothes.neck;
       const upper = nnpc.clothes.upper;
-      const collar = neck.has_collar === 1 && upper.has_collar === 1 ? '-nocollar' : neck.name === 'sailor ribbon' && upper.name === 'serafuku' ? '-serafuku' : '';
-      const pattern = neck.pattern && !['tertiary', 'secondary'].includes(neck.pattern_layer) ? `-${neck.pattern.replace(/ /g, '-')}` : '';
+      const collar = neck.has_collar === 1 && upper.has_collar === 1 ? '_nocollar' : neck.name === 'sailor ribbon' && upper.name === 'serafuku' ? '_serafuku' : '';
+      const pattern = neck.pattern && !['tertiary', 'secondary'].includes(neck.pattern_layer) ? `_${neck.pattern.replace(/ /g, '_')}` : '';
       return gray_suffix(`img/clothes/neck/${neck.variable}/${neck.integrity}${collar}${pattern}.png`, options.filters?.nnpc_neck);
     },
 
@@ -45,8 +45,8 @@ const neck_layers = {
     srcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
       const neck = nnpc.clothes.neck;
-      const integrity = neck.accessory_integrity_img ? `-${neck.integrity}` : '';
-      const pattern = neck.pattern && neck.pattern_layer === 'secondary' ? `-${neck.pattern.replace(/ /g, '-')}` : '';
+      const integrity = neck.accessory_integrity_img ? `_${neck.integrity}` : '';
+      const pattern = neck.pattern && neck.pattern_layer === 'secondary' ? `_${neck.pattern.replace(/ /g, '_')}` : '';
       return gray_suffix(`img/clothes/neck/${neck.variable}/acc${integrity}${pattern}.png`, options.filters?.nnpc_neck_acc);
     },
 
