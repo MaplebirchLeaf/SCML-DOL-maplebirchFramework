@@ -27,10 +27,13 @@ interface HairGradientPreprocessOptions {
   hair_fringe_colour_gradient?: HairGradientOptions;
   hair_fringe_type?: string;
   show_hair?: boolean;
+  head_mask_src?: string | string[];
   headMask?: string[];
   fringe_mask_src?: string | null;
   maplebirch?: {
     char?: {
+      mask?: number;
+      rotation?: number;
       mask_src?: string;
       mask_src_close_up?: string;
     };
@@ -72,6 +75,23 @@ function faceStyleSrcFn(name: FaceStyleNameFn | string) {
     for (const path of paths) if (!!loadImage(path)) return path;
     return paths[paths.length - 1];
   };
+}
+
+function characterLegacyImagePathsEnabled() {
+  const version = (setup as any).version ?? (setup as any).gameVersion ?? (V as any).version ?? (V as any).gameVersion ?? (State as any)?.variables?.version;
+  const match = String(version ?? '').match(/\d+(?:\.\d+)*/);
+  if (!match) return false;
+  const left = match[0].split('.').map(part => Number(part) || 0);
+  const right = [0, 5, 9, 0];
+  for (let i = 0; i < Math.max(left.length, right.length); i++) {
+    const diff = (left[i] ?? 0) - (right[i] ?? 0);
+    if (diff !== 0) return diff < 0;
+  }
+  return false;
+}
+
+function characterImagePath(path: string, legacyPath = path.replace(/-/g, '')) {
+  return characterLegacyImagePathsEnabled() ? legacyPath : path;
 }
 
 const maskCache = new Map<string, string>();
@@ -159,6 +179,8 @@ function hairColourGradient(part: string, gradient: HairGradientOptions, hairTyp
 function preprocess(options: HairGradientPreprocessOptions) {
   (options.maplebirch ??= {}).char ??= {};
   const characterOptions = V.options?.maplebirch?.character ?? {};
+  options.maplebirch.char.mask = characterOptions.mask ?? 0;
+  options.maplebirch.char.rotation = characterOptions.rotation ?? 0;
   options.maplebirch.char.mask_src = mask(characterOptions.mask ?? 0, characterOptions.rotation ?? 0);
   options.maplebirch.char.mask_src_close_up = mask(characterOptions.mask ?? 0, characterOptions.rotation ?? 0, true);
   const gradients = (style: string, key: string, part: string, type: string, lengthKey: string, prefilter: string) => {
@@ -178,18 +200,19 @@ function preprocess(options: HairGradientPreprocessOptions) {
 const layers: CharacterLayerMap = {
   hair_sides: {
     masksrcfn(options: HairGradientPreprocessOptions) {
-      return options.headMask?.length ? options.headMask : options.maplebirch?.char?.mask_src;
+      const headMask = options.headMask?.length ? options.headMask : options.head_mask_src;
+      return headMask || options.maplebirch?.char?.mask_src || mask(options.maplebirch?.char?.mask, options.maplebirch?.char?.rotation);
     }
   },
   hair_sides_close_up: {
     masksrcfn(options: HairGradientPreprocessOptions) {
-      return options.maplebirch?.char?.mask_src_close_up;
+      return options.maplebirch?.char?.mask_src_close_up || mask(options.maplebirch?.char?.mask, options.maplebirch?.char?.rotation, true);
     },
     srcfn(options: HairGradientPreprocessOptions) {
       return `img/hair/sides/${options.hair_sides_type}/${options.hair_sides_length}.png`;
     },
     showfn(options: HairGradientPreprocessOptions) {
-      return !!options.show_hair && !!options.hair_sides_type && !options.headMask?.length;
+      return !!options.show_hair && !!options.hair_sides_type && !options.headMask?.length && !options.head_mask_src;
     },
     zfn(options: HairGradientPreprocessOptions) {
       return options.hair_sides_position === 'front' ? maplebirch.char.ZIndices.hair_forward : maplebirch.char.ZIndices.backhair;
@@ -201,18 +224,19 @@ const layers: CharacterLayerMap = {
   },
   hair_fringe: {
     masksrcfn(options: HairGradientPreprocessOptions) {
-      return options.headMask?.length ? options.headMask : options.fringe_mask_src || options.maplebirch?.char?.mask_src;
+      const headMask = options.headMask?.length ? options.headMask : options.head_mask_src;
+      return headMask || options.fringe_mask_src || options.maplebirch?.char?.mask_src || mask(options.maplebirch?.char?.mask, options.maplebirch?.char?.rotation);
     }
   },
   hair_fringe_close_up: {
     masksrcfn(options: HairGradientPreprocessOptions) {
-      return options.maplebirch?.char?.mask_src_close_up;
+      return options.maplebirch?.char?.mask_src_close_up || mask(options.maplebirch?.char?.mask, options.maplebirch?.char?.rotation, true);
     },
     srcfn(options: HairGradientPreprocessOptions) {
       return `img/hair/fringe/${options.hair_fringe_type}/${options.hair_fringe_length}.png`;
     },
     showfn(options: HairGradientPreprocessOptions) {
-      return !!options.show_hair && !!options.hair_fringe_type && !options.headMask?.length && !options.fringe_mask_src;
+      return !!options.show_hair && !!options.hair_fringe_type && !options.headMask?.length && !options.head_mask_src && !options.fringe_mask_src;
     },
     zfn() {
       return maplebirch.char.ZIndices.front_hair;
@@ -285,10 +309,10 @@ const layers: CharacterLayerMap = {
     srcfn: faceStyleSrcFn((options: FaceStyleOptions) => `lipstick-${options.mouth}`)
   },
   blush: {
-    srcfn: faceStyleSrcFn((options: FaceStyleOptions) => `blush-${options.blush}`)
+    srcfn: faceStyleSrcFn((options: FaceStyleOptions) => characterImagePath(`blush-${options.blush}`, `blush${options.blush}`))
   },
   tears: {
-    srcfn: faceStyleSrcFn((options: FaceStyleOptions) => `tears-${options.tears}`)
+    srcfn: faceStyleSrcFn((options: FaceStyleOptions) => characterImagePath(`tears-${options.tears}`, `tear${options.tears}`))
   },
   makeup_mascara_tears: {
     srcfn: faceStyleSrcFn((options: FaceStyleOptions) => `makeup/mascara${options.mascara_running}`)

@@ -1,7 +1,7 @@
 // ./src/modules/NamedNPCAddon/NPCSidebarConfig/neck_layers.ts
 
 import maplebirch from '../../../core';
-import { gray_suffix, clothes_layer } from './functions';
+import { gray_suffix, imagePath, clothes_layer } from './functions';
 
 type NPCSidebarOptions = {
   filters?: Record<string, any>;
@@ -16,7 +16,7 @@ const neck_layers = {
   nnpc_neck_main: clothes_layer('neck', 'main', {
     masksrcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
-      if (nnpc.high_waist_suspenders) return [nnpc.close_up_mask, 'img/clothes/neck/suspenders/mask.png'];
+      if (nnpc.high_waist_suspenders) return [nnpc.close_up_mask, imagePath('img/clothes/neck/suspenders/mask.png')];
       return nnpc.close_up_mask;
     },
 
