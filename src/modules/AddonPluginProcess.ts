@@ -211,7 +211,7 @@ class AddonPluginProcess {
 
   private static async injectBSAImages(addon: AddonPlugin, modName: string, modZip: ModZipReader, imgPaths: string[]): Promise<void> {
     try {
-      const imgs = [];
+      const imagePaths: string[] = [];
       for (const imgPath of imgPaths) {
         try {
           if (typeof imgPath !== 'string') continue;
@@ -220,26 +220,12 @@ class AddonPluginProcess {
             addon.core.log(`图片未找到: ${imgPath} (模组: ${modName})`, 'WARN');
             continue;
           }
-          const base64Data = await file.async('base64');
-          const mimeType =
-            {
-              png: 'image/png',
-              jpg: 'image/jpeg',
-              jpeg: 'image/jpeg',
-              gif: 'image/gif',
-              webp: 'image/webp',
-              svg: 'image/svg+xml'
-            }[imgPath.split('.').pop()?.toLowerCase() || ''] || 'image/png';
-          const dataUrl = `data:${mimeType};base64,${base64Data}`;
-          imgs.push({
-            path: imgPath,
-            getter: { getBase64Image: async () => dataUrl, invalid: false }
-          });
+          imagePaths.push(imgPath);
         } catch (error: any) {
           addon.core.log(`加载图片失败: ${imgPath} - ${error?.message || error}`, 'WARN');
         }
       }
-      if (imgs.length === 0) return;
+      if (imagePaths.length === 0) return;
       const modInfo = modZip.modInfo;
       const plugins = modInfo.bootJson?.addonPlugin;
       if (!plugins) return;
@@ -254,11 +240,11 @@ class AddonPluginProcess {
         plugins.push(plugin);
       }
       const params: Record<string, any> = !plugin.params || Array.isArray(plugin.params) || typeof plugin.params !== 'object' ? {} : (plugin.params as Record<string, any>);
-      params.type = 'npc-sidebar';
+      params.type = `npc-sidebar:${modName}`;
+      params.imgFileList = imagePaths;
       plugin.params = params;
-      modInfo.imgs = imgs;
       await window.addonBeautySelectorAddon.registerMod('BeautySelectorAddon', modInfo, modZip);
-      addon.core.log(`成功注册 ${modName} 的 ${imgs.length} 个 NPC 侧边栏图片`, 'DEBUG');
+      addon.core.log(`成功注册 ${modName} 的 ${imagePaths.length} 个 NPC 侧边栏图片`, 'DEBUG');
     } catch (error: any) {
       addon.core.log(`注册 ${modName} 的 NPC 侧边栏图片失败: ${error?.message || error}`, 'ERROR');
     }

@@ -552,24 +552,6 @@ function checkImageExist(src: string): boolean | Promise<boolean> {
     imageCache.set(src, false);
     return false;
   }
-  for (const hooker of window.modImgLoaderHooker?.sideHooker ?? []) {
-    if (hooker.hookName === 'GameOriginalImagePackImageSideHook') {
-      const image = window.modGameOriginalImagePack?.selfImg.get(src);
-      if (image && !image.getter.invalid) {
-        imageCache.set(src, true);
-        return true;
-      }
-      continue;
-    }
-    if (hooker.checkImageExist?.(src) === true) {
-      imageCache.set(src, true);
-      return true;
-    }
-  }
-  if (window.modGameOriginalImagePack) {
-    imageCache.set(src, false);
-    return false;
-  }
   const pending = new Promise<boolean>(resolve => {
     const img = new Image();
     img.onload = () => {
@@ -601,14 +583,15 @@ function checkImageExist(src: string): boolean | Promise<boolean> {
  */
 function loadImage(src: string): string | boolean | Promise<string | boolean> {
   try {
-    const checkResult = checkImageExist(src);
-    const imageResult = (): string | boolean | Promise<string | boolean> => {
-      const image = maplebirch.modUtils.getImage(src);
-      if (image instanceof Promise) return image.then(value => value || true);
-      return image || true;
-    };
-    if (checkResult instanceof Promise) return checkResult.then(exists => (exists ? imageResult() : false));
-    return checkResult ? imageResult() : false;
+    if (!src) return false;
+    return maplebirch.modUtils.getImage(src).then(value => {
+      if (value) {
+        imageCache.set(src, true);
+        return value;
+      }
+      const checkResult = checkImageExist(src);
+      return checkResult instanceof Promise ? checkResult.then(exists => (exists ? src : false)) : checkResult ? src : false;
+    });
   } catch {
     return src;
   }

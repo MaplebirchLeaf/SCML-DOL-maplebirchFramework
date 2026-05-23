@@ -38,7 +38,7 @@
     "@scml/sc2-verlnir": "^1.0.7",
     "@scml/types": "^1.0.7",
     "@types/adm-zip": "^0.5.7",
-    "@types/bun": "^1.3.9",
+    "@types/bun": "1.3.14",
     "@types/howler": "^2.2.12",
     "@types/jquery": "^3.5.29",
     "@types/js-yaml": "^4.0.5",
@@ -50,8 +50,7 @@
     "@types/twine-sugarcube": "^2.37.2",
     "adm-zip": "^0.5.16",
     "oxfmt": "^0.35.0",
-    "oxlint": "^1.50.0",
-    "oxlint-tsgolint": "^0.14.2",
+    "oxlint": "1.66.0",
     "patch-package": "^8.0.1",
     "pkg-types": "^2.3.0",
     "postinstall-postinstall": "^2.1.0",
@@ -59,9 +58,9 @@
     "typescript": "^5.3.3",
     "webpack-bundle-analyzer": "^5.2.0"
   },
-  "packageManager": "bun@1.3.9",
+  "packageManager": "bun@1.3.14",
   "lastModifiedBy": "楓樺葉",
-  "lastUpdate": "2026.05.19",
+  "lastUpdate": "2026.05.23",
   "scml": {
     "nickName": {
       "en": "Maplebirch Frameworks",
