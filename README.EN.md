@@ -11,7 +11,7 @@
 [![Stars](https://img.shields.io/github/stars/MaplebirchLeaf/SCML-DOL-maplebirchFramework?label=stars)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/stargazers)
 [![Issues](https://img.shields.io/github/issues-raw/MaplebirchLeaf/SCML-DOL-maplebirchFramework?label=issues)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/issues)
 
-`maplebirchFramework` is a **SugarCube2 ModLoader** framework for **Degrees of Lewdity** mods. It provides helper APIs for script loading, language and audio import, UI zone injection, NPC registration, combat actions, character layers, transformations, dynamic events, and general utility functions.
+**`maplebirchFramework`** is a **_SugarCube2 ModLoader_** framework for **_Degrees of Lewdity_** mods. It provides helper APIs for script loading, language and audio import, UI zone injection, NPC registration, combat actions, character layers, transformations, dynamic events, and general utility functions.
 
 The framework is designed around additive mod development: instead of directly replacing large parts of vanilla passages or widgets, a mod can register content through stable framework APIs and let the framework merge it at the appropriate loading stage.
 
@@ -42,11 +42,11 @@ Use this framework when your mod needs to:
 - Add custom combat actions.
 - Use shared helpers such as `clone`, `merge`, `random`, `either`, and `number`.
 
-English documentation is organized under [docs/EN](docs/EN/README.md) and mirrors the Chinese documentation structure.
+English documentation is organized under **[docs/EN](docs/EN/README.md)** and mirrors the Chinese documentation structure.
 
 ## Installation
 
-Download the framework from Releases and load it as a ModLoader mod.
+Download the framework from **_Releases_** and load it as a **ModLoader** mod.
 
 Mods depending on this framework should declare the dependency:
 
@@ -61,7 +61,7 @@ Mods depending on this framework should declare the dependency:
 
 ## Script Loading
 
-Use `maplebirchAddon` to load JavaScript files that depend on the framework:
+Use **`maplebirchAddon`** to load JavaScript files that depend on the framework:
 
 ```json
 "addonPlugin": [
@@ -76,13 +76,13 @@ Use `maplebirchAddon` to load JavaScript files that depend on the framework:
 ]
 ```
 
-Most mod logic should use `script`. Use `module` only when you intentionally need an earlier module-extension stage.
+Most mod logic should use **`script`**. Use **`module`** only when you intentionally need an earlier module-extension stage.
 
 ## Mod Encryption
 
-The framework itself is not encrypted. Other mods that depend on the framework can use the companion author tools to build an encrypted shell `.modpack`. The shell asks the framework to verify a credential during `earlyload`, decrypts the real mod, then injects it through ModLoader lazy loading.
+The framework itself is not encrypted. Other mods that depend on the framework can use the companion author tools to build an encrypted shell **`.modpack`**. The shell asks the framework to verify a credential during **`earlyload`**, decrypts the real mod, then injects it through ModLoader lazy loading.
 
-Author tools: [DOL Mod Protection Tools](https://github.com/MaplebirchLeaf/dol-mod-protection-tools)
+Author tools: **[DOL Mod Protection Tools](https://github.com/MaplebirchLeaf/dol-mod-protection-tools)**
 
 The generated `.modpack` only exposes a shell `boot.json`, an earlyload decryptor, and `.crypt` chunks. The original `boot.json`, `auth.json`, scripts, and assets are stored inside the encrypted payload. On first load, the player enters a credential; after successful verification, the password is cached. Closing the dialog or failing verification disables that encrypted mod.
 
@@ -161,6 +161,8 @@ Feature areas:
 - [Traits](docs/EN/ToolCollection/Traits.md)
 - [Location config](docs/EN/ToolCollection/Location.md)
 - [Bodywriting](docs/EN/ToolCollection/Bodywriting.md)
+- [Foodstuff](docs/EN/ToolCollection/Foodstuff.md)
+- [Antiques](docs/EN/ToolCollection/Antiques.md)
 - [Character layers](docs/EN/Character/Character.md)
 - [Transformation system](docs/EN/Character/Transformation.md)
 - [Named NPC](docs/EN/NamedNPC/NamedNPC.md)

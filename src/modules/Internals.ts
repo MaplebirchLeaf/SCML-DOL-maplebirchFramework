@@ -47,7 +47,7 @@ class Internals {
     });
   }
 
-  language(): void {
+  private Language(): void {
     const managers: Record<string, Set<Updater>> = {
       language: new Set(),
       lanSwitch: new Set(),
@@ -60,15 +60,7 @@ class Internals {
     this.core.on(
       ':language',
       () => {
-        for (const [macroType, updaters] of Object.entries(managers)) {
-          for (const updater of updaters) {
-            try {
-              updater();
-            } catch (error) {
-              maplebirch.log(`Language update error for ${macroType}`, 'ERROR', error);
-            }
-          }
-        }
+        for (const [macroType, updaters] of Object.entries(managers)) for (const updater of updaters) this.LanguageUpdater(macroType, updater);
       },
       'language macro manager'
     );
@@ -86,7 +78,15 @@ class Internals {
     } as LanguageManager;
   }
 
-  fixDynamicTask(fn: DynamicTask, name: string): DynamicTask {
+  private LanguageUpdater(macroType: string, updater: Updater): void {
+    try {
+      updater();
+    } catch (error) {
+      this.log(`Language update error for ${macroType}`, 'ERROR', error);
+    }
+  }
+
+  private fixDynamicTask(fn: DynamicTask, name: string): DynamicTask {
     const task = (...args: any[]) => {
       try {
         return fn.apply(this, args);
@@ -231,12 +231,12 @@ class Internals {
 
     this.core.tool.onInit(() => {
       setup.maplebirch ??= {};
-      this.language();
+      this.Language();
       setup.maplebirch.hint = this.uniqueTextStore();
       setup.maplebirch.content = this.uniqueTextStore();
     });
 
-    this.core.tool.other.configureLocation(
+    this.core.tool.patch.configureLocation(
       'lake_ruin',
       {
         condition: () => Weather.bloodMoon && !Weather.isSnow
@@ -244,7 +244,7 @@ class Internals {
       { layer: 'base', element: 'bloodmoon' }
     );
 
-    this.core.tool.other.configureLocation(
+    this.core.tool.patch.configureLocation(
       'lake_ruin',
       {
         condition: () => Weather.bloodMoon && Weather.isSnow

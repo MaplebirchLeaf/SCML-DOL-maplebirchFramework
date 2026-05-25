@@ -2,9 +2,9 @@
 
 ## Purpose
 
-Use `boot.json` when your mod has fixed resources that can be declared at load time: scripts, translation files, audio folders, UI widgets, or basic NPC resources.
+Use **`boot.json`** when your mod has fixed resources that can be declared at load time: scripts, translation files, audio folders, UI widgets, or basic NPC resources.
 
-Put complex conditions and runtime logic in JavaScript files loaded through `script`.
+Put complex conditions and runtime logic in JavaScript files loaded through **`script`**.
 
 ## Basic Structure
 
@@ -29,7 +29,7 @@ Put complex conditions and runtime logic in JavaScript files loaded through `scr
 | `module` | Load earlier module-extension scripts |
 | `language` | Import translation files |
 | `audio` | Import audio folders |
-| `framework` | Add UI widgets or traits |
+| `framework` | Add UI widgets, traits, bodywriting, foodstuff, or antiques |
 | `npc` | Register NPC resources |
 
 ## script
@@ -43,7 +43,7 @@ Put complex conditions and runtime logic in JavaScript files loaded through `scr
 ]
 ```
 
-Use `script` for most mod logic: NPC registration, dynamic events, combat actions, character layers, and UI zones.
+Use **`script`** for most mod logic: NPC registration, dynamic events, combat actions, character layers, and UI zones.
 
 ## module
 
@@ -51,7 +51,7 @@ Use `script` for most mod logic: NPC registration, dynamic events, combat action
 "module": ["modules/register.js"]
 ```
 
-Use `module` only when you intentionally need earlier module-extension behavior. Most mods do not need it.
+Use **`module`** only when you intentionally need earlier module-extension behavior. _Most mods do not need it._
 
 ## language
 
@@ -96,6 +96,34 @@ Equivalent JavaScript:
 ```javascript
 maplebirch.tool.addTo('Options', 'MyModOptions');
 ```
+
+Register framework data:
+
+```json
+"framework": [
+  {
+    "traits": "data/traits.yaml"
+  },
+  {
+    "bodywriting": "data/bodywriting.yaml"
+  },
+  {
+    "foodstuff": "data/foodstuff.yaml"
+  },
+  {
+    "antiques": "data/antiques.yaml"
+  }
+]
+```
+
+**`traits`**, **`bodywriting`**, **`foodstuff`**, and **`antiques`** accept inline arrays/objects or external **`.json`**, **`.yaml`**, and **`.yml`** files. For array forms of **`bodywriting`**, **`foodstuff`**, and **`antiques`**, each item must include **`key`**.
+
+Related docs:
+
+- [Traits](ToolCollection/Traits.md)
+- [Bodywriting](ToolCollection/Bodywriting.md)
+- [Foodstuff](ToolCollection/Foodstuff.md)
+- [Antiques](ToolCollection/Antiques.md)
 
 ## npc
 

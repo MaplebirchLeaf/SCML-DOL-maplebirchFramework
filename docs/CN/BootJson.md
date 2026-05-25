@@ -2,9 +2,9 @@
 
 ### 适用场景
 
-当模组需要使用 `maplebirchFramework` 的脚本加载、语言导入、音频导入、区域挂载或 NPC 资源注册时，可以在 `boot.json` 中配置 `maplebirchAddon`。
+当模组需要使用 **`maplebirchFramework`** 的脚本加载、语言导入、音频导入、区域挂载或 NPC 资源注册时，可以在 **`boot.json`** 中配置 **`maplebirchAddon`**。
 
-适合写在 `boot.json` 里的内容：
+适合写在 **`boot.json`** 里的内容：
 
 - 固定脚本文件：例如 `framework.js`、`npc.js`、`combat.js`
 - 翻译文件：例如 `language/cn.yml`、`language/en.yml`
@@ -18,7 +18,7 @@
 - 需要读取游戏状态后才决定的内容
 - 大段 JavaScript 代码
 
-这些内容应放入 `script` 加载的 JavaScript 文件中。
+这些内容应放入 **`script`** 加载的 JavaScript 文件中。
 
 ---
 
@@ -37,7 +37,7 @@
 ]
 ```
 
-`params` 是配置主体。常用字段如下：
+**`params`** 是配置主体。常用字段如下：
 
 | 字段 | 说明 |
 | :--- | :--- |
@@ -45,14 +45,14 @@
 | `module` | 加载更早执行的模块脚本 |
 | `language` | 导入翻译文件 |
 | `audio` | 导入音频目录 |
-| `framework` | 添加区域 widget 或注册特质 |
+| `framework` | 添加区域 widget、注册特质、纹身、食物或古董 |
 | `npc` | 注册 NPC 相关资源 |
 
 ---
 
 ### script
 
-`script` 是最常用的脚本加载字段。大多数模组功能都应放在这里。
+**`script`** 是最常用的脚本加载字段。大多数模组功能都应放在这里。
 
 ```json
 "script": ["framework.js"]
@@ -83,13 +83,13 @@
 
 ### module
 
-`module` 比 `script` 更早执行，适合需要参与框架模块扩展的脚本。
+**`module`** 比 **`script`** 更早执行，适合需要参与框架模块扩展的脚本。
 
 ```json
 "module": ["modules/register.js"]
 ```
 
-多数模组不需要使用 `module`。如果只是注册 NPC、事件、战斗按钮或选项页，使用 `script` 即可。
+多数模组不需要使用 **`module`**。如果只是注册 NPC、事件、战斗按钮或选项页，使用 **`script`** 即可。
 
 ---
 
@@ -238,6 +238,38 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 `has` 可以写布尔值，也可以写判断表达式。表达式会作为代码执行，只应写可信内容。
 
 更多说明见 [特质注册](ToolCollection/Traits.md)。
+
+---
+
+### framework：注册数据文件
+
+**`framework`** 支持把常见数据直接写在 **`boot.json`**，也支持引用模组压缩包内的 **`.json`**、**`.yaml`** 或 **`.yml`** 文件。
+
+```json
+"framework": [
+  {
+    "traits": "data/traits.yaml"
+  },
+  {
+    "bodywriting": "data/bodywriting.yaml"
+  },
+  {
+    "foodstuff": "data/foodstuff.yaml"
+  },
+  {
+    "antiques": "data/antiques.yaml"
+  }
+]
+```
+
+**`traits`**、**`bodywriting`**、**`foodstuff`**、**`antiques`** 都可以使用内联数组/对象或外部文件。**`bodywriting`**、**`foodstuff`**、**`antiques`** 使用数组写法时，每一项必须包含 **`key`**。
+
+相关文档：
+
+- [特质注册](ToolCollection/Traits.md)
+- [身体文字](ToolCollection/Bodywriting.md)
+- [食物注册](ToolCollection/Foodstuff.md)
+- [古董注册](ToolCollection/Antiques.md)
 
 ---
 
