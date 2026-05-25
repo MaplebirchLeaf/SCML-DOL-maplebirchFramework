@@ -8,7 +8,6 @@ interface RootPackage {
 const rootDir = path.join(import.meta.dir, '..');
 const distTypes = path.join(rootDir, 'dist', 'maplebirch.d.ts');
 const packageDir = path.join(rootDir, 'packages', 'types');
-const globals = 'import type {} from \'twine-sugarcube\';\n\ndeclare global {\n  class DateTime {\n    constructor(...args: any[]);\n    [key: string]: any;\n  }\n}\n\n';
 
 async function readRootVersion(): Promise<string> {
   const content = await readFile(path.join(rootDir, 'package.json'), 'utf8');
@@ -25,17 +24,16 @@ async function readRootVersion(): Promise<string> {
 async function writeTypesPackage(): Promise<void> {
   const version = await readRootVersion();
   await mkdir(packageDir, { recursive: true });
-  const maplebirchTypes = `${globals}${(await readFile(distTypes, 'utf8'))
+  const maplebirchTypes = (await readFile(distTypes, 'utf8'))
     .replace(/^\/\/\/ <reference types="[^"]+" \/>\r?\n/gm, '')
     .replace(/^\s*#private;\r?\n/gm, '')
-    .replace(/^\s*private\b.*;\r?\n/gm, '')
-    .replace(/\btypeof window\.SugarCube\b/g, 'any')}`;
+    .replace(/^\s*private\b.*;\r?\n/gm, '');
   await Bun.write(distTypes, maplebirchTypes);
   await Bun.write(path.join(packageDir, 'maplebirch.d.ts'), maplebirchTypes);
 
   await Bun.write(
     path.join(packageDir, 'index.d.ts'),
-    'import maplebirchDefault from \'./maplebirch\';\n\ndeclare global {\n  const maplebirch: typeof maplebirchDefault;\n\n  interface Window {\n    readonly maplebirch: typeof maplebirchDefault;\n  }\n}\n\nexport default maplebirchDefault;\nexport * from \'./maplebirch\';\n'
+    "import maplebirchDefault from './maplebirch';\n\ndeclare global {\n  const maplebirch: typeof maplebirchDefault;\n\n  interface Window {\n    readonly maplebirch: typeof maplebirchDefault;\n  }\n}\n\nexport default maplebirchDefault;\nexport * from './maplebirch';\n"
   );
 
   await Bun.write(
@@ -76,7 +74,7 @@ async function writeTypesPackage(): Promise<void> {
 
   await Bun.write(
     path.join(packageDir, 'README.md'),
-    `# @maplebirch/types\n\nTypeScript definitions for **maplebirchFramework**.\n\nThis package is types-only. It does not provide runtime code and should be used by mod projects as a development dependency.\n\n## Usage\n\n\`\`\`json\n{\n  "devDependencies": {\n    "@maplebirch/types": "^${version}"\n  }\n}\n\`\`\`\n\nIn \`tsconfig.json\`:\n\n\`\`\`json\n{\n  "compilerOptions": {\n    "types": [\n      "@types/twine-sugarcube",\n      "@maplebirch/types"\n    ]\n  }\n}\n\`\`\`\n\nAfter that, mod code can use the global \`maplebirch\` object with type hints:\n\n\`\`\`ts\nmaplebirch.tool.patch.addFoodstuff('deadwood_black_apple', {\n  name: 'black apple',\n  category: 'fruit'\n});\n\`\`\`\n`
+    `# @maplebirch/types\n\nTypeScript definitions for **maplebirchFramework**.\n\nThis package is types-only. It does not provide runtime code. Use it as a development dependency in DoL mod projects that run with maplebirchFramework loaded by ModLoader.\n\n## Install\n\n\`\`\`bash\nnpm install -D @maplebirch/types\n\`\`\`\n\n## tsconfig.json\n\n\`\`\`json\n{\n  "compilerOptions": {\n    "types": ["@types/twine-sugarcube", "@maplebirch/types"],\n    "skipLibCheck": true\n  }\n}\n\`\`\`\n\n## Global API Example\n\nThe package declares the global \`maplebirch\` object, so mod scripts can use the framework APIs directly:\n\n\`\`\`ts\nmaplebirch.log('module loaded', 'INFO');\nmaplebirch.tool.addTo('Options', 'MyModOptions');\n\nmaplebirch.on(':passagestart', passage => {\n  maplebirch.log(\`entered passage: \${passage.title}\`, 'DEBUG');\n});\n\nmaplebirch.dynamic.regTimeEvent('onDay', 'myMod.dailyTask', {\n  cond: () => V.myMod?.enabled === true,\n  event: () => '<<run setup.myMod.dailyTask()>>'\n});\n\`\`\`\n\n## Importing Types\n\nMost mod scripts use the global \`maplebirch\` object. If you need the default type in a helper file, import it as type-only:\n\n\`\`\`ts\nimport type maplebirch from '@maplebirch/types';\n\ntype Maplebirch = typeof maplebirch;\n\`\`\`\n\n## Notes\n\n- This package only provides TypeScript declarations.\n- It does not replace the actual maplebirchFramework mod dependency.\n- Keep the package version close to the framework version used by your mod.\n`
   );
 
   console.log(`Types package generated: ${path.relative(rootDir, packageDir)}`);

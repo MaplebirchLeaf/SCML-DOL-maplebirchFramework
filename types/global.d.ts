@@ -1,11 +1,8 @@
-// types/global.d.ts
-
 import { SC2DataManager } from '@scml/types/sugarcube-2-ModLoader/SC2DataManager';
 import { GameOriginalImagePack } from '@scml/types/GameOriginalImagePackMod/GameOriginalImagePack';
 import { BeautySelectorAddon } from '@scml/types/AddonMod_BeautySelector/BeautySelectorAddon';
 import { ImgLoaderHooker } from '@scml/types/Hook_ImgLoader/ImgLoaderHooker';
 import { Gui } from '@scml/types/Mod_LoaderGui/Gui';
-import { ModInfo } from '@scml/types/sugarcube-2-ModLoader/ModLoader';
 import { ModUtils } from '@scml/types/sugarcube-2-ModLoader/Utils';
 import { _languageSwitch } from '../src/database/SugarCubeMacros';
 
@@ -14,6 +11,9 @@ declare global {
     readonly modSC2DataManager: SC2DataManager;
     readonly modGameOriginalImagePack: GameOriginalImagePack;
     readonly modImgLoaderHooker: ImgLoaderHooker;
+    readonly modLoaderGui: Gui;
+    readonly modUtils: ModUtils;
+    readonly addonBeautySelectorAddon: BeautySelectorAddon;
     readonly Time: typeof Time;
     DateTime: typeof DateTime;
     closeOverlay(): void;
@@ -24,76 +24,10 @@ declare global {
     readonly T: typeof T;
   }
 
-  const lanSwitch = _languageSwitch;
+  const lanSwitch: typeof _languageSwitch;
 
   const Links: any;
   const StartConfig: any;
-
-  class DateTime {
-    static readonly MIN_DATE: DateTime;
-    static readonly MAX_DATE: DateTime;
-
-    constructor(year?: number | DateTime, month?: number, day?: number, hour?: number, minute?: number, second?: number);
-
-    year: number;
-    month: number;
-    day: number;
-    hour: number;
-    minute: number;
-    second: number;
-    timeStamp: number;
-
-    static getTotalDaysSinceStart(year: number): number;
-    static isLeapYear(year: number): boolean;
-    static getDaysOfMonthFromYear(year: number): readonly number[];
-    static getDaysOfYear(year: number): number;
-
-    toTimestamp(year: number, month: number, day: number, hour: number, minute: number, second: number): this;
-    fromTimestamp(timestamp: number): this;
-    compareWith(
-      otherDateTime: DateTime,
-      getSeconds?: boolean
-    ):
-      | number
-      | {
-          years: number;
-          months: number;
-          days: number;
-          hours: number;
-          minutes: number;
-          seconds: number;
-        };
-    dayDifference(otherDateTime: DateTime): number;
-    getFirstWeekdayOfMonth(weekDay: number): DateTime;
-    getNextWeekdayDate(weekDay: number): DateTime;
-    getPreviousWeekdayDate(weekDay: number): DateTime;
-
-    addYears(years: number): this;
-    addMonths(months: number): this;
-    addDays(days: number): this;
-    addHours(hours: number): this;
-    addMinutes(minutes: number): this;
-    addSeconds(seconds: number): this;
-
-    isLastDayOfMonth(): boolean;
-    isFirstDayOfMonth(): boolean;
-    between(startDate: DateTime, endDate: DateTime): boolean;
-
-    readonly midnight: DateTime;
-    readonly dayState: string;
-    readonly weekDay: number;
-    readonly weekDayName: string;
-    readonly monthName: string;
-    readonly weekEnd: boolean;
-    readonly lastDayOfMonth: number;
-    readonly yearDay: number;
-    readonly moonPhaseFraction: number;
-    readonly fractionOfDay: number;
-    readonly fractionOfDayFromNoon: number;
-    readonly simplifiedDayFactor: number;
-    readonly fractionOfYear: number;
-    readonly seasonFactor: number;
-  }
 
   const Time: {
     readonly date: DateTime;
