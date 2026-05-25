@@ -134,3 +134,12 @@
 'credential.auth.error.format': 'Invalid credential format'
 'credential.auth.error.signature': 'Invalid credential signature'
 'credential.auth.error.mismatch': 'Credential does not match this mod'
+
+'General Traits': 'General Traits'
+'Medicinal Traits': 'Medicinal Traits'
+'Special Traits': 'Special Traits'
+'School Traits': 'School Traits'
+'Trauma Traits': 'Trauma Traits'
+'NPC Traits': 'NPC Traits'
+'Hypnosis Traits': 'Hypnosis Traits'
+'Acceptance Traits': 'Acceptance Traits'

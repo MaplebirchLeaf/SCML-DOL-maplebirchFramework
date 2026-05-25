@@ -11,7 +11,7 @@
 [![Stars](https://img.shields.io/github/stars/MaplebirchLeaf/SCML-DOL-maplebirchFramework?label=stars)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/stargazers)
 [![Issues](https://img.shields.io/github/issues-raw/MaplebirchLeaf/SCML-DOL-maplebirchFramework?label=issues)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/issues)
 
-`maplebirchFramework` 是基于 **SugarCube2 ModLoader** 为 **Degrees of Lewdity** 制作的模组开发框架。它主要为其它模组提供更方便的脚本加载、语言与音频导入、区域注入、NPC 注册、战斗按钮、角色图层、转化、动态事件和常用工具函数。
+**`maplebirchFramework`** 是基于 **_SugarCube2 ModLoader_** 为 **_Degrees of Lewdity_** 制作的模组开发框架。它主要为其它模组提供更方便的脚本加载、语言与音频导入、区域注入、NPC 注册、战斗按钮、角色图层、转化、动态事件和常用工具函数。
 
 框架的使用重点是“让模组作者少直接改原版内容，多通过稳定接口追加内容”。如果你的模组需要向游戏界面插入新内容、为 NPC 增加数据、注册动态事件，或把多语言、音频、脚本资源整理成统一加载流程，本框架可以作为基础依赖使用。
 
@@ -33,7 +33,7 @@
 
 ## 基本介绍
 
-本框架的目标不是替代游戏本体逻辑，而是为模组作者提供一组更稳定、更容易复用的扩展接口。你可以把常见的模组内容拆成不同文件，通过 `boot.json` 统一加载，再在脚本中使用 `maplebirch` 提供的工具注册功能。
+本框架的目标不是替代游戏本体逻辑，而是为模组作者提供一组更稳定、更容易复用的扩展接口。你可以把常见的模组内容拆成不同文件，通过 **`boot.json`** 统一加载，再在脚本中使用 **`maplebirch`** 提供的工具注册功能。
 
 和直接修改原版 passage 或 widget 相比，框架更适合“追加式”的模组开发方式：把你的内容注册到框架提供的区域、事件或管理器中，由框架在合适的加载时机合并到游戏里。这样可以让模组文件结构更清楚，也能减少和其它模组互相覆盖同一段原版文本的情况。
 
@@ -56,7 +56,7 @@
 
 ## 安装与依赖
 
-请从仓库 **Releases** 下载框架文件，并作为 ModLoader 模组加载。
+请从仓库 **_Releases_** 下载框架文件，并作为 **ModLoader** 模组加载。
 
 其它模组如果调用了 `maplebirch` 的接口，建议显式声明对本框架的依赖。这样玩家在加载模组时能更容易发现缺少前置的问题，也方便模组加载器按依赖关系安排加载顺序。
 
@@ -75,7 +75,7 @@
 
 ## 脚本加载
 
-推荐使用 `maplebirchAddon` 加载依赖框架的 JavaScript 文件：
+推荐使用 **`maplebirchAddon`** 加载依赖框架的 JavaScript 文件：
 
 ```json
 "addonPlugin": [
@@ -92,7 +92,7 @@
 
 一般模组逻辑写入 `script` 即可。只有需要在框架模块注册阶段执行的代码，才放入 `module`。
 
-`script` 的定位是普通模组脚本入口，适合注册 NPC、事件、区域 widget、战斗按钮、角色图层等内容。`module` 的执行时机更早，主要给需要扩展框架模块系统的代码使用；如果你不确定是否需要它，通常就是不需要。
+**`script`** 的定位是普通模组脚本入口，适合注册 NPC、事件、区域 widget、战斗按钮、角色图层等内容。**`module`** 的执行时机更早，主要给需要扩展框架模块系统的代码使用；_如果你不确定是否需要它，通常就是不需要_。
 
 ```json
 "params": {
@@ -122,7 +122,7 @@
 
 ## 推荐写法
 
-框架大多数功能都通过全局对象 `maplebirch` 访问。建议把注册代码集中放在一个入口脚本中，例如 `framework.js`：
+框架大多数功能都通过全局对象 **`maplebirch`** 访问。建议把注册代码集中放在一个入口脚本中，例如 **`framework.js`**：
 
 ```javascript
 maplebirch.tool.addTo('Options', 'MyModOptions');
@@ -169,7 +169,7 @@ setup.myMod.initCombat?.();
 
 也可以让每个文件在被加载时直接完成注册。两种方式都可以，选择更适合你模组规模的写法即可。
 
-一般建议：
+**一般建议：**
 
 - 配置类内容优先写入 `boot.json`，如语言、音频、区域 widget、基础 NPC 资源。
 - 需要条件判断、函数逻辑、复杂注册时写入 JavaScript 文件。
@@ -206,6 +206,8 @@ setup.myMod.initCombat?.();
   - [特质注册][Traits]
   - [地点配置][Location]
   - [纹身注册][Bodywriting]
+  - [食物注册][Foodstuff]
+  - [古董注册][Antiques]
 - [角色管理][Character]
   - [侧边栏图层][CharacterLayer]
   - [转化管理][Transformation]
@@ -220,7 +222,7 @@ setup.myMod.initCombat?.();
 
 ## boot.json 配置
 
-`maplebirchAddon` 可通过配置处理常见资源和功能：
+**`maplebirchAddon`** 可通过配置处理常见资源和功能：
 
 下面是一个较完整的配置骨架。实际使用时不需要保留所有字段，只写你的模组需要的部分即可。
 
@@ -256,7 +258,7 @@ setup.myMod.initCombat?.();
 | :---------- | :---------------------------------------------- |
 | `language`  | 导入 `CN` / `EN` 翻译文件，或指定自定义语言文件 |
 | `audio`     | 导入模组内的音频目录                            |
-| `framework` | 添加区域 widget 或注册特质                      |
+| `framework` | 添加区域 widget，注册特质、纹身、食物或古董     |
 | `npc`       | 注册 NPC、NPC 状态、NPC 侧边栏图片和服装资源    |
 | `module`    | 早期脚本，适合框架模块扩展                      |
 | `script`    | 常规模组脚本，推荐多数情况下使用                |
@@ -313,6 +315,8 @@ setup.myMod.initCombat?.();
 [Traits]: docs/CN/ToolCollection/Traits.md
 [Location]: docs/CN/ToolCollection/Location.md
 [Bodywriting]: docs/CN/ToolCollection/Bodywriting.md
+[Foodstuff]: docs/CN/ToolCollection/Foodstuff.md
+[Antiques]: docs/CN/ToolCollection/Antiques.md
 [Character]: docs/CN/Character/
 [CharacterLayer]: docs/CN/Character/Character.md
 [Transformation]: docs/CN/Character/Transformation.md

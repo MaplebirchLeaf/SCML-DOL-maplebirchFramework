@@ -9,7 +9,7 @@ import defineMacros from './Frameworks/macros';
 import htmlTools from './Frameworks/htmlTools';
 import { zonesManager, type InitFunction, type ZoneWidgetConfig } from './Frameworks/zonesManager';
 import applyLinkZone from './Frameworks/applyLinkZone';
-import otherTools from './Frameworks/otherTools';
+import Patch from './Frameworks/patch';
 
 class ToolCollection {
   readonly console: Console;
@@ -19,7 +19,7 @@ class ToolCollection {
   readonly text: htmlTools;
   readonly zone: zonesManager;
   readonly link: typeof applyLinkZone;
-  readonly other: typeof otherTools;
+  readonly patch: typeof Patch;
   readonly createlog: typeof createlog = createlog;
 
   constructor(readonly core: MaplebirchCore) {
@@ -30,7 +30,7 @@ class ToolCollection {
     this.text = Object.seal(new htmlTools(this));
     this.zone = Object.seal(new zonesManager(this));
     this.link = Object.freeze(applyLinkZone);
-    this.other = Object.seal(otherTools);
+    this.patch = Object.seal(Patch);
   }
 
   onInit(...widgets: InitFunction[]) {
@@ -43,8 +43,8 @@ class ToolCollection {
 
   preInit() {
     this.onInit(() => {
-      this.other.applyLocation();
-      this.other.applyBodywriting();
+      this.patch.applyLocation();
+      this.patch.applyBodywriting();
     });
   }
 

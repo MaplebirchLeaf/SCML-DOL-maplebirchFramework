@@ -5,13 +5,13 @@ Location config modifies or extends vanilla `setup.LocationImages` and `setup.Lo
 Use:
 
 ```javascript
-maplebirch.tool.other.configureLocation(locationId, config, options);
+maplebirch.tool.patch.configureLocation(locationId, config, options);
 ```
 
 ## Minimal Example
 
 ```javascript
-maplebirch.tool.other.configureLocation(
+maplebirch.tool.patch.configureLocation(
   'lake_ruin',
   {
     condition: () => Weather.bloodMoon && !Weather.isSnow
@@ -27,36 +27,36 @@ This merges the condition into `lake_ruin.base.bloodmoon`.
 
 ## Arguments
 
-| Argument | Description |
-| :--- | :--- |
-| `locationId` | Key in `setup.LocationImages` |
-| `config` | Location image config |
-| `options` | Controls merge target and overwrite behavior |
+| Argument     | Description                                  |
+| :----------- | :------------------------------------------- |
+| `locationId` | Key in `setup.LocationImages`                |
+| `config`     | Location image config                        |
+| `options`    | Controls merge target and overwrite behavior |
 
 Common config fields:
 
-| Field | Description |
-| :--- | :--- |
-| `condition` | Function returning whether the layer is used |
-| `folder` | Image folder |
-| `base` | Base layer config |
-| `emissive` | Emissive layer config |
-| `reflective` | Reflective layer config |
-| `layerTop` | Top layer config |
-| `customMapping` | Custom location mapping |
+| Field           | Description                                  |
+| :-------------- | :------------------------------------------- |
+| `condition`     | Function returning whether the layer is used |
+| `folder`        | Image folder                                 |
+| `base`          | Base layer config                            |
+| `emissive`      | Emissive layer config                        |
+| `reflective`    | Reflective layer config                      |
+| `layerTop`      | Top layer config                             |
+| `customMapping` | Custom location mapping                      |
 
 Options:
 
-| Field | Description |
-| :--- | :--- |
-| `layer` | Target layer, such as `base` or `layerTop` |
-| `element` | Target element inside the layer |
-| `overwrite` | Replace the whole location config |
+| Field       | Description                                |
+| :---------- | :----------------------------------------- |
+| `layer`     | Target layer, such as `base` or `layerTop` |
+| `element`   | Target element inside the layer            |
+| `overwrite` | Replace the whole location config          |
 
 ## Add A Layer Element
 
 ```javascript
-maplebirch.tool.other.configureLocation(
+maplebirch.tool.patch.configureLocation(
   'forest_clearing',
   {
     condition: () => Weather.name === 'rain'
@@ -71,7 +71,7 @@ maplebirch.tool.other.configureLocation(
 ## Merge Full Config
 
 ```javascript
-maplebirch.tool.other.configureLocation('old_ruins', {
+maplebirch.tool.patch.configureLocation('old_ruins', {
   folder: 'locations/old_ruins',
   base: {
     default: {
@@ -84,7 +84,7 @@ maplebirch.tool.other.configureLocation('old_ruins', {
 ## Overwrite A Location
 
 ```javascript
-maplebirch.tool.other.configureLocation(
+maplebirch.tool.patch.configureLocation(
   'old_ruins',
   {
     folder: 'locations/ruins_remastered',
