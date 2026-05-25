@@ -1,4 +1,4 @@
-# @maplebirch/types
+# @scml-maplebirch/types
 
 TypeScript definitions for **maplebirchFramework**.
 
@@ -7,7 +7,7 @@ This package is types-only. It does not provide runtime code. Use it as a develo
 ## Install
 
 ```bash
-npm install -D @maplebirch/types
+npm install -D @scml-maplebirch/types
 ```
 
 ## tsconfig.json
@@ -15,7 +15,7 @@ npm install -D @maplebirch/types
 ```json
 {
   "compilerOptions": {
-    "types": ["@types/twine-sugarcube", "@maplebirch/types"],
+    "types": ["@types/twine-sugarcube", "@scml-maplebirch/types"],
     "skipLibCheck": true
   }
 }
@@ -44,7 +44,7 @@ maplebirch.dynamic.regTimeEvent('onDay', 'myMod.dailyTask', {
 Most mod scripts use the global `maplebirch` object. If you need the default type in a helper file, import it as type-only:
 
 ```ts
-import type maplebirch from '@maplebirch/types';
+import type maplebirch from '@scml-maplebirch/types';
 
 type Maplebirch = typeof maplebirch;
 ```

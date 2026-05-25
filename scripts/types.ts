@@ -40,7 +40,7 @@ async function writeTypesPackage(): Promise<void> {
     path.join(packageDir, 'package.json'),
     `${JSON.stringify(
       {
-        name: '@maplebirch/types',
+        name: '@scml-maplebirch/types',
         version,
         description: 'TypeScript definitions for maplebirchFramework.',
         license: 'MIT',
@@ -74,7 +74,7 @@ async function writeTypesPackage(): Promise<void> {
 
   await Bun.write(
     path.join(packageDir, 'README.md'),
-    `# @maplebirch/types\n\nTypeScript definitions for **maplebirchFramework**.\n\nThis package is types-only. It does not provide runtime code. Use it as a development dependency in DoL mod projects that run with maplebirchFramework loaded by ModLoader.\n\n## Install\n\n\`\`\`bash\nnpm install -D @maplebirch/types\n\`\`\`\n\n## tsconfig.json\n\n\`\`\`json\n{\n  "compilerOptions": {\n    "types": ["@types/twine-sugarcube", "@maplebirch/types"],\n    "skipLibCheck": true\n  }\n}\n\`\`\`\n\n## Global API Example\n\nThe package declares the global \`maplebirch\` object, so mod scripts can use the framework APIs directly:\n\n\`\`\`ts\nmaplebirch.log('module loaded', 'INFO');\nmaplebirch.tool.addTo('Options', 'MyModOptions');\n\nmaplebirch.on(':passagestart', passage => {\n  maplebirch.log(\`entered passage: \${passage.title}\`, 'DEBUG');\n});\n\nmaplebirch.dynamic.regTimeEvent('onDay', 'myMod.dailyTask', {\n  cond: () => V.myMod?.enabled === true,\n  event: () => '<<run setup.myMod.dailyTask()>>'\n});\n\`\`\`\n\n## Importing Types\n\nMost mod scripts use the global \`maplebirch\` object. If you need the default type in a helper file, import it as type-only:\n\n\`\`\`ts\nimport type maplebirch from '@maplebirch/types';\n\ntype Maplebirch = typeof maplebirch;\n\`\`\`\n\n## Notes\n\n- This package only provides TypeScript declarations.\n- It does not replace the actual maplebirchFramework mod dependency.\n- Keep the package version close to the framework version used by your mod.\n`
+    `# @scml-maplebirch/types\n\nTypeScript definitions for **maplebirchFramework**.\n\nThis package is types-only. It does not provide runtime code. Use it as a development dependency in DoL mod projects that run with maplebirchFramework loaded by ModLoader.\n\n## Install\n\n\`\`\`bash\nnpm install -D @scml-maplebirch/types\n\`\`\`\n\n## tsconfig.json\n\n\`\`\`json\n{\n  "compilerOptions": {\n    "types": ["@types/twine-sugarcube", "@scml-maplebirch/types"],\n    "skipLibCheck": true\n  }\n}\n\`\`\`\n\n## Global API Example\n\nThe package declares the global \`maplebirch\` object, so mod scripts can use the framework APIs directly:\n\n\`\`\`ts\nmaplebirch.log('module loaded', 'INFO');\nmaplebirch.tool.addTo('Options', 'MyModOptions');\n\nmaplebirch.on(':passagestart', passage => {\n  maplebirch.log(\`entered passage: \${passage.title}\`, 'DEBUG');\n});\n\nmaplebirch.dynamic.regTimeEvent('onDay', 'myMod.dailyTask', {\n  cond: () => V.myMod?.enabled === true,\n  event: () => '<<run setup.myMod.dailyTask()>>'\n});\n\`\`\`\n\n## Importing Types\n\nMost mod scripts use the global \`maplebirch\` object. If you need the default type in a helper file, import it as type-only:\n\n\`\`\`ts\nimport type maplebirch from '@scml-maplebirch/types';\n\ntype Maplebirch = typeof maplebirch;\n\`\`\`\n\n## Notes\n\n- This package only provides TypeScript declarations.\n- It does not replace the actual maplebirchFramework mod dependency.\n- Keep the package version close to the framework version used by your mod.\n`
   );
 
   console.log(`Types package generated: ${path.relative(rootDir, packageDir)}`);
