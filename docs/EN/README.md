@@ -2,7 +2,7 @@
 
 [中文文档](../CN/README.md)
 
-This directory contains English documentation for mod authors using `maplebirchFramework`. The English docs focus on practical usage: entry points, minimal examples, configuration fields, and common patterns.
+This directory contains English documentation for mod authors using **`maplebirchFramework`**. The English docs focus on practical usage: _entry points_, _minimal examples_, _configuration fields_, and common patterns.
 
 ## Getting Started
 
@@ -29,6 +29,8 @@ This directory contains English documentation for mod authors using `maplebirchF
 - [Traits](ToolCollection/Traits.md)
 - [Location Config](ToolCollection/Location.md)
 - [Bodywriting](ToolCollection/Bodywriting.md)
+- [Foodstuff](ToolCollection/Foodstuff.md)
+- [Antiques](ToolCollection/Antiques.md)
 
 ## Character, NPC, and Combat
 

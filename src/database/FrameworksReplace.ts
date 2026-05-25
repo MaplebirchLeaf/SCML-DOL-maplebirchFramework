@@ -10,7 +10,7 @@ const specialWidget = widgets(TransformationMirror, NPCHairStyleOptions);
 // prettier-ignore
 const defaultData = {
   Init   : '<<run maplebirch.tool.zone.storyInit()>>',
-  State  : '<<run maplebirch.trigger(":variable")>>',
+  State  : '<<run maplebirch.tool.patch.applyFoodstuff()>><<run maplebirch.trigger(":variable")>>',
   Header : '',
   Footer : '<<maplebirchFrameworkVersions>>',
   Information : '<<maplebirchFrameworkInfo>>',
@@ -89,7 +89,7 @@ const widgetPassage = {
     { srcmatchgroup: /<<for _j to \$_statCount; _j lt 3; _j\+\+>>/g, to: '<<for _j to $_statCount; _j lt (($options.maplebirch?.relationcount ?? 4) - 1); _j++>>' },
   ],
   Traits: [
-    { src: '<div id="traitListsSearch">', applybefore: '<<run maplebirch.tool.other.injectTraits(_traitLists)>>\n\t' }
+    { src: '<div id="traitListsSearch">', applybefore: '<<run maplebirch.tool.patch.injectTraits(_traitLists)>>\n\t' }
   ],
   'Widgets Journal': [
     { srcmatch: /<<print\s*("It is "\s*\+\s*getFormattedDate\(Time\.date\)\s*\+\s*",\s*"\s*\+\s*Time\.year\s*\+\s*"\."|"今天是"\s*\+\s*Time\.year\s*\+\s*"年"\s*\+\s*getFormattedDate\(Time\.date\)\s*\+\s*"。"|ordinalSuffixOf\(Time\.monthDay\)\s*\+\s*"\s*"\s*\+\s*Time\.monthName\.slice\(0,3\)|Time\.month\s*\+\s*"月"\s*\+\s*ordinalSuffixOf\(Time\.monthDay\)\s*\+\s*"日")\s*>>/, to: '<<= maplebirch.dynamic.Time.updateTimeLanguage("JournalTime")>>' },

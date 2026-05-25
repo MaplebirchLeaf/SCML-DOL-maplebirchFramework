@@ -9,7 +9,7 @@
 ## 使用入口
 
 ```javascript
-maplebirch.tool.other.configureLocation(locationId, config, options);
+maplebirch.tool.patch.configureLocation(locationId, config, options);
 ```
 
 ---
@@ -17,7 +17,7 @@ maplebirch.tool.other.configureLocation(locationId, config, options);
 ## 最小写法
 
 ```javascript
-maplebirch.tool.other.configureLocation(
+maplebirch.tool.patch.configureLocation(
   'lake_ruin',
   {
     condition: () => Weather.bloodMoon && !Weather.isSnow
@@ -40,37 +40,37 @@ maplebirch.tool.other.configureLocation(
 地点 ID，对应原版 `setup.LocationImages` 中的键名。
 
 ```javascript
-'lake_ruin'
+'lake_ruin';
 ```
 
 ### config
 
 地点图片配置。
 
-| 字段 | 说明 |
-| :--- | :--- |
-| `condition` | 条件函数，返回是否使用该配置 |
-| `folder` | 图片文件夹 |
-| `base` | 基础层 |
-| `emissive` | 自发光层 |
-| `reflective` | 反射层 |
-| `layerTop` | 顶层 |
-| `customMapping` | 自定义地点映射 |
+| 字段            | 说明                         |
+| :-------------- | :--------------------------- |
+| `condition`     | 条件函数，返回是否使用该配置 |
+| `folder`        | 图片文件夹                   |
+| `base`          | 基础层                       |
+| `emissive`      | 自发光层                     |
+| `reflective`    | 反射层                       |
+| `layerTop`      | 顶层                         |
+| `customMapping` | 自定义地点映射               |
 
 ### options
 
-| 字段 | 说明 |
-| :--- | :--- |
-| `layer` | 指定图层，如 `base`、`emissive`、`reflective`、`layerTop` |
-| `element` | 指定图层内元素 |
-| `overwrite` | 是否覆盖整个地点配置 |
+| 字段        | 说明                                                      |
+| :---------- | :-------------------------------------------------------- |
+| `layer`     | 指定图层，如 `base`、`emissive`、`reflective`、`layerTop` |
+| `element`   | 指定图层内元素                                            |
+| `overwrite` | 是否覆盖整个地点配置                                      |
 
 ---
 
 ## 按图层添加条件
 
 ```javascript
-maplebirch.tool.other.configureLocation(
+maplebirch.tool.patch.configureLocation(
   'forest_clearing',
   {
     condition: () => Weather.name === 'rain'
@@ -85,7 +85,7 @@ maplebirch.tool.other.configureLocation(
 也可以添加顶层装饰：
 
 ```javascript
-maplebirch.tool.other.configureLocation(
+maplebirch.tool.patch.configureLocation(
   'main_street',
   {
     condition: () => V.myMod?.festival === true
@@ -104,7 +104,7 @@ maplebirch.tool.other.configureLocation(
 不传 `layer` 和 `element` 时，会把 `config` 合并到该地点配置中：
 
 ```javascript
-maplebirch.tool.other.configureLocation('old_ruins', {
+maplebirch.tool.patch.configureLocation('old_ruins', {
   folder: 'locations/old_ruins',
   base: {
     default: {
@@ -121,7 +121,7 @@ maplebirch.tool.other.configureLocation('old_ruins', {
 如果需要完全替换原地点配置：
 
 ```javascript
-maplebirch.tool.other.configureLocation(
+maplebirch.tool.patch.configureLocation(
   'old_ruins',
   {
     folder: 'locations/ruins_remastered',
@@ -142,7 +142,7 @@ maplebirch.tool.other.configureLocation(
 ## 组合条件
 
 ```javascript
-maplebirch.tool.other.configureLocation(
+maplebirch.tool.patch.configureLocation(
   'mountain_pass',
   {
     condition: () => {

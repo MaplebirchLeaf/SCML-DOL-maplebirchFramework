@@ -1,8 +1,10 @@
 # 中文文档
 
-这里收录秋枫白桦框架面向模组作者的使用说明。文档主要介绍其它模组可能会调用到的公开能力，内部运转细节会尽量放轻。
+这里收录 **秋枫白桦框架** 面向模组作者的使用说明。文档主要介绍其它模组可能会调用到的公开能力，_内部运转细节会尽量放轻_。
 
 ## 基础配置
+
+推荐从 **`boot.json` 配置** 开始，再按模组需要阅读对应功能页。
 
 - [boot.json 配置](BootJson.md)
 - [实用工具](Utilities.md)
@@ -26,6 +28,8 @@
 - [特质添加](ToolCollection/Traits.md)
 - [地点配置](ToolCollection/Location.md)
 - [身体文字](ToolCollection/Bodywriting.md)
+- [食物注册](ToolCollection/Foodstuff.md)
+- [古董注册](ToolCollection/Antiques.md)
 
 ## 角色与 NPC
 

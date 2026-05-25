@@ -134,3 +134,12 @@
 'credential.auth.error.format': '凭证格式无效'
 'credential.auth.error.signature': '凭证签名无效'
 'credential.auth.error.mismatch': '凭证与模组不匹配'
+
+'General Traits': '一般特质'
+'Medicinal Traits': '医疗特质'
+'Special Traits': '特殊特质'
+'School Traits': '学校特质'
+'Trauma Traits': '创伤特质'
+'NPC Traits': 'NPC特质'
+'Hypnosis Traits': '催眠特质'
+'Acceptance Traits': '接纳特质'
