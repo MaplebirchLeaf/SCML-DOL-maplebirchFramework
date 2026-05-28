@@ -1,5 +1,6 @@
 // ./src/modules/AddonPlugin.ts
 
+import type { Passage } from '@scml/types/sugarcube-2-ModLoader/SugarCube2';
 import type { ModBootJson, ModInfo } from '@scml/types/sugarcube-2-ModLoader/ModLoader';
 import type { JSZipLikeReadOnlyInterface } from '@scml/types/sugarcube-2-ModLoader/JSZipLikeReadOnlyInterface';
 import type { ModZipReader } from '@scml/types/sugarcube-2-ModLoader/ModZipReader';
@@ -152,13 +153,13 @@ class AddonPlugin {
     });
   }
 
-  async whenSC2PassageInit(passage): Promise<any> {
+  async whenSC2PassageInit(passage: Passage): Promise<any> {
     this.core.passage = passage;
     if (!!this.core.passage && !this.core.passage.tags.includes('widget')) this.log(`处理段落: ${this.core.passage.title}`, 'INFO');
     await this.core.trigger(':passageinit', passage);
   }
 
-  async whenSC2PassageStart(passage, content): Promise<any> {
+  async whenSC2PassageStart(passage: Passage, content: HTMLDivElement): Promise<any> {
     if (!this.core.passage || this.core.passage.title === 'Start' || this.core.passage.title === 'Downgrade Waiting Room') return;
     this.core.modules.initPhase.postInitExecuted = false;
     await this.core.modules.init('init');
@@ -172,15 +173,15 @@ class AddonPlugin {
     await this.core.trigger(':passagestart', passage, content);
   }
 
-  async whenSC2PassageRender(passage, content): Promise<any> {
+  async whenSC2PassageRender(passage: Passage, content: HTMLDivElement): Promise<any> {
     await this.core.trigger(':passagerender', passage, content);
   }
 
-  async whenSC2PassageDisplay(passage, content): Promise<any> {
+  async whenSC2PassageDisplay(passage: Passage, content: HTMLDivElement): Promise<any> {
     await this.core.trigger(':passagedisplay', passage, content);
   }
 
-  async whenSC2PassageEnd(passage, content): Promise<any> {
+  async whenSC2PassageEnd(passage: Passage, content: HTMLDivElement): Promise<any> {
     await this.core.trigger(':passageend', passage, content);
   }
 

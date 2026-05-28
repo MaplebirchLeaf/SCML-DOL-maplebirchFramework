@@ -4,6 +4,7 @@ import { Gui } from '@scml/types/Mod_LoaderGui/Gui';
 import jsyaml from 'js-yaml';
 import { Howl, Howler } from 'howler';
 import * as marked from 'marked';
+import { Passage } from '@scml/types/sugarcube-2-ModLoader/SugarCube2';
 import { ModInfo, ModBootJson } from '@scml/types/sugarcube-2-ModLoader/ModLoader';
 import { JSZipLikeReadOnlyInterface } from '@scml/types/sugarcube-2-ModLoader/JSZipLikeReadOnlyInterface';
 import { ModZipReader } from '@scml/types/sugarcube-2-ModLoader/ModZipReader';
@@ -276,6 +277,7 @@ interface ModuleInfo {
     type: ModuleType;
     source: string;
     protected: boolean;
+    lifecycle: boolean;
     dependencies: string[];
 }
 interface ModulesSettings {
@@ -292,7 +294,6 @@ declare class GUIControl {
     initSettings(): Promise<void>;
     init(): Promise<void>;
     typeLabel(type: ModuleType): string;
-    canBeDisabled(mod: Pick<ModuleInfo, 'protected' | 'type'>): boolean;
     saveModules(enabled: ModuleInfo[], disabled: ModuleInfo[]): Promise<void>;
     saveScripts(enabled: string[], disabled: string[]): Promise<void>;
     cascadeModules(action: 'enable' | 'disable', moduleName: string, modules: ModulesSettings): string[];
@@ -438,6 +439,8 @@ declare class WeatherManager {
     register(eventId: string, options: WeatherEventOptions): boolean;
     unregister(eventId: string): boolean;
     addLayer(layerName: string, patch: any, mode?: 'concat' | 'replace' | 'merge'): this;
+    addLayerEffects(layerName: string, effects: any[], mode?: 'concat' | 'replace' | 'merge'): this;
+    patchLayerEffect(layerName: string, index: number, patch: any, mode?: 'merge' | 'replace'): this;
     addEffect(effectName: string, patch: any, mode?: 'concat' | 'replace' | 'merge'): this;
     applyModifications(params: any): any;
     addWeatherData(data: WeatherException | WeatherTypeConfig): boolean | void;
@@ -492,9 +495,9 @@ interface ExecutionResult {
 declare class CheatConsole {
     readonly manager: ToolCollection;
     constructor(manager: ToolCollection);
-    executeJS(): JSExecutionResult;
-    executeTwine(): TwineExecutionResult;
-    execute(type: 'javascript' | 'twine'): ExecutionResult;
+    executeJS(code?: string): JSExecutionResult;
+    executeTwine(code?: string): TwineExecutionResult;
+    execute(type: 'javascript' | 'twine', code?: string): ExecutionResult;
 }
 
 interface Step {
@@ -542,6 +545,7 @@ declare class randSystem {
     int(max: number): number;
     percent(): number;
     back(steps?: number): void;
+    forward(steps?: number): void;
     get seed(): number | null;
     set seed(value: number);
     get history(): number[];
@@ -842,33 +846,11 @@ declare class ToolCollection {
     get utils(): typeof utils;
 }
 
-declare const PlayMode: {
-    readonly SEQUENTIAL: "sequential";
-    readonly LOOP_ALL: "loop_all";
-    readonly LOOP_ONE: "loop_one";
-    readonly SHUFFLE: "shuffle";
-};
-type PlayMode = (typeof PlayMode)[keyof typeof PlayMode];
-declare const PlayState: {
-    readonly IDLE: "idle";
-    readonly LOADING: "loading";
-    readonly PLAYING: "playing";
-    readonly PAUSED: "paused";
-    readonly STOPPED: "stopped";
-};
-type PlayState = (typeof PlayState)[keyof typeof PlayState];
-declare const SUPPORTED_FORMATS: readonly ["mp3", "wav", "ogg", "m4a", "flac", "webm"];
-type AudioFormat = (typeof SUPPORTED_FORMATS)[number];
+type AudioFormat = 'mp3' | 'wav' | 'ogg' | 'm4a' | 'flac' | 'webm';
 interface TrackMeta {
     title?: string;
     artist?: string;
 }
-interface AudioEventData {
-    type: string;
-    data?: any[];
-    [key: string]: any;
-}
-type AudioEventHandler = (eventData: AudioEventData) => void;
 declare class Track {
     readonly audioName: string;
     readonly modName: string;
@@ -878,21 +860,60 @@ declare class Track {
     format: AudioFormat;
     constructor(audioName: string, modName: string, meta?: TrackMeta);
 }
+
+declare const PlayMode: {
+    readonly SEQUENTIAL: "sequential";
+    readonly LOOP_ALL: "loop_all";
+    readonly LOOP_ONE: "loop_one";
+    readonly SHUFFLE: "shuffle";
+};
+type PlayModeType = (typeof PlayMode)[keyof typeof PlayMode];
 declare class Playlist {
     readonly name: string;
     tracks: Track[];
     currentIndex: number;
-    playMode: PlayMode;
+    playMode: PlayModeType;
     constructor(name: string);
     add(input: Track | Track[]): void;
     removeAt(index: number): boolean;
     remove(audioName: string): boolean;
     clear(): void;
-    setMode(mode: PlayMode): void;
+    setMode(mode: PlayModeType): void;
     select(index: number): Track | null;
     next(): Track | null;
     previous(): Track | null;
     get length(): number;
+}
+
+declare const PlayState: {
+    readonly IDLE: "idle";
+    readonly LOADING: "loading";
+    readonly PLAYING: "playing";
+    readonly PAUSED: "paused";
+    readonly STOPPED: "stopped";
+};
+type PlayStateType = (typeof PlayState)[keyof typeof PlayState];
+interface AudioEventData {
+    type: string;
+    data?: any[];
+    [key: string]: any;
+}
+type AudioEventHandler = (eventData: AudioEventData) => void;
+interface AudioProgress {
+    currentTime: number;
+    duration: number;
+    percent: number;
+}
+interface AudioSnapshot {
+    state: PlayStateType;
+    track: Track | null;
+    playlist: string;
+    index: number;
+    length: number;
+    mode: PlayModeType;
+    volume: number;
+    muted: boolean;
+    progress: AudioProgress;
 }
 declare class AudioManager {
     readonly core: MaplebirchCore;
@@ -908,14 +929,15 @@ declare class AudioManager {
     togglePlayPause(): void;
     next(): Promise<boolean>;
     previous(): Promise<boolean>;
+    playAt(modName: string, index: number): Promise<boolean>;
     seek(percent: number): boolean;
     seekTo(seconds: number): boolean;
     getPlaylist(modName: string): Promise<Playlist>;
-    playFromMod(modName: string, audioName?: string): Promise<boolean>;
+    playFromMod(modName: string, audioName?: string): Promise<boolean | string>;
     import(modName: string, audioFolder?: string): Promise<boolean>;
-    addFile(file: File, modName?: string): Promise<boolean>;
+    addFile(file: File, modName?: string): Promise<boolean | string>;
     delete(modName: string, audioName: string): Promise<boolean>;
-    clearAudio(modName: string): Promise<boolean>;
+    clearAudio(modName: string): Promise<boolean | string>;
     clearCache(): void;
     destroy(): void;
     playlist(modName: string): Playlist;
@@ -923,15 +945,21 @@ declare class AudioManager {
     set Mute(value: boolean);
     get Volume(): number;
     set Volume(value: number);
-    get PlayMode(): PlayMode;
-    set PlayMode(mode: PlayMode);
+    get PlayMode(): PlayModeType;
+    set PlayMode(mode: PlayModeType);
+    cyclePlayMode(): PlayModeType;
     get AutoNext(): boolean;
     set AutoNext(value: boolean);
-    get State(): PlayState;
+    get State(): PlayStateType;
     get CurrentTrack(): Track | null;
     get ActivePlaylist(): Playlist | null;
     get currentTime(): number;
     get duration(): number;
+    get progress(): AudioProgress;
+    get snapshot(): AudioSnapshot;
+    formatTime(seconds: number): string;
+    bindProgress(sliderId: string, timeId: string, interval?: number): void;
+    unbindProgress(sliderId: string, timeId: string): void;
     preInit(): Promise<void>;
 }
 
@@ -982,6 +1010,7 @@ declare class Variables {
     readonly migration: migration;
     hairgradients: () => HairGradientsReturn;
     constructor(core: MaplebirchCore);
+    optionsStorage(action: 'save' | 'restore' | 'reset' | 'load'): any | null;
     optionsCheck(): void;
     Init(): void;
     loadInit(): void;
@@ -1058,12 +1087,13 @@ interface LayerConfig {
     animation?: string;
     [key: string]: any;
 }
-type FaceStyleNameFn = (options: FaceStyleOptions) => string;
+type FaceStyleNameFn = (options: FaceStyleOptions) => string | string[];
+type FaceStyleName = string | string[];
 type CharacterProcessType = 'pre' | 'post';
 type CharacterProcessHandler = (options: any) => void;
 type CharacterProcessInput = CharacterProcessHandler | Function;
 type CharacterLayerMap = Record<string, LayerConfig>;
-declare function faceStyleSrcFn(name: FaceStyleNameFn | string): (layerOptions: FaceStyleOptions) => string;
+declare function faceStyleSrcFn(name: FaceStyleNameFn | FaceStyleName): (layerOptions: FaceStyleOptions) => string;
 declare function mask(x?: number, rotation?: number, swap?: boolean, width?: number, height?: number): string;
 declare class Character {
     readonly core: MaplebirchCore;
@@ -1384,6 +1414,9 @@ declare class CombatManager {
     Init(): void;
 }
 
+interface Extensions {
+}
+type Instance = MaplebirchCore & Extensions;
 declare class MaplebirchCore {
     static meta: {
         name: "maplebirch Frameworks";
@@ -1448,7 +1481,7 @@ declare class MaplebirchCore {
     get modUtils(): ModUtils;
     get gameVersion(): string;
 }
-declare var maplebirch: MaplebirchCore;
+declare var maplebirch: Instance;
 declare function createlog(prefix: string): (message: string, level?: string, ...objects: any[]) => void;
 
 interface AuthConfig {
@@ -1546,13 +1579,13 @@ declare class AddonPlugin {
     afterPatchModToGame(): Promise<void>;
     afterPreload(): Promise<any>;
     whenSC2StoryReady(): Promise<any>;
-    whenSC2PassageInit(passage: any): Promise<any>;
-    whenSC2PassageStart(passage: any, content: any): Promise<any>;
-    whenSC2PassageRender(passage: any, content: any): Promise<any>;
-    whenSC2PassageDisplay(passage: any, content: any): Promise<any>;
-    whenSC2PassageEnd(passage: any, content: any): Promise<any>;
+    whenSC2PassageInit(passage: Passage): Promise<any>;
+    whenSC2PassageStart(passage: Passage, content: HTMLDivElement): Promise<any>;
+    whenSC2PassageRender(passage: Passage, content: HTMLDivElement): Promise<any>;
+    whenSC2PassageDisplay(passage: Passage, content: HTMLDivElement): Promise<any>;
+    whenSC2PassageEnd(passage: Passage, content: HTMLDivElement): Promise<any>;
     loadCrypt(options: CryptOptions): Promise<boolean>;
 }
 declare function replace(content: string, replacements: [RegExp, string][]): string;
 
-export { SelectCase, clone, contains, convert, maplebirch as default, either, equal, loadImage, merge, number, random };
+export { type Extensions, type Instance, MaplebirchCore, SelectCase, clone, contains, convert, maplebirch as default, either, equal, loadImage, merge, number, random };

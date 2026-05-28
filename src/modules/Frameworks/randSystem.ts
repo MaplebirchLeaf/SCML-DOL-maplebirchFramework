@@ -47,6 +47,11 @@ class randSystem {
     this.state.index = Math.max(0, this.state.index - Math.floor(steps));
   }
 
+  forward(steps = 1): void {
+    if (steps <= 0) return;
+    this.state.index = Math.min(this.state.history.length, this.state.index + Math.floor(steps));
+  }
+
   get seed(): number | null {
     return this.state.seed;
   }

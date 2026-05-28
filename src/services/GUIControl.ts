@@ -13,6 +13,7 @@ interface ModuleInfo {
   type: ModuleType;
   source: string;
   protected: boolean;
+  lifecycle: boolean;
   dependencies: string[];
 }
 
@@ -102,12 +103,13 @@ class GUIControl {
     return Object.entries(graph)
       .map(([name, info]: [string, any]) => ({
         name,
-        type: (info.protected ? 'protected' : info.state === 'EXPOSED' ? 'exposed' : info.mounted ? 'mounted' : 'module') as ModuleType,
+        type: (info.protected ? 'protected' : info.exposed ? 'exposed' : info.mounted ? 'mounted' : 'module') as ModuleType,
         source: info.source || '',
         protected: info.protected === true,
+        lifecycle: info.lifecycle === true,
         dependencies: (info.allDependencies || []).filter((dep: string) => {
           const target = graph[dep];
-          return target && !target.protected && target.state !== 'EXPOSED';
+          return target && !target.protected;
         })
       }))
       .filter(mod => !mod.source || modNames.has(mod.source));
@@ -118,10 +120,6 @@ class GUIControl {
     if (type === 'mounted') return '[Mounted]';
     if (type === 'exposed') return '[Exposed]';
     return '[Module]';
-  }
-
-  canBeDisabled(mod: Pick<ModuleInfo, 'protected' | 'type'>): boolean {
-    return !mod.protected && mod.type !== 'exposed';
   }
 
   private async modulesStore(store: any, modNames: Set<string>): Promise<void> {
@@ -153,7 +151,7 @@ class GUIControl {
       const old = (await store.get('Modules')) as SettingRecord<ModulesStore> | undefined;
       const next = new Map<string, ModuleDisabledRecord>();
       for (const item of old?.value?.disabled || []) if (!currentNames.has(item.name) && item.source && modNames.has(item.source)) next.set(item.name, { name: item.name, source: item.source });
-      for (const mod of disabled) if (this.canBeDisabled(mod)) next.set(mod.name, { name: mod.name, source: mod.source || '' });
+      for (const mod of disabled) if (!mod.protected && (mod.type !== 'exposed' || mod.lifecycle)) next.set(mod.name, { name: mod.name, source: mod.source || '' });
       await store.put({ key: 'Modules', value: { disabled: Array.from(next.values()) } });
     });
     await this.loadSettings();
@@ -199,7 +197,7 @@ class GUIControl {
     const enabled = new Set(modules.enabled.map(m => m.name));
     const addDependents = (name: string) => {
       for (const mod of modules.enabled) {
-        if (!(mod.dependencies || []).includes(name) || !enabled.has(mod.name) || !this.canBeDisabled(mod)) continue;
+        if (!(mod.dependencies || []).includes(name) || !enabled.has(mod.name) || mod.protected || (mod.type === 'exposed' && !mod.lifecycle)) continue;
         result.add(mod.name);
         addDependents(mod.name);
       }
@@ -213,7 +211,7 @@ class GUIControl {
     const addon = this.core.get('addon');
     const result: string[] = [];
     Object.entries(this.core.dependencyGraph).forEach(([name, info]: [string, any]) => {
-      const type = (info.protected ? 'protected' : info.state === 'EXPOSED' ? 'exposed' : info.mounted ? 'mounted' : 'module') as ModuleType;
+      const type = (info.protected ? 'protected' : info.exposed ? 'exposed' : info.mounted ? 'mounted' : 'module') as ModuleType;
       result.push(`${this.typeLabel(type)} ${name} [${info.source || info.state}]`);
     });
     addon?.jsFiles?.forEach((entry: any) => result.push(`[Script] ${entry.filePath} [${entry.modName}]`));
@@ -306,6 +304,7 @@ class GUIControl {
                     type: m.type,
                     source: m.source || '',
                     protected: m.protected === true,
+                    lifecycle: m.lifecycle === true,
                     dependencies: m.dependencies || []
                   })),
                   disabled: $scope.$ctrl.data.disabledModules.map((m: any) => ({
@@ -313,6 +312,7 @@ class GUIControl {
                     type: m.type,
                     source: m.source || '',
                     protected: m.protected === true,
+                    lifecycle: m.lifecycle === true,
                     dependencies: m.dependencies || []
                   }))
                 };
@@ -401,8 +401,8 @@ class GUIControl {
         },
         Language: maplebirch.Language,
         moduleText: maplebirch.gui.moduleList,
-        enabledModules: maplebirch.gui.enabledModules.filter(m => maplebirch.gui.canBeDisabled(m)),
-        disabledModules: maplebirch.gui.disabledModules.filter(m => maplebirch.gui.canBeDisabled(m)),
+        enabledModules: maplebirch.gui.enabledModules.filter(m => !m.protected && (m.type !== 'exposed' || m.lifecycle)),
+        disabledModules: maplebirch.gui.disabledModules.filter(m => !m.protected && (m.type !== 'exposed' || m.lifecycle)),
         enabledScripts: maplebirch.gui.enabledScripts,
         disabledScripts: maplebirch.gui.disabledScripts,
         text: {

@@ -7,7 +7,7 @@
       <div class='searchButtons'>
         <div class='input-row'>
           <<textbox '_maplebirchJSCheatConsole' ''>>
-          <<lanButton 'execute' 'capitalize'>><<run maplebirch.tool.console.execute('javascript')>><</lanButton>>
+          <<lanButton 'execute' 'capitalize'>><<run maplebirch.tool.console.execute('javascript', _maplebirchJSCheatConsole)>><</lanButton>>
         </div>
         <span id='js-cheat-console-status'></span>
       </div>
@@ -19,7 +19,7 @@
       <div class='searchButtons'>
         <div class='input-row'>
           <<textbox '_maplebirchTwineCheatConsole' ''>>
-          <<lanButton 'execute' 'capitalize'>><<run maplebirch.tool.console.execute('twine')>><</lanButton>>
+          <<lanButton 'execute' 'capitalize'>><<run maplebirch.tool.console.execute('twine', _maplebirchTwineCheatConsole)>><</lanButton>>
         </div>
         <span id='twine-cheat-console-status'></span>
       </div>

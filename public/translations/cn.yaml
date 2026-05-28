@@ -116,7 +116,9 @@
 'priestess': 女司祭
 'priest': 司祭
 
-'reset framework settings to default': 重置框架设置为默认
+'reset defaults': 重置默认设置
+'save current settings': 保存当前设置
+'restore saved settings': 恢复已保存设置
 
 'framework.notice.desc': '秋枫白桦框架用于为 Degrees of Lewdity 模组提供加载、扩展与兼容支持。启用本框架后，游戏内容可能会受到框架本身或相关模组的影响。'
 'framework.notice.issue.title': '反馈问题前，请先确认问题来源：'

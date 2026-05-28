@@ -51,6 +51,10 @@ marked.setOptions({
 
 let jsSugarCube: TwineSugarCube;
 
+interface Extensions {}
+
+type Instance = MaplebirchCore & Extensions;
+
 class MaplebirchCore {
   static meta = {
     name: 'maplebirch Frameworks' as const,
@@ -209,11 +213,12 @@ class MaplebirchCore {
   }
 }
 
-var maplebirch = new MaplebirchCore(window.modSC2DataManager, window.modLoaderGui);
+var maplebirch = new MaplebirchCore(window.modSC2DataManager, window.modLoaderGui) as Instance;
 
 function createlog(prefix: string) {
   return (message: string, level: string = 'INFO', ...objects: any[]) => maplebirch.log(`[${prefix}] ${message}`, level, ...objects);
 }
 
 export { MaplebirchCore, createlog };
+export type { Extensions, Instance };
 export default maplebirch;

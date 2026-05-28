@@ -205,6 +205,15 @@ export class WeatherManager {
     return this;
   }
 
+  addLayerEffects(layerName: string, effects: any[], mode: 'concat' | 'replace' | 'merge' = 'concat'): this {
+    return this.addLayer(layerName, { effects }, mode);
+  }
+
+  patchLayerEffect(layerName: string, index: number, patch: any, mode: 'merge' | 'replace' = 'merge'): this {
+    const effects = Array.from({ length: index + 1 }, (_, i) => (i === index ? patch : {}));
+    return this.addLayer(layerName, { effects }, mode);
+  }
+
   addEffect(effectName: string, patch: any, mode: 'concat' | 'replace' | 'merge' = 'replace'): this {
     if (!this.effectModifications.has(effectName)) this.effectModifications.set(effectName, []);
     this.effectModifications.get(effectName)!.push({ patch, mode });

@@ -1,7 +1,7 @@
 // ./src/modules/Character.ts
 
 import maplebirch, { MaplebirchCore, createlog } from '../core';
-import { merge, loadImage, convert } from '../utils';
+import { merge, convert, loadImage } from '../utils';
 import AddonPlugin from './AddonPlugin';
 import Transformation from './CharacterAddon/Transformation';
 
@@ -52,25 +52,39 @@ interface LayerConfig {
   [key: string]: any;
 }
 
-type FaceStyleNameFn = (options: FaceStyleOptions) => string;
+type FaceStyleNameFn = (options: FaceStyleOptions) => string | string[];
+type FaceStyleName = string | string[];
 type CharacterProcessType = 'pre' | 'post';
 type CharacterProcessHandler = (options: any) => void;
 type CharacterProcessInput = CharacterProcessHandler | Function;
 type CharacterLayerMap = Record<string, LayerConfig>;
 
-function faceStyleSrcFn(name: FaceStyleNameFn | string) {
+const faceImagePaths = new Set<string>();
+
+function resolveFaceImagePath(candidates: string[]) {
+  const indexed = candidates.find(path => faceImagePaths.has(path));
+  if (indexed) return indexed;
+  let firstUnknown = '';
+  for (const path of candidates) {
+    const result = loadImage(path);
+    if (result === path || result === true) return path;
+    if (result !== false && !firstUnknown) firstUnknown = path;
+  }
+  return firstUnknown || candidates[0];
+}
+
+function faceStyleSrcFn(name: FaceStyleNameFn | FaceStyleName) {
   const getName: FaceStyleNameFn = typeof name === 'function' ? name : () => name;
   return function (layerOptions: FaceStyleOptions): string {
-    const image = getName(layerOptions);
-    const paths = [
-      `img/face/${layerOptions.facestyle}/${layerOptions.facevariant}/${image}.png`,
-      `img/face/${layerOptions.facestyle}/${image}.png`,
-      `img/face/default/${layerOptions.facevariant}/${image}.png`,
-      `img/face/default/${image}.png`,
-      `img/face/default/default/${image}.png`
-    ];
-    for (const path of paths) if (!!loadImage(path)) return path;
-    return paths[paths.length - 1];
+    const images = [getName(layerOptions)].flat();
+    const facestyle = layerOptions.facestyle || 'default';
+    const facevariant = layerOptions.facevariant || 'default';
+    const candidates = images.flatMap(image => {
+      return facestyle === 'default' && /^(freckles|ears|blusher|mouth-|lipstick-|blush-?|tears?-?)/.test(image)
+        ? [`img/face/${facestyle}/${image}.png`, `img/face/${facestyle}/${facevariant}/${image}.png`, `img/face/default/${image}.png`, `img/face/default/${facevariant}/${image}.png`]
+        : [`img/face/${facestyle}/${facevariant}/${image}.png`, `img/face/${facestyle}/${image}.png`, `img/face/default/${facevariant}/${image}.png`, `img/face/default/${image}.png`];
+    });
+    return resolveFaceImagePath(candidates);
   };
 }
 
@@ -414,7 +428,9 @@ class Character {
         for (const filePath of Object.keys(files)) {
           const faceIndex = filePath.indexOf('img/face/');
           if (faceIndex === -1) continue;
-          const pathParts = filePath.substring(faceIndex + 9).split('/');
+          const imagePath = filePath.substring(faceIndex).replace(/\\/g, '/');
+          faceImagePaths.add(imagePath);
+          const pathParts = imagePath.substring(9).split('/');
           if (pathParts.length < 2) continue;
           hasFacePath = true;
           const firstFolder = pathParts[0];
