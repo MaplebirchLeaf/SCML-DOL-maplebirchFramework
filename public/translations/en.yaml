@@ -116,7 +116,9 @@
 'priestess': priestess
 'priest': priest
 
-'reset framework settings to default': 重置框架设置为默认
+'reset defaults': reset defaults
+'save current settings': save current settings
+'restore saved settings': restore saved settings
 
 'framework.notice.desc': 'Maplebirch Framework provides loading, extension, and compatibility support for Degrees of Lewdity mods. When enabled, the game may be affected by the framework itself or by related mods.'
 'framework.notice.issue.title': 'Before reporting an issue, please check where it comes from:'

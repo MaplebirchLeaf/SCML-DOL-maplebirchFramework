@@ -66,7 +66,7 @@ maplebirch.register('myApi', {
 maplebirch.myApi.hello();
 ```
 
-Exposed modules do not run through the normal initialization flow and are not treated as disableable modules by the module GUI. Registration fails if the target name is already occupied.
+Pure exposed modules without lifecycle methods are mounted as API modules and are not shown as disableable modules in the GUI. If an exposed module also defines lifecycle methods such as `Init`, it still mounts to `maplebirch[name]`, runs through the normal initialization flow, and can be disabled unless it is protected. Registration fails if the target name is already occupied.
 
 ## Reading Modules
 
@@ -149,7 +149,7 @@ maplebirch.register('myModule', new MyModule(), ['npc']);
 
 - A module initializes after all dependencies are satisfied.
 - Transitive dependencies are collected automatically.
-- `EXPOSED` dependencies are treated as satisfied.
+- Pure `EXPOSED` dependencies are treated as satisfied. Exposed modules with lifecycle methods follow the normal dependency flow.
 - If a dependency becomes `ERROR` or `DISABLED`, dependent modules will not continue initialization.
 - Circular dependencies are detected during registration.
 

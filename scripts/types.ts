@@ -33,7 +33,7 @@ async function writeTypesPackage(): Promise<void> {
 
   await Bun.write(
     path.join(packageDir, 'index.d.ts'),
-    "import maplebirchDefault from './maplebirch';\n\ndeclare global {\n  const maplebirch: typeof maplebirchDefault;\n\n  interface Window {\n    readonly maplebirch: typeof maplebirchDefault;\n  }\n}\n\nexport default maplebirchDefault;\nexport * from './maplebirch';\n"
+    "import maplebirchDefault, * as maplebirchTypes from './maplebirch';\n\ndeclare global {\n  const maplebirch: typeof maplebirchDefault;\n  const clone: typeof maplebirchTypes.clone;\n  const merge: typeof maplebirchTypes.merge;\n  const equal: typeof maplebirchTypes.equal;\n  const contains: typeof maplebirchTypes.contains;\n  const SelectCase: typeof maplebirchTypes.SelectCase;\n  const random: typeof maplebirchTypes.random;\n  const either: typeof maplebirchTypes.either;\n  const convert: typeof maplebirchTypes.convert;\n  const number: typeof maplebirchTypes.number;\n  const loadImage: typeof maplebirchTypes.loadImage;\n\n  interface Window {\n    readonly maplebirch: typeof maplebirchDefault;\n    readonly clone: typeof maplebirchTypes.clone;\n    readonly merge: typeof maplebirchTypes.merge;\n    readonly equal: typeof maplebirchTypes.equal;\n    readonly contains: typeof maplebirchTypes.contains;\n    readonly SelectCase: typeof maplebirchTypes.SelectCase;\n    readonly random: typeof maplebirchTypes.random;\n    readonly either: typeof maplebirchTypes.either;\n    readonly convert: typeof maplebirchTypes.convert;\n    readonly number: typeof maplebirchTypes.number;\n    readonly loadImage: typeof maplebirchTypes.loadImage;\n  }\n}\n\nexport default maplebirchDefault;\nexport * from './maplebirch';\n"
   );
 
   await Bun.write(

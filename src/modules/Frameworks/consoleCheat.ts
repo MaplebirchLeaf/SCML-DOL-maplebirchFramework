@@ -43,8 +43,7 @@ class CheatConsole {
     this.core = manager.core;
   }
 
-  executeJS(): JSExecutionResult {
-    const code = T?.maplebirchJSCheatConsole as string;
+  executeJS(code: string): JSExecutionResult {
     $(this.jsStatus).empty().removeClass('success error visible');
     if (typeof code !== 'string' || code.trim() === '') {
       const error = lanSwitch('Please enter valid JavaScript code.', '请输入有效的 JavaScript 代码。');
@@ -80,8 +79,7 @@ class CheatConsole {
     }
   }
 
-  executeTwine(): TwineExecutionResult {
-    const code = T?.maplebirchTwineCheatConsole as string;
+  executeTwine(code: string): TwineExecutionResult {
     $(this.twineStatus).empty().removeClass('success error visible');
     if (typeof code !== 'string' || code.trim() === '') {
       const error = lanSwitch('Please enter valid Twine code.', '请输入有效的 Twine 代码。');
@@ -148,9 +146,9 @@ class CheatConsole {
     }
   }
 
-  execute(type: 'javascript' | 'twine'): ExecutionResult {
-    if (type === 'javascript') return this.executeJS() as ExecutionResult;
-    if (type === 'twine') return this.executeTwine() as ExecutionResult;
+  execute(type: 'javascript' | 'twine', code?: string): ExecutionResult {
+    if (type === 'javascript') return this.executeJS(code) as ExecutionResult;
+    if (type === 'twine') return this.executeTwine(code) as ExecutionResult;
     const message = lanSwitch('Unknown execution type: ', '未知执行类型: ') + type;
     this.log(`未知执行类型: ${type as any}`, 'ERROR');
     return {

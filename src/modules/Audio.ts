@@ -1,16 +1,9 @@
 // ./src/modules/Audio.ts
 
 import maplebirch, { MaplebirchCore, createlog } from '../core';
-import { random } from '../utils';
-
-const PlayMode = {
-  SEQUENTIAL: 'sequential',
-  LOOP_ALL: 'loop_all',
-  LOOP_ONE: 'loop_one',
-  SHUFFLE: 'shuffle'
-} as const;
-
-type PlayMode = (typeof PlayMode)[keyof typeof PlayMode];
+import AudioBufferPlayer from './AudioAddon/AudioBufferPlayer';
+import Playlist, { PlayMode, type PlayModeType } from './AudioAddon/Playlist';
+import Track from './AudioAddon/Track';
 
 const PlayState = {
   IDLE: 'idle',
@@ -20,19 +13,11 @@ const PlayState = {
   STOPPED: 'stopped'
 } as const;
 
-type PlayState = (typeof PlayState)[keyof typeof PlayState];
+type PlayStateType = (typeof PlayState)[keyof typeof PlayState];
+
 const SUPPORTED_FORMATS = ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'webm'] as const;
 type AudioFormat = (typeof SUPPORTED_FORMATS)[number];
 const FORMAT_SET = new Set<string>(SUPPORTED_FORMATS);
-
-const MIME_TYPES: Record<string, string> = {
-  mp3: 'audio/mpeg',
-  wav: 'audio/wav',
-  ogg: 'audio/ogg',
-  m4a: 'audio/mp4',
-  flac: 'audio/flac',
-  webm: 'audio/webm'
-};
 
 interface TrackMeta {
   title?: string;
@@ -62,156 +47,24 @@ interface AudioRecord {
 
 interface CacheEntry {
   howl: any;
-  url: string;
 }
 
-class Track {
-  title: string;
-  artist: string;
-  duration = 0;
-  format: AudioFormat = 'mp3';
-
-  constructor(
-    readonly audioName: string,
-    readonly modName: string,
-    meta: TrackMeta = {}
-  ) {
-    this.title = meta.title || audioName;
-    this.artist = meta.artist || modName;
-  }
+interface AudioProgress {
+  currentTime: number;
+  duration: number;
+  percent: number;
 }
 
-class Playlist {
-  tracks: Track[] = [];
-  currentIndex = -1;
-  playMode: PlayMode = PlayMode.LOOP_ALL;
-
-  private shuffleOrder: number[] = [];
-  private shuffleIndex = -1;
-
-  constructor(readonly name: string) {}
-
-  add(input: Track | Track[]): void {
-    const tracks = Array.isArray(input) ? input : [input];
-    for (const track of tracks) {
-      const index = this.tracks.findIndex(item => item.modName === track.modName && item.audioName === track.audioName);
-      if (index >= 0) {
-        this.tracks[index] = track;
-      } else {
-        this.tracks.push(track);
-      }
-    }
-    this.resetShuffle();
-  }
-
-  removeAt(index: number): boolean {
-    if (index < 0 || index >= this.tracks.length) return false;
-    this.tracks.splice(index, 1);
-    if (index < this.currentIndex) {
-      this.currentIndex--;
-    } else if (index === this.currentIndex) {
-      this.currentIndex = Math.min(this.currentIndex, this.tracks.length - 1);
-    }
-    if (this.tracks.length === 0) this.currentIndex = -1;
-    this.resetShuffle();
-    return true;
-  }
-
-  remove(audioName: string): boolean {
-    const index = this.tracks.findIndex(track => track.audioName === audioName);
-    return this.removeAt(index);
-  }
-
-  clear(): void {
-    this.tracks = [];
-    this.currentIndex = -1;
-    this.shuffleOrder = [];
-    this.shuffleIndex = -1;
-  }
-
-  setMode(mode: PlayMode): void {
-    this.playMode = mode;
-    if (mode === PlayMode.SHUFFLE) this.shuffle();
-  }
-
-  select(index: number): Track | null {
-    if (index < 0 || index >= this.tracks.length) return null;
-    this.currentIndex = index;
-    if (this.playMode === PlayMode.SHUFFLE) this.shuffleIndex = this.shuffleOrder.indexOf(index);
-    return this.tracks[index] || null;
-  }
-
-  next(): Track | null {
-    if (this.tracks.length === 0) return null;
-    if (this.playMode === PlayMode.LOOP_ONE) {
-      if (this.currentIndex < 0) this.currentIndex = 0;
-      return this.tracks[this.currentIndex] || null;
-    }
-    if (this.playMode === PlayMode.SHUFFLE) {
-      if (this.shuffleOrder.length !== this.tracks.length) this.shuffle();
-      this.shuffleIndex++;
-      if (this.shuffleIndex >= this.shuffleOrder.length) {
-        this.shuffle();
-        this.shuffleIndex = 0;
-      }
-      this.currentIndex = this.shuffleOrder[this.shuffleIndex];
-      return this.tracks[this.currentIndex] || null;
-    }
-
-    this.currentIndex++;
-    if (this.currentIndex >= this.tracks.length) {
-      if (this.playMode === PlayMode.LOOP_ALL) {
-        this.currentIndex = 0;
-      } else {
-        this.currentIndex = this.tracks.length - 1;
-        return null;
-      }
-    }
-    return this.tracks[this.currentIndex] || null;
-  }
-
-  previous(): Track | null {
-    if (this.tracks.length === 0) return null;
-    if (this.playMode === PlayMode.LOOP_ONE) {
-      if (this.currentIndex < 0) this.currentIndex = 0;
-      return this.tracks[this.currentIndex] || null;
-    }
-    if (this.playMode === PlayMode.SHUFFLE) {
-      if (this.shuffleIndex <= 0) return null;
-      this.shuffleIndex--;
-      this.currentIndex = this.shuffleOrder[this.shuffleIndex];
-      return this.tracks[this.currentIndex] || null;
-    }
-    this.currentIndex--;
-    if (this.currentIndex < 0) {
-      if (this.playMode === PlayMode.LOOP_ALL) {
-        this.currentIndex = this.tracks.length - 1;
-      } else {
-        this.currentIndex = 0;
-        return null;
-      }
-    }
-    return this.tracks[this.currentIndex] || null;
-  }
-
-  get length(): number {
-    return this.tracks.length;
-  }
-
-  private resetShuffle(): void {
-    this.shuffleOrder = [];
-    this.shuffleIndex = -1;
-    if (this.playMode === PlayMode.SHUFFLE) this.shuffle();
-  }
-
-  private shuffle(): void {
-    this.shuffleOrder = [...Array(this.tracks.length).keys()];
-    for (let i = this.shuffleOrder.length - 1; i > 0; i--) {
-      const j = random(i);
-      [this.shuffleOrder[i], this.shuffleOrder[j]] = [this.shuffleOrder[j], this.shuffleOrder[i]];
-    }
-    this.shuffleIndex = -1;
-  }
+interface AudioSnapshot {
+  state: PlayStateType;
+  track: Track | null;
+  playlist: string;
+  index: number;
+  length: number;
+  mode: PlayModeType;
+  volume: number;
+  muted: boolean;
+  progress: AudioProgress;
 }
 
 class AudioManager {
@@ -226,7 +79,7 @@ class AudioManager {
   private activePlaylist: Playlist | null = null;
   private currentTrack: Track | null = null;
   private currentHowl: any = null;
-  private state: PlayState = PlayState.IDLE;
+  private state: PlayStateType = PlayState.IDLE;
   private volume = 1;
   private muted = false;
   private autoNext = true;
@@ -236,6 +89,7 @@ class AudioManager {
 
   private playRequestId = 0;
   private progressTimer: ReturnType<typeof setInterval> | null = null;
+  private progressBindings = new Map<string, ReturnType<typeof setInterval>>();
 
   constructor(readonly core: MaplebirchCore) {
     this.log = createlog('audio');
@@ -287,7 +141,7 @@ class AudioManager {
       if (requestId !== this.playRequestId) return false;
       this.currentTrack = track;
       this.currentHowl = howl;
-      howl.volume(this.volume);
+      howl.volume(this.outputVolume);
       howl.play();
       this.state = PlayState.PLAYING;
       this.startProgressTimer();
@@ -347,13 +201,20 @@ class AudioManager {
     return track ? await this.play(track) : false;
   }
 
+  async playAt(modName: string, index: number): Promise<boolean> {
+    const playlist = await this.getPlaylist(modName);
+    this.activePlaylist = playlist;
+    const track = playlist.select(index);
+    return track ? await this.play(track) : false;
+  }
+
   seek(percent: number): boolean {
     const duration = this.duration;
     if (!this.currentHowl || duration <= 0) return false;
     const safePercent = Math.max(0, Math.min(100, percent));
     const targetTime = (safePercent / 100) * duration;
     this.currentHowl.seek(targetTime);
-    this.emit('seek', targetTime, duration);
+    this.emit('seek', targetTime, duration, this.progress.percent);
     return true;
   }
 
@@ -362,7 +223,7 @@ class AudioManager {
     if (!this.currentHowl || duration <= 0) return false;
     const targetTime = Math.max(0, Math.min(duration, seconds));
     this.currentHowl.seek(targetTime);
-    this.emit('seek', targetTime, duration);
+    this.emit('seek', targetTime, duration, this.progress.percent);
     return true;
   }
 
@@ -385,21 +246,19 @@ class AudioManager {
     return playlist;
   }
 
-  async playFromMod(modName: string, audioName?: string): Promise<boolean> {
+  async playFromMod(modName: string, audioName?: string): Promise<boolean | string> {
     const playlist = await this.getPlaylist(modName);
     this.activePlaylist = playlist;
     if (playlist.length <= 0) return false;
-    if (!audioName) {
-      const firstTrack = playlist.select(0);
-      return firstTrack ? await this.play(firstTrack) : false;
-    }
-    const index = playlist.tracks.findIndex(track => track.audioName === audioName);
+    const index = audioName ? playlist.tracks.findIndex(track => track.audioName === audioName) : 0;
     if (index < 0) {
       this.log(`播放失败，模组 ${modName} 中没有音频: ${audioName}`, 'WARN');
       return false;
     }
     const track = playlist.select(index);
-    return track ? await this.play(track) : false;
+    if (!track) return false;
+    const success = await this.play(track);
+    return success ? modName : false;
   }
 
   async import(modName: string, audioFolder = 'audio'): Promise<boolean> {
@@ -443,7 +302,8 @@ class AudioManager {
     return successCount > 0;
   }
 
-  async addFile(file: File, modName = 'custom'): Promise<boolean> {
+  async addFile(file: File, modName = 'custom'): Promise<boolean | string> {
+    if (!file) return false;
     const format = file.name.split('.').pop()?.toLowerCase();
     if (!FORMAT_SET.has(format || '')) return false;
     const dotIndex = file.name.lastIndexOf('.');
@@ -455,7 +315,7 @@ class AudioManager {
     const track = new Track(audioName, modName);
     track.format = format as AudioFormat;
     playlist.add(track);
-    return true;
+    return modName;
   }
 
   async delete(modName: string, audioName: string): Promise<boolean> {
@@ -471,7 +331,7 @@ class AudioManager {
     }
   }
 
-  async clearAudio(modName: string): Promise<boolean> {
+  async clearAudio(modName: string): Promise<boolean | string> {
     try {
       if (this.currentTrack?.modName === modName) this.stop();
       const records = await this.readRecords(modName);
@@ -484,7 +344,7 @@ class AudioManager {
       });
       this.playlists.delete(modName);
       if (this.activePlaylist?.name === modName) this.activePlaylist = null;
-      return true;
+      return modName;
     } catch (error) {
       this.log(`清空模组音频失败: ${modName}`, 'ERROR', error);
       return false;
@@ -501,6 +361,8 @@ class AudioManager {
   destroy(): void {
     this.stop();
     this.clearCache();
+    for (const timer of this.progressBindings.values()) clearInterval(timer);
+    this.progressBindings.clear();
     this.eventListeners.clear();
     this.playlists.clear();
     this.activePlaylist = null;
@@ -525,6 +387,7 @@ class AudioManager {
     if (this.muted === value) return;
     this.muted = value;
     this.core.howler.Howler.mute(value);
+    this.currentHowl?.volume(this.outputVolume);
     this.emit('mutechange', value);
   }
 
@@ -537,18 +400,31 @@ class AudioManager {
     if (this.volume === volume) return;
     this.volume = volume;
     this.core.howler.Howler.volume(volume);
-    this.currentHowl?.volume(volume);
+    this.currentHowl?.volume(this.outputVolume);
     this.emit('volumechange', volume);
   }
 
-  get PlayMode(): PlayMode {
+  get PlayMode(): PlayModeType {
     return this.activePlaylist?.playMode || PlayMode.LOOP_ALL;
   }
 
-  set PlayMode(mode: PlayMode) {
+  set PlayMode(mode: PlayModeType) {
     if (!this.activePlaylist) return;
     this.activePlaylist.setMode(mode);
     this.emit('modechange', mode);
+  }
+
+  cyclePlayMode(): PlayModeType {
+    const nextMode =
+      this.PlayMode === PlayMode.SEQUENTIAL
+        ? PlayMode.LOOP_ALL
+        : this.PlayMode === PlayMode.LOOP_ALL
+          ? PlayMode.LOOP_ONE
+          : this.PlayMode === PlayMode.LOOP_ONE
+            ? PlayMode.SHUFFLE
+            : PlayMode.SEQUENTIAL;
+    this.PlayMode = nextMode;
+    return nextMode;
   }
 
   get AutoNext(): boolean {
@@ -559,7 +435,7 @@ class AudioManager {
     this.autoNext = value;
   }
 
-  get State(): PlayState {
+  get State(): PlayStateType {
     return this.state;
   }
 
@@ -581,6 +457,77 @@ class AudioManager {
     if (!this.currentHowl) return 0;
     const value = this.currentHowl.duration();
     return typeof value === 'number' ? value : 0;
+  }
+
+  get progress(): AudioProgress {
+    const currentTime = this.currentTime;
+    const duration = this.duration;
+    return {
+      currentTime,
+      duration,
+      percent: duration > 0 ? Math.max(0, Math.min(100, (currentTime / duration) * 100)) : 0
+    };
+  }
+
+  get snapshot(): AudioSnapshot {
+    return {
+      state: this.state,
+      track: this.currentTrack,
+      playlist: this.activePlaylist?.name || '',
+      index: this.activePlaylist?.currentIndex ?? -1,
+      length: this.activePlaylist?.length ?? 0,
+      mode: this.PlayMode,
+      volume: this.volume,
+      muted: this.muted,
+      progress: this.progress
+    };
+  }
+
+  formatTime(seconds: number): string {
+    const safe = Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
+    const mins = Math.floor(safe / 60);
+    const secs = Math.floor(safe % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  bindProgress(sliderId: string, timeId: string, interval = 250): void {
+    const key = `${sliderId}:${timeId}`;
+    const update = () => {
+      const slider = document.getElementById(sliderId) as HTMLInputElement | null;
+      const time = document.getElementById(timeId);
+      if (!slider || !time) {
+        this.unbindProgress(sliderId, timeId);
+        return;
+      }
+      const { currentTime, duration, percent } = this.progress;
+      if (document.activeElement !== slider) slider.value = String(percent);
+      time.textContent = `${this.formatTime(currentTime)} / ${this.formatTime(duration)}`;
+      if (!this.currentTrack || this.state === PlayState.IDLE || this.state === PlayState.STOPPED) this.unbindProgress(sliderId, timeId);
+    };
+
+    this.unbindProgress(sliderId, timeId);
+    const timer = setTimeout(() => {
+      const slider = document.getElementById(sliderId) as HTMLInputElement | null;
+      if (slider) {
+        slider.oninput = () => {
+          this.seek(Number(slider.value));
+          update();
+        };
+      }
+      update();
+      this.progressBindings.set(key, setInterval(update, interval));
+    }, 0);
+    this.progressBindings.set(key, timer);
+  }
+
+  unbindProgress(sliderId: string, timeId: string): void {
+    const key = `${sliderId}:${timeId}`;
+    const timer = this.progressBindings.get(key);
+    if (!timer) return;
+    clearInterval(timer);
+    this.progressBindings.delete(key);
+    const slider = document.getElementById(sliderId) as HTMLInputElement | null;
+    if (slider) slider.oninput = null;
   }
 
   async preInit(): Promise<void> {
@@ -610,33 +557,20 @@ class AudioManager {
   private async load(track: Track): Promise<CacheEntry> {
     const cached = this.cache.get(track.modName)?.get(track.audioName);
     if (cached) {
-      cached.howl.volume(this.volume);
+      cached.howl.volume(this.outputVolume);
       return cached;
     }
     const record = await this.core.idb.withTransaction([this.STORE], 'readonly', async (tx: any) => await tx.objectStore(this.STORE).get([track.modName, track.audioName]));
     if (!record) throw new Error(`音频不存在: ${track.modName}/${track.audioName}`);
     const audioRecord = record as AudioRecord;
     const { arrayBuffer, format } = audioRecord.value;
-    const url = URL.createObjectURL(new Blob([arrayBuffer], { type: MIME_TYPES[format] || MIME_TYPES.mp3 }));
     track.format = format;
-    const howl = await new Promise<any>((resolve, reject) => {
-      const instance = new this.core.howler.Howl({
-        src: [url],
-        html5: false,
-        volume: this.volume,
-        format: [format],
-        onload: () => {
-          track.duration = instance.duration();
-          resolve(instance);
-        },
-        onloaderror: (_: any, error: any) => {
-          URL.revokeObjectURL(url);
-          reject(error);
-        },
-        onend: () => this.handleTrackEnd(track)
-      });
-    });
-    const entry = { howl, url };
+    const context = this.core.howler.Howler.ctx as AudioContext | undefined;
+    if (!context) throw new Error('WebAudio context is not available');
+    const buffer = await context.decodeAudioData(arrayBuffer.slice(0));
+    track.duration = buffer.duration;
+    const howl = new AudioBufferPlayer(context, buffer, this.outputVolume, () => this.handleTrackEnd(track));
+    const entry = { howl };
     this.cacheAudio(track.modName, track.audioName, entry);
     return entry;
   }
@@ -721,7 +655,6 @@ class AudioManager {
 
   private release(entry: CacheEntry): void {
     entry.howl?.unload?.();
-    if (entry.url.startsWith('blob:')) URL.revokeObjectURL(entry.url);
   }
 
   private stopCurrent(emitEvent: boolean): boolean {
@@ -736,14 +669,16 @@ class AudioManager {
     return true;
   }
 
+  private get outputVolume(): number {
+    return this.muted ? 0 : this.volume;
+  }
+
   private startProgressTimer(): void {
     this.stopProgressTimer();
     this.progressTimer = setInterval(() => {
       if (this.state !== PlayState.PLAYING || !this.currentHowl) return;
-      const current = this.currentTime;
-      const duration = this.duration;
-      const percent = duration > 0 ? (current / duration) * 100 : 0;
-      this.emit('timeupdate', current, duration, percent);
+      const { currentTime, duration, percent } = this.progress;
+      this.emit('timeupdate', currentTime, duration, percent);
     }, 250);
   }
 

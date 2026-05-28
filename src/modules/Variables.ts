@@ -2,7 +2,7 @@
 
 import { clone, merge } from '../utils';
 import maplebirch, { MaplebirchCore, createlog } from '../core';
-import dataUpdate, { defaultVar } from '../database/State-variables';
+import dataUpdate, { defaults } from '../database/State-variables';
 import migration from './Frameworks/migration';
 
 interface Color {
@@ -31,6 +31,8 @@ function hairgradients(): HairGradientsReturn {
 }
 
 class Variables {
+  private static readonly OPTIONS_STORAGE_KEY = 'maplebirchFrameworkOptions';
+
   // prettier-ignore
   static get options() {
 		return {
@@ -86,24 +88,47 @@ class Variables {
     });
   }
 
-  optionsCheck() {
-    if (!this.core.lodash.isPlainObject(V.options?.maplebirch)) {
-      V.options.maplebirch = clone(Variables.options);
-    } else {
-      V.options.maplebirch = merge({}, Variables.options, V.options.maplebirch, {
-        mode: 'merge',
-        filterFn: (key: string, value: any, depth: number, targetValue: any) => {
-          if (targetValue !== undefined && typeof value !== typeof targetValue) return false;
-          return true;
-        }
-      });
+  optionsStorage(action: 'save' | 'restore' | 'reset' | 'load'): any | null {
+    try {
+      if (action === 'save') {
+        localStorage.setItem(Variables.OPTIONS_STORAGE_KEY, JSON.stringify(V.options?.maplebirch ?? {}));
+        this.log('框架设置已保存', 'DEBUG');
+        return null;
+      }
+
+      if (action === 'reset') {
+        localStorage.removeItem(Variables.OPTIONS_STORAGE_KEY);
+        V.options.maplebirch = clone(Variables.options);
+        return null;
+      }
+
+      const raw = localStorage.getItem(Variables.OPTIONS_STORAGE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      const saved = this.core.lodash.isPlainObject(parsed) ? parsed : null;
+
+      if (action === 'restore' && saved) {
+        V.options.maplebirch = saved;
+        this.optionsCheck();
+      }
+
+      return saved;
+    } catch (error: any) {
+      this.log(`框架设置存储处理失败: ${error?.message || error}`, 'WARN');
+      return null;
     }
+  }
+
+  optionsCheck() {
+    V.options ??= {};
+    const current = this.core.lodash.isPlainObject(V.options.maplebirch) ? V.options.maplebirch : this.optionsStorage('load');
+    V.options.maplebirch = merge({}, Variables.options, current ?? {}, { mode: 'merge' });
   }
 
   Init() {
     try {
       V.maplebirch ??= {};
-      if (this.tool.core.passage?.title === 'Start2') V.maplebirch = clone({ ...defaultVar, version: this.version });
+      if (this.tool.core.passage?.title === 'Start2') V.maplebirch = clone({ ...defaults, version: this.version });
     } catch (e: any) {
       this.log(`出现错误：${e?.message || e}`, 'ERROR');
     } finally {

@@ -104,6 +104,22 @@
   box-sizing: border-box;
 }
 
+.maplebirch-options-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.maplebirch-options-actions .macro-button {
+  flex: 1 1 0;
+  min-width: 0;
+  box-sizing: border-box;
+  text-align: center;
+  white-space: normal;
+}
+
 @media (min-width: 768px) {
   #maplebirch .module-settings-container {
     flex-direction: row;
@@ -116,6 +132,18 @@
 
   #maplebirch input[type='text'] {
     max-width: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .maplebirch-options-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .maplebirch-options-actions .macro-button {
+    flex: none;
+    width: min(100%, 24rem);
   }
 }
 

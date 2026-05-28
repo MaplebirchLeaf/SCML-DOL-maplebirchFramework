@@ -550,14 +550,15 @@ function _overlayReplace(name: string, type: string): void {
   T.currentOverlay = key;
   const $overlay = jQuery('#customOverlay');
   if ($overlay.length) $overlay.removeClass('hidden').parent().removeClass('hidden').attr('data-overlay', T.currentOverlay);
-  if (type === 'customize') {
-    $.wiki(`<<${key}>><<exit>>`);
-    return;
-  }
-  if (type === 'title') {
-    const titleKey = 'title' + convert(key, 'pascal');
-    if (titleKey && maplebirch.tool.macro.Macro.has(titleKey)) $.wiki(`<<replace #customOverlayTitle>><<${titleKey}>><</replace>>`);
-    return;
+  switch (type) {
+    case 'customize':
+      return $.wiki(`<<${key}>><<exit>>`);
+    case 'title':
+      const titleKey = 'title' + convert(key, 'pascal');
+      if (titleKey && maplebirch.tool.macro.Macro.has(titleKey)) $.wiki(`<<replace #customOverlayTitle>><<${titleKey}>><</replace>>`);
+      break;
+    default:
+      break;
   }
   $.wiki(`<<replace #customOverlayContent>><<${key}>><</replace>>`);
 }

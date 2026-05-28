@@ -64,26 +64,29 @@ class ModuleSystem {
     const source = this.sourceStack[this.sourceStack.length - 1] || '';
     const directDependencies = [...new Set([...(module.dependencies || []), ...(dependencies || [])])];
     const allDependencies = this.collectAllDependencies(directDependencies);
-    const state = module?.exposed === true ? ModuleState.EXPOSED : ModuleState.REGISTERED;
+    const exposed = module?.exposed === true;
+    const lifecycle = ['preInit', 'Init', 'loadInit', 'postInit'].some(method => typeof module?.[method] === 'function');
+    const state = exposed && !lifecycle ? ModuleState.EXPOSED : ModuleState.REGISTERED;
 
     if (this.hasCircularDependency(name, allDependencies)) {
       this.core.logger.log(`模块 ${name} 注册失败: 存在循环依赖`, 'ERROR');
       return false;
     }
 
-    if (state === ModuleState.EXPOSED) {
+    if (exposed) {
       if ((this.core as any)[name] != null) {
         this.core.logger.log(`暴露模块 ${name} 挂载失败: 名称冲突`, 'WARN');
         return false;
       }
       (this.core as any)[name] = module;
     }
+
     this.storeModule(name, module, directDependencies, allDependencies, source, state);
-    if (state === ModuleState.REGISTERED) this.handleEarlyMount(name, module, directDependencies);
+    if (state === ModuleState.REGISTERED && !exposed) this.handleEarlyMount(name, module, directDependencies);
 
     this.processWaitingQueue(name);
     this.core.logger.log(
-      `${state === ModuleState.EXPOSED ? '注册暴露模块' : '注册模块'}: ${name}${directDependencies.length ? `, 依赖: [${directDependencies.join(', ')}]` : ' (无依赖)'}${source ? ` (来源: ${source})` : ''}`,
+      `${exposed ? '注册暴露模块' : '注册模块'}: ${name}${directDependencies.length ? `, 依赖: [${directDependencies.join(', ')}]` : ' (无依赖)'}${source ? ` (来源: ${source})` : ''}`,
       'DEBUG'
     );
     if (allDependencies.size > directDependencies.length) this.core.logger.log(`传递依赖: [${[...allDependencies].join(', ')}]`, 'DEBUG');
@@ -101,6 +104,8 @@ class ModuleSystem {
         protected: protectedModules.includes(name),
         mounted: core.includes(name),
         early: early.includes(name),
+        exposed: this.registry.modules.get(name)?.exposed === true,
+        lifecycle: ['preInit', 'Init', 'loadInit', 'postInit'].some(method => typeof this.registry.modules.get(name)?.[method] === 'function'),
         dependencies: Array.from(this.registry.dependencies.get(name) || []),
         dependents: Array.from(this.registry.dependents.get(name) || []),
         state: typeof state === 'number' ? ModuleState[state] || `UNKNOWN(${state})` : state || `UNKNOWN(${state})`,
@@ -280,6 +285,7 @@ class ModuleSystem {
     if (state === ModuleState.MOUNTED || state === ModuleState.ERROR) return state === ModuleState.MOUNTED;
     if (await this.isModuleDisabled(moduleName)) {
       this.core.logger.log(`模块 ${moduleName} 被禁用，跳过初始化`, 'DEBUG');
+      if (module?.exposed === true && (this.core as any)[moduleName] === module) delete (this.core as any)[moduleName];
       this.registry.states.set(moduleName, ModuleState.DISABLED);
       this.resolveWaiters(moduleName);
       return false;
