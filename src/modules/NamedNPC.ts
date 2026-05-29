@@ -617,15 +617,15 @@ class NPCManager {
     );
   }
 
-  add(npcData: NPCData, config: NPCConfig = {}, translationsData?: TranslationInput) {
+  public add(npcData: NPCData, config: NPCConfig = {}, translationsData?: TranslationInput) {
     return this.NamedNPC.add(this, npcData, config, translationsData);
   }
 
-  addSchedule(npcName: string, config: ScheduleConfig | ScheduleBuilder) {
+  public addSchedule(npcName: string, config: ScheduleConfig | ScheduleBuilder) {
     return this.Schedule.set(npcName, config);
   }
 
-  addStats(statsObject: { [x: string]: any }) {
+  public addStats(statsObject: { [x: string]: any }) {
     if (!statsObject || typeof statsObject !== 'object') return;
     for (const statName in statsObject) {
       if (Object.prototype.hasOwnProperty.call(statsObject, statName)) {
@@ -636,11 +636,11 @@ class NPCManager {
     }
   }
 
-  addClothes(...configs: ClothesConfig[]) {
+  public addClothes(...configs: ClothesConfig[]) {
     return this.Clothes.addOutfitSet(...configs);
   }
 
-  injectModNPCs() {
+  public injectModNPCs() {
     this.NamedNPC.get(this);
     this.NamedNPC.clear(this);
     this.NamedNPC.update(this);
@@ -648,7 +648,7 @@ class NPCManager {
     this.NamedNPC.convert(this);
   }
 
-  vanillaNPCConfig(npcConfig: NPCConfig) {
+  public vanillaNPCConfig(npcConfig: NPCConfig) {
     if (!npcConfig || typeof npcConfig !== 'object') return {};
     const Config = clone(npcConfig);
     for (const [npcName, npcEntry] of this.data) {
@@ -670,7 +670,7 @@ class NPCManager {
     return (T.npcConfig = Config);
   }
 
-  applyStatDefaults(statDefaults: { [x: string]: any }) {
+  public applyStatDefaults(statDefaults: { [x: string]: any }) {
     if (!statDefaults || typeof statDefaults !== 'object') return statDefaults || {};
     for (const statName in this.customStats) {
       if (Object.prototype.hasOwnProperty.call(this.customStats, statName)) {
@@ -700,7 +700,7 @@ class NPCManager {
     return statDefaults;
   }
 
-  vanillaInit(npcName: string) {
+  public vanillaInit(npcName: string) {
     const idx = V.NPCNameList?.indexOf(npcName) ?? -1;
     if (idx < 0 || !V.NPCName?.[idx]) {
       this.log(`初始化NPC自定义属性失败，未找到NPC: ${npcName}`, 'WARN');
@@ -710,15 +710,15 @@ class NPCManager {
     void this.core.trigger(':npcInit', npcName);
   }
 
-  vanillaInject(npcName: string, npcno: number) {
+  public vanillaInject(npcName: string, npcno: number) {
     void this.core.trigger(':npcInject', npcName, npcno);
   }
 
-  preInit() {
+  public preInit() {
     this.Sidebar.init(this);
   }
 
-  async Init() {
+  public async Init() {
     if (!['Start', 'Downgrade Waiting Room'].includes(this.core.passage?.title)) this.injectModNPCs();
     this.Schedule.init(this);
     await this.Clothes.init(this);
@@ -726,12 +726,12 @@ class NPCManager {
     isPossibleLoveInterest = (name: string) => isPossible(this, name);
   }
 
-  loadInit() {
+  public loadInit() {
     this.injectModNPCs();
     setupNpcData(this, 'init');
   }
 
-  postInit() {
+  public postInit() {
     this.NamedNPC.setup(this);
     setupNpcData(this, 'postInit');
   }

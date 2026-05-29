@@ -18,51 +18,51 @@ class DynamicManager {
     this.Weather = Object.seal(new WeatherManager(this));
   }
 
-  regTimeEvent(type: string, eventId: string, options: TimeEventOptions): boolean {
+  public regTimeEvent(type: string, eventId: string, options: TimeEventOptions): boolean {
     return this.Time.register(type, eventId, options);
   }
 
-  delTimeEvent(type: string, eventId: string): boolean {
+  public delTimeEvent(type: string, eventId: string): boolean {
     return this.Time.unregister(type, eventId);
   }
 
-  timeTravel(options: TimeTravelOptions = {}): boolean {
+  public timeTravel(options: TimeTravelOptions = {}): boolean {
     return this.Time.timeTravel(options);
   }
 
-  get TimeEvents() {
+  public get TimeEvents() {
     return (this.Time as any).timeEvents;
   }
 
-  regStateEvent(type: string, eventId: string, options: StateEventOptions): boolean {
+  public regStateEvent(type: string, eventId: string, options: StateEventOptions): boolean {
     return this.State.register(type, eventId, options);
   }
 
-  delStateEvent(type: string, eventId: string): boolean {
+  public delStateEvent(type: string, eventId: string): boolean {
     return this.State.unregister(type, eventId);
   }
 
-  trigger(type: 'gate' | 'append'): string {
+  public trigger(type: 'gate' | 'append'): string {
     return this.State.trigger(type);
   }
 
-  get StateEvents() {
+  public get StateEvents() {
     return (this.State as any).stateEvents;
   }
 
-  regWeatherEvent(eventId: string, options: WeatherEventOptions): boolean {
+  public regWeatherEvent(eventId: string, options: WeatherEventOptions): boolean {
     return this.Weather.register(eventId, options);
   }
 
-  delWeatherEvent(eventId: string): boolean {
+  public delWeatherEvent(eventId: string): boolean {
     return this.Weather.unregister(eventId);
   }
 
-  addWeather(data: WeatherException | WeatherTypeConfig): boolean | void {
+  public addWeather(data: WeatherException | WeatherTypeConfig): boolean | void {
     return this.Weather.addWeatherData(data);
   }
 
-  async Init(): Promise<void> {
+  public async Init(): Promise<void> {
     this.Time.init();
     this.State.init();
     this.Weather.init();

@@ -18,7 +18,7 @@ class CombatManager {
     });
   }
 
-  _generateCombatAction() {
+  private _generateCombatAction() {
     const self = this as this;
 
     return function () {
@@ -76,7 +76,7 @@ class CombatManager {
     };
   }
 
-  _combatListColor(name: string | number | false, value?: any, type = '') {
+  private _combatListColor(name: string | number | false, value?: any, type = '') {
     const rawAction = value ?? (name !== false ? V[name] : '');
     const action = String(rawAction || '').replace(/\d+/g, '');
     const encounterType = type || 'Default';
@@ -90,7 +90,7 @@ class CombatManager {
     return 'white';
   }
 
-  _combatButtonAdjustments(name: string, extra: any) {
+  private _combatButtonAdjustments(name: string, extra: any) {
     const eventName = `change.maplebirchCombat-${name}`;
     jQuery(document)
       .off(eventName, '#listbox-' + name)

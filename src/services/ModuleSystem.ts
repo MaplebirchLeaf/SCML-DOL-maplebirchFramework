@@ -46,7 +46,7 @@ class ModuleSystem {
 
   constructor(readonly core: MaplebirchCore) {}
 
-  async runWithSource<T>(source: string, callback: () => T | Promise<T>): Promise<T> {
+  public async runWithSource<T>(source: string, callback: () => T | Promise<T>): Promise<T> {
     this.sourceStack.push(source);
     try {
       return await callback();
@@ -55,7 +55,7 @@ class ModuleSystem {
     }
   }
 
-  register(name: string, module: any, dependencies: string[] = []): boolean {
+  public register(name: string, module: any, dependencies: string[] = []): boolean {
     if (this.registry.modules.has(name)) {
       this.core.logger.log(`模块 ${name} 已注册`, 'WARN');
       return false;
@@ -93,7 +93,7 @@ class ModuleSystem {
     return true;
   }
 
-  get dependencyGraph() {
+  public get dependencyGraph() {
     const graph: any = {};
     const core = this.core.meta.core as readonly string[];
     const early = this.core.meta.early as readonly string[];
@@ -116,7 +116,7 @@ class ModuleSystem {
     return graph;
   }
 
-  async init(phase: 'pre' | 'init' | 'load' | 'post'): Promise<void> {
+  public async init(phase: 'pre' | 'init' | 'load' | 'post'): Promise<void> {
     if (phase === 'pre') {
       if (this.initPhase.preInitCompleted) return;
       for (const name of this.getTopologicalOrder()) await this.initModule(name, true);

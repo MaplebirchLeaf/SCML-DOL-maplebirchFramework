@@ -72,7 +72,7 @@ class AddonPlugin {
     this.log('框架初始化流程结束');
   }
 
-  async canLoadThisMod(bootJson: ModBootJson, zip: JSZipLikeReadOnlyInterface): Promise<boolean> {
+  public async canLoadThisMod(bootJson: ModBootJson, zip: JSZipLikeReadOnlyInterface): Promise<boolean> {
     if (bootJson.name === 'Simple Frameworks') {
       this.disabledMods.push('Simple Frameworks');
       return false;
@@ -80,7 +80,7 @@ class AddonPlugin {
     return true;
   }
 
-  async afterInjectEarlyLoad(): Promise<void> {
+  public async afterInjectEarlyLoad(): Promise<void> {
     if (!this.disabledMods.includes('Simple Frameworks')) await this.core.disabled('Simple Frameworks');
     await this.scriptFiles();
     await this.executeScripts(this.moduleFiles, 'Module');
@@ -95,14 +95,14 @@ class AddonPlugin {
     await this.core.modules.init('pre');
   }
 
-  async ModLoaderLoadEnd(): Promise<void> {
+  public async ModLoaderLoadEnd(): Promise<void> {
     await this.core.gui.init();
     await this.core.trigger(':modLoaderEnd');
   }
 
-  async afterEarlyLoad(): Promise<any> {}
+  public async afterEarlyLoad(): Promise<any> {}
 
-  async registerMod(addonName: string, modInfo: ModInfo, modZip: ModZipReader): Promise<void> {
+  public async registerMod(addonName: string, modInfo: ModInfo, modZip: ModZipReader): Promise<void> {
     this.info.set(modInfo.name, { addonName, mod: modInfo, modZip });
     const config = modInfo.bootJson?.addonPlugin?.find(plugin => plugin.modName === 'maplebirch' && plugin.addonName === 'maplebirchAddon') as AddonPluginConfig | undefined;
     if (!config?.params) return;
@@ -114,20 +114,20 @@ class AddonPlugin {
     }
   }
 
-  async afterRegisterMod2Addon(): Promise<void> {
+  public async afterRegisterMod2Addon(): Promise<void> {
     await this.executeScripts(this.jsFiles, 'Script');
     await this.core.char.faceStyleImagePaths();
     this.processed.script = true;
   }
 
-  async beforePatchModToGame(): Promise<void> {
-    await this.core.trigger(':import');
+  public async beforePatchModToGame(): Promise<void> {
     await this.dataReplace();
     await this.processInit();
+    await this.core.trigger(':import');
     this.core.tool.zone.patchModToGame(this, 'before');
   }
 
-  async PatchModToGame_start(): Promise<any> {
+  public async PatchModToGame_start(): Promise<any> {
     defineTwineAsset(
       'script',
       'maplebirch/sugarcube-bridge.js',
@@ -136,13 +136,13 @@ class AddonPlugin {
     defineTwineAsset('style', 'maplebirch-styles.css', MaplebrichStyles);
   }
 
-  async afterPatchModToGame(): Promise<void> {
+  public async afterPatchModToGame(): Promise<void> {
     this.core.tool.zone.patchModToGame(this, 'after');
   }
 
-  async afterPreload(): Promise<any> {}
+  public async afterPreload(): Promise<any> {}
 
-  async whenSC2StoryReady(): Promise<any> {
+  public async whenSC2StoryReady(): Promise<any> {
     await this.core.trigger(':storyready');
     if (this.onSaveLoadTracer) return;
     this.onSaveLoadTracer = true;
@@ -153,13 +153,13 @@ class AddonPlugin {
     });
   }
 
-  async whenSC2PassageInit(passage: Passage): Promise<any> {
+  public async whenSC2PassageInit(passage: Passage): Promise<any> {
     this.core.passage = passage;
     if (!!this.core.passage && !this.core.passage.tags.includes('widget')) this.log(`处理段落: ${this.core.passage.title}`, 'INFO');
     await this.core.trigger(':passageinit', passage);
   }
 
-  async whenSC2PassageStart(passage: Passage, content: HTMLDivElement): Promise<any> {
+  public async whenSC2PassageStart(passage: Passage, content: HTMLDivElement): Promise<any> {
     if (!this.core.passage || this.core.passage.title === 'Start' || this.core.passage.title === 'Downgrade Waiting Room') return;
     this.core.modules.initPhase.postInitExecuted = false;
     await this.core.modules.init('init');
@@ -173,19 +173,19 @@ class AddonPlugin {
     await this.core.trigger(':passagestart', passage, content);
   }
 
-  async whenSC2PassageRender(passage: Passage, content: HTMLDivElement): Promise<any> {
+  public async whenSC2PassageRender(passage: Passage, content: HTMLDivElement): Promise<any> {
     await this.core.trigger(':passagerender', passage, content);
   }
 
-  async whenSC2PassageDisplay(passage: Passage, content: HTMLDivElement): Promise<any> {
+  public async whenSC2PassageDisplay(passage: Passage, content: HTMLDivElement): Promise<any> {
     await this.core.trigger(':passagedisplay', passage, content);
   }
 
-  async whenSC2PassageEnd(passage: Passage, content: HTMLDivElement): Promise<any> {
+  public async whenSC2PassageEnd(passage: Passage, content: HTMLDivElement): Promise<any> {
     await this.core.trigger(':passageend', passage, content);
   }
 
-  async loadCrypt(options: CryptOptions): Promise<boolean> {
+  public async loadCrypt(options: CryptOptions): Promise<boolean> {
     return await this.core.credential.loadCrypt(options);
   }
 

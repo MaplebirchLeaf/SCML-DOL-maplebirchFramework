@@ -88,7 +88,7 @@ class CredentialVault {
     this.core.once(':indexedDB', () => this.core.idb.register(CredentialVault.STORE, { keyPath: ['bucket', 'id'] }, [{ name: 'bucket', keyPath: 'bucket', options: { unique: false } }]));
   }
 
-  async readPassword(subject: string, key: string): Promise<string | null> {
+  private async readPassword(subject: string, key: string): Promise<string | null> {
     const record = await this.core.idb.withTransaction(CredentialVault.STORE, 'readonly', async (tx: any) => {
       return await tx.objectStore(CredentialVault.STORE).get(['license', `${subject}:${key}`]);
     });
@@ -102,7 +102,7 @@ class CredentialVault {
     return stored.password;
   }
 
-  async unlock(modName: string, config: AuthConfig, credential: string): Promise<string> {
+  private async unlock(modName: string, config: AuthConfig, credential: string): Promise<string> {
     const payload = await this.verify(modName, config, credential);
     const subject = config.subject || modName;
     await this.storePassword(subject, config.key, {
@@ -116,7 +116,7 @@ class CredentialVault {
     return payload.password;
   }
 
-  async loadCrypt(options: CryptOptions): Promise<boolean> {
+  public async loadCrypt(options: CryptOptions): Promise<boolean> {
     const modName = options.modName || this.core.modUtils.getNowRunningModName?.() || '';
     if (!modName) throw new Error('无法获取当前模组名');
     if (options.cache?.subject && options.cache?.key) {
@@ -268,7 +268,7 @@ class CredentialVault {
     return next;
   }
 
-  async verify(modName: string, config: AuthConfig, credential: string): Promise<AuthPayload> {
+  private async verify(modName: string, config: AuthConfig, credential: string): Promise<AuthPayload> {
     const [prefix, payloadPart, signaturePart, extraPart] = credential.trim().split('.');
     if (extraPart !== undefined || prefix !== CredentialVault.TOKEN_PREFIX || !payloadPart || !signaturePart) {
       throw new Error(`${this.core.t('credential.auth.error.format')}: ${CredentialVault.TOKEN_PREFIX}.<payload>.<signature>`);
@@ -342,7 +342,7 @@ class CredentialVault {
     };
   }
 
-  async forget(subject: string, key: string): Promise<void> {
+  private async forget(subject: string, key: string): Promise<void> {
     await this.core.idb.withTransaction(CredentialVault.STORE, 'readwrite', async (tx: any) => await tx.objectStore(CredentialVault.STORE).delete(['license', `${subject}:${key}`]));
   }
 

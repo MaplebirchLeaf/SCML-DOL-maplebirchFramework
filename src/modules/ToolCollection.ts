@@ -33,22 +33,22 @@ class ToolCollection {
     this.patch = Object.seal(Patch);
   }
 
-  onInit(...widgets: InitFunction[]) {
+  public onInit(...widgets: InitFunction[]) {
     return this.zone.onInit(...widgets);
   }
 
-  addTo(zone: string, ...widgets: (string | Function | ZoneWidgetConfig | [number, string | ZoneWidgetConfig])[]) {
+  public addTo(zone: string, ...widgets: (string | Function | ZoneWidgetConfig | [number, string | ZoneWidgetConfig])[]) {
     return this.zone.addTo(zone, ...widgets);
   }
 
-  preInit() {
+  public preInit() {
     this.onInit(() => {
       this.patch.applyLocation();
       this.patch.applyBodywriting();
     });
   }
 
-  get utils(): typeof utils {
+  public get utils(): typeof utils {
     return utils;
   }
 }

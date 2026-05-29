@@ -386,7 +386,7 @@ class Character {
     return this;
   }
 
-  process(type: CharacterProcessType, options: any) {
+  public process(type: CharacterProcessType, options: any) {
     const handlers = this.handlers[type] || [];
     this.core.var.optionsCheck();
     for (const fn of handlers) {
@@ -398,7 +398,7 @@ class Character {
     }
   }
 
-  async modifyFaceStyle(manager: AddonPlugin) {
+  public async modifyFaceStyle(manager: AddonPlugin) {
     const oldSCdata = manager.SC2DataManager.getSC2DataInfoAfterPatch();
     const SCdata = oldSCdata.cloneSC2DataInfo();
     const passageData = SCdata.passageDataItems.map;
@@ -415,7 +415,7 @@ class Character {
     manager.modUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
   }
 
-  async faceStyleImagePaths() {
+  public async faceStyleImagePaths() {
     for (const modName of this.core.modUtils.getModListNameNoAlias()) {
       try {
         const mod = this.core.modUtils.getMod(modName);
@@ -492,7 +492,7 @@ class Character {
     setup.faceVariantOptions = nextVariantOptions;
   }
 
-  async #renderCharacter() {
+  private async renderCharacter() {
     const container = document.getElementById('maplebirch-character');
     if (!container) return;
     container.innerHTML = '';
@@ -521,7 +521,7 @@ class Character {
       mainCanvas.canvas.classList.add('maplebirch-canvas', 'maplebirch-main');
       mainCanvas.canvas.style.zIndex = '2';
       container.appendChild(mainCanvas.canvas);
-      this.#adjustCanvasSize(container);
+      this.adjustCanvasSize(container);
     } catch (error) {
       this.log('角色渲染错误:', 'ERROR', error);
     } finally {
@@ -530,7 +530,7 @@ class Character {
     }
   }
 
-  async #renderOverlay() {
+  private async renderOverlay() {
     const overlay = document.getElementById('maplebirch-character-overlay');
     if (!overlay) return;
     overlay.innerHTML = '';
@@ -589,7 +589,7 @@ class Character {
     overlay.appendChild(rightContainer);
   }
 
-  #adjustCanvasSize(container: HTMLElement) {
+  private adjustCanvasSize(container: HTMLElement) {
     const canvases = container.querySelectorAll<HTMLCanvasElement>('.maplebirch-canvas');
     const containerWidth = container.clientWidth;
     const containerHeight = container.clientHeight;
@@ -608,8 +608,8 @@ class Character {
   }
 
   async render() {
-    await this.#renderCharacter();
-    await this.#renderOverlay();
+    await this.renderCharacter();
+    await this.renderOverlay();
   }
 
   preInit() {
