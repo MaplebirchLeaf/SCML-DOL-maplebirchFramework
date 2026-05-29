@@ -37,7 +37,7 @@ class EventEmitter {
     this.afters = new Map();
   }
 
-  on(eventName: string, callback: EventCallback, description: string = ''): boolean {
+  public on(eventName: string, callback: EventCallback, description: string = ''): boolean {
     let listeners = this.events.get(eventName);
     if (!listeners) {
       listeners = [];
@@ -54,7 +54,7 @@ class EventEmitter {
     return true;
   }
 
-  off(eventName: string, identifier: EventCallback | string): boolean {
+  public off(eventName: string, identifier: EventCallback | string): boolean {
     const listeners = this.events.get(eventName);
     if (!listeners) {
       this.core.logger.log(`无效事件名: ${eventName}`, 'WARN');
@@ -74,7 +74,7 @@ class EventEmitter {
     return true;
   }
 
-  once(eventName: string, callback: EventCallback, description: string = ''): boolean {
+  public once(eventName: string, callback: EventCallback, description: string = ''): boolean {
     let fired = false;
     const onceWrapper: EventCallback = async (...args) => {
       if (fired) return;
@@ -89,7 +89,7 @@ class EventEmitter {
     return this.on(eventName, onceWrapper, description);
   }
 
-  async trigger(eventName: string, ...args: any[]): Promise<void> {
+  public async trigger(eventName: string, ...args: any[]): Promise<void> {
     const listeners = this.events.get(eventName);
     if (listeners?.length) {
       const snapshot = [...listeners];
@@ -116,7 +116,7 @@ class EventEmitter {
     }
   }
 
-  after(eventName: string, callback: EventCallback): void {
+  public after(eventName: string, callback: EventCallback): void {
     let callbacks = this.afters.get(eventName);
     if (!callbacks) {
       callbacks = [];

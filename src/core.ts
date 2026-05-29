@@ -108,43 +108,43 @@ class MaplebirchCore {
     this.log(`框架核心系统创建完成(v${MaplebirchCore.meta.version})`, 'INFO');
   }
 
-  log(msg: string, level: string = 'INFO', ...objs: any[]): void {
+  public log(msg: string, level: string = 'INFO', ...objs: any[]): void {
     this.logger.log(msg, level, ...objs);
   }
 
-  on(eventName: string, callback: (...args: any[]) => any, description: string = ''): boolean {
+  public on(eventName: string, callback: (...args: any[]) => any, description: string = ''): boolean {
     return this.tracer.on(eventName, callback, description);
   }
 
-  off(eventName: string, identifier: string | ((...args: any[]) => any)): boolean {
+  public off(eventName: string, identifier: string | ((...args: any[]) => any)): boolean {
     return this.tracer.off(eventName, identifier);
   }
 
-  once(eventName: string, callback: (...args: any[]) => any, description: string = ''): boolean {
+  public once(eventName: string, callback: (...args: any[]) => any, description: string = ''): boolean {
     return this.tracer.once(eventName, callback, description);
   }
 
-  after(eventName: string, callback: (...args: any[]) => any) {
+  public after(eventName: string, callback: (...args: any[]) => any) {
     return this.tracer.after(eventName, callback);
   }
 
-  async trigger(evt: string, ...args: any[]): Promise<void> {
+  public async trigger(evt: string, ...args: any[]): Promise<void> {
     await this.tracer.trigger(evt, ...args);
   }
 
-  register(name: string, module: any, dependencies: string[] = []): boolean {
+  public register(name: string, module: any, dependencies: string[] = []): boolean {
     return this.modules.register(name, module, dependencies);
   }
 
-  t(key: string, space: boolean = false): string {
+  public t(key: string, space: boolean = false): string {
     return this.lang.t(key, space);
   }
 
-  auto(text: string): string {
+  public auto(text: string): string {
     return this.lang.auto(text);
   }
 
-  async disabled(modNames: string | string[], reload: boolean = true): Promise<boolean> {
+  public async disabled(modNames: string | string[], reload: boolean = true): Promise<boolean> {
     const modLoadController = this.modUtils.getModLoadController();
     const [enabledModsRaw = [], disabledModsRaw = []] = await Promise.all([modLoadController.listModIndexDB(), modLoadController.loadHiddenModList()]);
     const enabledMods = [...new Set(enabledModsRaw.map(name => name.trim()).filter(Boolean))];
@@ -161,55 +161,55 @@ class MaplebirchCore {
     return true;
   }
 
-  get lodash(): ReturnType<ModUtils['getLodash']> {
+  public get lodash(): ReturnType<ModUtils['getLodash']> {
     return this.modUtils.getLodash();
   }
 
-  get marked(): typeof marked {
+  public get marked(): typeof marked {
     return marked;
   }
 
-  set SugarCube(parts: TwineSugarCube) {
+  public set SugarCube(parts: TwineSugarCube) {
     jsSugarCube = parts;
   }
 
-  get SugarCube(): TwineSugarCube {
+  public get SugarCube(): TwineSugarCube {
     return jsSugarCube;
   }
 
-  set Language(lang: string) {
+  public set Language(lang: string) {
     void this.lang.setLanguage(lang).then(() => this.trigger(':language'));
   }
 
-  get Language(): string {
+  public get Language(): string {
     return this.lang.language;
   }
 
-  set LogLevel(level: string) {
+  public set LogLevel(level: string) {
     this.logger.LevelName = level;
   }
 
-  get LogLevel(): string {
+  public get LogLevel(): string {
     return this.logger.LevelName;
   }
 
-  get(name: string): any {
+  public get(name: string): any {
     return this.modules.registry.modules.get(name);
   }
 
-  get dependencyGraph(): any {
+  public get dependencyGraph(): any {
     return this.modules.dependencyGraph;
   }
 
-  get modLoader(): ReturnType<SC2DataManager['getModLoader']> {
+  public get modLoader(): ReturnType<SC2DataManager['getModLoader']> {
     return this.manager.modSC2DataManager.getModLoader();
   }
 
-  get modUtils(): ModUtils {
+  public get modUtils(): ModUtils {
     return this.manager.modSC2DataManager.getModUtils();
   }
 
-  get gameVersion(): string {
+  public get gameVersion(): string {
     return (StartConfig as any).version;
   }
 }

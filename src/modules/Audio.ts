@@ -114,16 +114,16 @@ class AudioManager {
     ]);
   }
 
-  on(event: string, handler: AudioEventHandler): void {
+  protected on(event: string, handler: AudioEventHandler): void {
     if (!this.eventListeners.has(event)) this.eventListeners.set(event, new Set());
     this.eventListeners.get(event)!.add(handler);
   }
 
-  off(event: string, handler: AudioEventHandler): boolean {
+  protected off(event: string, handler: AudioEventHandler): boolean {
     return this.eventListeners.get(event)?.delete(handler) || false;
   }
 
-  once(event: string, handler: AudioEventHandler): void {
+  protected once(event: string, handler: AudioEventHandler): void {
     const wrapper: AudioEventHandler = eventData => {
       handler(eventData);
       this.off(event, wrapper);
@@ -131,7 +131,7 @@ class AudioManager {
     this.on(event, wrapper);
   }
 
-  async play(track: Track): Promise<boolean> {
+  public async play(track: Track): Promise<boolean> {
     const requestId = ++this.playRequestId;
     try {
       this.stopCurrent(false);
@@ -160,7 +160,7 @@ class AudioManager {
     }
   }
 
-  pause(): boolean {
+  public pause(): boolean {
     if (!this.currentHowl || this.state !== PlayState.PLAYING) return false;
     this.currentHowl.pause();
     this.state = PlayState.PAUSED;
@@ -169,7 +169,7 @@ class AudioManager {
     return true;
   }
 
-  resume(): boolean {
+  public resume(): boolean {
     if (!this.currentHowl || this.state !== PlayState.PAUSED) return false;
     this.currentHowl.play();
     this.state = PlayState.PLAYING;
@@ -178,12 +178,12 @@ class AudioManager {
     return true;
   }
 
-  stop(): boolean {
+  public stop(): boolean {
     this.playRequestId++;
     return this.stopCurrent(true);
   }
 
-  togglePlayPause(): void {
+  public togglePlayPause(): void {
     if (this.state === PlayState.PLAYING) {
       this.pause();
       return;
@@ -191,24 +191,24 @@ class AudioManager {
     if (this.state === PlayState.PAUSED) this.resume();
   }
 
-  async next(): Promise<boolean> {
+  public async next(): Promise<boolean> {
     const track = this.activePlaylist?.next();
     return track ? await this.play(track) : false;
   }
 
-  async previous(): Promise<boolean> {
+  public async previous(): Promise<boolean> {
     const track = this.activePlaylist?.previous();
     return track ? await this.play(track) : false;
   }
 
-  async playAt(modName: string, index: number): Promise<boolean> {
+  public async playAt(modName: string, index: number): Promise<boolean> {
     const playlist = await this.getPlaylist(modName);
     this.activePlaylist = playlist;
     const track = playlist.select(index);
     return track ? await this.play(track) : false;
   }
 
-  seek(percent: number): boolean {
+  public seek(percent: number): boolean {
     const duration = this.duration;
     if (!this.currentHowl || duration <= 0) return false;
     const safePercent = Math.max(0, Math.min(100, percent));
@@ -218,7 +218,7 @@ class AudioManager {
     return true;
   }
 
-  seekTo(seconds: number): boolean {
+  public seekTo(seconds: number): boolean {
     const duration = this.duration;
     if (!this.currentHowl || duration <= 0) return false;
     const targetTime = Math.max(0, Math.min(duration, seconds));
@@ -227,7 +227,7 @@ class AudioManager {
     return true;
   }
 
-  async getPlaylist(modName: string): Promise<Playlist> {
+  public async getPlaylist(modName: string): Promise<Playlist> {
     const cached = this.playlists.get(modName);
     if (cached) return cached;
     const playlist = this.playlist(modName);
@@ -246,7 +246,7 @@ class AudioManager {
     return playlist;
   }
 
-  async playFromMod(modName: string, audioName?: string): Promise<boolean | string> {
+  public async playFromMod(modName: string, audioName?: string): Promise<boolean | string> {
     const playlist = await this.getPlaylist(modName);
     this.activePlaylist = playlist;
     if (playlist.length <= 0) return false;
@@ -261,7 +261,7 @@ class AudioManager {
     return success ? modName : false;
   }
 
-  async import(modName: string, audioFolder = 'audio'): Promise<boolean> {
+  public async import(modName: string, audioFolder = 'audio'): Promise<boolean> {
     const folder = audioFolder.replace(/^\/+|\/+$/g, '');
     const prefix = `${folder}/`;
     const modZip = maplebirch.modLoader?.getModZip(modName);
@@ -302,7 +302,7 @@ class AudioManager {
     return successCount > 0;
   }
 
-  async addFile(file: File, modName = 'custom'): Promise<boolean | string> {
+  public async addFile(file: File, modName = 'custom'): Promise<boolean | string> {
     if (!file) return false;
     const format = file.name.split('.').pop()?.toLowerCase();
     if (!FORMAT_SET.has(format || '')) return false;
@@ -318,7 +318,7 @@ class AudioManager {
     return modName;
   }
 
-  async delete(modName: string, audioName: string): Promise<boolean> {
+  public async delete(modName: string, audioName: string): Promise<boolean> {
     if (this.currentTrack?.modName === modName && this.currentTrack.audioName === audioName) this.stop();
     try {
       await this.core.idb.withTransaction([this.STORE], 'readwrite', async (tx: any) => await tx.objectStore(this.STORE).delete([modName, audioName]));
@@ -331,7 +331,7 @@ class AudioManager {
     }
   }
 
-  async clearAudio(modName: string): Promise<boolean | string> {
+  public async clearAudio(modName: string): Promise<boolean | string> {
     try {
       if (this.currentTrack?.modName === modName) this.stop();
       const records = await this.readRecords(modName);
@@ -351,14 +351,14 @@ class AudioManager {
     }
   }
 
-  clearCache(): void {
+  public clearCache(): void {
     this.stop();
     for (const modCache of this.cache.values()) for (const entry of modCache.values()) this.release(entry);
     this.cache.clear();
     this.cacheCount = 0;
   }
 
-  destroy(): void {
+  public destroy(): void {
     this.stop();
     this.clearCache();
     for (const timer of this.progressBindings.values()) clearInterval(timer);
@@ -370,7 +370,7 @@ class AudioManager {
     this.currentHowl = null;
   }
 
-  playlist(modName: string): Playlist {
+  public playlist(modName: string): Playlist {
     let playlist = this.playlists.get(modName);
     if (!playlist) {
       playlist = new Playlist(modName);
@@ -379,11 +379,11 @@ class AudioManager {
     return playlist;
   }
 
-  get Mute(): boolean {
+  public get Mute(): boolean {
     return this.muted;
   }
 
-  set Mute(value: boolean) {
+  public set Mute(value: boolean) {
     if (this.muted === value) return;
     this.muted = value;
     this.core.howler.Howler.mute(value);
@@ -391,11 +391,11 @@ class AudioManager {
     this.emit('mutechange', value);
   }
 
-  get Volume(): number {
+  public get Volume(): number {
     return this.volume;
   }
 
-  set Volume(value: number) {
+  public set Volume(value: number) {
     const volume = Math.max(0, Math.min(1, value));
     if (this.volume === volume) return;
     this.volume = volume;
@@ -404,17 +404,17 @@ class AudioManager {
     this.emit('volumechange', volume);
   }
 
-  get PlayMode(): PlayModeType {
+  public get PlayMode(): PlayModeType {
     return this.activePlaylist?.playMode || PlayMode.LOOP_ALL;
   }
 
-  set PlayMode(mode: PlayModeType) {
+  public set PlayMode(mode: PlayModeType) {
     if (!this.activePlaylist) return;
     this.activePlaylist.setMode(mode);
     this.emit('modechange', mode);
   }
 
-  cyclePlayMode(): PlayModeType {
+  public cyclePlayMode(): PlayModeType {
     const nextMode =
       this.PlayMode === PlayMode.SEQUENTIAL
         ? PlayMode.LOOP_ALL
@@ -427,39 +427,39 @@ class AudioManager {
     return nextMode;
   }
 
-  get AutoNext(): boolean {
+  public get AutoNext(): boolean {
     return this.autoNext;
   }
 
-  set AutoNext(value: boolean) {
+  public set AutoNext(value: boolean) {
     this.autoNext = value;
   }
 
-  get State(): PlayStateType {
+  public get State(): PlayStateType {
     return this.state;
   }
 
-  get CurrentTrack(): Track | null {
+  public get CurrentTrack(): Track | null {
     return this.currentTrack;
   }
 
-  get ActivePlaylist(): Playlist | null {
+  public get ActivePlaylist(): Playlist | null {
     return this.activePlaylist;
   }
 
-  get currentTime(): number {
+  public get currentTime(): number {
     if (!this.currentHowl) return 0;
     const value = this.currentHowl.seek();
     return typeof value === 'number' ? value : 0;
   }
 
-  get duration(): number {
+  public get duration(): number {
     if (!this.currentHowl) return 0;
     const value = this.currentHowl.duration();
     return typeof value === 'number' ? value : 0;
   }
 
-  get progress(): AudioProgress {
+  public get progress(): AudioProgress {
     const currentTime = this.currentTime;
     const duration = this.duration;
     return {
@@ -469,7 +469,7 @@ class AudioManager {
     };
   }
 
-  get snapshot(): AudioSnapshot {
+  public get snapshot(): AudioSnapshot {
     return {
       state: this.state,
       track: this.currentTrack,
@@ -483,14 +483,14 @@ class AudioManager {
     };
   }
 
-  formatTime(seconds: number): string {
+  public formatTime(seconds: number): string {
     const safe = Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
     const mins = Math.floor(safe / 60);
     const secs = Math.floor(safe % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   }
 
-  bindProgress(sliderId: string, timeId: string, interval = 250): void {
+  public bindProgress(sliderId: string, timeId: string, interval = 250): void {
     const key = `${sliderId}:${timeId}`;
     const update = () => {
       const slider = document.getElementById(sliderId) as HTMLInputElement | null;
@@ -520,7 +520,7 @@ class AudioManager {
     this.progressBindings.set(key, timer);
   }
 
-  unbindProgress(sliderId: string, timeId: string): void {
+  public unbindProgress(sliderId: string, timeId: string): void {
     const key = `${sliderId}:${timeId}`;
     const timer = this.progressBindings.get(key);
     if (!timer) return;
@@ -530,7 +530,7 @@ class AudioManager {
     if (slider) slider.oninput = null;
   }
 
-  async preInit(): Promise<void> {
+  public async preInit(): Promise<void> {
     const records = await this.readRecords();
     this.playlists.clear();
     const groups = new Map<string, AudioRecord[]>();

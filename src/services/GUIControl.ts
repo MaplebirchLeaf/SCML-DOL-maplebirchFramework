@@ -53,7 +53,7 @@ class GUIControl {
     this.core.once(':idbReady', async () => await this.initSettings());
   }
 
-  async initSettings(): Promise<void> {
+  private async initSettings(): Promise<void> {
     const modNames = await this.modNames();
     await this.core.idb.withTransaction(['settings'], 'readwrite', async (tx: any) => {
       const store = tx.objectStore('settings');
@@ -65,7 +65,7 @@ class GUIControl {
     await this.loadSettings();
   }
 
-  async init(): Promise<void> {
+  public async init(): Promise<void> {
     await this.loadSettings();
     this.modSubUiAngularJsService.addLifeTimeCallback('maplebirchFrameworkAddon-GUIControl', { whenCreate: this.whenCreate.bind(this) });
   }
@@ -115,7 +115,7 @@ class GUIControl {
       .filter(mod => !mod.source || modNames.has(mod.source));
   }
 
-  typeLabel(type: ModuleType): string {
+  public typeLabel(type: ModuleType): string {
     if (type === 'protected') return '[Protected]';
     if (type === 'mounted') return '[Mounted]';
     if (type === 'exposed') return '[Exposed]';
@@ -143,7 +143,7 @@ class GUIControl {
     await store.put({ key: 'Script', value: { disabled: Array.from(disabled) } });
   }
 
-  async saveModules(enabled: ModuleInfo[], disabled: ModuleInfo[]): Promise<void> {
+  public async saveModules(enabled: ModuleInfo[], disabled: ModuleInfo[]): Promise<void> {
     const modNames = await this.modNames();
     const currentNames = new Set([...enabled, ...disabled].map(m => m.name));
     await this.core.idb.withTransaction(['settings'], 'readwrite', async (tx: any) => {
@@ -157,7 +157,7 @@ class GUIControl {
     await this.loadSettings();
   }
 
-  async saveScripts(enabled: string[], disabled: string[]): Promise<void> {
+  public async saveScripts(enabled: string[], disabled: string[]): Promise<void> {
     const modNames = await this.modNames();
     const currentScripts = new Set([...enabled, ...disabled]);
     await this.core.idb.withTransaction(['settings'], 'readwrite', async (tx: any) => {
@@ -177,7 +177,7 @@ class GUIControl {
     await this.loadSettings();
   }
 
-  cascadeModules(action: 'enable' | 'disable', moduleName: string, modules: ModulesSettings): string[] {
+  public cascadeModules(action: 'enable' | 'disable', moduleName: string, modules: ModulesSettings): string[] {
     const result = new Set([moduleName]);
     if (action === 'enable') {
       const disabled = new Set(modules.disabled.map(m => m.name));

@@ -28,7 +28,7 @@ class IndexedDBService {
     IndexedDBService.DATABASE_VERSION = major * 10000 + minor * 100 + patch;
   }
 
-  register(name: string, options: IDBObjectStoreParameters = { keyPath: 'id' }, indexes: Array<{ name: string; keyPath: string | string[]; options?: IDBIndexParameters }> = []): void {
+  public register(name: string, options: IDBObjectStoreParameters = { keyPath: 'id' }, indexes: Array<{ name: string; keyPath: string | string[]; options?: IDBIndexParameters }> = []): void {
     if (typeof name !== 'string' || !name) {
       this.core.logger.log(`无效的存储名称: ${name as any}`, 'ERROR');
       return;
@@ -41,7 +41,7 @@ class IndexedDBService {
     this.core.logger.log(`注册存储: ${name}`, 'DEBUG');
   }
 
-  async init(): Promise<void> {
+  public async init(): Promise<void> {
     if (this.ready) return;
     if (this.opening) return this.opening;
     this.opening = (async () => {
@@ -74,7 +74,7 @@ class IndexedDBService {
     }
   }
 
-  async checkStore(): Promise<void> {
+  public async checkStore(): Promise<void> {
     if (!this.ready) await this.init();
     if (!this.db) return;
     const dbStoreNames = Array.from(this.db.objectStoreNames);
@@ -88,7 +88,7 @@ class IndexedDBService {
     }
   }
 
-  async withTransaction<T>(storeNames: string | string[], mode: IDBTransactionMode, callback: (tx: any) => T | Promise<T>): Promise<T> {
+  public async withTransaction<T>(storeNames: string | string[], mode: IDBTransactionMode, callback: (tx: any) => T | Promise<T>): Promise<T> {
     if (!this.ready) await this.init();
     if (!this.db) throw new Error('IDB数据库尚未初始化');
     const names = Array.isArray(storeNames) ? storeNames : [storeNames];
@@ -104,14 +104,14 @@ class IndexedDBService {
     }
   }
 
-  async clearStore(storeName: string): Promise<void> {
+  public async clearStore(storeName: string): Promise<void> {
     return this.withTransaction([storeName], 'readwrite', async (tx: any) => {
       const store = tx.objectStore(storeName);
       await store.clear();
     });
   }
 
-  async deleteDatabase(): Promise<boolean> {
+  public async deleteDatabase(): Promise<boolean> {
     try {
       if (this.db) {
         this.db.close();
@@ -127,7 +127,7 @@ class IndexedDBService {
     }
   }
 
-  async resetDatabase(): Promise<void> {
+  public async resetDatabase(): Promise<void> {
     try {
       const deleted = await this.deleteDatabase();
       if (!deleted) throw new Error('删除数据库失败');

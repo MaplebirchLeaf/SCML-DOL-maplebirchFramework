@@ -94,14 +94,14 @@ class Variables {
     this.core.on(':rest-options', () => this.optionsCheck());
   }
 
-  #mapProcessing() {
+  private mapProcessing() {
     Object.defineProperty(V.maplebirch.player, 'clothing', {
       get: () => V.worn,
       set: () => maplebirch.log('V.maplebirch.player.clothing 是 V.worn 的只读镜像。请直接修改 V.worn', 'WARN')
     });
   }
 
-  optionsStorage(action: 'save' | 'restore' | 'reset' | 'load'): any | null {
+  public optionsStorage(action: 'save' | 'restore' | 'reset' | 'load'): any | null {
     try {
       if (action === 'save') {
         localStorage.setItem(Variables.OPTIONS_STORAGE_KEY, JSON.stringify(V.options?.maplebirch ?? {}));
@@ -132,13 +132,13 @@ class Variables {
     }
   }
 
-  optionsCheck() {
+  public optionsCheck() {
     V.options ??= {};
     const current = this.core.lodash.isPlainObject(V.options.maplebirch) ? V.options.maplebirch : this.optionsStorage('load');
     V.options.maplebirch = merge({}, Variables.options, current ?? {}, { mode: 'merge' });
   }
 
-  Init() {
+  public Init() {
     try {
       V.maplebirch ??= {};
       if (this.tool.core.passage?.title === 'Start2') V.maplebirch = clone({ ...defaults, version: this.version });
@@ -150,7 +150,7 @@ class Variables {
     }
   }
 
-  loadInit() {
+  public loadInit() {
     try {
       V.maplebirch ??= {};
       this.optionsCheck();
@@ -161,9 +161,9 @@ class Variables {
     }
   }
 
-  postInit() {
+  public postInit() {
     if (V.maplebirch?.version !== this.version) this.migration.run(V.maplebirch, this.version);
-    this.#mapProcessing();
+    this.mapProcessing();
   }
 }
 
