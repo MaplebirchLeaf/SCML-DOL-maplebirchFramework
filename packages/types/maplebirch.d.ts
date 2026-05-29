@@ -9,64 +9,6 @@ import { ModInfo, ModBootJson } from '@scml/types/sugarcube-2-ModLoader/ModLoade
 import { JSZipLikeReadOnlyInterface } from '@scml/types/sugarcube-2-ModLoader/JSZipLikeReadOnlyInterface';
 import { ModZipReader } from '@scml/types/sugarcube-2-ModLoader/ModZipReader';
 
-declare function clone(source: any, opt?: {
-    deep?: boolean;
-    proto?: boolean;
-}, map?: WeakMap<object, any>): any;
-declare function equal(a: any, b: any): boolean;
-declare function merge(target: any, ...sources: any[]): any;
-declare function contains(arr: any[], value: any, mode?: 'all' | 'any' | 'none', opt?: {
-    case?: boolean;
-    compare?: (item: any, value: any) => boolean;
-    deep?: boolean;
-}): boolean;
-declare function random(min?: number | {
-    min: number;
-    max: number;
-    float?: boolean;
-}, max?: number, float?: boolean): number;
-declare function either(itemsOrA: any, ...rest: any[]): any;
-declare class SelectCase {
-    case(cond: string | number, result: any): this;
-    case(cond: (input: any, meta?: any) => boolean, result: any): this;
-    casePredicate(fn: (input: any, meta?: any) => boolean, result: any): this;
-    caseRange(min: number, max: number, result: any): this;
-    caseIn(values: any[], result: any): this;
-    caseIncludes(subs: string | string[], result: any): this;
-    caseRegex(regex: RegExp, result: any): this;
-    caseCompare(op: '<' | '<=' | '>' | '>=', val: number, result: any): this;
-    else(result: any): this;
-    match(input: any, meta?: any): any;
-}
-declare function convert(str: string, mode?: 'lower' | 'upper' | 'capitalize' | 'title' | 'camel' | 'pascal' | 'snake' | 'kebab' | 'constant', opt?: {
-    delimiter?: string;
-    acronym?: boolean;
-}): string;
-declare function number(value: any, fallback?: number, min?: number, max?: number, mode?: 'none' | 'floor' | 'ceil' | 'round' | 'trunc', opt?: {
-    step?: number;
-    percent?: boolean;
-    loop?: boolean;
-}): number;
-declare function loadImage(src: string): string | boolean | Promise<string | boolean>;
-declare function widgets(content: string): string;
-declare function widgets(...contents: string[]): string[];
-
-type utils_SelectCase = SelectCase;
-declare const utils_SelectCase: typeof SelectCase;
-declare const utils_clone: typeof clone;
-declare const utils_contains: typeof contains;
-declare const utils_convert: typeof convert;
-declare const utils_either: typeof either;
-declare const utils_equal: typeof equal;
-declare const utils_loadImage: typeof loadImage;
-declare const utils_merge: typeof merge;
-declare const utils_number: typeof number;
-declare const utils_random: typeof random;
-declare const utils_widgets: typeof widgets;
-declare namespace utils {
-  export { utils_SelectCase as SelectCase, utils_clone as clone, utils_contains as contains, utils_convert as convert, utils_either as either, utils_equal as equal, utils_loadImage as loadImage, utils_merge as merge, utils_number as number, utils_random as random, utils_widgets as widgets };
-}
-
 declare module 'twine-sugarcube/userdata' {
   export interface SugarCubeSetupObject {
     [x: string]: any;
@@ -439,8 +381,6 @@ declare class WeatherManager {
     register(eventId: string, options: WeatherEventOptions): boolean;
     unregister(eventId: string): boolean;
     addLayer(layerName: string, patch: any, mode?: 'concat' | 'replace' | 'merge'): this;
-    addLayerEffects(layerName: string, effects: any[], mode?: 'concat' | 'replace' | 'merge'): this;
-    patchLayerEffect(layerName: string, index: number, patch: any, mode?: 'merge' | 'replace'): this;
     addEffect(effectName: string, patch: any, mode?: 'concat' | 'replace' | 'merge'): this;
     applyModifications(params: any): any;
     addWeatherData(data: WeatherException | WeatherTypeConfig): boolean | void;
@@ -466,7 +406,65 @@ declare class DynamicManager {
     regWeatherEvent(eventId: string, options: WeatherEventOptions): boolean;
     delWeatherEvent(eventId: string): boolean;
     addWeather(data: WeatherException | WeatherTypeConfig): boolean | void;
-    preInit(): Promise<void>;
+    Init(): Promise<void>;
+}
+
+declare function clone(source: any, opt?: {
+    deep?: boolean;
+    proto?: boolean;
+}, map?: WeakMap<object, any>): any;
+declare function equal(a: any, b: any): boolean;
+declare function merge(target: any, ...sources: any[]): any;
+declare function contains(arr: any[], value: any, mode?: 'all' | 'any' | 'none', opt?: {
+    case?: boolean;
+    compare?: (item: any, value: any) => boolean;
+    deep?: boolean;
+}): boolean;
+declare function random(min?: number | {
+    min: number;
+    max: number;
+    float?: boolean;
+}, max?: number, float?: boolean): number;
+declare function either(itemsOrA: any, ...rest: any[]): any;
+declare class SelectCase {
+    case(cond: string | number, result: any): this;
+    case(cond: (input: any, meta?: any) => boolean, result: any): this;
+    casePredicate(fn: (input: any, meta?: any) => boolean, result: any): this;
+    caseRange(min: number, max: number, result: any): this;
+    caseIn(values: any[], result: any): this;
+    caseIncludes(subs: string | string[], result: any): this;
+    caseRegex(regex: RegExp, result: any): this;
+    caseCompare(op: '<' | '<=' | '>' | '>=', val: number, result: any): this;
+    else(result: any): this;
+    match(input: any, meta?: any): any;
+}
+declare function convert(str: string, mode?: 'lower' | 'upper' | 'capitalize' | 'title' | 'camel' | 'pascal' | 'snake' | 'kebab' | 'constant', opt?: {
+    delimiter?: string;
+    acronym?: boolean;
+}): string;
+declare function number(value: any, fallback?: number, min?: number, max?: number, mode?: 'none' | 'floor' | 'ceil' | 'round' | 'trunc', opt?: {
+    step?: number;
+    percent?: boolean;
+    loop?: boolean;
+}): number;
+declare function loadImage(src: string): string | boolean | Promise<string | boolean>;
+declare function widgets(content: string): string;
+declare function widgets(...contents: string[]): string[];
+
+type utils_SelectCase = SelectCase;
+declare const utils_SelectCase: typeof SelectCase;
+declare const utils_clone: typeof clone;
+declare const utils_contains: typeof contains;
+declare const utils_convert: typeof convert;
+declare const utils_either: typeof either;
+declare const utils_equal: typeof equal;
+declare const utils_loadImage: typeof loadImage;
+declare const utils_merge: typeof merge;
+declare const utils_number: typeof number;
+declare const utils_random: typeof random;
+declare const utils_widgets: typeof widgets;
+declare namespace utils {
+  export { utils_SelectCase as SelectCase, utils_clone as clone, utils_contains as contains, utils_convert as convert, utils_either as either, utils_equal as equal, utils_loadImage as loadImage, utils_merge as merge, utils_number as number, utils_random as random, utils_widgets as widgets };
 }
 
 interface JSExecutionResult {
@@ -495,8 +493,8 @@ interface ExecutionResult {
 declare class CheatConsole {
     readonly manager: ToolCollection;
     constructor(manager: ToolCollection);
-    executeJS(code?: string): JSExecutionResult;
-    executeTwine(code?: string): TwineExecutionResult;
+    executeJS(code: string): JSExecutionResult;
+    executeTwine(code: string): TwineExecutionResult;
     execute(type: 'javascript' | 'twine', code?: string): ExecutionResult;
 }
 
@@ -1588,4 +1586,4 @@ declare class AddonPlugin {
 }
 declare function replace(content: string, replacements: [RegExp, string][]): string;
 
-export { type Extensions, type Instance, MaplebirchCore, SelectCase, clone, contains, convert, maplebirch as default, either, equal, loadImage, merge, number, random };
+export { type Extensions, MaplebirchCore, maplebirch as default, utils };

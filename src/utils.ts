@@ -1,7 +1,6 @@
 // ./src/utils.ts
 
-import maplebirch from './core';
-const _ = maplebirch.lodash;
+const _ = window.modSC2DataManager.getModUtils().getLodash();
 
 type TypedArrayLike = Int8Array | Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array | BigInt64Array | BigUint64Array;
 const isTypedArray = (source: any): source is TypedArrayLike => ArrayBuffer.isView(source) && !(source instanceof DataView);
@@ -584,7 +583,7 @@ function checkImageExist(src: string): boolean | Promise<boolean> {
 function loadImage(src: string): string | boolean | Promise<string | boolean> {
   try {
     if (!src) return false;
-    return maplebirch.modUtils.getImage(src).then(value => {
+    return window.modUtils.getImage(src).then(value => {
       if (value) {
         imageCache.set(src, true);
         return value;
@@ -614,23 +613,5 @@ function widgets(...rawContents: string[]): string | string[] {
   const result = rawContents.map(parse);
   return result.length === 1 ? result[0] : result;
 }
-
-const tools = {
-  clone: Object.freeze(clone),
-  merge: Object.freeze(merge),
-  equal: Object.freeze(equal),
-  contains: Object.freeze(contains),
-  SelectCase: Object.freeze(SelectCase),
-  random: Object.freeze(random),
-  either: Object.freeze(either),
-  convert: Object.freeze(convert),
-  number: Object.freeze(number),
-  loadImage: Object.freeze(loadImage)
-};
-
-const toolNames = ['clone', 'merge', 'equal', 'contains', 'SelectCase', 'random', 'either', 'convert', 'number', 'loadImage'];
-_.each(toolNames, name => {
-  if (!window.hasOwnProperty(name)) Object.defineProperty(window, name, { value: (tools as any)[name], enumerable: true });
-});
 
 export { clone, equal, merge, contains, random, either, SelectCase, convert, number, loadImage, widgets };

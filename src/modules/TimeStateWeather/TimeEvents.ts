@@ -25,6 +25,11 @@ interface AccumulateConfig {
   target?: number;
 }
 
+interface PassSnapshot {
+  prevDate: DateTime;
+  seconds: number;
+}
+
 export interface TimeData {
   prevDate?: DateLike;
   currentDate?: DateLike;
@@ -91,7 +96,7 @@ class TimeEvent {
   ) {
     this.action = options.action;
     this.cond = options.cond || (() => true);
-    this.priority = options.priority || 0;
+    this.priority = options.priority ?? 0;
     this.once = !!options.once;
     this.exact = !!options.exact;
     this.accumulate = options.accumulate;
@@ -174,9 +179,11 @@ export class TimeManager {
 
   private readonly vanillaTime = {
     pass: null as ((seconds: number) => any) | null,
-    setDate: null as ((date: DateTime) => void) | null,
-    timeTravel: null as ((date: DateTime) => any) | null
+    setDate: null as ((date: DateTime) => void) | null
   };
+
+  private doLPassHookInstalled = false;
+  private passSnapshots: PassSnapshot[] = [];
 
   readonly log: (message: string, level?: string, ...objects: any[]) => void;
 
@@ -191,10 +198,10 @@ export class TimeManager {
   init(): void {
     try {
       patchDateTime();
-      this.saveTime();
       patchTime();
-      if (this.vanillaTime.pass) Time.pass = (seconds: number) => this.handleTimePass(seconds);
-      if (this.vanillaTime.timeTravel) Time.timeTravel = (date: DateTime) => this.handleTimeTravel(date);
+      this.saveTime();
+      Time.pass = (seconds: number) => this.handleTimePass(seconds);
+      Time.timeTravel = (date: DateTime) => this.handleTimeTravel(date);
       this.log('时间事件系统已激活', 'INFO');
     } catch (e: any) {
       this.log(`初始化时间事件系统失败: ${e.message}`, 'ERROR');
@@ -251,14 +258,13 @@ export class TimeManager {
   }
 
   private saveTime(): void {
-    if (!this.vanillaTime.pass && typeof Time.pass === 'function') this.vanillaTime.pass = Time.pass.bind(Time);
-    if (!this.vanillaTime.setDate && typeof Time.setDate === 'function') this.vanillaTime.setDate = Time.setDate.bind(Time);
-    if (!this.vanillaTime.timeTravel && typeof Time.timeTravel === 'function') this.vanillaTime.timeTravel = Time.timeTravel.bind(Time);
+    if (!this.vanillaTime.pass && typeof Time.pass === 'function') this.vanillaTime.pass = Time.pass.bind(time);
+    if (!this.vanillaTime.setDate && typeof Time.setDate === 'function') this.vanillaTime.setDate = Time.setDate.bind(time);
   }
 
   private handleTimePass(seconds: number): any {
     if (!this.vanillaTime.pass) return;
-    if (seconds < 0) return;
+    if (!Number.isFinite(seconds) || seconds < 0) return;
     const prevDate = new window.DateTime(Time.date);
     const targetDate = new window.DateTime(prevDate).addSeconds(seconds);
     this.trigger('onBefore', {
@@ -268,9 +274,9 @@ export class TimeManager {
       prevDate
     });
     let passResult: any;
-    const useVanilla = prevDate.timeStamp >= 0 && targetDate.timeStamp >= 0 && targetDate.timeStamp <= TimeConstants.MAX_DATE.timeStamp;
+    const useVanilla = prevDate.timeStamp >= TimeConstants.MIN_DATE.timeStamp && targetDate.timeStamp >= TimeConstants.MIN_DATE.timeStamp && targetDate.timeStamp <= TimeConstants.MAX_DATE.timeStamp;
     if (useVanilla) {
-      this.vanillaTime.setDate?.(prevDate);
+      this.vanillaTime.setDate(prevDate);
       passResult = this.vanillaTime.pass(seconds);
     }
     Time.setDate(targetDate);
@@ -282,15 +288,13 @@ export class TimeManager {
     return passResult;
   }
 
-  private handleTimeTravel(targetDate: DateTime): any {
+  private handleTimeTravel(targetDate: DateTime): void {
     const prevDate = new window.DateTime(Time.date);
     const target = new window.DateTime(targetDate);
-    const elapsedSeconds = target.timeStamp - prevDate.timeStamp;
-    let travelResult: any;
-    const useVanilla = target.timeStamp >= 0 && target.timeStamp <= TimeConstants.MAX_DATE.timeStamp;
-    if (useVanilla) travelResult = this.vanillaTime.timeTravel?.(target);
+    if (target.timeStamp < TimeConstants.MIN_DATE.timeStamp || target.timeStamp > TimeConstants.MAX_DATE.timeStamp) throw new Error(`Invalid time travel target: ${target.timeStamp}`);
     Time.setDate(target);
     const currentDate = new window.DateTime(Time.date);
+    const elapsedSeconds = currentDate.timeStamp - prevDate.timeStamp;
     const eventData = this.timeData(prevDate, currentDate, elapsedSeconds);
     this.trigger('onTimeTravel', {
       ...eventData,
@@ -300,7 +304,6 @@ export class TimeManager {
       direction: elapsedSeconds >= 0 ? 'forward' : 'backward',
       isLeap: window.DateTime.isLeapYear(currentDate.year)
     });
-    return travelResult;
   }
 
   private targetDate(options: TimeTravelOptions): DateTime {
