@@ -10,6 +10,7 @@ import { Howl, Howler } from 'howler';
 import * as marked from 'marked';
 import { lastModifiedBy, lastUpdate } from '../package.json';
 import { version, Languages } from './constants';
+import * as utils from './utils';
 import Logger from './services/Logger';
 import EventEmitter from './services/EventEmitter';
 import IndexedDBService from './services/IndexedDBService';
@@ -17,14 +18,14 @@ import CredentialVault from './services/CredentialVault';
 import LanguageManager from './services/LanguageManager';
 import ModuleSystem from './services/ModuleSystem';
 import GUIControl from './services/GUIControl';
-import AddonPlugin from './modules/AddonPlugin';
-import DynamicManager from './modules/Dynamic';
-import ToolCollection from './modules/ToolCollection';
-import AudioManager from './modules/Audio';
-import Variables from './modules/Variables';
-import Character from './modules/Character';
-import NPCManager from './modules/NamedNPC';
-import CombatManager from './modules/Combat';
+import type AddonPlugin from './modules/AddonPlugin';
+import type DynamicManager from './modules/Dynamic';
+import type ToolCollection from './modules/ToolCollection';
+import type AudioManager from './modules/Audio';
+import type Variables from './modules/Variables';
+import type Character from './modules/Character';
+import type NPCManager from './modules/NamedNPC';
+import type CombatManager from './modules/Combat';
 
 const renderer = new marked.Renderer();
 
@@ -81,14 +82,14 @@ class MaplebirchCore {
   readonly lang: LanguageManager;
   readonly modules: ModuleSystem;
   readonly gui: GUIControl;
-  readonly addon: AddonPlugin;
-  readonly dynamic: DynamicManager;
-  readonly tool: ToolCollection;
-  readonly audio: AudioManager;
-  readonly var: Variables;
-  readonly char: Character;
-  readonly npc: NPCManager;
-  readonly combat: CombatManager;
+  declare readonly addon: AddonPlugin;
+  declare readonly dynamic: DynamicManager;
+  declare readonly tool: ToolCollection;
+  declare readonly audio: AudioManager;
+  declare readonly var: Variables;
+  declare readonly char: Character;
+  declare readonly npc: NPCManager;
+  declare readonly combat: CombatManager;
 
   constructor(modSC2DataManager: SC2DataManager, modLoaderGui: Gui) {
     this.meta = { ...MaplebirchCore.meta };
@@ -215,10 +216,11 @@ class MaplebirchCore {
 
 var maplebirch = new MaplebirchCore(window.modSC2DataManager, window.modLoaderGui) as Instance;
 
+for (const key of Object.keys(utils) as (keyof typeof utils)[]) Object.defineProperty(window, key, { value: utils[key], enumerable: true, writable: false, configurable: false });
+
 function createlog(prefix: string) {
   return (message: string, level: string = 'INFO', ...objects: any[]) => maplebirch.log(`[${prefix}] ${message}`, level, ...objects);
 }
 
-export { MaplebirchCore, createlog };
-export type { Extensions, Instance };
+export { MaplebirchCore, type Extensions, createlog };
 export default maplebirch;

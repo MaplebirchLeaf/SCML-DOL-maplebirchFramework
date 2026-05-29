@@ -1,6 +1,6 @@
 // ./src/modules/Dynamic.ts
 
-import maplebirch, { MaplebirchCore, createlog } from '../core';
+import maplebirch, { type MaplebirchCore, createlog } from '../core';
 import { TimeManager, TimeEventOptions, TimeTravelOptions } from './TimeStateWeather/TimeEvents';
 import { StateManager, StateEventOptions } from './TimeStateWeather/StateEvents';
 import { WeatherManager, WeatherEventOptions, WeatherTypeConfig, WeatherException } from './TimeStateWeather/WeatherEvents';
@@ -62,16 +62,14 @@ class DynamicManager {
     return this.Weather.addWeatherData(data);
   }
 
-  async preInit(): Promise<void> {
-    this.core.once(':passagestart', () => {
-      this.Time.init();
-      this.State.init();
-      this.Weather.init();
-    });
+  async Init(): Promise<void> {
+    this.Time.init();
+    this.State.init();
+    this.Weather.init();
   }
 }
 
-(function (maplebirch): void {
+(function (maplebirch: MaplebirchCore): void {
   'use strict';
   maplebirch.register('dynamic', Object.seal(new DynamicManager(maplebirch)), ['addon']);
 })(maplebirch);

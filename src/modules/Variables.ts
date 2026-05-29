@@ -2,8 +2,21 @@
 
 import { clone, merge } from '../utils';
 import maplebirch, { MaplebirchCore, createlog } from '../core';
-import dataUpdate, { defaults } from '../database/State-variables';
 import migration from './Frameworks/migration';
+
+const version = '3.2.0';
+
+const defaults = {
+  player: {
+    clothing: {}
+  },
+  npc: {},
+  transformation: {}
+};
+
+function dataUpdate(migration: migration): void {
+  migration.add('0.0.0', version, (data, utils) => utils.fill(data, clone(defaults)));
+}
 
 interface Color {
   [0]: string;
@@ -71,7 +84,7 @@ class Variables {
   hairgradients: () => HairGradientsReturn;
 
   constructor(readonly core: MaplebirchCore) {
-    this.version = '3.2.0';
+    this.version = version;
     this.tool = this.core.tool;
     this.log = createlog('var');
     this.migration = new this.tool.migration();
