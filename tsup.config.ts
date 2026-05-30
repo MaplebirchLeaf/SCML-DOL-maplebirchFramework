@@ -5,6 +5,7 @@ export default defineConfig({
     maplebirch: 'src/main.ts'
   },
   outDir: 'dist',
+  format: ['esm'],
   dts: {
     only: true
   },

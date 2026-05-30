@@ -230,9 +230,8 @@ class GUIControl {
             '$scope',
             '$compile',
             '$element',
-            function ($scope: any, _$compile: any, _$element: any) {
-              const ctrl = this as any;
-              $scope.t = ctrl.translation = (text: string[]) => text[maplebirch.meta.Languages.indexOf(maplebirch.Language as 'EN' | 'CN')];
+            function (this: ModSubUiAngularJsService['Ref'], $scope: any, _$compile: any, _$element: any) {
+              $scope.t = this.translation = (text: string[]) => text[maplebirch.meta.Languages.indexOf(maplebirch.Language as 'EN' | 'CN')];
               const callOnChange = (action: any, data: any) => {
                 try {
                   return $scope.$ctrl.data?.onChange?.(action, data) || false;
@@ -244,7 +243,7 @@ class GUIControl {
 
               $scope.ClearIndexedDB = () => maplebirch.idb.deleteDatabase();
 
-              ctrl.$onInit = () => {
+              this.$onInit = () => {
                 $scope.languages = $scope.$ctrl.data.text.Languages.map((lang: string[]) => ({
                   code: lang[0],
                   get name() {

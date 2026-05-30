@@ -4,7 +4,7 @@ import { BeautySelectorAddon } from '@scml/types/AddonMod_BeautySelector/BeautyS
 import { ImgLoaderHooker } from '@scml/types/Hook_ImgLoader/ImgLoaderHooker';
 import { Gui } from '@scml/types/Mod_LoaderGui/Gui';
 import { ModUtils } from '@scml/types/sugarcube-2-ModLoader/Utils';
-import { _languageSwitch } from '../src/database/SugarCubeMacros';
+import { _languageSwitch } from '../src/SugarCubeMacros';
 
 declare global {
   interface Window {

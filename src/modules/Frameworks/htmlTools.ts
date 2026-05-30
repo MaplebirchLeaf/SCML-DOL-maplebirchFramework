@@ -1,6 +1,8 @@
 // ./src/modules/Frameworks/htmlTools.ts
 
 import { createlog } from '../../core';
+import type { MacroContext } from '../../SugarCubeMacros';
+import type { MacroFunction } from './macros';
 import ToolCollection from '../ToolCollection';
 
 interface TextHandler {
@@ -216,18 +218,18 @@ class htmlTools {
     }
   }
 
-  makeTextOutput(options: { CSV?: boolean } = {}): Function {
+  makeTextOutput(options: { CSV?: boolean } = {}): MacroFunction {
     const CSV = options.CSV ?? true;
     const render = this.render.bind(this);
     return function (this: any) {
       const raw = this.args?.[0];
-      const keys =
-        CSV && typeof raw === 'string' && raw.includes(',')
-          ? raw
-              .split(',')
-              .map(item => item.trim())
-              .filter(Boolean)
-          : raw;
+      let keys = raw;
+      if (CSV && typeof raw === 'string' && raw.includes(',')) {
+        keys = raw
+          .split(',')
+          .map(item => item.trim())
+          .filter(Boolean);
+      }
       render(this, keys);
     };
   }

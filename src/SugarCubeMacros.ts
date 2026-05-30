@@ -1,7 +1,7 @@
-// ./src/database/SugarCubeMacros.ts
+// ./src/SugarCubeMacros.ts
 
-import maplebirch, { type MaplebirchCore } from '../core';
-import { convert } from '../utils';
+import maplebirch, { type MaplebirchCore } from './core';
+import { convert } from './utils';
 
 const CONVERT_MODES = ['lower', 'upper', 'capitalize', 'title', 'camel', 'pascal', 'snake', 'kebab', 'constant'] as const;
 type ConvertMode = (typeof CONVERT_MODES)[number];
@@ -12,7 +12,7 @@ interface MacroPayload {
   contents?: string;
 }
 
-interface MacroContext {
+export interface MacroContext {
   args: any[];
   payload?: MacroPayload[] | null;
   output: HTMLElement;

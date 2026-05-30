@@ -3,7 +3,7 @@
 import { createlog } from '../../core';
 import { clone, merge } from '../../utils';
 import ToolCollection from '../ToolCollection';
-import { specialWidget, defaultData, locationPassage, widgetPassage } from '../../database/FrameworksReplace';
+import { specialWidget, defaultData, locationPassage, widgetPassage } from '../../replace';
 import AddonPlugin from '../AddonPlugin';
 
 export interface ZoneWidgetConfig {

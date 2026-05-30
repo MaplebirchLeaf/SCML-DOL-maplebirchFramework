@@ -323,7 +323,7 @@ class AddonPluginProcess {
         }
       }
       if (imagePaths.length === 0) return;
-      const modInfo = modZip.modInfo;
+      const modInfo = modZip.modInfo!;
       const plugins = modInfo.bootJson?.addonPlugin;
       if (!plugins) return;
       let plugin = plugins.find(item => item.modName === 'BeautySelectorAddon' && item.addonName === 'BeautySelectorAddon');

@@ -350,7 +350,7 @@ class Character {
   async modifyPCModel(manager: AddonPlugin) {
     const oldSCdata = manager.SC2DataManager.getSC2DataInfoAfterPatch();
     const SCdata = oldSCdata.cloneSC2DataInfo();
-    const file = SCdata.scriptFileItems.getByNameWithOrWithoutPath('canvasmodel-main.js');
+    const file = SCdata.scriptFileItems.getByNameWithOrWithoutPath('canvasmodel-main.js')!;
     const replacements: [RegExp, string][] = [
       [/},\n\tpostprocess/, '\tmaplebirch.char.process("pre", options);\n\t},\n\tpostprocess'],
       [/},\n\tlayers/, '\tmaplebirch.char.process("post", options);\n\t},\n\tlayers']
@@ -361,14 +361,14 @@ class Character {
 
   use(type: CharacterProcessType, fn: CharacterProcessInput): this;
   use(layerMap: CharacterLayerMap): this;
-  use(...args: any[]): this {
+  use(...args: [] | [CharacterProcessType, CharacterProcessInput] | [CharacterLayerMap]): this {
     if (args.length === 0) {
       this.log('use 调用无参数', 'WARN');
       return this;
     }
     if (args.length === 2) {
       const [type, fn] = args;
-      if ((type === 'pre' || type === 'post') && typeof fn === 'function') {
+      if (typeof fn === 'function') {
         this.handlers[type].push(fn as CharacterProcessHandler);
       } else {
         this.log(`use 参数类型错误: ${typeof type}, ${typeof fn}`, 'ERROR');

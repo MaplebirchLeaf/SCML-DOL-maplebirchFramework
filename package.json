@@ -4,7 +4,7 @@
   "private": true,
   "description": "SugarCube2-ModLoader-Degrees of Lewdity-Maplebirch Frameworks",
   "author": "楓樺葉",
-  "type": "commonjs",
+  "type": "module",
   "types": "dist/maplebirch.d.ts",
   "scripts": {
     "dev": "rspack serve",
@@ -24,14 +24,15 @@
     "fmt:check": "oxfmt --check"
   },
   "dependencies": {
+    "flatpickr": "^4.6.13",
     "howler": "^2.2.4",
     "idb": "^8.0.3",
     "js-yaml": "^4.1.0",
     "marked": "^17.0.3"
   },
   "devDependencies": {
-    "@rspack/cli": "^1.7.6",
-    "@rspack/core": "^1.7.6",
+    "@rspack/cli": "^^2.0.5",
+    "@rspack/core": "^^2.0.5",
     "@scml/types": "^1.0.7",
     "@types/adm-zip": "^0.5.7",
     "@types/bun": "1.3.14",

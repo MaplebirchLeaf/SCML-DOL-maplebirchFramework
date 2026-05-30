@@ -1,9 +1,11 @@
 // .src/modules/Frameworks/macros.ts
 
 import { createlog, type MaplebirchCore } from '../../core';
+import type { MacroContext } from '../../SugarCubeMacros';
 import ToolCollection from '../ToolCollection';
 
-type MacroFunction = Function;
+export type MacroFunction = (this: MacroContext, ...args: any[]) => any;
+type SimpleMacroFunction = (this: MacroContext | null, ...args: any[]) => any;
 type StatFunction = (...args: any[]) => DocumentFragment;
 type MacroTags = string[] | null | undefined;
 type SkipArgs = string[] | boolean | null | undefined;
@@ -50,7 +52,7 @@ class defineMacros {
     this.log(`已定义/更新宏: ${macroName}`, 'DEBUG');
   }
 
-  defineS(macroName: string, macroFunction: MacroFunction, tags?: MacroTags, skipArgs?: SkipArgs, maintainContext = false): void {
+  defineS(macroName: string, macroFunction: SimpleMacroFunction, tags?: MacroTags, skipArgs?: SkipArgs, maintainContext = false): void {
     this.define(
       macroName,
       function () {

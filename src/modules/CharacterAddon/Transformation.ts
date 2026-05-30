@@ -144,7 +144,7 @@ class Transformation {
   async modifyEffect(manager: AddonPlugin): Promise<void> {
     const oldSCdata = manager.SC2DataManager.getSC2DataInfoAfterPatch();
     const SCdata = oldSCdata.cloneSC2DataInfo();
-    const file = SCdata.scriptFileItems.getByNameWithOrWithoutPath('effect.js');
+    const file = SCdata.scriptFileItems.getByNameWithOrWithoutPath('effect.js')!;
     const replacements: [RegExp, string][] = [
       [
         /errors\.pushUnique\(messageKey\);/g,
