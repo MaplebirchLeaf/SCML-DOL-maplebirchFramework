@@ -1,7 +1,7 @@
 // ./src/modules/Internals.ts
 
 import maplebirch, { type MaplebirchCore, createlog } from '../core';
-import { _language, _languageSwitch, _languageButton, _languageLink, _languageListbox, _radiobuttonsfrom, _overlayReplace } from '../database/SugarCubeMacros';
+import { _language, _languageSwitch, _languageButton, _languageLink, _languageListbox, _radiobuttonsfrom, _overlayReplace } from '../SugarCubeMacros';
 
 type Updater = () => void;
 type DynamicTask = (...args: any[]) => any;

@@ -1,5 +1,5 @@
-// ./src/database/FrameworksReplace.ts
-import { widgets } from '../utils';
+// ./src/replace.ts
+import { widgets } from './utils';
 import TransformationMirror from '@/twee/TransformationMirror.twee?raw';
 import NPCHairStyleOptions from '@/twee/NPCHairStyleOptions.twee?raw';
 import Options from '@/twee/Options.twee?raw';

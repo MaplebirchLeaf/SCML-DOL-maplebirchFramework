@@ -98,7 +98,7 @@ class WeatherEvent {
 
     if (builtIn[key]) return this.matchValue(builtIn[key](), value);
 
-    const paths: (() => any)[] = [() => V[key], () => T[key], () => Weather[key], () => Time[key]];
+    const paths: (() => any)[] = [() => (V as Record<string, any>)[key], () => (T as Record<string, any>)[key], () => (Weather as Record<string, any>)[key], () => (Time as Record<string, any>)[key]];
     for (const getter of paths) {
       try {
         const current = getter();
@@ -258,7 +258,7 @@ export class WeatherManager {
   async modifyWeatherJavaScript(manager: AddonPlugin): Promise<void> {
     const oldSCdata = manager.SC2DataManager.getSC2DataInfoAfterPatch();
     const SCdata = oldSCdata.cloneSC2DataInfo();
-    const file = SCdata.scriptFileItems.getByNameWithOrWithoutPath('00-layer-manager.js');
+    const file = SCdata.scriptFileItems.getByNameWithOrWithoutPath('00-layer-manager.js')!;
     const replacements: [RegExp, string][] = [
       [
         /const\s+layer\s*=\s*new\s+Weather\.Renderer\.Layer\(([^)]+)\);/,

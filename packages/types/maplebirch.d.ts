@@ -233,7 +233,6 @@ declare class GUIControl {
     enabledScripts: string[];
     disabledScripts: string[];
     constructor(core: MaplebirchCore);
-    initSettings(): Promise<void>;
     init(): Promise<void>;
     typeLabel(type: ModuleType): string;
     saveModules(enabled: ModuleInfo[], disabled: ModuleInfo[]): Promise<void>;
@@ -409,17 +408,19 @@ declare class DynamicManager {
     Init(): Promise<void>;
 }
 
+type ContainsMode = 'all' | 'any' | 'none';
+type ContainsOptions = {
+    case?: boolean;
+    compare?: (item: unknown, value: unknown) => boolean;
+    deep?: boolean;
+};
 declare function clone(source: any, opt?: {
     deep?: boolean;
     proto?: boolean;
 }, map?: WeakMap<object, any>): any;
 declare function equal(a: any, b: any): boolean;
 declare function merge(target: any, ...sources: any[]): any;
-declare function contains(arr: any[], value: any, mode?: 'all' | 'any' | 'none', opt?: {
-    case?: boolean;
-    compare?: (item: any, value: any) => boolean;
-    deep?: boolean;
-}): boolean;
+declare function contains(arr: unknown[], value: unknown, mode?: ContainsMode, opt?: ContainsOptions): boolean;
 declare function random(min?: number | {
     min: number;
     max: number;
@@ -493,8 +494,8 @@ interface ExecutionResult {
 declare class CheatConsole {
     readonly manager: ToolCollection;
     constructor(manager: ToolCollection);
-    executeJS(code: string): JSExecutionResult;
-    executeTwine(code: string): TwineExecutionResult;
+    executeJS(code?: string): JSExecutionResult;
+    executeTwine(code?: string): TwineExecutionResult;
     execute(type: 'javascript' | 'twine', code?: string): ExecutionResult;
 }
 
@@ -550,7 +551,35 @@ declare class randSystem {
     get index(): number;
 }
 
-type MacroFunction = Function;
+declare const CONVERT_MODES: readonly ["lower", "upper", "capitalize", "title", "camel", "pascal", "snake", "kebab", "constant"];
+type ConvertMode = (typeof CONVERT_MODES)[number];
+interface MacroPayload {
+    name: string;
+    args: any;
+    contents?: string;
+}
+interface MacroContext {
+    args: any[];
+    payload?: MacroPayload[] | null;
+    output: HTMLElement;
+    error: (msg: string) => any;
+    createShadowWrapper: (fn?: Function | null, fn2?: Function | null) => (event: JQuery.Event) => void;
+    passageObj?: any;
+    lanListboxCache?: Record<string, {
+        options: ListboxOption[];
+        selectedIdx: number;
+    }>;
+}
+interface ListboxOption {
+    label: string;
+    value: any;
+    type: 'static' | 'dynamic';
+    exprIndex?: number;
+    convertMode: ConvertMode | null;
+}
+
+type MacroFunction = (this: MacroContext, ...args: any[]) => any;
+type SimpleMacroFunction = (this: MacroContext | null, ...args: any[]) => any;
 type StatFunction = (...args: any[]) => DocumentFragment;
 type MacroTags = string[] | null | undefined;
 type SkipArgs = string[] | boolean | null | undefined;
@@ -562,7 +591,7 @@ declare class defineMacros {
     constructor(manager: ToolCollection);
     get Macro(): MaplebirchCore['SugarCube']['Macro'];
     define(macroName: string, macroFunction: MacroFunction, tags?: MacroTags, skipArgs?: SkipArgs, isAsync?: boolean): void;
-    defineS(macroName: string, macroFunction: MacroFunction, tags?: MacroTags, skipArgs?: SkipArgs, maintainContext?: boolean): void;
+    defineS(macroName: string, macroFunction: SimpleMacroFunction, tags?: MacroTags, skipArgs?: SkipArgs, maintainContext?: boolean): void;
     statChange(statType: string, amount: number, colorClass: string, condition?: () => boolean): DocumentFragment;
     grace(amount: number, expectedRank?: string): DocumentFragment;
     create(name: string, fn: StatFunction): void;
@@ -597,7 +626,7 @@ declare class htmlTools {
     render(macro: any, keys: string | string[]): void;
     makeTextOutput(options?: {
         CSV?: boolean;
-    }): Function;
+    }): MacroFunction;
 }
 
 interface ZoneWidgetConfig {
@@ -917,9 +946,9 @@ declare class AudioManager {
     readonly core: MaplebirchCore;
     readonly log: ReturnType<typeof createlog>;
     constructor(core: MaplebirchCore);
-    on(event: string, handler: AudioEventHandler): void;
-    off(event: string, handler: AudioEventHandler): boolean;
-    once(event: string, handler: AudioEventHandler): void;
+    protected on(event: string, handler: AudioEventHandler): void;
+    protected off(event: string, handler: AudioEventHandler): boolean;
+    protected once(event: string, handler: AudioEventHandler): void;
     play(track: Track): Promise<boolean>;
     pause(): boolean;
     resume(): boolean;
@@ -1399,16 +1428,56 @@ declare class NPCManager {
     postInit(): void;
 }
 
-declare const CombatAction: any;
+type ActionType = 'leftaction' | 'rightaction' | 'feetaction' | 'mouthaction' | 'penisaction' | 'vaginaaction' | 'anusaction' | 'chestaction' | 'thighaction';
+type CombatType = 'Default' | 'Self' | 'Struggle' | 'Swarm' | 'Vore' | 'Machine' | 'Tentacle';
+interface Context {
+    actionType?: ActionType;
+    combatType?: CombatType;
+    encounterType?: CombatType;
+    action?: any;
+    originalCount?: number;
+    [key: string]: any;
+}
+interface ActionEntry {
+    id: string;
+    actionType: ActionType;
+    cond: (ctx: Context) => boolean;
+    display: (ctx: Context) => string;
+    value: (ctx: Context) => any;
+    color: (ctx: Context) => string;
+    difficulty: (ctx: Context) => string;
+    combatType: (ctx: Context) => CombatType;
+    order: (ctx: Context) => number;
+}
+interface ActionConfig {
+    id: string;
+    actionType: ActionType | ActionType[];
+    cond: (ctx: Context) => boolean;
+    display: (ctx: Context) => string;
+    value: (ctx: Context) => any;
+    color?: string | ((ctx: Context) => string);
+    difficulty?: string | ((ctx: Context) => string);
+    combatType?: CombatType | ((ctx: Context) => CombatType);
+    order?: number | ((ctx: Context) => number);
+}
+interface OptionsTable {
+    [key: string]: any;
+}
+interface CombatActionApi {
+    actions: ActionEntry[];
+    reg(...configs: ActionConfig[]): CombatActionApi;
+    _eval<T>(fnOrValue: T | ((ctx: Context) => T), ctx: Context): T | null;
+    action(optionsTable: OptionsTable, actionType: ActionType, combatType?: CombatType): OptionsTable;
+    color(action: any, encounterType?: CombatType): string | null;
+    difficulty(action: any, combatType?: CombatType): string | null;
+}
+declare const CombatAction: CombatActionApi;
 
 declare class CombatManager {
     readonly core: MaplebirchCore;
     readonly log: ReturnType<typeof createlog>;
     readonly CombatAction: typeof CombatAction;
     constructor(core: MaplebirchCore);
-    _generateCombatAction(): () => void;
-    _combatListColor(name: string | number | false, value?: any, type?: string): any;
-    _combatButtonAdjustments(name: string, extra: any): string;
     Init(): void;
 }
 
@@ -1529,11 +1598,7 @@ interface CryptOptions {
 declare class CredentialVault {
     readonly core: MaplebirchCore;
     constructor(core: MaplebirchCore);
-    readPassword(subject: string, key: string): Promise<string | null>;
-    unlock(modName: string, config: AuthConfig, credential: string): Promise<string>;
     loadCrypt(options: CryptOptions): Promise<boolean>;
-    verify(modName: string, config: AuthConfig, credential: string): Promise<AuthPayload>;
-    forget(subject: string, key: string): Promise<void>;
 }
 
 interface Task<T = any> {

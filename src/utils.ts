@@ -3,14 +3,17 @@
 const _ = window.modSC2DataManager.getModUtils().getLodash();
 
 type TypedArrayLike = Int8Array | Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array | BigInt64Array | BigUint64Array;
+
 const isTypedArray = (source: any): source is TypedArrayLike => ArrayBuffer.isView(source) && !(source instanceof DataView);
 
-/**
- * 深度克隆对象
- * @example clone({a:1, b:{c:2}}) // 深克隆对象
- * @example clone([1,[2,3]], {deep:false}) // 浅克隆数组
- * @example clone(new Date(), {proto:false}) // 克隆Date对象
- */
+type ContainsMode = 'all' | 'any' | 'none';
+
+type ContainsOptions = {
+  case?: boolean;
+  compare?: (item: unknown, value: unknown) => boolean;
+  deep?: boolean;
+};
+
 function clone(source: any, opt: { deep?: boolean; proto?: boolean } = {}, map = new WeakMap<object, any>()): any {
   const { deep = true, proto = true } = opt;
   if (source === null || typeof source !== 'object') return source;
@@ -57,24 +60,10 @@ function clone(source: any, opt: { deep?: boolean; proto?: boolean } = {}, map =
   return copy;
 }
 
-/**
- * 深度比较两个值
- * @example equal(new Date(2023,0,1), new Date(2023,0,1)) // true
- * @example equal({a:[1,{b:2}]}, {a:[1,{b:2}]}) // true
- * @example equal(/abc/i, /abc/i) // true
- * @example equal({a:1}, {a:2}) // false
- */
 function equal(a: any, b: any): boolean {
   return _.isEqual(a, b);
 }
 
-/**
- * 递归合并对象
- * @example merge({a:1}, {b:2}) // {a:1, b:2}
- * @example merge({arr:[1,2]}, {arr:[3,4]}, {mode:'concat'}) // {arr:[1,2,3,4]}
- * @example merge({arr:[1,2]}, {arr:[3]}, {mode:'merge'}) // {arr:[3,2]}
- * @example merge({obj:{x:1}}, {obj:{y:2}}) // {obj:{x:1, y:2}}
- */
 function merge(target: any, ...sources: any[]): any {
   if (sources.length === 0) return target;
   const isMergeOption = (value: any): boolean => {
@@ -124,44 +113,29 @@ function merge(target: any, ...sources: any[]): any {
   return target;
 }
 
-/**
- * 检查数组是否包含指定元素
- * @example contains([1,2,3], [1,2]) // true (all模式)
- * @example contains([1,2,3], [1,5], 'any') // true
- * @example contains(['A','B'], 'a', 'all', {case:false}) // true
- * @example contains([{x:1}], {x:1}, 'all', {deep:true}) // true
- */
-function contains(arr: any[], value: any, mode: 'all' | 'any' | 'none' = 'all', opt: { case?: boolean; compare?: (item: any, value: any) => boolean; deep?: boolean } = {}): boolean {
+function contains(arr: unknown[], value: unknown, mode: ContainsMode = 'all', opt: ContainsOptions = {}): boolean {
   if (!Array.isArray(arr)) return false;
-  const { case: cs = true, compare = null, deep = false } = opt;
-  const match = (item: unknown, val: unknown) => {
+  const { case: cs = true, compare, deep = false } = opt;
+  const match = (item: unknown, val: unknown): boolean => {
     if (compare) return compare(item, val);
     if (deep) return _.isEqual(item, val);
     if (!cs && typeof val === 'string' && typeof item === 'string') return item.toLowerCase() === val.toLowerCase();
     if (Number.isNaN(val)) return Number.isNaN(item);
     return item === val;
   };
-  const values = Array.isArray(value) ? value : [value];
+  const values: unknown[] = Array.isArray(value) ? value : [value];
   switch (mode) {
     case 'all':
-      return _.every(values, v => _.some(arr, item => match(item, v)));
+      return _.every(values, (v: unknown) => _.some(arr, (item: unknown) => match(item, v)));
     case 'any':
-      return _.some(values, v => _.some(arr, item => match(item, v)));
+      return _.some(values, (v: unknown) => _.some(arr, (item: unknown) => match(item, v)));
     case 'none':
-      return _.every(values, v => !_.some(arr, item => match(item, v)));
+      return _.every(values, (v: unknown) => !_.some(arr, (item: unknown) => match(item, v)));
     default:
       throw new Error(`Invalid mode: '${mode as string}'. Expected 'all', 'any' or 'none'.`);
   }
 }
 
-/**
- * 生成随机数
- * @example random() // 0-1之间的浮点数
- * @example random(10) // 0-10的整数
- * @example random(5, 10) // 5-10的整数
- * @example random(5, 10, true) // 5-10的浮点数
- * @example random({min:5, max:10, float:true}) // 5-10的浮点数
- */
 function random(min?: number | { min: number; max: number; float?: boolean }, max?: number, float = false): number {
   if (min == null && max == null) return _.random(0, 1, true);
   if (max == null) {
@@ -174,12 +148,6 @@ function random(min?: number | { min: number; max: number; float?: boolean }, ma
   return _.random(min as number, max, float);
 }
 
-/**
- * 从选项中随机选择一个
- * @example either(['a','b','c']) // 随机返回其中一个
- * @example either('a','b',{weights:[0.8,0.2]}) // 80%返回'a'，20%返回'b'
- * @example either(['a','b'],{null:true}) // 33%返回null，33%'a'，33%'b'
- */
 function either(itemsOrA: any, ...rest: any[]): any {
   const isEitherOption = (value: any): boolean => {
     if (!_.isPlainObject(value)) return false;
@@ -220,32 +188,12 @@ interface CaseItem {
   result: any;
 }
 
-/**
- * 条件选择器类
- * @example
- * new SelectCase()
- *   .case(1, 'One')
- *   .caseRange(3, 5, 'Three to Five')
- *   .else('Other')
- *   .match(3) // 返回'Three to Five'
- * @example
- * new SelectCase()
- *   .caseIncludes(['admin','root'], '管理员')
- *   .else('普通用户')
- *   .match('admin_user') // 返回'管理员'
- * @example
- * new SelectCase()
- *   .case(x => x > 10, '大于10')
- *   .else('小于等于10')
- *   .match(15) // 返回'大于10'
- */
 class SelectCase {
   private cases: CaseItem[] = [];
   private defaultResult: any = null;
   private valueType: string | null = null;
   private allowMixedTypes = false;
 
-  /** 精确匹配 */
   case(cond: string | number, result: any): this;
   case(cond: (input: any, meta?: any) => boolean, result: any): this;
   case(cond: any, result: any): this {
@@ -253,13 +201,12 @@ class SelectCase {
       this.allowMixedTypes = true;
       this.cases.push({ type: 'predicate', condition: cond, result });
     } else {
-      this.#validateType(cond);
+      this.validateType(cond);
       this.cases.push({ type: 'exact', condition: cond, result });
     }
     return this;
   }
 
-  /** 自定义条件 */
   casePredicate(fn: (input: any, meta?: any) => boolean, result: any): this {
     if (typeof fn !== 'function') throw new TypeError('predicate must be a function');
     this.allowMixedTypes = true;
@@ -267,58 +214,51 @@ class SelectCase {
     return this;
   }
 
-  /** 数值范围匹配 */
   caseRange(min: number, max: number, result: any): this {
     if (typeof min !== 'number' || typeof max !== 'number') throw new TypeError('range values must be numbers');
-    this.#validateType(min);
+    this.validateType(min);
     this.cases.push({ type: 'range', condition: [min, max], result });
     return this;
   }
 
-  /** 集合包含匹配 */
   caseIn(values: any[], result: any): this {
     if (!Array.isArray(values)) throw new TypeError('set values must be an array');
     if (values.length === 0) return this;
-    this.#validateType(values[0]);
+    this.validateType(values[0]);
     this.cases.push({ type: 'set', condition: values, result });
     return this;
   }
 
-  /** 子字符串匹配 */
   caseIncludes(subs: string | string[], result: any): this {
-    if (!Array.isArray(subs)) subs = [subs];
-    _.each(subs, s => {
+    const values = Array.isArray(subs) ? subs : [subs];
+    values.forEach((s: string) => {
       if (typeof s !== 'string') throw new TypeError('substrings must be strings');
     });
-    this.#validateType('string');
-    this.cases.push({ type: 'substring', condition: subs, result });
+    this.validateType('string');
+    this.cases.push({ type: 'substring', condition: values, result });
     return this;
   }
 
-  /** 正则匹配 */
   caseRegex(regex: RegExp, result: any): this {
     if (!(regex instanceof RegExp)) throw new TypeError('condition must be a RegExp');
-    this.#validateType('string');
+    this.validateType('string');
     this.cases.push({ type: 'regex', condition: regex, result });
     return this;
   }
 
-  /** 数值比较 */
   caseCompare(op: '<' | '<=' | '>' | '>=', val: number, result: any): this {
     if (!['<', '<=', '>', '>='].includes(op)) throw new Error(`Invalid comparator: ${op}`);
     if (typeof val !== 'number') throw new TypeError('comparison value must be a number');
-    this.#validateType(val);
+    this.validateType(val);
     this.cases.push({ type: 'comparison', condition: { comparator: op, value: val }, result });
     return this;
   }
 
-  /** 设置默认值 */
   else(result: any): this {
     this.defaultResult = result;
     return this;
   }
 
-  /** 执行匹配 */
   match(input: any, meta: any = {}): any {
     for (const { type, condition, result } of this.cases) {
       let matched = false;
@@ -369,8 +309,7 @@ class SelectCase {
     return typeof this.defaultResult === 'function' ? this.defaultResult(input, meta) : this.defaultResult;
   }
 
-  /** 验证类型一致性 */
-  #validateType(value: any): void {
+  private validateType(value: any): void {
     if (this.allowMixedTypes) return;
     const valueType = typeof value;
     if (this.valueType === null) {
@@ -381,22 +320,6 @@ class SelectCase {
   }
 }
 
-/**
- * 字符串格式转换
- * @example convert('Hello World') // 'hello world' (默认lower)
- * @example convert('hello world', 'upper') // 'HELLO WORLD'
- * @example convert('Hello World', 'capitalize') // 'Hello world'
- * @example convert('hello world', 'title') // 'Hello World'
- * @example convert('hello world', 'camel') // 'helloWorld'
- * @example convert('hello world', 'pascal') // 'HelloWorld'
- * @example convert('hello world', 'snake') // 'hello_world'
- * @example convert('hello world', 'kebab') // 'hello-world'
- * @example convert('hello world', 'constant') // 'HELLO_WORLD'
- * @example convert('userProfile', 'camel') // 'userProfile' (保持不变)
- * @example convert('user_profile', 'camel', {delimiter:'_'}) // 'userProfile'
- * @example convert('HTTP API', 'title', {acronym:false}) // 'Http Api'
- * @example convert('HTTP API', 'title', {acronym:true}) // 'HTTP API'
- */
 function convert(
   str: string,
   mode: 'lower' | 'upper' | 'capitalize' | 'title' | 'camel' | 'pascal' | 'snake' | 'kebab' | 'constant' = 'lower',
@@ -443,16 +366,6 @@ function convert(
   }
 }
 
-/**
- * 数值修整
- * @example number('12.5') // 12.5
- * @example number(undefined, 10) // 10
- * @example number(120, 0, 0, 100) // 100
- * @example number(5.8, 0, 0, 10, 'floor') // 5
- * @example number(17, 0, 0, 100, 'round', {step:5}) // 15
- * @example number(370, 0, 0, 360, 'none', {loop:true}) // 10
- * @example number(75, 0, 0, 200, 'none', {percent:true}) // 37.5
- */
 function number(
   value: any,
   fallback = 0,
@@ -574,12 +487,6 @@ function checkImageExist(src: string): boolean | Promise<boolean> {
   return pending;
 }
 
-/**
- * 图片加载
- * @example loadImage('character.png').then(data => img.src = data)
- * @example await loadImage('https://example.com/image.jpg')
- * @example const data = await loadImage('character.png');
- */
 function loadImage(src: string): string | boolean | Promise<string | boolean> {
   try {
     if (!src) return false;
@@ -596,11 +503,6 @@ function loadImage(src: string): string | boolean | Promise<string | boolean> {
   }
 }
 
-/**
- * 提取 Twee Passage / Widget 内容
- * @example widgets(':: Widget [widget]\\n\\n<<widget "x">>123<</widget>>') // '<<widget "x">>123<</widget>>'
- * @example widgets(a, b) // [aContent, bContent]
- */
 function widgets(content: string): string;
 function widgets(...contents: string[]): string[];
 function widgets(...rawContents: string[]): string | string[] {

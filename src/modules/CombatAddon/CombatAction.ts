@@ -2,8 +2,8 @@
 
 import maplebirch from '../../core';
 
-type ActionType = string;
-type CombatType = string;
+export type ActionType = 'leftaction' | 'rightaction' | 'feetaction' | 'mouthaction' | 'penisaction' | 'vaginaaction' | 'anusaction' | 'chestaction' | 'thighaction';
+export type CombatType = 'Default' | 'Self' | 'Struggle' | 'Swarm' | 'Vore' | 'Machine' | 'Tentacle';
 
 interface Context {
   actionType?: ActionType;
@@ -38,14 +38,23 @@ interface ActionConfig {
   order?: number | ((ctx: Context) => number);
 }
 
-interface OptionsTable {
+export interface OptionsTable {
   [key: string]: any;
 }
 
-const CombatAction = {
+interface CombatActionApi {
+  actions: ActionEntry[];
+  reg(...configs: ActionConfig[]): CombatActionApi;
+  _eval<T>(fnOrValue: T | ((ctx: Context) => T), ctx: Context): T | null;
+  action(optionsTable: OptionsTable, actionType: ActionType, combatType?: CombatType): OptionsTable;
+  color(action: any, encounterType?: CombatType): string | null;
+  difficulty(action: any, combatType?: CombatType): string | null;
+}
+
+const CombatAction: CombatActionApi = {
   actions: [] as ActionEntry[],
 
-  reg(...configs: ActionConfig[]): typeof CombatAction {
+  reg(...configs: ActionConfig[]): CombatActionApi {
     configs.forEach(config => {
       const { id, actionType, cond, display, value, color = 'white', difficulty = '', combatType = 'Default', order = -4 } = config;
       const actionTypes = Array.isArray(actionType) ? actionType : [actionType];

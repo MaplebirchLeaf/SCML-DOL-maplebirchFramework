@@ -263,7 +263,9 @@ export class TimeManager {
   }
 
   private handleTimePass(seconds: number): any {
-    if (!this.vanillaTime.pass) return;
+    const pass = this.vanillaTime.pass;
+    const setDate = this.vanillaTime.setDate;
+    if (!pass || !setDate) return;
     if (!Number.isFinite(seconds) || seconds < 0) return;
     const prevDate = new window.DateTime(Time.date);
     const targetDate = new window.DateTime(prevDate).addSeconds(seconds);
@@ -276,8 +278,8 @@ export class TimeManager {
     let passResult: any;
     const useVanilla = prevDate.timeStamp >= TimeConstants.MIN_DATE.timeStamp && targetDate.timeStamp >= TimeConstants.MIN_DATE.timeStamp && targetDate.timeStamp <= TimeConstants.MAX_DATE.timeStamp;
     if (useVanilla) {
-      this.vanillaTime.setDate(prevDate);
-      passResult = this.vanillaTime.pass(seconds);
+      setDate(prevDate);
+      passResult = pass(seconds);
     }
     Time.setDate(targetDate);
     const currentDate = new window.DateTime(Time.date);

@@ -43,7 +43,7 @@ class CheatConsole {
     this.core = manager.core;
   }
 
-  executeJS(code: string): JSExecutionResult {
+  executeJS(code: string = ''): JSExecutionResult {
     $(this.jsStatus).empty().removeClass('success error visible');
     if (typeof code !== 'string' || code.trim() === '') {
       const error = lanSwitch('Please enter valid JavaScript code.', '请输入有效的 JavaScript 代码。');
@@ -79,7 +79,7 @@ class CheatConsole {
     }
   }
 
-  executeTwine(code: string): TwineExecutionResult {
+  executeTwine(code: string = ''): TwineExecutionResult {
     $(this.twineStatus).empty().removeClass('success error visible');
     if (typeof code !== 'string' || code.trim() === '') {
       const error = lanSwitch('Please enter valid Twine code.', '请输入有效的 Twine 代码。');

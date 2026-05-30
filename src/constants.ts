@@ -2,7 +2,7 @@
 
 export type LanguageCode = (typeof Languages)[number];
 
-export const version = window.modUtils.getMod('maplebirch').version;
+export const version = window.modUtils.getMod('maplebirch')!.version;
 export const Languages = ['EN', 'CN'] as const;
 
 // prettier-ignore

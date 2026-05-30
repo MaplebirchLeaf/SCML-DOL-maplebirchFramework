@@ -148,17 +148,17 @@ export const NamedNPC = (core => {
     skincolour: number;
     init: number;
     intro: number;
-    penis: string;
-    penissize: number;
-    penisdesc: string;
-    vagina: string;
-    breastsize: number;
-    breastdesc: string;
-    breastsdesc: string;
-    bottomdesc: string;
-    ballsdesc: string;
-    ballssize: number;
-    outfits: string[];
+    penis!: string;
+    penissize!: number;
+    penisdesc!: string;
+    vagina!: string;
+    breastsize!: number;
+    breastdesc!: string;
+    breastsdesc!: string;
+    bottomdesc!: string;
+    ballsdesc!: string;
+    ballssize!: number;
+    outfits!: string[];
     pregnancy: any;
     pregnancyAvoidance?: number;
     descCache: Record<string, any> = {};
@@ -534,7 +534,7 @@ export const NamedNPC = (core => {
       if (!npc?.nam || npc instanceof NamedNPC) return;
       const newNpc = new NamedNPC(manager, npc);
       Object.keys(npc).forEach(key => {
-        if (key !== 'nam' && !Object.prototype.hasOwnProperty.call(newNpc, key)) newNpc[key] = npc[key];
+        if (key !== 'nam' && !Object.prototype.hasOwnProperty.call(newNpc, key)) (newNpc as Record<string, any>)[key] = (npc as Record<string, any>)[key];
       });
       V.NPCName[i] = newNpc;
     });

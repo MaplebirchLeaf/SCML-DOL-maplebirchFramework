@@ -12,8 +12,9 @@ function patchTime(): void {
   const time = window.addonDoLTimeWrapperAddon.timeProxyManager.originTime as any;
 
   const date = (): DateTime => {
-    V.startDate ??= new window.DateTime(2022, 9, 4, 7).timeStamp;
-    const absoluteTimestamp = V.startDate + (V.timeStamp || 0);
+    const startDate = V.startDate ?? (V.startDate = new window.DateTime(2022, 9, 4, 7).timeStamp);
+    const absoluteTimestamp = startDate + (V.timeStamp || 0);
+
     if (!cachedDate || cachedAbsoluteTimestamp !== absoluteTimestamp) {
       cachedDate = new window.DateTime(absoluteTimestamp);
       cachedAbsoluteTimestamp = absoluteTimestamp;
@@ -23,20 +24,21 @@ function patchTime(): void {
   };
 
   const set = (value: number | DateTime = V.timeStamp || 0): void => {
-    V.startDate ??= new window.DateTime(2022, 9, 4, 7).timeStamp;
+    const startDate = V.startDate ?? (V.startDate = new window.DateTime(2022, 9, 4, 7).timeStamp);
 
     if (value && typeof value === 'object' && typeof (value as any).timeStamp === 'number') {
       cachedDate = new window.DateTime(value);
       cachedAbsoluteTimestamp = cachedDate.timeStamp;
-      V.timeStamp = cachedAbsoluteTimestamp - V.startDate;
+      V.timeStamp = cachedAbsoluteTimestamp - startDate;
       return;
     }
 
     const elapsedTimestamp = Number(value);
     if (!Number.isFinite(elapsedTimestamp)) throw new Error(`Invalid timeStamp: ${value}`);
 
-    cachedAbsoluteTimestamp = V.startDate + elapsedTimestamp;
-    cachedDate = new window.DateTime(cachedAbsoluteTimestamp);
+    const absoluteTimestamp = startDate + elapsedTimestamp;
+    cachedAbsoluteTimestamp = absoluteTimestamp;
+    cachedDate = new window.DateTime(absoluteTimestamp);
     V.timeStamp = elapsedTimestamp;
   };
 
