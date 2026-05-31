@@ -125,45 +125,45 @@ export const NamedNPC = (core => {
   } as const;
 
   class NamedNPC {
-    nam: string;
-    gender: 'm' | 'f' | 'h' | 'n' | 'none';
-    title: string;
-    description: string;
-    type: string;
-    adult: number;
-    teen: number;
-    age: number;
-    insecurity: string;
-    chastity: { penis: string; vagina: string; anus: string };
-    virginity: Record<string, boolean>;
-    hair_side_type: string;
-    hair_fringe_type: string;
-    hair_position: string;
-    hairlength: number;
-    eyeColour: string;
-    hairColour: string;
-    pronoun: PronounCode;
-    pronouns: Record<string, string> = {};
-    bottomsize: number;
-    skincolour: number;
-    init: number;
-    intro: number;
-    penis!: string;
-    penissize!: number;
-    penisdesc!: string;
-    vagina!: string;
-    breastsize!: number;
-    breastdesc!: string;
-    breastsdesc!: string;
-    bottomdesc!: string;
-    ballsdesc!: string;
-    ballssize!: number;
-    outfits!: string[];
-    pregnancy: any;
-    pregnancyAvoidance?: number;
-    descCache: Record<string, any> = {};
+    public nam: string;
+    public gender: 'm' | 'f' | 'h' | 'n' | 'none';
+    public title: string;
+    public description: string;
+    public type: string;
+    public adult: number;
+    public teen: number;
+    public age: number;
+    public insecurity: string;
+    public chastity: { penis: string; vagina: string; anus: string };
+    public virginity: Record<string, boolean>;
+    public hair_side_type: string;
+    public hair_fringe_type: string;
+    public hair_position: string;
+    public hairlength: number;
+    public eyeColour: string;
+    public hairColour: string;
+    public pronoun: PronounCode;
+    public pronouns: Record<string, string> = {};
+    public bottomsize: number;
+    public skincolour: number;
+    public init: number;
+    public intro: number;
+    public penis!: string;
+    public penissize!: number;
+    public penisdesc!: string;
+    public vagina!: string;
+    public breastsize!: number;
+    public breastdesc!: string;
+    public breastsdesc!: string;
+    public bottomdesc!: string;
+    public ballsdesc!: string;
+    public ballssize!: number;
+    public outfits!: string[];
+    public pregnancy: any;
+    public pregnancyAvoidance?: number;
+    public descCache: Record<string, any> = {};
 
-    constructor(manager: NPCManager, data: NPCData) {
+    public constructor(manager: NPCManager, data: NPCData) {
       if (!data.nam) manager.log('NamedNPC必须存在nam', 'ERROR');
       this.nam = data.nam;
       this.gender = data.gender ?? either(['m', 'f', 'h', 'n'] as const, { weights: [0.47, 0.47, 0.05, 0.01] });
@@ -199,7 +199,7 @@ export const NamedNPC = (core => {
       this.intro = data.intro ?? 0;
     }
 
-    setPronouns() {
+    public setPronouns() {
       const lang: LanguageCode = maplebirch.Language === 'CN' ? 'CN' : 'EN';
       const pronoun = (this.pronoun in pronounsMap ? this.pronoun : 'n') as PronounCode;
       const base = pronounsMap[pronoun][lang];
@@ -207,7 +207,7 @@ export const NamedNPC = (core => {
       this.pronouns = useI18N ? { ...base, his: base.he, hers: base.he } : { ...base };
     }
 
-    setBodyTraits(data: NPCData) {
+    public setBodyTraits(data: NPCData) {
       switch (this.gender) {
         case 'm':
           this.penis = data.penis ?? 'clothed';
@@ -266,7 +266,7 @@ export const NamedNPC = (core => {
       if (!this.outfits.includes(defaultOutfit)) this.outfits.push(defaultOutfit);
     }
 
-    applyVanillaPregnancySystem(manager: NPCManager) {
+    public applyVanillaPregnancySystem(manager: NPCManager) {
       if (this.pregnancy == null) this.pregnancy = {};
       let pregnancyData = this.pregnancy;
       let initialized = false;
@@ -322,7 +322,7 @@ export const NamedNPC = (core => {
       }
     }
 
-    bodyPartdescription() {
+    public bodyPartdescription() {
       const cache = (this.descCache ??= {});
       const lang: LanguageCode = maplebirch.Language === 'CN' ? 'CN' : 'EN';
       const bottomSuffixMap = {
@@ -563,28 +563,28 @@ export const NamedNPC = (core => {
 })(maplebirch);
 
 class NPCManager {
-  readonly log: ReturnType<typeof createlog>;
-  readonly data: Map<string, any> = new Map();
-  NPCNameList: string[] = [];
+  public readonly log: ReturnType<typeof createlog>;
+  public readonly data: Map<string, any> = new Map();
+  public NPCNameList: string[] = [];
 
   // prettier-ignore
-  readonly pregnancy: { [x: string]: Array<string> } = {
+  public readonly pregnancy: { [x: string]: Array<string> } = {
     infertile    : ['Bailey', 'Leighton'],
     typesEnabled : ['human', 'wolf', 'wolfboy', 'wolfgirl', 'hawk', 'harpy'],
     canBePregnant: ['Alex', 'Black Wolf', 'Great Hawk']
   };
 
   // prettier-ignore
-  readonly type: { [x: string]: Array<string> } = {
+  public readonly type: { [x: string]: Array<string> } = {
     loveInterestNpcs: [],
     importantNPCs   : [],
     specialNPCs     : []
   };
 
-  readonly customStats: { [x: string]: any } = {};
+  public readonly customStats: { [x: string]: any } = {};
 
   // prettier-ignore
-  readonly romanceConditions: { [key: string]: (() => boolean)[] } = {
+  public readonly romanceConditions: { [key: string]: (() => boolean)[] } = {
     Robin       : [() => V.robinromance === 1],
     Whitney     : [() => V.whitneyromance === 1, () => C.npc.Whitney.state !== 'dungeon'],
     Kylar       : [() => V.kylarenglish >= 1, () => C.npc.Kylar.state !== 'prison'],
@@ -597,12 +597,12 @@ class NPCManager {
     Gwylan      : [() => V.gwylanSeen.includes('partners') || V.gwylanSeen.includes('romance')]
   };
 
-  readonly NamedNPC: typeof NamedNPC = NamedNPC;
-  readonly Schedule: typeof NPCSchedules = NPCSchedules;
-  readonly Clothes: typeof NPCClothes = NPCClothes;
-  readonly Sidebar: typeof NPCSidebar = NPCSidebar;
+  public readonly NamedNPC: typeof NamedNPC = NamedNPC;
+  public readonly Schedule: typeof NPCSchedules = NPCSchedules;
+  public readonly Clothes: typeof NPCClothes = NPCClothes;
+  public readonly Sidebar: typeof NPCSidebar = NPCSidebar;
 
-  constructor(readonly core: MaplebirchCore) {
+  public constructor(readonly core: MaplebirchCore) {
     this.log = createlog('npc');
     this.core.on(
       ':language',
@@ -737,9 +737,6 @@ class NPCManager {
   }
 }
 
-(function (maplebirch): void {
-  'use strict';
-  maplebirch.register('npc', Object.seal(new NPCManager(maplebirch)), ['char']);
-})(maplebirch);
+maplebirch.register('npc', Object.seal(new NPCManager(maplebirch)), ['char']);
 
 export default NPCManager;

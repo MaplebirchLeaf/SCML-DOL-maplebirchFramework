@@ -100,14 +100,16 @@ Load wardrobe data:
 }
 ```
 
+The built-in wardrobe is bundled with the framework and loaded automatically. Extra wardrobe files loaded by code must pass both the mod name and the file path.
+
 Register outfits for locations:
 
 ```javascript
-await maplebirch.npc.Clothes.load('myMod', 'data/npc/wardrobe.yaml');
+await maplebirch.npc.Clothes.loadWardrobe('myMod', 'data/npc/wardrobe.yaml');
 
-maplebirch.npc.Clothes.register('Luna', 'school', 'school_uniform');
-maplebirch.npc.Clothes.register('Luna', 'cafe', 'casual_outfit', () => Time.hour >= 18 || Time.hour <= 8);
-maplebirch.npc.Clothes.register('Luna', '*', 'casual_outfit');
+maplebirch.npc.Clothes.wear('Luna', 'school', 'school_uniform');
+maplebirch.npc.Clothes.wear('Luna', 'cafe', 'casual_outfit', () => Time.hour >= 18 || Time.hour <= 8);
+maplebirch.npc.Clothes.wear('Luna', '*', 'casual_outfit');
 
 const outfit = maplebirch.npc.Clothes.worn('Luna');
 ```

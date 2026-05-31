@@ -11,16 +11,16 @@ export const PlayMode = {
 export type PlayModeType = (typeof PlayMode)[keyof typeof PlayMode];
 
 class Playlist {
-  tracks: Track[] = [];
-  currentIndex = -1;
-  playMode: PlayModeType = PlayMode.LOOP_ALL;
+  public tracks: Track[] = [];
+  public currentIndex = -1;
+  public playMode: PlayModeType = PlayMode.LOOP_ALL;
 
   private shuffleOrder: number[] = [];
   private shuffleIndex = -1;
 
-  constructor(readonly name: string) {}
+  public constructor(readonly name: string) {}
 
-  add(input: Track | Track[]): void {
+  public add(input: Track | Track[]): void {
     const tracks = Array.isArray(input) ? input : [input];
     for (const track of tracks) {
       const index = this.tracks.findIndex(item => item.modName === track.modName && item.audioName === track.audioName);
@@ -33,7 +33,7 @@ class Playlist {
     this.resetShuffle();
   }
 
-  removeAt(index: number): boolean {
+  public removeAt(index: number): boolean {
     if (index < 0 || index >= this.tracks.length) return false;
     this.tracks.splice(index, 1);
     if (index < this.currentIndex) {
@@ -46,31 +46,31 @@ class Playlist {
     return true;
   }
 
-  remove(audioName: string): boolean {
+  public remove(audioName: string): boolean {
     const index = this.tracks.findIndex(track => track.audioName === audioName);
     return this.removeAt(index);
   }
 
-  clear(): void {
+  public clear(): void {
     this.tracks = [];
     this.currentIndex = -1;
     this.shuffleOrder = [];
     this.shuffleIndex = -1;
   }
 
-  setMode(mode: PlayModeType): void {
+  public setMode(mode: PlayModeType): void {
     this.playMode = mode;
     if (mode === PlayMode.SHUFFLE) this.shuffle();
   }
 
-  select(index: number): Track | null {
+  public select(index: number): Track | null {
     if (index < 0 || index >= this.tracks.length) return null;
     this.currentIndex = index;
     if (this.playMode === PlayMode.SHUFFLE) this.shuffleIndex = this.shuffleOrder.indexOf(index);
     return this.tracks[index] || null;
   }
 
-  next(): Track | null {
+  public next(): Track | null {
     if (this.tracks.length === 0) return null;
     if (this.playMode === PlayMode.LOOP_ONE) {
       if (this.currentIndex < 0) this.currentIndex = 0;
@@ -99,7 +99,7 @@ class Playlist {
     return this.tracks[this.currentIndex] || null;
   }
 
-  previous(): Track | null {
+  public previous(): Track | null {
     if (this.tracks.length === 0) return null;
     if (this.playMode === PlayMode.LOOP_ONE) {
       if (this.currentIndex < 0) this.currentIndex = 0;
@@ -123,7 +123,7 @@ class Playlist {
     return this.tracks[this.currentIndex] || null;
   }
 
-  get length(): number {
+  public get length(): number {
     return this.tracks.length;
   }
 

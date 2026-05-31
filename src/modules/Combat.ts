@@ -5,11 +5,11 @@ import type { MacroContext } from '../SugarCubeMacros';
 import CombatAction, { type ActionType, type CombatType, type OptionsTable } from './CombatAddon/CombatAction';
 
 class CombatManager {
-  readonly log: ReturnType<typeof createlog>;
-  readonly CombatAction: typeof CombatAction = CombatAction;
+  public readonly log: ReturnType<typeof createlog>;
+  public readonly CombatAction: typeof CombatAction = CombatAction;
   private readonly _: typeof maplebirch.lodash;
 
-  constructor(readonly core: MaplebirchCore) {
+  public constructor(readonly core: MaplebirchCore) {
     this.log = createlog('combat');
     this._ = core.lodash;
 
@@ -111,14 +111,11 @@ class CombatManager {
     return '';
   }
 
-  Init() {
+  public Init() {
     combatListColor = this._combatListColor.bind(this);
   }
 }
 
-(function (maplebirch): void {
-  'use strict';
-  maplebirch.register('combat', Object.seal(new CombatManager(maplebirch)), ['npc']);
-})(maplebirch);
+maplebirch.register('combat', Object.seal(new CombatManager(maplebirch)), ['npc']);
 
 export default CombatManager;

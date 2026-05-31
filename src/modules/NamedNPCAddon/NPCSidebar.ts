@@ -422,13 +422,13 @@ const layers = {
 
 const NPCSidebar = (() => {
   class NPCSidebar {
-    static get display() {
+    public static get display() {
       return display;
     }
 
-    static loadFromMod = loadFromMod;
+    public static loadFromMod = loadFromMod;
 
-    static hair_type(type: 'sides' | 'fringe') {
+    public static hair_type(type: 'sides' | 'fringe') {
       const hair_name: Record<string, string> = {};
       const styles = type === 'sides' ? setup.hairstyles.sides : setup.hairstyles.fringe;
       styles.forEach((style: any) => {
@@ -438,7 +438,7 @@ const NPCSidebar = (() => {
       return hair_name;
     }
 
-    static init(manager: NPCManager) {
+    public static init(manager: NPCManager) {
       manager.core.once(':storyready', () => {
         for (const npcName of manager.NPCNameList) {
           if (!display.has(npcName)) display.set(npcName, new Set());

@@ -16,12 +16,12 @@ export interface AntiqueConfig {
 export const antiquesData: Record<string, AntiqueConfig> = {};
 
 class Antiques {
-  static add(key: string, config: AntiqueConfig): void {
+  public static add(key: string, config: AntiqueConfig): void {
     if (!key || !config) return;
     antiquesData[key] = clone(config);
   }
 
-  static inject(data: Record<string, AntiqueConfig>): Record<string, AntiqueConfig> {
+  public static inject(data: Record<string, AntiqueConfig>): Record<string, AntiqueConfig> {
     if (!data) return data;
     for (const [key, config] of Object.entries(antiquesData)) {
       data[key] = clone(config);

@@ -6,12 +6,12 @@ interface TrackMeta {
 }
 
 class Track {
-  title: string;
-  artist: string;
-  duration = 0;
-  format: AudioFormat = 'mp3';
+  public title: string;
+  public artist: string;
+  public duration = 0;
+  public format: AudioFormat = 'mp3';
 
-  constructor(
+  public constructor(
     readonly audioName: string,
     readonly modName: string,
     meta: TrackMeta = {}

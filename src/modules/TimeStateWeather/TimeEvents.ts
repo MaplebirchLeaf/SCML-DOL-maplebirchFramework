@@ -87,9 +87,9 @@ class TimeEvent {
   private accumulate?: AccumulateConfig;
   private accumulated = 0;
   private target = 1;
-  readonly priority: number;
+  public readonly priority: number;
 
-  constructor(
+  public constructor(
     readonly id: string,
     readonly type: TimeEventType,
     options: TimeEventOptions = {}
@@ -103,7 +103,7 @@ class TimeEvent {
     if (this.accumulate) this.target = Math.max(1, Math.floor(this.accumulate.target || 1));
   }
 
-  tryRun(data: TimeData): boolean {
+  public tryRun(data: TimeData): boolean {
     if (this.exact && !this.isExactPoint(data)) return false;
     if (this.accumulate) return this.runAccumulated(data);
     return this.execute(data);
@@ -185,9 +185,9 @@ export class TimeManager {
   private doLPassHookInstalled = false;
   private passSnapshots: PassSnapshot[] = [];
 
-  readonly log: (message: string, level?: string, ...objects: any[]) => void;
+  public readonly log: (message: string, level?: string, ...objects: any[]) => void;
 
-  constructor(private readonly manager: DynamicManager) {
+  public constructor(private readonly manager: DynamicManager) {
     this.log = manager.log;
     for (const type of this.eventTypes) {
       this.timeEvents[type] = new Map();
@@ -195,7 +195,7 @@ export class TimeManager {
     }
   }
 
-  init(): void {
+  public init(): void {
     try {
       patchDateTime();
       patchTime();
@@ -208,7 +208,7 @@ export class TimeManager {
     }
   }
 
-  register(type: string, eventId: string, options: TimeEventOptions): boolean {
+  public register(type: string, eventId: string, options: TimeEventOptions): boolean {
     if (!this.timeEvents[type]) {
       this.log(`未知的时间事件类型: ${type}`, 'ERROR');
       return false;
@@ -223,7 +223,7 @@ export class TimeManager {
     return true;
   }
 
-  unregister(type: string, eventId: string): boolean {
+  public unregister(type: string, eventId: string): boolean {
     if (!this.timeEvents[type]) {
       this.log(`事件类型不存在: ${type}`, 'WARN');
       return false;
@@ -238,7 +238,7 @@ export class TimeManager {
     return false;
   }
 
-  timeTravel(options: TimeTravelOptions = {}): boolean {
+  public timeTravel(options: TimeTravelOptions = {}): boolean {
     try {
       this.handleTimeTravel(this.targetDate(options));
       return true;
@@ -248,7 +248,7 @@ export class TimeManager {
     }
   }
 
-  updateTimeLanguage(choice?: 'JournalTime'): string | boolean {
+  public updateTimeLanguage(choice?: 'JournalTime'): string | boolean {
     if (choice !== 'JournalTime') return false;
     const date = new window.DateTime(Time.date);
     const year = Math.abs(date.year);

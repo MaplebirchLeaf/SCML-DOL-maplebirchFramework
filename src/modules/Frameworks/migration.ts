@@ -24,20 +24,20 @@ interface Utils {
 }
 
 class migration {
-  static readonly log = createlog('migration');
+  public static readonly log = createlog('migration');
 
-  static create(): migration {
+  public static create(): migration {
     return new migration();
   }
 
-  readonly log = migration.log;
-  readonly utils: Utils;
+  public readonly log = migration.log;
+  public readonly utils: Utils;
 
-  steps: Step[] = [];
+  public steps: Step[] = [];
 
   private readonly unsafeKeys = new Set(['__proto__', 'prototype', 'constructor']);
 
-  constructor() {
+  public constructor() {
     this.utils = Object.freeze({
       log: this.log,
       path: (obj: Record<string, any>, path: string, create = false) => this.path(obj, path, create),
@@ -74,7 +74,7 @@ class migration {
     });
   }
 
-  add(from: string, to: string, apply: Step['apply']): void {
+  public add(from: string, to: string, apply: Step['apply']): void {
     if (typeof apply !== 'function') return;
     if (this.compare(from, to) >= 0) {
       this.log(`无效迁移版本: ${from} -> ${to}`, 'WARN');
@@ -87,7 +87,7 @@ class migration {
     this.steps.push({ from, to, apply });
   }
 
-  run(data: Record<string, any>, targetVersion: string): void {
+  public run(data: Record<string, any>, targetVersion: string): void {
     if (!data || typeof data !== 'object') {
       this.log('迁移数据无效', 'WARN');
       return;

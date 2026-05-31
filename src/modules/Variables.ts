@@ -47,7 +47,7 @@ class Variables {
   private static readonly OPTIONS_STORAGE_KEY = 'maplebirchFrameworkOptions';
 
   // prettier-ignore
-  static get options() {
+  public static get options() {
 		return {
 			character: {
 				mask     : 0,
@@ -77,13 +77,13 @@ class Variables {
 		};
 	}
 
-  version: string;
-  readonly tool: MaplebirchCore['tool'];
-  readonly log: ReturnType<typeof createlog>;
-  readonly migration: migration;
-  hairgradients: () => HairGradientsReturn;
+  public version: string;
+  public readonly tool: MaplebirchCore['tool'];
+  public readonly log: ReturnType<typeof createlog>;
+  public readonly migration: migration;
+  public hairgradients: () => HairGradientsReturn;
 
-  constructor(readonly core: MaplebirchCore) {
+  public constructor(readonly core: MaplebirchCore) {
     this.version = version;
     this.tool = this.core.tool;
     this.log = createlog('var');
@@ -167,9 +167,6 @@ class Variables {
   }
 }
 
-(function (maplebirch): void {
-  'use strict';
-  maplebirch.register('var', Object.seal(new Variables(maplebirch)), ['tool']);
-})(maplebirch);
+maplebirch.register('var', Object.seal(new Variables(maplebirch)), ['tool']);
 
 export default Variables;

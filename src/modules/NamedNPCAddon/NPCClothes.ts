@@ -4,6 +4,7 @@ import type { ModZipReader } from '@scml/types/sugarcube-2-ModLoader/ModZipReade
 import maplebirch from '../../core';
 import { convert } from '../../utils';
 import type NPCManager from '../NamedNPC';
+import builtinWardrobe from '@/assets/npc-clothes.yaml';
 
 type Condition = boolean | string | (() => boolean) | Condition[];
 
@@ -99,7 +100,7 @@ function evaluate(cond?: Condition): boolean {
 class NPCOutfitSets {
   private sets: OutfitSet[] = [];
 
-  add(...configs: OutfitSetConfig[]) {
+  public add(...configs: OutfitSetConfig[]) {
     const clothesList = configs.filter(Boolean);
     if (!clothesList.length) return;
 
@@ -151,7 +152,7 @@ class NPCOutfitSets {
   }
 
   // prettier-ignore
-  init() {
+  public init() {
     try {
       this.add(
         {
@@ -172,7 +173,7 @@ class NPCOutfitSets {
     }
   }
 
-  get data() {
+  public get data() {
     setup.npcClothesSets ??= [];
     return setup.npcClothesSets;
   }
@@ -181,7 +182,7 @@ class NPCOutfitSets {
 class NPCSidebarArt {
   private configs: ArtConfig[] = [];
 
-  async import(modName: string, modZip: ModZipReader, filePaths: string | string[]) {
+  public async import(modName: string, modZip: ModZipReader, filePaths: string | string[]) {
     if (!modZip) {
       maplebirch.npc.log('无效的模组压缩包', 'ERROR');
       return [];
@@ -249,7 +250,7 @@ class NPCSidebarArt {
     return imagePaths;
   }
 
-  get layers() {
+  public get layers() {
     const result = new Map<string, any>();
 
     this.configs.forEach(config => {
@@ -276,14 +277,14 @@ class NPCSidebarArt {
 }
 
 class NPCSidebarWardrobeProfile {
-  constructor(
+  public constructor(
     public name: string,
     public outfits: string[] = ['naked'],
     private location: Record<string, WearRule[]> = {},
     private global: WearRule[] = []
   ) {}
 
-  wear(location: string, key: string, cond?: Condition) {
+  public wear(location: string, key: string, cond?: Condition) {
     if (!NPCSidebarWardrobe.wardrobe[key]) {
       maplebirch.npc.log(`侧边栏服装配置 ${key} 不存在`, 'WARN');
       return this;
@@ -294,7 +295,7 @@ class NPCSidebarWardrobeProfile {
     return this;
   }
 
-  get worn(): WardrobeItem {
+  public get worn(): WardrobeItem {
     const loc = maplebirch.npc.Schedule.location[this.name];
     const find = (list?: WearRule[]) => list?.find(item => evaluate(item.cond))?.key;
     const key = find(this.location[loc]) ?? find(this.global) ?? 'naked';
@@ -303,10 +304,10 @@ class NPCSidebarWardrobeProfile {
 }
 
 class NPCSidebarWardrobe {
-  static wardrobe: Record<string, WardrobeItem> = {};
-  static profiles: Record<string, NPCSidebarWardrobeProfile> = {};
+  public static wardrobe: Record<string, WardrobeItem> = {};
+  public static profiles: Record<string, NPCSidebarWardrobeProfile> = {};
 
-  static async load(modName = 'maplebirch', filePath = 'npc-clothes.yaml') {
+  public static async load(modName: string, filePath: string) {
     try {
       const modZip = maplebirch.modUtils.getModZip(modName);
       if (!modZip) throw new Error(`未找到模组: ${modName}`);
@@ -329,28 +330,30 @@ class NPCSidebarWardrobe {
     }
   }
 
-  static mergeWithNaked(selected: WardrobeItem = {}) {
+  public static mergeWithNaked(selected: WardrobeItem = {}) {
     const base = this.wardrobe.naked ?? {};
     const result: WardrobeItem = { ...base };
     Object.keys(selected).forEach(part => (result[part] = selected[part] ?? base[part]));
     return result;
   }
 
-  static async init(manager: NPCManager) {
+  public static async init(manager: NPCManager) {
     try {
-      await this.load();
+      const data = maplebirch.yaml.load(builtinWardrobe);
+      if (!data || typeof data !== 'object') throw new Error('无法解析内置衣柜配置');
+      Object.assign(this.wardrobe, data);
       manager.NPCNameList.forEach(name => (this.profiles[name] ??= new NPCSidebarWardrobeProfile(name)));
     } catch (e: any) {
       maplebirch.npc.log(`NPCSidebarWardrobe 初始化失败: ${e.message}`, 'ERROR');
     }
   }
 
-  static wear(npcName: string, location: string, key: string, cond?: Condition) {
+  public static wear(npcName: string, location: string, key: string, cond?: Condition) {
     const profile = (this.profiles[npcName] ??= new NPCSidebarWardrobeProfile(npcName, ['naked', key]));
     return profile.wear(location, key, cond);
   }
 
-  static worn(npcName: string) {
+  public static worn(npcName: string) {
     const profile = this.profiles[npcName];
     if (!profile) {
       maplebirch.npc.log(`没有对应 NPC 侧边栏衣柜数据: ${npcName}`, 'WARN');
@@ -379,7 +382,7 @@ const NPCClothes = ((core: typeof maplebirch) => {
 
     addOutfitSet : (...configs: OutfitSetConfig[]) => outfitSets.add(...configs),
     importArt    : (modName: string, modZip: ModZipReader, filePaths: string | string[]) => sidebarArt.import(modName, modZip, filePaths),
-    loadWardrobe : (modName?: string, filePath?: string) => NPCSidebarWardrobe.load(modName, filePath),
+    loadWardrobe : (modName: string, filePath: string) => NPCSidebarWardrobe.load(modName, filePath),
     wear         : (npcName: string, location: string, key: string, cond?: Condition) => NPCSidebarWardrobe.wear(npcName, location, key, cond),
     worn         : (npcName: string) => NPCSidebarWardrobe.worn(npcName),
 

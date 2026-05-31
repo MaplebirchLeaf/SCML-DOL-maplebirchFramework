@@ -1,11 +1,9 @@
 // ./src/services/LanguageManager.ts
 
-import { Languages, type LanguageCode } from './../constants';
+import { Languages, Translations, type LanguageCode } from './../constants';
 import type { MaplebirchCore } from '../core';
 
 export type Translation = Record<string, string>;
-
-type Bucket = 'translation' | 'file';
 
 interface TranslationRecord {
   bucket: 'translation';
@@ -36,8 +34,8 @@ interface ImportProgress {
 }
 
 class LanguageManager {
-  static readonly DEFAULT_LANGS = Languages as readonly LanguageCode[];
-  static readonly BATCH_SIZE = 500;
+  public static readonly DEFAULT_LANGS = Languages as readonly LanguageCode[];
+  public static readonly BATCH_SIZE = 500;
 
   public language: LanguageCode = navigator.language.includes('zh') ? 'CN' : 'EN';
 
@@ -48,7 +46,7 @@ class LanguageManager {
   private fileHashes = new Map<string, Map<LanguageCode, string>>();
   private preloaded = false;
 
-  constructor(readonly core: MaplebirchCore) {
+  public constructor(readonly core: MaplebirchCore) {
     this.core.once(':indexedDB', () => this.initDB());
     this.core.once(':idbReady', async () => await this.setLanguage());
   }
@@ -175,6 +173,7 @@ class LanguageManager {
 
   public async preload(): Promise<void> {
     if (this.preloaded) return;
+    await this.loadBundledTranslations();
     try {
       const records = await this.core.idb.withTransaction([this.STORE], 'readonly', async (tx: any) => await tx.objectStore(this.STORE).index('bucket').getAll('translation'));
       for (const record of records as TranslationRecord[]) this.translations.set(record.translationKey, record.translations);
@@ -182,6 +181,16 @@ class LanguageManager {
       this.core.logger.log(`预加载完成: ${records.length} 条`, 'INFO');
     } catch (error: any) {
       this.core.logger.log(`预加载失败: ${error.message}`, 'ERROR');
+    }
+  }
+
+  private async loadBundledTranslations(): Promise<void> {
+    for (const language of LanguageManager.DEFAULT_LANGS) {
+      const content = Translations[language];
+      if (!content) continue;
+      const path = `translations/${language.toLowerCase()}.yaml`;
+      const translations = this.parseTranslations(content, path);
+      for await (const progress of this.writeTranslations('maplebirch', language, translations)) if (progress.progress >= 100) continue;
     }
   }
 

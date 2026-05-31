@@ -1,9 +1,9 @@
 // ./src/replace.ts
 import { widgets } from './utils';
-import TransformationMirror from '@/twee/TransformationMirror.twee?raw';
-import NPCHairStyleOptions from '@/twee/NPCHairStyleOptions.twee?raw';
-import Options from '@/twee/Options.twee?raw';
-import Cheats from '@/twee/Cheats.twee?raw';
+import TransformationMirror from '@/twee/TransformationMirror.twee';
+import NPCHairStyleOptions from '@/twee/NPCHairStyleOptions.twee';
+import Options from '@/twee/Options.twee';
+import Cheats from '@/twee/Cheats.twee';
 
 const specialWidget = widgets(TransformationMirror, NPCHairStyleOptions);
 

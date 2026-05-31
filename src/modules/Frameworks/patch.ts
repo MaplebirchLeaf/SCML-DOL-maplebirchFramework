@@ -18,11 +18,11 @@ type AddAntiques = (key: string, config: AntiqueConfig) => void;
 type InjectAntiques = (data: Record<string, AntiqueConfig>) => Record<string, AntiqueConfig>;
 
 class Patch {
-  readonly traitsData: TraitConfig[] = traitsData;
-  readonly locationData: Record<string, LocationUpdate> = locationData;
-  readonly bodywritingData: Record<string, BodywritingData> = bodywritingData;
-  readonly foodstuffData: Record<string, FoodstuffConfig> = foodstuffData;
-  readonly antiquesData: Record<string, AntiqueConfig> = antiquesData;
+  public readonly traitsData: TraitConfig[] = traitsData;
+  public readonly locationData: Record<string, LocationUpdate> = locationData;
+  public readonly bodywritingData: Record<string, BodywritingData> = bodywritingData;
+  public readonly foodstuffData: Record<string, FoodstuffConfig> = foodstuffData;
+  public readonly antiquesData: Record<string, AntiqueConfig> = antiquesData;
 
   public addTraits: AddTraits = Traits.add.bind(Traits);
   public injectTraits: InjectTraits = Traits.inject.bind(Traits);

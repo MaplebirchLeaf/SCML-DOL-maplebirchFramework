@@ -2,7 +2,7 @@
 
 import type { ModSubUiAngularJsService } from '@scml/types/Mod_LoaderGui/ModSubUiAngularJsService';
 import maplebirch, { type MaplebirchCore } from '../core';
-import Gui from '@/twee/Gui.twee?raw';
+import Gui from '@/twee/Gui.twee';
 import { widgets, convert } from '../utils';
 import { Config } from './../constants';
 
@@ -41,13 +41,13 @@ interface SettingRecord<T = any> {
 }
 
 class GUIControl {
-  enabledModules: ModuleInfo[] = [];
-  disabledModules: ModuleInfo[] = [];
-  enabledScripts: string[] = [];
-  disabledScripts: string[] = [];
+  public enabledModules: ModuleInfo[] = [];
+  public disabledModules: ModuleInfo[] = [];
+  public enabledScripts: string[] = [];
+  public disabledScripts: string[] = [];
   private modSubUiAngularJsService: ModSubUiAngularJsService;
 
-  constructor(readonly core: MaplebirchCore) {
+  public constructor(readonly core: MaplebirchCore) {
     this.modSubUiAngularJsService = core.manager.modLoaderGui.getModSubUiAngularJsService();
     this.core.once(':indexedDB', () => this.core.idb.register('settings', { keyPath: 'key' }));
     this.core.once(':idbReady', async () => await this.initSettings());
@@ -207,7 +207,7 @@ class GUIControl {
     return Array.from(result);
   }
 
-  get moduleList(): string {
+  public get moduleList(): string {
     const addon = this.core.get('addon');
     const result: string[] = [];
     Object.entries(this.core.dependencyGraph).forEach(([name, info]: [string, any]) => {

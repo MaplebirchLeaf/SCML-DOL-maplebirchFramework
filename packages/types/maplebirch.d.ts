@@ -1259,7 +1259,7 @@ declare const NPCClothes: {
     init: (manager: NPCManager) => Promise<void>;
     addOutfitSet: (...configs: OutfitSetConfig[]) => void;
     importArt: (modName: string, modZip: ModZipReader, filePaths: string | string[]) => Promise<string[]>;
-    loadWardrobe: (modName?: string, filePath?: string) => Promise<void>;
+    loadWardrobe: (modName: string, filePath: string) => Promise<void>;
     wear: (npcName: string, location: string, key: string, cond?: Condition) => NPCSidebarWardrobeProfile;
     worn: (npcName: string) => WardrobeItem;
     readonly outfitSets: any;

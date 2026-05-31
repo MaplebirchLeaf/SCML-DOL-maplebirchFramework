@@ -37,7 +37,7 @@ function value<T>(input: T | (() => T) | undefined, fallback: T): T {
 export const traitsData: TraitConfig[] = [];
 
 class Traits {
-  static add(...traits: Partial<TraitConfig>[]): void {
+  public static add(...traits: Partial<TraitConfig>[]): void {
     for (const trait of traits) {
       if (!trait?.title || !trait.name) continue;
       const title = maplebirch.auto(trait.title);
@@ -63,7 +63,7 @@ class Traits {
     }
   }
 
-  static inject(data: TraitCategory[]): TraitCategory[] {
+  public static inject(data: TraitCategory[]): TraitCategory[] {
     const result = clone(data);
     const titleMap: Record<string, number> = {};
     result.forEach((category: TraitCategory, index: number) => {

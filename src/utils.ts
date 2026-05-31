@@ -194,9 +194,9 @@ class SelectCase {
   private valueType: string | null = null;
   private allowMixedTypes = false;
 
-  case(cond: string | number, result: any): this;
-  case(cond: (input: any, meta?: any) => boolean, result: any): this;
-  case(cond: any, result: any): this {
+  public case(cond: string | number, result: any): this;
+  public case(cond: (input: any, meta?: any) => boolean, result: any): this;
+  public case(cond: any, result: any): this {
     if (typeof cond === 'function') {
       this.allowMixedTypes = true;
       this.cases.push({ type: 'predicate', condition: cond, result });
@@ -207,21 +207,21 @@ class SelectCase {
     return this;
   }
 
-  casePredicate(fn: (input: any, meta?: any) => boolean, result: any): this {
+  public casePredicate(fn: (input: any, meta?: any) => boolean, result: any): this {
     if (typeof fn !== 'function') throw new TypeError('predicate must be a function');
     this.allowMixedTypes = true;
     this.cases.push({ type: 'predicate', condition: fn, result });
     return this;
   }
 
-  caseRange(min: number, max: number, result: any): this {
+  public caseRange(min: number, max: number, result: any): this {
     if (typeof min !== 'number' || typeof max !== 'number') throw new TypeError('range values must be numbers');
     this.validateType(min);
     this.cases.push({ type: 'range', condition: [min, max], result });
     return this;
   }
 
-  caseIn(values: any[], result: any): this {
+  public caseIn(values: any[], result: any): this {
     if (!Array.isArray(values)) throw new TypeError('set values must be an array');
     if (values.length === 0) return this;
     this.validateType(values[0]);
@@ -229,7 +229,7 @@ class SelectCase {
     return this;
   }
 
-  caseIncludes(subs: string | string[], result: any): this {
+  public caseIncludes(subs: string | string[], result: any): this {
     const values = Array.isArray(subs) ? subs : [subs];
     values.forEach((s: string) => {
       if (typeof s !== 'string') throw new TypeError('substrings must be strings');
@@ -239,14 +239,14 @@ class SelectCase {
     return this;
   }
 
-  caseRegex(regex: RegExp, result: any): this {
+  public caseRegex(regex: RegExp, result: any): this {
     if (!(regex instanceof RegExp)) throw new TypeError('condition must be a RegExp');
     this.validateType('string');
     this.cases.push({ type: 'regex', condition: regex, result });
     return this;
   }
 
-  caseCompare(op: '<' | '<=' | '>' | '>=', val: number, result: any): this {
+  public caseCompare(op: '<' | '<=' | '>' | '>=', val: number, result: any): this {
     if (!['<', '<=', '>', '>='].includes(op)) throw new Error(`Invalid comparator: ${op}`);
     if (typeof val !== 'number') throw new TypeError('comparison value must be a number');
     this.validateType(val);
@@ -254,12 +254,12 @@ class SelectCase {
     return this;
   }
 
-  else(result: any): this {
+  public else(result: any): this {
     this.defaultResult = result;
     return this;
   }
 
-  match(input: any, meta: any = {}): any {
+  public match(input: any, meta: any = {}): any {
     for (const { type, condition, result } of this.cases) {
       let matched = false;
       switch (type) {

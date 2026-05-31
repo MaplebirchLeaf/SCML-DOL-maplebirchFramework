@@ -1,5 +1,8 @@
 // .src/constants.ts
 
+import builtinTranslationsCN from '@/assets/translations/CN.yaml';
+import builtinTranslationsEN from '@/assets/translations/EN.yaml';
+
 export type LanguageCode = (typeof Languages)[number];
 
 export const version = window.modUtils.getMod('maplebirch')!.version;
@@ -33,6 +36,11 @@ export const ModuleState: {[key: string|number]: string|number} = (() => {
   Object.entries(state).forEach(([key, value]) => state[value] = key);
   return state;
 })();
+
+export const Translations: Partial<Record<LanguageCode, string>> = {
+  CN: builtinTranslationsCN,
+  EN: builtinTranslationsEN
+};
 
 export const TimeConstants = (() => {
   const secondsPerDay = 86400;

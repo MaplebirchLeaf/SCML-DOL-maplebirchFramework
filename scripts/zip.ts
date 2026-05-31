@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { readdir, readFile } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { readPackageJSON } from 'pkg-types';
 import AdmZip from 'adm-zip';
 
@@ -44,7 +44,6 @@ export function devZipFileName(name: string, version: string): string {
 
 export async function createZip(rootDir: string): Promise<Buffer> {
   const distDir = path.join(rootDir, 'dist');
-  const publicDir = path.join(rootDir, 'public');
 
   const pkg = await readPackageJSON(rootDir);
   if (!pkg?.version) throw new Error('package.json 中缺少 version');
@@ -66,24 +65,6 @@ export async function createZip(rootDir: string): Promise<Buffer> {
   const readmePath = path.join(rootDir, 'README.md');
   zip.addFile('README.md', await readFile(readmePath));
   additionFiles.push('README.md');
-  const additionExt = new Set(['.yaml', '.yml', '.json']);
-  async function addPublic(dir: string, base = ''): Promise<void> {
-    const entries = (await readdir(dir, { withFileTypes: true })).sort((left, right) => left.name.localeCompare(right.name));
-    for (const e of entries) {
-      const full = path.join(dir, e.name);
-      const rel = path.join(base, e.name).replace(/\\/g, '/');
-      if (e.isDirectory()) {
-        await addPublic(full, rel);
-        continue;
-      }
-      const buf = await readFile(full);
-      if ([...additionExt].some(ext => rel.endsWith(ext))) additionFiles.push(rel);
-      zip.addFile(rel, buf);
-    }
-  }
-
-  await addPublic(publicDir);
-
   const boot = {
     name: pkg.name,
     nickName: scml.nickName,

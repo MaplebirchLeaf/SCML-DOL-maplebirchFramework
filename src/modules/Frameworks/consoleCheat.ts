@@ -38,12 +38,12 @@ class CheatConsole {
   private readonly twineStatus = '#twine-cheat-console-status';
   private readonly twineOutputs = ['#twine-cheat-console-output', '#your-output-container'];
 
-  constructor(readonly manager: ToolCollection) {
+  public constructor(readonly manager: ToolCollection) {
     this.log = createlog('console');
     this.core = manager.core;
   }
 
-  executeJS(code: string = ''): JSExecutionResult {
+  public executeJS(code: string = ''): JSExecutionResult {
     $(this.jsStatus).empty().removeClass('success error visible');
     if (typeof code !== 'string' || code.trim() === '') {
       const error = lanSwitch('Please enter valid JavaScript code.', '请输入有效的 JavaScript 代码。');
@@ -79,7 +79,7 @@ class CheatConsole {
     }
   }
 
-  executeTwine(code: string = ''): TwineExecutionResult {
+  public executeTwine(code: string = ''): TwineExecutionResult {
     $(this.twineStatus).empty().removeClass('success error visible');
     if (typeof code !== 'string' || code.trim() === '') {
       const error = lanSwitch('Please enter valid Twine code.', '请输入有效的 Twine 代码。');
@@ -146,7 +146,7 @@ class CheatConsole {
     }
   }
 
-  execute(type: 'javascript' | 'twine', code?: string): ExecutionResult {
+  public execute(type: 'javascript' | 'twine', code?: string): ExecutionResult {
     if (type === 'javascript') return this.executeJS(code) as ExecutionResult;
     if (type === 'twine') return this.executeTwine(code) as ExecutionResult;
     const message = lanSwitch('Unknown execution type: ', '未知执行类型: ') + type;
