@@ -28,7 +28,7 @@ class Logger {
 
   private level: number;
 
-  constructor(readonly core: MaplebirchCore) {
+  public constructor(readonly core: MaplebirchCore) {
     this.level = Logger.LogLevel.INFO as number;
   }
 

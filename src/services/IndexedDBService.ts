@@ -15,15 +15,15 @@ type StoreDefinition = {
 };
 
 class IndexedDBService {
-  static DATABASE_NAME = 'maplebirch';
-  static DATABASE_VERSION: number;
+  public static DATABASE_NAME = 'maplebirch';
+  public static DATABASE_VERSION: number;
 
   private db: IDBPDatabase<unknown> | null = null;
   private ready = false;
   private opening: Promise<void> | null = null;
   private stores = new Map<string, StoreDefinition>();
 
-  constructor(readonly core: MaplebirchCore) {
+  public constructor(readonly core: MaplebirchCore) {
     const [major, minor, patch] = version.split('.').map(v => parseInt(v, 10) || 0);
     IndexedDBService.DATABASE_VERSION = major * 10000 + minor * 100 + patch;
   }

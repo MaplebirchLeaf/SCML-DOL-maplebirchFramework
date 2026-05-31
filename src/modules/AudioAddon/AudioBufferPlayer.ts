@@ -5,7 +5,7 @@ class AudioBufferPlayer {
   private offset = 0;
   private playing = false;
 
-  constructor(
+  public constructor(
     private readonly context: AudioContext,
     private readonly buffer: AudioBuffer,
     volume: number,
@@ -16,7 +16,7 @@ class AudioBufferPlayer {
     this.gain.connect(context.destination);
   }
 
-  play(): void {
+  public play(): void {
     if (this.playing) return;
     void this.context.resume?.();
     const source = this.context.createBufferSource();
@@ -35,20 +35,20 @@ class AudioBufferPlayer {
     source.start(0, Math.min(this.offset, this.buffer.duration));
   }
 
-  pause(): void {
+  public pause(): void {
     if (!this.playing) return;
     this.offset = this.seek();
     this.stopSource();
     this.playing = false;
   }
 
-  stop(): void {
+  public stop(): void {
     this.offset = 0;
     this.stopSource();
     this.playing = false;
   }
 
-  seek(value?: number): number {
+  public seek(value?: number): number {
     if (typeof value !== 'number') return this.playing ? Math.min(this.context.currentTime - this.startedAt, this.buffer.duration) : this.offset;
     this.offset = Math.max(0, Math.min(value, this.buffer.duration));
     if (this.playing) {
@@ -59,15 +59,15 @@ class AudioBufferPlayer {
     return this.offset;
   }
 
-  duration(): number {
+  public duration(): number {
     return this.buffer.duration;
   }
 
-  volume(value: number): void {
+  public volume(value: number): void {
     this.gain.gain.value = value;
   }
 
-  unload(): void {
+  public unload(): void {
     this.stop();
     this.gain.disconnect();
   }

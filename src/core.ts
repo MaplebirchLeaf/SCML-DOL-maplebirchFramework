@@ -57,7 +57,7 @@ interface Extensions {}
 type Instance = MaplebirchCore & Extensions;
 
 class MaplebirchCore {
-  static meta = {
+  public static meta = {
     name: 'maplebirch Frameworks' as const,
     author: author,
     version: version,
@@ -69,29 +69,29 @@ class MaplebirchCore {
     protected: ['addon', 'dynamic', 'tool', 'audio', 'var', 'char', 'npc', 'combat', 'internals'] as const
   };
 
-  readonly meta: typeof MaplebirchCore.meta;
-  modList: string[];
-  readonly manager: { modSC2DataManager: SC2DataManager; modLoaderGui: Gui };
-  passage: any;
-  readonly yaml: typeof jsyaml;
-  readonly howler: { Howl: typeof Howl; Howler: typeof Howler };
-  readonly logger: Logger;
-  readonly tracer: EventEmitter;
-  readonly idb: IndexedDBService;
-  readonly credential: CredentialVault;
-  readonly lang: LanguageManager;
-  readonly modules: ModuleSystem;
-  readonly gui: GUIControl;
-  declare readonly addon: AddonPlugin;
-  declare readonly dynamic: DynamicManager;
-  declare readonly tool: ToolCollection;
-  declare readonly audio: AudioManager;
-  declare readonly var: Variables;
-  declare readonly char: Character;
-  declare readonly npc: NPCManager;
-  declare readonly combat: CombatManager;
+  public readonly meta: typeof MaplebirchCore.meta;
+  public modList: string[];
+  public readonly manager: { modSC2DataManager: SC2DataManager; modLoaderGui: Gui };
+  public passage: any;
+  public readonly yaml: typeof jsyaml;
+  public readonly howler: { Howl: typeof Howl; Howler: typeof Howler };
+  public readonly logger: Logger;
+  public readonly tracer: EventEmitter;
+  public readonly idb: IndexedDBService;
+  public readonly credential: CredentialVault;
+  public readonly lang: LanguageManager;
+  public readonly modules: ModuleSystem;
+  public readonly gui: GUIControl;
+  public declare readonly addon: AddonPlugin;
+  public declare readonly dynamic: DynamicManager;
+  public declare readonly tool: ToolCollection;
+  public declare readonly audio: AudioManager;
+  public declare readonly var: Variables;
+  public declare readonly char: Character;
+  public declare readonly npc: NPCManager;
+  public declare readonly combat: CombatManager;
 
-  constructor(modSC2DataManager: SC2DataManager, modLoaderGui: Gui) {
+  public constructor(modSC2DataManager: SC2DataManager, modLoaderGui: Gui) {
     this.meta = { ...MaplebirchCore.meta };
     this.modList = [];
     this.manager = { modSC2DataManager, modLoaderGui };

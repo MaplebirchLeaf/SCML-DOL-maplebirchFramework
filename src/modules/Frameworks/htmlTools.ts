@@ -14,11 +14,11 @@ type TextContent = string | number | boolean | null | undefined;
 type RawContent = TextContent | Node;
 
 class Builder {
-  readonly auto: (text: string) => string;
-  readonly fragment: DocumentFragment;
-  readonly context: Record<string, any>;
+  public readonly auto: (text: string) => string;
+  public readonly fragment: DocumentFragment;
+  public readonly context: Record<string, any>;
 
-  constructor(
+  public constructor(
     readonly parent: htmlTools,
     fragment: DocumentFragment,
     context: Record<string, any> = {}
@@ -28,7 +28,7 @@ class Builder {
     this.context = context;
   }
 
-  text(content: TextContent, style?: string): this {
+  public text(content: TextContent, style?: string): this {
     if (content == null) return this;
     const span = document.createElement('span');
     const text = typeof content === 'string' ? content : content.toString();
@@ -38,13 +38,13 @@ class Builder {
     return this;
   }
 
-  line(content?: TextContent, style?: string): this {
+  public line(content?: TextContent, style?: string): this {
     this.fragment.appendChild(document.createElement('br'));
     if (content != null) this.text(content, style);
     return this;
   }
 
-  wikify(content: TextContent): this {
+  public wikify(content: TextContent): this {
     if (content == null) return this;
     const Wikifier = this.parent.Wikifier;
     const text = typeof content === 'string' ? content : content.toString();
@@ -58,7 +58,7 @@ class Builder {
     return this;
   }
 
-  raw(content: RawContent): this {
+  public raw(content: RawContent): this {
     if (content == null) return this;
     if (content instanceof Node) {
       this.fragment.appendChild(content);
@@ -69,7 +69,7 @@ class Builder {
     return this;
   }
 
-  box(content: RawContent, style?: string): this {
+  public box(content: RawContent, style?: string): this {
     const box = document.createElement('div');
     if (style) box.className = style;
     if (content instanceof Node) {
@@ -84,20 +84,20 @@ class Builder {
 }
 
 class htmlTools {
-  readonly core: ToolCollection['core'];
-  readonly log: ReturnType<typeof createlog>;
+  public readonly core: ToolCollection['core'];
+  public readonly log: ReturnType<typeof createlog>;
   private uid = 0;
   private readonly store = new Map<string, TextHandler[]>();
-  constructor(manager: ToolCollection) {
+  public constructor(manager: ToolCollection) {
     this.core = manager.core;
     this.log = createlog('text');
   }
 
-  get Wikifier(): any {
+  public get Wikifier(): any {
     return this.core.SugarCube.Wikifier;
   }
 
-  replaceText(oldText: string, newText: string): void {
+  public replaceText(oldText: string, newText: string): void {
     const passage = document.getElementById('passage-content');
     if (!passage) return;
     const target = window.lanSwitch(oldText);
@@ -111,7 +111,7 @@ class htmlTools {
     }
   }
 
-  replaceLink(oldLink: string, newLink: string): void {
+  public replaceLink(oldLink: string, newLink: string): void {
     const passage = document.getElementById('passage-content');
     if (!passage) return;
     const target = window.lanSwitch(oldLink);
@@ -132,7 +132,7 @@ class htmlTools {
     }
   }
 
-  add(key: string, handler: (tools: Builder) => void, id?: string): string | false {
+  public add(key: string, handler: (tools: Builder) => void, id?: string): string | false {
     if (typeof key !== 'string' || !key.trim() || typeof handler !== 'function') {
       this.log('注册失败: 参数无效', 'WARN');
       return false;
@@ -151,7 +151,7 @@ class htmlTools {
     return finalId;
   }
 
-  delete(key: string, idOrHandler?: string | ((tools: Builder) => void)): boolean {
+  public delete(key: string, idOrHandler?: string | ((tools: Builder) => void)): boolean {
     const handlers = this.store.get(key);
     if (!handlers) return false;
     if (idOrHandler == null) {
@@ -171,13 +171,13 @@ class htmlTools {
     return true;
   }
 
-  clear(): void {
+  public clear(): void {
     const count = this.store.size;
     this.store.clear();
     this.log(`已清除所有键值 (共 ${count} 个)`, 'DEBUG');
   }
 
-  renderFragment(keys: string | string[], context: Record<string, any> = {}): DocumentFragment {
+  public renderFragment(keys: string | string[], context: Record<string, any> = {}): DocumentFragment {
     const fragment = document.createDocumentFragment();
     const tools = new Builder(this, fragment, context);
     const list = Array.isArray(keys) ? keys : keys == null ? [] : [keys];
@@ -198,7 +198,7 @@ class htmlTools {
     return fragment;
   }
 
-  render(macro: any, keys: string | string[]): void {
+  public render(macro: any, keys: string | string[]): void {
     if (keys == null) return;
     try {
       const fragment = this.renderFragment(keys, macro);
@@ -218,7 +218,7 @@ class htmlTools {
     }
   }
 
-  makeTextOutput(options: { CSV?: boolean } = {}): MacroFunction {
+  public makeTextOutput(options: { CSV?: boolean } = {}): MacroFunction {
     const CSV = options.CSV ?? true;
     const render = this.render.bind(this);
     return function (this: any) {

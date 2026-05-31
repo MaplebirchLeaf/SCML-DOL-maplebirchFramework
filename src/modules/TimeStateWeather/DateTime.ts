@@ -8,23 +8,23 @@ function patchDateTime(): void {
   const BaseDateTime = window.DateTime as any;
 
   class PatchedDateTime extends BaseDateTime {
-    year!: number;
-    month!: number;
-    day!: number;
-    hour!: number;
-    minute!: number;
-    second!: number;
-    timeStamp!: number;
+    public year!: number;
+    public month!: number;
+    public day!: number;
+    public hour!: number;
+    public minute!: number;
+    public second!: number;
+    public timeStamp!: number;
 
-    static get MIN_DATE() {
+    public static get MIN_DATE() {
       return Object.freeze(Object.assign(Object.create(PatchedDateTime.prototype), TimeConstants.MIN_DATE));
     }
 
-    static get MAX_DATE() {
+    public static get MAX_DATE() {
       return Object.freeze(Object.assign(Object.create(PatchedDateTime.prototype), TimeConstants.MAX_DATE));
     }
 
-    constructor(year: any = 2020, month = 1, day = 1, hour = 0, minute = 0, second = 0) {
+    public constructor(year: any = 2020, month = 1, day = 1, hour = 0, minute = 0, second = 0) {
       super();
       if (arguments.length === 1) {
         if (year && typeof year === 'object' && typeof year.timeStamp === 'number') {
@@ -56,26 +56,26 @@ function patchDateTime(): void {
       return serialYear > 0 ? serialYear : serialYear - 1;
     }
 
-    static getTotalDaysSinceStart(year: number): number {
+    public static getTotalDaysSinceStart(year: number): number {
       const yearsBefore = PatchedDateTime.toSerialYear(year) - 1;
       return yearsBefore * 365 + Math.floor(yearsBefore / 4) - Math.floor(yearsBefore / 100) + Math.floor(yearsBefore / 400);
     }
 
-    static isLeapYear(year: number): boolean {
+    public static isLeapYear(year: number): boolean {
       if (year === 0) return false;
       const serialYear = PatchedDateTime.toSerialYear(year);
       return serialYear % 4 === 0 && (serialYear % 100 !== 0 || serialYear % 400 === 0);
     }
 
-    static getDaysOfMonthFromYear(year: number): readonly number[] {
+    public static getDaysOfMonthFromYear(year: number): readonly number[] {
       return PatchedDateTime.isLeapYear(year) ? TimeConstants.leapYearMonths : TimeConstants.standardYearMonths;
     }
 
-    static getDaysOfYear(year: number): number {
+    public static getDaysOfYear(year: number): number {
       return PatchedDateTime.isLeapYear(year) ? 366 : 365;
     }
 
-    toTimestamp(year: number, month: number, day: number, hour: number, minute: number, second: number): this {
+    public toTimestamp(year: number, month: number, day: number, hour: number, minute: number, second: number): this {
       if (!Number.isFinite(year) || Math.trunc(year) !== year) throw new Error('Invalid year: Year must be an integer.');
       if (year === 0) throw new Error('Invalid year: year 0 is not supported.');
       if (year < TimeConstants.MIN_DATE.year || year > TimeConstants.MAX_DATE.year) {
@@ -102,7 +102,7 @@ function patchDateTime(): void {
       return this;
     }
 
-    fromTimestamp(timestamp: number): this {
+    public fromTimestamp(timestamp: number): this {
       if (!Number.isFinite(timestamp)) throw new Error('Invalid timestamp: Timestamp must be finite.');
       timestamp = Math.trunc(timestamp);
 
@@ -159,25 +159,25 @@ function patchDateTime(): void {
       throw new Error(`Invalid timestamp: ${timestamp}`);
     }
 
-    getFirstWeekdayOfMonth(weekDay: number): DateTime {
+    public getFirstWeekdayOfMonth(weekDay: number): DateTime {
       if (weekDay < 1 || weekDay > 7) throw new Error('Invalid weekDay: Must be between 1-7');
       const date = new PatchedDateTime(this.year, this.month, 1);
       return date.addDays((weekDay - date.weekDay + 7) % 7) as unknown as DateTime;
     }
 
-    getNextWeekdayDate(weekDay: number): DateTime {
+    public getNextWeekdayDate(weekDay: number): DateTime {
       if (weekDay < 1 || weekDay > 7) throw new Error('Invalid weekDay: Must be between 1-7');
       const days = ((7 + weekDay - this.weekDay - 1) % 7) + 1;
       return this.clone().addDays(days) as unknown as DateTime;
     }
 
-    getPreviousWeekdayDate(weekDay: number): DateTime {
+    public getPreviousWeekdayDate(weekDay: number): DateTime {
       if (weekDay < 1 || weekDay > 7) throw new Error('Invalid weekDay: Must be between 1-7');
       const days = ((7 + weekDay - this.weekDay) % 7) - 7;
       return this.clone().addDays(days) as unknown as DateTime;
     }
 
-    addYears(years: number): this {
+    public addYears(years: number): this {
       if (!years) return this;
       let year = this.year + years;
       if (this.year < 0 && year >= 0) year += 1;
@@ -187,7 +187,7 @@ function patchDateTime(): void {
       return this.toTimestamp(year, this.month, day, this.hour, this.minute, this.second);
     }
 
-    addMonths(months: number): this {
+    public addMonths(months: number): this {
       if (!months) return this;
       const totalMonth = PatchedDateTime.toSerialYear(this.year) * 12 + (this.month - 1) + months;
       const serialYear = Math.floor(totalMonth / 12);
@@ -197,11 +197,11 @@ function patchDateTime(): void {
       return this.toTimestamp(year, month, day, this.hour, this.minute, this.second);
     }
 
-    isLastDayOfMonth(): boolean {
+    public isLastDayOfMonth(): boolean {
       return this.day === this.lastDayOfMonth;
     }
 
-    get midnight(): DateTime {
+    public get midnight(): DateTime {
       const midnight = this.clone();
       midnight.timeStamp -= this.hour * TimeConstants.secondsPerHour + this.minute * TimeConstants.secondsPerMinute + this.second;
       midnight.hour = 0;
@@ -210,26 +210,26 @@ function patchDateTime(): void {
       return midnight as unknown as DateTime;
     }
 
-    get weekDay(): number {
+    public get weekDay(): number {
       const dayNumber = Math.floor(this.timeStamp / TimeConstants.secondsPerDay);
       const weekDayOffset = V.weekDayOffset !== undefined ? V.weekDayOffset : 6;
       return ((((dayNumber + weekDayOffset + 2) % 7) + 7) % 7) + 1;
     }
 
-    get lastDayOfMonth(): number {
+    public get lastDayOfMonth(): number {
       return PatchedDateTime.getDaysOfMonthFromYear(this.year)[this.month - 1];
     }
 
-    get yearDay(): number {
+    public get yearDay(): number {
       const daysInMonth = PatchedDateTime.getDaysOfMonthFromYear(this.year);
       return daysInMonth.slice(0, this.month - 1).reduce((sum, value) => sum + value, 0) + this.day;
     }
 
-    get fractionOfYear(): number {
+    public get fractionOfYear(): number {
       return this.yearDay / PatchedDateTime.getDaysOfYear(this.year);
     }
 
-    get seasonFactor(): number {
+    public get seasonFactor(): number {
       const summerSolstice = new PatchedDateTime(this.year, 6, 21);
       const winterSolstice = new PatchedDateTime(this.year, 12, 21);
       const previousSolstice =

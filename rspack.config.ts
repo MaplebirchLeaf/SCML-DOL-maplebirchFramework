@@ -30,8 +30,7 @@ function commonConfig(isProduction: boolean): Configuration {
     module: {
       rules: [
         {
-          test: /\.(css|twee)$/,
-          resourceQuery: /raw/,
+          test: /\.(css|twee|ya?ml)$/,
           type: 'asset/source'
         },
         {

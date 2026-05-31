@@ -63,11 +63,11 @@ let nextId = 0;
 let enhancedDateProto: EnhancedDate | null = null;
 
 export class Schedule {
-  daily: string[] = Array(24).fill('');
-  specials: SpecialSchedule[] = [];
-  sortedSpecials: SpecialSchedule[] | null = null;
+  public daily: string[] = Array(24).fill('');
+  public specials: SpecialSchedule[] = [];
+  public sortedSpecials: SpecialSchedule[] | null = null;
 
-  at(scheduleConfig: ScheduleTime, location: string): this {
+  public at(scheduleConfig: ScheduleTime, location: string): this {
     const setHour = (hour: number) => {
       if (Number.isInteger(hour) && hour >= 0 && hour <= 23) this.daily[hour] = location;
     };
@@ -86,7 +86,7 @@ export class Schedule {
     return this;
   }
 
-  when(condition: ScheduleCondition, location: ScheduleLocation, options: Partial<Omit<SpecialSchedule, 'condition' | 'location'>> = {}): this {
+  public when(condition: ScheduleCondition, location: ScheduleLocation, options: Partial<Omit<SpecialSchedule, 'condition' | 'location'>> = {}): this {
     this.specials.push({
       id: options.id ?? nextId++,
       condition,
@@ -100,7 +100,7 @@ export class Schedule {
     return this;
   }
 
-  update(specialId: string | number, updates: Partial<Omit<SpecialSchedule, 'id'>>): this {
+  public update(specialId: string | number, updates: Partial<Omit<SpecialSchedule, 'id'>>): this {
     const special = this.specials.find(s => s.id === specialId);
     if (special) {
       Object.assign(special, updates);
@@ -109,20 +109,20 @@ export class Schedule {
     return this;
   }
 
-  remove(specialId: string | number): this {
+  public remove(specialId: string | number): this {
     this.specials = this.specials.filter(s => s.id !== specialId);
     this.sortedSpecials = null;
     return this;
   }
 
-  sortSpecials() {
+  public sortSpecials() {
     if (this.sortedSpecials) return;
     const overrides = this.specials.filter(s => s.override);
     const nonOverrides = this.specials.filter(s => !s.override);
     this.sortedSpecials = [...overrides, ...this.topologicalSort(nonOverrides)];
   }
 
-  topologicalSort(items: SpecialSchedule[]) {
+  public topologicalSort(items: SpecialSchedule[]) {
     const graph = new Map<string | number, Set<string | number>>();
     const inDegree = new Map<string | number, number>();
     const idToItem = new Map<string | number, SpecialSchedule>();
@@ -168,7 +168,7 @@ export class Schedule {
     return sorted;
   }
 
-  get location(): string {
+  public get location(): string {
     const date = new DateTime(Time.date);
     if (this.specials.length > 0) {
       this.sortSpecials();
@@ -181,10 +181,10 @@ export class Schedule {
         }
       }
     }
-    return this.daily[Time.date.hour] ?? '';
+    return this.dailyLocation(Time.date.hour);
   }
 
-  resolveLocation(loc: ScheduleLocation, date: EnhancedDate): string {
+  public resolveLocation(loc: ScheduleLocation, date: EnhancedDate): string {
     try {
       if (typeof loc === 'function') {
         const result = loc(date);
@@ -200,7 +200,7 @@ export class Schedule {
     }
   }
 
-  createEnhancedDate(date: DateTime): EnhancedDate {
+  public createEnhancedDate(date: DateTime): EnhancedDate {
     if (!enhancedDateProto) enhancedDateProto = this.buildEnhancedDateProto();
     const enhancedDate = Object.create(enhancedDateProto) as EnhancedDate;
     Object.defineProperty(enhancedDate, 'schedule', {
@@ -249,7 +249,7 @@ export class Schedule {
     return enhancedDate;
   }
 
-  buildEnhancedDateProto(): EnhancedDate {
+  public buildEnhancedDateProto(): EnhancedDate {
     const proto = Object.create(null) as EnhancedDate;
     const toMinutes = (time: ScheduleTime): number => {
       return Array.isArray(time) ? time[0] * 60 + (time[1] ?? 0) : time * 60;
@@ -286,6 +286,15 @@ export class Schedule {
     };
 
     return proto;
+  }
+
+  private dailyLocation(hour: number): string {
+    for (let offset = 0; offset < 24; offset++) {
+      const index = (hour - offset + 24) % 24;
+      const location = this.daily[index];
+      if (location) return location;
+    }
+    return '';
   }
 }
 

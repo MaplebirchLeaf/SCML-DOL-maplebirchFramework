@@ -23,14 +23,14 @@ interface LinkZoneConfig {
 const log = createlog('link');
 
 class LinkZoneManager {
-  firstLink: Element | null = null;
-  lastLink: Element | null = null;
-  links: Element[] = [];
-  breakBeforeFirst: ChildNode | null = null;
+  public firstLink: Element | null = null;
+  public lastLink: Element | null = null;
+  public links: Element[] = [];
+  public breakBeforeFirst: ChildNode | null = null;
 
-  readonly log: ReturnType<typeof createlog>;
+  public readonly log: ReturnType<typeof createlog>;
 
-  constructor(
+  public constructor(
     readonly containerId = 'passage-content',
     readonly linkSelector = '.macro-link',
     logger: typeof log = log
@@ -38,7 +38,7 @@ class LinkZoneManager {
     this.log = logger;
   }
 
-  detect(): boolean {
+  public detect(): boolean {
     this.firstLink = null;
     this.lastLink = null;
     this.links = [];
@@ -53,7 +53,7 @@ class LinkZoneManager {
     return true;
   }
 
-  applyZones(config: LinkZoneConfig, customZones: CustomZone[]): boolean {
+  public applyZones(config: LinkZoneConfig, customZones: CustomZone[]): boolean {
     if (!this.detect()) {
       if (config.debug) this.log('[link] 没有找到可见链接', 'DEBUG');
       return false;

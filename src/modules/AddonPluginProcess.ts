@@ -33,7 +33,7 @@ export interface Task<T = any> {
 }
 
 class AddonPluginProcess {
-  static async Language(addon: AddonPlugin): Promise<void> {
+  public static async Language(addon: AddonPlugin): Promise<void> {
     if (addon.processed.language || addon.queue.language.length === 0) return;
     try {
       for (const task of addon.queue.language as Task<LanguageConfig>[]) {
@@ -82,7 +82,7 @@ class AddonPluginProcess {
     }
   }
 
-  static async Audio(addon: AddonPlugin): Promise<void> {
+  public static async Audio(addon: AddonPlugin): Promise<void> {
     if (addon.processed.audio || addon.queue.audio.length === 0) return;
     try {
       for (const task of addon.queue.audio as Task<AudioConfig>[]) {
@@ -119,7 +119,7 @@ class AddonPluginProcess {
     }
   }
 
-  static async Framework(addon: AddonPlugin): Promise<void> {
+  public static async Framework(addon: AddonPlugin): Promise<void> {
     if (addon.processed.framework || addon.queue.framework.length === 0) return;
     try {
       for (const task of addon.queue.framework as Task<FrameworkConfig | FrameworkConfig[]>[]) {
@@ -171,7 +171,7 @@ class AddonPluginProcess {
     }
   }
 
-  static async NPC(addon: AddonPlugin): Promise<void> {
+  public static async NPC(addon: AddonPlugin): Promise<void> {
     if (addon.processed.npc || addon.queue.npc.length === 0) return;
     try {
       for (const task of addon.queue.npc) {

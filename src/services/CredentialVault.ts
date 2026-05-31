@@ -1,7 +1,7 @@
 // ./src/services/CredentialVault.ts
 
 import type { MaplebirchCore } from '../core';
-import PromptStyle from '@/styles/PromptStyle.css?raw';
+import PromptStyle from '@/styles/PromptStyle.css';
 
 export interface AuthConfig {
   key: string;
@@ -84,7 +84,7 @@ class CredentialVault {
 
   private dialogQueue: Promise<unknown> = Promise.resolve();
 
-  constructor(readonly core: MaplebirchCore) {
+  public constructor(readonly core: MaplebirchCore) {
     this.core.once(':indexedDB', () => this.core.idb.register(CredentialVault.STORE, { keyPath: ['bucket', 'id'] }, [{ name: 'bucket', keyPath: 'bucket', options: { unique: false } }]));
   }
 

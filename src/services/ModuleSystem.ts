@@ -21,7 +21,7 @@ interface InitPhase {
 }
 
 class ModuleSystem {
-  readonly registry: ModuleRegistry = {
+  public readonly registry: ModuleRegistry = {
     modules: new Map(),
     states: new Map(),
     sources: new Map(),
@@ -31,7 +31,7 @@ class ModuleSystem {
     waitingQueue: new Map()
   };
 
-  readonly initPhase: InitPhase = {
+  public readonly initPhase: InitPhase = {
     preInitCompleted: false,
     mainInitCompleted: false,
     loadInitExecuted: false,
@@ -44,7 +44,7 @@ class ModuleSystem {
   private disabledNames: Set<string> | null = null;
   private circularCache = new Map<string, boolean>();
 
-  constructor(readonly core: MaplebirchCore) {}
+  public constructor(readonly core: MaplebirchCore) {}
 
   public async runWithSource<T>(source: string, callback: () => T | Promise<T>): Promise<T> {
     this.sourceStack.push(source);

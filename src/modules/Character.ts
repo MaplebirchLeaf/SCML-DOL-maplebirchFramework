@@ -310,18 +310,18 @@ const layers: CharacterLayerMap = {
 };
 
 class Character {
-  readonly log: ReturnType<typeof createlog>;
-  readonly mask = mask;
-  readonly faceStyleSrcFn = faceStyleSrcFn;
-  readonly faceStyleMap: Map<string, string[]> = new Map();
-  readonly handlers: Record<CharacterProcessType, CharacterProcessHandler[]> = {
+  public readonly log: ReturnType<typeof createlog>;
+  public readonly mask = mask;
+  public readonly faceStyleSrcFn = faceStyleSrcFn;
+  public readonly faceStyleMap: Map<string, string[]> = new Map();
+  public readonly handlers: Record<CharacterProcessType, CharacterProcessHandler[]> = {
     pre: [],
     post: []
   };
-  readonly transformation: Transformation;
-  layers: CharacterLayerMap = {};
+  public readonly transformation: Transformation;
+  public layers: CharacterLayerMap = {};
 
-  constructor(readonly core: MaplebirchCore) {
+  public constructor(readonly core: MaplebirchCore) {
     this.log = createlog('char');
     this.transformation = new Transformation(this);
     this.core.on(':language', () => this._faceStyleSetupOption(), 'face style setup options');
@@ -343,11 +343,11 @@ class Character {
     this.core.tool.onInit(() => this._faceStyleSetupOption());
   }
 
-  get ZIndices() {
+  public get ZIndices() {
     return ZIndices;
   }
 
-  async modifyPCModel(manager: AddonPlugin) {
+  public async modifyPCModel(manager: AddonPlugin) {
     const oldSCdata = manager.SC2DataManager.getSC2DataInfoAfterPatch();
     const SCdata = oldSCdata.cloneSC2DataInfo();
     const file = SCdata.scriptFileItems.getByNameWithOrWithoutPath('canvasmodel-main.js')!;
@@ -359,9 +359,9 @@ class Character {
     manager.modUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
   }
 
-  use(type: CharacterProcessType, fn: CharacterProcessInput): this;
-  use(layerMap: CharacterLayerMap): this;
-  use(...args: [] | [CharacterProcessType, CharacterProcessInput] | [CharacterLayerMap]): this {
+  public use(type: CharacterProcessType, fn: CharacterProcessInput): this;
+  public use(layerMap: CharacterLayerMap): this;
+  public use(...args: [] | [CharacterProcessType, CharacterProcessInput] | [CharacterLayerMap]): this {
     if (args.length === 0) {
       this.log('use 调用无参数', 'WARN');
       return this;
@@ -607,29 +607,26 @@ class Character {
     });
   }
 
-  async render() {
+  public async render() {
     await this.renderCharacter();
     await this.renderOverlay();
   }
 
-  preInit() {
+  public preInit() {
     this.use('pre', preprocess);
     this.use(layers);
   }
 
-  Init() {
+  public Init() {
     this.core.on(':modhint', () => void this.render(), 'character render');
     this.transformation.inject();
   }
 
-  loadInit() {
+  public loadInit() {
     this.transformation.inject();
   }
 }
 
-(function (maplebirch): void {
-  'use strict';
-  maplebirch.register('char', Object.seal(new Character(maplebirch)), ['var']);
-})(maplebirch);
+maplebirch.register('char', Object.seal(new Character(maplebirch)), ['var']);
 
 export default Character;

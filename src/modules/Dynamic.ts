@@ -6,12 +6,12 @@ import { StateManager, StateEventOptions } from './TimeStateWeather/StateEvents'
 import { WeatherManager, WeatherEventOptions, WeatherTypeConfig, WeatherException } from './TimeStateWeather/WeatherEvents';
 
 class DynamicManager {
-  readonly Time: TimeManager;
-  readonly State: StateManager;
-  readonly Weather: WeatherManager;
-  readonly log: ReturnType<typeof createlog>;
+  public readonly Time: TimeManager;
+  public readonly State: StateManager;
+  public readonly Weather: WeatherManager;
+  public readonly log: ReturnType<typeof createlog>;
 
-  constructor(readonly core: MaplebirchCore) {
+  public constructor(readonly core: MaplebirchCore) {
     this.log = createlog('dynamic');
     this.Time = Object.seal(new TimeManager(this));
     this.State = Object.seal(new StateManager(this));
@@ -69,9 +69,6 @@ class DynamicManager {
   }
 }
 
-(function (maplebirch: MaplebirchCore): void {
-  'use strict';
-  maplebirch.register('dynamic', Object.seal(new DynamicManager(maplebirch)), ['addon']);
-})(maplebirch);
+maplebirch.register('dynamic', Object.seal(new DynamicManager(maplebirch)), ['addon']);
 
 export default DynamicManager;

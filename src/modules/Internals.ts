@@ -23,12 +23,12 @@ interface ModInfo {
 }
 
 class Internals {
-  readonly log: ReturnType<typeof createlog>;
+  public readonly log: ReturnType<typeof createlog>;
 
   private relationTimer: ReturnType<typeof setTimeout> | null = null;
   private modI18NPatched = false;
 
-  constructor(readonly core: MaplebirchCore) {
+  public constructor(readonly core: MaplebirchCore) {
     this.log = createlog('internals');
 
     this.core.once(':sugarcube', () => {
@@ -314,9 +314,6 @@ class Internals {
   }
 }
 
-(function (maplebirch): void {
-  'use strict';
-  maplebirch.register('internals', Object.seal(new Internals(maplebirch)), ['tool']);
-})(maplebirch);
+maplebirch.register('internals', Object.seal(new Internals(maplebirch)), ['tool']);
 
 export default Internals;

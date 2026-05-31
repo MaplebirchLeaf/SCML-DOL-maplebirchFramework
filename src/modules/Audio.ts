@@ -68,7 +68,7 @@ interface AudioSnapshot {
 }
 
 class AudioManager {
-  readonly log: ReturnType<typeof createlog>;
+  public readonly log: ReturnType<typeof createlog>;
 
   private readonly STORE = 'audio';
 
@@ -91,7 +91,7 @@ class AudioManager {
   private progressTimer: ReturnType<typeof setInterval> | null = null;
   private progressBindings = new Map<string, ReturnType<typeof setInterval>>();
 
-  constructor(readonly core: MaplebirchCore) {
+  public constructor(readonly core: MaplebirchCore) {
     this.log = createlog('audio');
     this.core.howler.Howler.mute(this.muted);
     this.core.howler.Howler.volume(this.volume);
@@ -726,9 +726,6 @@ class AudioManager {
   }
 }
 
-(function (maplebirch): void {
-  'use strict';
-  maplebirch.register('audio', Object.seal(new AudioManager(maplebirch)), ['tool']);
-})(maplebirch);
+maplebirch.register('audio', Object.seal(new AudioManager(maplebirch)), ['tool']);
 
 export default AudioManager;

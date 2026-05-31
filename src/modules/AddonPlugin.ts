@@ -8,8 +8,8 @@ import type { TypeOrderItem } from '@scml/types/AddonMod_BeautySelector/BeautySe
 import type { SC2DataManager } from '@scml/types/sugarcube-2-ModLoader/SC2DataManager';
 import type { ModUtils } from '@scml/types/sugarcube-2-ModLoader/Utils';
 import type { CryptOptions } from '../services/CredentialVault';
-import FlatpickrStyles from 'flatpickr/dist/flatpickr.min.css?raw';
-import MaplebrichStyles from '@/styles/MaplebrichStyles.css?raw';
+import FlatpickrStyles from 'flatpickr/dist/flatpickr.min.css';
+import MaplebrichStyles from '@/styles/MaplebrichStyles.css';
 import maplebirch, { type MaplebirchCore, createlog } from '../core';
 import AddonPluginProcess, { type Task, type LanguageConfig, type AudioConfig, type FrameworkConfig, defineTwineAsset } from './AddonPluginProcess';
 
@@ -38,29 +38,29 @@ class AddonPlugin {
   public onLoad: boolean = false;
   private onSaveLoadTracer: boolean = false;
   private disabledMods: Array<string> = [];
-  readonly replace = replace;
-  readonly SC2DataManager: SC2DataManager;
-  readonly modUtils: ModUtils;
-  readonly info = new Map<string, { addonName: string; mod: ModInfo; modZip: ModZipReader }>();
-  readonly log: ReturnType<typeof createlog> = createlog('addon');
-  readonly supportedConfigs: ConfigType[] = ['language', 'audio', 'framework', 'npc'];
-  queue: Record<ConfigType, Task[]> = {
+  public readonly replace = replace;
+  public readonly SC2DataManager: SC2DataManager;
+  public readonly modUtils: ModUtils;
+  public readonly info = new Map<string, { addonName: string; mod: ModInfo; modZip: ModZipReader }>();
+  public readonly log: ReturnType<typeof createlog> = createlog('addon');
+  public readonly supportedConfigs: ConfigType[] = ['language', 'audio', 'framework', 'npc'];
+  public queue: Record<ConfigType, Task[]> = {
     language: [],
     audio: [],
     framework: [],
     npc: []
   };
-  processed: Record<ConfigType | 'script', boolean> = {
+  public processed: Record<ConfigType | 'script', boolean> = {
     language: false,
     audio: false,
     framework: false,
     npc: false,
     script: false
   };
-  jsFiles: FileItem[] = [];
-  moduleFiles: FileItem[] = [];
+  public jsFiles: FileItem[] = [];
+  public moduleFiles: FileItem[] = [];
 
-  constructor(readonly core: MaplebirchCore) {
+  public constructor(readonly core: MaplebirchCore) {
     this.SC2DataManager = this.core.manager.modSC2DataManager;
     this.modUtils = this.core.modUtils;
     this.log('框架开始初始化流程', 'INFO');
@@ -92,7 +92,6 @@ class AddonPlugin {
     await this.core.logger.fromIDB();
     await this.core.trigger(':idbReady');
     await this.core.lang.preload();
-    for await (const p of this.core.lang.import('maplebirch')) if (p.type === 'error') this.log(`导入失败: ${p.language}`, 'ERROR');
     await this.core.modules.init('pre');
   }
 
@@ -314,22 +313,19 @@ async function modifyOptionsDateFormat(manager: AddonPlugin): Promise<void> {
   manager.modUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
 }
 
-(function (maplebirch: MaplebirchCore): void {
-  'use strict';
-  let order: TypeOrderItem[] = window.addonBeautySelectorAddon.typeOrderUsed!;
-  Object.defineProperty(window.addonBeautySelectorAddon, 'typeOrderUsed', {
-    get() {
-      return order;
-    },
-    set(value: TypeOrderItem[]) {
-      order = value;
-      if (T?.modelclass) {
-        Renderer.clearCaches(T.modelclass);
-        $.wiki('<<updatesidebarimg>>');
-      }
+let order: TypeOrderItem[] = window.addonBeautySelectorAddon.typeOrderUsed!;
+Object.defineProperty(window.addonBeautySelectorAddon, 'typeOrderUsed', {
+  get() {
+    return order;
+  },
+  set(value: TypeOrderItem[]) {
+    order = value;
+    if (T?.modelclass) {
+      Renderer.clearCaches(T.modelclass);
+      $.wiki('<<updatesidebarimg>>');
     }
-  });
-  maplebirch.register('addon', Object.seal(new AddonPlugin(maplebirch)), []);
-})(maplebirch);
+  }
+});
+maplebirch.register('addon', Object.seal(new AddonPlugin(maplebirch)), []);
 
 export default AddonPlugin;

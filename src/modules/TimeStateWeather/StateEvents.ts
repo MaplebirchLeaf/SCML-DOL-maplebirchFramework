@@ -29,15 +29,15 @@ interface StateEventResult {
 }
 
 class StateEvent {
-  output?: string;
+  public output?: string;
   private action?: () => void;
   private cond: () => boolean;
   private once: boolean;
   private forceExit: () => boolean;
   private extra: ExtraOptions;
-  readonly priority: number;
+  public readonly priority: number;
 
-  constructor(
+  public constructor(
     public readonly id: string,
     public readonly type: string,
     options: StateEventOptions = {}
@@ -60,7 +60,7 @@ class StateEvent {
     return true;
   }
 
-  tryRun(passageName?: string): StateEventResult | null {
+  public tryRun(passageName?: string): StateEventResult | null {
     if (!this.checkPassage(passageName)) return null;
     if (!this.match()) return null;
     this.runAction();
@@ -87,7 +87,7 @@ class StateEvent {
     }
   }
 
-  shouldForceExit(): boolean {
+  public shouldForceExit(): boolean {
     try {
       return !!this.forceExit();
     } catch (e: any) {
@@ -101,13 +101,13 @@ export class StateManager {
   private readonly stateEvents: Record<string, Map<string, StateEvent>> = {};
   private readonly log: (message: string, level?: string, ...objects: any[]) => void;
 
-  constructor(private readonly manager: DynamicManager) {
+  public constructor(private readonly manager: DynamicManager) {
     this.log = manager.log;
     const eventTypes = ['gate', 'append'];
     eventTypes.forEach(type => (this.stateEvents[type] = new Map()));
   }
 
-  trigger(type: 'gate' | 'append'): string {
+  public trigger(type: 'gate' | 'append'): string {
     const passageName = this.manager.core.passage?.title;
     if (type === 'gate') return this.processGateEvents(passageName);
     if (type === 'append') return this.processAppendEvents(passageName);
@@ -143,7 +143,7 @@ export class StateManager {
     return outputs.join('');
   }
 
-  register(type: string, eventId: string, options: StateEventOptions): boolean {
+  public register(type: string, eventId: string, options: StateEventOptions): boolean {
     if (!(type in this.stateEvents)) {
       this.log(`未知的状态事件类型: ${type}`, 'ERROR');
       return false;
@@ -157,7 +157,7 @@ export class StateManager {
     return true;
   }
 
-  unregister(type: string, eventId: string): boolean {
+  public unregister(type: string, eventId: string): boolean {
     if (!this.stateEvents[type]) {
       this.log(`事件类型不存在: ${type}`, 'WARN');
       return false;
@@ -170,7 +170,7 @@ export class StateManager {
     return false;
   }
 
-  init(): void {
+  public init(): void {
     this.manager.core.on(':passagedisplay', () => new maplebirch.SugarCube.Wikifier(document.getElementById('append'), this.trigger('append')));
     this.log('状态事件系统已激活', 'INFO');
   }

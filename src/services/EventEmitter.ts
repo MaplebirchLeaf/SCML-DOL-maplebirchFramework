@@ -14,7 +14,7 @@ class EventEmitter {
   private readonly events: Map<string, EventListener[]>;
   private readonly afters: Map<string, EventCallback[]>;
 
-  constructor(readonly core: MaplebirchCore) {
+  public constructor(readonly core: MaplebirchCore) {
     // prettier-ignore
     this.events = new Map([
       [':indexedDB'      , []], // IDB数据库
