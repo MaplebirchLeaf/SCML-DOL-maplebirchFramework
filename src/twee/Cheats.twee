@@ -27,6 +27,10 @@
   </div>
 </div>
 <div class='settingsGrid'>
+  <div class='settingsHeader options'><<lanSwitch 'Time Travel' '时间旅行'>></div>
+  <<maplebirchTimeTravel>>
+</div>
+<div class='settingsGrid'>
   <<set $_modNames to Object.keys(V.maplebirch?.transformation || {})>>
   <div class='settingsHeader options'><<lanSwitch 'Mods Transformation' '模组转化'>></div>
   <<if $_modNames.length>>

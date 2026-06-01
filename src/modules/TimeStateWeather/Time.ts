@@ -1,15 +1,66 @@
 // .src/modules/TimeStateWeather/Time.ts
 
 import { TimeConstants } from '../../constants';
+import { replace } from '../AddonPluginProcess';
 
-let timePatched = false;
-let cachedDate: DateTime | null = null;
-let cachedAbsoluteTimestamp: number | null = null;
+export function patchTimeAsset(content: string): string {
+  if (content.includes('maplebirch.dynamic.Time.patchTime(Time)')) return content;
+  return replace(content, [[/\nwindow\.Time = Time;/, `\nmaplebirch.dynamic.Time.patchTime(Time);\nwindow.Time = Time;`]], 'Time asset patch');
+}
 
-function patchTime(): void {
-  if (timePatched) return;
+interface TimeHandlers {
+  pass?: (seconds: number) => any;
+  timeTravel?: (date: DateTime) => any;
+}
 
-  const time = window.addonDoLTimeWrapperAddon.timeProxyManager.originTime as any;
+export interface VanillaTimeHandlers {
+  set?: (value?: number | DateTime) => void;
+  pass?: (seconds: number) => any;
+  setDate?: (date: DateTime) => void;
+}
+
+export const vanillaTime: VanillaTimeHandlers = {};
+
+export function bindTimeHandlers(time: any, handlers: TimeHandlers): void {
+  if (!time) return;
+  Object.defineProperties(time, {
+    ...(handlers.pass && {
+      pass: {
+        value: handlers.pass,
+        writable: true,
+        configurable: true
+      }
+    }),
+    ...(handlers.timeTravel && {
+      timeTravel: {
+        value: handlers.timeTravel,
+        writable: true,
+        configurable: true
+      }
+    })
+  });
+}
+
+function patchTime(time: any): void {
+  if (!time) return;
+  vanillaTime.set ??= typeof time.set === 'function' ? time.set.bind(time) : undefined;
+  vanillaTime.pass ??= typeof time.pass === 'function' ? time.pass.bind(time) : undefined;
+  vanillaTime.setDate ??= typeof time.setDate === 'function' ? time.setDate.bind(time) : undefined;
+  let cachedDate: DateTime | null = null;
+  let cachedAbsoluteTimestamp: number | null = null;
+
+  const set = (value: number | DateTime = 0): void => {
+    if (value && typeof value === 'object' && typeof (value as any).timeStamp === 'number') {
+      vanillaTime.setDate?.(value);
+      cachedDate = new window.DateTime(value);
+      cachedAbsoluteTimestamp = cachedDate.timeStamp;
+      return;
+    }
+    const elapsedTimestamp = Number(value);
+    vanillaTime.set?.(Number.isFinite(elapsedTimestamp) ? elapsedTimestamp : 0);
+    cachedDate = null;
+    cachedAbsoluteTimestamp = null;
+  };
 
   const date = (): DateTime => {
     const startDate = V.startDate ?? (V.startDate = new window.DateTime(2022, 9, 4, 7).timeStamp);
@@ -23,32 +74,13 @@ function patchTime(): void {
     return cachedDate;
   };
 
-  const set = (value: number | DateTime = V.timeStamp || 0): void => {
-    const startDate = V.startDate ?? (V.startDate = new window.DateTime(2022, 9, 4, 7).timeStamp);
-
-    if (value && typeof value === 'object' && typeof (value as any).timeStamp === 'number') {
-      cachedDate = new window.DateTime(value);
-      cachedAbsoluteTimestamp = cachedDate.timeStamp;
-      V.timeStamp = cachedAbsoluteTimestamp - startDate;
-      return;
-    }
-
-    const elapsedTimestamp = Number(value);
-    if (!Number.isFinite(elapsedTimestamp)) throw new Error(`Invalid timeStamp: ${value}`);
-
-    const absoluteTimestamp = startDate + elapsedTimestamp;
-    cachedAbsoluteTimestamp = absoluteTimestamp;
-    cachedDate = new window.DateTime(absoluteTimestamp);
-    V.timeStamp = elapsedTimestamp;
-  };
-
   const setTime = (hour: number, minute = 0): void => {
     const current = date();
-    set(new window.DateTime(current.year, current.month, current.day, hour || 0, minute || 0, 0));
+    time.setDate(new window.DateTime(current.year, current.month, current.day, hour || 0, minute || 0, 0));
   };
 
   const setTimeRelative = (hour = 0, minute = 0): void => {
-    set(new window.DateTime(date()).addHours(hour).addMinutes(minute));
+    time.setDate(new window.DateTime(date()).addHours(hour).addMinutes(minute));
   };
 
   const getSeason = (targetDate: DateTime): string => {
@@ -287,12 +319,6 @@ function patchTime(): void {
       configurable: true
     },
 
-    setDate: {
-      value: set,
-      writable: true,
-      configurable: true
-    },
-
     setTime: {
       value: setTime,
       writable: true,
@@ -407,8 +433,6 @@ function patchTime(): void {
       configurable: true
     }
   });
-
-  timePatched = true;
 }
 
 export default patchTime;

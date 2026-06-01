@@ -44,6 +44,7 @@ class Internals {
       macro.defineS('maplebirchFrameworkVersions', this.showModVersions.bind(this));
       macro.defineS('maplebirchFrameworkInfo', () => this.showFrameworkInfo());
       macro.defineS('maplebirchFrameworkNotice', () => this.showFrameworkNotice());
+      macro.defineS('maplebirchTimeTravel', () => this.core.tool.console.timeTravel.fragment());
     });
   }
 

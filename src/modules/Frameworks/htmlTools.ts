@@ -1,4 +1,4 @@
-// ./src/modules/Frameworks/htmlTools.ts
+// ./src/modules/Frameworks/HtmlTools.ts
 
 import { createlog } from '../../core';
 import type { MacroContext } from '../../SugarCubeMacros';

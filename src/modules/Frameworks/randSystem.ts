@@ -1,4 +1,4 @@
-// .src/modules/Frameworks/randSystem.ts
+// .src/modules/Frameworks/RandSystem.ts
 
 import { createlog } from '../../core';
 

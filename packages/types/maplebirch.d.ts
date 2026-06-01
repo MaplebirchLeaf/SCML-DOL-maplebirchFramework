@@ -39,11 +39,46 @@ declare global {
   const C: Record<string, any>;
   const T: Record<string, any>;
 
-  class DateTime {
+  interface DateTimeData {
+    year: number;
+    month: number;
+    day: number;
+    hour?: number;
+    minute?: number;
+    second?: number;
+    timeStamp: number;
+  }
+
+  interface DateTimeDiff {
+    years: number;
+    months: number;
+    days: number;
+    hours: number;
+    minutes: number;
+    seconds: number;
+  }
+
+  interface DateTimeConstructor {
+    readonly MIN_DATE: DateTime;
+    readonly MAX_DATE: DateTime;
+    new (timestamp?: number): DateTime;
+    new (date: DateTimeData): DateTime;
+    new (year?: number, month?: number, day?: number, hour?: number, minute?: number, second?: number): DateTime;
+    toSerialYear(year: number): number;
+    fromSerialYear(serialYear: number): number;
+    getTotalDaysSinceStart(year: number): number;
+    isLeapYear(year: number): boolean;
+    getDaysOfMonthFromYear(year: number): readonly number[];
+    getDaysOfYear(year: number): number;
+  }
+
+  class DateTime implements DateTimeData {
     static readonly MIN_DATE: DateTime;
     static readonly MAX_DATE: DateTime;
 
-    constructor(year?: number | DateTime, month?: number, day?: number, hour?: number, minute?: number, second?: number);
+    constructor(timestamp?: number);
+    constructor(date: DateTimeData);
+    constructor(year?: number, month?: number, day?: number, hour?: number, minute?: number, second?: number);
 
     year: number;
     month: number;
@@ -53,6 +88,8 @@ declare global {
     second: number;
     timeStamp: number;
 
+    static toSerialYear(year: number): number;
+    static fromSerialYear(serialYear: number): number;
     static getTotalDaysSinceStart(year: number): number;
     static isLeapYear(year: number): boolean;
     static getDaysOfMonthFromYear(year: number): readonly number[];
@@ -60,19 +97,7 @@ declare global {
 
     toTimestamp(year: number, month: number, day: number, hour: number, minute: number, second: number): this;
     fromTimestamp(timestamp: number): this;
-    compareWith(
-      otherDateTime: DateTime,
-      getSeconds?: boolean
-    ):
-      | number
-      | {
-          years: number;
-          months: number;
-          days: number;
-          hours: number;
-          minutes: number;
-          seconds: number;
-        };
+    compareWith(otherDateTime: DateTime, getSeconds?: boolean): number | DateTimeDiff;
     dayDifference(otherDateTime: DateTime): number;
     getFirstWeekdayOfMonth(weekDay: number): DateTime;
     getNextWeekdayDate(weekDay: number): DateTime;
@@ -103,6 +128,197 @@ declare global {
     readonly simplifiedDayFactor: number;
     readonly fractionOfYear: number;
     readonly seasonFactor: number;
+  }
+
+  interface MoonPhase {
+    start: number;
+    end: number;
+    endAlt?: number;
+    description: string;
+  }
+
+  interface TimeAPI {
+    readonly date: DateTime;
+    readonly holidayMonths: number[];
+    readonly second: number;
+    readonly minute: number;
+    readonly hour: number;
+    readonly weekDay: number;
+    readonly weekDayName: string;
+    readonly monthDay: number;
+    readonly month: number;
+    readonly monthName: string;
+    readonly year: number;
+    readonly days: number;
+    readonly season: string;
+    readonly tomorrow: DateTime;
+    readonly yesterday: DateTime;
+    readonly schoolTerm: boolean;
+    readonly schoolDay: boolean;
+    readonly schoolTime: boolean;
+    readonly dayState: string;
+    readonly nextSchoolTermStartDate: DateTime;
+    readonly nextSchoolTermEndDate: DateTime;
+    readonly lastDayOfMonth: number;
+    readonly dayOfYear: number;
+    readonly secondsSinceMidnight: number;
+    readonly currentMoonPhase: string;
+    startDate: DateTime;
+    monthNames: string[];
+    daysOfWeek: string[];
+    moonPhases: Record<string, MoonPhase>;
+
+    set(time?: number | DateTime): void;
+    setDate(date: DateTime): void;
+    setTime(hour: number, minute?: number): void;
+    setTimeRelative(hour?: number, minute?: number): void;
+    pass(seconds: number): any;
+    timeTravel(date: DateTime): any;
+    isSchoolTerm(date: DateTime): boolean;
+    isSchoolDay(date: DateTime): boolean;
+    isSchoolTime(date: DateTime): boolean;
+    getDayOfYear(date: DateTime): number;
+    getSecondsSinceMidnight(date: DateTime): number;
+    nextMoonPhase(targetPhase: string): DateTime;
+    previousMoonPhase(targetPhase: string): DateTime;
+    isBloodMoon(date?: DateTime): boolean;
+    getSeason(date: DateTime): string;
+    getNextSchoolTermStartDate(date: DateTime): DateTime;
+    getNextSchoolTermEndDate(date: DateTime): DateTime;
+    getNextWeekdayDate(weekDay: number): DateTime;
+    getPreviousWeekdayDate(weekDay: number): DateTime;
+    isWeekEnd(): boolean;
+    hasDatePassed(month: number, day: number): boolean;
+    betweenHours(from: number, to: number, pass?: number): boolean;
+    openingHours(minutes?: number): boolean;
+    readonly oxygenResaturationDuration: number;
+  }
+
+  const Time: TimeAPI;
+
+  type CanvasLayerMap = Record<string, LayerConfig>;
+  type CanvasLayerFilter = string | Record<string, any>;
+
+  // DOL 的 src / masksrc 有时可能是 string[]，所以单独抽出来
+  type CanvasLayerSrc = string | string[] | undefined;
+
+  type CanvasLayerValueFn<T = any> = (options: any) => T;
+
+  interface CanvasModelOptionsData {
+    filters?: Record<string, any>;
+    generatedLayers?: CanvasLayerMap;
+    [key: string]: any;
+  }
+
+  interface LayerConfig {
+    name?: string;
+    model?: CanvasModel;
+    defaultOptions?: LayerConfig;
+
+    show?: boolean;
+    src?: CanvasLayerSrc;
+    z?: number;
+    alpha?: number;
+    maskAlpha?: number;
+    brightness?: number;
+    contrast?: number;
+    blend?: string;
+    blendMode?: string;
+    maskBlendMode?: string;
+    compositeOperation?: string;
+    desaturate?: boolean;
+    masksrc?: CanvasLayerSrc;
+    animation?: any;
+    filters?: CanvasLayerFilter[];
+    dx?: number;
+    dy?: number;
+    width?: number;
+    height?: number;
+    worn?: string;
+    scale?: boolean | number;
+    frameDx?: number;
+    frameDy?: number;
+
+    showfn?: CanvasLayerValueFn<boolean>;
+    srcfn?: CanvasLayerValueFn<CanvasLayerSrc>;
+    zfn?: CanvasLayerValueFn<number>;
+    alphafn?: CanvasLayerValueFn<number>;
+    maskAlphafn?: CanvasLayerValueFn<number>;
+    brightnessfn?: CanvasLayerValueFn<number>;
+    contrastfn?: CanvasLayerValueFn<number>;
+    blendfn?: CanvasLayerValueFn<string | undefined>;
+    blendModefn?: CanvasLayerValueFn<string | undefined>;
+    maskBlendModefn?: CanvasLayerValueFn<string | undefined>;
+    compositeOperationfn?: CanvasLayerValueFn<string | undefined>;
+    desaturatefn?: CanvasLayerValueFn<boolean>;
+    masksrcfn?: CanvasLayerValueFn<CanvasLayerSrc>;
+    animationfn?: CanvasLayerValueFn<any>;
+    filtersfn?: CanvasLayerValueFn<CanvasLayerFilter[] | undefined>;
+    dxfn?: CanvasLayerValueFn<number>;
+    dyfn?: CanvasLayerValueFn<number>;
+    widthfn?: CanvasLayerValueFn<number>;
+    heightfn?: CanvasLayerValueFn<number>;
+    wornfn?: CanvasLayerValueFn<string | undefined>;
+    scalefn?: CanvasLayerValueFn<boolean | number | undefined>;
+
+    [key: string]: any;
+  }
+
+  interface CanvasModelOptions {
+    name: string;
+    width: number;
+    height: number;
+    layers: CanvasLayerMap;
+    frames?: number;
+    metadata?: Record<string, any>;
+    scale?: boolean | number;
+
+    generatedOptions?: (this: CanvasModel) => any[];
+    defaultOptions?: (this: CanvasModel) => CanvasModelOptionsData;
+    preprocess?: (this: CanvasModel, options: any) => void;
+    postprocess?: (this: CanvasModel, options: any) => void;
+
+    [key: string]: any;
+  }
+
+  interface CanvasModelConstructor {
+    new (...args: any[]): CanvasModel;
+    create(id: string, slot?: string): CanvasModel;
+  }
+
+  class CanvasModel {
+    static create(id: string, slot?: string): CanvasModel;
+
+    constructor(...args: any[]);
+
+    name: string;
+    width: number;
+    height: number;
+    frames: number;
+    metadata: Record<string, any>;
+    scale: boolean | number;
+
+    layers: CanvasLayerMap;
+    layerList: LayerConfig[];
+    options: CanvasModelOptionsData;
+
+    animated: boolean;
+    canvas: CanvasRenderingContext2D | null;
+    listener?: any;
+    rendererListener?: any;
+
+    generatedOptions(): any[];
+    defaultOptions(): CanvasModelOptionsData;
+    createCanvas(cssAnimated?: boolean): CanvasRenderingContext2D;
+    reset(): void;
+    showLayer(name: string, filters: CanvasLayerFilter[]): void;
+    hideLayer(name: string): void;
+    render(canvas: CanvasRenderingContext2D, options?: any, listener?: any): void;
+    animate(canvas: CanvasRenderingContext2D, options?: any, listener?: any): any;
+    redraw(): any;
+    preprocess(options: any): void;
+    postprocess(options: any): void;
+    compile(options?: any): LayerConfig[];
   }
 
   export interface JQueryAriaClickOptions {
@@ -313,8 +529,37 @@ interface TimeTravelOptions {
 }
 declare class TimeManager {
     readonly log: (message: string, level?: string, ...objects: any[]) => void;
+    readonly TimeConstants: Readonly<{
+        secondsPerDay: 86400;
+        secondsPerHour: 3600;
+        secondsPerMinute: 60;
+        minutesPerHour: 60;
+        standardYearMonths: readonly number[];
+        leapYearMonths: readonly number[];
+        synodicMonth: 29.53058867;
+        MIN_DATE: Readonly<{
+            timeStamp: -315537984000;
+            year: -9999;
+            month: 1;
+            day: 1;
+            hour: 0;
+            minute: 0;
+            second: 0;
+        }>;
+        MAX_DATE: Readonly<{
+            timeStamp: 315537897599;
+            year: 9999;
+            month: 12;
+            day: 31;
+            hour: 23;
+            minute: 59;
+            second: 59;
+        }>;
+    }>;
     constructor(manager: DynamicManager);
     init(): void;
+    patchDateTime(DateTimeClass: typeof DateTime): typeof DateTime;
+    patchTime(TimeObject: typeof Time): void;
     register(type: string, eventId: string, options: TimeEventOptions): boolean;
     unregister(type: string, eventId: string): boolean;
     timeTravel(options?: TimeTravelOptions): boolean;
@@ -384,7 +629,7 @@ declare class WeatherManager {
     applyModifications(params: any): any;
     addWeatherData(data: WeatherException | WeatherTypeConfig): boolean | void;
     init(): void;
-    modifyWeatherJavaScript(manager: AddonPlugin): Promise<void>;
+    modifyWeatherJavaScript(manager: AddonPlugin): void;
 }
 
 declare class DynamicManager {
@@ -468,6 +713,11 @@ declare namespace utils {
   export { utils_SelectCase as SelectCase, utils_clone as clone, utils_contains as contains, utils_convert as convert, utils_either as either, utils_equal as equal, utils_loadImage as loadImage, utils_merge as merge, utils_number as number, utils_random as random, utils_widgets as widgets };
 }
 
+declare class TimeTravelCheat {
+    constructor(core: MaplebirchCore);
+    fragment(): DocumentFragment;
+}
+
 interface JSExecutionResult {
     success: boolean;
     result?: any;
@@ -493,6 +743,7 @@ interface ExecutionResult {
 }
 declare class CheatConsole {
     readonly manager: ToolCollection;
+    readonly timeTravel: TimeTravelCheat;
     constructor(manager: ToolCollection);
     executeJS(code?: string): JSExecutionResult;
     executeTwine(code?: string): TwineExecutionResult;
@@ -1050,7 +1301,7 @@ interface Part {
     default?: string;
     [key: string]: any;
 }
-type TransformHook = (options: any) => void;
+type TransformHook = (options: any, model?: CanvasModel) => void;
 type DecayCondition = () => boolean;
 type SuppressCondition = (sourceName: string) => boolean;
 type TransformMessage = Record<string, {
@@ -1068,9 +1319,9 @@ interface EntryOptions {
     decayConditions?: DecayCondition[];
     suppress?: boolean;
     suppressConditions?: SuppressCondition[];
-    pre?: TransformHook | Function;
-    post?: TransformHook | Function;
-    layers?: any;
+    pre?: TransformHook;
+    post?: TransformHook;
+    layers?: CanvasLayerMap;
     translations?: TranslationInput$1;
 }
 interface TransformationOption extends EntryOptions {
@@ -1082,7 +1333,7 @@ declare class Transformation {
     readonly suppressConditions: Record<string, SuppressCondition[]>;
     constructor(manager: Character);
     wikifier(widget: string, ...args: any[]): any;
-    modifyEffect(manager: AddonPlugin): Promise<void>;
+    modifyEffect(manager: AddonPlugin): void;
     add(name: string, type: string, options: TransformationOption): this;
     inject(): void;
     _update(): void;
@@ -1105,21 +1356,11 @@ interface FaceStyleOptions {
     facevariant: string;
     [key: string]: any;
 }
-interface LayerConfig {
-    masksrcfn?: (options: any) => any;
-    srcfn?: (options: any) => string;
-    showfn?: (options: any) => boolean;
-    zfn?: (options: any) => number;
-    filtersfn?: (options: any) => string[];
-    animation?: string;
-    [key: string]: any;
-}
 type FaceStyleNameFn = (options: FaceStyleOptions) => string | string[];
 type FaceStyleName = string | string[];
-type CharacterProcessType = 'pre' | 'post';
-type CharacterProcessHandler = (options: any) => void;
-type CharacterProcessInput = CharacterProcessHandler | Function;
-type CharacterLayerMap = Record<string, LayerConfig>;
+type ProcessType = 'pre' | 'post';
+type ModelTarget<TModel = CanvasModel | CanvasModelOptions> = string | string[] | ((modelName: string, model?: TModel) => boolean);
+type ProcessHandler = (options: any, model?: CanvasModel) => void;
 declare function faceStyleSrcFn(name: FaceStyleNameFn | FaceStyleName): (layerOptions: FaceStyleOptions) => string;
 declare function mask(x?: number, rotation?: number, swap?: boolean, width?: number, height?: number): string;
 declare class Character {
@@ -1128,18 +1369,17 @@ declare class Character {
     readonly mask: typeof mask;
     readonly faceStyleSrcFn: typeof faceStyleSrcFn;
     readonly faceStyleMap: Map<string, string[]>;
-    readonly handlers: Record<CharacterProcessType, CharacterProcessHandler[]>;
     readonly transformation: Transformation;
-    layers: CharacterLayerMap;
     constructor(core: MaplebirchCore);
     get ZIndices(): {
         [key: string]: number;
     };
-    modifyPCModel(manager: AddonPlugin): Promise<void>;
-    use(type: CharacterProcessType, fn: CharacterProcessInput): this;
-    use(layerMap: CharacterLayerMap): this;
-    process(type: CharacterProcessType, options: any): void;
-    modifyFaceStyle(manager: AddonPlugin): Promise<void>;
+    modifyCanvasModel(manager: AddonPlugin): void;
+    patchCanvasModel<T extends CanvasModelConstructor>(BaseCanvasModel: T): T;
+    use(type: ProcessType, handler: ProcessHandler, target?: ModelTarget<CanvasModel>): this;
+    use(layers: CanvasLayerMap, target?: ModelTarget<CanvasModelOptions>): this;
+    process(type: ProcessType, options: CanvasModelOptionsData, model?: CanvasModel): void;
+    modifyFaceStyle(manager: AddonPlugin): void;
     faceStyleImagePaths(): Promise<void>;
     render(): Promise<void>;
     preInit(): void;
@@ -1606,6 +1846,8 @@ interface Task<T = any> {
     config: T;
     modZip?: ModZipReader;
 }
+type Replacement = [RegExp, string];
+declare function replace(content: string, replacements: Replacement[], label?: string): string;
 
 type ConfigType = 'language' | 'audio' | 'framework' | 'npc';
 interface FileItem {
@@ -1649,6 +1891,5 @@ declare class AddonPlugin {
     whenSC2PassageEnd(passage: Passage, content: HTMLDivElement): Promise<any>;
     loadCrypt(options: CryptOptions): Promise<boolean>;
 }
-declare function replace(content: string, replacements: [RegExp, string][]): string;
 
 export { type Extensions, MaplebirchCore, maplebirch as default, utils };

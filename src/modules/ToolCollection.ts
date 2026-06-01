@@ -2,13 +2,13 @@
 
 import maplebirch, { MaplebirchCore, createlog } from '../core';
 import * as utils from '../utils';
-import Console from './Frameworks/consoleCheat';
+import Console from './Frameworks/ConsoleCheat';
 import migration from './Frameworks/migration';
-import randSystem from './Frameworks/randSystem';
+import randSystem from './Frameworks/RandSystem';
 import defineMacros from './Frameworks/macros';
-import htmlTools from './Frameworks/htmlTools';
-import { zonesManager, type InitFunction, type ZoneWidgetConfig } from './Frameworks/zonesManager';
-import applyLinkZone from './Frameworks/applyLinkZone';
+import htmlTools from './Frameworks/HtmlTools';
+import { zonesManager, type InitFunction, type ZoneWidgetConfig } from './Frameworks/ZonesManager';
+import applyLinkZone from './Frameworks/ApplyLinkZone';
 import Patch from './Frameworks/patch';
 
 class ToolCollection {
