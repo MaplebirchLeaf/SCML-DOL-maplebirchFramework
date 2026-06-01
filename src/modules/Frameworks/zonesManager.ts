@@ -1,4 +1,4 @@
-// .src/modules/Frameworks/zonesManager.ts
+// .src/modules/Frameworks/ZonesManager.ts
 
 import { createlog } from '../../core';
 import { clone, merge } from '../../utils';

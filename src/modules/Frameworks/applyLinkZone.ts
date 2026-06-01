@@ -1,4 +1,4 @@
-// ./src/modules/Frameworks/applyLinkZone.ts
+// ./src/modules/Frameworks/ApplyLinkZone.ts
 
 import maplebirch, { type MaplebirchCore, createlog } from '../../core';
 import { merge } from '../../utils';

@@ -1,7 +1,8 @@
-// ./src/modules/Frameworks/consoleCheat.ts
+// ./src/modules/Frameworks/ConsoleCheat.ts
 
 import { createlog, type MaplebirchCore } from '../../core';
 import ToolCollection from '../ToolCollection';
+import TimeTravelCheat from './TimeTravelCheat';
 
 interface JSExecutionResult {
   success: boolean;
@@ -33,6 +34,7 @@ class CheatConsole {
   private readonly log: ReturnType<typeof createlog>;
   private readonly core: MaplebirchCore;
   private readonly globals: Record<string, any> = {};
+  public readonly timeTravel: TimeTravelCheat;
 
   private readonly jsStatus = '#js-cheat-console-status';
   private readonly twineStatus = '#twine-cheat-console-status';
@@ -41,6 +43,7 @@ class CheatConsole {
   public constructor(readonly manager: ToolCollection) {
     this.log = createlog('console');
     this.core = manager.core;
+    this.timeTravel = new TimeTravelCheat(this.core);
   }
 
   public executeJS(code: string = ''): JSExecutionResult {

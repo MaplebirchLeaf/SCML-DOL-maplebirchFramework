@@ -4,7 +4,7 @@ import { TimeConstants } from '../../constants';
 import maplebirch from '../../core';
 import type DynamicManager from '../Dynamic';
 import patchDateTime from './DateTime';
-import patchTime from './Time';
+import patchTime, { bindTimeHandlers, vanillaTime } from './Time';
 
 type TimeEventType = 'onSec' | 'onMin' | 'onHour' | 'onDay' | 'onWeek' | 'onMonth' | 'onYear' | 'onBefore' | 'onThread' | 'onAfter' | 'onTimeTravel';
 
@@ -177,15 +177,8 @@ export class TimeManager {
   private readonly timeEvents: Record<string, Map<string, TimeEvent>> = {};
   private readonly sortedEventsCache: Record<string, TimeEvent[] | null> = {};
 
-  private readonly vanillaTime = {
-    pass: null as ((seconds: number) => any) | null,
-    setDate: null as ((date: DateTime) => void) | null
-  };
-
-  private doLPassHookInstalled = false;
-  private passSnapshots: PassSnapshot[] = [];
-
   public readonly log: (message: string, level?: string, ...objects: any[]) => void;
+  public readonly TimeConstants = TimeConstants;
 
   public constructor(private readonly manager: DynamicManager) {
     this.log = manager.log;
@@ -197,15 +190,22 @@ export class TimeManager {
 
   public init(): void {
     try {
-      patchDateTime();
-      patchTime();
-      this.saveTime();
-      Time.pass = (seconds: number) => this.handleTimePass(seconds);
-      Time.timeTravel = (date: DateTime) => this.handleTimeTravel(date);
+      bindTimeHandlers(Time, {
+        pass: (seconds: number) => this.handleTimePass(seconds),
+        timeTravel: (date: DateTime) => this.handleTimeTravel(date)
+      });
       this.log('时间事件系统已激活', 'INFO');
     } catch (e: any) {
       this.log(`初始化时间事件系统失败: ${e.message}`, 'ERROR');
     }
+  }
+
+  public patchDateTime(DateTimeClass: typeof DateTime): typeof DateTime {
+    return patchDateTime(DateTimeClass);
+  }
+
+  public patchTime(TimeObject: typeof Time): void {
+    patchTime(TimeObject);
   }
 
   public register(type: string, eventId: string, options: TimeEventOptions): boolean {
@@ -257,14 +257,9 @@ export class TimeManager {
     return lanSwitch(`It is ${getFormattedDate(date)}, ${year}${eraEN}.`, `今天是${eraCN}${year}年${date.month}月${date.day}日。`);
   }
 
-  private saveTime(): void {
-    if (!this.vanillaTime.pass && typeof Time.pass === 'function') this.vanillaTime.pass = Time.pass.bind(time);
-    if (!this.vanillaTime.setDate && typeof Time.setDate === 'function') this.vanillaTime.setDate = Time.setDate.bind(time);
-  }
-
   private handleTimePass(seconds: number): any {
-    const pass = this.vanillaTime.pass;
-    const setDate = this.vanillaTime.setDate;
+    const pass = vanillaTime.pass;
+    const setDate = vanillaTime.setDate;
     if (!pass || !setDate) return;
     if (!Number.isFinite(seconds) || seconds < 0) return;
     const prevDate = new window.DateTime(Time.date);

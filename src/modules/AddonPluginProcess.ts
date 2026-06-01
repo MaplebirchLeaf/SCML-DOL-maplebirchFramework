@@ -1,5 +1,6 @@
 // ./src/modules/AddonPluginProcess.ts
 
+import maplebirch from '../core';
 import type AddonPlugin from './AddonPlugin';
 import { Languages, type LanguageCode } from '../constants';
 import type { ModZipReader } from '@scml/types/sugarcube-2-ModLoader/ModZipReader';
@@ -7,7 +8,7 @@ import type { TraitConfig } from './Frameworks/OtherTools/Traits';
 import type { BodywritingConfig } from './Frameworks/OtherTools/Bodywriting';
 import type { FoodstuffConfig } from './Frameworks/OtherTools/Foodstuff';
 import type { AntiqueConfig } from './Frameworks/OtherTools/Antiques';
-import type { ZoneWidgetConfig } from './Frameworks/zonesManager';
+import type { ZoneWidgetConfig } from './Frameworks/ZonesManager';
 
 type ConfigFileSource = string | string[];
 type KeyedConfig<T> = T & { key?: string };
@@ -348,21 +349,87 @@ class AddonPluginProcess {
   }
 }
 
-export function defineTwineAsset(type: 'script' | 'style', name: string, content: string) {
+export type Replacement = [RegExp, string];
+
+export function replace(content: string, replacements: Replacement[], label = 'replace'): string {
+  const unmatched: number[] = [];
+  let result = content;
+  replacements.forEach(([regex, replacement], index) => {
+    regex.lastIndex = 0;
+    if (regex.test(result)) {
+      regex.lastIndex = 0;
+      result = result.replace(regex, replacement);
+    } else {
+      unmatched.push(index + 1);
+    }
+  });
+  if (unmatched.length) maplebirch.log(`${label}: 以下正则未匹配到内容 - ${unmatched.join(',')}`, 'WARN');
+  return result;
+}
+
+type TwineAssetMode = 'append' | 'replace' | 'patch';
+
+function normalizeTwineAssetName(name: string): string {
+  return name.replace(/\\\\/g, '\\').replace(/\//g, '\\').toLowerCase();
+}
+
+export function defineTwineAsset(type: 'script' | 'style', name: string, content: string | ((current: string) => string), mode: TwineAssetMode = 'append') {
   const story = document.getElementsByTagName('tw-storydata')[0];
   if (!story) return;
   const node = story.getElementsByTagName(type)[0];
   if (!node) return;
   const text = node.textContent || '';
-  if (text.includes(`"${name}"`)) return;
   const kind = type === 'script' ? 'twine-user-script' : 'twine-user-stylesheet';
   const re = new RegExp(`/\\* ${kind} #(\\d+): "([^'"]+)" \\*/`, 'g');
+  const targetName = normalizeTwineAssetName(name);
   let maxId = 0;
+  let found: { start: number; contentStart: number; end: number; id: number; name: string } | null = null;
+  let previous: RegExpExecArray | null = null;
+
   for (const m of text.matchAll(re)) {
     const id = Number(m[1]);
     if (Number.isSafeInteger(id) && id > maxId) maxId = id;
+    if (previous && normalizeTwineAssetName(previous[2]) === targetName) {
+      found = {
+        start: previous.index,
+        contentStart: previous.index + previous[0].length,
+        end: m.index,
+        id: Number(previous[1]),
+        name: previous[2]
+      };
+      break;
+    }
+    previous = m;
   }
-  node.textContent = `${text}\n/* ${kind} #${maxId + 1}: "${name}" */\n${content}`;
+
+  if (!found && previous && normalizeTwineAssetName(previous[2]) === targetName) {
+    found = {
+      start: previous.index,
+      contentStart: previous.index + previous[0].length,
+      end: text.length,
+      id: Number(previous[1]),
+      name: previous[2]
+    };
+  }
+
+  if (found) {
+    if (mode === 'append') return;
+    const current = text
+      .slice(found.contentStart, found.end)
+      .replace(/^\r?\n/, '')
+      .replace(/\r?\n$/, '');
+    const nextContent = typeof content === 'function' ? content(current) : content;
+    node.textContent = `${text.slice(0, found.start)}/* ${kind} #${found.id}: "${found.name}" */\n${nextContent}\n${text.slice(found.end).replace(/^\r?\n/, '')}`;
+    return;
+  }
+
+  if (mode === 'patch') {
+    maplebirch.log(`Twine asset patch: 未找到资产 ${name}，已跳过追加以避免重复脚本`, 'WARN');
+    return;
+  }
+
+  const nextContent = typeof content === 'function' ? content('') : content;
+  node.textContent = `${text}\n/* ${kind} #${maxId + 1}: "${name}" */\n${nextContent}`;
 }
 
 export default AddonPluginProcess;

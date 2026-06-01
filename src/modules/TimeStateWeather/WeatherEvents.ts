@@ -3,6 +3,7 @@
 import maplebirch from '../../core';
 import { merge } from '../../utils';
 import type AddonPlugin from '../AddonPlugin';
+import type { Replacement } from '../AddonPluginProcess';
 import type DynamicManager from '../Dynamic';
 
 export interface WeatherEventOptions {
@@ -255,16 +256,11 @@ export class WeatherManager {
     this.log('天气事件系统已激活', 'INFO');
   }
 
-  public async modifyWeatherJavaScript(manager: AddonPlugin): Promise<void> {
+  public modifyWeatherJavaScript(manager: AddonPlugin): void {
     const oldSCdata = manager.SC2DataManager.getSC2DataInfoAfterPatch();
     const SCdata = oldSCdata.cloneSC2DataInfo();
     const file = SCdata.scriptFileItems.getByNameWithOrWithoutPath('00-layer-manager.js')!;
-    const replacements: [RegExp, string][] = [
-      [
-        /const\s+layer\s*=\s*new\s+Weather\.Renderer\.Layer\(([^)]+)\);/,
-        'maplebirch.dynamic.Weather.applyModifications(params);\n\t\tconst layer = new Weather.Renderer.Layer(params.name, params.blur, params.zIndex, params.animation);'
-      ]
-    ];
+    const replacements: Replacement[] = [[/^(\s*)(const\s+layer\s*=\s*new\s+Weather\.Renderer\.Layer\(params\);)/m, '$1maplebirch.dynamic.Weather.applyModifications(params);\n$1$2']];
     file.content = manager.replace(file.content, replacements);
     manager.modUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
   }

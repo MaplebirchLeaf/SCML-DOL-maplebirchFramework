@@ -20337,3 +20337,5 @@ sugarcube-2:
       name: maplebirchNPCHairStyleOptions
     maplebirchTransformationPartSelect:
       name: maplebirchTransformationPartSelect
+    maplebirchTimeTravel:
+      name: maplebirchTimeTravel

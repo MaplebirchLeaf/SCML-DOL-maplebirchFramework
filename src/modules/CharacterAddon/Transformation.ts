@@ -3,6 +3,7 @@
 import maplebirch, { createlog } from '../../core';
 import { Translation } from '../../services/LanguageManager';
 import type AddonPlugin from '../AddonPlugin';
+import type { Replacement } from '../AddonPluginProcess';
 import type Character from '../Character';
 
 interface Part {
@@ -17,7 +18,7 @@ interface TransformData {
   build: number;
 }
 
-type TransformHook = (options: any) => void;
+type TransformHook = (options: any, model?: CanvasModel) => void;
 type DecayCondition = () => boolean;
 type SuppressCondition = (sourceName: string) => boolean;
 type TransformMessage = Record<string, { up: string[]; down: string[] }>;
@@ -33,9 +34,9 @@ interface EntryOptions {
   decayConditions?: DecayCondition[];
   suppress?: boolean;
   suppressConditions?: SuppressCondition[];
-  pre?: TransformHook | Function;
-  post?: TransformHook | Function;
-  layers?: any;
+  pre?: TransformHook;
+  post?: TransformHook;
+  layers?: CanvasLayerMap;
   translations?: TranslationInput;
 }
 
@@ -141,14 +142,14 @@ class Transformation {
     return this.manager.core.SugarCube.Wikifier.wikifyEval(`<<${widget}${args.length ? ` ${args.join(' ')}` : ''}>>`);
   }
 
-  public async modifyEffect(manager: AddonPlugin): Promise<void> {
+  public modifyEffect(manager: AddonPlugin): void {
     const oldSCdata = manager.SC2DataManager.getSC2DataInfoAfterPatch();
     const SCdata = oldSCdata.cloneSC2DataInfo();
     const file = SCdata.scriptFileItems.getByNameWithOrWithoutPath('effect.js')!;
-    const replacements: [RegExp, string][] = [
+    const replacements: Replacement[] = [
       [
-        /errors\.pushUnique\(messageKey\);/g,
-        'if (maplebirch.char.transformation.message(messageKey, { element: element, sWikifier: sWikifier, fragment: fragment, wikifier: wikifier })) break;\n\t\t\t\t\terrors.pushUnique(messageKey);'
+        /(errors\.pushUnique\(messageKey\);)/g,
+        'if (maplebirch.char.transformation.message(messageKey, { element: element, sWikifier: sWikifier, fragment: fragment, wikifier: wikifier })) break;\n\t\t\t\t\t$1'
       ]
     ];
     file.content = manager.replace(file.content, replacements);
@@ -163,9 +164,9 @@ class Transformation {
     if (type === 'physical' && options.suppress !== false && !this.suppressConditions[name])
       this.suppressConditions[name] = options.suppressConditions ?? [(sourceName: string) => sourceName !== name];
 
-    if (options.pre && typeof options.pre === 'function') this.manager.use('pre', options.pre);
-    if (options.post && typeof options.post === 'function') this.manager.use('post', options.post);
-    if (options.layers && typeof options.layers === 'object') this.manager.use(options.layers);
+    if (options.pre) this.manager.use('pre', options.pre);
+    if (options.post) this.manager.use('post', options.post);
+    if (options.layers) this.manager.use(options.layers);
 
     if (options.translations) {
       const translations = options.translations instanceof Map ? options.translations.entries() : Object.entries(options.translations);

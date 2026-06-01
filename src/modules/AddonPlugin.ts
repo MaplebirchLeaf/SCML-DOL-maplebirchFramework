@@ -8,10 +8,12 @@ import type { TypeOrderItem } from '@scml/types/AddonMod_BeautySelector/BeautySe
 import type { SC2DataManager } from '@scml/types/sugarcube-2-ModLoader/SC2DataManager';
 import type { ModUtils } from '@scml/types/sugarcube-2-ModLoader/Utils';
 import type { CryptOptions } from '../services/CredentialVault';
-import FlatpickrStyles from 'flatpickr/dist/flatpickr.min.css';
+import FlatpickrStyles from 'flatpickr/dist/themes/dark.css';
 import MaplebrichStyles from '@/styles/MaplebrichStyles.css';
 import maplebirch, { type MaplebirchCore, createlog } from '../core';
-import AddonPluginProcess, { type Task, type LanguageConfig, type AudioConfig, type FrameworkConfig, defineTwineAsset } from './AddonPluginProcess';
+import AddonPluginProcess, { type Task, type LanguageConfig, type AudioConfig, type FrameworkConfig, type Replacement, replace, defineTwineAsset } from './AddonPluginProcess';
+import { patchTimeConstantsAsset, patchDateTimeAsset } from './TimeStateWeather/DateTime';
+import { patchTimeAsset } from './TimeStateWeather/Time';
 
 type ConfigType = 'language' | 'audio' | 'framework' | 'npc';
 type FileType = 'Module' | 'Script';
@@ -121,13 +123,16 @@ class AddonPlugin {
   }
 
   public async beforePatchModToGame(): Promise<void> {
-    await this.dataReplace();
+    this.dataReplace();
     await this.processInit();
     await this.core.trigger(':import');
     this.core.tool.zone.patchModToGame(this, 'before');
   }
 
   public async PatchModToGame_start(): Promise<any> {
+    defineTwineAsset('script', 'game\\00-framework-tools\\10-time\\00-time-constants.js', patchTimeConstantsAsset, 'patch');
+    defineTwineAsset('script', 'game\\00-framework-tools\\10-time\\datetime.js', patchDateTimeAsset, 'patch');
+    defineTwineAsset('script', 'game\\03-JavaScript\\time.js', patchTimeAsset, 'patch');
     defineTwineAsset(
       'script',
       'maplebirch/sugarcube-bridge.js',
@@ -208,12 +213,12 @@ class AddonPlugin {
   }
 
   // prettier-ignore
-  private async dataReplace(): Promise<void> {
-    try { await modifyOptionsDateFormat(this);                           } catch { this.log('modifyOptionsDateFormat 出错', 'ERROR'); }
-    try { await this.core.dynamic.Weather.modifyWeatherJavaScript(this); } catch { this.log('modifyWeatherJavaScript 出错', 'ERROR'); }
-    try { await this.core.char.modifyPCModel(this);                      } catch { this.log('modifyPCModel 出错', 'ERROR');           }
-    try { await this.core.char.modifyFaceStyle(this);                    } catch { this.log('modifyFaceStyle 出错', 'ERROR');         }
-    try { await this.core.char.transformation.modifyEffect(this);        } catch { this.log('modifyEffect 出错', 'ERROR');            }
+  private dataReplace(): void {
+    try { modifyOptionsDateFormat(this);                           } catch { this.log('modifyOptionsDateFormat 出错', 'ERROR'); }
+    try { this.core.dynamic.Weather.modifyWeatherJavaScript(this); } catch { this.log('modifyWeatherJavaScript 出错', 'ERROR'); }
+    try { this.core.char.modifyCanvasModel(this);                  } catch { this.log('modifyCanvasModel 出错', 'ERROR');       }
+    try { this.core.char.modifyFaceStyle(this);                    } catch { this.log('modifyFaceStyle 出错', 'ERROR');         }
+    try { this.core.char.transformation.modifyEffect(this);        } catch { this.log('modifyEffect 出错', 'ERROR');            }
   }
 
   private async loadFiles(modName: string, modZip: ModZipReader, files: string[], type: FileType): Promise<void> {
@@ -271,29 +276,13 @@ class AddonPlugin {
   }
 }
 
-function replace(content: string, replacements: [RegExp, string][]): string {
-  const unmatched: number[] = [];
-  let result = content;
-  replacements.forEach(([regex, replacement], index) => {
-    regex.lastIndex = 0;
-    if (regex.test(result)) {
-      regex.lastIndex = 0;
-      result = result.replace(regex, replacement);
-    } else {
-      unmatched.push(index + 1);
-    }
-  });
-  if (unmatched.length) maplebirch.log(`以下正则未匹配到内容 - ${unmatched.join(',')}`, 'WARN');
-  return result;
-}
-
-async function modifyOptionsDateFormat(manager: AddonPlugin): Promise<void> {
+function modifyOptionsDateFormat(manager: AddonPlugin): void {
   const oldSCdata = manager.SC2DataManager.getSC2DataInfoAfterPatch();
   const SCdata = oldSCdata.cloneSC2DataInfo();
   const passageData = SCdata.passageDataItems.map;
   const passageTitle = 'Options Overlay';
   const passage = passageData.get(passageTitle)!;
-  const replacements: [RegExp, string][] = [
+  const replacements: Replacement[] = [
     [
       /<label\s+class="en-GB">\s*<<radiobutton\s*"\$options\.dateFormat"\s*"en-GB"\s*autocheck\s*>>\s*([^<]+)<\/label>/,
       `<label class="en-GB"><<radiobutton "$options.dateFormat" "en-GB" autocheck>> ${manager.modUtils.getModListNameNoAlias().includes('ModI18N') ? '英(日/月/年)' : 'GB(dd/mm/yyyy)'}</label>`
@@ -307,7 +296,7 @@ async function modifyOptionsDateFormat(manager: AddonPlugin): Promise<void> {
       `<label class="zh-CN"><<radiobutton "$options.dateFormat" "zh-CN" autocheck>> ${manager.modUtils.getModListNameNoAlias().includes('ModI18N') ? '中(年/月/日)' : 'CN(yyyy/mm/dd)'}</label>`
     ]
   ];
-  passage.content = replace(passage.content, replacements);
+  passage.content = replace(passage.content, replacements, 'Options Overlay dateFormat');
   passageData.set(passageTitle, passage);
   SCdata.passageDataItems.back2Array();
   manager.modUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);

@@ -24,6 +24,7 @@ The framework is designed around additive mod development: instead of directly r
 - [Script Loading](#script-loading)
 - [Mod Encryption](#mod-encryption)
 - [Recommended Structure](#recommended-structure)
+- [Type Package](#type-package)
 - [Documentation](#documentation)
 - [boot.json Quick Reference](#bootjson-quick-reference)
 - [Links](#links)
@@ -135,6 +136,27 @@ maplebirch.npc.addStats({
   }
 });
 ```
+
+## Type Package
+
+If your mod uses TypeScript, or if you want editor completion for the global `maplebirch` APIs, install the framework type package:
+
+```bash
+npm install -D @scml-maplebirch/types
+```
+
+Then add it to `tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "types": ["@types/twine-sugarcube", "@scml-maplebirch/types"],
+    "skipLibCheck": true
+  }
+}
+```
+
+This package only provides TypeScript declarations. It does not include runtime framework code, so players still need to load the actual `maplebirchFramework` mod through ModLoader. Keep the type package version close to the framework version your mod depends on.
 
 ## Documentation
 

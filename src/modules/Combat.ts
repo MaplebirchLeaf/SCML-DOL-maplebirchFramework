@@ -78,6 +78,7 @@ class CombatManager {
   }
 
   private _combatListColor(name: string | number | false, value?: any, type: CombatType = 'Default') {
+    type = (type || 'Default') as CombatType;
     const rawAction = value ?? (name !== false ? V[name] : '');
     const action = String(rawAction || '').replace(/\d+/g, '');
     if (combatActionColours[type]) for (const color in combatActionColours[type]) if (combatActionColours[type][color].includes(action)) return color;

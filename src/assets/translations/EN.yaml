@@ -39,6 +39,7 @@
 'reset': reset
 'status': status
 'choose': choose
+'calendar': 日历
 
 'traditional': traditional
 'gentle': gentle
