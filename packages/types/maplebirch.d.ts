@@ -498,15 +498,11 @@ declare class CloudSaveService {
     /** 发送底层 WebDAV fetch 请求，并自动附加 Basic Auth 认证头。 */
     /** 把相对 WebDAV 路径拼接成完整请求 URL。 */
     /** 根据文件片段生成已编码的 WebDAV 远端路径。 */
-    /** 把 WebDAV 用户名和密码编码成 Basic Auth 所需的 Base64 字符串。 */
     /** 使用 PBKDF2 派生密钥并用 AES-GCM 加密云存档数据。 */
     /** 校验云存档密文版本，派生密钥后解密并还原 JSON 数据。 */
     /** 用 fflate 尝试 gzip 压缩数据，只在压缩后更小时使用压缩结果。 */
     /** 解压 gzip 数据；优先用 fflate，旧环境异常时再尝试浏览器原生解压。 */
     /** 使用 PBKDF2-SHA256 从口令和 salt 派生 AES-GCM 密钥。 */
-    /** 把 Uint8Array 精确裁剪成 WebCrypto 需要的 ArrayBuffer。 */
-    /** 把字节数组转换成 Base64 字符串，便于写入 JSON。 */
-    /** 把 Base64 字符串还原成字节数组。 */
 }
 
 type LanguageCode = (typeof Languages)[number];
@@ -795,10 +791,23 @@ type ContainsOptions = {
     compare?: (item: unknown, value: unknown) => boolean;
     deep?: boolean;
 };
-declare function clone(source: any, opt?: {
+type CloneOptions = {
     deep?: boolean;
     proto?: boolean;
-}, map?: WeakMap<object, any>): any;
+};
+type MergeMode = 'replace' | 'concat' | 'merge';
+type MergeOptions = {
+    mode?: MergeMode;
+    filterFn?: ((key: string, value: any, depth: number, targetValue: any) => boolean) | null;
+};
+type ConvertMode$1 = 'lower' | 'upper' | 'capitalize' | 'title' | 'camel' | 'pascal' | 'snake' | 'kebab' | 'constant';
+type NumberMode = 'none' | 'floor' | 'ceil' | 'round' | 'trunc';
+type NumberOptions = {
+    step?: number;
+    percent?: boolean;
+    loop?: boolean;
+};
+declare function clone(source: any, opt?: CloneOptions, map?: WeakMap<object, any>): any;
 declare function equal(a: any, b: any): boolean;
 declare function merge(target: any, ...sources: any[]): any;
 declare function contains(arr: unknown[], value: unknown, mode?: ContainsMode, opt?: ContainsOptions): boolean;
@@ -820,33 +829,79 @@ declare class SelectCase {
     else(result: any): this;
     match(input: any, meta?: any): any;
 }
-declare function convert(str: string, mode?: 'lower' | 'upper' | 'capitalize' | 'title' | 'camel' | 'pascal' | 'snake' | 'kebab' | 'constant', opt?: {
+declare function convert(str: string, mode?: ConvertMode$1, opt?: {
     delimiter?: string;
     acronym?: boolean;
 }): string;
-declare function number(value: any, fallback?: number, min?: number, max?: number, mode?: 'none' | 'floor' | 'ceil' | 'round' | 'trunc', opt?: {
-    step?: number;
-    percent?: boolean;
-    loop?: boolean;
-}): number;
+declare function number(value: any, fallback?: number, min?: number, max?: number, mode?: NumberMode, opt?: NumberOptions): number;
 declare function loadImage(src: string): string | boolean | Promise<string | boolean>;
 declare function widgets(content: string): string;
 declare function widgets(...contents: string[]): string[];
+declare function textToBytes(value: string): Uint8Array;
+declare function bytesToText(bytes: Uint8Array | ArrayBuffer): string;
+declare function jsonToBytes(value: unknown): Uint8Array;
+declare function bytesToJson<T = any>(bytes: Uint8Array | ArrayBuffer): T;
+declare function toArrayBuffer(bytes: Uint8Array): ArrayBuffer;
+declare function normalizeBase64(value: string): string;
+declare function bytesToBase64(bytes: Uint8Array): string;
+declare function base64ToBytes(base64: string): Uint8Array;
+declare function base64ToArrayBuffer(base64: string): ArrayBuffer;
+declare function basicAuth(username: string, password: string): string;
+declare function trimSlashes(value: string): string;
+declare function joinPath(...parts: string[]): string;
+declare function joinEncodedPath(...parts: string[]): string;
+declare function escapeHtmlText(value: string): string;
+declare const publicUtils: Readonly<{
+    clone: typeof clone;
+    equal: typeof equal;
+    merge: typeof merge;
+    contains: typeof contains;
+    random: typeof random;
+    either: typeof either;
+    SelectCase: typeof SelectCase;
+    convert: typeof convert;
+    number: typeof number;
+    loadImage: typeof loadImage;
+}>;
+type PublicUtils = typeof publicUtils;
 
+type utils_CloneOptions = CloneOptions;
+type utils_ContainsMode = ContainsMode;
+type utils_ContainsOptions = ContainsOptions;
+type utils_MergeMode = MergeMode;
+type utils_MergeOptions = MergeOptions;
+type utils_NumberMode = NumberMode;
+type utils_NumberOptions = NumberOptions;
+type utils_PublicUtils = PublicUtils;
 type utils_SelectCase = SelectCase;
 declare const utils_SelectCase: typeof SelectCase;
+declare const utils_base64ToArrayBuffer: typeof base64ToArrayBuffer;
+declare const utils_base64ToBytes: typeof base64ToBytes;
+declare const utils_basicAuth: typeof basicAuth;
+declare const utils_bytesToBase64: typeof bytesToBase64;
+declare const utils_bytesToJson: typeof bytesToJson;
+declare const utils_bytesToText: typeof bytesToText;
 declare const utils_clone: typeof clone;
 declare const utils_contains: typeof contains;
 declare const utils_convert: typeof convert;
 declare const utils_either: typeof either;
 declare const utils_equal: typeof equal;
+declare const utils_escapeHtmlText: typeof escapeHtmlText;
+declare const utils_joinEncodedPath: typeof joinEncodedPath;
+declare const utils_joinPath: typeof joinPath;
+declare const utils_jsonToBytes: typeof jsonToBytes;
 declare const utils_loadImage: typeof loadImage;
 declare const utils_merge: typeof merge;
+declare const utils_normalizeBase64: typeof normalizeBase64;
 declare const utils_number: typeof number;
+declare const utils_publicUtils: typeof publicUtils;
 declare const utils_random: typeof random;
+declare const utils_textToBytes: typeof textToBytes;
+declare const utils_toArrayBuffer: typeof toArrayBuffer;
+declare const utils_trimSlashes: typeof trimSlashes;
 declare const utils_widgets: typeof widgets;
 declare namespace utils {
-  export { utils_SelectCase as SelectCase, utils_clone as clone, utils_contains as contains, utils_convert as convert, utils_either as either, utils_equal as equal, utils_loadImage as loadImage, utils_merge as merge, utils_number as number, utils_random as random, utils_widgets as widgets };
+  export { type utils_CloneOptions as CloneOptions, type utils_ContainsMode as ContainsMode, type utils_ContainsOptions as ContainsOptions, type ConvertMode$1 as ConvertMode, type utils_MergeMode as MergeMode, type utils_MergeOptions as MergeOptions, type utils_NumberMode as NumberMode, type utils_NumberOptions as NumberOptions, type utils_PublicUtils as PublicUtils, utils_SelectCase as SelectCase, utils_base64ToArrayBuffer as base64ToArrayBuffer, utils_base64ToBytes as base64ToBytes, utils_basicAuth as basicAuth, utils_bytesToBase64 as bytesToBase64, utils_bytesToJson as bytesToJson, utils_bytesToText as bytesToText, utils_clone as clone, utils_contains as contains, utils_convert as convert, utils_either as either, utils_equal as equal, utils_escapeHtmlText as escapeHtmlText, utils_joinEncodedPath as joinEncodedPath, utils_joinPath as joinPath, utils_jsonToBytes as jsonToBytes, utils_loadImage as loadImage, utils_merge as merge, utils_normalizeBase64 as normalizeBase64, utils_number as number, utils_publicUtils as publicUtils, utils_random as random, utils_textToBytes as textToBytes, utils_toArrayBuffer as toArrayBuffer, utils_trimSlashes as trimSlashes, utils_widgets as widgets };
 }
 
 declare class TimeTravelCheat {

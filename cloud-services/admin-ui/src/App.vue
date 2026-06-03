@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
-import { BackendMode, AuthResponse, RemoteSaveItem } from 'types';
+import type { AuthResponse, BackendMode, RemoteSaveItem } from './types';
 
 const storageKey = 'cloudSave.admin.settings';
 const saved = JSON.parse(localStorage.getItem(storageKey) || '{}') as Partial<{ endpoint: string; username: string; mode: BackendMode }>;

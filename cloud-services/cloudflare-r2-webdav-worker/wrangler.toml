@@ -1,7 +1,0 @@
-name = "dol-cloud-save-r2-webdav"
-main = "src/worker.ts"
-compatibility_date = "2026-06-02"
-
-[[r2_buckets]]
-binding = "SAVE_BUCKET"
-bucket_name = "dol-cloud-save"

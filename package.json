@@ -21,7 +21,7 @@
     "check": "oxlint && oxfmt --check",
     "fix": "oxlint --fix && oxfmt",
     "cloud:go": "cd cloud-services/go-sql-server && go run .",
-    "cloud:r2": "cd cloud-services/cloudflare-r2-webdav-worker && wrangler",
+    "cloud:r2": "bun run scripts/cloudR2.ts",
     "cloud:admin": "vite --config cloud-services/admin-ui/vite.config.ts --host 127.0.0.1"
   },
   "dependencies": {

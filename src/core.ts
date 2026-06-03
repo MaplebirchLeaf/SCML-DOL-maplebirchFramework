@@ -84,14 +84,14 @@ class MaplebirchCore {
   public readonly lang: LanguageManager;
   public readonly modules: ModuleSystem;
   public readonly gui: GUIControl;
-  public declare readonly addon: AddonPlugin;
-  public declare readonly dynamic: DynamicManager;
-  public declare readonly tool: ToolCollection;
-  public declare readonly audio: AudioManager;
-  public declare readonly var: Variables;
-  public declare readonly char: Character;
-  public declare readonly npc: NPCManager;
-  public declare readonly combat: CombatManager;
+  declare public readonly addon: AddonPlugin;
+  declare public readonly dynamic: DynamicManager;
+  declare public readonly tool: ToolCollection;
+  declare public readonly audio: AudioManager;
+  declare public readonly var: Variables;
+  declare public readonly char: Character;
+  declare public readonly npc: NPCManager;
+  declare public readonly combat: CombatManager;
 
   public constructor(modSC2DataManager: SC2DataManager, modLoaderGui: Gui) {
     this.meta = { ...MaplebirchCore.meta };
@@ -219,7 +219,7 @@ class MaplebirchCore {
 
 var maplebirch = new MaplebirchCore(window.modSC2DataManager, window.modLoaderGui) as Instance;
 
-for (const key of Object.keys(utils) as (keyof typeof utils)[]) Object.defineProperty(window, key, { value: utils[key], enumerable: true, writable: false, configurable: false });
+for (const [key, value] of Object.entries(utils.publicUtils)) Object.defineProperty(window, key, { value, enumerable: true, writable: false, configurable: false });
 
 function createlog(prefix: string) {
   return (message: string, level: string = 'INFO', ...objects: any[]) => maplebirch.log(`[${prefix}] ${message}`, level, ...objects);
