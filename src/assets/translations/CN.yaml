@@ -7,6 +7,7 @@
 'settings': 设置
 'cheats': 作弊
 'statistics': 统计
+'cloud save': 云存档
 'apply': 应用
 'search': 搜索
 'clear': 清除
@@ -137,6 +138,41 @@
 'credential.auth.error.format': '凭证格式无效'
 'credential.auth.error.signature': '凭证签名无效'
 'credential.auth.error.mismatch': '凭证与模组不匹配'
+
+'cloud.save.none.loaded': 尚未载入云端存档。
+'cloud.save.none': 没有云端存档。
+'cloud.save.action.connect': 连接
+'cloud.save.action.register': 注册
+'cloud.save.action.delete.account': 注销账户
+'cloud.save.action.upload': 上传
+'cloud.save.action.download': 下载
+'cloud.save.action.delete': 删除
+'cloud.save.action.code.current': 获取存档码
+'cloud.save.action.code.upload': 上传存档码
+'cloud.save.action.code.download': 下载存档码
+'cloud.save.action.code.load': 读取存档码
+'cloud.save.status.working': 处理中...
+'cloud.save.status.connect': 连接成功。
+'cloud.save.status.registered': 注册并登录成功。
+'cloud.save.status.account.delete': 账户已注销并删除云端数据。
+'cloud.save.status.upload': 上传完成。
+'cloud.save.status.download': 下载完成。
+'cloud.save.status.delete': 删除完成。
+'cloud.save.status.refresh': 云端存档已刷新。
+'cloud.save.status.code.generate': 存档码已生成。
+'cloud.save.status.slot.code.generate': 槽位存档码已生成。
+'cloud.save.status.code.upload': 存档码已上传。
+'cloud.save.status.code.download': 存档码已下载。
+'cloud.save.status.code.load': 存档码已读取。
+'cloud.save.error.download': 下载失败。
+'cloud.save.error.code.invalid': 无效存档码。
+'cloud.save.error.code.notFound': 没有云端存档码。
+'cloud.save.error.code.empty': 云端存档码为空。
+'cloud.save.error.slot.range': 槽位必须在 0 到 10 之间。
+'cloud.save.error.webdav.credentials': 请填写地址、账号和密码。
+'cloud.save.error.decrypt': 解密失败。密码与这个云端存档不匹配。
+'cloud.save.error.decompress': 当前浏览器无法解压云存档。
+'cloud.save.error.code.tools': 存档码工具不可用。
 
 'General Traits': '一般特质'
 'Medicinal Traits': '医疗特质'

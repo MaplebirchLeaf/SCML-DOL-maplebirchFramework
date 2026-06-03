@@ -15,6 +15,7 @@ import Logger from './services/Logger';
 import EventEmitter from './services/EventEmitter';
 import IndexedDBService from './services/IndexedDBService';
 import CredentialVault from './services/CredentialVault';
+import CloudSaveService from './services/CloudSaveService';
 import LanguageManager from './services/LanguageManager';
 import ModuleSystem from './services/ModuleSystem';
 import GUIControl from './services/GUIControl';
@@ -79,6 +80,7 @@ class MaplebirchCore {
   public readonly tracer: EventEmitter;
   public readonly idb: IndexedDBService;
   public readonly credential: CredentialVault;
+  public readonly cloudSave: CloudSaveService;
   public readonly lang: LanguageManager;
   public readonly modules: ModuleSystem;
   public readonly gui: GUIControl;
@@ -103,6 +105,7 @@ class MaplebirchCore {
     this.idb = Object.seal(new IndexedDBService(this));
     this.lang = Object.seal(new LanguageManager(this));
     this.credential = Object.seal(new CredentialVault(this));
+    this.cloudSave = Object.seal(new CloudSaveService(this));
     this.modules = Object.seal(new ModuleSystem(this));
     this.gui = Object.seal(new GUIControl(this));
     this.log(`框架核心系统创建完成(v${MaplebirchCore.meta.version})`, 'INFO');

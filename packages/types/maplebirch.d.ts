@@ -373,6 +373,142 @@ declare class IndexedDBService {
     resetDatabase(): Promise<void>;
 }
 
+type CloudSaveSlot = number;
+type CloudSaveBackend = 'webdav' | 'server';
+interface CloudSaveConfig {
+    /** 已连接的存储后端。由连接流程自动写入，外部通常不需要传。 */
+    mode?: CloudSaveBackend;
+    /** WebDAV 根地址，或 Go 服务地址。 */
+    endpoint: string;
+    /** WebDAV 账号，或 Go 服务登录账号。 */
+    username?: string;
+    /** 面板中临时输入的密码，不会保存到 localStorage。 */
+    password?: string;
+    userId?: string;
+    /** 用于加密/解密云存档的口令，默认与 password 相同。 */
+    passphrase?: string;
+    token?: string;
+}
+interface CloudSaveRecord {
+    slot: CloudSaveSlot;
+    details: any;
+    save: any;
+    exportedAt: number;
+    gameId?: string;
+    frameworkVersion?: string;
+}
+interface CloudSaveEncryptedPayload {
+    version: 1;
+    compression?: 'gzip';
+    salt: string;
+    iv: string;
+    data: string;
+}
+interface CloudSaveRemoteItem {
+    slot: CloudSaveSlot;
+    updatedAt: number;
+    payload?: CloudSaveEncryptedPayload;
+}
+interface CloudSaveRemoteCode {
+    updatedAt: number;
+    payload?: CloudSaveEncryptedPayload;
+}
+interface CloudSaveAuthResponse {
+    userId: number;
+    username: string;
+    token: string;
+    expiresAt: number;
+}
+declare class CloudSaveService {
+    readonly core: MaplebirchCore;
+    constructor(core: MaplebirchCore);
+    /** 写入并标准化云存档配置。后端模式由连接流程自动确定。 */
+    configure(config: CloudSaveConfig): this;
+    /** 调用 Go 后端注册账号，成功后保存登录 token 和加密口令。 */
+    register(username: string, password: string, passphrase?: string): Promise<CloudSaveAuthResponse>;
+    /** 调用 Go 后端登录账号，成功后保存登录 token 和加密口令。 */
+    login(username: string, password: string, passphrase?: string): Promise<CloudSaveAuthResponse>;
+    /** 删除 Go 服务账号及其所有云端存档。WebDAV 没有账户删除接口。 */
+    deleteAccount(password: string): Promise<boolean>;
+    /** 从游戏 indexedDB 中导出指定本地槽位，整理成可加密上传的记录。 */
+    exportSlot(slot: CloudSaveSlot): Promise<CloudSaveRecord>;
+    /** 把云端下载得到的存档记录写回指定本地槽位。 */
+    importSlot(record: CloudSaveRecord, targetSlot?: CloudSaveSlot): Promise<boolean>;
+    /** 统一上传入口；根据当前后端模式分发到 Go 服务或 WebDAV。 */
+    upload(slot: CloudSaveSlot): Promise<CloudSaveRemoteItem>;
+    /** 统一下载入口；根据当前后端模式从远端取回存档并导入本地槽位。 */
+    download(slot: CloudSaveSlot, targetSlot?: number): Promise<boolean>;
+    /** 统一远端列表入口；返回当前后端保存的所有远端槽位信息。 */
+    listRemote(): Promise<CloudSaveRemoteItem[]>;
+    /** 统一远端删除入口；删除指定远端槽位。 */
+    deleteRemote(slot: CloudSaveSlot): Promise<boolean>;
+    /** 使用 Go 服务后端上传指定槽位：先导出本地存档，再加密并 PUT 到 /saves/{slot}。 */
+    /** 使用 Go 服务后端下载指定槽位：读取密文、解密后导入本地槽位。 */
+    /** 调用 SugarCube 的序列化接口导出当前游戏存档码。 */
+    exportCode(): string;
+    /** 把指定 indexedDB 槽位转换成 SugarCube 可导入的存档码文本。 */
+    exportSlotCode(slot: CloudSaveSlot): Promise<string>;
+    /** 调用 SugarCube 的反序列化接口，把存档码导入游戏。 */
+    importCode(code: string): boolean;
+    /** 统一存档码上传入口；根据当前后端模式保存一段加密后的存档码文本。 */
+    uploadCode(code?: string): Promise<CloudSaveRemoteCode>;
+    /** 统一存档码下载入口；根据当前后端模式取回并解密存档码文本。 */
+    downloadCode(): Promise<string>;
+    /** 使用 Go 服务后端上传存档码，内容会先按云存档口令加密。 */
+    /** 使用 Go 服务后端下载存档码，并在解密后返回原始文本。 */
+    /** 初始化云存档设置面板，把已保存的非敏感配置回填到输入框。 */
+    mountPanel(): void;
+    /** 处理面板按钮动作，是 UI 与云存档服务之间的统一调度入口。 */
+    panelAction(action: 'connectRemote' | 'registerServer' | 'deleteServerAccount' | 'uploadSlot' | 'downloadSlot' | 'refreshRemoteList' | 'deleteRemoteSlot' | 'exportCurrentCode' | 'exportSlotCode' | 'uploadCode' | 'downloadCode' | 'importCode', slot?: CloudSaveSlot): Promise<void>;
+    /** 获取游戏当前启用的 indexedDB 存档接口，并在不可用时抛错。 */
+    /** 从云存档面板中读取指定字段的字符串值。 */
+    /** 向云存档面板中的指定字段写入字符串值。 */
+    /** 读取并校验面板中选择的本地槽位编号。 */
+    /** 从 localStorage 读取面板的非敏感配置。 */
+    /** 把面板的非敏感配置保存到 localStorage，避免保存密码。 */
+    /** 刷新远端存档列表，并为每个槽位生成下载和删除按钮。 */
+    /** 更新面板状态提示，并根据成功或失败切换样式。 */
+    /** 把捕获到的异常转换成适合显示在面板上的错误文本。 */
+    /** 调用项目核心翻译函数，统一取得本地化文本。 */
+    /** 把云端存档整理成 indexedDB 可写入的 SugarCube 状态格式。 */
+    /** 要求云存档配置已经存在，否则直接抛出明确错误。 */
+    /** 要求配置中存在服务地址或 WebDAV 地址，并返回标准化后的地址。 */
+    /** 把后端认证结果写入当前配置，保存 userId、token 和加密口令。 */
+    /** 封装 Go 后端注册和登录请求，减少 register/login 的重复代码。 */
+    /** 自动连接远端：地址像 Go 服务时登录账号，否则按 WebDAV 初始化。 */
+    /** 用健康检查判断当前地址是否为框架提供的 Go + SQL 服务。 */
+    /** 把本地槽位打包成远端可保存的加密记录。 */
+    /** 把远端槽位解密后写回本地槽位。 */
+    /** 把存档码打包成远端可保存的加密记录。 */
+    /** 把远端存档码解密成原始文本。 */
+    /** 当前面板密码就是云存档加密口令。 */
+    /** 向 Go 服务后端发送 JSON 请求，并自动附带 userId 与 Bearer token。 */
+    /** 使用 WebDAV 上传指定槽位，并同步更新 manifest.json 索引。 */
+    /** 使用 WebDAV 下载指定槽位，解密后导入本地槽位。 */
+    /** 从 WebDAV manifest.json 中读取远端槽位列表。 */
+    /** 删除 WebDAV 上的指定槽位文件，并同步更新 manifest.json。 */
+    /** 使用 WebDAV 上传加密后的存档码，并记录存档码更新时间。 */
+    /** 使用 WebDAV 下载并解密远端存档码。 */
+    /** 读取并清洗 WebDAV 远端索引文件；不存在时返回空索引。 */
+    /** 写回 WebDAV 远端索引文件，并刷新 updatedAt 时间。 */
+    /** 创建一个空的 WebDAV 远端索引对象。 */
+    /** 检查 WebDAV 配置和凭据，并确保 slots 目录存在。 */
+    /** 调用 WebDAV MKCOL 创建目录；目录已存在时视为成功。 */
+    /** 发送 WebDAV JSON 请求，统一处理 404、错误状态和 JSON 解析。 */
+    /** 发送底层 WebDAV fetch 请求，并自动附加 Basic Auth 认证头。 */
+    /** 把相对 WebDAV 路径拼接成完整请求 URL。 */
+    /** 根据文件片段生成已编码的 WebDAV 远端路径。 */
+    /** 把 WebDAV 用户名和密码编码成 Basic Auth 所需的 Base64 字符串。 */
+    /** 使用 PBKDF2 派生密钥并用 AES-GCM 加密云存档数据。 */
+    /** 校验云存档密文版本，派生密钥后解密并还原 JSON 数据。 */
+    /** 用 fflate 尝试 gzip 压缩数据，只在压缩后更小时使用压缩结果。 */
+    /** 解压 gzip 数据；优先用 fflate，旧环境异常时再尝试浏览器原生解压。 */
+    /** 使用 PBKDF2-SHA256 从口令和 salt 派生 AES-GCM 密钥。 */
+    /** 把 Uint8Array 精确裁剪成 WebCrypto 需要的 ArrayBuffer。 */
+    /** 把字节数组转换成 Base64 字符串，便于写入 JSON。 */
+    /** 把 Base64 字符串还原成字节数组。 */
+}
+
 type LanguageCode = (typeof Languages)[number];
 declare const Languages: readonly ["EN", "CN"];
 
@@ -1752,6 +1888,7 @@ declare class MaplebirchCore {
     readonly tracer: EventEmitter;
     readonly idb: IndexedDBService;
     readonly credential: CredentialVault;
+    readonly cloudSave: CloudSaveService;
     readonly lang: LanguageManager;
     readonly modules: ModuleSystem;
     readonly gui: GUIControl;

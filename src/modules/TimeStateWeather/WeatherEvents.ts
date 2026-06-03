@@ -260,8 +260,8 @@ export class WeatherManager {
     const oldSCdata = manager.SC2DataManager.getSC2DataInfoAfterPatch();
     const SCdata = oldSCdata.cloneSC2DataInfo();
     const file = SCdata.scriptFileItems.getByNameWithOrWithoutPath('00-layer-manager.js')!;
-    const replacements: Replacement[] = [[/^(\s*)(const\s+layer\s*=\s*new\s+Weather\.Renderer\.Layer\(params\);)/m, '$1maplebirch.dynamic.Weather.applyModifications(params);\n$1$2']];
-    file.content = manager.replace(file.content, replacements);
+    const replacements: Replacement[] = [[/(const\s+layer\s*=\s*new\s+Weather\.Renderer\.Layer\(([^)]+)\);)/, 'maplebirch.dynamic.Weather.applyModifications(params);\n\t\t$1']];
+    file.content = manager.replace(file.content, replacements, 'Weather');
     manager.modUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
   }
 }

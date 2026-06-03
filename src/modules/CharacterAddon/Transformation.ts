@@ -152,7 +152,7 @@ class Transformation {
         'if (maplebirch.char.transformation.message(messageKey, { element: element, sWikifier: sWikifier, fragment: fragment, wikifier: wikifier })) break;\n\t\t\t\t\t$1'
       ]
     ];
-    file.content = manager.replace(file.content, replacements);
+    file.content = manager.replace(file.content, replacements, 'Effect');
     manager.modUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
   }
 

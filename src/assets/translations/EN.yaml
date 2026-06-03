@@ -7,6 +7,7 @@
 'settings': settings
 'cheats': cheats
 'statistics': statistics
+'cloud save': cloud save
 'apply': apply
 'search': search
 'clear': clear
@@ -39,7 +40,7 @@
 'reset': reset
 'status': status
 'choose': choose
-'calendar': 日历
+'calendar': calendar
 
 'traditional': traditional
 'gentle': gentle
@@ -137,6 +138,41 @@
 'credential.auth.error.format': 'Invalid credential format'
 'credential.auth.error.signature': 'Invalid credential signature'
 'credential.auth.error.mismatch': 'Credential does not match this mod'
+
+'cloud.save.none.loaded': No remote saves loaded.
+'cloud.save.none': No remote saves.
+'cloud.save.action.connect': Connect
+'cloud.save.action.register': Register
+'cloud.save.action.delete.account': Delete account
+'cloud.save.action.upload': Upload
+'cloud.save.action.download': Download
+'cloud.save.action.delete': Delete
+'cloud.save.action.code.current': Get Save Code
+'cloud.save.action.code.upload': Upload Code
+'cloud.save.action.code.download': Download Code
+'cloud.save.action.code.load': Load Save Code
+'cloud.save.status.working': Working...
+'cloud.save.status.connect': Connected.
+'cloud.save.status.registered': Registered and logged in.
+'cloud.save.status.account.delete': Account deleted with its cloud saves.
+'cloud.save.status.upload': Uploaded.
+'cloud.save.status.download': Downloaded.
+'cloud.save.status.delete': Deleted.
+'cloud.save.status.refresh': Remote saves refreshed.
+'cloud.save.status.code.generate': Save code generated.
+'cloud.save.status.slot.code.generate': Slot save code generated.
+'cloud.save.status.code.upload': Save code uploaded.
+'cloud.save.status.code.download': Save code downloaded.
+'cloud.save.status.code.load': Save code loaded.
+'cloud.save.error.download': Download failed.
+'cloud.save.error.code.invalid': Invalid save code.
+'cloud.save.error.code.notFound': Remote save code not found.
+'cloud.save.error.code.empty': Remote save code is empty.
+'cloud.save.error.slot.range': Slot must be between 0 and 10.
+'cloud.save.error.webdav.credentials': Please fill in the address, account, and password.
+'cloud.save.error.decrypt': Decrypt failed. The password does not match this cloud save.
+'cloud.save.error.decompress': This browser cannot decompress cloud saves.
+'cloud.save.error.code.tools': Save code tools are not available.
 
 'General Traits': 'General Traits'
 'Medicinal Traits': 'Medicinal Traits'

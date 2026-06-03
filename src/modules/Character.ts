@@ -345,7 +345,8 @@ class Character {
     const oldSCdata = manager.SC2DataManager.getSC2DataInfoAfterPatch();
     const SCdata = oldSCdata.cloneSC2DataInfo();
     const file = SCdata.scriptFileItems.getByNameWithOrWithoutPath('00-canvasmodel.js')!;
-    file.content = manager.replace(file.content, [[/window\.CanvasModel\s*=\s*CanvasModel;/, 'CanvasModel = maplebirch.char.patchCanvasModel(CanvasModel);\nwindow.CanvasModel = CanvasModel;']]);
+    const replacements: Replacement[] = [[/window\.CanvasModel\s*=\s*CanvasModel;/, 'CanvasModel = maplebirch.char.patchCanvasModel(CanvasModel);\nwindow.CanvasModel = CanvasModel;']];
+    file.content = manager.replace(file.content, replacements, 'CanvasModel');
     manager.modUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
   }
 
@@ -429,10 +430,8 @@ class Character {
       const modify = passageData.get(file);
       if (!modify?.content) continue;
       const replacements: Replacement[] = [[/setup.faceStyleOptions.length gt/g, 'Object.keys(setup.faceStyleOptions).length gte']];
-      if (file === 'Widgets Mirror') {
-        replacements.push([/(Object\.keys\(setup\.faceVariantOptions\[\$facestyle\]\)\.length\s+)gt\b/g, '$1gte']);
-      }
-      modify.content = manager.replace(modify.content, replacements);
+      if (file === 'Widgets Mirror') replacements.push([/(Object\.keys\(setup\.faceVariantOptions\[\$facestyle\]\)\.length\s+)gt\b/g, '$1gte']);
+      modify.content = manager.replace(modify.content, replacements, 'FaceStyle');
       passageData.set(file, modify);
     }
     SCdata.passageDataItems.back2Array();

@@ -1,0 +1,67 @@
+:: Widget [widget]
+
+<<widget 'maplebirchCloudSave'>>
+  <div id="maplebirch-cloud-save" class="maplebirch-cloud-save">
+    <div class="settingsToggleItemWide maplebirch-cloud-save-auth">
+      <div class="maplebirch-cloud-save-auth-server">
+        <label>
+          <span class="gold"><<lanSwitch 'Address' '地址'>></span>
+          <input type="text" data-cloud-save-field="endpoint" autocomplete="off">
+        </label>
+      </div>
+      <div class="maplebirch-cloud-save-auth-account">
+        <label>
+          <span class="gold"><<lanSwitch 'Account' '账号'>></span>
+          <input type="text" data-cloud-save-field="username" autocomplete="username">
+        </label>
+        <label>
+          <span class="gold"><<lanSwitch 'Password' '密码'>></span>
+          <input type="password" data-cloud-save-field="password" autocomplete="current-password">
+        </label>
+      </div>
+      <div class="maplebirch-cloud-save-actions">
+        <span><<lanButton 'cloud.save.action.connect' 'title' 'class:saveMenuButton maplebirch-cloud-save-connect'>><<run maplebirch.cloudSave.panelAction('connectRemote')>><</lanButton>></span>
+        <span><<lanButton 'cloud.save.action.register' 'title' 'class:saveMenuButton maplebirch-cloud-save-register'>><<run maplebirch.cloudSave.panelAction('registerServer')>><</lanButton>></span>
+        <span><<lanButton 'cloud.save.action.delete.account' 'title' 'class:deleteButton right saveMenuButton maplebirch-cloud-save-delete-account'>><<run maplebirch.cloudSave.panelAction('deleteServerAccount')>><</lanButton>></span>
+      </div>
+    </div>
+
+    <div class="settingsToggleItemWide maplebirch-cloud-save-transfer">
+      <label>
+        <span class="gold"><<lanSwitch 'Local Slot' '本地槽位'>></span>
+        <select data-cloud-save-field="slot" onchange="maplebirch.cloudSave.panelAction('exportSlotCode')">
+          <option value="0">0 - <<lanSwitch 'Autosave' '自动存档'>></option>
+          <option value="1" selected>1</option>
+          <option value="2">2</option>
+          <option value="3">3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+          <option value="6">6</option>
+          <option value="7">7</option>
+          <option value="8">8</option>
+          <option value="9">9</option>
+          <option value="10">10</option>
+        </select>
+      </label>
+      <div class="maplebirch-cloud-save-actions">
+        <<lanButton 'cloud.save.action.upload' 'title' 'class:saveMenuButton maplebirch-cloud-save-upload'>><<run maplebirch.cloudSave.panelAction('uploadSlot')>><</lanButton>>
+      </div>
+    </div>
+
+    <div class="settingsToggleItemWide maplebirch-cloud-save-code">
+      <textarea data-cloud-save-field="code" rows="4" autocomplete="off"></textarea>
+      <div class="maplebirch-cloud-save-actions">
+        <<lanButton 'cloud.save.action.code.current' 'title' 'class:saveMenuButton maplebirch-cloud-save-code-current'>><<run maplebirch.cloudSave.panelAction('exportCurrentCode')>><</lanButton>>
+        <<lanButton 'cloud.save.action.code.upload' 'title' 'class:saveMenuButton maplebirch-cloud-save-code-upload'>><<run maplebirch.cloudSave.panelAction('uploadCode')>><</lanButton>>
+        <<lanButton 'cloud.save.action.code.download' 'title' 'class:saveMenuButton maplebirch-cloud-save-code-download'>><<run maplebirch.cloudSave.panelAction('downloadCode')>><</lanButton>>
+        <<lanButton 'cloud.save.action.code.load' 'title' 'class:saveMenuButton maplebirch-cloud-save-code-load'>><<run maplebirch.cloudSave.panelAction('importCode')>><</lanButton>>
+      </div>
+    </div>
+
+    <div class="settingsToggleItemWide">
+      <div class="maplebirch-cloud-save-status" data-cloud-save-status></div>
+      <div class="maplebirch-cloud-save-list" data-cloud-save-list><<= maplebirch.t('cloud.save.none.loaded')>></div>
+    </div>
+  </div>
+  <<run maplebirch.cloudSave.mountPanel()>>
+<</widget>>
