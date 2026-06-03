@@ -3,10 +3,13 @@
 <<widget 'maplebirchCloudSave'>>
   <div id="maplebirch-cloud-save" class="maplebirch-cloud-save">
     <div class="settingsToggleItemWide maplebirch-cloud-save-auth">
+      <div class="maplebirch-cloud-save-note">
+        <<lanSwitch 'Use the Go server URL or Cloudflare Worker URL. Account and password are cloud-save account credentials, not Cloudflare credentials.' '地址填写 Go 服务或 Cloudflare Worker 地址。账号和密码是云存档账户，不是 Cloudflare 账号。'>>
+      </div>
       <div class="maplebirch-cloud-save-auth-server">
         <label>
           <span class="gold"><<lanSwitch 'Address' '地址'>></span>
-          <input type="text" data-cloud-save-field="endpoint" autocomplete="off">
+          <input type="text" data-cloud-save-field="endpoint" autocomplete="off" placeholder="<<lanSwitch 'Go server or Cloudflare Worker URL' 'Go 服务或 Cloudflare Worker 地址'>>">
         </label>
       </div>
       <div class="maplebirch-cloud-save-auth-account">

@@ -143,7 +143,7 @@
 'cloud.save.none': 没有云端存档。
 'cloud.save.action.connect': 连接
 'cloud.save.action.register': 注册
-'cloud.save.action.delete.account': 注销账户
+'cloud.save.action.delete.account': 删除账户
 'cloud.save.action.upload': 上传
 'cloud.save.action.download': 下载
 'cloud.save.action.delete': 删除
