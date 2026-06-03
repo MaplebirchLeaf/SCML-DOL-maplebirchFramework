@@ -61,6 +61,7 @@ export class zonesManager {
       Options                : [],
       Cheats                 : [],
       Statistics             : [],
+      CloudSave              : [],
       Journal                : [],
       BeforeLinkZone         : [],
       AfterLinkZone          : [],

@@ -4,3 +4,8 @@ node_modules/
 package/
 dist/
 game
+cloud-services/**/*.db
+cloud-services/**/dist/
+cloud-services/go-sql-server/config.json
+cloud-services/**/.dev.vars
+cloud-services/**/.wrangler/

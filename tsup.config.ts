@@ -7,7 +7,10 @@ export default defineConfig({
   outDir: 'dist',
   format: ['esm'],
   dts: {
-    only: true
+    only: true,
+    compilerOptions: {
+      ignoreDeprecations: '6.0'
+    }
   },
   tsconfig: 'tsconfig.json'
 });
