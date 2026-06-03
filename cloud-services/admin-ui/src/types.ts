@@ -1,4 +1,4 @@
-export type BackendMode = 'go' | 'webdav';
+export type BackendMode = 'go' | 'cloudflare';
 
 export interface AuthResponse {
   userId: number;

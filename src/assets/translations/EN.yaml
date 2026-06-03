@@ -143,7 +143,7 @@
 'cloud.save.none': No remote saves.
 'cloud.save.action.connect': Connect
 'cloud.save.action.register': Register
-'cloud.save.action.delete.account': Delete account
+'cloud.save.action.delete.account': Delete Account
 'cloud.save.action.upload': Upload
 'cloud.save.action.download': Download
 'cloud.save.action.delete': Delete

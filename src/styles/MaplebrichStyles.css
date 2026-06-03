@@ -163,6 +163,11 @@
   gap: 0.75rem;
 }
 
+.maplebirch-cloud-save-note {
+  color: var(--600);
+  line-height: 1.35;
+}
+
 .maplebirch-cloud-save-auth-server,
 .maplebirch-cloud-save-auth-account,
 .maplebirch-cloud-save-transfer,
