@@ -1,6 +1,8 @@
 // ./src/utils.ts
 
 const _ = window.modSC2DataManager.getModUtils().getLodash();
+const textEncoder = new TextEncoder();
+const textDecoder = new TextDecoder();
 
 type TypedArrayLike = Int8Array | Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array | BigInt64Array | BigUint64Array;
 
@@ -14,7 +16,21 @@ type ContainsOptions = {
   deep?: boolean;
 };
 
-function clone(source: any, opt: { deep?: boolean; proto?: boolean } = {}, map = new WeakMap<object, any>()): any {
+type CloneOptions = { deep?: boolean; proto?: boolean };
+type MergeMode = 'replace' | 'concat' | 'merge';
+type MergeOptions = {
+  mode?: MergeMode;
+  filterFn?: ((key: string, value: any, depth: number, targetValue: any) => boolean) | null;
+};
+type ConvertMode = 'lower' | 'upper' | 'capitalize' | 'title' | 'camel' | 'pascal' | 'snake' | 'kebab' | 'constant';
+type NumberMode = 'none' | 'floor' | 'ceil' | 'round' | 'trunc';
+type NumberOptions = {
+  step?: number;
+  percent?: boolean;
+  loop?: boolean;
+};
+
+function clone(source: any, opt: CloneOptions = {}, map = new WeakMap<object, any>()): any {
   const { deep = true, proto = true } = opt;
   if (source === null || typeof source !== 'object') return source;
   if (map.has(source)) return map.get(source);
@@ -70,7 +86,7 @@ function merge(target: any, ...sources: any[]): any {
     if (!_.isPlainObject(value)) return false;
     return _.has(value, 'mode') || _.has(value, 'filterFn');
   };
-  let opt: any = {};
+  let opt: MergeOptions = {};
   const last = sources[sources.length - 1];
   if (sources.length > 1 && isMergeOption(last)) opt = sources.pop();
 
@@ -320,11 +336,7 @@ class SelectCase {
   }
 }
 
-function convert(
-  str: string,
-  mode: 'lower' | 'upper' | 'capitalize' | 'title' | 'camel' | 'pascal' | 'snake' | 'kebab' | 'constant' = 'lower',
-  opt: { delimiter?: string; acronym?: boolean } = {}
-): string {
+function convert(str: string, mode: ConvertMode = 'lower', opt: { delimiter?: string; acronym?: boolean } = {}): string {
   if (typeof str !== 'string') return str;
   const { delimiter = ' ', acronym = true } = opt;
   const splitWords = (s: string) => {
@@ -366,18 +378,7 @@ function convert(
   }
 }
 
-function number(
-  value: any,
-  fallback = 0,
-  min = -Infinity,
-  max = Infinity,
-  mode: 'none' | 'floor' | 'ceil' | 'round' | 'trunc' = 'none',
-  opt: {
-    step?: number;
-    percent?: boolean;
-    loop?: boolean;
-  } = {}
-): number {
+function number(value: any, fallback = 0, min = -Infinity, max = Infinity, mode: NumberMode = 'none', opt: NumberOptions = {}): number {
   const { step = 0, percent = false, loop = false } = opt;
 
   let result = _.toNumber(value);
@@ -516,4 +517,117 @@ function widgets(...rawContents: string[]): string | string[] {
   return result.length === 1 ? result[0] : result;
 }
 
-export { clone, equal, merge, contains, random, either, SelectCase, convert, number, loadImage, widgets };
+function textToBytes(value: string): Uint8Array {
+  return textEncoder.encode(value);
+}
+
+function bytesToText(bytes: Uint8Array | ArrayBuffer): string {
+  return textDecoder.decode(bytes);
+}
+
+function jsonToBytes(value: unknown): Uint8Array {
+  return textToBytes(JSON.stringify(value));
+}
+
+function bytesToJson<T = any>(bytes: Uint8Array | ArrayBuffer): T {
+  return JSON.parse(bytesToText(bytes)) as T;
+}
+
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+}
+
+function normalizeBase64(value: string): string {
+  const base64 = value.replace(/-/g, '+').replace(/_/g, '/');
+  return base64.padEnd(Math.ceil(base64.length / 4) * 4, '=');
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
+function base64ToBytes(base64: string): Uint8Array {
+  const binary = atob(normalizeBase64(base64));
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+function base64ToArrayBuffer(base64: string): ArrayBuffer {
+  return toArrayBuffer(base64ToBytes(base64));
+}
+
+function basicAuth(username: string, password: string): string {
+  return bytesToBase64(textToBytes(`${username}:${password}`));
+}
+
+function trimSlashes(value: string): string {
+  return String(value ?? '').replace(/^\/+|\/+$/g, '');
+}
+
+function joinPath(...parts: string[]): string {
+  return parts.map(trimSlashes).filter(Boolean).join('/');
+}
+
+function joinEncodedPath(...parts: string[]): string {
+  return parts
+    .map(part => encodeURIComponent(trimSlashes(part)))
+    .filter(Boolean)
+    .join('/');
+}
+
+function escapeHtmlText(value: string): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+const publicUtils = Object.freeze({
+  clone,
+  equal,
+  merge,
+  contains,
+  random,
+  either,
+  SelectCase,
+  convert,
+  number,
+  loadImage
+});
+
+type PublicUtils = typeof publicUtils;
+
+export {
+  clone,
+  equal,
+  merge,
+  contains,
+  random,
+  either,
+  SelectCase,
+  convert,
+  number,
+  loadImage,
+  widgets,
+  textToBytes,
+  bytesToText,
+  jsonToBytes,
+  bytesToJson,
+  toArrayBuffer,
+  normalizeBase64,
+  bytesToBase64,
+  base64ToBytes,
+  base64ToArrayBuffer,
+  basicAuth,
+  trimSlashes,
+  joinPath,
+  joinEncodedPath,
+  escapeHtmlText,
+  publicUtils
+};
+export type { CloneOptions, ContainsMode, ContainsOptions, ConvertMode, MergeMode, MergeOptions, NumberMode, NumberOptions, PublicUtils };

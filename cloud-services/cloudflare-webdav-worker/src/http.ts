@@ -1,7 +1,7 @@
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'OPTIONS, GET, PUT, DELETE, MKCOL',
-  'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+  'Access-Control-Allow-Methods': 'OPTIONS, GET, POST, PUT, DELETE',
+  'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-Cloud-Save-User',
   'Access-Control-Max-Age': '86400'
 };
 
@@ -20,14 +20,18 @@ export function optionsResponse() {
 }
 
 export function unauthorizedResponse() {
-  return cloudResponse('Unauthorized', {
-    status: 401,
-    headers: {
-      'WWW-Authenticate': 'Basic realm="Cloud Save"'
-    }
-  });
+  return cloudResponse('Unauthorized', { status: 401 });
 }
 
 export function textResponse(message: string, status = 200) {
   return cloudResponse(message, { status });
+}
+
+export function jsonResponse(value: unknown, status = 200) {
+  return cloudResponse(JSON.stringify(value), {
+    status,
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
 }

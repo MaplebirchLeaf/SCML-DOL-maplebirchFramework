@@ -1,6 +1,6 @@
 import instance, * as types from './maplebirch';
 
-type Utils = typeof types.utils;
+type Utils = typeof types.utils.publicUtils;
 
 declare global {
   const maplebirch: typeof instance;

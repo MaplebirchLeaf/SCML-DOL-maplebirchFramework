@@ -1,21 +1,15 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 )
 
-const (
-	// 以下环境变量用于配置后端。环境变量优先级高于配置文件。
-	envConfig      = "CLOUD_SAVE_CONFIG"
-	envAddr        = "CLOUD_SAVE_ADDR"
-	envDBPath      = "CLOUD_SAVE_DB"
-	envSessionDays = "CLOUD_SAVE_SESSION_DAYS"
-)
+const defaultConfigPath = "config.json"
 
 // config 保存后端启动配置。字段名同时用于 JSON 配置文件。
 type config struct {
@@ -38,22 +32,27 @@ func defaultConfig() config {
 	}
 }
 
-// loadConfig 读取配置。优先级：默认值 < JSON 配置文件 < 环境变量。
+// loadConfig 读取配置。优先级：默认值 < JSON 配置文件。
 func loadConfig() (config, error) {
 	cfg := defaultConfig()
-	configPath := strings.TrimSpace(os.Getenv(envConfig))
+	configPath := defaultConfigPath
 
 	flag.StringVar(&configPath, "config", configPath, "JSON config file path")
 	flag.Parse()
 
-	if configPath != "" {
+	if strings.TrimSpace(configPath) != "" && fileExists(configPath) {
 		if err := readConfigFile(configPath, &cfg); err != nil {
 			return cfg, err
 		}
 	}
 
-	applyEnv(&cfg)
 	return cfg, validateConfig(cfg)
+}
+
+// fileExists 判断配置文件是否存在。默认 config.json 不存在时使用内置配置。
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
 }
 
 // readConfigFile 从 JSON 文件读取配置，只覆盖文件中出现的字段。
@@ -62,25 +61,11 @@ func readConfigFile(path string, cfg *config) error {
 	if err != nil {
 		return fmt.Errorf("read config file %s: %w", path, err)
 	}
+	data = bytes.TrimPrefix(data, []byte{0xEF, 0xBB, 0xBF})
 	if err := json.Unmarshal(data, cfg); err != nil {
 		return fmt.Errorf("parse config file %s: %w", path, err)
 	}
 	return nil
-}
-
-// applyEnv 用环境变量覆盖配置文件，便于部署平台注入运行参数。
-func applyEnv(cfg *config) {
-	if value := strings.TrimSpace(os.Getenv(envAddr)); value != "" {
-		cfg.Addr = value
-	}
-	if value := strings.TrimSpace(os.Getenv(envDBPath)); value != "" {
-		cfg.DBPath = value
-	}
-	if value := strings.TrimSpace(os.Getenv(envSessionDays)); value != "" {
-		if days, err := strconv.Atoi(value); err == nil {
-			cfg.SessionDays = days
-		}
-	}
 }
 
 // validateConfig 在服务启动前尽早暴露配置错误。

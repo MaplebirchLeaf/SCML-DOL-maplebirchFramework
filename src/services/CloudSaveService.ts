@@ -2,6 +2,7 @@
 
 import { type MaplebirchCore } from '../core';
 import { gunzipSync, gzipSync } from 'fflate';
+import { base64ToBytes, basicAuth, bytesToBase64, bytesToJson, joinEncodedPath, jsonToBytes, textToBytes, toArrayBuffer } from '../utils';
 
 type CloudSaveSlot = number;
 type CloudSaveBackend = 'webdav' | 'server';
@@ -262,10 +263,12 @@ class CloudSaveService {
     const panel = document.querySelector<HTMLElement>('#maplebirch-cloud-save');
     if (!panel) return;
     const saved = this.loadPanelConfig();
-    this.setPanelValue(panel, 'endpoint', saved.endpoint || this.config?.endpoint || '');
-    this.setPanelValue(panel, 'username', saved.username || '');
-    this.setPanelValue(panel, 'password', '');
-    if (saved.endpoint) this.configure({ endpoint: saved.endpoint, username: saved.username });
+    const current = this.config;
+    this.setPanelValue(panel, 'endpoint', current?.endpoint || saved.endpoint || '');
+    this.setPanelValue(panel, 'username', current?.username || saved.username || '');
+    this.setPanelValue(panel, 'password', current?.password || '');
+    if (!current && saved.endpoint) this.configure({ endpoint: saved.endpoint, username: saved.username });
+    if (this.config?.mode) void this.refreshPanel(panel).then(() => this.setPanelStatus(panel, this.t('cloud.save.status.connect'), true));
   }
 
   /** 处理面板按钮动作，是 UI 与云存档服务之间的统一调度入口。 */
@@ -291,9 +294,11 @@ class CloudSaveService {
     try {
       const endpoint = this.panelValue(panel, 'endpoint');
       const username = this.panelValue(panel, 'username');
-      const password = this.panelValue(panel, 'password');
+      const passwordInput = this.panelValue(panel, 'password');
+      const password = passwordInput || this.config?.password || '';
+      const passphrase = passwordInput || this.config?.passphrase || password;
       const targetSlot = slot ?? this.panelSlot(panel);
-      this.configure({ ...this.config, endpoint, username, password, passphrase: password });
+      this.configure({ ...this.config, endpoint, username, password, passphrase });
       this.savePanelConfig(panel);
 
       switch (action) {
@@ -717,7 +722,7 @@ class CloudSaveService {
     return fetch(this.webdavUrl(path), {
       ...init,
       headers: {
-        Authorization: `Basic ${this.basicAuth(username, password)}`,
+        Authorization: `Basic ${basicAuth(username, password)}`,
         ...init.headers
       }
     });
@@ -730,15 +735,7 @@ class CloudSaveService {
 
   /** 根据文件片段生成已编码的 WebDAV 远端路径。 */
   private webdavFilePath(...parts: string[]): string {
-    // 清理每个路径片段并逐段编码，避免斜杠或特殊字符破坏 WebDAV 路径。
-    return parts.map(part => encodeURIComponent(part.replace(/^\/+|\/+$/g, ''))).filter(Boolean).join('/');
-  }
-
-  /** 把 WebDAV 用户名和密码编码成 Basic Auth 所需的 Base64 字符串。 */
-  private basicAuth(username: string, password: string): string {
-    // btoa 只接受字节字符串，账号或密码含非 ASCII 字符时需要先编码成字节。
-    const bytes = new TextEncoder().encode(`${username}:${password}`);
-    return this.bytesToBase64(bytes);
+    return joinEncodedPath(...parts);
   }
 
   /** 使用 PBKDF2 派生密钥并用 AES-GCM 加密云存档数据。 */
@@ -747,27 +744,27 @@ class CloudSaveService {
     const salt = crypto.getRandomValues(new Uint8Array(16));
     const iv = crypto.getRandomValues(new Uint8Array(12));
     const key = await this.deriveKey(passphrase, salt);
-    const encoded = await this.compress(new TextEncoder().encode(JSON.stringify(data)));
-    const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, this.toArrayBuffer(encoded));
+    const encoded = await this.compress(jsonToBytes(data));
+    const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, toArrayBuffer(encoded));
     return {
       version: 1,
       compression: encoded.compressed ? 'gzip' : undefined,
-      salt: this.bytesToBase64(salt),
-      iv: this.bytesToBase64(iv),
-      data: this.bytesToBase64(new Uint8Array(encrypted))
+      salt: bytesToBase64(salt),
+      iv: bytesToBase64(iv),
+      data: bytesToBase64(new Uint8Array(encrypted))
     };
   }
 
   /** 校验云存档密文版本，派生密钥后解密并还原 JSON 数据。 */
   private async decrypt<T>(payload: CloudSaveEncryptedPayload, passphrase: string): Promise<T> {
     if (payload.version !== 1) throw new Error(`Unsupported cloud save payload version: ${payload.version}`);
-    const salt = this.base64ToBytes(payload.salt);
-    const iv = this.base64ToBytes(payload.iv);
+    const salt = base64ToBytes(payload.salt);
+    const iv = base64ToBytes(payload.iv);
     const key = await this.deriveKey(passphrase, salt);
-    const encrypted = this.base64ToBytes(payload.data);
-    const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: this.toArrayBuffer(iv) }, key, this.toArrayBuffer(encrypted));
+    const encrypted = base64ToBytes(payload.data);
+    const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: toArrayBuffer(iv) }, key, toArrayBuffer(encrypted));
     const bytes = payload.compression === 'gzip' ? await this.decompress(new Uint8Array(decrypted)) : new Uint8Array(decrypted);
-    return JSON.parse(new TextDecoder().decode(bytes)) as T;
+    return bytesToJson<T>(bytes);
   }
 
   /** 用 fflate 尝试 gzip 压缩数据，只在压缩后更小时使用压缩结果。 */
@@ -783,38 +780,15 @@ class CloudSaveService {
       return gunzipSync(bytes);
     } catch {
       if (typeof DecompressionStream !== 'function') throw new Error(this.t('cloud.save.error.decompress'));
-      const stream = new Blob([this.toArrayBuffer(bytes)]).stream().pipeThrough(new DecompressionStream('gzip'));
+      const stream = new Blob([toArrayBuffer(bytes)]).stream().pipeThrough(new DecompressionStream('gzip'));
       return new Uint8Array(await new Response(stream).arrayBuffer());
     }
   }
 
   /** 使用 PBKDF2-SHA256 从口令和 salt 派生 AES-GCM 密钥。 */
   private async deriveKey(passphrase: string, salt: Uint8Array): Promise<CryptoKey> {
-    const keyMaterial = await crypto.subtle.importKey('raw', new TextEncoder().encode(passphrase), 'PBKDF2', false, ['deriveKey']);
-    return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: this.toArrayBuffer(salt), iterations: 150000, hash: 'SHA-256' }, keyMaterial, { name: 'AES-GCM', length: 256 }, false, [
-      'encrypt',
-      'decrypt'
-    ]);
-  }
-
-  /** 把 Uint8Array 精确裁剪成 WebCrypto 需要的 ArrayBuffer。 */
-  private toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
-    return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
-  }
-
-  /** 把字节数组转换成 Base64 字符串，便于写入 JSON。 */
-  private bytesToBase64(bytes: Uint8Array): string {
-    let binary = '';
-    for (const byte of bytes) binary += String.fromCharCode(byte);
-    return btoa(binary);
-  }
-
-  /** 把 Base64 字符串还原成字节数组。 */
-  private base64ToBytes(base64: string): Uint8Array {
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    return bytes;
+    const keyMaterial = await crypto.subtle.importKey('raw', toArrayBuffer(textToBytes(passphrase)), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: toArrayBuffer(salt), iterations: 150000, hash: 'SHA-256' }, keyMaterial, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
   }
 }
 

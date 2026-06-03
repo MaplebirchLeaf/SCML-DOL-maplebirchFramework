@@ -6,6 +6,8 @@ dist/
 game
 cloud-services/**/*.db
 cloud-services/**/dist/
+cloud-services/cloudflare-webdav-worker/worker-url.txt
 cloud-services/go-sql-server/config.json
+cloud-services/**/wrangler.toml
 cloud-services/**/.dev.vars
 cloud-services/**/.wrangler/

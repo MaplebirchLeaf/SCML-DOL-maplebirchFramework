@@ -33,7 +33,7 @@ async function writeTypesPackage(): Promise<void> {
 
   await Bun.write(
     path.join(packageDir, 'index.d.ts'),
-    "import instance, * as types from './maplebirch';\n\ntype Utils = typeof types.utils;\n\ndeclare global {\n  const maplebirch: typeof instance;\n  const clone: Utils['clone'];\n  const merge: Utils['merge'];\n  const equal: Utils['equal'];\n  const contains: Utils['contains'];\n  const SelectCase: Utils['SelectCase'];\n  const random: Utils['random'];\n  const either: Utils['either'];\n  const convert: Utils['convert'];\n  const number: Utils['number'];\n  const loadImage: Utils['loadImage'];\n\n  interface Window extends Readonly<Utils> {\n    readonly maplebirch: typeof instance;\n  }\n}\n\nexport default instance;\nexport * from './maplebirch';\n"
+    "import instance, * as types from './maplebirch';\n\ntype Utils = typeof types.utils.publicUtils;\n\ndeclare global {\n  const maplebirch: typeof instance;\n  const clone: Utils['clone'];\n  const merge: Utils['merge'];\n  const equal: Utils['equal'];\n  const contains: Utils['contains'];\n  const SelectCase: Utils['SelectCase'];\n  const random: Utils['random'];\n  const either: Utils['either'];\n  const convert: Utils['convert'];\n  const number: Utils['number'];\n  const loadImage: Utils['loadImage'];\n\n  interface Window extends Readonly<Utils> {\n    readonly maplebirch: typeof instance;\n  }\n}\n\nexport default instance;\nexport * from './maplebirch';\n"
   );
 
   await Bun.write(
