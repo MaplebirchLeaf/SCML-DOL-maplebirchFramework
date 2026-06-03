@@ -1,12 +1,6 @@
 # Go + SQLite Cloud Save Server
 
-这是云存档的自建后端示例。它提供账号、登录 token、云端槽位、存档码接口，数据保存到 SQLite。
-
-SQLite 是一个“单文件 SQL 数据库”。运行后端后，会在本目录生成 `cloud-save.db`，里面主要有三类数据：
-
-- `users`：账号、密码盐、密码哈希。
-- `sessions`：登录会话、token 哈希、过期时间。
-- `saves`：云存档槽位和加密后的 payload。
+这是云存档的自建后端示例，适合本机、家庭局域网或自有服务器使用。
 
 ## 启动
 
@@ -123,38 +117,3 @@ go run . -config my-config.json
 ```text
 cloud save server listening on :8787, sqlite=./cloud-save.db, session_days=30
 ```
-
-## 数据安全
-
-前端上传前会先用压缩 + AES-GCM 加密原版 IndexedDB 里的存档数据。Go 后端只保存加密后的 JSON，不知道存档明文。
-
-密码既用于账号登录，也作为默认云存档加密口令。换密码后，旧云存档可能无法解密。
-
-## SQL 大概是什么意思
-
-建表：
-
-```sql
-CREATE TABLE IF NOT EXISTS users (...)
-```
-
-意思是“如果还没有 users 表，就创建它”。
-
-插入账号：
-
-```sql
-INSERT INTO users (username, password_salt, password_hash, created_at)
-VALUES (?, ?, ?, ?)
-```
-
-`?` 是参数占位符，Go 会把变量安全地填进去，避免直接拼字符串造成 SQL 注入。
-
-覆盖云存档：
-
-```sql
-INSERT INTO saves (user_id, slot, updated_at, payload)
-VALUES (?, ?, ?, ?)
-ON CONFLICT(user_id, slot) DO UPDATE SET ...
-```
-
-意思是“如果这个账号的这个槽位不存在就新增；如果已经存在，就更新原来的那一行”。

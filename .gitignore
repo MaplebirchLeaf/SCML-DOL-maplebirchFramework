@@ -11,3 +11,4 @@ cloud-services/go-sql-server/config.json
 cloud-services/**/wrangler.toml
 cloud-services/**/.dev.vars
 cloud-services/**/.wrangler/
+/repository-overview.pdf

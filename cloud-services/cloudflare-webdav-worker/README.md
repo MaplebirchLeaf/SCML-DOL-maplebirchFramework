@@ -1,10 +1,6 @@
 # Cloudflare R2 Worker
 
-同一个 Worker 地址可以给多个游戏账户使用：
-
-- D1 保存账户、登录 token、槽位索引。
-- R2 保存加密后的存档 JSON。
-- 默认最多 5 个账户，可在 `wrangler.toml` 的 `MAX_USERS` 修改。
+这是部署到 Cloudflare 的云存档后端。默认最多 5 个游戏云存档账户，可在 `wrangler.toml` 的 `MAX_USERS` 修改。
 
 ## 创建资源
 
