@@ -408,8 +408,8 @@ const layers = {
       const nnpc = options.maplebirch!.nnpc!;
       const selected = V.options.maplebirch.npcsidebar.display[nnpc.name];
       const artKey = maplebirch.npc.Clothes.art?.get?.(nnpc.name)?.key;
-      if (!selected) return;
-      if (selected === 'none' || selected === artKey) return;
+      if (!selected) return '';
+      if (selected === 'none' || selected === artKey) return '';
       return `img/ui/nnpc/${nnpc.name.toLowerCase()}/${selected}.png`;
     },
 
@@ -428,13 +428,13 @@ const layers = {
 
 const NPCSidebar = (() => {
   class NPCSidebar {
-    static get display() {
+    public static get display() {
       return display;
     }
 
-    static loadFromMod = loadFromMod;
+    public static loadFromMod = loadFromMod;
 
-    static hair_type(type: 'sides' | 'fringe') {
+    public static hair_type(type: 'sides' | 'fringe') {
       const hair_name: Record<string, string> = {};
       const styles = type === 'sides' ? setup.hairstyles.sides : setup.hairstyles.fringe;
       styles.forEach((style: any) => {
@@ -444,7 +444,7 @@ const NPCSidebar = (() => {
       return hair_name;
     }
 
-    static init(manager: NPCManager) {
+    public static init(manager: NPCManager) {
       manager.core.once(':storyready', () => {
         for (const npcName of manager.NPCNameList) {
           if (!display.has(npcName)) display.set(npcName, new Set());

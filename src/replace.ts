@@ -1,11 +1,12 @@
-// ./src/database/FrameworksReplace.ts
-import { widgets } from '../utils';
-import TransformationMirror from '@/twee/TransformationMirror.twee?raw';
-import NPCHairStyleOptions from '@/twee/NPCHairStyleOptions.twee?raw';
-import Options from '@/twee/Options.twee?raw';
-import Cheats from '@/twee/Cheats.twee?raw';
+// ./src/replace.ts
+import { widgets } from './utils';
+import TransformationMirror from '@/twee/TransformationMirror.twee';
+import NPCHairStyleOptions from '@/twee/NPCHairStyleOptions.twee';
+import Options from '@/twee/Options.twee';
+import Cheats from '@/twee/Cheats.twee';
+import CloudSave from '@/twee/CloudSave.twee';
 
-const specialWidget = widgets(TransformationMirror, NPCHairStyleOptions);
+const specialWidget = widgets(CloudSave, TransformationMirror, NPCHairStyleOptions);
 
 // prettier-ignore
 const defaultData = {
@@ -52,7 +53,8 @@ const widgetPassage = {
   overlayReplace: [
     { src: '</div>\n\t<<closeButton>>\n<</widget>>\n\n<<widget "titleSaves">>', applybefore: '\t<<lanButton "mods settings" "title">>\n\t\t\t<<toggleTab>>\n\t\t\t<<replace #customOverlayContent>><<maplebirchOptions>><</replace>>\n\t\t<</lanButton>>\n\t' },
     { src: '</div>\n\t<<closeButton>>\n<</widget>>\n\n<<widget "titleOptions">>', applybefore: '\t<<lanButton "mods cheats" "title">>\n\t\t\t<<toggleTab>>\n\t\t\t<<replace #cheatsShown>><<maplebirchCheats>><</replace>>\n\t\t\t<<run $("#customOverlayContent").scrollTop(0);>>\n\t\t<</lanButton>>\n\t' },
-    { src: '</div>\n\t<<closeButton>>\n<</widget>>\n\n<<widget "titleFeats">>', applybefore: '\t<<lanButton "mods statistics" "title">>\n\t\t\t<<toggleTab>>\n\t\t\t<<replace #customOverlayContent>><<maplebirchStatistics>><</replace>>\n\t\t<</lanButton>>\n\t' }
+    { src: '</div>\n\t<<closeButton>>\n<</widget>>\n\n<<widget "titleFeats">>', applybefore: '\t<<lanButton "mods statistics" "title">>\n\t\t\t<<toggleTab>>\n\t\t\t<<replace #customOverlayContent>><<maplebirchStatistics>><</replace>>\n\t\t<</lanButton>>\n\t' },
+    { src: '</div>\n\t<<closeButton>>\n<</widget>>\n\n<<widget "titleBlackjackHelp">>', applybefore: '\t<<lanButton "cloud save" "title">>\n\t\t\t<<toggleTab>>\n\t\t\t<<replace #customOverlayContent>><<maplebirchCloudSave>><</replace>>\n\t\t<</lanButton>>\n\t' }
   ],
   'Options Overlay': [
     { src: '<</widget>>\n\n<<widget "setFont">>', applybefore: '\t<<maplebirchInformation>>\n' }

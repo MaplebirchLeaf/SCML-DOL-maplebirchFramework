@@ -1,8 +1,9 @@
 // ./src/modules/Character.ts
 
 import maplebirch, { MaplebirchCore, createlog } from '../core';
-import { merge, loadImage, convert } from '../utils';
+import { merge, convert, loadImage } from '../utils';
 import AddonPlugin from './AddonPlugin';
+import type { Replacement } from './AddonPluginProcess';
 import Transformation from './CharacterAddon/Transformation';
 
 interface FaceStyleOptions {
@@ -55,25 +56,50 @@ interface LayerConfig {
   [key: string]: any;
 }
 
-type FaceStyleNameFn = (options: FaceStyleOptions) => string;
-type CharacterProcessType = 'pre' | 'post';
-type CharacterProcessHandler = (options: any) => void;
-type CharacterProcessInput = CharacterProcessHandler | Function;
-type CharacterLayerMap = Record<string, LayerConfig>;
+type FaceStyleNameFn = (options: FaceStyleOptions) => string | string[];
+type FaceStyleName = string | string[];
 
-function faceStyleSrcFn(name: FaceStyleNameFn | string) {
+type ProcessType = 'pre' | 'post';
+type ModelTarget<TModel = CanvasModel | CanvasModelOptions> = string | string[] | ((modelName: string, model?: TModel) => boolean);
+type ProcessHandler = (options: any, model?: CanvasModel) => void;
+
+interface ProcessEntry {
+  type: ProcessType;
+  target: ModelTarget<CanvasModel>;
+  handler: ProcessHandler;
+}
+
+interface LayerEntry {
+  target: ModelTarget<CanvasModelOptions>;
+  layers: CanvasLayerMap;
+}
+
+const faceImagePaths = new Set<string>();
+
+function resolveFaceImagePath(candidates: string[]) {
+  const indexed = candidates.find(path => faceImagePaths.has(path));
+  if (indexed) return indexed;
+  let firstUnknown = '';
+  for (const path of candidates) {
+    const result = loadImage(path);
+    if (result === path || result === true) return path;
+    if (result !== false && !firstUnknown) firstUnknown = path;
+  }
+  return firstUnknown || candidates[0];
+}
+
+function faceStyleSrcFn(name: FaceStyleNameFn | FaceStyleName) {
   const getName: FaceStyleNameFn = typeof name === 'function' ? name : () => name;
   return function (layerOptions: FaceStyleOptions): string {
-    const image = getName(layerOptions);
-    const paths = [
-      `img/face/${layerOptions.facestyle}/${layerOptions.facevariant}/${image}.png`,
-      `img/face/${layerOptions.facestyle}/${image}.png`,
-      `img/face/default/${layerOptions.facevariant}/${image}.png`,
-      `img/face/default/${image}.png`,
-      `img/face/default/default/${image}.png`
-    ];
-    for (const path of paths) if (!!loadImage(path)) return path;
-    return paths[paths.length - 1];
+    const images = [getName(layerOptions)].flat();
+    const facestyle = layerOptions.facestyle || 'default';
+    const facevariant = layerOptions.facevariant || 'default';
+    const candidates = images.flatMap(image => {
+      return facestyle === 'default' && /^(freckles|ears|blusher|mouth-|lipstick-|blush-?|tears?-?)/.test(image)
+        ? [`img/face/${facestyle}/${image}.png`, `img/face/${facestyle}/${facevariant}/${image}.png`, `img/face/default/${image}.png`, `img/face/default/${facevariant}/${image}.png`]
+        : [`img/face/${facestyle}/${facevariant}/${image}.png`, `img/face/${facestyle}/${image}.png`, `img/face/default/${facevariant}/${image}.png`, `img/face/default/${image}.png`];
+    });
+    return resolveFaceImagePath(candidates);
   };
 }
 
@@ -180,7 +206,7 @@ function preprocess(options: HairGradientPreprocessOptions) {
   gradients('hair_fringe_colour_style', 'hair_fringe_colour_gradient', 'fringe', 'hair_fringe_type', 'hair_fringe_length', 'hair_fringe');
 }
 
-const layers: CharacterLayerMap = {
+const layers: CanvasLayerMap = {
   hair_sides: {
     masksrcfn(options: HairGradientPreprocessOptions) {
       const headMask = options.headMask?.length ? options.headMask : options.head_mask_src;
@@ -311,95 +337,106 @@ const layers: CharacterLayerMap = {
 };
 
 class Character {
-  readonly log: ReturnType<typeof createlog>;
-  readonly mask = mask;
-  readonly faceStyleSrcFn = faceStyleSrcFn;
-  readonly faceStyleMap: Map<string, string[]> = new Map();
-  readonly handlers: Record<CharacterProcessType, CharacterProcessHandler[]> = {
-    pre: [],
-    post: []
-  };
-  readonly transformation: Transformation;
-  layers: CharacterLayerMap = {};
+  public readonly log: ReturnType<typeof createlog>;
+  public readonly mask = mask;
+  public readonly faceStyleSrcFn = faceStyleSrcFn;
+  public readonly faceStyleMap: Map<string, string[]> = new Map();
+  private readonly handlers: ProcessEntry[] = [];
+  private readonly layers: LayerEntry[] = [];
+  public readonly transformation: Transformation;
 
-  constructor(readonly core: MaplebirchCore) {
+  public constructor(readonly core: MaplebirchCore) {
     this.log = createlog('char');
     this.transformation = new Transformation(this);
     this.core.on(':language', () => this._faceStyleSetupOption(), 'face style setup options');
-    this.core.once(':sugarcube', () => {
-      const model = Renderer.CanvasModels.main;
-      if (!model?.layers) return;
-      const originalLayers = { ...model.layers };
-      Object.defineProperty(model, 'layers', {
-        get: () =>
-          merge(originalLayers, this.layers, {
-            mode: 'merge',
-            filterFn: (_key: any, value: any, depth: number) => depth <= 3 && value != null
-          }),
-        enumerable: true,
-        configurable: true
-      });
-      if (Renderer.CanvasModelCaches?.main) Renderer.CanvasModelCaches.main = {};
-    });
     this.core.tool.onInit(() => this._faceStyleSetupOption());
   }
 
-  get ZIndices() {
+  public get ZIndices() {
     return ZIndices;
   }
 
-  async modifyPCModel(manager: AddonPlugin) {
+  public modifyCanvasModel(manager: AddonPlugin): void {
     const oldSCdata = manager.SC2DataManager.getSC2DataInfoAfterPatch();
     const SCdata = oldSCdata.cloneSC2DataInfo();
-    const file = SCdata.scriptFileItems.getByNameWithOrWithoutPath('canvasmodel-main.js');
-    const replacements: [RegExp, string][] = [
-      [/},\n\tpostprocess/, '\tmaplebirch.char.process("pre", options);\n\t},\n\tpostprocess'],
-      [/},\n\tlayers/, '\tmaplebirch.char.process("post", options);\n\t},\n\tlayers']
-    ];
-    file.content = manager.replace(file.content, replacements);
+    const file = SCdata.scriptFileItems.getByNameWithOrWithoutPath('00-canvasmodel.js')!;
+    const replacements: Replacement[] = [[/window\.CanvasModel\s*=\s*CanvasModel;/, 'CanvasModel = maplebirch.char.patchCanvasModel(CanvasModel);\nwindow.CanvasModel = CanvasModel;']];
+    file.content = manager.replace(file.content, replacements, 'CanvasModel');
     manager.modUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
   }
 
-  use(type: CharacterProcessType, fn: CharacterProcessInput): this;
-  use(layerMap: CharacterLayerMap): this;
-  use(...args: any[]): this {
-    if (args.length === 0) {
-      this.log('use 调用无参数', 'WARN');
-      return this;
-    }
-    if (args.length === 2) {
-      const [type, fn] = args;
-      if ((type === 'pre' || type === 'post') && typeof fn === 'function') {
-        this.handlers[type].push(fn as CharacterProcessHandler);
-      } else {
-        this.log(`use 参数类型错误: ${typeof type}, ${typeof fn}`, 'ERROR');
+  public patchCanvasModel<T extends CanvasModelConstructor>(BaseCanvasModel: T): T {
+    const layerEntries = this.layers;
+    const runProcess = this.process.bind(this);
+    return class PatchedCanvasModel extends BaseCanvasModel {
+      constructor(...args: any[]) {
+        let [options] = args as [CanvasModelOptions];
+        const modelName = options?.name || '';
+        const modelLayers = layerEntries
+          .filter(({ target }) => (typeof target === 'function' ? target(modelName, options) : Array.isArray(target) ? target.includes(modelName) : target === modelName))
+          .map(({ layers }) => layers);
+        if (modelLayers.length && options?.layers) {
+          let patchedLayers = clone(options.layers);
+          for (const layers of modelLayers) {
+            patchedLayers = merge(patchedLayers, layers, {
+              mode: 'merge',
+              filterFn: (_key: any, value: any, depth: number) => depth <= 3 && value != null
+            });
+          }
+          options = { ...options, layers: patchedLayers };
+          args[0] = options;
+        }
+        super(...args);
+        const vanillaPre = this.preprocess;
+        const vanillaPost = this.postprocess;
+        this.preprocess = (processOptions: CanvasModelOptionsData) => {
+          vanillaPre.call(this, processOptions);
+          runProcess('pre', processOptions, this);
+        };
+        this.postprocess = (processOptions: CanvasModelOptionsData) => {
+          vanillaPost.call(this, processOptions);
+          runProcess('post', processOptions, this);
+        };
       }
+    } as T;
+  }
+
+  public use(type: ProcessType, handler: ProcessHandler, target?: ModelTarget<CanvasModel>): this;
+  public use(layers: CanvasLayerMap, target?: ModelTarget<CanvasModelOptions>): this;
+  public use(...args: [ProcessType, ProcessHandler, ModelTarget<CanvasModel>?] | [CanvasLayerMap, ModelTarget<CanvasModelOptions>?]): this {
+    if (typeof args[0] === 'string') {
+      const type = args[0];
+      const handler = args[1];
+      const target = args[2] ?? 'main';
+      this.handlers.push({ type, target, handler });
       return this;
     }
-    if (args.length === 1 && args[0] && typeof args[0] === 'object') {
-      this.layers = merge(this.layers, args[0], {
-        mode: 'merge',
-        filterFn: (_key: any, value: any, depth: number) => depth <= 3 && value != null
-      });
-      return this;
-    }
-    this.log('use 调用格式错误', 'ERROR');
+    const layers = args[0];
+    const target = args[1] ?? 'main';
+    this.layers.push({ target, layers });
     return this;
   }
 
-  process(type: CharacterProcessType, options: any) {
-    const handlers = this.handlers[type] || [];
+  public process(type: ProcessType, options: CanvasModelOptionsData, model?: CanvasModel) {
+    const modelName = model?.name || '';
+    const handlers = this.handlers
+      .filter(({ type: entryType, target }) => {
+        if (entryType !== type) return false;
+        return typeof target === 'function' ? target(modelName, model) : Array.isArray(target) ? target.includes(modelName) : target === modelName;
+      })
+      .map(({ handler }) => handler);
+    if (handlers.length === 0) return;
     this.core.var.optionsCheck();
-    for (const fn of handlers) {
+    for (const handler of handlers) {
       try {
-        fn(options);
+        handler(options, model);
       } catch (error: any) {
         this.log(`${type}process 错误: ${error?.message || error}`, 'ERROR', error);
       }
     }
   }
 
-  async modifyFaceStyle(manager: AddonPlugin) {
+  public modifyFaceStyle(manager: AddonPlugin): void {
     const oldSCdata = manager.SC2DataManager.getSC2DataInfoAfterPatch();
     const SCdata = oldSCdata.cloneSC2DataInfo();
     const passageData = SCdata.passageDataItems.map;
@@ -407,16 +444,16 @@ class Character {
     for (const file of files) {
       const modify = passageData.get(file);
       if (!modify?.content) continue;
-      const replacements: [RegExp, string][] = [[/setup.faceStyleOptions.length gt/g, 'Object.keys(setup.faceStyleOptions).length gte']];
-      if (file === 'Widgets Mirror') replacements.push([/Object.keys\(setup.faceVariantOptions\[\$facestyle\]\).length gt/g, 'Object.keys(setup.faceVariantOptions[$facestyle]).length gte']);
-      modify.content = manager.replace(modify.content, replacements);
+      const replacements: Replacement[] = [[/setup.faceStyleOptions.length gt/g, 'Object.keys(setup.faceStyleOptions).length gte']];
+      if (file === 'Widgets Mirror') replacements.push([/(Object\.keys\(setup\.faceVariantOptions\[\$facestyle\]\)\.length\s+)gt\b/g, '$1gte']);
+      modify.content = manager.replace(modify.content, replacements, 'FaceStyle');
       passageData.set(file, modify);
     }
     SCdata.passageDataItems.back2Array();
     manager.modUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
   }
 
-  async faceStyleImagePaths() {
+  public async faceStyleImagePaths() {
     for (const modName of this.core.modUtils.getModListNameNoAlias()) {
       try {
         const mod = this.core.modUtils.getMod(modName);
@@ -429,7 +466,9 @@ class Character {
         for (const filePath of Object.keys(files)) {
           const faceIndex = filePath.indexOf('img/face/');
           if (faceIndex === -1) continue;
-          const pathParts = filePath.substring(faceIndex + 9).split('/');
+          const imagePath = filePath.substring(faceIndex).replace(/\\/g, '/');
+          faceImagePaths.add(imagePath);
+          const pathParts = imagePath.substring(9).split('/');
           if (pathParts.length < 2) continue;
           hasFacePath = true;
           const firstFolder = pathParts[0];
@@ -491,7 +530,7 @@ class Character {
     setup.faceVariantOptions = nextVariantOptions;
   }
 
-  async #renderCharacter() {
+  private async renderCharacter() {
     const container = document.getElementById('maplebirch-character');
     if (!container) return;
     container.innerHTML = '';
@@ -520,7 +559,7 @@ class Character {
       mainCanvas.canvas.classList.add('maplebirch-canvas', 'maplebirch-main');
       mainCanvas.canvas.style.zIndex = '2';
       container.appendChild(mainCanvas.canvas);
-      this.#adjustCanvasSize(container);
+      this.adjustCanvasSize(container);
     } catch (error) {
       this.log('角色渲染错误:', 'ERROR', error);
     } finally {
@@ -529,7 +568,7 @@ class Character {
     }
   }
 
-  async #renderOverlay() {
+  private async renderOverlay() {
     const overlay = document.getElementById('maplebirch-character-overlay');
     if (!overlay) return;
     overlay.innerHTML = '';
@@ -588,7 +627,7 @@ class Character {
     overlay.appendChild(rightContainer);
   }
 
-  #adjustCanvasSize(container: HTMLElement) {
+  private adjustCanvasSize(container: HTMLElement) {
     const canvases = container.querySelectorAll<HTMLCanvasElement>('.maplebirch-canvas');
     const containerWidth = container.clientWidth;
     const containerHeight = container.clientHeight;
@@ -606,29 +645,26 @@ class Character {
     });
   }
 
-  async render() {
-    await this.#renderCharacter();
-    await this.#renderOverlay();
+  public async render() {
+    await this.renderCharacter();
+    await this.renderOverlay();
   }
 
-  preInit() {
+  public preInit() {
     this.use('pre', preprocess);
     this.use(layers);
   }
 
-  Init() {
+  public Init() {
     this.core.on(':modhint', () => void this.render(), 'character render');
     this.transformation.inject();
   }
 
-  loadInit() {
+  public loadInit() {
     this.transformation.inject();
   }
 }
 
-(function (maplebirch): void {
-  'use strict';
-  maplebirch.register('char', Object.seal(new Character(maplebirch)), ['var']);
-})(maplebirch);
+maplebirch.register('char', Object.seal(new Character(maplebirch)), ['var']);
 
 export default Character;

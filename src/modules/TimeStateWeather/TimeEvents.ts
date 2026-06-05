@@ -4,7 +4,7 @@ import { TimeConstants } from '../../constants';
 import maplebirch from '../../core';
 import type DynamicManager from '../Dynamic';
 import patchDateTime from './DateTime';
-import patchTime from './Time';
+import patchTime, { bindTimeHandlers, vanillaTime } from './Time';
 
 type TimeEventType = 'onSec' | 'onMin' | 'onHour' | 'onDay' | 'onWeek' | 'onMonth' | 'onYear' | 'onBefore' | 'onThread' | 'onAfter' | 'onTimeTravel';
 
@@ -23,6 +23,11 @@ interface DateLike {
 interface AccumulateConfig {
   unit: TimeUnit;
   target?: number;
+}
+
+interface PassSnapshot {
+  prevDate: DateTime;
+  seconds: number;
 }
 
 export interface TimeData {
@@ -82,23 +87,23 @@ class TimeEvent {
   private accumulate?: AccumulateConfig;
   private accumulated = 0;
   private target = 1;
-  readonly priority: number;
+  public readonly priority: number;
 
-  constructor(
+  public constructor(
     readonly id: string,
     readonly type: TimeEventType,
     options: TimeEventOptions = {}
   ) {
     this.action = options.action;
     this.cond = options.cond || (() => true);
-    this.priority = options.priority || 0;
+    this.priority = options.priority ?? 0;
     this.once = !!options.once;
     this.exact = !!options.exact;
     this.accumulate = options.accumulate;
     if (this.accumulate) this.target = Math.max(1, Math.floor(this.accumulate.target || 1));
   }
 
-  tryRun(data: TimeData): boolean {
+  public tryRun(data: TimeData): boolean {
     if (this.exact && !this.isExactPoint(data)) return false;
     if (this.accumulate) return this.runAccumulated(data);
     return this.execute(data);
@@ -172,15 +177,10 @@ export class TimeManager {
   private readonly timeEvents: Record<string, Map<string, TimeEvent>> = {};
   private readonly sortedEventsCache: Record<string, TimeEvent[] | null> = {};
 
-  private readonly vanillaTime = {
-    pass: null as ((seconds: number) => any) | null,
-    setDate: null as ((date: DateTime) => void) | null,
-    timeTravel: null as ((date: DateTime) => any) | null
-  };
+  public readonly log: (message: string, level?: string, ...objects: any[]) => void;
+  public readonly TimeConstants = TimeConstants;
 
-  readonly log: (message: string, level?: string, ...objects: any[]) => void;
-
-  constructor(private readonly manager: DynamicManager) {
+  public constructor(private readonly manager: DynamicManager) {
     this.log = manager.log;
     for (const type of this.eventTypes) {
       this.timeEvents[type] = new Map();
@@ -188,20 +188,27 @@ export class TimeManager {
     }
   }
 
-  init(): void {
+  public init(): void {
     try {
-      patchDateTime();
-      this.saveTime();
-      patchTime();
-      if (this.vanillaTime.pass) Time.pass = (seconds: number) => this.handleTimePass(seconds);
-      if (this.vanillaTime.timeTravel) Time.timeTravel = (date: DateTime) => this.handleTimeTravel(date);
+      bindTimeHandlers(Time, {
+        pass: (seconds: number) => this.handleTimePass(seconds),
+        timeTravel: (date: DateTime) => this.handleTimeTravel(date)
+      });
       this.log('时间事件系统已激活', 'INFO');
     } catch (e: any) {
       this.log(`初始化时间事件系统失败: ${e.message}`, 'ERROR');
     }
   }
 
-  register(type: string, eventId: string, options: TimeEventOptions): boolean {
+  public patchDateTime(DateTimeClass: typeof DateTime): typeof DateTime {
+    return patchDateTime(DateTimeClass);
+  }
+
+  public patchTime(TimeObject: typeof Time): void {
+    patchTime(TimeObject);
+  }
+
+  public register(type: string, eventId: string, options: TimeEventOptions): boolean {
     if (!this.timeEvents[type]) {
       this.log(`未知的时间事件类型: ${type}`, 'ERROR');
       return false;
@@ -216,7 +223,7 @@ export class TimeManager {
     return true;
   }
 
-  unregister(type: string, eventId: string): boolean {
+  public unregister(type: string, eventId: string): boolean {
     if (!this.timeEvents[type]) {
       this.log(`事件类型不存在: ${type}`, 'WARN');
       return false;
@@ -231,7 +238,7 @@ export class TimeManager {
     return false;
   }
 
-  timeTravel(options: TimeTravelOptions = {}): boolean {
+  public timeTravel(options: TimeTravelOptions = {}): boolean {
     try {
       this.handleTimeTravel(this.targetDate(options));
       return true;
@@ -241,7 +248,7 @@ export class TimeManager {
     }
   }
 
-  updateTimeLanguage(choice?: 'JournalTime'): string | boolean {
+  public updateTimeLanguage(choice?: 'JournalTime'): string | boolean {
     if (choice !== 'JournalTime') return false;
     const date = new window.DateTime(Time.date);
     const year = Math.abs(date.year);
@@ -250,15 +257,11 @@ export class TimeManager {
     return lanSwitch(`It is ${getFormattedDate(date)}, ${year}${eraEN}.`, `今天是${eraCN}${year}年${date.month}月${date.day}日。`);
   }
 
-  private saveTime(): void {
-    if (!this.vanillaTime.pass && typeof Time.pass === 'function') this.vanillaTime.pass = Time.pass.bind(Time);
-    if (!this.vanillaTime.setDate && typeof Time.setDate === 'function') this.vanillaTime.setDate = Time.setDate.bind(Time);
-    if (!this.vanillaTime.timeTravel && typeof Time.timeTravel === 'function') this.vanillaTime.timeTravel = Time.timeTravel.bind(Time);
-  }
-
   private handleTimePass(seconds: number): any {
-    if (!this.vanillaTime.pass) return;
-    if (seconds < 0) return;
+    const pass = vanillaTime.pass;
+    const setDate = vanillaTime.setDate;
+    if (!pass || !setDate) return;
+    if (!Number.isFinite(seconds) || seconds < 0) return;
     const prevDate = new window.DateTime(Time.date);
     const targetDate = new window.DateTime(prevDate).addSeconds(seconds);
     this.trigger('onBefore', {
@@ -268,10 +271,10 @@ export class TimeManager {
       prevDate
     });
     let passResult: any;
-    const useVanilla = prevDate.timeStamp >= 0 && targetDate.timeStamp >= 0 && targetDate.timeStamp <= TimeConstants.MAX_DATE.timeStamp;
+    const useVanilla = prevDate.timeStamp >= TimeConstants.MIN_DATE.timeStamp && targetDate.timeStamp >= TimeConstants.MIN_DATE.timeStamp && targetDate.timeStamp <= TimeConstants.MAX_DATE.timeStamp;
     if (useVanilla) {
-      this.vanillaTime.setDate?.(prevDate);
-      passResult = this.vanillaTime.pass(seconds);
+      setDate(prevDate);
+      passResult = pass(seconds);
     }
     Time.setDate(targetDate);
     const currentDate = new window.DateTime(Time.date);
@@ -282,15 +285,13 @@ export class TimeManager {
     return passResult;
   }
 
-  private handleTimeTravel(targetDate: DateTime): any {
+  private handleTimeTravel(targetDate: DateTime): void {
     const prevDate = new window.DateTime(Time.date);
     const target = new window.DateTime(targetDate);
-    const elapsedSeconds = target.timeStamp - prevDate.timeStamp;
-    let travelResult: any;
-    const useVanilla = target.timeStamp >= 0 && target.timeStamp <= TimeConstants.MAX_DATE.timeStamp;
-    if (useVanilla) travelResult = this.vanillaTime.timeTravel?.(target);
+    if (target.timeStamp < TimeConstants.MIN_DATE.timeStamp || target.timeStamp > TimeConstants.MAX_DATE.timeStamp) throw new Error(`Invalid time travel target: ${target.timeStamp}`);
     Time.setDate(target);
     const currentDate = new window.DateTime(Time.date);
+    const elapsedSeconds = currentDate.timeStamp - prevDate.timeStamp;
     const eventData = this.timeData(prevDate, currentDate, elapsedSeconds);
     this.trigger('onTimeTravel', {
       ...eventData,
@@ -300,7 +301,6 @@ export class TimeManager {
       direction: elapsedSeconds >= 0 ? 'forward' : 'backward',
       isLeap: window.DateTime.isLeapYear(currentDate.year)
     });
-    return travelResult;
   }
 
   private targetDate(options: TimeTravelOptions): DateTime {

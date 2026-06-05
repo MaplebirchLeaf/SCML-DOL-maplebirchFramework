@@ -125,45 +125,45 @@ export const NamedNPC = (core => {
   } as const;
 
   class NamedNPC {
-    nam: string;
-    gender: 'm' | 'f' | 'h' | 'n' | 'none';
-    title: string;
-    description: string;
-    type: string;
-    adult: number;
-    teen: number;
-    age: number;
-    insecurity: string;
-    chastity: { penis: string; vagina: string; anus: string };
-    virginity: Record<string, boolean>;
-    hair_side_type: string;
-    hair_fringe_type: string;
-    hair_position: string;
-    hairlength: number;
-    eyeColour: string;
-    hairColour: string;
-    pronoun: PronounCode;
-    pronouns: Record<string, string> = {};
-    bottomsize: number;
-    skincolour: number;
-    init: number;
-    intro: number;
-    penis: string;
-    penissize: number;
-    penisdesc: string;
-    vagina: string;
-    breastsize: number;
-    breastdesc: string;
-    breastsdesc: string;
-    bottomdesc: string;
-    ballsdesc: string;
-    ballssize: number;
-    outfits: string[];
-    pregnancy: any;
-    pregnancyAvoidance?: number;
-    descCache: Record<string, any> = {};
+    public nam: string;
+    public gender: 'm' | 'f' | 'h' | 'n' | 'none';
+    public title: string;
+    public description: string;
+    public type: string;
+    public adult: number;
+    public teen: number;
+    public age: number;
+    public insecurity: string;
+    public chastity: { penis: string; vagina: string; anus: string };
+    public virginity: Record<string, boolean>;
+    public hair_side_type: string;
+    public hair_fringe_type: string;
+    public hair_position: string;
+    public hairlength: number;
+    public eyeColour: string;
+    public hairColour: string;
+    public pronoun: PronounCode;
+    public pronouns: Record<string, string> = {};
+    public bottomsize: number;
+    public skincolour: number;
+    public init: number;
+    public intro: number;
+    public penis!: string;
+    public penissize!: number;
+    public penisdesc!: string;
+    public vagina!: string;
+    public breastsize!: number;
+    public breastdesc!: string;
+    public breastsdesc!: string;
+    public bottomdesc!: string;
+    public ballsdesc!: string;
+    public ballssize!: number;
+    public outfits!: string[];
+    public pregnancy: any;
+    public pregnancyAvoidance?: number;
+    public descCache: Record<string, any> = {};
 
-    constructor(manager: NPCManager, data: NPCData) {
+    public constructor(manager: NPCManager, data: NPCData) {
       if (!data.nam) manager.log('NamedNPC必须存在nam', 'ERROR');
       this.nam = data.nam;
       this.gender = data.gender ?? either(['m', 'f', 'h', 'n'] as const, { weights: [0.47, 0.47, 0.05, 0.01] });
@@ -199,7 +199,7 @@ export const NamedNPC = (core => {
       this.intro = data.intro ?? 0;
     }
 
-    setPronouns() {
+    public setPronouns() {
       const lang: LanguageCode = maplebirch.Language === 'CN' ? 'CN' : 'EN';
       const pronoun = (this.pronoun in pronounsMap ? this.pronoun : 'n') as PronounCode;
       const base = pronounsMap[pronoun][lang];
@@ -207,7 +207,7 @@ export const NamedNPC = (core => {
       this.pronouns = useI18N ? { ...base, his: base.he, hers: base.he } : { ...base };
     }
 
-    setBodyTraits(data: NPCData) {
+    public setBodyTraits(data: NPCData) {
       switch (this.gender) {
         case 'm':
           this.penis = data.penis ?? 'clothed';
@@ -266,7 +266,7 @@ export const NamedNPC = (core => {
       if (!this.outfits.includes(defaultOutfit)) this.outfits.push(defaultOutfit);
     }
 
-    applyVanillaPregnancySystem(manager: NPCManager) {
+    public applyVanillaPregnancySystem(manager: NPCManager) {
       if (this.pregnancy == null) this.pregnancy = {};
       let pregnancyData = this.pregnancy;
       let initialized = false;
@@ -322,7 +322,7 @@ export const NamedNPC = (core => {
       }
     }
 
-    bodyPartdescription() {
+    public bodyPartdescription() {
       const cache = (this.descCache ??= {});
       const lang: LanguageCode = maplebirch.Language === 'CN' ? 'CN' : 'EN';
       const bottomSuffixMap = {
@@ -534,7 +534,7 @@ export const NamedNPC = (core => {
       if (!npc?.nam || npc instanceof NamedNPC) return;
       const newNpc = new NamedNPC(manager, npc);
       Object.keys(npc).forEach(key => {
-        if (key !== 'nam' && !Object.prototype.hasOwnProperty.call(newNpc, key)) newNpc[key] = npc[key];
+        if (key !== 'nam' && !Object.prototype.hasOwnProperty.call(newNpc, key)) (newNpc as Record<string, any>)[key] = (npc as Record<string, any>)[key];
       });
       V.NPCName[i] = newNpc;
     });
@@ -563,28 +563,28 @@ export const NamedNPC = (core => {
 })(maplebirch);
 
 class NPCManager {
-  readonly log: ReturnType<typeof createlog>;
-  readonly data: Map<string, any> = new Map();
-  NPCNameList: string[] = [];
+  public readonly log: ReturnType<typeof createlog>;
+  public readonly data: Map<string, any> = new Map();
+  public NPCNameList: string[] = [];
 
   // prettier-ignore
-  readonly pregnancy: { [x: string]: Array<string> } = {
+  public readonly pregnancy: { [x: string]: Array<string> } = {
     infertile    : ['Bailey', 'Leighton'],
     typesEnabled : ['human', 'wolf', 'wolfboy', 'wolfgirl', 'hawk', 'harpy'],
     canBePregnant: ['Alex', 'Black Wolf', 'Great Hawk']
   };
 
   // prettier-ignore
-  readonly type: { [x: string]: Array<string> } = {
+  public readonly type: { [x: string]: Array<string> } = {
     loveInterestNpcs: [],
     importantNPCs   : [],
     specialNPCs     : []
   };
 
-  readonly customStats: { [x: string]: any } = {};
+  public readonly customStats: { [x: string]: any } = {};
 
   // prettier-ignore
-  readonly romanceConditions: { [key: string]: (() => boolean)[] } = {
+  public readonly romanceConditions: { [key: string]: (() => boolean)[] } = {
     Robin       : [() => V.robinromance === 1],
     Whitney     : [() => V.whitneyromance === 1, () => C.npc.Whitney.state !== 'dungeon'],
     Kylar       : [() => V.kylarenglish >= 1, () => C.npc.Kylar.state !== 'prison'],
@@ -597,12 +597,12 @@ class NPCManager {
     Gwylan      : [() => V.gwylanSeen.includes('partners') || V.gwylanSeen.includes('romance')]
   };
 
-  readonly NamedNPC: typeof NamedNPC = NamedNPC;
-  readonly Schedule: typeof NPCSchedules = NPCSchedules;
-  readonly Clothes: typeof NPCClothes = NPCClothes;
-  readonly Sidebar: typeof NPCSidebar = NPCSidebar;
+  public readonly NamedNPC: typeof NamedNPC = NamedNPC;
+  public readonly Schedule: typeof NPCSchedules = NPCSchedules;
+  public readonly Clothes: typeof NPCClothes = NPCClothes;
+  public readonly Sidebar: typeof NPCSidebar = NPCSidebar;
 
-  constructor(readonly core: MaplebirchCore) {
+  public constructor(readonly core: MaplebirchCore) {
     this.log = createlog('npc');
     this.core.on(
       ':language',
@@ -617,15 +617,15 @@ class NPCManager {
     );
   }
 
-  add(npcData: NPCData, config: NPCConfig = {}, translationsData?: TranslationInput) {
+  public add(npcData: NPCData, config: NPCConfig = {}, translationsData?: TranslationInput) {
     return this.NamedNPC.add(this, npcData, config, translationsData);
   }
 
-  addSchedule(npcName: string, config: ScheduleConfig | ScheduleBuilder) {
+  public addSchedule(npcName: string, config: ScheduleConfig | ScheduleBuilder) {
     return this.Schedule.set(npcName, config);
   }
 
-  addStats(statsObject: { [x: string]: any }) {
+  public addStats(statsObject: { [x: string]: any }) {
     if (!statsObject || typeof statsObject !== 'object') return;
     for (const statName in statsObject) {
       if (Object.prototype.hasOwnProperty.call(statsObject, statName)) {
@@ -636,11 +636,11 @@ class NPCManager {
     }
   }
 
-  addClothes(...configs: ClothesConfig[]) {
+  public addClothes(...configs: ClothesConfig[]) {
     return this.Clothes.addOutfitSet(...configs);
   }
 
-  injectModNPCs() {
+  public injectModNPCs() {
     this.NamedNPC.get(this);
     this.NamedNPC.clear(this);
     this.NamedNPC.update(this);
@@ -648,7 +648,7 @@ class NPCManager {
     this.NamedNPC.convert(this);
   }
 
-  vanillaNPCConfig(npcConfig: NPCConfig) {
+  public vanillaNPCConfig(npcConfig: NPCConfig) {
     if (!npcConfig || typeof npcConfig !== 'object') return {};
     const Config = clone(npcConfig);
     for (const [npcName, npcEntry] of this.data) {
@@ -670,7 +670,7 @@ class NPCManager {
     return (T.npcConfig = Config);
   }
 
-  applyStatDefaults(statDefaults: { [x: string]: any }) {
+  public applyStatDefaults(statDefaults: { [x: string]: any }) {
     if (!statDefaults || typeof statDefaults !== 'object') return statDefaults || {};
     for (const statName in this.customStats) {
       if (Object.prototype.hasOwnProperty.call(this.customStats, statName)) {
@@ -700,7 +700,7 @@ class NPCManager {
     return statDefaults;
   }
 
-  vanillaInit(npcName: string) {
+  public vanillaInit(npcName: string) {
     const idx = V.NPCNameList?.indexOf(npcName) ?? -1;
     if (idx < 0 || !V.NPCName?.[idx]) {
       this.log(`初始化NPC自定义属性失败，未找到NPC: ${npcName}`, 'WARN');
@@ -710,15 +710,15 @@ class NPCManager {
     void this.core.trigger(':npcInit', npcName);
   }
 
-  vanillaInject(npcName: string, npcno: number) {
+  public vanillaInject(npcName: string, npcno: number) {
     void this.core.trigger(':npcInject', npcName, npcno);
   }
 
-  preInit() {
+  public preInit() {
     this.Sidebar.init(this);
   }
 
-  async Init() {
+  public async Init() {
     if (!['Start', 'Downgrade Waiting Room'].includes(this.core.passage?.title)) this.injectModNPCs();
     this.Schedule.init(this);
     await this.Clothes.init(this);
@@ -726,20 +726,17 @@ class NPCManager {
     isPossibleLoveInterest = (name: string) => isPossible(this, name);
   }
 
-  loadInit() {
+  public loadInit() {
     this.injectModNPCs();
     setupNpcData(this, 'init');
   }
 
-  postInit() {
+  public postInit() {
     this.NamedNPC.setup(this);
     setupNpcData(this, 'postInit');
   }
 }
 
-(function (maplebirch): void {
-  'use strict';
-  maplebirch.register('npc', Object.seal(new NPCManager(maplebirch)), ['char']);
-})(maplebirch);
+maplebirch.register('npc', Object.seal(new NPCManager(maplebirch)), ['char']);
 
 export default NPCManager;

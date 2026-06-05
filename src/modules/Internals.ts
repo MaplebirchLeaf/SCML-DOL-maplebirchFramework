@@ -1,7 +1,7 @@
 // ./src/modules/Internals.ts
 
 import maplebirch, { type MaplebirchCore, createlog } from '../core';
-import { _language, _languageSwitch, _languageButton, _languageLink, _languageListbox, _radiobuttonsfrom, _overlayReplace } from '../database/SugarCubeMacros';
+import { _language, _languageSwitch, _languageButton, _languageLink, _languageListbox, _radiobuttonsfrom, _overlayReplace } from '../SugarCubeMacros';
 
 type Updater = () => void;
 type DynamicTask = (...args: any[]) => any;
@@ -23,12 +23,12 @@ interface ModInfo {
 }
 
 class Internals {
-  readonly log: ReturnType<typeof createlog>;
+  public readonly log: ReturnType<typeof createlog>;
 
   private relationTimer: ReturnType<typeof setTimeout> | null = null;
   private modI18NPatched = false;
 
-  constructor(readonly core: MaplebirchCore) {
+  public constructor(readonly core: MaplebirchCore) {
     this.log = createlog('internals');
 
     this.core.once(':sugarcube', () => {
@@ -44,6 +44,7 @@ class Internals {
       macro.defineS('maplebirchFrameworkVersions', this.showModVersions.bind(this));
       macro.defineS('maplebirchFrameworkInfo', () => this.showFrameworkInfo());
       macro.defineS('maplebirchFrameworkNotice', () => this.showFrameworkNotice());
+      macro.defineS('maplebirchTimeTravel', () => this.core.tool.console.timeTravel.fragment());
     });
   }
 
@@ -133,11 +134,11 @@ class Internals {
     }
   }
 
-  showModVersions(): string {
+  private showModVersions(): string {
     return `<div id='modversions'>Maplebirch Framework v${this.core.meta.version}|${this.core.modList.length}</div>`;
   }
 
-  showFrameworkInfo(): string {
+  private showFrameworkInfo(): string {
     this.collectFrameworkMods();
     const info = `
       <div class='p-2 text-align-center'>
@@ -159,7 +160,7 @@ class Internals {
     return info + `<div class='p-2 text-align-center'><h3><<lanSwitch 'Framework Mod List' '框架模组列表'>></h3><div id='modlist'>${mods.join('')}</div></div>`;
   }
 
-  showFrameworkNotice(): string {
+  private showFrameworkNotice(): string {
     const titleSource = "<<lanSwitch 'Welcome to' '欢迎使用'>>[[<<lanSwitch 'Maplebirch Framework' '秋枫白桦框架'>>|https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchframework]]";
     const title = $('<div>').wiki(titleSource).html() || titleSource;
     const t = (key: string) => this.core.t(key);
@@ -191,7 +192,7 @@ class Internals {
     `;
   }
 
-  compatibleModI18N(): void {
+  private compatibleModI18N(): void {
     if (this.modI18NPatched) return;
     const originalName = setup.NPC_CN_NAME;
     const originalTitle = setup.NPC_CN_TITLE;
@@ -216,7 +217,7 @@ class Internals {
     this.modI18NPatched = true;
   }
 
-  preInit(): void {
+  public preInit(): void {
     (window as any).lanSwitch = Object.freeze(_languageSwitch);
 
     this.core.dynamic.regStateEvent('gate', 'notice', {
@@ -256,7 +257,7 @@ class Internals {
     this.relationStyleEvent();
   }
 
-  Init(): void {
+  public Init(): void {
     Dynamic.task = (fn: DynamicTask, name: string) => this.fixDynamicTask(fn, name);
     if (this.core.modUtils.getModListNameNoAlias().includes('ModI18N')) this.compatibleModI18N();
   }
@@ -314,9 +315,6 @@ class Internals {
   }
 }
 
-(function (maplebirch): void {
-  'use strict';
-  maplebirch.register('internals', Object.seal(new Internals(maplebirch)), ['tool']);
-})(maplebirch);
+maplebirch.register('internals', Object.seal(new Internals(maplebirch)), ['tool']);
 
 export default Internals;

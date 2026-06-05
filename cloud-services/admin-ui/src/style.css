@@ -1,0 +1,157 @@
+:root {
+  color: #f1f5f9;
+  background: #101418;
+  font-family: Inter, "Segoe UI", "Microsoft YaHei", sans-serif;
+  line-height: 1.5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.shell {
+  width: min(1120px, calc(100vw - 32px));
+  margin: 0 auto;
+  padding: 28px 0;
+}
+
+header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+h1,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.eyebrow {
+  color: #7dd3fc;
+  font-size: 13px;
+}
+
+.mode {
+  border: 1px solid #475569;
+  padding: 6px 10px;
+  color: #cbd5e1;
+}
+
+.panel,
+.status {
+  border: 1px solid #334155;
+  background: #151b22;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+
+.mode-tabs,
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+button {
+  border: 1px solid #475569;
+  background: #1e293b;
+  color: #f8fafc;
+  padding: 9px 14px;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled),
+button.active {
+  border-color: #60a5fa;
+  background: #2563eb;
+}
+
+button.danger:hover:not(:disabled) {
+  border-color: #f87171;
+  background: #dc2626;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 12px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #fde047;
+}
+
+input {
+  width: 100%;
+  border: 1px solid #475569;
+  background: #0f172a;
+  color: #f8fafc;
+  padding: 9px 10px;
+}
+
+.table {
+  border-top: 1px solid #334155;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr);
+  gap: 12px;
+  border-bottom: 1px solid #263241;
+  padding: 10px 0;
+}
+
+.row.head {
+  color: #93c5fd;
+  font-weight: 700;
+}
+
+.empty {
+  padding: 12px 0 0;
+  color: #94a3b8;
+}
+
+.status {
+  color: #86efac;
+}
+
+@media (max-width: 720px) {
+  header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .actions button,
+  .mode-tabs button {
+    flex: 1 1 calc(50% - 8px);
+  }
+}

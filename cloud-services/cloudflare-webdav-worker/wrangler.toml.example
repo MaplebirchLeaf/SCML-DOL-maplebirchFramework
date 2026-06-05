@@ -1,0 +1,15 @@
+name = "dol-cloud-save-webdav"
+main = "src/worker.ts"
+compatibility_date = "2026-06-02"
+
+[vars]
+MAX_USERS = "5"
+
+[[r2_buckets]]
+binding = "SAVE_BUCKET"
+bucket_name = "replace-with-your-r2-bucket-name"
+
+[[d1_databases]]
+binding = "SAVE_DB"
+database_name = "dol-cloud-save-db"
+database_id = "replace-with-your-d1-database-id"

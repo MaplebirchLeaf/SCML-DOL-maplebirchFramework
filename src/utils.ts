@@ -1,18 +1,36 @@
 // ./src/utils.ts
 
-import maplebirch from './core';
-const _ = maplebirch.lodash;
+const _ = window.modSC2DataManager.getModUtils().getLodash();
+const textEncoder = new TextEncoder();
+const textDecoder = new TextDecoder();
 
 type TypedArrayLike = Int8Array | Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array | BigInt64Array | BigUint64Array;
+
 const isTypedArray = (source: any): source is TypedArrayLike => ArrayBuffer.isView(source) && !(source instanceof DataView);
 
-/**
- * 深度克隆对象
- * @example clone({a:1, b:{c:2}}) // 深克隆对象
- * @example clone([1,[2,3]], {deep:false}) // 浅克隆数组
- * @example clone(new Date(), {proto:false}) // 克隆Date对象
- */
-function clone(source: any, opt: { deep?: boolean; proto?: boolean } = {}, map = new WeakMap<object, any>()): any {
+type ContainsMode = 'all' | 'any' | 'none';
+
+type ContainsOptions = {
+  case?: boolean;
+  compare?: (item: unknown, value: unknown) => boolean;
+  deep?: boolean;
+};
+
+type CloneOptions = { deep?: boolean; proto?: boolean };
+type MergeMode = 'replace' | 'concat' | 'merge';
+type MergeOptions = {
+  mode?: MergeMode;
+  filterFn?: ((key: string, value: any, depth: number, targetValue: any) => boolean) | null;
+};
+type ConvertMode = 'lower' | 'upper' | 'capitalize' | 'title' | 'camel' | 'pascal' | 'snake' | 'kebab' | 'constant';
+type NumberMode = 'none' | 'floor' | 'ceil' | 'round' | 'trunc';
+type NumberOptions = {
+  step?: number;
+  percent?: boolean;
+  loop?: boolean;
+};
+
+function clone(source: any, opt: CloneOptions = {}, map = new WeakMap<object, any>()): any {
   const { deep = true, proto = true } = opt;
   if (source === null || typeof source !== 'object') return source;
   if (map.has(source)) return map.get(source);
@@ -58,31 +76,17 @@ function clone(source: any, opt: { deep?: boolean; proto?: boolean } = {}, map =
   return copy;
 }
 
-/**
- * 深度比较两个值
- * @example equal(new Date(2023,0,1), new Date(2023,0,1)) // true
- * @example equal({a:[1,{b:2}]}, {a:[1,{b:2}]}) // true
- * @example equal(/abc/i, /abc/i) // true
- * @example equal({a:1}, {a:2}) // false
- */
 function equal(a: any, b: any): boolean {
   return _.isEqual(a, b);
 }
 
-/**
- * 递归合并对象
- * @example merge({a:1}, {b:2}) // {a:1, b:2}
- * @example merge({arr:[1,2]}, {arr:[3,4]}, {mode:'concat'}) // {arr:[1,2,3,4]}
- * @example merge({arr:[1,2]}, {arr:[3]}, {mode:'merge'}) // {arr:[3,2]}
- * @example merge({obj:{x:1}}, {obj:{y:2}}) // {obj:{x:1, y:2}}
- */
 function merge(target: any, ...sources: any[]): any {
   if (sources.length === 0) return target;
   const isMergeOption = (value: any): boolean => {
     if (!_.isPlainObject(value)) return false;
     return _.has(value, 'mode') || _.has(value, 'filterFn');
   };
-  let opt: any = {};
+  let opt: MergeOptions = {};
   const last = sources[sources.length - 1];
   if (sources.length > 1 && isMergeOption(last)) opt = sources.pop();
 
@@ -125,44 +129,29 @@ function merge(target: any, ...sources: any[]): any {
   return target;
 }
 
-/**
- * 检查数组是否包含指定元素
- * @example contains([1,2,3], [1,2]) // true (all模式)
- * @example contains([1,2,3], [1,5], 'any') // true
- * @example contains(['A','B'], 'a', 'all', {case:false}) // true
- * @example contains([{x:1}], {x:1}, 'all', {deep:true}) // true
- */
-function contains(arr: any[], value: any, mode: 'all' | 'any' | 'none' = 'all', opt: { case?: boolean; compare?: (item: any, value: any) => boolean; deep?: boolean } = {}): boolean {
+function contains(arr: unknown[], value: unknown, mode: ContainsMode = 'all', opt: ContainsOptions = {}): boolean {
   if (!Array.isArray(arr)) return false;
-  const { case: cs = true, compare = null, deep = false } = opt;
-  const match = (item: unknown, val: unknown) => {
+  const { case: cs = true, compare, deep = false } = opt;
+  const match = (item: unknown, val: unknown): boolean => {
     if (compare) return compare(item, val);
     if (deep) return _.isEqual(item, val);
     if (!cs && typeof val === 'string' && typeof item === 'string') return item.toLowerCase() === val.toLowerCase();
     if (Number.isNaN(val)) return Number.isNaN(item);
     return item === val;
   };
-  const values = Array.isArray(value) ? value : [value];
+  const values: unknown[] = Array.isArray(value) ? value : [value];
   switch (mode) {
     case 'all':
-      return _.every(values, v => _.some(arr, item => match(item, v)));
+      return _.every(values, (v: unknown) => _.some(arr, (item: unknown) => match(item, v)));
     case 'any':
-      return _.some(values, v => _.some(arr, item => match(item, v)));
+      return _.some(values, (v: unknown) => _.some(arr, (item: unknown) => match(item, v)));
     case 'none':
-      return _.every(values, v => !_.some(arr, item => match(item, v)));
+      return _.every(values, (v: unknown) => !_.some(arr, (item: unknown) => match(item, v)));
     default:
       throw new Error(`Invalid mode: '${mode as string}'. Expected 'all', 'any' or 'none'.`);
   }
 }
 
-/**
- * 生成随机数
- * @example random() // 0-1之间的浮点数
- * @example random(10) // 0-10的整数
- * @example random(5, 10) // 5-10的整数
- * @example random(5, 10, true) // 5-10的浮点数
- * @example random({min:5, max:10, float:true}) // 5-10的浮点数
- */
 function random(min?: number | { min: number; max: number; float?: boolean }, max?: number, float = false): number {
   if (min == null && max == null) return _.random(0, 1, true);
   if (max == null) {
@@ -175,12 +164,6 @@ function random(min?: number | { min: number; max: number; float?: boolean }, ma
   return _.random(min as number, max, float);
 }
 
-/**
- * 从选项中随机选择一个
- * @example either(['a','b','c']) // 随机返回其中一个
- * @example either('a','b',{weights:[0.8,0.2]}) // 80%返回'a'，20%返回'b'
- * @example either(['a','b'],{null:true}) // 33%返回null，33%'a'，33%'b'
- */
 function either(itemsOrA: any, ...rest: any[]): any {
   const isEitherOption = (value: any): boolean => {
     if (!_.isPlainObject(value)) return false;
@@ -221,106 +204,78 @@ interface CaseItem {
   result: any;
 }
 
-/**
- * 条件选择器类
- * @example
- * new SelectCase()
- *   .case(1, 'One')
- *   .caseRange(3, 5, 'Three to Five')
- *   .else('Other')
- *   .match(3) // 返回'Three to Five'
- * @example
- * new SelectCase()
- *   .caseIncludes(['admin','root'], '管理员')
- *   .else('普通用户')
- *   .match('admin_user') // 返回'管理员'
- * @example
- * new SelectCase()
- *   .case(x => x > 10, '大于10')
- *   .else('小于等于10')
- *   .match(15) // 返回'大于10'
- */
 class SelectCase {
   private cases: CaseItem[] = [];
   private defaultResult: any = null;
   private valueType: string | null = null;
   private allowMixedTypes = false;
 
-  /** 精确匹配 */
-  case(cond: string | number, result: any): this;
-  case(cond: (input: any, meta?: any) => boolean, result: any): this;
-  case(cond: any, result: any): this {
+  public case(cond: string | number, result: any): this;
+  public case(cond: (input: any, meta?: any) => boolean, result: any): this;
+  public case(cond: any, result: any): this {
     if (typeof cond === 'function') {
       this.allowMixedTypes = true;
       this.cases.push({ type: 'predicate', condition: cond, result });
     } else {
-      this.#validateType(cond);
+      this.validateType(cond);
       this.cases.push({ type: 'exact', condition: cond, result });
     }
     return this;
   }
 
-  /** 自定义条件 */
-  casePredicate(fn: (input: any, meta?: any) => boolean, result: any): this {
+  public casePredicate(fn: (input: any, meta?: any) => boolean, result: any): this {
     if (typeof fn !== 'function') throw new TypeError('predicate must be a function');
     this.allowMixedTypes = true;
     this.cases.push({ type: 'predicate', condition: fn, result });
     return this;
   }
 
-  /** 数值范围匹配 */
-  caseRange(min: number, max: number, result: any): this {
+  public caseRange(min: number, max: number, result: any): this {
     if (typeof min !== 'number' || typeof max !== 'number') throw new TypeError('range values must be numbers');
-    this.#validateType(min);
+    this.validateType(min);
     this.cases.push({ type: 'range', condition: [min, max], result });
     return this;
   }
 
-  /** 集合包含匹配 */
-  caseIn(values: any[], result: any): this {
+  public caseIn(values: any[], result: any): this {
     if (!Array.isArray(values)) throw new TypeError('set values must be an array');
     if (values.length === 0) return this;
-    this.#validateType(values[0]);
+    this.validateType(values[0]);
     this.cases.push({ type: 'set', condition: values, result });
     return this;
   }
 
-  /** 子字符串匹配 */
-  caseIncludes(subs: string | string[], result: any): this {
-    if (!Array.isArray(subs)) subs = [subs];
-    _.each(subs, s => {
+  public caseIncludes(subs: string | string[], result: any): this {
+    const values = Array.isArray(subs) ? subs : [subs];
+    values.forEach((s: string) => {
       if (typeof s !== 'string') throw new TypeError('substrings must be strings');
     });
-    this.#validateType('string');
-    this.cases.push({ type: 'substring', condition: subs, result });
+    this.validateType('string');
+    this.cases.push({ type: 'substring', condition: values, result });
     return this;
   }
 
-  /** 正则匹配 */
-  caseRegex(regex: RegExp, result: any): this {
+  public caseRegex(regex: RegExp, result: any): this {
     if (!(regex instanceof RegExp)) throw new TypeError('condition must be a RegExp');
-    this.#validateType('string');
+    this.validateType('string');
     this.cases.push({ type: 'regex', condition: regex, result });
     return this;
   }
 
-  /** 数值比较 */
-  caseCompare(op: '<' | '<=' | '>' | '>=', val: number, result: any): this {
+  public caseCompare(op: '<' | '<=' | '>' | '>=', val: number, result: any): this {
     if (!['<', '<=', '>', '>='].includes(op)) throw new Error(`Invalid comparator: ${op}`);
     if (typeof val !== 'number') throw new TypeError('comparison value must be a number');
-    this.#validateType(val);
+    this.validateType(val);
     this.cases.push({ type: 'comparison', condition: { comparator: op, value: val }, result });
     return this;
   }
 
-  /** 设置默认值 */
-  else(result: any): this {
+  public else(result: any): this {
     this.defaultResult = result;
     return this;
   }
 
-  /** 执行匹配 */
-  match(input: any, meta: any = {}): any {
+  public match(input: any, meta: any = {}): any {
     for (const { type, condition, result } of this.cases) {
       let matched = false;
       switch (type) {
@@ -370,8 +325,7 @@ class SelectCase {
     return typeof this.defaultResult === 'function' ? this.defaultResult(input, meta) : this.defaultResult;
   }
 
-  /** 验证类型一致性 */
-  #validateType(value: any): void {
+  private validateType(value: any): void {
     if (this.allowMixedTypes) return;
     const valueType = typeof value;
     if (this.valueType === null) {
@@ -382,27 +336,7 @@ class SelectCase {
   }
 }
 
-/**
- * 字符串格式转换
- * @example convert('Hello World') // 'hello world' (默认lower)
- * @example convert('hello world', 'upper') // 'HELLO WORLD'
- * @example convert('Hello World', 'capitalize') // 'Hello world'
- * @example convert('hello world', 'title') // 'Hello World'
- * @example convert('hello world', 'camel') // 'helloWorld'
- * @example convert('hello world', 'pascal') // 'HelloWorld'
- * @example convert('hello world', 'snake') // 'hello_world'
- * @example convert('hello world', 'kebab') // 'hello-world'
- * @example convert('hello world', 'constant') // 'HELLO_WORLD'
- * @example convert('userProfile', 'camel') // 'userProfile' (保持不变)
- * @example convert('user_profile', 'camel', {delimiter:'_'}) // 'userProfile'
- * @example convert('HTTP API', 'title', {acronym:false}) // 'Http Api'
- * @example convert('HTTP API', 'title', {acronym:true}) // 'HTTP API'
- */
-function convert(
-  str: string,
-  mode: 'lower' | 'upper' | 'capitalize' | 'title' | 'camel' | 'pascal' | 'snake' | 'kebab' | 'constant' = 'lower',
-  opt: { delimiter?: string; acronym?: boolean } = {}
-): string {
+function convert(str: string, mode: ConvertMode = 'lower', opt: { delimiter?: string; acronym?: boolean } = {}): string {
   if (typeof str !== 'string') return str;
   const { delimiter = ' ', acronym = true } = opt;
   const splitWords = (s: string) => {
@@ -444,28 +378,7 @@ function convert(
   }
 }
 
-/**
- * 数值修整
- * @example number('12.5') // 12.5
- * @example number(undefined, 10) // 10
- * @example number(120, 0, 0, 100) // 100
- * @example number(5.8, 0, 0, 10, 'floor') // 5
- * @example number(17, 0, 0, 100, 'round', {step:5}) // 15
- * @example number(370, 0, 0, 360, 'none', {loop:true}) // 10
- * @example number(75, 0, 0, 200, 'none', {percent:true}) // 37.5
- */
-function number(
-  value: any,
-  fallback = 0,
-  min = -Infinity,
-  max = Infinity,
-  mode: 'none' | 'floor' | 'ceil' | 'round' | 'trunc' = 'none',
-  opt: {
-    step?: number;
-    percent?: boolean;
-    loop?: boolean;
-  } = {}
-): number {
+function number(value: any, fallback = 0, min = -Infinity, max = Infinity, mode: NumberMode = 'none', opt: NumberOptions = {}): number {
   const { step = 0, percent = false, loop = false } = opt;
 
   let result = _.toNumber(value);
@@ -575,16 +488,10 @@ function checkImageExist(src: string): boolean | Promise<boolean> {
   return pending;
 }
 
-/**
- * 图片加载
- * @example loadImage('character.png').then(data => img.src = data)
- * @example await loadImage('https://example.com/image.jpg')
- * @example const data = await loadImage('character.png');
- */
 function loadImage(src: string): string | boolean | Promise<string | boolean> {
   try {
     if (!src) return false;
-    return maplebirch.modUtils.getImage(src).then(value => {
+    return window.modUtils.getImage(src).then(value => {
       if (value) {
         imageCache.set(src, true);
         return value;
@@ -597,11 +504,6 @@ function loadImage(src: string): string | boolean | Promise<string | boolean> {
   }
 }
 
-/**
- * 提取 Twee Passage / Widget 内容
- * @example widgets(':: Widget [widget]\\n\\n<<widget "x">>123<</widget>>') // '<<widget "x">>123<</widget>>'
- * @example widgets(a, b) // [aContent, bContent]
- */
 function widgets(content: string): string;
 function widgets(...contents: string[]): string[];
 function widgets(...rawContents: string[]): string | string[] {
@@ -615,22 +517,117 @@ function widgets(...rawContents: string[]): string | string[] {
   return result.length === 1 ? result[0] : result;
 }
 
-const tools = {
-  clone: Object.freeze(clone),
-  merge: Object.freeze(merge),
-  equal: Object.freeze(equal),
-  contains: Object.freeze(contains),
-  SelectCase: Object.freeze(SelectCase),
-  random: Object.freeze(random),
-  either: Object.freeze(either),
-  convert: Object.freeze(convert),
-  number: Object.freeze(number),
-  loadImage: Object.freeze(loadImage)
-};
+function textToBytes(value: string): Uint8Array {
+  return textEncoder.encode(value);
+}
 
-const toolNames = ['clone', 'merge', 'equal', 'contains', 'SelectCase', 'random', 'either', 'convert', 'number', 'loadImage'];
-_.each(toolNames, name => {
-  if (!window.hasOwnProperty(name)) Object.defineProperty(window, name, { value: (tools as any)[name], enumerable: true });
+function bytesToText(bytes: Uint8Array | ArrayBuffer): string {
+  return textDecoder.decode(bytes);
+}
+
+function jsonToBytes(value: unknown): Uint8Array {
+  return textToBytes(JSON.stringify(value));
+}
+
+function bytesToJson<T = any>(bytes: Uint8Array | ArrayBuffer): T {
+  return JSON.parse(bytesToText(bytes)) as T;
+}
+
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+}
+
+function normalizeBase64(value: string): string {
+  const base64 = value.replace(/-/g, '+').replace(/_/g, '/');
+  return base64.padEnd(Math.ceil(base64.length / 4) * 4, '=');
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
+function base64ToBytes(base64: string): Uint8Array {
+  const binary = atob(normalizeBase64(base64));
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+function base64ToArrayBuffer(base64: string): ArrayBuffer {
+  return toArrayBuffer(base64ToBytes(base64));
+}
+
+function basicAuth(username: string, password: string): string {
+  return bytesToBase64(textToBytes(`${username}:${password}`));
+}
+
+function trimSlashes(value: string): string {
+  return String(value ?? '').replace(/^\/+|\/+$/g, '');
+}
+
+function joinPath(...parts: string[]): string {
+  return parts.map(trimSlashes).filter(Boolean).join('/');
+}
+
+function joinEncodedPath(...parts: string[]): string {
+  return parts
+    .map(part => encodeURIComponent(trimSlashes(part)))
+    .filter(Boolean)
+    .join('/');
+}
+
+function escapeHtmlText(value: string): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+const publicUtils = Object.freeze({
+  clone,
+  equal,
+  merge,
+  contains,
+  random,
+  either,
+  SelectCase,
+  convert,
+  number,
+  loadImage
 });
 
-export { clone, equal, merge, contains, random, either, SelectCase, convert, number, loadImage, widgets };
+type PublicUtils = typeof publicUtils;
+
+export {
+  clone,
+  equal,
+  merge,
+  contains,
+  random,
+  either,
+  SelectCase,
+  convert,
+  number,
+  loadImage,
+  widgets,
+  textToBytes,
+  bytesToText,
+  jsonToBytes,
+  bytesToJson,
+  toArrayBuffer,
+  normalizeBase64,
+  bytesToBase64,
+  base64ToBytes,
+  base64ToArrayBuffer,
+  basicAuth,
+  trimSlashes,
+  joinPath,
+  joinEncodedPath,
+  escapeHtmlText,
+  publicUtils
+};
+export type { CloneOptions, ContainsMode, ContainsOptions, ConvertMode, MergeMode, MergeOptions, NumberMode, NumberOptions, PublicUtils };

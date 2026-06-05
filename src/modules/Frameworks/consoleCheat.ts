@@ -1,7 +1,8 @@
-// ./src/modules/Frameworks/consoleCheat.ts
+// ./src/modules/Frameworks/ConsoleCheat.ts
 
 import { createlog, type MaplebirchCore } from '../../core';
 import ToolCollection from '../ToolCollection';
+import TimeTravelCheat from './TimeTravelCheat';
 
 interface JSExecutionResult {
   success: boolean;
@@ -33,18 +34,19 @@ class CheatConsole {
   private readonly log: ReturnType<typeof createlog>;
   private readonly core: MaplebirchCore;
   private readonly globals: Record<string, any> = {};
+  public readonly timeTravel: TimeTravelCheat;
 
   private readonly jsStatus = '#js-cheat-console-status';
   private readonly twineStatus = '#twine-cheat-console-status';
   private readonly twineOutputs = ['#twine-cheat-console-output', '#your-output-container'];
 
-  constructor(readonly manager: ToolCollection) {
+  public constructor(readonly manager: ToolCollection) {
     this.log = createlog('console');
     this.core = manager.core;
+    this.timeTravel = new TimeTravelCheat(this.core);
   }
 
-  executeJS(): JSExecutionResult {
-    const code = T?.maplebirchJSCheatConsole as string;
+  public executeJS(code: string = ''): JSExecutionResult {
     $(this.jsStatus).empty().removeClass('success error visible');
     if (typeof code !== 'string' || code.trim() === '') {
       const error = lanSwitch('Please enter valid JavaScript code.', '请输入有效的 JavaScript 代码。');
@@ -80,8 +82,7 @@ class CheatConsole {
     }
   }
 
-  executeTwine(): TwineExecutionResult {
-    const code = T?.maplebirchTwineCheatConsole as string;
+  public executeTwine(code: string = ''): TwineExecutionResult {
     $(this.twineStatus).empty().removeClass('success error visible');
     if (typeof code !== 'string' || code.trim() === '') {
       const error = lanSwitch('Please enter valid Twine code.', '请输入有效的 Twine 代码。');
@@ -148,9 +149,9 @@ class CheatConsole {
     }
   }
 
-  execute(type: 'javascript' | 'twine'): ExecutionResult {
-    if (type === 'javascript') return this.executeJS() as ExecutionResult;
-    if (type === 'twine') return this.executeTwine() as ExecutionResult;
+  public execute(type: 'javascript' | 'twine', code?: string): ExecutionResult {
+    if (type === 'javascript') return this.executeJS(code) as ExecutionResult;
+    if (type === 'twine') return this.executeTwine(code) as ExecutionResult;
     const message = lanSwitch('Unknown execution type: ', '未知执行类型: ') + type;
     this.log(`未知执行类型: ${type as any}`, 'ERROR');
     return {

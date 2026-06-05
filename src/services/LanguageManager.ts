@@ -1,11 +1,9 @@
 // ./src/services/LanguageManager.ts
 
-import { Languages, type LanguageCode } from './../constants';
+import { Languages, Translations, type LanguageCode } from './../constants';
 import type { MaplebirchCore } from '../core';
 
 export type Translation = Record<string, string>;
-
-type Bucket = 'translation' | 'file';
 
 interface TranslationRecord {
   bucket: 'translation';
@@ -36,10 +34,10 @@ interface ImportProgress {
 }
 
 class LanguageManager {
-  static readonly DEFAULT_LANGS = Languages as readonly LanguageCode[];
-  static readonly BATCH_SIZE = 500;
+  public static readonly DEFAULT_LANGS = Languages as readonly LanguageCode[];
+  public static readonly BATCH_SIZE = 500;
 
-  language: LanguageCode = navigator.language.includes('zh') ? 'CN' : 'EN';
+  public language: LanguageCode = navigator.language.includes('zh') ? 'CN' : 'EN';
 
   private readonly STORE = 'language';
 
@@ -48,7 +46,7 @@ class LanguageManager {
   private fileHashes = new Map<string, Map<LanguageCode, string>>();
   private preloaded = false;
 
-  constructor(readonly core: MaplebirchCore) {
+  public constructor(readonly core: MaplebirchCore) {
     this.core.once(':indexedDB', () => this.initDB());
     this.core.once(':idbReady', async () => await this.setLanguage());
   }
@@ -57,7 +55,7 @@ class LanguageManager {
     this.core.idb.register(this.STORE, { keyPath: ['bucket', 'id'] }, [{ name: 'bucket', keyPath: 'bucket', options: { unique: false } }]);
   }
 
-  async setLanguage(language?: string): Promise<LanguageCode> {
+  public async setLanguage(language?: string): Promise<LanguageCode> {
     const browserLanguage: LanguageCode = navigator.language.includes('zh') ? 'CN' : 'EN';
     const saved = language ? null : await this.core.idb.withTransaction(['settings'], 'readonly', async (tx: any) => await tx.objectStore('settings').get('Language')).catch(() => null);
     const code = String(language ?? saved?.value ?? browserLanguage).toUpperCase();
@@ -67,7 +65,7 @@ class LanguageManager {
     return this.language;
   }
 
-  async *import(modName: string, languages: readonly LanguageCode[] = LanguageManager.DEFAULT_LANGS): AsyncGenerator<ImportProgress> {
+  public async *import(modName: string, languages: readonly LanguageCode[] = LanguageManager.DEFAULT_LANGS): AsyncGenerator<ImportProgress> {
     for (const language of languages) {
       const formats = ['json', 'yml', 'yaml'];
       let found = false;
@@ -122,7 +120,7 @@ class LanguageManager {
     }
   }
 
-  async *importFile(modName: string, language: LanguageCode, path: string): AsyncGenerator<ImportProgress> {
+  public async *importFile(modName: string, language: LanguageCode, path: string): AsyncGenerator<ImportProgress> {
     const file = this.getModFile(modName, path);
     if (!file) return;
     try {
@@ -152,7 +150,7 @@ class LanguageManager {
     }
   }
 
-  t(translationKey: string, space = false): string {
+  public t(translationKey: string, space = false): string {
     const record = this.translations.get(translationKey);
     if (!record || typeof record !== 'object') {
       if (record !== undefined) this.translations.delete(translationKey);
@@ -163,7 +161,7 @@ class LanguageManager {
     return this.language === 'EN' && space && result[0] !== '[' ? result + ' ' : result;
   }
 
-  auto(text: string): string {
+  public auto(text: string): string {
     if (!text) return text;
     const cachedKey = this.textCache.get(text);
     if (cachedKey) return this.t(cachedKey);
@@ -173,8 +171,9 @@ class LanguageManager {
     return text;
   }
 
-  async preload(): Promise<void> {
+  public async preload(): Promise<void> {
     if (this.preloaded) return;
+    await this.loadBundledTranslations();
     try {
       const records = await this.core.idb.withTransaction([this.STORE], 'readonly', async (tx: any) => await tx.objectStore(this.STORE).index('bucket').getAll('translation'));
       for (const record of records as TranslationRecord[]) this.translations.set(record.translationKey, record.translations);
@@ -185,7 +184,17 @@ class LanguageManager {
     }
   }
 
-  async clearStorage(): Promise<void> {
+  private async loadBundledTranslations(): Promise<void> {
+    for (const language of LanguageManager.DEFAULT_LANGS) {
+      const content = Translations[language];
+      if (!content) continue;
+      const path = `translations/${language.toLowerCase()}.yaml`;
+      const translations = this.parseTranslations(content, path);
+      for await (const progress of this.writeTranslations('maplebirch', language, translations)) if (progress.progress >= 100) continue;
+    }
+  }
+
+  public async clearStorage(): Promise<void> {
     try {
       await this.core.idb.clearStore(this.STORE);
       this.translations.clear();
@@ -198,13 +207,13 @@ class LanguageManager {
     }
   }
 
-  has(translationKey: string): boolean {
+  public has(translationKey: string): boolean {
     const record = this.translations.get(translationKey);
     if (!record || typeof record !== 'object') return false;
     return Boolean(record[this.language] ?? record.EN ?? Object.values(record).find(value => typeof value === 'string' && value.length > 0));
   }
 
-  set(translationKey: string, translations: Record<string, unknown>): boolean {
+  public set(translationKey: string, translations: Record<string, unknown>): boolean {
     if (typeof translationKey !== 'string' || !translationKey.trim()) {
       this.core.logger.log(`无效的翻译键: ${String(translationKey)}`, 'WARN');
       return false;

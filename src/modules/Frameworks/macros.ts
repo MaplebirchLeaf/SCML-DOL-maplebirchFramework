@@ -1,27 +1,29 @@
 // .src/modules/Frameworks/macros.ts
 
 import { createlog, type MaplebirchCore } from '../../core';
+import type { MacroContext } from '../../SugarCubeMacros';
 import ToolCollection from '../ToolCollection';
 
-type MacroFunction = Function;
+export type MacroFunction = (this: MacroContext, ...args: any[]) => any;
+type SimpleMacroFunction = (this: MacroContext | null, ...args: any[]) => any;
 type StatFunction = (...args: any[]) => DocumentFragment;
 type MacroTags = string[] | null | undefined;
 type SkipArgs = string[] | boolean | null | undefined;
 
 class defineMacros {
-  readonly log: ReturnType<typeof createlog>;
-  readonly macros: string[] = [];
-  readonly statFunctions: Record<string, StatFunction> = {};
+  public readonly log: ReturnType<typeof createlog>;
+  public readonly macros: string[] = [];
+  public readonly statFunctions: Record<string, StatFunction> = {};
 
-  constructor(readonly manager: ToolCollection) {
+  public constructor(readonly manager: ToolCollection) {
     this.log = createlog('macro');
   }
 
-  get Macro(): MaplebirchCore['SugarCube']['Macro'] {
+  public get Macro(): MaplebirchCore['SugarCube']['Macro'] {
     return this.manager.core.SugarCube.Macro;
   }
 
-  define(macroName: string, macroFunction: MacroFunction, tags?: MacroTags, skipArgs?: SkipArgs, isAsync = false): void {
+  public define(macroName: string, macroFunction: MacroFunction, tags?: MacroTags, skipArgs?: SkipArgs, isAsync = false): void {
     if (!macroName || typeof macroFunction !== 'function') {
       this.log(`宏定义无效: ${macroName}`, 'WARN');
       return;
@@ -50,7 +52,7 @@ class defineMacros {
     this.log(`已定义/更新宏: ${macroName}`, 'DEBUG');
   }
 
-  defineS(macroName: string, macroFunction: MacroFunction, tags?: MacroTags, skipArgs?: SkipArgs, maintainContext = false): void {
+  public defineS(macroName: string, macroFunction: SimpleMacroFunction, tags?: MacroTags, skipArgs?: SkipArgs, maintainContext = false): void {
     this.define(
       macroName,
       function () {
@@ -64,7 +66,7 @@ class defineMacros {
     );
   }
 
-  statChange(statType: string, amount: number, colorClass: string, condition: () => boolean = () => true): DocumentFragment {
+  public statChange(statType: string, amount: number, colorClass: string, condition: () => boolean = () => true): DocumentFragment {
     const fragment = document.createDocumentFragment();
     const value = Math.trunc(Number(amount));
     if (!Number.isFinite(value) || value === 0) return fragment;
@@ -77,7 +79,7 @@ class defineMacros {
     return fragment;
   }
 
-  grace(amount: number, expectedRank?: string): DocumentFragment {
+  public grace(amount: number, expectedRank?: string): DocumentFragment {
     const value = Math.trunc(Number(amount));
     const ranks = ['prospective', 'initiate', 'monk', 'priest', 'bishop'];
     const playerRank = ranks.indexOf(V.temple_rank);
@@ -89,7 +91,7 @@ class defineMacros {
     return this.statChange('Grace', value, value > 0 ? 'green' : 'red');
   }
 
-  create(name: string, fn: StatFunction): void {
+  public create(name: string, fn: StatFunction): void {
     if (!name || typeof fn !== 'function') {
       this.log(`状态显示函数无效: ${name}`, 'WARN');
       return;
@@ -105,7 +107,7 @@ class defineMacros {
     this.log(`已创建状态显示函数: ${name}`, 'DEBUG');
   }
 
-  callStatFunction(name: string, ...args: any[]): DocumentFragment {
+  public callStatFunction(name: string, ...args: any[]): DocumentFragment {
     const fn = this.statFunctions[name];
     if (fn) return fn(...args);
     this.log(`未找到状态显示函数: ${name}`, 'ERROR');

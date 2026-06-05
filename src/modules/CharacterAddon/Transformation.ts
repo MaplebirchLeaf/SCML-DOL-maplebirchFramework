@@ -3,6 +3,7 @@
 import maplebirch, { createlog } from '../../core';
 import { Translation } from '../../services/LanguageManager';
 import type AddonPlugin from '../AddonPlugin';
+import type { Replacement } from '../AddonPluginProcess';
 import type Character from '../Character';
 
 interface Part {
@@ -17,7 +18,7 @@ interface TransformData {
   build: number;
 }
 
-type TransformHook = (options: any) => void;
+type TransformHook = (options: any, model?: CanvasModel) => void;
 type DecayCondition = () => boolean;
 type SuppressCondition = (sourceName: string) => boolean;
 type TransformMessage = Record<string, { up: string[]; down: string[] }>;
@@ -33,9 +34,9 @@ interface EntryOptions {
   decayConditions?: DecayCondition[];
   suppress?: boolean;
   suppressConditions?: SuppressCondition[];
-  pre?: TransformHook | Function;
-  post?: TransformHook | Function;
-  layers?: any;
+  pre?: TransformHook;
+  post?: TransformHook;
+  layers?: CanvasLayerMap;
   translations?: TranslationInput;
 }
 
@@ -45,16 +46,16 @@ interface TransformationOption extends EntryOptions {
 }
 
 class Entry {
-  type: string;
-  parts: Part[];
-  traits?: Part[];
-  build: number;
-  level: number;
-  update?: number[];
-  icon?: string;
-  message?: TransformMessage;
+  public type: string;
+  public parts: Part[];
+  public traits?: Part[];
+  public build: number;
+  public level: number;
+  public update?: number[];
+  public icon?: string;
+  public message?: TransformMessage;
 
-  constructor(type: string, parts: Part[], traits?: Part[], options?: EntryOptions) {
+  public constructor(type: string, parts: Part[], traits?: Part[], options?: EntryOptions) {
     this.type = type;
     this.parts = parts;
     this.traits = traits;
@@ -70,7 +71,7 @@ class Transformation {
   private log: ReturnType<typeof createlog>;
   private config: Map<string, Entry> = new Map();
   // prettier-ignore
-  readonly decayConditions: Record<string, DecayCondition[]> = {
+  public readonly decayConditions: Record<string, DecayCondition[]> = {
     wolf: [
       () => V.wolfbuild >= 1,
       () => V.worn.neck.name !== 'spiked collar',
@@ -102,7 +103,7 @@ class Transformation {
   };
 
   // prettier-ignore
-  readonly suppressConditions: Record<string, SuppressCondition[]> = {
+  public readonly suppressConditions: Record<string, SuppressCondition[]> = {
     wolf: [
       (sourceName: string) => sourceName !== 'wolf',
       () => V.worn.neck.name !== 'spiked collar',
@@ -128,7 +129,7 @@ class Transformation {
     ]
   };
 
-  constructor(private manager: Character) {
+  public constructor(private manager: Character) {
     this.log = manager.log;
     manager.core.once(':storyready', () => {
       manager.core.tool.macro.define('transform', (name: string, change: number) => this._transform(name, change));
@@ -137,25 +138,25 @@ class Transformation {
     });
   }
 
-  wikifier(widget: string, ...args: any[]): any {
+  public wikifier(widget: string, ...args: any[]): any {
     return this.manager.core.SugarCube.Wikifier.wikifyEval(`<<${widget}${args.length ? ` ${args.join(' ')}` : ''}>>`);
   }
 
-  async modifyEffect(manager: AddonPlugin): Promise<void> {
+  public modifyEffect(manager: AddonPlugin): void {
     const oldSCdata = manager.SC2DataManager.getSC2DataInfoAfterPatch();
     const SCdata = oldSCdata.cloneSC2DataInfo();
-    const file = SCdata.scriptFileItems.getByNameWithOrWithoutPath('effect.js');
-    const replacements: [RegExp, string][] = [
+    const file = SCdata.scriptFileItems.getByNameWithOrWithoutPath('effect.js')!;
+    const replacements: Replacement[] = [
       [
-        /errors\.pushUnique\(messageKey\);/g,
-        'if (maplebirch.char.transformation.message(messageKey, { element: element, sWikifier: sWikifier, fragment: fragment, wikifier: wikifier })) break;\n\t\t\t\t\terrors.pushUnique(messageKey);'
+        /(errors\.pushUnique\(messageKey\);)/g,
+        'if (maplebirch.char.transformation.message(messageKey, { element: element, sWikifier: sWikifier, fragment: fragment, wikifier: wikifier })) break;\n\t\t\t\t\t$1'
       ]
     ];
-    file.content = manager.replace(file.content, replacements);
+    file.content = manager.replace(file.content, replacements, 'Effect');
     manager.modUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
   }
 
-  add(name: string, type: string, options: TransformationOption): this {
+  public add(name: string, type: string, options: TransformationOption): this {
     const entry = new Entry(type, options.parts, options.traits, options);
     this.config.set(name, entry);
 
@@ -163,9 +164,9 @@ class Transformation {
     if (type === 'physical' && options.suppress !== false && !this.suppressConditions[name])
       this.suppressConditions[name] = options.suppressConditions ?? [(sourceName: string) => sourceName !== name];
 
-    if (options.pre && typeof options.pre === 'function') this.manager.use('pre', options.pre);
-    if (options.post && typeof options.post === 'function') this.manager.use('post', options.post);
-    if (options.layers && typeof options.layers === 'object') this.manager.use(options.layers);
+    if (options.pre) this.manager.use('pre', options.pre);
+    if (options.post) this.manager.use('post', options.post);
+    if (options.layers) this.manager.use(options.layers);
 
     if (options.translations) {
       const translations = options.translations instanceof Map ? options.translations.entries() : Object.entries(options.translations);
@@ -181,12 +182,12 @@ class Transformation {
     return this;
   }
 
-  inject(): void {
+  public inject(): void {
     this._update();
     this._clear();
   }
 
-  _update(): void {
+  public _update(): void {
     const base = Array.isArray(setup.transformations)
       ? setup.transformations.filter((tf: { name?: string }) => {
           if (!tf?.name) return true;
@@ -235,7 +236,7 @@ class Transformation {
     }
   }
 
-  _clear(): void {
+  public _clear(): void {
     const valid = {
       names: new Set<string>(),
       traits: new Set<string>()
@@ -276,7 +277,7 @@ class Transformation {
     }
   }
 
-  _transform(name: string, change: number): void {
+  public _transform(name: string, change: number): void {
     if (!change) return;
 
     // prettier-ignore
@@ -302,7 +303,7 @@ class Transformation {
     if (Object.hasOwn(this.suppressConditions, name) && change > 0 && !(V.worn.neck.name === 'familiar collar' && V.worn.neck.cursed === 1)) this.#suppress(name, change);
   }
 
-  updateTransform(name: string): void {
+  public updateTransform(name: string): void {
     const entry = this.config.get(name);
     if (!entry) return;
 
@@ -324,7 +325,7 @@ class Transformation {
     }
   }
 
-  _updateParts(name: string, oldLevel: number, newLevel: number): void {
+  public _updateParts(name: string, oldLevel: number, newLevel: number): void {
     const entry = this.config.get(name);
     if (!entry?.parts) return;
 
@@ -351,7 +352,7 @@ class Transformation {
     }
   }
 
-  _transformationAlteration(): void {
+  public _transformationAlteration(): void {
     if (V.settings.transformDivineEnabled) {
       if ((V.demonbuild >= 5 && V.specialTransform !== 1) || (V.demon >= 1 && V.specialTransform === 1)) {
         this.wikifier('demonTransform', V.demon);
@@ -419,7 +420,7 @@ class Transformation {
     }
   }
 
-  _transformationStateUpdate(): void {
+  public _transformationStateUpdate(): void {
     if (!(V.worn.neck.name === 'familiar collar' && V.worn.neck.cursed === 1)) {
       Object.entries(this.decayConditions).forEach(([_animal, conditions]) => {
         if (conditions.every(condition => condition())) this._transform(_animal, -1);
@@ -505,7 +506,7 @@ class Transformation {
     }
   }
 
-  message(
+  public message(
     key: string,
     tools: {
       element: (tag: string, text: any, className?: string) => void;
@@ -540,7 +541,7 @@ class Transformation {
     return true;
   }
 
-  get icon(): string {
+  public get icon(): string {
     if (!Array.isArray(setup.transformations)) return '<<tficon "angel">>';
     const activeTfs = setup.transformations.filter((tf: { parts?: any[]; level: number }) => tf.parts?.some((part: any) => tf.level >= part.tfRequired));
     if (activeTfs.length === 0) return '<<tficon "angel">>';
@@ -551,7 +552,7 @@ class Transformation {
     return `<<tficon '${tfName}'>>`;
   }
 
-  setTransform(name: string, level: number | null): void {
+  public setTransform(name: string, level: number | null): void {
     const entry = this.config.get(name);
     if (!entry) return;
 

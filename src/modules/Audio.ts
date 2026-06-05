@@ -1,16 +1,9 @@
 // ./src/modules/Audio.ts
 
 import maplebirch, { MaplebirchCore, createlog } from '../core';
-import { random } from '../utils';
-
-const PlayMode = {
-  SEQUENTIAL: 'sequential',
-  LOOP_ALL: 'loop_all',
-  LOOP_ONE: 'loop_one',
-  SHUFFLE: 'shuffle'
-} as const;
-
-type PlayMode = (typeof PlayMode)[keyof typeof PlayMode];
+import AudioBufferPlayer from './AudioAddon/AudioBufferPlayer';
+import Playlist, { PlayMode, type PlayModeType } from './AudioAddon/Playlist';
+import Track from './AudioAddon/Track';
 
 const PlayState = {
   IDLE: 'idle',
@@ -20,19 +13,11 @@ const PlayState = {
   STOPPED: 'stopped'
 } as const;
 
-type PlayState = (typeof PlayState)[keyof typeof PlayState];
+type PlayStateType = (typeof PlayState)[keyof typeof PlayState];
+
 const SUPPORTED_FORMATS = ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'webm'] as const;
 type AudioFormat = (typeof SUPPORTED_FORMATS)[number];
 const FORMAT_SET = new Set<string>(SUPPORTED_FORMATS);
-
-const MIME_TYPES: Record<string, string> = {
-  mp3: 'audio/mpeg',
-  wav: 'audio/wav',
-  ogg: 'audio/ogg',
-  m4a: 'audio/mp4',
-  flac: 'audio/flac',
-  webm: 'audio/webm'
-};
 
 interface TrackMeta {
   title?: string;
@@ -62,160 +47,28 @@ interface AudioRecord {
 
 interface CacheEntry {
   howl: any;
-  url: string;
 }
 
-class Track {
-  title: string;
-  artist: string;
-  duration = 0;
-  format: AudioFormat = 'mp3';
-
-  constructor(
-    readonly audioName: string,
-    readonly modName: string,
-    meta: TrackMeta = {}
-  ) {
-    this.title = meta.title || audioName;
-    this.artist = meta.artist || modName;
-  }
+interface AudioProgress {
+  currentTime: number;
+  duration: number;
+  percent: number;
 }
 
-class Playlist {
-  tracks: Track[] = [];
-  currentIndex = -1;
-  playMode: PlayMode = PlayMode.LOOP_ALL;
-
-  private shuffleOrder: number[] = [];
-  private shuffleIndex = -1;
-
-  constructor(readonly name: string) {}
-
-  add(input: Track | Track[]): void {
-    const tracks = Array.isArray(input) ? input : [input];
-    for (const track of tracks) {
-      const index = this.tracks.findIndex(item => item.modName === track.modName && item.audioName === track.audioName);
-      if (index >= 0) {
-        this.tracks[index] = track;
-      } else {
-        this.tracks.push(track);
-      }
-    }
-    this.resetShuffle();
-  }
-
-  removeAt(index: number): boolean {
-    if (index < 0 || index >= this.tracks.length) return false;
-    this.tracks.splice(index, 1);
-    if (index < this.currentIndex) {
-      this.currentIndex--;
-    } else if (index === this.currentIndex) {
-      this.currentIndex = Math.min(this.currentIndex, this.tracks.length - 1);
-    }
-    if (this.tracks.length === 0) this.currentIndex = -1;
-    this.resetShuffle();
-    return true;
-  }
-
-  remove(audioName: string): boolean {
-    const index = this.tracks.findIndex(track => track.audioName === audioName);
-    return this.removeAt(index);
-  }
-
-  clear(): void {
-    this.tracks = [];
-    this.currentIndex = -1;
-    this.shuffleOrder = [];
-    this.shuffleIndex = -1;
-  }
-
-  setMode(mode: PlayMode): void {
-    this.playMode = mode;
-    if (mode === PlayMode.SHUFFLE) this.shuffle();
-  }
-
-  select(index: number): Track | null {
-    if (index < 0 || index >= this.tracks.length) return null;
-    this.currentIndex = index;
-    if (this.playMode === PlayMode.SHUFFLE) this.shuffleIndex = this.shuffleOrder.indexOf(index);
-    return this.tracks[index] || null;
-  }
-
-  next(): Track | null {
-    if (this.tracks.length === 0) return null;
-    if (this.playMode === PlayMode.LOOP_ONE) {
-      if (this.currentIndex < 0) this.currentIndex = 0;
-      return this.tracks[this.currentIndex] || null;
-    }
-    if (this.playMode === PlayMode.SHUFFLE) {
-      if (this.shuffleOrder.length !== this.tracks.length) this.shuffle();
-      this.shuffleIndex++;
-      if (this.shuffleIndex >= this.shuffleOrder.length) {
-        this.shuffle();
-        this.shuffleIndex = 0;
-      }
-      this.currentIndex = this.shuffleOrder[this.shuffleIndex];
-      return this.tracks[this.currentIndex] || null;
-    }
-
-    this.currentIndex++;
-    if (this.currentIndex >= this.tracks.length) {
-      if (this.playMode === PlayMode.LOOP_ALL) {
-        this.currentIndex = 0;
-      } else {
-        this.currentIndex = this.tracks.length - 1;
-        return null;
-      }
-    }
-    return this.tracks[this.currentIndex] || null;
-  }
-
-  previous(): Track | null {
-    if (this.tracks.length === 0) return null;
-    if (this.playMode === PlayMode.LOOP_ONE) {
-      if (this.currentIndex < 0) this.currentIndex = 0;
-      return this.tracks[this.currentIndex] || null;
-    }
-    if (this.playMode === PlayMode.SHUFFLE) {
-      if (this.shuffleIndex <= 0) return null;
-      this.shuffleIndex--;
-      this.currentIndex = this.shuffleOrder[this.shuffleIndex];
-      return this.tracks[this.currentIndex] || null;
-    }
-    this.currentIndex--;
-    if (this.currentIndex < 0) {
-      if (this.playMode === PlayMode.LOOP_ALL) {
-        this.currentIndex = this.tracks.length - 1;
-      } else {
-        this.currentIndex = 0;
-        return null;
-      }
-    }
-    return this.tracks[this.currentIndex] || null;
-  }
-
-  get length(): number {
-    return this.tracks.length;
-  }
-
-  private resetShuffle(): void {
-    this.shuffleOrder = [];
-    this.shuffleIndex = -1;
-    if (this.playMode === PlayMode.SHUFFLE) this.shuffle();
-  }
-
-  private shuffle(): void {
-    this.shuffleOrder = [...Array(this.tracks.length).keys()];
-    for (let i = this.shuffleOrder.length - 1; i > 0; i--) {
-      const j = random(i);
-      [this.shuffleOrder[i], this.shuffleOrder[j]] = [this.shuffleOrder[j], this.shuffleOrder[i]];
-    }
-    this.shuffleIndex = -1;
-  }
+interface AudioSnapshot {
+  state: PlayStateType;
+  track: Track | null;
+  playlist: string;
+  index: number;
+  length: number;
+  mode: PlayModeType;
+  volume: number;
+  muted: boolean;
+  progress: AudioProgress;
 }
 
 class AudioManager {
-  readonly log: ReturnType<typeof createlog>;
+  public readonly log: ReturnType<typeof createlog>;
 
   private readonly STORE = 'audio';
 
@@ -226,7 +79,7 @@ class AudioManager {
   private activePlaylist: Playlist | null = null;
   private currentTrack: Track | null = null;
   private currentHowl: any = null;
-  private state: PlayState = PlayState.IDLE;
+  private state: PlayStateType = PlayState.IDLE;
   private volume = 1;
   private muted = false;
   private autoNext = true;
@@ -236,8 +89,9 @@ class AudioManager {
 
   private playRequestId = 0;
   private progressTimer: ReturnType<typeof setInterval> | null = null;
+  private progressBindings = new Map<string, ReturnType<typeof setInterval>>();
 
-  constructor(readonly core: MaplebirchCore) {
+  public constructor(readonly core: MaplebirchCore) {
     this.log = createlog('audio');
     this.core.howler.Howler.mute(this.muted);
     this.core.howler.Howler.volume(this.volume);
@@ -260,16 +114,16 @@ class AudioManager {
     ]);
   }
 
-  on(event: string, handler: AudioEventHandler): void {
+  protected on(event: string, handler: AudioEventHandler): void {
     if (!this.eventListeners.has(event)) this.eventListeners.set(event, new Set());
     this.eventListeners.get(event)!.add(handler);
   }
 
-  off(event: string, handler: AudioEventHandler): boolean {
+  protected off(event: string, handler: AudioEventHandler): boolean {
     return this.eventListeners.get(event)?.delete(handler) || false;
   }
 
-  once(event: string, handler: AudioEventHandler): void {
+  protected once(event: string, handler: AudioEventHandler): void {
     const wrapper: AudioEventHandler = eventData => {
       handler(eventData);
       this.off(event, wrapper);
@@ -277,7 +131,7 @@ class AudioManager {
     this.on(event, wrapper);
   }
 
-  async play(track: Track): Promise<boolean> {
+  public async play(track: Track): Promise<boolean> {
     const requestId = ++this.playRequestId;
     try {
       this.stopCurrent(false);
@@ -287,7 +141,7 @@ class AudioManager {
       if (requestId !== this.playRequestId) return false;
       this.currentTrack = track;
       this.currentHowl = howl;
-      howl.volume(this.volume);
+      howl.volume(this.outputVolume);
       howl.play();
       this.state = PlayState.PLAYING;
       this.startProgressTimer();
@@ -306,7 +160,7 @@ class AudioManager {
     }
   }
 
-  pause(): boolean {
+  public pause(): boolean {
     if (!this.currentHowl || this.state !== PlayState.PLAYING) return false;
     this.currentHowl.pause();
     this.state = PlayState.PAUSED;
@@ -315,7 +169,7 @@ class AudioManager {
     return true;
   }
 
-  resume(): boolean {
+  public resume(): boolean {
     if (!this.currentHowl || this.state !== PlayState.PAUSED) return false;
     this.currentHowl.play();
     this.state = PlayState.PLAYING;
@@ -324,12 +178,12 @@ class AudioManager {
     return true;
   }
 
-  stop(): boolean {
+  public stop(): boolean {
     this.playRequestId++;
     return this.stopCurrent(true);
   }
 
-  togglePlayPause(): void {
+  public togglePlayPause(): void {
     if (this.state === PlayState.PLAYING) {
       this.pause();
       return;
@@ -337,36 +191,43 @@ class AudioManager {
     if (this.state === PlayState.PAUSED) this.resume();
   }
 
-  async next(): Promise<boolean> {
+  public async next(): Promise<boolean> {
     const track = this.activePlaylist?.next();
     return track ? await this.play(track) : false;
   }
 
-  async previous(): Promise<boolean> {
+  public async previous(): Promise<boolean> {
     const track = this.activePlaylist?.previous();
     return track ? await this.play(track) : false;
   }
 
-  seek(percent: number): boolean {
+  public async playAt(modName: string, index: number): Promise<boolean> {
+    const playlist = await this.getPlaylist(modName);
+    this.activePlaylist = playlist;
+    const track = playlist.select(index);
+    return track ? await this.play(track) : false;
+  }
+
+  public seek(percent: number): boolean {
     const duration = this.duration;
     if (!this.currentHowl || duration <= 0) return false;
     const safePercent = Math.max(0, Math.min(100, percent));
     const targetTime = (safePercent / 100) * duration;
     this.currentHowl.seek(targetTime);
-    this.emit('seek', targetTime, duration);
+    this.emit('seek', targetTime, duration, this.progress.percent);
     return true;
   }
 
-  seekTo(seconds: number): boolean {
+  public seekTo(seconds: number): boolean {
     const duration = this.duration;
     if (!this.currentHowl || duration <= 0) return false;
     const targetTime = Math.max(0, Math.min(duration, seconds));
     this.currentHowl.seek(targetTime);
-    this.emit('seek', targetTime, duration);
+    this.emit('seek', targetTime, duration, this.progress.percent);
     return true;
   }
 
-  async getPlaylist(modName: string): Promise<Playlist> {
+  public async getPlaylist(modName: string): Promise<Playlist> {
     const cached = this.playlists.get(modName);
     if (cached) return cached;
     const playlist = this.playlist(modName);
@@ -385,24 +246,22 @@ class AudioManager {
     return playlist;
   }
 
-  async playFromMod(modName: string, audioName?: string): Promise<boolean> {
+  public async playFromMod(modName: string, audioName?: string): Promise<boolean | string> {
     const playlist = await this.getPlaylist(modName);
     this.activePlaylist = playlist;
     if (playlist.length <= 0) return false;
-    if (!audioName) {
-      const firstTrack = playlist.select(0);
-      return firstTrack ? await this.play(firstTrack) : false;
-    }
-    const index = playlist.tracks.findIndex(track => track.audioName === audioName);
+    const index = audioName ? playlist.tracks.findIndex(track => track.audioName === audioName) : 0;
     if (index < 0) {
       this.log(`播放失败，模组 ${modName} 中没有音频: ${audioName}`, 'WARN');
       return false;
     }
     const track = playlist.select(index);
-    return track ? await this.play(track) : false;
+    if (!track) return false;
+    const success = await this.play(track);
+    return success ? modName : false;
   }
 
-  async import(modName: string, audioFolder = 'audio'): Promise<boolean> {
+  public async import(modName: string, audioFolder = 'audio'): Promise<boolean> {
     const folder = audioFolder.replace(/^\/+|\/+$/g, '');
     const prefix = `${folder}/`;
     const modZip = maplebirch.modLoader?.getModZip(modName);
@@ -443,7 +302,8 @@ class AudioManager {
     return successCount > 0;
   }
 
-  async addFile(file: File, modName = 'custom'): Promise<boolean> {
+  public async addFile(file: File, modName = 'custom'): Promise<boolean | string> {
+    if (!file) return false;
     const format = file.name.split('.').pop()?.toLowerCase();
     if (!FORMAT_SET.has(format || '')) return false;
     const dotIndex = file.name.lastIndexOf('.');
@@ -455,10 +315,10 @@ class AudioManager {
     const track = new Track(audioName, modName);
     track.format = format as AudioFormat;
     playlist.add(track);
-    return true;
+    return modName;
   }
 
-  async delete(modName: string, audioName: string): Promise<boolean> {
+  public async delete(modName: string, audioName: string): Promise<boolean> {
     if (this.currentTrack?.modName === modName && this.currentTrack.audioName === audioName) this.stop();
     try {
       await this.core.idb.withTransaction([this.STORE], 'readwrite', async (tx: any) => await tx.objectStore(this.STORE).delete([modName, audioName]));
@@ -471,7 +331,7 @@ class AudioManager {
     }
   }
 
-  async clearAudio(modName: string): Promise<boolean> {
+  public async clearAudio(modName: string): Promise<boolean | string> {
     try {
       if (this.currentTrack?.modName === modName) this.stop();
       const records = await this.readRecords(modName);
@@ -484,23 +344,25 @@ class AudioManager {
       });
       this.playlists.delete(modName);
       if (this.activePlaylist?.name === modName) this.activePlaylist = null;
-      return true;
+      return modName;
     } catch (error) {
       this.log(`清空模组音频失败: ${modName}`, 'ERROR', error);
       return false;
     }
   }
 
-  clearCache(): void {
+  public clearCache(): void {
     this.stop();
     for (const modCache of this.cache.values()) for (const entry of modCache.values()) this.release(entry);
     this.cache.clear();
     this.cacheCount = 0;
   }
 
-  destroy(): void {
+  public destroy(): void {
     this.stop();
     this.clearCache();
+    for (const timer of this.progressBindings.values()) clearInterval(timer);
+    this.progressBindings.clear();
     this.eventListeners.clear();
     this.playlists.clear();
     this.activePlaylist = null;
@@ -508,7 +370,7 @@ class AudioManager {
     this.currentHowl = null;
   }
 
-  playlist(modName: string): Playlist {
+  public playlist(modName: string): Playlist {
     let playlist = this.playlists.get(modName);
     if (!playlist) {
       playlist = new Playlist(modName);
@@ -517,73 +379,158 @@ class AudioManager {
     return playlist;
   }
 
-  get Mute(): boolean {
+  public get Mute(): boolean {
     return this.muted;
   }
 
-  set Mute(value: boolean) {
+  public set Mute(value: boolean) {
     if (this.muted === value) return;
     this.muted = value;
     this.core.howler.Howler.mute(value);
+    this.currentHowl?.volume(this.outputVolume);
     this.emit('mutechange', value);
   }
 
-  get Volume(): number {
+  public get Volume(): number {
     return this.volume;
   }
 
-  set Volume(value: number) {
+  public set Volume(value: number) {
     const volume = Math.max(0, Math.min(1, value));
     if (this.volume === volume) return;
     this.volume = volume;
     this.core.howler.Howler.volume(volume);
-    this.currentHowl?.volume(volume);
+    this.currentHowl?.volume(this.outputVolume);
     this.emit('volumechange', volume);
   }
 
-  get PlayMode(): PlayMode {
+  public get PlayMode(): PlayModeType {
     return this.activePlaylist?.playMode || PlayMode.LOOP_ALL;
   }
 
-  set PlayMode(mode: PlayMode) {
+  public set PlayMode(mode: PlayModeType) {
     if (!this.activePlaylist) return;
     this.activePlaylist.setMode(mode);
     this.emit('modechange', mode);
   }
 
-  get AutoNext(): boolean {
+  public cyclePlayMode(): PlayModeType {
+    const nextMode =
+      this.PlayMode === PlayMode.SEQUENTIAL
+        ? PlayMode.LOOP_ALL
+        : this.PlayMode === PlayMode.LOOP_ALL
+          ? PlayMode.LOOP_ONE
+          : this.PlayMode === PlayMode.LOOP_ONE
+            ? PlayMode.SHUFFLE
+            : PlayMode.SEQUENTIAL;
+    this.PlayMode = nextMode;
+    return nextMode;
+  }
+
+  public get AutoNext(): boolean {
     return this.autoNext;
   }
 
-  set AutoNext(value: boolean) {
+  public set AutoNext(value: boolean) {
     this.autoNext = value;
   }
 
-  get State(): PlayState {
+  public get State(): PlayStateType {
     return this.state;
   }
 
-  get CurrentTrack(): Track | null {
+  public get CurrentTrack(): Track | null {
     return this.currentTrack;
   }
 
-  get ActivePlaylist(): Playlist | null {
+  public get ActivePlaylist(): Playlist | null {
     return this.activePlaylist;
   }
 
-  get currentTime(): number {
+  public get currentTime(): number {
     if (!this.currentHowl) return 0;
     const value = this.currentHowl.seek();
     return typeof value === 'number' ? value : 0;
   }
 
-  get duration(): number {
+  public get duration(): number {
     if (!this.currentHowl) return 0;
     const value = this.currentHowl.duration();
     return typeof value === 'number' ? value : 0;
   }
 
-  async preInit(): Promise<void> {
+  public get progress(): AudioProgress {
+    const currentTime = this.currentTime;
+    const duration = this.duration;
+    return {
+      currentTime,
+      duration,
+      percent: duration > 0 ? Math.max(0, Math.min(100, (currentTime / duration) * 100)) : 0
+    };
+  }
+
+  public get snapshot(): AudioSnapshot {
+    return {
+      state: this.state,
+      track: this.currentTrack,
+      playlist: this.activePlaylist?.name || '',
+      index: this.activePlaylist?.currentIndex ?? -1,
+      length: this.activePlaylist?.length ?? 0,
+      mode: this.PlayMode,
+      volume: this.volume,
+      muted: this.muted,
+      progress: this.progress
+    };
+  }
+
+  public formatTime(seconds: number): string {
+    const safe = Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
+    const mins = Math.floor(safe / 60);
+    const secs = Math.floor(safe % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  public bindProgress(sliderId: string, timeId: string, interval = 250): void {
+    const key = `${sliderId}:${timeId}`;
+    const update = () => {
+      const slider = document.getElementById(sliderId) as HTMLInputElement | null;
+      const time = document.getElementById(timeId);
+      if (!slider || !time) {
+        this.unbindProgress(sliderId, timeId);
+        return;
+      }
+      const { currentTime, duration, percent } = this.progress;
+      if (document.activeElement !== slider) slider.value = String(percent);
+      time.textContent = `${this.formatTime(currentTime)} / ${this.formatTime(duration)}`;
+      if (!this.currentTrack || this.state === PlayState.IDLE || this.state === PlayState.STOPPED) this.unbindProgress(sliderId, timeId);
+    };
+
+    this.unbindProgress(sliderId, timeId);
+    const timer = setTimeout(() => {
+      const slider = document.getElementById(sliderId) as HTMLInputElement | null;
+      if (slider) {
+        slider.oninput = () => {
+          this.seek(Number(slider.value));
+          update();
+        };
+      }
+      update();
+      this.progressBindings.set(key, setInterval(update, interval));
+    }, 0);
+    this.progressBindings.set(key, timer);
+  }
+
+  public unbindProgress(sliderId: string, timeId: string): void {
+    const key = `${sliderId}:${timeId}`;
+    const timer = this.progressBindings.get(key);
+    if (!timer) return;
+    clearInterval(timer);
+    this.progressBindings.delete(key);
+    const slider = document.getElementById(sliderId) as HTMLInputElement | null;
+    if (slider) slider.oninput = null;
+  }
+
+  public async preInit(): Promise<void> {
     const records = await this.readRecords();
     this.playlists.clear();
     const groups = new Map<string, AudioRecord[]>();
@@ -610,33 +557,20 @@ class AudioManager {
   private async load(track: Track): Promise<CacheEntry> {
     const cached = this.cache.get(track.modName)?.get(track.audioName);
     if (cached) {
-      cached.howl.volume(this.volume);
+      cached.howl.volume(this.outputVolume);
       return cached;
     }
     const record = await this.core.idb.withTransaction([this.STORE], 'readonly', async (tx: any) => await tx.objectStore(this.STORE).get([track.modName, track.audioName]));
     if (!record) throw new Error(`音频不存在: ${track.modName}/${track.audioName}`);
     const audioRecord = record as AudioRecord;
     const { arrayBuffer, format } = audioRecord.value;
-    const url = URL.createObjectURL(new Blob([arrayBuffer], { type: MIME_TYPES[format] || MIME_TYPES.mp3 }));
     track.format = format;
-    const howl = await new Promise<any>((resolve, reject) => {
-      const instance = new this.core.howler.Howl({
-        src: [url],
-        html5: false,
-        volume: this.volume,
-        format: [format],
-        onload: () => {
-          track.duration = instance.duration();
-          resolve(instance);
-        },
-        onloaderror: (_: any, error: any) => {
-          URL.revokeObjectURL(url);
-          reject(error);
-        },
-        onend: () => this.handleTrackEnd(track)
-      });
-    });
-    const entry = { howl, url };
+    const context = this.core.howler.Howler.ctx as AudioContext | undefined;
+    if (!context) throw new Error('WebAudio context is not available');
+    const buffer = await context.decodeAudioData(arrayBuffer.slice(0));
+    track.duration = buffer.duration;
+    const howl = new AudioBufferPlayer(context, buffer, this.outputVolume, () => this.handleTrackEnd(track));
+    const entry = { howl };
     this.cacheAudio(track.modName, track.audioName, entry);
     return entry;
   }
@@ -721,7 +655,6 @@ class AudioManager {
 
   private release(entry: CacheEntry): void {
     entry.howl?.unload?.();
-    if (entry.url.startsWith('blob:')) URL.revokeObjectURL(entry.url);
   }
 
   private stopCurrent(emitEvent: boolean): boolean {
@@ -736,14 +669,16 @@ class AudioManager {
     return true;
   }
 
+  private get outputVolume(): number {
+    return this.muted ? 0 : this.volume;
+  }
+
   private startProgressTimer(): void {
     this.stopProgressTimer();
     this.progressTimer = setInterval(() => {
       if (this.state !== PlayState.PLAYING || !this.currentHowl) return;
-      const current = this.currentTime;
-      const duration = this.duration;
-      const percent = duration > 0 ? (current / duration) * 100 : 0;
-      this.emit('timeupdate', current, duration, percent);
+      const { currentTime, duration, percent } = this.progress;
+      this.emit('timeupdate', currentTime, duration, percent);
     }, 250);
   }
 
@@ -791,9 +726,6 @@ class AudioManager {
   }
 }
 
-(function (maplebirch): void {
-  'use strict';
-  maplebirch.register('audio', Object.seal(new AudioManager(maplebirch)), ['tool']);
-})(maplebirch);
+maplebirch.register('audio', Object.seal(new AudioManager(maplebirch)), ['tool']);
 
 export default AudioManager;

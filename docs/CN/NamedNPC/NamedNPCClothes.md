@@ -205,22 +205,24 @@ work_uniform:
 
 #### 在代码中使用
 
+框架内置衣柜会自动加载。通过代码加载额外衣柜文件时，需要同时传入模组名和文件路径。
+
 ```javascript
 // 1. 加载衣柜配置
-await maplebirch.npc.Clothes.load('myMod', 'data/wardrobe.yaml');
+await maplebirch.npc.Clothes.loadWardrobe('myMod', 'data/wardrobe.yaml');
 
 // 2. 为NPC注册服装
 // 在学校位置总是穿校服
-maplebirch.npc.Clothes.register('Luna', 'school', 'school_uniform');
+maplebirch.npc.Clothes.wear('Luna', 'school', 'school_uniform');
 
 // 在咖啡馆位置穿便服，但只在非工作时间
-maplebirch.npc.Clothes.register('Luna', 'cafe', 'casual_outfit', () => V.time.hour >= 18 || V.time.hour <= 8);
+maplebirch.npc.Clothes.wear('Luna', 'cafe', 'casual_outfit', () => V.time.hour >= 18 || V.time.hour <= 8);
 
 // 在面包店工作位置穿工作服
-maplebirch.npc.Clothes.register('Luna', 'bakery', 'work_uniform');
+maplebirch.npc.Clothes.wear('Luna', 'bakery', 'work_uniform');
 
 // 全局默认(当没有其他匹配时)
-maplebirch.npc.Clothes.register('Luna', '*', 'casual_outfit');
+maplebirch.npc.Clothes.wear('Luna', '*', 'casual_outfit');
 
 // 3. 获取当前服装
 const currentOutfit = maplebirch.npc.Clothes.worn('Luna');

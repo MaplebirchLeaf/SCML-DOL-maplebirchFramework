@@ -1,7 +1,8 @@
 // ./src/services/CredentialVault.ts
 
 import type { MaplebirchCore } from '../core';
-import PromptStyle from '@/styles/PromptStyle.css?raw';
+import PromptStyle from '@/styles/PromptStyle.css';
+import { base64ToArrayBuffer, bytesToBase64, bytesToJson, escapeHtmlText, jsonToBytes, toArrayBuffer } from '../utils';
 
 export interface AuthConfig {
   key: string;
@@ -84,11 +85,11 @@ class CredentialVault {
 
   private dialogQueue: Promise<unknown> = Promise.resolve();
 
-  constructor(readonly core: MaplebirchCore) {
+  public constructor(readonly core: MaplebirchCore) {
     this.core.once(':indexedDB', () => this.core.idb.register(CredentialVault.STORE, { keyPath: ['bucket', 'id'] }, [{ name: 'bucket', keyPath: 'bucket', options: { unique: false } }]));
   }
 
-  async readPassword(subject: string, key: string): Promise<string | null> {
+  private async readPassword(subject: string, key: string): Promise<string | null> {
     const record = await this.core.idb.withTransaction(CredentialVault.STORE, 'readonly', async (tx: any) => {
       return await tx.objectStore(CredentialVault.STORE).get(['license', `${subject}:${key}`]);
     });
@@ -102,7 +103,7 @@ class CredentialVault {
     return stored.password;
   }
 
-  async unlock(modName: string, config: AuthConfig, credential: string): Promise<string> {
+  private async unlock(modName: string, config: AuthConfig, credential: string): Promise<string> {
     const payload = await this.verify(modName, config, credential);
     const subject = config.subject || modName;
     await this.storePassword(subject, config.key, {
@@ -116,7 +117,7 @@ class CredentialVault {
     return payload.password;
   }
 
-  async loadCrypt(options: CryptOptions): Promise<boolean> {
+  public async loadCrypt(options: CryptOptions): Promise<boolean> {
     const modName = options.modName || this.core.modUtils.getNowRunningModName?.() || '';
     if (!modName) throw new Error('无法获取当前模组名');
     if (options.cache?.subject && options.cache?.key) {
@@ -143,7 +144,7 @@ class CredentialVault {
         if (extraPart !== undefined || prefix !== CredentialVault.TOKEN_PREFIX || !payloadPart || !signaturePart) {
           throw new Error(`${this.core.t('credential.auth.error.format')}: ${CredentialVault.TOKEN_PREFIX}.<payload>.<signature>`);
         }
-        const payload = JSON.parse(new TextDecoder().decode(this.base64ToBuffer(payloadPart.replace(/-/g, '+').replace(/_/g, '/')))) as RawAuthPayload;
+        const payload = bytesToJson<RawAuthPayload>(base64ToArrayBuffer(payloadPart));
         if (typeof payload.subject !== 'string' || typeof payload.key !== 'string' || typeof payload.password !== 'string' || !payload.password) {
           throw new Error(this.core.t('credential.auth.error.format'));
         }
@@ -222,7 +223,7 @@ class CredentialVault {
 
   private async promptCredential(modName: string, prompt: CryptOptions['prompt'] = {}, errorText: string = ''): Promise<string | null> {
     const next = this.dialogQueue.then(async () => {
-      const Swal = await this.getSweetAlert();
+      const Swal = window.modSweetAlert2Mod;
       this.ensurePromptStyle();
       let credentialDraft = '';
       const label = prompt?.label || `${prompt?.name || modName} - ${this.core.t('credential.auth.label')}`;
@@ -230,10 +231,10 @@ class CredentialVault {
         const title = prompt?.title || this.core.t('credential.auth.title');
         const hint = errorText || prompt?.hint || this.core.t('credential.auth.hint');
         const html = `
-          <div class="maplebirch-auth-header">${this.escapeHtmlText(String(title))}</div>
+          <div class="maplebirch-auth-header">${escapeHtmlText(String(title))}</div>
           <div class="maplebirch-auth-body">
-            <label class="maplebirch-auth-label">${this.escapeHtmlText(String(label))}</label>
-            ${errorText ? `<div class="maplebirch-auth-error">${this.escapeHtmlText(errorText)}</div>` : `<div class="maplebirch-auth-hint">${this.escapeHtmlText(String(hint))}</div>`}
+            <label class="maplebirch-auth-label">${escapeHtmlText(String(label))}</label>
+            ${errorText ? `<div class="maplebirch-auth-error">${escapeHtmlText(errorText)}</div>` : `<div class="maplebirch-auth-hint">${escapeHtmlText(String(hint))}</div>`}
           </div>
         `;
         const result = await Swal.fire({
@@ -268,18 +269,18 @@ class CredentialVault {
     return next;
   }
 
-  async verify(modName: string, config: AuthConfig, credential: string): Promise<AuthPayload> {
+  private async verify(modName: string, config: AuthConfig, credential: string): Promise<AuthPayload> {
     const [prefix, payloadPart, signaturePart, extraPart] = credential.trim().split('.');
     if (extraPart !== undefined || prefix !== CredentialVault.TOKEN_PREFIX || !payloadPart || !signaturePart) {
       throw new Error(`${this.core.t('credential.auth.error.format')}: ${CredentialVault.TOKEN_PREFIX}.<payload>.<signature>`);
     }
 
-    const payloadBuffer = this.base64ToBuffer(payloadPart.replace(/-/g, '+').replace(/_/g, '/'));
-    const signatureBuffer = this.base64ToBuffer(signaturePart.replace(/-/g, '+').replace(/_/g, '/'));
+    const payloadBuffer = base64ToArrayBuffer(payloadPart);
+    const signatureBuffer = base64ToArrayBuffer(signaturePart);
 
     const publicKey =
       typeof config.publicKey === 'string'
-        ? await crypto.subtle.importKey('spki', this.base64ToBuffer(config.publicKey), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify'])
+        ? await crypto.subtle.importKey('spki', base64ToArrayBuffer(config.publicKey), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify'])
         : await crypto.subtle.importKey('jwk', config.publicKey, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify']);
 
     const validSignature = await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, publicKey, signatureBuffer, payloadBuffer);
@@ -288,7 +289,7 @@ class CredentialVault {
     let payload: RawAuthPayload;
 
     try {
-      payload = JSON.parse(new TextDecoder().decode(payloadBuffer)) as RawAuthPayload;
+      payload = bytesToJson<RawAuthPayload>(payloadBuffer);
     } catch {
       throw new Error(this.core.t('credential.auth.error.format'));
     }
@@ -342,7 +343,7 @@ class CredentialVault {
     };
   }
 
-  async forget(subject: string, key: string): Promise<void> {
+  private async forget(subject: string, key: string): Promise<void> {
     await this.core.idb.withTransaction(CredentialVault.STORE, 'readwrite', async (tx: any) => await tx.objectStore(CredentialVault.STORE).delete(['license', `${subject}:${key}`]));
   }
 
@@ -368,64 +369,22 @@ class CredentialVault {
 
   private async encryptRecord(value: unknown): Promise<{ iv: string; data: string }> {
     const iv = crypto.getRandomValues(new Uint8Array(12));
-    const encoded = new TextEncoder().encode(JSON.stringify(value));
-    const ivBuffer = iv.buffer.slice(iv.byteOffset, iv.byteOffset + iv.byteLength) as ArrayBuffer;
-    const encodedBuffer = encoded.buffer.slice(encoded.byteOffset, encoded.byteOffset + encoded.byteLength) as ArrayBuffer;
-    const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: ivBuffer }, await this.ensureStorageKey(), encodedBuffer);
+    const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv: toArrayBuffer(iv) }, await this.ensureStorageKey(), toArrayBuffer(jsonToBytes(value)));
     return {
-      iv: this.bytesToBase64(iv),
-      data: this.bytesToBase64(new Uint8Array(encrypted))
+      iv: bytesToBase64(iv),
+      data: bytesToBase64(new Uint8Array(encrypted))
     };
   }
 
   private async decryptRecord<T>(record: CredentialRecord): Promise<T | null> {
     if (!record.iv || !record.data) return null;
     try {
-      const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: this.base64ToBuffer(record.iv) }, await this.ensureStorageKey(), this.base64ToBuffer(record.data));
-      return JSON.parse(new TextDecoder().decode(decrypted)) as T;
+      const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: base64ToArrayBuffer(record.iv) }, await this.ensureStorageKey(), base64ToArrayBuffer(record.data));
+      return bytesToJson<T>(decrypted);
     } catch (error: any) {
       this.core.log(`凭证解密失败: ${error?.message || error}`, 'WARN');
       return null;
     }
-  }
-
-  private base64ToBuffer(value: string): ArrayBuffer {
-    const padded = value.padEnd(Math.ceil(value.length / 4) * 4, '=');
-    const binary = atob(padded);
-    const buffer = new ArrayBuffer(binary.length);
-    const bytes = new Uint8Array(buffer);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    return buffer;
-  }
-
-  private bytesToBase64(value: Uint8Array): string {
-    let binary = '';
-    for (let i = 0; i < value.length; i++) binary += String.fromCharCode(value[i]);
-    return btoa(binary);
-  }
-
-  private escapeHtmlText(value: string): string {
-    return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-  }
-
-  private async getSweetAlert(): Promise<any> {
-    const existing = window.modSweetAlert2Mod;
-    if (existing?.fire) return existing;
-    return await new Promise((resolve, reject) => {
-      const startedAt = Date.now();
-      const timer = window.setInterval(() => {
-        const Swal = window.modSweetAlert2Mod;
-        if (Swal?.fire) {
-          window.clearInterval(timer);
-          resolve(Swal);
-          return;
-        }
-        if (Date.now() - startedAt > 5000) {
-          window.clearInterval(timer);
-          reject(new Error('SweetAlert2Mod 不可用'));
-        }
-      }, 50);
-    });
   }
 }
 

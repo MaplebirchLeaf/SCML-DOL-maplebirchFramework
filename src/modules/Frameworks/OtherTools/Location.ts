@@ -28,7 +28,7 @@ export interface LocationUpdate {
 export const locationData: Record<string, LocationUpdate> = {};
 
 class Location {
-  static configure(locationId: string, config: LocationConfig, options: LocationConfigOptions = {}): boolean {
+  public static configure(locationId: string, config: LocationConfig, options: LocationConfigOptions = {}): boolean {
     if (!locationId || !config) return false;
     const { overwrite = false, layer, element } = options;
     locationData[locationId] ??= {
@@ -53,7 +53,7 @@ class Location {
     return true;
   }
 
-  static apply(): void {
+  public static apply(): void {
     setup.LocationImages ??= {};
     setup.Locations ??= {};
     for (const [locationId, update] of Object.entries(locationData)) {

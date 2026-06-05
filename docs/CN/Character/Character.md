@@ -17,8 +17,11 @@
 
 ```javascript
 maplebirch.char.use(layerMap);
+maplebirch.char.use(layerMap, target);
 maplebirch.char.use('pre', handler);
 maplebirch.char.use('post', handler);
+maplebirch.char.use('pre', handler, target);
+maplebirch.char.use('post', handler, target);
 ```
 
 `use()` 支持链式调用：
@@ -26,6 +29,18 @@ maplebirch.char.use('post', handler);
 ```javascript
 maplebirch.char.use(layers).use('pre', preHandler);
 ```
+
+默认情况下，`use()` 只作用于原版 `main` 模型。需要修改其它画布模型时，传入 `target`。
+
+`target` 支持三种写法：
+
+| 写法 | 说明 |
+| :--- | :--- |
+| `'main'` | 指定单个模型 |
+| `['main', 'clothes']` | 指定多个模型 |
+| `(name, modelOrOptions) => boolean` | 按模型名和模型/选项动态判断 |
+
+常见模型名来自原版 `Renderer.CanvasModels`，例如 `main`、`lighting` 等。
 
 ---
 
@@ -41,6 +56,32 @@ maplebirch.char.use({
     zfn: () => maplebirch.char.ZIndices.hair
   }
 });
+```
+
+指定模型：
+
+```javascript
+maplebirch.char.use(
+  {
+    my_mod_overlay: {
+      srcfn: () => 'img/myMod/overlay.png',
+      showfn: () => true
+    }
+  },
+  'main'
+);
+```
+
+匹配多个模型：
+
+```javascript
+maplebirch.char.use(layers, ['main', 'lighting']);
+```
+
+动态匹配：
+
+```javascript
+maplebirch.char.use(layers, name => name.startsWith('main'));
 ```
 
 图层配置：
@@ -71,6 +112,19 @@ maplebirch.char.use('pre', options => {
 });
 ```
 
+指定模型：
+
+```javascript
+maplebirch.char.use(
+  'pre',
+  (options, model) => {
+    options.myMod ??= {};
+    options.myMod.modelName = model?.name;
+  },
+  ['main', 'lighting']
+);
+```
+
 ### post
 
 `post` 在渲染后执行，适合处理渲染结果。
@@ -81,6 +135,8 @@ maplebirch.char.use('post', options => {
   // 在这里处理额外效果
 });
 ```
+
+`handler` 的第二个参数是当前 `CanvasModel` 实例。只需要读写渲染选项时可以忽略它。
 
 ---
 
@@ -172,6 +228,8 @@ maplebirch.char.use({
 ## 补充说明
 
 - 图层名称建议带模组名前缀，避免与原版或其它模组冲突。
+- 不传 `target` 时默认只修改 `main`，避免意外影响其它画布模型。
+- 如果要修改多个模型，优先使用数组；只有需要规则匹配时再使用函数。
 - `showfn` 只负责判断是否显示，不建议在里面修改游戏变量。
 - 面部样式图片路径大小写应保持一致。
 - 如果只是添加转化内容，优先参考 [转化管理](Transformation.md)。

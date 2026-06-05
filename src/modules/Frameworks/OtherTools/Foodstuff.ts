@@ -56,12 +56,12 @@ export interface FoodstuffConfig {
 export const foodstuffData: Record<string, FoodstuffConfig> = {};
 
 class Foodstuff {
-  static add(key: string, config: FoodstuffConfig): void {
+  public static add(key: string, config: FoodstuffConfig): void {
     if (!key || !config) return;
     foodstuffData[key] = clone(config);
   }
 
-  static apply(): void {
+  public static apply(): void {
     setup.foodstuff ??= {};
     for (const [key, config] of Object.entries(foodstuffData)) {
       Foodstuff.set(key, config);

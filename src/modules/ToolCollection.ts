@@ -2,27 +2,27 @@
 
 import maplebirch, { MaplebirchCore, createlog } from '../core';
 import * as utils from '../utils';
-import Console from './Frameworks/consoleCheat';
+import Console from './Frameworks/ConsoleCheat';
 import migration from './Frameworks/migration';
-import randSystem from './Frameworks/randSystem';
+import randSystem from './Frameworks/RandSystem';
 import defineMacros from './Frameworks/macros';
-import htmlTools from './Frameworks/htmlTools';
-import { zonesManager, type InitFunction, type ZoneWidgetConfig } from './Frameworks/zonesManager';
-import applyLinkZone from './Frameworks/applyLinkZone';
+import htmlTools from './Frameworks/HtmlTools';
+import { zonesManager, type InitFunction, type ZoneWidgetConfig } from './Frameworks/ZonesManager';
+import applyLinkZone from './Frameworks/ApplyLinkZone';
 import Patch from './Frameworks/patch';
 
 class ToolCollection {
-  readonly console: Console;
-  readonly migration: typeof migration;
-  readonly rand: typeof randSystem;
-  readonly macro: defineMacros;
-  readonly text: htmlTools;
-  readonly zone: zonesManager;
-  readonly link: typeof applyLinkZone;
-  readonly patch: typeof Patch;
-  readonly createlog: typeof createlog = createlog;
+  public readonly console: Console;
+  public readonly migration: typeof migration;
+  public readonly rand: typeof randSystem;
+  public readonly macro: defineMacros;
+  public readonly text: htmlTools;
+  public readonly zone: zonesManager;
+  public readonly link: typeof applyLinkZone;
+  public readonly patch: typeof Patch;
+  public readonly createlog: typeof createlog = createlog;
 
-  constructor(readonly core: MaplebirchCore) {
+  public constructor(readonly core: MaplebirchCore) {
     this.console = Object.seal(new Console(this));
     this.migration = Object.freeze(migration);
     this.rand = Object.freeze(randSystem);
@@ -33,29 +33,26 @@ class ToolCollection {
     this.patch = Object.seal(Patch);
   }
 
-  onInit(...widgets: InitFunction[]) {
+  public onInit(...widgets: InitFunction[]) {
     return this.zone.onInit(...widgets);
   }
 
-  addTo(zone: string, ...widgets: (string | Function | ZoneWidgetConfig | [number, string | ZoneWidgetConfig])[]) {
+  public addTo(zone: string, ...widgets: (string | Function | ZoneWidgetConfig | [number, string | ZoneWidgetConfig])[]) {
     return this.zone.addTo(zone, ...widgets);
   }
 
-  preInit() {
+  public preInit() {
     this.onInit(() => {
       this.patch.applyLocation();
       this.patch.applyBodywriting();
     });
   }
 
-  get utils(): typeof utils {
+  public get utils(): typeof utils {
     return utils;
   }
 }
 
-(function (maplebirch): void {
-  'use strict';
-  maplebirch.register('tool', Object.seal(new ToolCollection(maplebirch)), ['dynamic']);
-})(maplebirch);
+maplebirch.register('tool', Object.seal(new ToolCollection(maplebirch)), ['dynamic']);
 
 export default ToolCollection;

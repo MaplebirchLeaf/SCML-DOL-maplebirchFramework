@@ -1,5 +1,6 @@
 // ./src/modules/AddonPlugin.ts
 
+import type { Passage } from '@scml/types/sugarcube-2-ModLoader/SugarCube2';
 import type { ModBootJson, ModInfo } from '@scml/types/sugarcube-2-ModLoader/ModLoader';
 import type { JSZipLikeReadOnlyInterface } from '@scml/types/sugarcube-2-ModLoader/JSZipLikeReadOnlyInterface';
 import type { ModZipReader } from '@scml/types/sugarcube-2-ModLoader/ModZipReader';
@@ -7,9 +8,12 @@ import type { TypeOrderItem } from '@scml/types/AddonMod_BeautySelector/BeautySe
 import type { SC2DataManager } from '@scml/types/sugarcube-2-ModLoader/SC2DataManager';
 import type { ModUtils } from '@scml/types/sugarcube-2-ModLoader/Utils';
 import type { CryptOptions } from '../services/CredentialVault';
-import MaplebrichStyles from '@/styles/MaplebrichStyles.css?raw';
+import FlatpickrStyles from 'flatpickr/dist/themes/dark.css';
+import MaplebrichStyles from '@/styles/MaplebrichStyles.css';
 import maplebirch, { type MaplebirchCore, createlog } from '../core';
-import AddonPluginProcess, { type Task, type LanguageConfig, type AudioConfig, type FrameworkConfig, defineTwineAsset } from './AddonPluginProcess';
+import AddonPluginProcess, { type Task, type LanguageConfig, type AudioConfig, type FrameworkConfig, type Replacement, replace, defineTwineAsset } from './AddonPluginProcess';
+import { patchTimeConstantsAsset, patchDateTimeAsset } from './TimeStateWeather/DateTime';
+import { patchTimeAsset } from './TimeStateWeather/Time';
 
 type ConfigType = 'language' | 'audio' | 'framework' | 'npc';
 type FileType = 'Module' | 'Script';
@@ -36,42 +40,42 @@ class AddonPlugin {
   public onLoad: boolean = false;
   private onSaveLoadTracer: boolean = false;
   private disabledMods: Array<string> = [];
-  readonly replace = replace;
-  readonly SC2DataManager: SC2DataManager;
-  readonly modUtils: ModUtils;
-  readonly info = new Map<string, { addonName: string; mod: ModInfo; modZip: ModZipReader }>();
-  readonly log: ReturnType<typeof createlog> = createlog('addon');
-  readonly supportedConfigs: ConfigType[] = ['language', 'audio', 'framework', 'npc'];
-  queue: Record<ConfigType, Task[]> = {
+  public readonly replace = replace;
+  public readonly SC2DataManager: SC2DataManager;
+  public readonly modUtils: ModUtils;
+  public readonly info = new Map<string, { addonName: string; mod: ModInfo; modZip: ModZipReader }>();
+  public readonly log: ReturnType<typeof createlog> = createlog('addon');
+  public readonly supportedConfigs: ConfigType[] = ['language', 'audio', 'framework', 'npc'];
+  public queue: Record<ConfigType, Task[]> = {
     language: [],
     audio: [],
     framework: [],
     npc: []
   };
-  processed: Record<ConfigType | 'script', boolean> = {
+  public processed: Record<ConfigType | 'script', boolean> = {
     language: false,
     audio: false,
     framework: false,
     npc: false,
     script: false
   };
-  jsFiles: FileItem[] = [];
-  moduleFiles: FileItem[] = [];
+  public jsFiles: FileItem[] = [];
+  public moduleFiles: FileItem[] = [];
 
-  constructor(readonly core: MaplebirchCore) {
+  public constructor(readonly core: MaplebirchCore) {
     this.SC2DataManager = this.core.manager.modSC2DataManager;
     this.modUtils = this.core.modUtils;
     this.log('框架开始初始化流程', 'INFO');
     this.modUtils.getAddonPluginManager().registerAddonPlugin('maplebirch', 'maplebirchAddon', this);
     this.SC2DataManager.getModLoadController().addLifeTimeCircleHook('maplebirchFramework', this);
-    const modName = this.modUtils.getNowRunningModName();
+    const modName = this.modUtils.getNowRunningModName()!;
     const modInfo = this.modUtils.getMod(modName) as ModInfo;
     if (!modName || !modInfo) return;
     modInfo.modRef = this;
     this.log('框架初始化流程结束');
   }
 
-  async canLoadThisMod(bootJson: ModBootJson, zip: JSZipLikeReadOnlyInterface): Promise<boolean> {
+  public async canLoadThisMod(bootJson: ModBootJson, zip: JSZipLikeReadOnlyInterface): Promise<boolean> {
     if (bootJson.name === 'Simple Frameworks') {
       this.disabledMods.push('Simple Frameworks');
       return false;
@@ -79,7 +83,7 @@ class AddonPlugin {
     return true;
   }
 
-  async afterInjectEarlyLoad(): Promise<void> {
+  public async afterInjectEarlyLoad(): Promise<void> {
     if (!this.disabledMods.includes('Simple Frameworks')) await this.core.disabled('Simple Frameworks');
     await this.scriptFiles();
     await this.executeScripts(this.moduleFiles, 'Module');
@@ -90,18 +94,17 @@ class AddonPlugin {
     await this.core.logger.fromIDB();
     await this.core.trigger(':idbReady');
     await this.core.lang.preload();
-    for await (const p of this.core.lang.import('maplebirch')) if (p.type === 'error') this.log(`导入失败: ${p.language}`, 'ERROR');
     await this.core.modules.init('pre');
   }
 
-  async ModLoaderLoadEnd(): Promise<void> {
+  public async ModLoaderLoadEnd(): Promise<void> {
     await this.core.gui.init();
     await this.core.trigger(':modLoaderEnd');
   }
 
-  async afterEarlyLoad(): Promise<any> {}
+  public async afterEarlyLoad(): Promise<any> {}
 
-  async registerMod(addonName: string, modInfo: ModInfo, modZip: ModZipReader): Promise<void> {
+  public async registerMod(addonName: string, modInfo: ModInfo, modZip: ModZipReader): Promise<void> {
     this.info.set(modInfo.name, { addonName, mod: modInfo, modZip });
     const config = modInfo.bootJson?.addonPlugin?.find(plugin => plugin.modName === 'maplebirch' && plugin.addonName === 'maplebirchAddon') as AddonPluginConfig | undefined;
     if (!config?.params) return;
@@ -113,35 +116,39 @@ class AddonPlugin {
     }
   }
 
-  async afterRegisterMod2Addon(): Promise<void> {
+  public async afterRegisterMod2Addon(): Promise<void> {
     await this.executeScripts(this.jsFiles, 'Script');
     await this.core.char.faceStyleImagePaths();
     this.processed.script = true;
   }
 
-  async beforePatchModToGame(): Promise<void> {
-    await this.core.trigger(':import');
-    await this.dataReplace();
+  public async beforePatchModToGame(): Promise<void> {
+    this.dataReplace();
     await this.processInit();
+    await this.core.trigger(':import');
     this.core.tool.zone.patchModToGame(this, 'before');
   }
 
-  async PatchModToGame_start(): Promise<any> {
+  public async PatchModToGame_start(): Promise<any> {
+    defineTwineAsset('script', 'game\\00-framework-tools\\10-time\\00-time-constants.js', patchTimeConstantsAsset, 'patch');
+    defineTwineAsset('script', 'game\\00-framework-tools\\10-time\\datetime.js', patchDateTimeAsset, 'patch');
+    defineTwineAsset('script', 'game\\03-JavaScript\\time.js', patchTimeAsset, 'patch');
     defineTwineAsset(
       'script',
       'maplebirch/sugarcube-bridge.js',
       `(function(maplebirch){'use strict';maplebirch.SugarCube={Browser,Config,Dialog,Engine,Fullscreen,Has,L10n,Macro,Passage,Save,Scripting,Setting,SimpleAudio,State,Story,UI,UIBar,DebugBar,Util,Visibility,Wikifier,session,settings,setup,storage,version};void maplebirch.trigger(':sugarcube');})(window.maplebirch);`
     );
+    defineTwineAsset('style', 'flatpickr.css', FlatpickrStyles);
     defineTwineAsset('style', 'maplebirch-styles.css', MaplebrichStyles);
   }
 
-  async afterPatchModToGame(): Promise<void> {
+  public async afterPatchModToGame(): Promise<void> {
     this.core.tool.zone.patchModToGame(this, 'after');
   }
 
-  async afterPreload(): Promise<any> {}
+  public async afterPreload(): Promise<any> {}
 
-  async whenSC2StoryReady(): Promise<any> {
+  public async whenSC2StoryReady(): Promise<any> {
     await this.core.trigger(':storyready');
     if (this.onSaveLoadTracer) return;
     this.onSaveLoadTracer = true;
@@ -152,13 +159,13 @@ class AddonPlugin {
     });
   }
 
-  async whenSC2PassageInit(passage): Promise<any> {
+  public async whenSC2PassageInit(passage: Passage): Promise<any> {
     this.core.passage = passage;
     if (!!this.core.passage && !this.core.passage.tags.includes('widget')) this.log(`处理段落: ${this.core.passage.title}`, 'INFO');
     await this.core.trigger(':passageinit', passage);
   }
 
-  async whenSC2PassageStart(passage, content): Promise<any> {
+  public async whenSC2PassageStart(passage: Passage, content: HTMLDivElement): Promise<any> {
     if (!this.core.passage || this.core.passage.title === 'Start' || this.core.passage.title === 'Downgrade Waiting Room') return;
     this.core.modules.initPhase.postInitExecuted = false;
     await this.core.modules.init('init');
@@ -172,19 +179,19 @@ class AddonPlugin {
     await this.core.trigger(':passagestart', passage, content);
   }
 
-  async whenSC2PassageRender(passage, content): Promise<any> {
+  public async whenSC2PassageRender(passage: Passage, content: HTMLDivElement): Promise<any> {
     await this.core.trigger(':passagerender', passage, content);
   }
 
-  async whenSC2PassageDisplay(passage, content): Promise<any> {
+  public async whenSC2PassageDisplay(passage: Passage, content: HTMLDivElement): Promise<any> {
     await this.core.trigger(':passagedisplay', passage, content);
   }
 
-  async whenSC2PassageEnd(passage, content): Promise<any> {
+  public async whenSC2PassageEnd(passage: Passage, content: HTMLDivElement): Promise<any> {
     await this.core.trigger(':passageend', passage, content);
   }
 
-  async loadCrypt(options: CryptOptions): Promise<boolean> {
+  public async loadCrypt(options: CryptOptions): Promise<boolean> {
     return await this.core.credential.loadCrypt(options);
   }
 
@@ -206,12 +213,12 @@ class AddonPlugin {
   }
 
   // prettier-ignore
-  private async dataReplace(): Promise<void> {
-    try { await modifyOptionsDateFormat(this);                           } catch { this.log('modifyOptionsDateFormat 出错', 'ERROR'); }
-    try { await this.core.dynamic.Weather.modifyWeatherJavaScript(this); } catch { this.log('modifyWeatherJavaScript 出错', 'ERROR'); }
-    try { await this.core.char.modifyPCModel(this);                      } catch { this.log('modifyPCModel 出错', 'ERROR');           }
-    try { await this.core.char.modifyFaceStyle(this);                    } catch { this.log('modifyFaceStyle 出错', 'ERROR');         }
-    try { await this.core.char.transformation.modifyEffect(this);        } catch { this.log('modifyEffect 出错', 'ERROR');            }
+  private dataReplace(): void {
+    try { modifyOptionsDateFormat(this);                           } catch { this.log('modifyOptionsDateFormat 出错', 'ERROR'); }
+    try { this.core.dynamic.Weather.modifyWeatherJavaScript(this); } catch { this.log('modifyWeatherJavaScript 出错', 'ERROR'); }
+    try { this.core.char.modifyCanvasModel(this);                  } catch { this.log('modifyCanvasModel 出错', 'ERROR');       }
+    try { this.core.char.modifyFaceStyle(this);                    } catch { this.log('modifyFaceStyle 出错', 'ERROR');         }
+    try { this.core.char.transformation.modifyEffect(this);        } catch { this.log('modifyEffect 出错', 'ERROR');            }
   }
 
   private async loadFiles(modName: string, modZip: ModZipReader, files: string[], type: FileType): Promise<void> {
@@ -269,29 +276,13 @@ class AddonPlugin {
   }
 }
 
-function replace(content: string, replacements: [RegExp, string][]): string {
-  const unmatched: number[] = [];
-  let result = content;
-  replacements.forEach(([regex, replacement], index) => {
-    regex.lastIndex = 0;
-    if (regex.test(result)) {
-      regex.lastIndex = 0;
-      result = result.replace(regex, replacement);
-    } else {
-      unmatched.push(index + 1);
-    }
-  });
-  if (unmatched.length) maplebirch.log(`以下正则未匹配到内容 - ${unmatched.join(',')}`, 'WARN');
-  return result;
-}
-
-async function modifyOptionsDateFormat(manager: AddonPlugin): Promise<void> {
+function modifyOptionsDateFormat(manager: AddonPlugin): void {
   const oldSCdata = manager.SC2DataManager.getSC2DataInfoAfterPatch();
   const SCdata = oldSCdata.cloneSC2DataInfo();
   const passageData = SCdata.passageDataItems.map;
   const passageTitle = 'Options Overlay';
-  const passage = passageData.get(passageTitle);
-  const replacements: [RegExp, string][] = [
+  const passage = passageData.get(passageTitle)!;
+  const replacements: Replacement[] = [
     [
       /<label\s+class="en-GB">\s*<<radiobutton\s*"\$options\.dateFormat"\s*"en-GB"\s*autocheck\s*>>\s*([^<]+)<\/label>/,
       `<label class="en-GB"><<radiobutton "$options.dateFormat" "en-GB" autocheck>> ${manager.modUtils.getModListNameNoAlias().includes('ModI18N') ? '英(日/月/年)' : 'GB(dd/mm/yyyy)'}</label>`
@@ -305,28 +296,25 @@ async function modifyOptionsDateFormat(manager: AddonPlugin): Promise<void> {
       `<label class="zh-CN"><<radiobutton "$options.dateFormat" "zh-CN" autocheck>> ${manager.modUtils.getModListNameNoAlias().includes('ModI18N') ? '中(年/月/日)' : 'CN(yyyy/mm/dd)'}</label>`
     ]
   ];
-  passage.content = replace(passage.content, replacements);
+  passage.content = replace(passage.content, replacements, 'Options Overlay dateFormat');
   passageData.set(passageTitle, passage);
   SCdata.passageDataItems.back2Array();
   manager.modUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
 }
 
-(function (maplebirch: MaplebirchCore): void {
-  'use strict';
-  let order: TypeOrderItem[] = window.addonBeautySelectorAddon.typeOrderUsed;
-  Object.defineProperty(window.addonBeautySelectorAddon, 'typeOrderUsed', {
-    get() {
-      return order;
-    },
-    set(value: TypeOrderItem[]) {
-      order = value;
-      if (T?.modelclass) {
-        Renderer.clearCaches(T.modelclass);
-        $.wiki('<<updatesidebarimg>>');
-      }
+let order: TypeOrderItem[] = window.addonBeautySelectorAddon.typeOrderUsed!;
+Object.defineProperty(window.addonBeautySelectorAddon, 'typeOrderUsed', {
+  get() {
+    return order;
+  },
+  set(value: TypeOrderItem[]) {
+    order = value;
+    if (T?.modelclass) {
+      Renderer.clearCaches(T.modelclass);
+      $.wiki('<<updatesidebarimg>>');
     }
-  });
-  maplebirch.register('addon', Object.seal(new AddonPlugin(maplebirch)), []);
-})(maplebirch);
+  }
+});
+maplebirch.register('addon', Object.seal(new AddonPlugin(maplebirch)), []);
 
 export default AddonPlugin;

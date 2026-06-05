@@ -28,11 +28,11 @@ class Logger {
 
   private level: number;
 
-  constructor(readonly core: MaplebirchCore) {
+  public constructor(readonly core: MaplebirchCore) {
     this.level = Logger.LogLevel.INFO as number;
   }
 
-  async fromIDB(): Promise<void> {
+  public async fromIDB(): Promise<void> {
     try {
       const DEBUG = await this.core.idb.withTransaction(['settings'], 'readonly', async (tx: any) => await tx.objectStore('settings').get('DEBUG'));
       this.level = DEBUG?.value === true ? (Logger.LogLevel.DEBUG as number) : (Logger.LogLevel.INFO as number);
@@ -41,7 +41,7 @@ class Logger {
     }
   }
 
-  log(message: string, levelName: string | number = 'INFO', ...objects: any[]): void {
+  public log(message: string, levelName: string | number = 'INFO', ...objects: any[]): void {
     const lname = typeof levelName === 'number' ? (Logger.LogLevel[levelName] as LogLevelKey) || 'INFO' : (String(levelName || 'INFO').toUpperCase() as LogLevelKey);
     const config = Logger.LogConfig[lname] || Logger.LogConfig.INFO;
     if (config.level < this.level) return;
@@ -58,7 +58,7 @@ class Logger {
     }
   }
 
-  set LevelName(levelName: string) {
+  public set LevelName(levelName: string) {
     if (!levelName) return;
     const u = levelName.toUpperCase() as LogLevelKey;
     if (!Logger.LogConfig[u]) {
@@ -69,7 +69,7 @@ class Logger {
     this.log(`日志级别变更为: ${u}`, u);
   }
 
-  get LevelName(): string {
+  public get LevelName(): string {
     return (Logger.LogLevel[this.level] as string) || 'INFO';
   }
 }

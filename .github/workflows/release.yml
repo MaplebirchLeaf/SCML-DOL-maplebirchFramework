@@ -97,7 +97,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: package-${{ matrix.label }}
-          path: package/*.modpack
+          path: package/*.zip
           if-no-files-found: error
 
   release:
@@ -179,4 +179,4 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: false
-          files: release-assets/**/*.modpack
+          files: release-assets/**/*.zip

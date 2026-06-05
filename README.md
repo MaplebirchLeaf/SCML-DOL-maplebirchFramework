@@ -24,6 +24,7 @@
 - [脚本加载](#脚本加载)
 - [模组加密](#模组加密)
 - [推荐写法](#推荐写法)
+- [类型包](#类型包)
 - [模块与功能](#模块与功能)
 - [boot.json 配置](#bootjson-配置)
 - [反馈与讨论](#反馈与讨论)
@@ -176,6 +177,27 @@ setup.myMod.initCombat?.();
 - 普通模组脚本使用 `script`；确实需要更早执行并参与框架模块扩展时再使用 `module`。
 - 命名时尽量带上模组前缀，例如 `myMod.dailyCheck`、`myModTrust`，减少与其它模组冲突。
 - 文本、按钮和选项说明尽量使用语言文件或语言宏管理，避免以后补多语言时到处查找硬编码文本。
+
+## 类型包
+
+如果你的模组使用 TypeScript 或希望在编辑器中获得 `maplebirch` API 补全，可以安装框架的类型声明包：
+
+```bash
+npm install -D @scml-maplebirch/types
+```
+
+然后在 `tsconfig.json` 中加入：
+
+```json
+{
+  "compilerOptions": {
+    "types": ["@types/twine-sugarcube", "@scml-maplebirch/types"],
+    "skipLibCheck": true
+  }
+}
+```
+
+这个包只提供类型声明，不包含框架运行时代码；玩家仍然需要在 ModLoader 中加载 `maplebirchFramework` 本体。类型包版本建议与模组依赖的框架版本保持接近。
 
 ## 模块与功能
 

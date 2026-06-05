@@ -1,14 +1,15 @@
 // ./src/modules/Combat.ts
 
-import maplebirch, { MaplebirchCore, createlog } from '../core';
-import CombatAction from './CombatAddon/CombatAction';
+import maplebirch, { type MaplebirchCore, createlog } from '../core';
+import type { MacroContext } from '../SugarCubeMacros';
+import CombatAction, { type ActionType, type CombatType, type OptionsTable } from './CombatAddon/CombatAction';
 
 class CombatManager {
-  readonly log: ReturnType<typeof createlog>;
-  readonly CombatAction: typeof CombatAction = CombatAction;
+  public readonly log: ReturnType<typeof createlog>;
+  public readonly CombatAction: typeof CombatAction = CombatAction;
   private readonly _: typeof maplebirch.lodash;
 
-  constructor(readonly core: MaplebirchCore) {
+  public constructor(readonly core: MaplebirchCore) {
     this.log = createlog('combat');
     this._ = core.lodash;
 
@@ -18,13 +19,13 @@ class CombatManager {
     });
   }
 
-  _generateCombatAction() {
+  private _generateCombatAction() {
     const self = this as this;
 
-    return function () {
-      const optionsTable = this.args[0];
-      const actionType = this.args[1];
-      const combatType = this.args[2] || '';
+    return function (this: MacroContext) {
+      const optionsTable = this.args[0] as OptionsTable;
+      const actionType = this.args[1] as ActionType;
+      const combatType = (this.args[2] || '') as CombatType;
       const controls = V.options.combatControls;
       const frag = document.createDocumentFragment();
       const el = (val: string) => document.createElement(val);
@@ -76,13 +77,13 @@ class CombatManager {
     };
   }
 
-  _combatListColor(name: string | number | false, value?: any, type = '') {
+  private _combatListColor(name: string | number | false, value?: any, type: CombatType = 'Default') {
+    type = (type || 'Default') as CombatType;
     const rawAction = value ?? (name !== false ? V[name] : '');
     const action = String(rawAction || '').replace(/\d+/g, '');
-    const encounterType = type || 'Default';
-    if (combatActionColours[encounterType]) for (const color in combatActionColours[encounterType]) if (combatActionColours[encounterType][color].includes(action)) return color;
+    if (combatActionColours[type]) for (const color in combatActionColours[type]) if (combatActionColours[type][color].includes(action)) return color;
     try {
-      const modColor = this.CombatAction.color(action, encounterType);
+      const modColor = this.CombatAction.color(action, type);
       if (modColor) return modColor;
     } catch (e) {
       this.log('mod战斗动作颜色错误', 'ERROR', e);
@@ -90,7 +91,7 @@ class CombatManager {
     return 'white';
   }
 
-  _combatButtonAdjustments(name: string, extra: any) {
+  private _combatButtonAdjustments(name: string, extra: any) {
     const eventName = `change.maplebirchCombat-${name}`;
     jQuery(document)
       .off(eventName, '#listbox-' + name)
@@ -111,14 +112,11 @@ class CombatManager {
     return '';
   }
 
-  Init() {
+  public Init() {
     combatListColor = this._combatListColor.bind(this);
   }
 }
 
-(function (maplebirch): void {
-  'use strict';
-  maplebirch.register('combat', Object.seal(new CombatManager(maplebirch)), ['npc']);
-})(maplebirch);
+maplebirch.register('combat', Object.seal(new CombatManager(maplebirch)), ['npc']);
 
 export default CombatManager;

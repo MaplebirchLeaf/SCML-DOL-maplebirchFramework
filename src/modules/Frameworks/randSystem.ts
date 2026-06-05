@@ -1,4 +1,4 @@
-// .src/modules/Frameworks/randSystem.ts
+// .src/modules/Frameworks/RandSystem.ts
 
 import { createlog } from '../../core';
 
@@ -9,57 +9,62 @@ export interface RandState {
 }
 
 class randSystem {
-  static readonly log = createlog('rand');
+  public static readonly log = createlog('rand');
 
-  static create(state: Partial<RandState> = {}): randSystem {
+  public static create(state: Partial<RandState> = {}): randSystem {
     return new randSystem(state);
   }
 
-  readonly log = randSystem.log;
-  readonly state: RandState;
+  public readonly log = randSystem.log;
+  public readonly state: RandState;
 
   private readonly maxHistory = 100;
   private readonly modulus = 0x100000000;
 
-  constructor(state: Partial<RandState> = {}) {
+  public constructor(state: Partial<RandState> = {}) {
     this.state = state as RandState;
     this.normalize();
   }
 
-  reset(seed: number = Date.now()): void {
+  public reset(seed: number = Date.now()): void {
     const value = Math.trunc(Number(seed));
     this.state.seed = Number.isFinite(value) ? value >>> 0 : Date.now() >>> 0;
     this.state.history = [];
     this.state.index = 0;
   }
 
-  int(max: number): number {
+  public int(max: number): number {
     const limit = Math.max(0, Math.floor(Number(max) || 0));
     return Math.floor((this.next() / this.modulus) * (limit + 1));
   }
 
-  percent(): number {
+  public percent(): number {
     return Math.floor((this.next() / this.modulus) * 100) + 1;
   }
 
-  back(steps = 1): void {
+  public back(steps = 1): void {
     if (steps <= 0) return;
     this.state.index = Math.max(0, this.state.index - Math.floor(steps));
   }
 
-  get seed(): number | null {
+  public forward(steps = 1): void {
+    if (steps <= 0) return;
+    this.state.index = Math.min(this.state.history.length, this.state.index + Math.floor(steps));
+  }
+
+  public get seed(): number | null {
     return this.state.seed;
   }
 
-  set seed(value: number) {
+  public set seed(value: number) {
     this.reset(value);
   }
 
-  get history(): number[] {
+  public get history(): number[] {
     return [...this.state.history];
   }
 
-  get index(): number {
+  public get index(): number {
     return this.state.index;
   }
 

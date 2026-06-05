@@ -1,51 +1,86 @@
 // .src/modules/TimeStateWeather/Time.ts
 
 import { TimeConstants } from '../../constants';
+import { replace } from '../AddonPluginProcess';
 
-let timePatched = false;
-let currentDate: DateTime | null = null;
-
-function date(): DateTime {
-  if (!currentDate) {
-    V.startDate ??= new window.DateTime(2022, 9, 4, 7).timeStamp;
-    currentDate = new window.DateTime(V.startDate + (V.timeStamp || 0));
-  }
-  return currentDate;
+export function patchTimeAsset(content: string): string {
+  if (content.includes('maplebirch.dynamic.Time.patchTime(Time)')) return content;
+  return replace(content, [[/\nwindow\.Time = Time;/, `\nmaplebirch.dynamic.Time.patchTime(Time);\nwindow.Time = Time;`]], 'Time asset patch');
 }
 
-function patchTime(): void {
-  if (timePatched) return;
-  const time = window.Time as any;
+interface TimeHandlers {
+  pass?: (seconds: number) => any;
+  timeTravel?: (date: DateTime) => any;
+}
 
-  try {
-    currentDate = new window.DateTime(time.date);
-  } catch {
-    V.startDate ??= new window.DateTime(2022, 9, 4, 7).timeStamp;
-    currentDate = new window.DateTime(V.startDate + (V.timeStamp || 0));
-  }
+export interface VanillaTimeHandlers {
+  set?: (value?: number | DateTime) => void;
+  pass?: (seconds: number) => any;
+  setDate?: (date: DateTime) => void;
+}
 
-  const set = (value: number | DateTime = V.timeStamp): void => {
-    V.startDate ??= new window.DateTime(2022, 9, 4, 7).timeStamp;
+export const vanillaTime: VanillaTimeHandlers = {};
+
+export function bindTimeHandlers(time: any, handlers: TimeHandlers): void {
+  if (!time) return;
+  Object.defineProperties(time, {
+    ...(handlers.pass && {
+      pass: {
+        value: handlers.pass,
+        writable: true,
+        configurable: true
+      }
+    }),
+    ...(handlers.timeTravel && {
+      timeTravel: {
+        value: handlers.timeTravel,
+        writable: true,
+        configurable: true
+      }
+    })
+  });
+}
+
+function patchTime(time: any): void {
+  if (!time) return;
+  vanillaTime.set ??= typeof time.set === 'function' ? time.set.bind(time) : undefined;
+  vanillaTime.pass ??= typeof time.pass === 'function' ? time.pass.bind(time) : undefined;
+  vanillaTime.setDate ??= typeof time.setDate === 'function' ? time.setDate.bind(time) : undefined;
+  let cachedDate: DateTime | null = null;
+  let cachedAbsoluteTimestamp: number | null = null;
+
+  const set = (value: number | DateTime = 0): void => {
     if (value && typeof value === 'object' && typeof (value as any).timeStamp === 'number') {
-      currentDate = new window.DateTime(value);
-      V.timeStamp = currentDate.timeStamp - V.startDate;
+      vanillaTime.setDate?.(value);
+      cachedDate = new window.DateTime(value);
+      cachedAbsoluteTimestamp = cachedDate.timeStamp;
       return;
     }
-    const timeStamp = Number(value);
-    currentDate = new window.DateTime(V.startDate + timeStamp);
-    V.timeStamp = timeStamp;
+    const elapsedTimestamp = Number(value);
+    vanillaTime.set?.(Number.isFinite(elapsedTimestamp) ? elapsedTimestamp : 0);
+    cachedDate = null;
+    cachedAbsoluteTimestamp = null;
   };
 
-  const setDate = (newDate: DateTime): void => {
-    set(newDate);
+  const date = (): DateTime => {
+    const startDate = V.startDate ?? (V.startDate = new window.DateTime(2022, 9, 4, 7).timeStamp);
+    const absoluteTimestamp = startDate + (V.timeStamp || 0);
+
+    if (!cachedDate || cachedAbsoluteTimestamp !== absoluteTimestamp) {
+      cachedDate = new window.DateTime(absoluteTimestamp);
+      cachedAbsoluteTimestamp = absoluteTimestamp;
+    }
+
+    return cachedDate;
   };
 
   const setTime = (hour: number, minute = 0): void => {
-    setDate(new window.DateTime(date().year, date().month, date().day, hour || 0, minute || 0, 0));
+    const current = date();
+    time.setDate(new window.DateTime(current.year, current.month, current.day, hour || 0, minute || 0, 0));
   };
 
   const setTimeRelative = (hour = 0, minute = 0): void => {
-    setDate(new window.DateTime(date()).addHours(hour).addMinutes(minute));
+    time.setDate(new window.DateTime(date()).addHours(hour).addMinutes(minute));
   };
 
   const getSeason = (targetDate: DateTime): string => {
@@ -53,36 +88,35 @@ function patchTime(): void {
   };
 
   const getDayOfYear = (targetDate: DateTime): number => {
-    const start = new window.DateTime(targetDate.year, 1, 1);
-    return Math.floor((targetDate.timeStamp - start.timeStamp) / TimeConstants.secondsPerDay);
+    return Math.floor((targetDate.timeStamp - new window.DateTime(targetDate.year, 1, 1).timeStamp) / TimeConstants.secondsPerDay);
   };
 
   const getSecondsSinceMidnight = (targetDate: DateTime): number => {
-    return targetDate.hour * TimeConstants.secondsPerHour + targetDate.minute * TimeConstants.secondsPerMinute;
+    return targetDate.hour * TimeConstants.secondsPerHour + targetDate.minute * TimeConstants.secondsPerMinute + targetDate.second;
   };
 
   const getNextSchoolTermStartDate = (targetDate: DateTime): DateTime => {
-    const newDate = new window.DateTime(targetDate);
-    while (newDate.weekEnd) newDate.addDays(1);
-    while (time.holidayMonths.includes(newDate.month)) newDate.addMonths(1);
-    return newDate.getFirstWeekdayOfMonth(2);
+    const schoolStartDate = new window.DateTime(targetDate);
+    while (schoolStartDate.weekEnd) schoolStartDate.addDays(1);
+    while (time.holidayMonths.includes(schoolStartDate.month)) schoolStartDate.addMonths(1);
+    return schoolStartDate.getFirstWeekdayOfMonth(2);
   };
 
   const getNextSchoolTermEndDate = (targetDate: DateTime): DateTime => {
-    const newDate = new window.DateTime(targetDate);
-    const nextHolidayMonth = time.holidayMonths.find((month: number) => month >= newDate.month) ?? time.holidayMonths[0];
-    newDate.addMonths(nextHolidayMonth - newDate.month);
-    return newDate.getFirstWeekdayOfMonth(2).addDays(-3).addHours(15);
+    const schoolEndDate = new window.DateTime(targetDate);
+    const nextHolidayMonth = time.holidayMonths.find((month: number) => month >= schoolEndDate.month) ?? time.holidayMonths[0];
+    schoolEndDate.addMonths(nextHolidayMonth - schoolEndDate.month);
+    return schoolEndDate.getFirstWeekdayOfMonth(2).addDays(-3).addHours(15);
   };
 
   const isSchoolTerm = (targetDate: DateTime): boolean => {
-    let termEndDate = getNextSchoolTermEndDate(targetDate);
-    termEndDate = new window.DateTime(termEndDate.year, termEndDate.month, termEndDate.day);
-    termEndDate.addDays(1);
     const firstMonday = targetDate.getFirstWeekdayOfMonth(2);
     const prevMonth = ((targetDate.month - 2 + 12) % 12) + 1;
+    const schoolEndDate = getNextSchoolTermEndDate(targetDate);
+    const schoolEndNextDay = new window.DateTime(schoolEndDate.year, schoolEndDate.month, schoolEndDate.day).addDays(1);
+
     return !(
-      targetDate.timeStamp >= termEndDate.timeStamp ||
+      targetDate.timeStamp >= schoolEndNextDay.timeStamp ||
       (time.holidayMonths.includes(targetDate.month) && targetDate.day >= firstMonday.day) ||
       (time.holidayMonths.includes(prevMonth) && targetDate.day < firstMonday.day)
     );
@@ -96,7 +130,7 @@ function patchTime(): void {
     return isSchoolDay(targetDate) && targetDate.hour > 8 && targetDate.hour < 15;
   };
 
-  const currentMoonPhase = (targetDate: DateTime): string | undefined => {
+  const getMoonPhase = (targetDate: DateTime): string | undefined => {
     const phaseFraction = targetDate.moonPhaseFraction;
     for (const phase in time.moonPhases) {
       const range = time.moonPhases[phase];
@@ -105,24 +139,23 @@ function patchTime(): void {
     return undefined;
   };
 
-  const previousMoonPhase = (targetPhase: string): DateTime => {
+  const findMoonPhase = (targetPhase: string, direction: 1 | -1): DateTime => {
     if (!(targetPhase in time.moonPhases)) throw new Error(`Invalid moon phase: ${targetPhase}`);
-    const targetDate = new window.DateTime(date().year, date().month, date().day, 0, 0, 0);
+    const current = date();
+    const searchDate = new window.DateTime(current.year, current.month, current.day, 0, 0, 0);
     for (let i = 0; i < 60; i++) {
-      targetDate.addDays(-1);
-      if (currentMoonPhase(targetDate) === targetPhase) return targetDate;
+      searchDate.addDays(direction);
+      if (getMoonPhase(searchDate) === targetPhase) return searchDate;
     }
     throw new Error(`Moon phase not found: ${targetPhase}`);
   };
 
   const nextMoonPhase = (targetPhase: string): DateTime => {
-    if (!(targetPhase in time.moonPhases)) throw new Error(`Invalid moon phase: ${targetPhase}`);
-    const targetDate = new window.DateTime(date().year, date().month, date().day, 0, 0, 0);
-    for (let i = 0; i < 60; i++) {
-      targetDate.addDays(1);
-      if (currentMoonPhase(targetDate) === targetPhase) return targetDate;
-    }
-    throw new Error(`Moon phase not found: ${targetPhase}`);
+    return findMoonPhase(targetPhase, 1);
+  };
+
+  const previousMoonPhase = (targetPhase: string): DateTime => {
+    return findMoonPhase(targetPhase, -1);
   };
 
   const isBloodMoon = (targetDate = date()): boolean => {
@@ -131,14 +164,19 @@ function patchTime(): void {
 
   const hasDatePassed = (month: number, day: number): boolean => {
     let eventDate = new window.DateTime(time.startDate.year, month, day);
-    if (eventDate.timeStamp < time.startDate.timeStamp) eventDate = new window.DateTime(eventDate).addYears(1);
+
+    if (eventDate.timeStamp < time.startDate.timeStamp) {
+      eventDate = new window.DateTime(eventDate).addYears(1);
+    }
+
     return eventDate.timeStamp <= date().timeStamp;
   };
 
-  const betweenHours = (from: number, to: number, pass?: number): boolean => {
-    const targetHour = pass ? new window.DateTime(date().timeStamp + pass * TimeConstants.secondsPerMinute).hour : date().hour;
-    if (to >= from) return targetHour >= from && targetHour <= to;
-    return targetHour >= from || targetHour <= to;
+  const betweenHours = (from: number, to: number, passMinutes?: number): boolean => {
+    const targetDate = passMinutes ? new window.DateTime(date().timeStamp + passMinutes * TimeConstants.secondsPerMinute) : date();
+
+    if (to >= from) return targetDate.hour >= from && targetDate.hour <= to;
+    return targetDate.hour >= from || targetDate.hour <= to;
   };
 
   Object.defineProperties(time, {
@@ -209,6 +247,8 @@ function patchTime(): void {
       },
       set: (value: DateTime) => {
         V.startDate = value.timeStamp;
+        cachedDate = null;
+        cachedAbsoluteTimestamp = null;
       },
       configurable: true
     },
@@ -269,18 +309,12 @@ function patchTime(): void {
     },
 
     currentMoonPhase: {
-      get: () => currentMoonPhase(date()),
+      get: () => getMoonPhase(date()),
       configurable: true
     },
 
     set: {
       value: set,
-      writable: true,
-      configurable: true
-    },
-
-    setDate: {
-      value: setDate,
       writable: true,
       configurable: true
     },
@@ -399,7 +433,6 @@ function patchTime(): void {
       configurable: true
     }
   });
-  timePatched = true;
 }
 
 export default patchTime;

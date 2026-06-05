@@ -1,8 +1,8 @@
 # Random System
 
-`randSystem` creates reproducible random number generators. Use it when a mod needs a seed, repeatable results, replayable random events, or easier debugging.
+`randSystem` creates reproducible random number generators. Use it when a mod needs saved seeds, repeatable results, replayable random events, backtracking, or easier debugging.
 
-For one-off randomness, vanilla/global helpers such as `random()` or `either()` may be enough. Use `maplebirch.tool.rand.create()` when the same seed should produce the same sequence.
+For one-off randomness, global helpers such as `random()` or `either()` may be enough. Use **`maplebirch.tool.rand.create()`** when the same state should produce the same sequence.
 
 ## Create A Generator
 
@@ -10,23 +10,26 @@ For one-off randomness, vanilla/global helpers such as `random()` or `either()` 
 const rng = maplebirch.tool.rand.create();
 ```
 
-With initial state:
+With save-backed state:
 
 ```javascript
-const rng = maplebirch.tool.rand.create({
-  seed: 12345
-});
+V.myMod ??= {};
+V.myMod.rand ??= {};
+
+const rng = maplebirch.tool.rand.create(V.myMod.rand);
 ```
+
+`create(state)` uses the passed object as its internal state, so storing that object in `V` lets the sequence follow the save.
 
 ## Minimal Example
 
 ```javascript
 const rng = maplebirch.tool.rand.create();
 
-rng.Seed = 12345;
+rng.seed = 12345;
 
-const percent = rng.rng; // 1-100
-const index = rng.get(5); // 0-5
+const percent = rng.percent(); // 1-100
+const index = rng.int(5); // 0-5
 ```
 
 ## API
@@ -34,20 +37,21 @@ const index = rng.get(5); // 0-5
 | API | Description |
 | :--- | :--- |
 | `maplebirch.tool.rand.create(state?)` | Create a generator |
-| `rng.Seed` | Get or set the seed |
-| `rng.rng` | Generate an integer from `1` to `100` |
-| `rng.get(max)` | Generate an integer from `0` to `max` |
-| `rng.backtrack(count)` | Move the random pointer backward |
-| `rng.history` | Generated result history |
-| `rng.pointer` | Current history pointer |
+| `rng.seed` | Get or reset the seed |
+| `rng.int(max)` | Generate an integer from `0` to `max` |
+| `rng.percent()` | Generate an integer from `1` to `100` |
+| `rng.back(steps?)` | Move the random history pointer backward |
+| `rng.forward(steps?)` | Move the pointer forward through existing history |
+| `rng.history` | Copy of generated result history |
+| `rng.index` | Current history pointer |
 
 ## Reproducible Rolls
 
 ```javascript
 function roll(seed) {
   const rng = maplebirch.tool.rand.create();
-  rng.Seed = seed;
-  return [rng.rng, rng.rng, rng.rng];
+  rng.seed = seed;
+  return [rng.percent(), rng.percent(), rng.percent()];
 }
 
 roll(100);
@@ -57,10 +61,12 @@ roll(100); // same result sequence
 ## Percentage Check
 
 ```javascript
-const rng = maplebirch.tool.rand.create();
-rng.Seed = V.myMod.seed;
+V.myMod ??= {};
+V.myMod.rand ??= {};
 
-if (rng.rng <= 30) {
+const rng = maplebirch.tool.rand.create(V.myMod.rand);
+
+if (rng.percent() <= 30) {
   setup.myMod.triggerRareEvent();
 }
 ```
@@ -69,30 +75,36 @@ if (rng.rng <= 30) {
 
 ```javascript
 const list = ['weakEnemy', 'normalEnemy', 'treasure'];
-const result = list[rng.get(list.length - 1)];
+const result = list[rng.int(list.length - 1)];
 ```
 
-## Backtracking
+## Back And Forward
 
 ```javascript
-const first = rng.rng;
-const second = rng.rng;
+const first = rng.percent();
+const second = rng.percent();
 
-rng.backtrack(1);
+rng.back(1);
 
-const again = rng.rng; // same as second
+const again = rng.percent(); // same as second
+```
+
+`forward(steps)` only moves through already generated history. It does not create new random values.
+
+```javascript
+rng.back(2);
+rng.forward(1);
 ```
 
 ## Save Data
 
-Store the seed when the sequence should belong to the save:
+Store the full state object when the sequence should belong to the save:
 
 ```javascript
 V.myMod ??= {};
-V.myMod.seed ??= Date.now();
+V.myMod.rand ??= {};
 
-const rng = maplebirch.tool.rand.create();
-rng.Seed = V.myMod.seed;
+const rng = maplebirch.tool.rand.create(V.myMod.rand);
 ```
 
-If exact continuation matters, also store `history` and `pointer`, then pass the saved state back to `create(state)`.
+The state contains `seed`, `history`, and `index`. Saving only `seed` reproduces a sequence from the beginning; saving the full state restores the exact walked history.

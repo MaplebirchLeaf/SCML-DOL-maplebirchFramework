@@ -3,6 +3,7 @@
 import maplebirch from '../../core';
 import { merge } from '../../utils';
 import type AddonPlugin from '../AddonPlugin';
+import type { Replacement } from '../AddonPluginProcess';
 import type DynamicManager from '../Dynamic';
 
 export interface WeatherEventOptions {
@@ -51,10 +52,10 @@ class WeatherEvent {
   private onEnter?: () => void;
   private onExit?: () => void;
   private fields: Record<string, any>;
-  readonly once: boolean;
-  readonly priority: number;
+  public readonly once: boolean;
+  public readonly priority: number;
 
-  constructor(
+  public constructor(
     public readonly id: string,
     options: WeatherEventOptions = {}
   ) {
@@ -67,7 +68,7 @@ class WeatherEvent {
     for (const [key, value] of Object.entries(options)) if (!['condition', 'onEnter', 'onExit', 'once', 'priority'].includes(key)) this.fields[key] = value;
   }
 
-  tryMatch(): boolean {
+  public tryMatch(): boolean {
     try {
       return (!this.condition || !!this.condition()) && this.matchFields();
     } catch (e: any) {
@@ -98,7 +99,7 @@ class WeatherEvent {
 
     if (builtIn[key]) return this.matchValue(builtIn[key](), value);
 
-    const paths: (() => any)[] = [() => V[key], () => T[key], () => Weather[key], () => Time[key]];
+    const paths: (() => any)[] = [() => (V as Record<string, any>)[key], () => (T as Record<string, any>)[key], () => (Weather as Record<string, any>)[key], () => (Time as Record<string, any>)[key]];
     for (const getter of paths) {
       try {
         const current = getter();
@@ -118,7 +119,7 @@ class WeatherEvent {
     return current === value;
   }
 
-  executeEnter(): void {
+  public executeEnter(): void {
     if (!this.onEnter) return;
     try {
       this.onEnter();
@@ -127,7 +128,7 @@ class WeatherEvent {
     }
   }
 
-  executeExit(): void {
+  public executeExit(): void {
     if (!this.onExit) return;
     try {
       this.onExit();
@@ -148,7 +149,7 @@ export class WeatherManager {
   private weatherTriggered = false;
   private readonly log: (message: string, level?: string, ...objects: any[]) => void;
 
-  constructor(private readonly manager: DynamicManager) {
+  public constructor(private readonly manager: DynamicManager) {
     this.log = manager.log;
     $(document).on(':onWeatherChange', () => this.manager.core.trigger(':onWeather'));
     this.manager.core.on(':onWeather', () => this.checkEvents(), 'weather change');
@@ -177,7 +178,7 @@ export class WeatherManager {
     }
   }
 
-  register(eventId: string, options: WeatherEventOptions): boolean {
+  public register(eventId: string, options: WeatherEventOptions): boolean {
     if (this.weatherEvents.has(eventId)) {
       this.log(`天气事件ID已存在: ${eventId}`, 'WARN');
       return false;
@@ -188,7 +189,7 @@ export class WeatherManager {
     return true;
   }
 
-  unregister(eventId: string): boolean {
+  public unregister(eventId: string): boolean {
     if (this.weatherEvents.delete(eventId)) {
       this.activeEvents.delete(eventId);
       this.sortedEventsCache = null;
@@ -199,19 +200,19 @@ export class WeatherManager {
     return false;
   }
 
-  addLayer(layerName: string, patch: any, mode: 'concat' | 'replace' | 'merge' = 'replace'): this {
+  public addLayer(layerName: string, patch: any, mode: 'concat' | 'replace' | 'merge' = 'replace'): this {
     if (!this.layerModifications.has(layerName)) this.layerModifications.set(layerName, []);
     this.layerModifications.get(layerName)!.push({ patch, mode });
     return this;
   }
 
-  addEffect(effectName: string, patch: any, mode: 'concat' | 'replace' | 'merge' = 'replace'): this {
+  public addEffect(effectName: string, patch: any, mode: 'concat' | 'replace' | 'merge' = 'replace'): this {
     if (!this.effectModifications.has(effectName)) this.effectModifications.set(effectName, []);
     this.effectModifications.get(effectName)!.push({ patch, mode });
     return this;
   }
 
-  applyModifications(params: any): any {
+  public applyModifications(params: any): any {
     const layerName = params.name;
     if (!this.weatherTriggered) {
       void this.manager.core.trigger(':modifyWeather');
@@ -236,7 +237,7 @@ export class WeatherManager {
     return params;
   }
 
-  addWeatherData(data: WeatherException | WeatherTypeConfig): boolean | void {
+  public addWeatherData(data: WeatherException | WeatherTypeConfig): boolean | void {
     if ('date' in data) {
       this.Exceptions.push(data as WeatherException);
       this.log(`暂存天气例外: ${(data as WeatherException).weatherType}`, 'DEBUG');
@@ -247,7 +248,7 @@ export class WeatherManager {
     return true;
   }
 
-  init(): void {
+  public init(): void {
     for (const exception of this.Exceptions) setup.WeatherExceptions.push(exception);
     this.Exceptions.length = 0;
     for (const weatherType of this.WeatherTypes) if (!setup.WeatherGeneration.weatherTypes.find((type: any) => type.name === weatherType.name)) setup.WeatherGeneration.weatherTypes.push(weatherType);
@@ -255,17 +256,12 @@ export class WeatherManager {
     this.log('天气事件系统已激活', 'INFO');
   }
 
-  async modifyWeatherJavaScript(manager: AddonPlugin): Promise<void> {
+  public modifyWeatherJavaScript(manager: AddonPlugin): void {
     const oldSCdata = manager.SC2DataManager.getSC2DataInfoAfterPatch();
     const SCdata = oldSCdata.cloneSC2DataInfo();
-    const file = SCdata.scriptFileItems.getByNameWithOrWithoutPath('00-layer-manager.js');
-    const replacements: [RegExp, string][] = [
-      [
-        /const\s+layer\s*=\s*new\s+Weather\.Renderer\.Layer\(([^)]+)\);/,
-        'maplebirch.dynamic.Weather.applyModifications(params);\n\t\tconst layer = new Weather.Renderer.Layer(params.name, params.blur, params.zIndex, params.animation);'
-      ]
-    ];
-    file.content = manager.replace(file.content, replacements);
+    const file = SCdata.scriptFileItems.getByNameWithOrWithoutPath('00-layer-manager.js')!;
+    const replacements: Replacement[] = [[/(const\s+layer\s*=\s*new\s+Weather\.Renderer\.Layer\(([^)]+)\);)/, 'maplebirch.dynamic.Weather.applyModifications(params);\n\t\t$1']];
+    file.content = manager.replace(file.content, replacements, 'Weather');
     manager.modUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
   }
 }

@@ -2,7 +2,7 @@
 
 import type { ModSubUiAngularJsService } from '@scml/types/Mod_LoaderGui/ModSubUiAngularJsService';
 import maplebirch, { type MaplebirchCore } from '../core';
-import Gui from '@/twee/Gui.twee?raw';
+import Gui from '@/twee/Gui.twee';
 import { widgets, convert } from '../utils';
 import { Config } from './../constants';
 
@@ -13,6 +13,7 @@ interface ModuleInfo {
   type: ModuleType;
   source: string;
   protected: boolean;
+  lifecycle: boolean;
   dependencies: string[];
 }
 
@@ -40,19 +41,19 @@ interface SettingRecord<T = any> {
 }
 
 class GUIControl {
-  enabledModules: ModuleInfo[] = [];
-  disabledModules: ModuleInfo[] = [];
-  enabledScripts: string[] = [];
-  disabledScripts: string[] = [];
+  public enabledModules: ModuleInfo[] = [];
+  public disabledModules: ModuleInfo[] = [];
+  public enabledScripts: string[] = [];
+  public disabledScripts: string[] = [];
   private modSubUiAngularJsService: ModSubUiAngularJsService;
 
-  constructor(readonly core: MaplebirchCore) {
+  public constructor(readonly core: MaplebirchCore) {
     this.modSubUiAngularJsService = core.manager.modLoaderGui.getModSubUiAngularJsService();
     this.core.once(':indexedDB', () => this.core.idb.register('settings', { keyPath: 'key' }));
     this.core.once(':idbReady', async () => await this.initSettings());
   }
 
-  async initSettings(): Promise<void> {
+  private async initSettings(): Promise<void> {
     const modNames = await this.modNames();
     await this.core.idb.withTransaction(['settings'], 'readwrite', async (tx: any) => {
       const store = tx.objectStore('settings');
@@ -64,7 +65,7 @@ class GUIControl {
     await this.loadSettings();
   }
 
-  async init(): Promise<void> {
+  public async init(): Promise<void> {
     await this.loadSettings();
     this.modSubUiAngularJsService.addLifeTimeCallback('maplebirchFrameworkAddon-GUIControl', { whenCreate: this.whenCreate.bind(this) });
   }
@@ -102,26 +103,23 @@ class GUIControl {
     return Object.entries(graph)
       .map(([name, info]: [string, any]) => ({
         name,
-        type: (info.protected ? 'protected' : info.state === 'EXPOSED' ? 'exposed' : info.mounted ? 'mounted' : 'module') as ModuleType,
+        type: (info.protected ? 'protected' : info.exposed ? 'exposed' : info.mounted ? 'mounted' : 'module') as ModuleType,
         source: info.source || '',
         protected: info.protected === true,
+        lifecycle: info.lifecycle === true,
         dependencies: (info.allDependencies || []).filter((dep: string) => {
           const target = graph[dep];
-          return target && !target.protected && target.state !== 'EXPOSED';
+          return target && !target.protected;
         })
       }))
       .filter(mod => !mod.source || modNames.has(mod.source));
   }
 
-  typeLabel(type: ModuleType): string {
+  public typeLabel(type: ModuleType): string {
     if (type === 'protected') return '[Protected]';
     if (type === 'mounted') return '[Mounted]';
     if (type === 'exposed') return '[Exposed]';
     return '[Module]';
-  }
-
-  canBeDisabled(mod: Pick<ModuleInfo, 'protected' | 'type'>): boolean {
-    return !mod.protected && mod.type !== 'exposed';
   }
 
   private async modulesStore(store: any, modNames: Set<string>): Promise<void> {
@@ -145,7 +143,7 @@ class GUIControl {
     await store.put({ key: 'Script', value: { disabled: Array.from(disabled) } });
   }
 
-  async saveModules(enabled: ModuleInfo[], disabled: ModuleInfo[]): Promise<void> {
+  public async saveModules(enabled: ModuleInfo[], disabled: ModuleInfo[]): Promise<void> {
     const modNames = await this.modNames();
     const currentNames = new Set([...enabled, ...disabled].map(m => m.name));
     await this.core.idb.withTransaction(['settings'], 'readwrite', async (tx: any) => {
@@ -153,13 +151,13 @@ class GUIControl {
       const old = (await store.get('Modules')) as SettingRecord<ModulesStore> | undefined;
       const next = new Map<string, ModuleDisabledRecord>();
       for (const item of old?.value?.disabled || []) if (!currentNames.has(item.name) && item.source && modNames.has(item.source)) next.set(item.name, { name: item.name, source: item.source });
-      for (const mod of disabled) if (this.canBeDisabled(mod)) next.set(mod.name, { name: mod.name, source: mod.source || '' });
+      for (const mod of disabled) if (!mod.protected && (mod.type !== 'exposed' || mod.lifecycle)) next.set(mod.name, { name: mod.name, source: mod.source || '' });
       await store.put({ key: 'Modules', value: { disabled: Array.from(next.values()) } });
     });
     await this.loadSettings();
   }
 
-  async saveScripts(enabled: string[], disabled: string[]): Promise<void> {
+  public async saveScripts(enabled: string[], disabled: string[]): Promise<void> {
     const modNames = await this.modNames();
     const currentScripts = new Set([...enabled, ...disabled]);
     await this.core.idb.withTransaction(['settings'], 'readwrite', async (tx: any) => {
@@ -179,7 +177,7 @@ class GUIControl {
     await this.loadSettings();
   }
 
-  cascadeModules(action: 'enable' | 'disable', moduleName: string, modules: ModulesSettings): string[] {
+  public cascadeModules(action: 'enable' | 'disable', moduleName: string, modules: ModulesSettings): string[] {
     const result = new Set([moduleName]);
     if (action === 'enable') {
       const disabled = new Set(modules.disabled.map(m => m.name));
@@ -199,7 +197,7 @@ class GUIControl {
     const enabled = new Set(modules.enabled.map(m => m.name));
     const addDependents = (name: string) => {
       for (const mod of modules.enabled) {
-        if (!(mod.dependencies || []).includes(name) || !enabled.has(mod.name) || !this.canBeDisabled(mod)) continue;
+        if (!(mod.dependencies || []).includes(name) || !enabled.has(mod.name) || mod.protected || (mod.type === 'exposed' && !mod.lifecycle)) continue;
         result.add(mod.name);
         addDependents(mod.name);
       }
@@ -209,11 +207,11 @@ class GUIControl {
     return Array.from(result);
   }
 
-  get moduleList(): string {
+  public get moduleList(): string {
     const addon = this.core.get('addon');
     const result: string[] = [];
     Object.entries(this.core.dependencyGraph).forEach(([name, info]: [string, any]) => {
-      const type = (info.protected ? 'protected' : info.state === 'EXPOSED' ? 'exposed' : info.mounted ? 'mounted' : 'module') as ModuleType;
+      const type = (info.protected ? 'protected' : info.exposed ? 'exposed' : info.mounted ? 'mounted' : 'module') as ModuleType;
       result.push(`${this.typeLabel(type)} ${name} [${info.source || info.state}]`);
     });
     addon?.jsFiles?.forEach((entry: any) => result.push(`[Script] ${entry.filePath} [${entry.modName}]`));
@@ -232,9 +230,8 @@ class GUIControl {
             '$scope',
             '$compile',
             '$element',
-            function ($scope: any, _$compile: any, _$element: any) {
-              const ctrl = this as any;
-              $scope.t = ctrl.translation = (text: string[]) => text[maplebirch.meta.Languages.indexOf(maplebirch.Language as 'EN' | 'CN')];
+            function (this: ModSubUiAngularJsService['Ref'], $scope: any, _$compile: any, _$element: any) {
+              $scope.t = this.translation = (text: string[]) => text[maplebirch.meta.Languages.indexOf(maplebirch.Language as 'EN' | 'CN')];
               const callOnChange = (action: any, data: any) => {
                 try {
                   return $scope.$ctrl.data?.onChange?.(action, data) || false;
@@ -246,7 +243,7 @@ class GUIControl {
 
               $scope.ClearIndexedDB = () => maplebirch.idb.deleteDatabase();
 
-              ctrl.$onInit = () => {
+              this.$onInit = () => {
                 $scope.languages = $scope.$ctrl.data.text.Languages.map((lang: string[]) => ({
                   code: lang[0],
                   get name() {
@@ -306,6 +303,7 @@ class GUIControl {
                     type: m.type,
                     source: m.source || '',
                     protected: m.protected === true,
+                    lifecycle: m.lifecycle === true,
                     dependencies: m.dependencies || []
                   })),
                   disabled: $scope.$ctrl.data.disabledModules.map((m: any) => ({
@@ -313,6 +311,7 @@ class GUIControl {
                     type: m.type,
                     source: m.source || '',
                     protected: m.protected === true,
+                    lifecycle: m.lifecycle === true,
                     dependencies: m.dependencies || []
                   }))
                 };
@@ -401,8 +400,8 @@ class GUIControl {
         },
         Language: maplebirch.Language,
         moduleText: maplebirch.gui.moduleList,
-        enabledModules: maplebirch.gui.enabledModules.filter(m => maplebirch.gui.canBeDisabled(m)),
-        disabledModules: maplebirch.gui.disabledModules.filter(m => maplebirch.gui.canBeDisabled(m)),
+        enabledModules: maplebirch.gui.enabledModules.filter(m => !m.protected && (m.type !== 'exposed' || m.lifecycle)),
+        disabledModules: maplebirch.gui.disabledModules.filter(m => !m.protected && (m.type !== 'exposed' || m.lifecycle)),
         enabledScripts: maplebirch.gui.enabledScripts,
         disabledScripts: maplebirch.gui.disabledScripts,
         text: {

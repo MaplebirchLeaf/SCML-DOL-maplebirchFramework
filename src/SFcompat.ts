@@ -51,35 +51,35 @@ function compatTimeData(timeData: any): CompatTimeData {
 }
 
 class TimeEvent {
-  private cond: TimeEventHandler = () => true;
-  private action: TimeEventHandler = () => {};
+  private _cond: TimeEventHandler = () => true;
+  private _action: TimeEventHandler = () => {};
   private options: CompatTimeEventOptions = { exact: true };
   private registered = false;
 
-  constructor(
+  public constructor(
     private readonly type: string,
     private readonly eventId: string
   ) {}
 
-  Cond(handler: TimeEventHandler): this {
-    this.cond = handler;
+  public cond(handler: TimeEventHandler): this {
+    this._cond = handler;
     this.refresh();
     return this;
   }
 
-  Action(handler: TimeEventHandler): this {
-    this.action = handler;
+  public action(handler: TimeEventHandler): this {
+    this._action = handler;
     this.register();
     return this;
   }
 
-  once(isOnce = true): this {
+  public once(isOnce = true): this {
     this.options.once = isOnce;
     this.refresh();
     return this;
   }
 
-  priority(priority: number): this {
+  public priority(priority: number): this {
     this.options.priority = priority;
     this.refresh();
     return this;
@@ -95,8 +95,8 @@ class TimeEvent {
   private register(): void {
     const success = maplebirch.dynamic.regTimeEvent(this.type, this.eventId, {
       ...this.options,
-      cond: timeData => !!this.cond(compatTimeData(timeData)),
-      action: timeData => this.action(compatTimeData(timeData))
+      cond: timeData => !!this._cond(compatTimeData(timeData)),
+      action: timeData => this._action(compatTimeData(timeData))
     });
     this.registered = success;
   }

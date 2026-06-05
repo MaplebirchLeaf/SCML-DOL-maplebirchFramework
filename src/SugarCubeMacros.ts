@@ -1,7 +1,7 @@
-// ./src/database/SugarCubeMacros.ts
+// ./src/SugarCubeMacros.ts
 
-import maplebirch, { type MaplebirchCore } from '../core';
-import { convert } from '../utils';
+import maplebirch, { type MaplebirchCore } from './core';
+import { convert } from './utils';
 
 const CONVERT_MODES = ['lower', 'upper', 'capitalize', 'title', 'camel', 'pascal', 'snake', 'kebab', 'constant'] as const;
 type ConvertMode = (typeof CONVERT_MODES)[number];
@@ -12,7 +12,7 @@ interface MacroPayload {
   contents?: string;
 }
 
-interface MacroContext {
+export interface MacroContext {
   args: any[];
   payload?: MacroPayload[] | null;
   output: HTMLElement;
@@ -28,8 +28,10 @@ interface LinkArg {
 }
 
 interface StyleArgs {
-  classes: string;
+  className: string;
   style: string;
+  icon: string;
+  iconOnly: boolean;
   convertMode: ConvertMode | null;
 }
 
@@ -74,23 +76,53 @@ function macroTranslation(key: any, core: MaplebirchCore = maplebirch): string {
 }
 
 function readStyle(args: any[], start = 1): StyleArgs {
-  let classes = '';
+  let className = '';
   let style = '';
+  let icon = '';
+  let iconOnly = false;
   let convertMode: ConvertMode | null = null;
   for (let i = start; i < args.length; i++) {
     const arg = args[i];
+    if (arg && typeof arg === 'object' && !Array.isArray(arg)) {
+      if (typeof arg.class === 'string') className = arg.class;
+      if (typeof arg.style === 'string') style = arg.style;
+      if (typeof arg.icon === 'string') icon = arg.icon;
+      if (arg.iconOnly === true || arg.iconOnly === 'true') iconOnly = true;
+      continue;
+    }
     if (typeof arg !== 'string') continue;
+    if (arg === 'icon-only') {
+      iconOnly = true;
+      continue;
+    }
     if (arg.startsWith('class:')) {
-      classes = arg.slice(6);
+      className = arg.slice(6);
       continue;
     }
     if (arg.startsWith('style:')) {
       style = arg.slice(6);
       continue;
     }
+    if (arg.startsWith('icon:')) {
+      icon = arg.slice(5);
+      continue;
+    }
     if (!convertMode && (CONVERT_MODES as readonly string[]).includes(arg)) convertMode = arg as ConvertMode;
   }
-  return { classes, style, convertMode };
+  return { className, style, icon, iconOnly, convertMode };
+}
+
+function isStyleArg(arg: string): boolean {
+  return arg === 'icon-only' || arg.startsWith('class:') || arg.startsWith('style:') || arg.startsWith('icon:') || (CONVERT_MODES as readonly string[]).includes(arg);
+}
+
+function translatedText(source: string, convertMode: ConvertMode | null): string {
+  const value = macroTranslation(source, maplebirch);
+  return convertMode ? convert(value, convertMode) : value;
+}
+
+function appendMacroIcon($target: JQuery, icon: string): void {
+  if (icon) $target.append(jQuery(document.createElement('img')).attr({ src: icon, alt: '' }));
 }
 
 function wiki($container: JQuery, content: string): void {
@@ -156,15 +188,23 @@ function _languageButton(this: MacroContext): void {
     const payload = Array.isArray(this.payload) ? this.payload : [];
     const content = (payload[0]?.contents || '').trim();
     const source = text(this.args[0]);
-    const { classes, style, convertMode } = readStyle(this.args);
+    const { className, style, icon, iconOnly, convertMode } = readStyle(this.args);
     const passageObj = this.passageObj;
     if (!source) return this.error('<<lanButton>> 参数必须是字符串、函数或带 text 属性的对象');
-    let buttonText = macroTranslation(source, maplebirch);
-    if (convertMode) buttonText = convert(buttonText, convertMode);
     const $button = jQuery(document.createElement('button')).addClass('macro-button link-internal').attr('data-translation-key', source);
-    if (classes) for (const cls of classes.split(/\s+/)) if (cls.trim()) $button.addClass(cls.trim());
+    if (className) for (const cls of className.split(/\s+/)) if (cls.trim()) $button.addClass(cls.trim());
     if (style) $button.attr('style', style);
-    $button.append(document.createTextNode(buttonText));
+    appendMacroIcon($button, icon);
+    const textNode = iconOnly ? null : document.createTextNode('');
+    if (textNode) $button.append(textNode);
+    const update = () => {
+      const buttonText = translatedText(source, convertMode);
+      $button.attr('aria-label', buttonText);
+      if (iconOnly) $button.attr('title', buttonText);
+      else $button.removeAttr('title');
+      if (textNode) textNode.data = buttonText;
+    };
+    update();
     $button.ariaClick(
       {
         namespace: '.macros',
@@ -173,11 +213,6 @@ function _languageButton(this: MacroContext): void {
       },
       this.createShadowWrapper(content ? () => maplebirch.SugarCube.Wikifier.wikifyEval(content, passageObj) : null)
     );
-    const update = () => {
-      let nextText = macroTranslation(source, maplebirch);
-      if (convertMode) nextText = convert(nextText, convertMode);
-      $button.empty().append(document.createTextNode(nextText));
-    };
     $button.appendTo(this.output);
     setup.maplebirch?.language?.add('lanButton', update);
     $button.on('remove', () => setup.maplebirch?.language?.remove('lanButton', update));
@@ -195,7 +230,7 @@ function _languageLink(this: MacroContext): void {
     const payload = Array.isArray(this.payload) ? this.payload : [];
     const content = (payload[0]?.contents || '').trim();
     const firstArg = this.args[0];
-    const { classes, style, convertMode } = readStyle(this.args);
+    const { className, style, icon, iconOnly, convertMode } = readStyle(this.args);
     const passageObj = this.passageObj;
     let source = '';
     let passageName: string | null = null;
@@ -204,7 +239,7 @@ function _languageLink(this: MacroContext): void {
       for (let i = 1; i < this.args.length; i++) {
         const arg = this.args[i];
         if (typeof arg !== 'string') continue;
-        if (arg.startsWith('class:') || arg.startsWith('style:') || (CONVERT_MODES as readonly string[]).includes(arg)) continue;
+        if (isStyleArg(arg)) continue;
         passageName ??= arg;
       }
     } else if (firstArg && typeof firstArg === 'object' && !Array.isArray(firstArg)) {
@@ -218,7 +253,7 @@ function _languageLink(this: MacroContext): void {
     if (!source) return this.error('<<lanLink>> 缺少有效文本');
     const $container = jQuery(document.createElement('span'));
     const $link = jQuery(document.createElement('a')).addClass('macro-link link-internal').attr('data-translation-key', source);
-    if (classes) for (const cls of classes.split(/\s+/)) if (cls.trim()) $link.addClass(cls.trim());
+    if (className) for (const cls of className.split(/\s+/)) if (cls.trim()) $link.addClass(cls.trim());
     if (style) $link.attr('style', style);
     if (passageName != null) {
       $link.attr('data-passage', passageName);
@@ -228,12 +263,18 @@ function _languageLink(this: MacroContext): void {
         $link.addClass('link-broken');
       }
     }
-    let linkText = macroTranslation(source, maplebirch);
-    if (convertMode) {
-      $link.attr('data-convert-mode', convertMode);
-      linkText = convert(linkText, convertMode);
-    }
-    $link.append(document.createTextNode(linkText));
+    if (convertMode) $link.attr('data-convert-mode', convertMode);
+    appendMacroIcon($link, icon);
+    const textNode = iconOnly ? null : document.createTextNode('');
+    if (textNode) $link.append(textNode);
+    const update = () => {
+      const linkText = translatedText(source, convertMode);
+      $link.attr('aria-label', linkText);
+      if (iconOnly) $link.attr('title', linkText);
+      else $link.removeAttr('title');
+      if (textNode) textNode.data = linkText;
+    };
+    update();
     $link.ariaClick(
       {
         namespace: '.macros',
@@ -242,11 +283,6 @@ function _languageLink(this: MacroContext): void {
       },
       this.createShadowWrapper(content ? () => maplebirch.SugarCube.Wikifier.wikifyEval(content, passageObj) : null, passageName != null ? () => maplebirch.SugarCube.Engine.play(passageName) : null)
     );
-    const update = () => {
-      let nextText = macroTranslation(source, maplebirch);
-      if (convertMode) nextText = convert(nextText, convertMode);
-      $link.empty().append(document.createTextNode(nextText));
-    };
     $container.append($link);
     $container.appendTo(this.output);
     setup.maplebirch?.language?.add('lanLink', update);
@@ -550,14 +586,15 @@ function _overlayReplace(name: string, type: string): void {
   T.currentOverlay = key;
   const $overlay = jQuery('#customOverlay');
   if ($overlay.length) $overlay.removeClass('hidden').parent().removeClass('hidden').attr('data-overlay', T.currentOverlay);
-  if (type === 'customize') {
-    $.wiki(`<<${key}>><<exit>>`);
-    return;
-  }
-  if (type === 'title') {
-    const titleKey = 'title' + convert(key, 'pascal');
-    if (titleKey && maplebirch.tool.macro.Macro.has(titleKey)) $.wiki(`<<replace #customOverlayTitle>><<${titleKey}>><</replace>>`);
-    return;
+  switch (type) {
+    case 'customize':
+      return $.wiki(`<<${key}>><<exit>>`);
+    case 'title':
+      const titleKey = 'title' + convert(key, 'pascal');
+      if (titleKey && maplebirch.tool.macro.Macro.has(titleKey)) $.wiki(`<<replace #customOverlayTitle>><<${titleKey}>><</replace>>`);
+      break;
+    default:
+      break;
   }
   $.wiki(`<<replace #customOverlayContent>><<${key}>><</replace>>`);
 }

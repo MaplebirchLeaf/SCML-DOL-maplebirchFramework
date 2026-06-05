@@ -212,7 +212,8 @@ const base_layers = {
       return options.maplebirch.nnpc.close_up_mask;
     },
     srcfn(options: NPCSidebarOptions) {
-      return `img/face/${options.maplebirch.nnpc.facestyle}/freckles.png`;
+      const nnpc = options.maplebirch.nnpc;
+      return `img/face/${nnpc.facestyle}/freckles.png`;
     },
     showfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
@@ -235,7 +236,8 @@ const base_layers = {
       return options.maplebirch.nnpc.close_up_mask;
     },
     srcfn(options: NPCSidebarOptions) {
-      return `img/face/${options.maplebirch.nnpc.facestyle}/ears.png`;
+      const nnpc = options.maplebirch.nnpc;
+      return `img/face/${nnpc.facestyle}/ears.png`;
     },
     showfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
@@ -408,7 +410,8 @@ const base_layers = {
       return options.maplebirch.nnpc.close_up_mask;
     },
     srcfn(options: NPCSidebarOptions) {
-      return `img/face/${options.maplebirch.nnpc.facestyle}/mouth-smile.png`;
+      const nnpc = options.maplebirch.nnpc;
+      return `img/face/${nnpc.facestyle}/mouth-smile.png`;
     },
     showfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;

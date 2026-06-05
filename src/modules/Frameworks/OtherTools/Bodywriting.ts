@@ -25,7 +25,7 @@ export interface BodywritingData {
 export const bodywritingData: Record<string, BodywritingData> = {};
 
 class Bodywriting {
-  static add(key: string, config: BodywritingConfig): void {
+  public static add(key: string, config: BodywritingConfig): void {
     if (!key || !config) return;
     bodywritingData[key] = {
       operation: 'add',
@@ -33,14 +33,14 @@ class Bodywriting {
     };
   }
 
-  static delete(key: string): void {
+  public static delete(key: string): void {
     if (!key) return;
     bodywritingData[key] = {
       operation: 'del'
     };
   }
 
-  static apply(): void {
+  public static apply(): void {
     setup.bodywriting ??= {};
     setup.bodywriting_namebyindex ??= {};
     for (const [key, data] of Object.entries(bodywritingData)) {

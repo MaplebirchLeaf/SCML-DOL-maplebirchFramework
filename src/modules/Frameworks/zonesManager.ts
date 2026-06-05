@@ -1,9 +1,9 @@
-// .src/modules/Frameworks/zonesManager.ts
+// .src/modules/Frameworks/ZonesManager.ts
 
 import { createlog } from '../../core';
 import { clone, merge } from '../../utils';
 import ToolCollection from '../ToolCollection';
-import { specialWidget, defaultData, locationPassage, widgetPassage } from '../../database/FrameworksReplace';
+import { specialWidget, defaultData, locationPassage, widgetPassage } from '../../replace';
 import AddonPlugin from '../AddonPlugin';
 
 export interface ZoneWidgetConfig {
@@ -35,20 +35,20 @@ type InitObject = { init: Function } | { name: string; func: Function };
 export type InitFunction = string | Function | InitObject;
 
 export class zonesManager {
-  readonly log: ReturnType<typeof createlog>;
-  readonly core: ToolCollection['core'];
+  public readonly log: ReturnType<typeof createlog>;
+  public readonly core: ToolCollection['core'];
 
-  data: Record<string, ZoneItem[]>;
-  initFunction: InitFunction[] = [];
-  specialWidget: (string | Function)[] = specialWidget;
-  defaultData: Record<string, string | Function> = defaultData;
-  locationPassage: Record<string, PatchSet[]> = locationPassage;
-  widgetPassage: Record<string, PatchSet[]> = widgetPassage;
-  widgethtml = '';
+  public data: Record<string, ZoneItem[]>;
+  public initFunction: InitFunction[] = [];
+  public specialWidget: (string | Function)[] = specialWidget;
+  public defaultData: Record<string, string | Function> = defaultData;
+  public locationPassage: Record<string, PatchSet[]> = locationPassage;
+  public widgetPassage: Record<string, PatchSet[]> = widgetPassage;
+  public widgethtml = '';
 
   private functions = new Map<string, Function>();
 
-  constructor(manager: ToolCollection) {
+  public constructor(manager: ToolCollection) {
     this.log = createlog('zone');
     this.core = manager.core;
     // prettier-ignore
@@ -61,6 +61,7 @@ export class zonesManager {
       Options                : [],
       Cheats                 : [],
       Statistics             : [],
+      CloudSave              : [],
       Journal                : [],
       BeforeLinkZone         : [],
       AfterLinkZone          : [],
@@ -91,7 +92,7 @@ export class zonesManager {
     };
   }
 
-  inject(...databases: Partial<Pick<zonesManager, 'specialWidget' | 'defaultData' | 'locationPassage' | 'widgetPassage'>>[]): void {
+  public inject(...databases: Partial<Pick<zonesManager, 'specialWidget' | 'defaultData' | 'locationPassage' | 'widgetPassage'>>[]): void {
     for (const db of databases) {
       if (db.specialWidget) this.specialWidget = merge([], this.specialWidget, db.specialWidget, { mode: 'concat' });
       if (db.defaultData) this.defaultData = merge({}, this.defaultData, db.defaultData, { mode: 'concat' });
@@ -100,7 +101,7 @@ export class zonesManager {
     }
   }
 
-  onInit(...widgets: InitFunction[]): void {
+  public onInit(...widgets: InitFunction[]): void {
     for (const widget of widgets) {
       if (typeof widget === 'string') {
         this.data.Init.push(widget);
@@ -110,7 +111,7 @@ export class zonesManager {
     }
   }
 
-  addTo(zone: string, ...widgets: (string | Function | ZoneWidgetConfig | [number, string | ZoneWidgetConfig])[]): void {
+  public addTo(zone: string, ...widgets: (string | Function | ZoneWidgetConfig | [number, string | ZoneWidgetConfig])[]): void {
     const target = this.data[zone];
     if (!target) {
       this.log(`区域 ${zone} 不存在`, 'ERROR');
@@ -136,7 +137,7 @@ export class zonesManager {
     }
   }
 
-  storyInit(): void {
+  public storyInit(): void {
     if (this.initFunction.length === 0) return;
     this.log(`执行 ${this.initFunction.length} 个初始化函数`, 'DEBUG');
     for (const item of this.initFunction) {
@@ -156,7 +157,7 @@ export class zonesManager {
     }
   }
 
-  call(name: string): any {
+  public call(name: string): any {
     const fn = this.functions.get(name);
     if (!fn) {
       this.log(`区域函数不存在: ${name}`, 'WARN');
@@ -165,7 +166,7 @@ export class zonesManager {
     return fn();
   }
 
-  play(zone: string, passageTitle?: string): any {
+  public play(zone: string, passageTitle?: string): any {
     const items = this.data[zone];
     if (!items || items.length === 0) return zone === 'CustomLinkZone' ? [] : '';
     const title = passageTitle ?? this.core.passage?.title ?? '';
@@ -183,7 +184,7 @@ export class zonesManager {
       }));
   }
 
-  patchModToGame(manager: AddonPlugin, type: 'before' | 'after'): void {
+  public patchModToGame(manager: AddonPlugin, type: 'before' | 'after'): void {
     const oldSCdata = manager.SC2DataManager.getSC2DataInfoAfterPatch();
     const SCdata = oldSCdata.cloneSC2DataInfo();
     const passageData = SCdata.passageDataItems.map;

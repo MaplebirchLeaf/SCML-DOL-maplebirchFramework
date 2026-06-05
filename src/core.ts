@@ -10,21 +10,23 @@ import { Howl, Howler } from 'howler';
 import * as marked from 'marked';
 import { lastModifiedBy, lastUpdate } from '../package.json';
 import { version, Languages } from './constants';
+import * as utils from './utils';
 import Logger from './services/Logger';
 import EventEmitter from './services/EventEmitter';
 import IndexedDBService from './services/IndexedDBService';
 import CredentialVault from './services/CredentialVault';
+import CloudSaveService from './services/CloudSaveService';
 import LanguageManager from './services/LanguageManager';
 import ModuleSystem from './services/ModuleSystem';
 import GUIControl from './services/GUIControl';
-import AddonPlugin from './modules/AddonPlugin';
-import DynamicManager from './modules/Dynamic';
-import ToolCollection from './modules/ToolCollection';
-import AudioManager from './modules/Audio';
-import Variables from './modules/Variables';
-import Character from './modules/Character';
-import NPCManager from './modules/NamedNPC';
-import CombatManager from './modules/Combat';
+import type AddonPlugin from './modules/AddonPlugin';
+import type DynamicManager from './modules/Dynamic';
+import type ToolCollection from './modules/ToolCollection';
+import type AudioManager from './modules/Audio';
+import type Variables from './modules/Variables';
+import type Character from './modules/Character';
+import type NPCManager from './modules/NamedNPC';
+import type CombatManager from './modules/Combat';
 
 const renderer = new marked.Renderer();
 
@@ -51,8 +53,12 @@ marked.setOptions({
 
 let jsSugarCube: TwineSugarCube;
 
+interface Extensions {}
+
+type Instance = MaplebirchCore & Extensions;
+
 class MaplebirchCore {
-  static meta = {
+  public static meta = {
     name: 'maplebirch Frameworks' as const,
     author: author,
     version: version,
@@ -64,29 +70,30 @@ class MaplebirchCore {
     protected: ['addon', 'dynamic', 'tool', 'audio', 'var', 'char', 'npc', 'combat', 'internals'] as const
   };
 
-  readonly meta: typeof MaplebirchCore.meta;
-  modList: string[];
-  readonly manager: { modSC2DataManager: SC2DataManager; modLoaderGui: Gui };
-  passage: any;
-  readonly yaml: typeof jsyaml;
-  readonly howler: { Howl: typeof Howl; Howler: typeof Howler };
-  readonly logger: Logger;
-  readonly tracer: EventEmitter;
-  readonly idb: IndexedDBService;
-  readonly credential: CredentialVault;
-  readonly lang: LanguageManager;
-  readonly modules: ModuleSystem;
-  readonly gui: GUIControl;
-  readonly addon: AddonPlugin;
-  readonly dynamic: DynamicManager;
-  readonly tool: ToolCollection;
-  readonly audio: AudioManager;
-  readonly var: Variables;
-  readonly char: Character;
-  readonly npc: NPCManager;
-  readonly combat: CombatManager;
+  public readonly meta: typeof MaplebirchCore.meta;
+  public modList: string[];
+  public readonly manager: { modSC2DataManager: SC2DataManager; modLoaderGui: Gui };
+  public passage: any;
+  public readonly yaml: typeof jsyaml;
+  public readonly howler: { Howl: typeof Howl; Howler: typeof Howler };
+  public readonly logger: Logger;
+  public readonly tracer: EventEmitter;
+  public readonly idb: IndexedDBService;
+  public readonly credential: CredentialVault;
+  public readonly cloudSave: CloudSaveService;
+  public readonly lang: LanguageManager;
+  public readonly modules: ModuleSystem;
+  public readonly gui: GUIControl;
+  declare public readonly addon: AddonPlugin;
+  declare public readonly dynamic: DynamicManager;
+  declare public readonly tool: ToolCollection;
+  declare public readonly audio: AudioManager;
+  declare public readonly var: Variables;
+  declare public readonly char: Character;
+  declare public readonly npc: NPCManager;
+  declare public readonly combat: CombatManager;
 
-  constructor(modSC2DataManager: SC2DataManager, modLoaderGui: Gui) {
+  public constructor(modSC2DataManager: SC2DataManager, modLoaderGui: Gui) {
     this.meta = { ...MaplebirchCore.meta };
     this.modList = [];
     this.manager = { modSC2DataManager, modLoaderGui };
@@ -98,48 +105,49 @@ class MaplebirchCore {
     this.idb = Object.seal(new IndexedDBService(this));
     this.lang = Object.seal(new LanguageManager(this));
     this.credential = Object.seal(new CredentialVault(this));
+    this.cloudSave = Object.seal(new CloudSaveService(this));
     this.modules = Object.seal(new ModuleSystem(this));
     this.gui = Object.seal(new GUIControl(this));
     this.log(`框架核心系统创建完成(v${MaplebirchCore.meta.version})`, 'INFO');
   }
 
-  log(msg: string, level: string = 'INFO', ...objs: any[]): void {
+  public log(msg: string, level: string = 'INFO', ...objs: any[]): void {
     this.logger.log(msg, level, ...objs);
   }
 
-  on(eventName: string, callback: (...args: any[]) => any, description: string = ''): boolean {
+  public on(eventName: string, callback: (...args: any[]) => any, description: string = ''): boolean {
     return this.tracer.on(eventName, callback, description);
   }
 
-  off(eventName: string, identifier: string | ((...args: any[]) => any)): boolean {
+  public off(eventName: string, identifier: string | ((...args: any[]) => any)): boolean {
     return this.tracer.off(eventName, identifier);
   }
 
-  once(eventName: string, callback: (...args: any[]) => any, description: string = ''): boolean {
+  public once(eventName: string, callback: (...args: any[]) => any, description: string = ''): boolean {
     return this.tracer.once(eventName, callback, description);
   }
 
-  after(eventName: string, callback: (...args: any[]) => any) {
+  public after(eventName: string, callback: (...args: any[]) => any) {
     return this.tracer.after(eventName, callback);
   }
 
-  async trigger(evt: string, ...args: any[]): Promise<void> {
+  public async trigger(evt: string, ...args: any[]): Promise<void> {
     await this.tracer.trigger(evt, ...args);
   }
 
-  register(name: string, module: any, dependencies: string[] = []): boolean {
+  public register(name: string, module: any, dependencies: string[] = []): boolean {
     return this.modules.register(name, module, dependencies);
   }
 
-  t(key: string, space: boolean = false): string {
+  public t(key: string, space: boolean = false): string {
     return this.lang.t(key, space);
   }
 
-  auto(text: string): string {
+  public auto(text: string): string {
     return this.lang.auto(text);
   }
 
-  async disabled(modNames: string | string[], reload: boolean = true): Promise<boolean> {
+  public async disabled(modNames: string | string[], reload: boolean = true): Promise<boolean> {
     const modLoadController = this.modUtils.getModLoadController();
     const [enabledModsRaw = [], disabledModsRaw = []] = await Promise.all([modLoadController.listModIndexDB(), modLoadController.loadHiddenModList()]);
     const enabledMods = [...new Set(enabledModsRaw.map(name => name.trim()).filter(Boolean))];
@@ -156,64 +164,66 @@ class MaplebirchCore {
     return true;
   }
 
-  get lodash(): ReturnType<ModUtils['getLodash']> {
+  public get lodash(): ReturnType<ModUtils['getLodash']> {
     return this.modUtils.getLodash();
   }
 
-  get marked(): typeof marked {
+  public get marked(): typeof marked {
     return marked;
   }
 
-  set SugarCube(parts: TwineSugarCube) {
+  public set SugarCube(parts: TwineSugarCube) {
     jsSugarCube = parts;
   }
 
-  get SugarCube(): TwineSugarCube {
+  public get SugarCube(): TwineSugarCube {
     return jsSugarCube;
   }
 
-  set Language(lang: string) {
+  public set Language(lang: string) {
     void this.lang.setLanguage(lang).then(() => this.trigger(':language'));
   }
 
-  get Language(): string {
+  public get Language(): string {
     return this.lang.language;
   }
 
-  set LogLevel(level: string) {
+  public set LogLevel(level: string) {
     this.logger.LevelName = level;
   }
 
-  get LogLevel(): string {
+  public get LogLevel(): string {
     return this.logger.LevelName;
   }
 
-  get(name: string): any {
+  public get(name: string): any {
     return this.modules.registry.modules.get(name);
   }
 
-  get dependencyGraph(): any {
+  public get dependencyGraph(): any {
     return this.modules.dependencyGraph;
   }
 
-  get modLoader(): ReturnType<SC2DataManager['getModLoader']> {
+  public get modLoader(): ReturnType<SC2DataManager['getModLoader']> {
     return this.manager.modSC2DataManager.getModLoader();
   }
 
-  get modUtils(): ModUtils {
+  public get modUtils(): ModUtils {
     return this.manager.modSC2DataManager.getModUtils();
   }
 
-  get gameVersion(): string {
+  public get gameVersion(): string {
     return (StartConfig as any).version;
   }
 }
 
-var maplebirch = new MaplebirchCore(window.modSC2DataManager, window.modLoaderGui);
+var maplebirch = new MaplebirchCore(window.modSC2DataManager, window.modLoaderGui) as Instance;
+
+for (const [key, value] of Object.entries(utils.publicUtils)) Object.defineProperty(window, key, { value, enumerable: true, writable: false, configurable: false });
 
 function createlog(prefix: string) {
   return (message: string, level: string = 'INFO', ...objects: any[]) => maplebirch.log(`[${prefix}] ${message}`, level, ...objects);
 }
 
-export { MaplebirchCore, createlog };
+export { MaplebirchCore, type Extensions, createlog };
 export default maplebirch;
