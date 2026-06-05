@@ -1,7 +1,6 @@
 // ./src/modules/Frameworks/HtmlTools.ts
 
 import { createlog } from '../../core';
-import type { MacroContext } from '../../SugarCubeMacros';
 import type { MacroFunction } from './macros';
 import ToolCollection from '../ToolCollection';
 
