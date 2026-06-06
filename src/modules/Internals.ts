@@ -101,14 +101,14 @@ class Internals {
       writable: true,
       configurable: true
     });
-    if ((Dynamic as any).stage === (Dynamic as any).Stage.Settled) {
+    if (Dynamic.stage === Dynamic.Stage.Settled) {
       try {
         task();
       } catch (error) {
         console.warn('Encountered an unexpected critical error while performing a dynamic render task', name, error);
       }
     } else {
-      (Dynamic as any).tasks.push(task);
+      Dynamic.tasks.push(task);
     }
     return task;
   }
@@ -218,7 +218,7 @@ class Internals {
   }
 
   public preInit(): void {
-    (window as any).lanSwitch = Object.freeze(_languageSwitch);
+    window.lanSwitch = Object.freeze(_languageSwitch);
 
     this.core.dynamic.regStateEvent('gate', 'notice', {
       output: 'maplebirchFrameworkNotice',
@@ -289,7 +289,16 @@ class Internals {
       try {
         $.wiki('<<updatesidebarimg>>');
       } catch (error) {
-        this.log('侧边栏图片更新错误:', 'ERROR', error);
+        this.log('Sidebar canvas update error:', 'ERROR', error);
+      }
+    };
+
+    const updatePet = () => {
+      if (!maplebirch.modules.initPhase.preInitCompleted) return;
+      try {
+        maplebirch.char.pet.sync();
+      } catch (error) {
+        this.log('Pet canvas update error:', 'ERROR', error);
       }
     };
 
@@ -297,6 +306,7 @@ class Internals {
     $(document).on('change', 'select[name="lanListbox-optionsmaplebirchcharactercharartselect"]', refreshOptions);
     $(document).on('change', 'select[name="lanListbox-optionsmaplebirchcharactercloseupselect"]', refreshOptions);
     $(document).on('change', 'select[name="lanListbox-optionsmaplebirchnpcsidebarfacevariant"]', updateSidebar);
+    $(document).on('change', 'input[name*="optionsmaplebirchcharacterpet"]', updatePet);
   }
 
   private relationStyleEvent(): void {

@@ -2,7 +2,6 @@
 
 import type { ModZipReader } from '@scml/types/sugarcube-2-ModLoader/ModZipReader';
 import maplebirch from '../../core';
-import { convert } from '../../utils';
 import type NPCManager from '../NamedNPC';
 import builtinWardrobe from '@/assets/npc-clothes.yaml';
 
@@ -218,7 +217,7 @@ class NPCSidebarArt {
       dataArray.forEach((item: any, index: number) => {
         if (!item?.name) return;
 
-        const npcName = convert(item.name, 'title');
+        const npcName = item.name.convert('title');
         const key = dataArray.length > 1 ? `${modName}_${fileName}_${index}` : fileName;
 
         if (item.body) imagePaths.push(item.body);

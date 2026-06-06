@@ -1,7 +1,6 @@
 // .src/modules/Frameworks/ZonesManager.ts
 
 import { createlog } from '../../core';
-import { clone, merge } from '../../utils';
 import ToolCollection from '../ToolCollection';
 import { specialWidget, defaultData, locationPassage, widgetPassage } from '../../replace';
 import AddonPlugin from '../AddonPlugin';
@@ -94,10 +93,10 @@ export class zonesManager {
 
   public inject(...databases: Partial<Pick<zonesManager, 'specialWidget' | 'defaultData' | 'locationPassage' | 'widgetPassage'>>[]): void {
     for (const db of databases) {
-      if (db.specialWidget) this.specialWidget = merge([], this.specialWidget, db.specialWidget, { mode: 'concat' });
-      if (db.defaultData) this.defaultData = merge({}, this.defaultData, db.defaultData, { mode: 'concat' });
-      if (db.locationPassage) this.locationPassage = merge({}, this.locationPassage, db.locationPassage, { mode: 'concat' });
-      if (db.widgetPassage) this.widgetPassage = merge({}, this.widgetPassage, db.widgetPassage, { mode: 'concat' });
+      if (db.specialWidget) this.specialWidget = Array.append(this.specialWidget, db.specialWidget);
+      if (db.defaultData) this.defaultData = Object.append(this.defaultData, db.defaultData);
+      if (db.locationPassage) this.locationPassage = Object.append(this.locationPassage, db.locationPassage);
+      if (db.widgetPassage) this.widgetPassage = Object.append(this.widgetPassage, db.widgetPassage);
     }
   }
 
@@ -366,7 +365,7 @@ export class zonesManager {
       content : this.widgethtml
     };
     passageData.set('Maplebirch Frameworks Widgets', data);
-    this.log('创建宏部件段落: Maplebirch Frameworks Widgets', 'DEBUG', [clone(this.widgethtml)]);
+    this.log('创建宏部件段落: Maplebirch Frameworks Widgets', 'DEBUG', [this.widgethtml.clone()]);
     const storyInit = passageData.get('StoryInit');
     if (storyInit && !String(storyInit.content).includes('<<maplebirchInit>>')) {
       storyInit.content += '\n<<maplebirchInit>>\n';

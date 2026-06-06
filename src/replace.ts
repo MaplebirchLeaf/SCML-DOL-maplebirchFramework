@@ -13,7 +13,7 @@ const defaultData = {
   Init   : '<<run maplebirch.tool.zone.storyInit()>>',
   State  : '<<run maplebirch.tool.patch.applyFoodstuff()>><<run maplebirch.trigger(":variable")>>',
   Header : '',
-  Footer : '<<maplebirchFrameworkVersions>>',
+  Footer : '<div id="maplebirch-character-pet"></div><<maplebirchFrameworkVersions>>',
   Information : '<<maplebirchFrameworkInfo>>',
   Options: widgets(Options),
   Cheats: widgets(Cheats),
@@ -102,7 +102,7 @@ const widgetPassage = {
     { src: '<<tficon $_icon>>', to: '<<= maplebirch.char.transformation.icon>>' },
   ],
   'Widgets NPCs': [
-    { src: '<<if $genderknown.includes($npc[_iii])>>', to: '<<if contains($genderknown, $npc)>>' },
+    { src: '<<if $genderknown.includes($npc[_iii])>>', to: '<<if $genderknown.contains($npc)>>' },
   ]
 }
 

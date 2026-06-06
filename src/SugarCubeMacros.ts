@@ -1,7 +1,6 @@
 // ./src/SugarCubeMacros.ts
 
 import maplebirch, { type MaplebirchCore } from './core';
-import { convert } from './utils';
 
 const CONVERT_MODES = ['lower', 'upper', 'capitalize', 'title', 'camel', 'pascal', 'snake', 'kebab', 'constant'] as const;
 type ConvertMode = (typeof CONVERT_MODES)[number];
@@ -118,7 +117,7 @@ function isStyleArg(arg: string): boolean {
 
 function translatedText(source: string, convertMode: ConvertMode | null): string {
   const value = macroTranslation(source, maplebirch);
-  return convertMode ? convert(value, convertMode) : value;
+  return convertMode ? value.convert(convertMode) : value;
 }
 
 function appendMacroIcon($target: JQuery, icon: string): void {
@@ -442,7 +441,7 @@ function _languageListbox(this: MacroContext): void {
       $select.empty();
       items.forEach((option, i) => {
         let displayText = macroTranslation(option?.label ?? '', maplebirch) || text(option?.label);
-        if (option?.convertMode) displayText = convert(displayText, option.convertMode);
+        if (option?.convertMode) displayText = displayText.convert(option.convertMode);
         jQuery(document.createElement('option'))
           .val(i)
           .text(displayText)
@@ -590,7 +589,7 @@ function _overlayReplace(name: string, type: string): void {
     case 'customize':
       return $.wiki(`<<${key}>><<exit>>`);
     case 'title':
-      const titleKey = 'title' + convert(key, 'pascal');
+      const titleKey = 'title' + key.convert('pascal');
       if (titleKey && maplebirch.tool.macro.Macro.has(titleKey)) $.wiki(`<<replace #customOverlayTitle>><<${titleKey}>><</replace>>`);
       break;
     default:

@@ -1,0 +1,99 @@
+name: publish-types
+
+on:
+  push:
+    tags:
+      - 'maplebirch-release-v*'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        required: true
+        default: ''
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Resolve release tag
+        id: release
+        env:
+          RELEASE_TAG_INPUT: ${{ inputs.release_tag }}
+        run: |
+          TAG_NAME="${RELEASE_TAG_INPUT:-${GITHUB_REF_NAME}}"
+          if [[ "$TAG_NAME" != maplebirch-release-v* ]]; then
+            echo "Error: release tag must match maplebirch-release-v* (got: $TAG_NAME)"
+            exit 1
+          fi
+
+          VERSION="${TAG_NAME#maplebirch-release-v}"
+          echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "TAG_NAME=$TAG_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout release tag
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.release.outputs.TAG_NAME }}
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Setup npm
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Verify root package version
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          TAG_VERSION="${{ steps.release.outputs.VERSION }}"
+          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
+            echo "Error: Version mismatch (package.json: $PKG_VERSION, tag: $TAG_VERSION)"
+            exit 1
+          fi
+
+      - name: Build types package
+        run: bun run types
+
+      - name: Verify types package version
+        run: |
+          PKG_VERSION=$(node -p "require('./packages/types/package.json').version")
+          TAG_VERSION="${{ steps.release.outputs.VERSION }}"
+          if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
+            echo "Error: Types package version mismatch (packages/types/package.json: $PKG_VERSION, tag: $TAG_VERSION)"
+            exit 1
+          fi
+
+      - name: Check npm version
+        id: npm_version
+        run: |
+          VERSION="${{ steps.release.outputs.VERSION }}"
+          if npm view "@scml-maplebirch/types@$VERSION" version >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify npm token
+        if: steps.npm_version.outputs.exists != 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "Error: NPM_TOKEN secret is required to publish @scml-maplebirch/types."
+            exit 1
+          fi
+
+      - name: Publish types package
+        if: steps.npm_version.outputs.exists != 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish ./packages/types --access public

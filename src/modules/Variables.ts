@@ -1,6 +1,5 @@
 // ./src/modules/Variables.ts
 
-import { clone, merge } from '../utils';
 import maplebirch, { MaplebirchCore, createlog } from '../core';
 import migration from './Frameworks/migration';
 
@@ -15,7 +14,7 @@ const defaults = {
 };
 
 function dataUpdate(migration: migration): void {
-  migration.add('0.0.0', version, (data, utils) => utils.fill(data, clone(defaults)));
+  migration.add('0.0.0', version, (data, utils) => utils.fill(data, defaults.clone()));
 }
 
 interface Color {
@@ -52,8 +51,9 @@ class Variables {
 			character: {
 				mask     : 0,
         rotation : 0,
-				charArt: { type: 'fringe' as const, select: 'low-ombre', value: clone(hairgradients()) },
-				closeUp: { type: 'fringe' as const, select: 'low-ombre', value: clone(hairgradients()) },
+				pet      : { enabled: false, mask: 25, rotation: 0, scale: 1 },
+				charArt  : { type: 'fringe' as const, select: 'low-ombre', value: hairgradients().clone() },
+				closeUp  : { type: 'fringe' as const, select: 'low-ombre', value: hairgradients().clone() },
 			},
 			npcsidebar: {
 				show     : false,
@@ -111,7 +111,7 @@ class Variables {
 
       if (action === 'reset') {
         localStorage.removeItem(Variables.OPTIONS_STORAGE_KEY);
-        V.options.maplebirch = clone(Variables.options);
+        V.options.maplebirch = Variables.options.clone();
         return null;
       }
 
@@ -135,13 +135,13 @@ class Variables {
   public optionsCheck() {
     V.options ??= {};
     const current = this.core.lodash.isPlainObject(V.options.maplebirch) ? V.options.maplebirch : this.optionsStorage('load');
-    V.options.maplebirch = merge({}, Variables.options, current ?? {}, { mode: 'merge' });
+    V.options.maplebirch = Object.merge(Variables.options, current ?? {});
   }
 
   public Init() {
     try {
       V.maplebirch ??= {};
-      if (this.tool.core.passage?.title === 'Start2') V.maplebirch = clone({ ...defaults, version: this.version });
+      if (this.tool.core.passage?.title === 'Start2') V.maplebirch = { ...defaults, version: this.version }.clone();
     } catch (e: any) {
       this.log(`出现错误：${e?.message || e}`, 'ERROR');
     } finally {

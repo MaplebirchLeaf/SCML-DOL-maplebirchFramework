@@ -7,11 +7,9 @@ import CombatAction, { type ActionType, type CombatType, type OptionsTable } fro
 class CombatManager {
   public readonly log: ReturnType<typeof createlog>;
   public readonly CombatAction: typeof CombatAction = CombatAction;
-  private readonly _: typeof maplebirch.lodash;
 
   public constructor(readonly core: MaplebirchCore) {
     this.log = createlog('combat');
-    this._ = core.lodash;
 
     this.core.once(':storyready', () => {
       this.core.tool.macro.define('generateCombatAction', this._generateCombatAction());
@@ -35,19 +33,19 @@ class CombatManager {
       } catch (e) {
         self.log('mod战斗动作对象错误', 'ERROR', e);
       }
-      if (self._.includes(['lists', 'limitedLists'], controls)) {
-        const actions = self._.values(optionsTable);
+      if (['lists', 'limitedLists'].includes(controls)) {
+        const actions = Object.values(optionsTable);
         const listSpan = el('span');
         listSpan.id = `${actionType}Select`;
-        listSpan.className = `${combatListColor(actionType, self._.includes(actions, V[actionType]) ? V[actionType] : actions[0], combatType)}List flavorText ${T.reducedWidths ? 'reducedWidth' : ''}`;
+        listSpan.className = `${combatListColor(actionType, actions.includes(V[actionType]) ? V[actionType] : actions[0], combatType)}List flavorText ${T.reducedWidths ? 'reducedWidth' : ''}`;
         T[`${actionType}options`] = optionsTable;
         const listBox = maplebirch.SugarCube.Wikifier.wikifyEval(`<<listbox '$${actionType}' autoselect>><<optionsfrom _${actionType}options>><</listbox>>`);
         listSpan.append(listBox);
         frag.append(listSpan);
       } else {
         if (!combatType && controls !== 'columnRadio') frag.append(el('br'));
-        const optionNames = self._.keys(optionsTable);
-        self._.forEach(optionNames, (name: string, n: number) => {
+        const optionNames = Object.keys(optionsTable);
+        optionNames.forEach((name, n) => {
           const action = optionsTable[name];
           const label = el('label');
           const radioButton = maplebirch.SugarCube.Wikifier.wikifyEval(`<<radiobutton '$${actionType}' '${action}' autocheck>>`);
@@ -73,7 +71,7 @@ class CombatManager {
         if (!combatType && controls !== 'columnRadio') frag.append(el('br'), el('br'));
       }
       this.output.append(frag);
-      if (self._.includes(['lists', 'limitedLists'], controls)) self._combatButtonAdjustments(actionType, combatType);
+      if (['lists', 'limitedLists'].includes(controls)) self._combatButtonAdjustments(actionType, combatType);
     };
   }
 

@@ -1,7 +1,5 @@
 // .src/modules/Frameworks/OtherTools/Foodstuff.ts
 
-import { clone } from '../../../utils';
-
 type FoodstuffSeason = 'spring' | 'summer' | 'autumn' | 'winter';
 type FoodstuffPlantingBed = 'earth' | 'water';
 type FoodstuffStallSize = 'small' | 'large';
@@ -58,7 +56,7 @@ export const foodstuffData: Record<string, FoodstuffConfig> = {};
 class Foodstuff {
   public static add(key: string, config: FoodstuffConfig): void {
     if (!key || !config) return;
-    foodstuffData[key] = clone(config);
+    foodstuffData[key] = config.clone();
   }
 
   public static apply(): void {
@@ -71,7 +69,7 @@ class Foodstuff {
   }
 
   private static set(key: string, config: FoodstuffConfig): void {
-    const item = clone(config);
+    const item = config.clone();
     const name = item.name ?? key.replace(/_/g, ' ');
     if (item.index === undefined) item.index = Foodstuff.nextIndex();
     setup.foodstuff[key] = {
