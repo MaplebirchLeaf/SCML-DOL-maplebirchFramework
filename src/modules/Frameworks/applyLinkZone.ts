@@ -1,8 +1,6 @@
 // ./src/modules/Frameworks/ApplyLinkZone.ts
 
 import maplebirch, { type MaplebirchCore, createlog } from '../../core';
-import { merge } from '../../utils';
-
 interface CustomZone {
   position: number;
   macro: string;
@@ -172,11 +170,8 @@ const applyLinkZone = ((core: MaplebirchCore) => {
   };
 
   function apply(userConfig: Partial<LinkZoneConfig> = {}): boolean {
-    const config = merge({} as LinkZoneConfig, defaultConfig, userConfig);
-    const zoneStyle: Partial<CSSStyleDeclaration> = {};
-    Object.assign(zoneStyle, defaultConfig.zoneStyle);
-    if (userConfig.zoneStyle) Object.assign(zoneStyle, userConfig.zoneStyle);
-    config.zoneStyle = zoneStyle;
+    const config = Object.merge<LinkZoneConfig>(defaultConfig, userConfig);
+    config.zoneStyle = Object.merge<Partial<CSSStyleDeclaration>>(defaultConfig.zoneStyle, userConfig.zoneStyle ?? {});
     const customMacro = config.customMacro();
     const customZones = Array.isArray(customMacro) ? customMacro : [];
     config.onBeforeApply?.();
@@ -205,9 +200,9 @@ const applyLinkZone = ((core: MaplebirchCore) => {
       return;
     }
     const container = document.createElement('div');
-    const wiki = ($(container) as any).wiki;
+    const wiki = $(container).wiki;
     if (typeof wiki === 'function') {
-      ($(container) as any).wiki(macro);
+      $(container).wiki(macro);
     } else if (core.SugarCube?.Wikifier) {
       new core.SugarCube.Wikifier(container, macro);
     } else {

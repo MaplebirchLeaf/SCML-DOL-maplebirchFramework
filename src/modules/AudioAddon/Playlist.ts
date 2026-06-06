@@ -1,4 +1,3 @@
-import { random } from '../../utils';
 import Track from './Track';
 
 export const PlayMode = {
@@ -136,7 +135,7 @@ class Playlist {
   private shuffle(): void {
     this.shuffleOrder = [...Array(this.tracks.length).keys()];
     for (let i = this.shuffleOrder.length - 1; i > 0; i--) {
-      const j = random(i);
+      const j = Math.random(i);
       [this.shuffleOrder[i], this.shuffleOrder[j]] = [this.shuffleOrder[j], this.shuffleOrder[i]];
     }
     this.shuffleIndex = -1;

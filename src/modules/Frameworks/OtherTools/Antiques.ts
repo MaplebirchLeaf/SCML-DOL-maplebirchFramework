@@ -1,7 +1,5 @@
 // .src/modules/Frameworks/OtherTools/Antiques.ts
 
-import { clone } from '../../../utils';
-
 export interface AntiqueConfig {
   hint: string;
   museum: string;
@@ -18,13 +16,13 @@ export const antiquesData: Record<string, AntiqueConfig> = {};
 class Antiques {
   public static add(key: string, config: AntiqueConfig): void {
     if (!key || !config) return;
-    antiquesData[key] = clone(config);
+    antiquesData[key] = config.clone();
   }
 
   public static inject(data: Record<string, AntiqueConfig>): Record<string, AntiqueConfig> {
     if (!data) return data;
     for (const [key, config] of Object.entries(antiquesData)) {
-      data[key] = clone(config);
+      data[key] = config.clone();
       Antiques.ensureState(key);
     }
     return data;

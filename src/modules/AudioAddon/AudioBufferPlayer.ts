@@ -50,7 +50,7 @@ class AudioBufferPlayer {
 
   public seek(value?: number): number {
     if (typeof value !== 'number') return this.playing ? Math.min(this.context.currentTime - this.startedAt, this.buffer.duration) : this.offset;
-    this.offset = Math.max(0, Math.min(value, this.buffer.duration));
+    this.offset = Math.clamp(value, 0, this.buffer.duration);
     if (this.playing) {
       this.stopSource();
       this.playing = false;

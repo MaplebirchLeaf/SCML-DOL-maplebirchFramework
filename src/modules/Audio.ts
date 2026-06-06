@@ -211,7 +211,7 @@ class AudioManager {
   public seek(percent: number): boolean {
     const duration = this.duration;
     if (!this.currentHowl || duration <= 0) return false;
-    const safePercent = Math.max(0, Math.min(100, percent));
+    const safePercent = Math.clamp(percent, 0, 100);
     const targetTime = (safePercent / 100) * duration;
     this.currentHowl.seek(targetTime);
     this.emit('seek', targetTime, duration, this.progress.percent);
@@ -221,7 +221,7 @@ class AudioManager {
   public seekTo(seconds: number): boolean {
     const duration = this.duration;
     if (!this.currentHowl || duration <= 0) return false;
-    const targetTime = Math.max(0, Math.min(duration, seconds));
+    const targetTime = Math.clamp(seconds, 0, duration);
     this.currentHowl.seek(targetTime);
     this.emit('seek', targetTime, duration, this.progress.percent);
     return true;
@@ -396,7 +396,7 @@ class AudioManager {
   }
 
   public set Volume(value: number) {
-    const volume = Math.max(0, Math.min(1, value));
+    const volume = Math.clamp(value, 0, 1);
     if (this.volume === volume) return;
     this.volume = volume;
     this.core.howler.Howler.volume(volume);
@@ -465,7 +465,7 @@ class AudioManager {
     return {
       currentTime,
       duration,
-      percent: duration > 0 ? Math.max(0, Math.min(100, (currentTime / duration) * 100)) : 0
+      percent: duration > 0 ? Math.clamp((currentTime / duration) * 100, 0, 100) : 0
     };
   }
 

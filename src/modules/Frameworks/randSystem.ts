@@ -94,7 +94,7 @@ class randSystem {
       this.state.history = [];
     }
     const index = Math.trunc(Number(this.state.index));
-    this.state.index = Number.isFinite(index) ? Math.max(0, Math.min(index, this.state.history.length)) : 0;
+    this.state.index = Math.clamp(index, 0, this.state.history.length, 0);
   }
 }
 
