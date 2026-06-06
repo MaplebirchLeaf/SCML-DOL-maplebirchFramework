@@ -219,6 +219,7 @@ class MaplebirchCore {
 
 var maplebirch = new MaplebirchCore(window.modSC2DataManager, window.modLoaderGui) as Instance;
 
+utils.prototypeUtils();
 for (const [key, value] of Object.entries(utils.publicUtils)) Object.defineProperty(window, key, { value, enumerable: true, writable: false, configurable: false });
 
 function createlog(prefix: string) {

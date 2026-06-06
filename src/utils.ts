@@ -18,20 +18,66 @@ type ContainsOptions = {
 
 type CloneOptions = { deep?: boolean; proto?: boolean };
 type MergeMode = 'replace' | 'concat' | 'merge';
-type MergeOptions = {
-  mode?: MergeMode;
-  filterFn?: ((key: string, value: any, depth: number, targetValue: any) => boolean) | null;
-};
+type MergeFilterFn = (key: string, value: any, depth: number, targetValue: any) => boolean;
 type ConvertMode = 'lower' | 'upper' | 'capitalize' | 'title' | 'camel' | 'pascal' | 'snake' | 'kebab' | 'constant';
-type NumberMode = 'none' | 'floor' | 'ceil' | 'round' | 'trunc';
-type NumberOptions = {
-  step?: number;
-  percent?: boolean;
-  loop?: boolean;
-};
 
-function clone(source: any, opt: CloneOptions = {}, map = new WeakMap<object, any>()): any {
-  const { deep = true, proto = true } = opt;
+declare global {
+  interface ObjectConstructor {
+    merge<T extends object = any>(...sources: any[]): T;
+    append<T extends object = any>(...sources: any[]): T;
+    cover<T extends object = any>(...sources: any[]): T;
+    mergefn<T extends object = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T;
+    appendfn<T extends object = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T;
+    coverfn<T extends object = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T;
+  }
+
+  interface Object {
+    clone(deep?: boolean, proto?: boolean): any;
+    equal(value: any): boolean;
+    merge(...sources: any[]): any;
+    append(...sources: any[]): any;
+    cover(...sources: any[]): any;
+    mergefn(filterFn: MergeFilterFn | null, ...sources: any[]): any;
+    appendfn(filterFn: MergeFilterFn | null, ...sources: any[]): any;
+    coverfn(filterFn: MergeFilterFn | null, ...sources: any[]): any;
+    contains(value: unknown, mode?: ContainsMode, opt?: ContainsOptions): boolean;
+  }
+
+  interface Array<T> {
+    contains(value: unknown, mode?: ContainsMode, opt?: ContainsOptions): boolean;
+    random(): T | undefined;
+    either(weights?: number[], allowNull?: boolean): T | null | undefined;
+  }
+
+  interface ArrayConstructor {
+    merge<T = any>(...sources: any[]): T[];
+    append<T = any>(...sources: any[]): T[];
+    cover<T = any>(...sources: any[]): T[];
+    mergefn<T = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T[];
+    appendfn<T = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T[];
+    coverfn<T = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T[];
+  }
+
+  interface ReadonlyArray<T> {
+    contains(value: unknown, mode?: ContainsMode, opt?: ContainsOptions): boolean;
+    random(): T | undefined;
+    either(weights?: number[], allowNull?: boolean): T | null | undefined;
+  }
+
+  interface String {
+    contains(value: string, opt?: { case?: boolean }): boolean;
+    convert(mode?: ConvertMode, opt?: { delimiter?: string; acronym?: boolean }): string;
+  }
+
+  interface Math {
+    random(): number;
+    random(max: number): number;
+    random(min: number, max: number, float?: boolean): number;
+    clamp(value: any, min: number, max: number, fallback?: number): number;
+  }
+}
+
+function clone(source: any, deep = true, proto = true, map = new WeakMap<object, any>()): any {
   if (source === null || typeof source !== 'object') return source;
   if (map.has(source)) return map.get(source);
   if (source instanceof Date) return new Date(source.getTime());
@@ -50,19 +96,19 @@ function clone(source: any, opt: CloneOptions = {}, map = new WeakMap<object, an
   if (source instanceof Map) {
     const copy = new Map();
     map.set(source, copy);
-    source.forEach((v, k) => copy.set(deep ? clone(k, opt, map) : k, deep ? clone(v, opt, map) : v));
+    source.forEach((v, k) => copy.set(deep ? clone(k, deep, proto, map) : k, deep ? clone(v, deep, proto, map) : v));
     return copy;
   }
   if (source instanceof Set) {
     const copy = new Set();
     map.set(source, copy);
-    source.forEach(v => copy.add(deep ? clone(v, opt, map) : v));
+    source.forEach(v => copy.add(deep ? clone(v, deep, proto, map) : v));
     return copy;
   }
   if (Array.isArray(source)) {
     const copy: any[] = [];
     map.set(source, copy);
-    for (let i = 0; i < source.length; i++) copy[i] = deep ? clone(source[i], opt, map) : source[i];
+    for (let i = 0; i < source.length; i++) copy[i] = deep ? clone(source[i], deep, proto, map) : source[i];
     return copy;
   }
   const copy = proto ? Object.create(Object.getPrototypeOf(source)) : {};
@@ -71,7 +117,7 @@ function clone(source: any, opt: CloneOptions = {}, map = new WeakMap<object, an
   for (const key of keys) {
     const desc = Object.getOwnPropertyDescriptor(source, key);
     if (desc && !desc.enumerable) continue;
-    copy[key] = deep ? clone(source[key], opt, map) : source[key];
+    copy[key] = deep ? clone(source[key], deep, proto, map) : source[key];
   }
   return copy;
 }
@@ -80,17 +126,15 @@ function equal(a: any, b: any): boolean {
   return _.isEqual(a, b);
 }
 
-function merge(target: any, ...sources: any[]): any {
-  if (sources.length === 0) return target;
-  const isMergeOption = (value: any): boolean => {
-    if (!_.isPlainObject(value)) return false;
-    return _.has(value, 'mode') || _.has(value, 'filterFn');
-  };
-  let opt: MergeOptions = {};
-  const last = sources[sources.length - 1];
-  if (sources.length > 1 && isMergeOption(last)) opt = sources.pop();
+function clamp(value: any, min: number, max: number, fallback?: number): number {
+  const low = Math.min(min, max);
+  const high = Math.max(min, max);
+  const result = _.toNumber(value);
+  return _.clamp(_.isFinite(result) ? result : (fallback ?? low), low, high);
+}
 
-  const { mode = 'replace', filterFn = null } = opt;
+function mergeByMode(target: any, mode: MergeMode, filterFn: MergeFilterFn | null, sources: any[]): any {
+  if (sources.length === 0) return target;
   const mergeRec = (t: any, s: any, depth = 1) => {
     if (s === null || typeof s !== 'object' || typeof s === 'function') return s;
     for (const key of Object.keys(s)) {
@@ -129,6 +173,30 @@ function merge(target: any, ...sources: any[]): any {
   return target;
 }
 
+function merge(target: any, ...sources: any[]): any {
+  return mergeByMode(target, 'merge', null, sources);
+}
+
+function append(target: any, ...sources: any[]): any {
+  return mergeByMode(target, 'concat', null, sources);
+}
+
+function cover(target: any, ...sources: any[]): any {
+  return mergeByMode(target, 'replace', null, sources);
+}
+
+function mergeFn(target: any, filterFn: MergeFilterFn | null, ...sources: any[]): any {
+  return mergeByMode(target, 'merge', filterFn, sources);
+}
+
+function appendFn(target: any, filterFn: MergeFilterFn | null, ...sources: any[]): any {
+  return mergeByMode(target, 'concat', filterFn, sources);
+}
+
+function coverFn(target: any, filterFn: MergeFilterFn | null, ...sources: any[]): any {
+  return mergeByMode(target, 'replace', filterFn, sources);
+}
+
 function contains(arr: unknown[], value: unknown, mode: ContainsMode = 'all', opt: ContainsOptions = {}): boolean {
   if (!Array.isArray(arr)) return false;
   const { case: cs = true, compare, deep = false } = opt;
@@ -152,33 +220,15 @@ function contains(arr: unknown[], value: unknown, mode: ContainsMode = 'all', op
   }
 }
 
-function random(min?: number | { min: number; max: number; float?: boolean }, max?: number, float = false): number {
+function random(min?: number, max?: number, float = false): number {
   if (min == null && max == null) return _.random(0, 1, true);
   if (max == null) {
-    if (typeof min === 'object' && min !== null) {
-      const { min: mn = 0, max: mx = 1, float: flt = false } = min;
-      return _.random(mn, mx, flt);
-    }
-    return _.random(0, min as number, false);
+    return _.random(0, min, false);
   }
-  return _.random(min as number, max, float);
+  return _.random(min, max, float);
 }
 
-function either(itemsOrA: any, ...rest: any[]): any {
-  const isEitherOption = (value: any): boolean => {
-    if (!_.isPlainObject(value)) return false;
-    return _.has(value, 'weights') || _.has(value, 'null');
-  };
-  let opt: any = {};
-  let items: any[];
-  if (Array.isArray(itemsOrA)) {
-    items = itemsOrA;
-    if (rest.length && isEitherOption(rest[rest.length - 1])) opt = rest.pop();
-  } else {
-    items = [itemsOrA, ...rest];
-    if (items.length && isEitherOption(items[items.length - 1])) opt = items.pop();
-  }
-  const { weights = null, null: allowNull = false } = opt;
+function either(items: any[], weights: number[] | null = null, allowNull = false): any {
   if (!items.length) return undefined;
   if (weights) {
     if (!Array.isArray(weights)) throw new TypeError('weights must be an array');
@@ -378,67 +428,116 @@ function convert(str: string, mode: ConvertMode = 'lower', opt: { delimiter?: st
   }
 }
 
-function number(value: any, fallback = 0, min = -Infinity, max = Infinity, mode: NumberMode = 'none', opt: NumberOptions = {}): number {
-  const { step = 0, percent = false, loop = false } = opt;
+function definePrototype<T extends object>(target: T, name: string, value: Function, override = false): void {
+  if (!override && Object.prototype.hasOwnProperty.call(target, name)) return;
+  Object.defineProperty(target, name, {
+    value,
+    enumerable: false,
+    writable: true,
+    configurable: true
+  });
+}
 
-  let result = _.toNumber(value);
-  if (!_.isFinite(result)) result = fallback;
+const nativeMathRandom = Math.random.bind(Math);
 
-  const hasRange = _.isFinite(min) && _.isFinite(max) && max >= min;
-  const range = max - min;
-
-  const clampValue = (num: number): number => _.clamp(num, min, max);
-  const loopValue = (num: number): number => {
-    if (!hasRange || range === 0) return min;
-    return ((((num - min) % range) + range) % range) + min;
-  };
-
-  result = loop ? loopValue(result) : clampValue(result);
-
-  if (_.isFinite(step) && step > 0) {
-    const offset = (result - min) / step;
-    switch (mode) {
-      case 'floor':
-        result = min + _.floor(offset) * step;
-        break;
-      case 'ceil':
-        result = min + _.ceil(offset) * step;
-        break;
-      case 'trunc':
-        result = min + Math.trunc(offset) * step;
-        break;
-      case 'round':
-        result = min + _.round(offset) * step;
-        break;
-      default:
-        result = min + offset * step;
-        break;
-    }
-  } else {
-    switch (mode) {
-      case 'floor':
-        result = _.floor(result);
-        break;
-      case 'ceil':
-        result = _.ceil(result);
-        break;
-      case 'trunc':
-        result = Math.trunc(result);
-        break;
-      case 'round':
-        result = _.round(result);
-        break;
-    }
-  }
-
-  result = loop ? loopValue(result) : clampValue(result);
-
-  if (percent) {
-    if (!hasRange || range === 0) return 0;
-    return _.clamp(((result - min) / range) * 100, 0, 100);
-  }
-
-  return result;
+function prototypeUtils(): void {
+  definePrototype(Object.prototype, 'clone', function (this: any, deep = true, proto = true) {
+    return clone(this.valueOf(), deep, proto);
+  });
+  definePrototype(Object.prototype, 'equal', function (this: any, value: any) {
+    return equal(this.valueOf(), value);
+  });
+  definePrototype(Object.prototype, 'merge', function (this: any, ...sources: any[]) {
+    return merge(this.valueOf(), ...sources);
+  });
+  definePrototype(Object.prototype, 'append', function (this: any, ...sources: any[]) {
+    return append(this.valueOf(), ...sources);
+  });
+  definePrototype(Object.prototype, 'cover', function (this: any, ...sources: any[]) {
+    return cover(this.valueOf(), ...sources);
+  });
+  definePrototype(Object.prototype, 'mergefn', function (this: any, filterFn: MergeFilterFn | null, ...sources: any[]) {
+    return mergeFn(this.valueOf(), filterFn, ...sources);
+  });
+  definePrototype(Object.prototype, 'appendfn', function (this: any, filterFn: MergeFilterFn | null, ...sources: any[]) {
+    return appendFn(this.valueOf(), filterFn, ...sources);
+  });
+  definePrototype(Object.prototype, 'coverfn', function (this: any, filterFn: MergeFilterFn | null, ...sources: any[]) {
+    return coverFn(this.valueOf(), filterFn, ...sources);
+  });
+  definePrototype(Object, 'merge', function (...sources: any[]) {
+    return merge({}, ...sources);
+  });
+  definePrototype(Object, 'append', function (...sources: any[]) {
+    return append({}, ...sources);
+  });
+  definePrototype(Object, 'cover', function (...sources: any[]) {
+    return cover({}, ...sources);
+  });
+  definePrototype(Object, 'mergefn', function (filterFn: MergeFilterFn | null, ...sources: any[]) {
+    return mergeFn({}, filterFn, ...sources);
+  });
+  definePrototype(Object, 'appendfn', function (filterFn: MergeFilterFn | null, ...sources: any[]) {
+    return appendFn({}, filterFn, ...sources);
+  });
+  definePrototype(Object, 'coverfn', function (filterFn: MergeFilterFn | null, ...sources: any[]) {
+    return coverFn({}, filterFn, ...sources);
+  });
+  definePrototype(Array, 'merge', function (...sources: any[]) {
+    return merge([], ...sources);
+  });
+  definePrototype(Array, 'append', function (...sources: any[]) {
+    return append([], ...sources);
+  });
+  definePrototype(Array, 'cover', function (...sources: any[]) {
+    return cover([], ...sources);
+  });
+  definePrototype(Array, 'mergefn', function (filterFn: MergeFilterFn | null, ...sources: any[]) {
+    return mergeFn([], filterFn, ...sources);
+  });
+  definePrototype(Array, 'appendfn', function (filterFn: MergeFilterFn | null, ...sources: any[]) {
+    return appendFn([], filterFn, ...sources);
+  });
+  definePrototype(Array, 'coverfn', function (filterFn: MergeFilterFn | null, ...sources: any[]) {
+    return coverFn([], filterFn, ...sources);
+  });
+  definePrototype(Object.prototype, 'contains', function (this: any, value: unknown, mode: ContainsMode = 'any', opt: ContainsOptions = {}) {
+    const source = this.valueOf();
+    if (Array.isArray(source)) return contains(source, value, mode, opt);
+    if (source instanceof Set) return contains([...source], value, mode, opt);
+    if (source instanceof Map) return contains([...source.values()], value, mode, opt);
+    if (source && typeof source === 'object') return contains(Object.values(source), value, mode, opt);
+    return false;
+  });
+  definePrototype(Array.prototype, 'contains', function (this: unknown[], value: unknown, mode: ContainsMode = 'any', opt: ContainsOptions = {}) {
+    return contains(this, value, mode, opt);
+  });
+  definePrototype(Array.prototype, 'random', function (this: unknown[]) {
+    return _.sample(this);
+  });
+  definePrototype(Array.prototype, 'either', function (this: unknown[], weights?: number[], allowNull = false) {
+    return either(this, weights, allowNull);
+  });
+  definePrototype(String.prototype, 'contains', function (this: string, value: string, opt: { case?: boolean } = {}) {
+    const source = String(this);
+    const target = String(value);
+    return opt.case === false ? source.toLowerCase().includes(target.toLowerCase()) : source.includes(target);
+  });
+  definePrototype(String.prototype, 'convert', function (this: string, mode: ConvertMode = 'lower', opt: { delimiter?: string; acronym?: boolean } = {}) {
+    return convert(String(this), mode, opt);
+  });
+  definePrototype(
+    Math,
+    'random',
+    function (min?: number, max?: number, float = false) {
+      if (min == null && max == null) return nativeMathRandom();
+      return random(min, max, float);
+    },
+    true
+  );
+  definePrototype(Math, 'clamp', function (value: any, min: number, max: number, fallback?: number) {
+    return clamp(value, min, max, fallback);
+  });
 }
 
 const imageCache = new Map<string, boolean>();
@@ -591,12 +690,17 @@ const publicUtils = Object.freeze({
   clone,
   equal,
   merge,
+  append,
+  cover,
+  mergefn: mergeFn,
+  appendfn: appendFn,
+  coverfn: coverFn,
   contains,
   random,
   either,
   SelectCase,
   convert,
-  number,
+  clamp,
   loadImage
 });
 
@@ -606,12 +710,18 @@ export {
   clone,
   equal,
   merge,
+  append,
+  cover,
+  mergeFn as mergefn,
+  appendFn as appendfn,
+  coverFn as coverfn,
   contains,
   random,
   either,
   SelectCase,
   convert,
-  number,
+  clamp,
+  prototypeUtils,
   loadImage,
   widgets,
   textToBytes,
@@ -630,4 +740,4 @@ export {
   escapeHtmlText,
   publicUtils
 };
-export type { CloneOptions, ContainsMode, ContainsOptions, ConvertMode, MergeMode, MergeOptions, NumberMode, NumberOptions, PublicUtils };
+export type { CloneOptions, ContainsMode, ContainsOptions, ConvertMode, MergeMode, MergeFilterFn, PublicUtils };

@@ -1,7 +1,6 @@
 // .src/modules/TimeStateWeather/WeatherEvents.ts
 
 import maplebirch from '../../core';
-import { merge } from '../../utils';
 import type AddonPlugin from '../AddonPlugin';
 import type { Replacement } from '../AddonPluginProcess';
 import type DynamicManager from '../Dynamic';
@@ -45,6 +44,12 @@ export interface WeatherException {
 interface ModificationConfig {
   patch: any;
   mode: 'concat' | 'replace' | 'merge';
+}
+
+function applyPatch(target: any, patch: any, mode: ModificationConfig['mode']) {
+  if (mode === 'concat') return target.append(patch);
+  if (mode === 'replace') return target.cover(patch);
+  return target.merge(patch);
 }
 
 class WeatherEvent {
@@ -220,7 +225,7 @@ export class WeatherManager {
     }
     if (this.layerModifications.has(layerName)) {
       const modifications = this.layerModifications.get(layerName)!;
-      for (const { patch, mode } of modifications) merge(params, patch, { mode });
+      for (const { patch, mode } of modifications) applyPatch(params, patch, mode);
       this.layerModifications.delete(layerName);
       this.log(`应用层修改 ${layerName}: ${modifications.length} 个修改`, 'DEBUG');
     }
@@ -228,7 +233,7 @@ export class WeatherManager {
       for (const [effectName, modifications] of this.effectModifications) {
         const effect = Weather.Renderer.Effects.effects.get(effectName);
         if (effect) {
-          for (const { patch, mode } of modifications) merge(effect, patch, { mode });
+          for (const { patch, mode } of modifications) applyPatch(effect, patch, mode);
           this.log(`应用效果修改 ${effectName}: ${modifications.length} 个修改`, 'DEBUG');
         }
       }

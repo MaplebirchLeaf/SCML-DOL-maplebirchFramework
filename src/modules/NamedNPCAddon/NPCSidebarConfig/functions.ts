@@ -1,7 +1,6 @@
 // ./src/modules/NamedNPCAddon/NPCSidebarConfig/functions.ts
 
 import maplebirch from '../../../core';
-import { clone } from '../../../utils';
 
 type NPCSidebarOptions = {
   filters?: Record<string, any>;
@@ -19,7 +18,7 @@ type Side = 'left' | 'right';
 function lookupColour(dict: { [x: string]: any }, key: string, prefilterName?: string) {
   const record = dict[key];
   if (!record) return {};
-  const filter = clone(record.canvasfilter);
+  const filter = record.canvasfilter.clone();
   if (prefilterName) Renderer.mergeLayerData(filter, setup.colours.sprite_prefilters[prefilterName], true);
   return filter;
 }

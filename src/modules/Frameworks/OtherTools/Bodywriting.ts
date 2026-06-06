@@ -1,7 +1,5 @@
 // .src/modules/Frameworks/OtherTools/Bodywriting.ts
 
-import { clone } from '../../../utils';
-
 export interface BodywritingConfig {
   writing?: string;
   writ_cn?: string;
@@ -29,7 +27,7 @@ class Bodywriting {
     if (!key || !config) return;
     bodywritingData[key] = {
       operation: 'add',
-      config: clone(config)
+      config: config.clone()
     };
   }
 

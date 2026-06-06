@@ -64,7 +64,7 @@ class Traits {
   }
 
   public static inject(data: TraitCategory[]): TraitCategory[] {
-    const result = clone(data);
+    const result = data.clone();
     const titleMap: Record<string, number> = {};
     result.forEach((category: TraitCategory, index: number) => {
       const title = maplebirch.auto(category.title);

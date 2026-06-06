@@ -1,7 +1,5 @@
 // .src/modules/Frameworks/OtherTools/Location.ts
 
-import { clone, merge } from '../../../utils';
-
 export interface LocationConfigOptions {
   overwrite?: boolean;
   layer?: string;
@@ -27,6 +25,8 @@ export interface LocationUpdate {
 
 export const locationData: Record<string, LocationUpdate> = {};
 
+const mergeLocationLayer = (key: string, _value: any, depth: number) => depth !== 1 || key === 'folder' || key === 'base' || key === 'emissive' || key === 'reflective' || key === 'layerTop';
+
 class Location {
   public static configure(locationId: string, config: LocationConfig, options: LocationConfigOptions = {}): boolean {
     if (!locationId || !config) return false;
@@ -39,16 +39,16 @@ class Location {
     const update = locationData[locationId];
     if (overwrite) {
       update.overwrite = true;
-      update.config = clone(config);
+      update.config = config.clone();
       update.customMapping = config.customMapping || null;
       return true;
     }
     if (layer && element) {
       update.config[layer] ??= {};
-      update.config[layer][element] = merge({}, update.config[layer][element] || {}, config, { mode: 'merge' });
+      update.config[layer][element] = Object.merge(update.config[layer][element] || {}, config);
       return true;
     }
-    update.config = Location.merge(update.config, config);
+    update.config.mergefn(mergeLocationLayer, config);
     if (config.customMapping) update.customMapping = config.customMapping;
     return true;
   }
@@ -67,18 +67,11 @@ class Location {
           layerTop: update.config.layerTop || current.layerTop
         };
       } else {
-        setup.LocationImages[locationId] = Location.merge(current, update.config);
+        setup.LocationImages[locationId] = current.mergefn(mergeLocationLayer, update.config);
       }
       if (update.customMapping) setup.Locations[locationId] = update.customMapping;
       delete locationData[locationId];
     }
-  }
-
-  private static merge(target: any, source: any): any {
-    return merge(target, source, {
-      mode: 'merge',
-      filterFn: (key: string, _value: any, depth: number) => depth !== 1 || key === 'folder' || key === 'base' || key === 'emissive' || key === 'reflective' || key === 'layerTop'
-    });
   }
 }
 

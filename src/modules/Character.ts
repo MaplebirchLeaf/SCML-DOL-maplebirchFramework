@@ -1,9 +1,10 @@
 // ./src/modules/Character.ts
 
 import maplebirch, { MaplebirchCore, createlog } from '../core';
-import { merge, convert, loadImage } from '../utils';
+import { loadImage } from '../utils';
 import AddonPlugin from './AddonPlugin';
 import type { Replacement } from './AddonPluginProcess';
+import Pet from './CharacterAddon/Pet';
 import Transformation from './CharacterAddon/Transformation';
 
 interface FaceStyleOptions {
@@ -59,9 +60,9 @@ interface LayerConfig {
 type FaceStyleNameFn = (options: FaceStyleOptions) => string | string[];
 type FaceStyleName = string | string[];
 
-type ProcessType = 'pre' | 'post';
-type ModelTarget<TModel = CanvasModel | CanvasModelOptions> = string | string[] | ((modelName: string, model?: TModel) => boolean);
-type ProcessHandler = (options: any, model?: CanvasModel) => void;
+export type ProcessType = 'pre' | 'post';
+export type ModelTarget<TModel = CanvasModel | CanvasModelOptions> = string | string[] | ((modelName: string, model?: TModel) => boolean);
+export type ProcessHandler = (options: any, model?: CanvasModel) => void;
 
 interface ProcessEntry {
   type: ProcessType;
@@ -106,8 +107,8 @@ function faceStyleSrcFn(name: FaceStyleNameFn | FaceStyleName) {
 const maskCache = new Map<string, string>();
 
 function mask(x = 0, rotation = 0, swap = false, width = 256, height = 256): string {
-  rotation = Math.max(-90, Math.min(90, rotation));
-  x = Math.max(-width / 2, Math.min(width / 2, x));
+  rotation = Math.clamp(rotation, -90, 90);
+  x = Math.clamp(x, -width / 2, width / 2);
   const cacheKey = `${x}|${rotation}|${swap}|${width}|${height}`;
   const cached = maskCache.get(cacheKey);
   if (cached) return cached;
@@ -116,7 +117,7 @@ function mask(x = 0, rotation = 0, swap = false, width = 256, height = 256): str
   canvas.height = height;
   const ctx = canvas.getContext('2d');
   if (!ctx) return '';
-  const splitX = Math.max(0, Math.min(width, width / 2 + x));
+  const splitX = Math.clamp(width / 2 + x, 0, width);
   for (let frame = 0; frame < 2; frame++) {
     const offsetX = frame * width;
     const whiteStart = swap ? offsetX + splitX : offsetX;
@@ -155,8 +156,8 @@ function hairColourGradient(part: string, gradient: HairGradientOptions, hairTyp
   const filterPrototype = filterPrototypeLibrary[hairType] || filterPrototypeLibrary.all;
   if (!filterPrototype) return Renderer.emptyLayerFilter();
   const storedPositions = V.options?.maplebirch?.character?.[type]?.value?.[part]?.[gradient.style];
-  const blend = clone(filterPrototype);
-  if (storedPositions && storedPositions.length === blend.colors.length) for (let i = 0; i < blend.colors.length; i++) blend.colors[i][0] = Math.max(0, Math.min(1, storedPositions[i]));
+  const blend = filterPrototype.clone();
+  if (storedPositions && storedPositions.length === blend.colors.length) for (let i = 0; i < blend.colors.length; i++) blend.colors[i][0] = Math.clamp(storedPositions[i], 0, 1);
   const filter = {
     blend,
     brightness: {
@@ -170,7 +171,7 @@ function hairColourGradient(part: string, gradient: HairGradientOptions, hairTyp
     const color = filter.blend.colors[index];
     const lengthFn = filter.blend.lengthFunctions?.[0];
     let lengthValue = typeof lengthFn === 'function' ? lengthFn(hairLength, color[0]) : color[0];
-    lengthValue = Math.max(0, Math.min(1, lengthValue));
+    lengthValue = Math.clamp(lengthValue, 0, 1);
     const colourKey = gradient.colours[index];
     const colorData = setup.colours?.hair_map?.[colourKey]?.canvasfilter;
     if (!colorData) continue;
@@ -343,10 +344,12 @@ class Character {
   public readonly faceStyleMap: Map<string, string[]> = new Map();
   private readonly handlers: ProcessEntry[] = [];
   private readonly layers: LayerEntry[] = [];
+  public readonly pet: Pet;
   public readonly transformation: Transformation;
 
   public constructor(readonly core: MaplebirchCore) {
     this.log = createlog('char');
+    this.pet = new Pet(this);
     this.transformation = new Transformation(this);
     this.core.on(':language', () => this._faceStyleSetupOption(), 'face style setup options');
     this.core.tool.onInit(() => this._faceStyleSetupOption());
@@ -368,35 +371,43 @@ class Character {
   public patchCanvasModel<T extends CanvasModelConstructor>(BaseCanvasModel: T): T {
     const layerEntries = this.layers;
     const runProcess = this.process.bind(this);
+    const pet = this.pet;
+    const targetMatched = (target: ModelTarget<CanvasModelOptions>, modelName: string, options?: CanvasModelOptions) =>
+      typeof target === 'function' ? target(modelName, options) : Array.isArray(target) ? target.includes(modelName) : target === modelName;
+    const patchLayers = (options?: CanvasModelOptions) => {
+      if (!options?.layers) return options;
+      const modelName = options.name || '';
+      const modelLayers = layerEntries.filter(({ target }) => targetMatched(target, modelName, options)).map(({ layers }) => layers);
+      if (!modelLayers.length) return options;
+      let patchedLayers = options.layers.clone();
+      for (const layers of modelLayers) {
+        patchedLayers = patchedLayers.mergefn((_key: any, value: any, depth: number) => depth <= 3 && value != null, layers);
+      }
+      return { ...options, layers: patchedLayers };
+    };
+    const patchProcess = (model: CanvasModel) => {
+      const vanillaPre = model.preprocess;
+      const vanillaPost = model.postprocess;
+      model.preprocess = (processOptions: CanvasModelOptionsData) => {
+        vanillaPre.call(model, processOptions);
+        runProcess('pre', processOptions, model);
+      };
+      model.postprocess = (processOptions: CanvasModelOptionsData) => {
+        vanillaPost.call(model, processOptions);
+        runProcess('post', processOptions, model);
+      };
+    };
     return class PatchedCanvasModel extends BaseCanvasModel {
       constructor(...args: any[]) {
-        let [options] = args as [CanvasModelOptions];
+        let [options] = args as [CanvasModelOptions?];
         const modelName = options?.name || '';
-        const modelLayers = layerEntries
-          .filter(({ target }) => (typeof target === 'function' ? target(modelName, options) : Array.isArray(target) ? target.includes(modelName) : target === modelName))
-          .map(({ layers }) => layers);
-        if (modelLayers.length && options?.layers) {
-          let patchedLayers = clone(options.layers);
-          for (const layers of modelLayers) {
-            patchedLayers = merge(patchedLayers, layers, {
-              mode: 'merge',
-              filterFn: (_key: any, value: any, depth: number) => depth <= 3 && value != null
-            });
-          }
-          options = { ...options, layers: patchedLayers };
+        if (modelName === 'main') pet.capture(options);
+        if (modelName !== pet.modelName) {
+          options = patchLayers(options);
           args[0] = options;
         }
         super(...args);
-        const vanillaPre = this.preprocess;
-        const vanillaPost = this.postprocess;
-        this.preprocess = (processOptions: CanvasModelOptionsData) => {
-          vanillaPre.call(this, processOptions);
-          runProcess('pre', processOptions, this);
-        };
-        this.postprocess = (processOptions: CanvasModelOptionsData) => {
-          vanillaPost.call(this, processOptions);
-          runProcess('post', processOptions, this);
-        };
+        if (modelName !== pet.modelName) patchProcess(this);
       }
     } as T;
   }
@@ -431,7 +442,7 @@ class Character {
       try {
         handler(options, model);
       } catch (error: any) {
-        this.log(`${type}process 错误: ${error?.message || error}`, 'ERROR', error);
+        this.log(`${model}-${type}process 错误: ${error?.message || error}`, 'ERROR', error);
       }
     }
   }
@@ -516,14 +527,14 @@ class Character {
     const nextVariantOptions: Record<string, Record<string, string>> = {};
     for (const [style] of this.faceStyleMap) {
       const key = style === 'default' ? 'traditional' : style;
-      nextStyleOptions[convert(this.label(key), 'title')] = style;
+      nextStyleOptions[this.label(key).convert('title')] = style;
     }
     for (const [style, variants] of this.faceStyleMap) {
       if (variants.length === 0) continue;
       nextVariantOptions[style] = {};
       for (const variant of variants) {
         const key = variant === 'default' ? 'gentle' : variant;
-        nextVariantOptions[style][convert(this.label(key), 'title')] = variant;
+        nextVariantOptions[style][this.label(key).convert('title')] = variant;
       }
     }
     setup.faceStyleOptions = nextStyleOptions;
@@ -651,17 +662,21 @@ class Character {
   }
 
   public preInit() {
-    this.use('pre', preprocess);
-    this.use(layers);
+    this.use('pre', preprocess, 'main');
+    this.use(layers, 'main');
   }
 
   public Init() {
     this.core.on(':modhint', () => void this.render(), 'character render');
-    this.transformation.inject();
+    void this.transformation.inject();
   }
 
   public loadInit() {
-    this.transformation.inject();
+    void this.transformation.inject();
+  }
+
+  public postInit() {
+    void this.pet.sync();
   }
 }
 

@@ -1,222 +1,123 @@
-## 工具函数
+# 工具函数
 
-## 用来做什么
+工具函数是框架提供给模组脚本共用的一组轻量 API，用来处理常见但容易写散的逻辑：对象克隆、配置合并、数组追加、包含关系、随机选择、字符串命名转换、数值边界限制，以及图片资源检查。
 
-框架提供了一组全局工具函数，可直接在模组脚本中使用。它们适合处理对象复制、对象合并、随机数、条件选择、字符串格式转换、数值整理和图片检查。
+这些方法会在框架初始化时安装到全局环境中。模组既可以直接使用 `clone()`、`merge()`、`loadImage()` 这类全局函数，也可以使用更推荐的原型/静态写法：
+
+- 对已有值操作时，用原型方法，例如 `source.clone()`、`target.merge(source)`、`'name'.convert('title')`。
+- 想创建一个新对象或新数组时，用静态方法，例如 `Object.merge(defaults, current)`、`Array.append(base, extra)`。
+- 数值工具挂在 `Math` 上，例如 `Math.clamp(value, min, max)`。
+
+需要注意的是，`target.merge()`、`target.append()`、`target.cover()` 会修改调用者本身；如果不想改原对象，请用 `Object.merge()` / `Array.append()` 这类静态方法。
 
 ```javascript
-const data = clone(source);
-const value = number(input, 0, 0, 100);
-const id = convert('My Text', 'snake');
+const data = source.clone();
+const next = Object.merge(defaults, current ?? {});
+const value = Math.clamp(input, 0, 100);
+const key = 'My Text'.convert('snake');
 ```
 
----
+## 常用方法
 
-## 函数列表
-
-| 函数 | 用途 |
+| 方法 | 用途 |
 | :--- | :--- |
-| `clone()` | 克隆对象 |
-| `equal()` | 深度比较 |
-| `merge()` | 合并对象 |
-| `contains()` | 检查数组包含关系 |
-| `random()` | 生成随机数 |
-| `either()` | 从候选项中随机取一个 |
-| `SelectCase` | 链式条件选择器 |
-| `convert()` | 字符串格式转换 |
-| `number()` | 数值整理 |
-| `loadImage()` | 检查或加载图片 |
-
----
+| `value.clone(deep, proto)` | 克隆值 |
+| `value.equal(other)` | 深度比较 |
+| `target.merge(source)` | 递归合并对象，数组按下标合并 |
+| `target.append(source)` | 递归合并对象，数组追加 |
+| `target.cover(source)` | 递归合并对象，数组覆盖 |
+| `target.mergefn(fn, source)` | 带过滤函数的 `merge` |
+| `target.appendfn(fn, source)` | 带过滤函数的 `append` |
+| `target.coverfn(fn, source)` | 带过滤函数的 `cover` |
+| `value.contains(item, mode, options)` | 包含关系判断 |
+| `array.random()` | 随机取一个元素 |
+| `array.either(weights, allowNull)` | 随机取一个候选项，可带权重 |
+| `string.convert(mode, options)` | 字符串格式转换 |
+| `Math.random(max)` / `Math.random(min, max, float)` | 随机数 |
+| `Math.clamp(value, min, max, fallback)` | 数值限制到区间内 |
+| `loadImage(src)` | 检查或加载图片 |
 
 ## clone
 
-深拷贝对象。
-
 ```javascript
-const next = clone({
-  a: 1,
-  b: {
-    c: 2
-  }
-});
+const next = source.clone();
+const shallow = source.clone(false);
+const plain = source.clone(true, false);
 ```
 
-浅拷贝：
+参数：
+
+| 参数 | 默认 | 说明 |
+| :--- | :--- | :--- |
+| `deep` | `true` | 是否深拷贝 |
+| `proto` | `true` | 是否保留原型链 |
+
+支持普通对象、数组、`Date`、`RegExp`、`Map`、`Set`、`ArrayBuffer`、`DataView` 和 TypedArray。
+
+## merge / append / cover
+
+这三个方法都会修改调用者本身。
 
 ```javascript
-const next = clone(source, {
-  deep: false
-});
+target.merge(source);
+target.append(source);
+target.cover(source);
 ```
 
-保留原型链：
+区别主要在数组：
 
 ```javascript
-const next = clone(source, {
-  proto: true
-});
+({ list: [1, 2] }).merge({ list: [3] });  // { list: [3, 2] }
+({ list: [1, 2] }).append({ list: [3] }); // { list: [1, 2, 3] }
+({ list: [1, 2] }).cover({ list: [3] });  // { list: [3] }
 ```
 
-支持普通对象、数组、`Date`、`RegExp`、`Map`、`Set`、`ArrayBuffer`、TypedArray 等常见类型。
-
----
-
-## equal
-
-深度比较两个值。
+如果想生成新对象，不想改原对象，用静态方法：
 
 ```javascript
-equal({ a: 1 }, { a: 1 }); // true
-equal({ a: 1 }, { a: 2 }); // false
+const next = Object.merge(defaults, current);
+const list = Array.append(baseList, extraList);
 ```
 
----
-
-## merge
-
-递归合并对象。第一个参数会被修改并作为结果返回。
+过滤版本适合只合并部分字段：
 
 ```javascript
-const target = { a: 1 };
-merge(target, { b: 2 });
+target.mergefn((key, value, depth, targetValue) => targetValue === undefined, source);
 ```
-
-数组合并模式：
-
-```javascript
-merge(target, source, {
-  mode: 'replace' // replace | concat | merge
-});
-```
-
-过滤字段：
-
-```javascript
-merge(target, source, {
-  filterFn: (key, value, depth, targetValue) => {
-    return targetValue === undefined;
-  }
-});
-```
-
----
 
 ## contains
 
-检查数组是否包含指定值。
-
 ```javascript
-contains([1, 2, 3], 2); // true
+[1, 2, 3].contains(2); // true
+[1, 2, 3].contains([1, 2], 'all'); // true
+[1, 2, 3].contains([2, 4], 'any'); // true
+[1, 2, 3].contains([4, 5], 'none'); // true
+'Hello World'.contains('hello', { case: false }); // true
 ```
 
-多个值：
+对象、`Set`、`Map` 也可以调用，会使用它们的值进行判断。
+
+## random / either
 
 ```javascript
-contains([1, 2, 3], [1, 2], 'all'); // true
-contains([1, 2, 3], [2, 4], 'any'); // true
-contains([1, 2, 3], [4, 5], 'none'); // true
-```
+Math.random(); // 原生 0-1 浮点数
+Math.random(10); // 0-10 整数
+Math.random(5, 10); // 5-10 整数
+Math.random(5, 10, true); // 5-10 浮点数
 
-深度比较：
-
-```javascript
-contains([{ id: 1 }], { id: 1 }, 'all', {
-  deep: true
-});
-```
-
----
-
-## random
-
-生成随机数。
-
-```javascript
-random(); // 0-1 浮点数
-random(10); // 0-10 整数
-random(5, 10); // 5-10 整数
-random(5, 10, true); // 5-10 浮点数
-```
-
-对象写法：
-
-```javascript
-random({
-  min: 5,
-  max: 10,
-  float: true
-});
+['a', 'b', 'c'].random();
+['rare', 'normal'].either([0.1, 0.9]);
+['a', 'b'].either(undefined, true); // 允许返回 null
 ```
 
 需要可复现随机序列时，使用 [随机数系统](ToolCollection/randSystem.md)。
 
----
-
-## either
-
-从候选项中随机选择一个。
-
-```javascript
-either(['a', 'b', 'c']);
-either('a', 'b', 'c');
-```
-
-权重：
-
-```javascript
-either(['rare', 'normal'], {
-  weights: [0.1, 0.9]
-});
-```
-
-允许返回 `null`：
-
-```javascript
-either(['a', 'b'], {
-  null: true
-});
-```
-
----
-
-## SelectCase
-
-链式条件选择器，适合整理复杂分支。
-
-```javascript
-const result = new SelectCase()
-  .case('rain', '下雨')
-  .caseRange(6, 12, '上午')
-  .caseRegex(/^shop/, '商店')
-  .else('默认')
-  .match(input);
-```
-
-常用方法：
-
-| 方法 | 说明 |
-| :--- | :--- |
-| `.case(value, result)` | 精确匹配 |
-| `.casePredicate(fn, result)` | 自定义判断 |
-| `.caseRange(min, max, result)` | 数值范围 |
-| `.caseIn(values, result)` | 在数组中 |
-| `.caseIncludes(text, result)` | 字符串包含 |
-| `.caseRegex(regex, result)` | 正则匹配 |
-| `.caseCompare(op, value, result)` | 比较运算 |
-| `.else(result)` | 默认结果 |
-| `.match(input, meta?)` | 执行匹配 |
-
----
-
 ## convert
 
-转换字符串格式。
-
 ```javascript
-convert('Hello World', 'snake'); // hello_world
-convert('Hello World', 'kebab'); // hello-world
-convert('hello world', 'pascal'); // HelloWorld
+'Hello World'.convert('snake'); // hello_world
+'Hello World'.convert('kebab'); // hello-world
+'hello world'.convert('pascal'); // HelloWorld
 ```
 
 支持模式：
@@ -233,54 +134,17 @@ convert('hello world', 'pascal'); // HelloWorld
 | `kebab` | `hello-world` |
 | `constant` | `HELLO_WORLD` |
 
----
-
-## number
-
-把输入整理成合法数值。
+## Math.clamp
 
 ```javascript
-number('12.5'); // 12.5
-number(undefined, 10); // 10
-number(120, 0, 0, 100); // 100
+Math.clamp('12.5', 0, 100); // 12.5
+Math.clamp(120, 0, 100); // 100
+Math.clamp(undefined, 0, 100, 10); // 10
 ```
 
-取整：
-
-```javascript
-number(5.8, 0, 0, 10, 'floor'); // 5
-number(5.8, 0, 0, 10, 'round'); // 6
-```
-
-步进：
-
-```javascript
-number(17, 0, 0, 100, 'round', {
-  step: 5
-}); // 15
-```
-
-循环区间：
-
-```javascript
-number(370, 0, 0, 360, 'none', {
-  loop: true
-}); // 10
-```
-
-百分比：
-
-```javascript
-number(75, 0, 0, 200, 'none', {
-  percent: true
-}); // 37.5
-```
-
----
+`fallback` 只会在输入无法转换成有限数字时使用；不传时使用较小边界值。
 
 ## loadImage
-
-检查图片是否可用，并在可用时返回可加载结果。
 
 ```javascript
 const result = await loadImage('img/myMod/icon.png');
@@ -291,11 +155,3 @@ if (result) {
 ```
 
 `loadImage()` 可能返回布尔值、图片路径或 Promise，异步场景建议使用 `await`。
-
----
-
-## 补充说明
-
-- 这些函数会挂载到 `window`，可直接调用。
-- `merge()` 会修改第一个参数；如果不想改原对象，先传入 `{}` 或 `clone()`。
-- `random()` 使用普通随机；需要可保存种子的随机，请用 `maplebirch.tool.rand.create()`。

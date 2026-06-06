@@ -1,7 +1,6 @@
 // ./src/modules/Frameworks/migration.ts
 
 import { createlog } from '../../core';
-import { merge } from '../../utils';
 
 interface Step {
   from: string;
@@ -20,7 +19,7 @@ interface Utils {
   move: (data: Record<string, any>, from: string, to: string) => boolean;
   remove: (data: Record<string, any>, path: string) => boolean;
   transform: (data: Record<string, any>, path: string, fn: (value: any) => any) => boolean;
-  fill: (target: Record<string, any>, defaults: Record<string, any>, options?: { mode?: 'merge' | 'replace' }) => void;
+  fill: (target: Record<string, any>, defaults: Record<string, any>, mode?: 'merge' | 'cover') => void;
 }
 
 class migration {
@@ -59,14 +58,11 @@ class migration {
           return false;
         }
       },
-      fill: (target: Record<string, any>, defaults: Record<string, any>, { mode = 'merge' }: { mode?: 'merge' | 'replace' } = {}) => {
+      fill: (target: Record<string, any>, defaults: Record<string, any>, mode: 'merge' | 'cover' = 'merge') => {
         try {
-          merge(target, defaults, {
-            mode,
-            filterFn: (key: string, _value: any, _depth: number, targetValue: any) => {
-              return key !== 'version' && targetValue === undefined;
-            }
-          });
+          const filter = (key: string, _value: any, _depth: number, targetValue: any) => key !== 'version' && targetValue === undefined;
+          if (mode === 'cover') target.coverfn(filter, defaults);
+          else target.mergefn(filter, defaults);
         } catch (error: any) {
           this.log(`属性填充失败: ${error?.message || error}`, 'ERROR');
         }

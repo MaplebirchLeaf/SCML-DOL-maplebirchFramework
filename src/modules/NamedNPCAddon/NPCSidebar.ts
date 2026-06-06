@@ -2,7 +2,6 @@
 
 import type { ModZipReader } from '@scml/types/sugarcube-2-ModLoader/ModZipReader';
 import maplebirch from '../../core';
-import { convert } from '../../utils';
 import { lookupColour, clothes_layer } from './NPCSidebarConfig/functions';
 import base_layers from './NPCSidebarConfig/base_layers';
 import head_layers from './NPCSidebarConfig/head_layers';
@@ -42,7 +41,7 @@ function loadFromMod(modZip: ModZipReader, npcNames: string[]) {
   if (!modZip || !Array.isArray(npcNames) || npcNames.length === 0) return [];
   const paths: string[] = [];
   for (const name of npcNames) {
-    const npcName = convert(name, 'title');
+    const npcName = name.convert('title');
     if (!display.has(npcName)) display.set(npcName, new Set());
     const npcSet = display.get(npcName)!;
     const folder = `img/ui/nnpc/${npcName.toLowerCase()}/`;
@@ -254,7 +253,7 @@ function setupBodyData(options: NPCSidebarOptions, nnpc: Record<string, any>, np
   const clothes = nnpc.clothes;
   const npc = Array.isArray(V.NPCName) ? V.NPCName.find((npc: { nam?: string; name?: string }) => (npc.nam ?? npc.name) === nnpc.name) : undefined;
 
-  nnpc.lust = Math.max(0, Math.min(npc?.lust ?? 0, 100));
+  nnpc.lust = Math.clamp(npc?.lust ?? 0, 0, 100);
 
   nnpc.breasts = !clothes.upper.type?.includes('naked') || !clothes.under_upper.type?.includes('naked') ? 'cleavage' : 'default';
   nnpc.breast_size = [0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 5, 5, 6][Math.round(bodydata.breastsize ?? 0)] ?? 0;
@@ -263,7 +262,7 @@ function setupBodyData(options: NPCSidebarOptions, nnpc: Record<string, any>, np
   const penisState = nnpc.lust >= 60 ? 'hard' : 'soft';
   const penisVirgin = hasPenis && bodydata.virginity?.penile === true ? '-virgin-' : '-';
 
-  nnpc.penis_size = hasPenis ? Math.max(1, Math.min(Math.round(bodydata.penissize ?? 1), 4)) + 2 : 0;
+  nnpc.penis_size = hasPenis ? Math.clamp(Math.round(bodydata.penissize ?? 1), 1, 4) + 2 : 0;
   nnpc.balls = hasPenis && (bodydata.ballssize ?? 0) > 0;
   nnpc.penis = hasPenis ? `${penisState}${penisVirgin}${nnpc.penis_size}` : false;
   nnpc.genitals_chastity = clothes.genitals.type?.includes('chastity');
@@ -439,7 +438,7 @@ const NPCSidebar = (() => {
       const styles = type === 'sides' ? setup.hairstyles.sides : setup.hairstyles.fringe;
       styles.forEach((style: any) => {
         const name = maplebirch.modUtils.getModListNameNoAlias().includes('ModI18N') && maplebirch.Language === 'CN' ? style.name_cap : style.name;
-        hair_name[convert(name, 'title')] = style.variable;
+        hair_name[name.convert('title')] = style.variable;
       });
       return hair_name;
     }
@@ -451,8 +450,8 @@ const NPCSidebar = (() => {
           V.options.maplebirch.npcsidebar.display[npcName] ??= 'none';
         }
       });
-      manager.core.char.use('pre', preprocess);
-      manager.core.char.use(layers);
+      manager.core.char.use('pre', preprocess, 'main');
+      manager.core.char.use(layers, 'main');
     }
   }
 

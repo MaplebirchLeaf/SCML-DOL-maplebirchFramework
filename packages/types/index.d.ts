@@ -5,14 +5,19 @@ type Utils = typeof types.utils.publicUtils;
 declare global {
   const maplebirch: typeof instance;
   const clone: Utils['clone'];
-  const merge: Utils['merge'];
   const equal: Utils['equal'];
+  const merge: Utils['merge'];
+  const append: Utils['append'];
+  const cover: Utils['cover'];
+  const mergefn: Utils['mergefn'];
+  const appendfn: Utils['appendfn'];
+  const coverfn: Utils['coverfn'];
   const contains: Utils['contains'];
-  const SelectCase: Utils['SelectCase'];
   const random: Utils['random'];
   const either: Utils['either'];
+  const SelectCase: Utils['SelectCase'];
   const convert: Utils['convert'];
-  const number: Utils['number'];
+  const clamp: Utils['clamp'];
   const loadImage: Utils['loadImage'];
 
   interface Window extends Readonly<Utils> {

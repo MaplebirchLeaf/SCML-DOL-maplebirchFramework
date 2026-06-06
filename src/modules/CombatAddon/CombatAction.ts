@@ -95,7 +95,7 @@ const CombatAction: CombatActionApi = {
     this.actions.forEach(entry => {
       if (entry.actionType !== actionType) return;
       const entryCombatType = this._eval(entry.combatType, ctx) ?? 'Default';
-      if (entryCombatType !== 'Default' && entryCombatType !== ctx.combatType) return;
+      if (entryCombatType !== ctx.combatType) return;
       if (!this._eval(entry.cond, ctx)) return;
       const display = this._eval(entry.display, ctx);
       const value = this._eval(entry.value, ctx);

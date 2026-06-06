@@ -3,7 +3,7 @@
 import type { ModSubUiAngularJsService } from '@scml/types/Mod_LoaderGui/ModSubUiAngularJsService';
 import maplebirch, { type MaplebirchCore } from '../core';
 import Gui from '@/twee/Gui.twee';
-import { widgets, convert } from '../utils';
+import { widgets } from '../utils';
 import { Config } from './../constants';
 
 type ModuleType = 'protected' | 'mounted' | 'exposed' | 'module';
@@ -266,7 +266,7 @@ class GUIControl {
                 });
               };
 
-              $scope.DEBUGMODE = (type: string) => convert(maplebirch.t(type === 'enable' ? 'enable' : 'disable', true), 'title') + $scope.t($scope.$ctrl.data.text.DEBUGMODE);
+              $scope.DEBUGMODE = (type: string) => maplebirch.t(type === 'enable' ? 'enable' : 'disable', true).convert('title') + $scope.t($scope.$ctrl.data.text.DEBUGMODE);
 
               $scope.DEBUGSTATUS = () =>
                 $scope.t($scope.$ctrl.data.text.DEBUGSTATUS) + (maplebirch.LogLevel === 'DEBUG' ? $scope.t($scope.$ctrl.data.text.EnabledSTATUS) : $scope.t($scope.$ctrl.data.text.DisabledSTATUS));

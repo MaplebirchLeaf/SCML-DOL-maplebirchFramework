@@ -546,7 +546,7 @@ class CloudSaveService {
   }
 
   private normalizeSave(save: any): any {
-    const state = structuredClone(save);
+    const state = save.clone();
     if (!state.history && state.delta) {
       const deltaDecode = this.core.SugarCube?.State?.deltaDecode;
       if (typeof deltaDecode !== 'function') throw new Error('SugarCube.State.deltaDecode is not available.');
