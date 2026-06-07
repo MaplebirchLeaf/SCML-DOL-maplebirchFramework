@@ -90,6 +90,16 @@ const widgetPassage = {
     { srcmatchgroup: /(?:<<print\s*_npcData\.title(?:\.replace\([^)]+\))+>>|<<print setup\.NPC_CN_TITLE\(_npcData\.title\)>>|The _npcData\.title)/g, to: '<<= (lanSwitch("The ","")) + maplebirch.auto(_npcData.title)>>' },
     { srcmatchgroup: /<<for _j to \$_statCount; _j lt 3; _j\+\+>>/g, to: '<<for _j to $_statCount; _j lt (($options.maplebirch?.relationcount ?? 4) - 1); _j++>>' },
   ],
+  'Widgets Effects Man': [
+    { src: '<<if $leftaction is "lefthandholdkeep" and $rightaction is "righthandholdkeep">>', applybefore: '<<maplebirchCombatAction "leftaction" "rightaction">>\n\t\t' },
+    { src: '<<if $feetaction is "grab">>', applybefore: '<<maplebirchCombatAction "feetaction">>\n\t\t' },
+    { src: '<<if $mouthaction is "rest">>', applybefore: '<<maplebirchCombatAction "mouthaction">>\n\t\t' },
+    { src: '<<if $vaginaaction is "penisthighs" and $NPCList[$vaginatarget].penis is "vaginaentrance">>', applybefore: '<<maplebirchCombatAction "vaginaaction">>\n\t\t' },
+    { src: '<<if $anusaction is "rest">>', applybefore: '<<maplebirchCombatAction "anusaction">>\n\t\t' },
+    { src: '<<if $thighaction is "rub">>', applybefore: '<<maplebirchCombatAction "thighaction">>\n\t\t' },
+    { src: '<<if $penisaction is "rest">>', applybefore: '<<maplebirchCombatAction "penisaction">>\n\t\t' },
+    { src: '<<if $chestaction is "rub">>', applybefore: '<<maplebirchCombatAction "chestaction">>\n\t\t' },
+  ],
   Traits: [
     { src: '<div id="traitListsSearch">', applybefore: '<<run maplebirch.tool.patch.injectTraits(_traitLists)>>\n\t' }
   ],

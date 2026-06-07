@@ -22,6 +22,7 @@ interface ActionEntry {
   value: (ctx: Context) => any;
   color: (ctx: Context) => string;
   difficulty: (ctx: Context) => string;
+  effect: (ctx: Context) => string;
   combatType: (ctx: Context) => CombatType;
   order: (ctx: Context) => number;
 }
@@ -34,6 +35,7 @@ interface ActionConfig {
   value: (ctx: Context) => any;
   color?: string | ((ctx: Context) => string);
   difficulty?: string | ((ctx: Context) => string);
+  effect?: string | ((ctx: Context) => string);
   combatType?: CombatType | ((ctx: Context) => CombatType);
   order?: number | ((ctx: Context) => number);
 }
@@ -42,21 +44,12 @@ export interface OptionsTable {
   [key: string]: any;
 }
 
-interface CombatActionApi {
-  actions: ActionEntry[];
-  reg(...configs: ActionConfig[]): CombatActionApi;
-  _eval<T>(fnOrValue: T | ((ctx: Context) => T), ctx: Context): T | null;
-  action(optionsTable: OptionsTable, actionType: ActionType, combatType?: CombatType): OptionsTable;
-  color(action: any, encounterType?: CombatType): string | null;
-  difficulty(action: any, combatType?: CombatType): string | null;
-}
+class CombatActions {
+  public readonly actions: ActionEntry[] = [];
 
-const CombatAction: CombatActionApi = {
-  actions: [] as ActionEntry[],
-
-  reg(...configs: ActionConfig[]): CombatActionApi {
+  public reg(...configs: ActionConfig[]): this {
     configs.forEach(config => {
-      const { id, actionType, cond, display, value, color = 'white', difficulty = '', combatType = 'Default', order = -4 } = config;
+      const { id, actionType, cond, display, value, color = 'white', difficulty = '', effect = '', combatType = 'Default', order = -4 } = config;
       const actionTypes = Array.isArray(actionType) ? actionType : [actionType];
       actionTypes.forEach(type => {
         this.actions.push({
@@ -67,15 +60,16 @@ const CombatAction: CombatActionApi = {
           value,
           color: typeof color === 'function' ? color : () => color,
           difficulty: typeof difficulty === 'function' ? difficulty : () => difficulty,
+          effect: typeof effect === 'function' ? effect : () => effect,
           combatType: typeof combatType === 'function' ? combatType : () => combatType,
           order: typeof order === 'function' ? order : () => order
         });
       });
     });
     return this;
-  },
+  }
 
-  _eval<T>(fnOrValue: T | ((ctx: Context) => T), ctx: Context): T | null {
+  private eval<T>(fnOrValue: T | ((ctx: Context) => T), ctx: Context): T | null {
     if (typeof fnOrValue !== 'function') return fnOrValue;
     try {
       return (fnOrValue as (ctx: Context) => T)(ctx);
@@ -83,9 +77,9 @@ const CombatAction: CombatActionApi = {
       maplebirch.combat?.log?.('CombatAction 执行错误', 'WARN', e, ctx);
       return null;
     }
-  },
+  }
 
-  action(optionsTable: OptionsTable, actionType: ActionType, combatType: CombatType = 'Default'): OptionsTable {
+  public patchOptions(optionsTable: OptionsTable, actionType: ActionType, combatType: CombatType = 'Default'): OptionsTable {
     const ctx: Context = {
       actionType,
       combatType: combatType || 'Default',
@@ -94,12 +88,12 @@ const CombatAction: CombatActionApi = {
     const modActions: Array<{ display: string; value: any; order: number }> = [];
     this.actions.forEach(entry => {
       if (entry.actionType !== actionType) return;
-      const entryCombatType = this._eval(entry.combatType, ctx) ?? 'Default';
+      const entryCombatType = this.eval(entry.combatType, ctx) ?? 'Default';
       if (entryCombatType !== ctx.combatType) return;
-      if (!this._eval(entry.cond, ctx)) return;
-      const display = this._eval(entry.display, ctx);
-      const value = this._eval(entry.value, ctx);
-      const order = this._eval(entry.order, ctx) ?? -4;
+      if (!this.eval(entry.cond, ctx)) return;
+      const display = this.eval(entry.display, ctx);
+      const value = this.eval(entry.value, ctx);
+      const order = this.eval(entry.order, ctx) ?? -4;
       if (display && value != null) modActions.push({ display, value, order });
     });
     if (modActions.length === 0) return optionsTable;
@@ -108,45 +102,63 @@ const CombatAction: CombatActionApi = {
     Object.keys(optionsTable).forEach(key => delete optionsTable[key]);
     result.forEach(([display, value]) => (optionsTable[display] = value));
     return optionsTable;
-  },
+  }
 
-  color(action: any, encounterType: CombatType = 'Default'): string | null {
+  public color(action: any, encounterType: CombatType = 'Default'): string | null {
     const ctx: Context = {
       action,
       encounterType
     };
     const exact = this.actions.find(entry => {
-      const value = this._eval(entry.value, ctx);
-      const entryCombatType = this._eval(entry.combatType, ctx) ?? 'Default';
+      const value = this.eval(entry.value, ctx);
+      const entryCombatType = this.eval(entry.combatType, ctx) ?? 'Default';
       return value === action && entryCombatType === encounterType;
     });
-    if (exact) return this._eval(exact.color, ctx) || null;
+    if (exact) return this.eval(exact.color, ctx) || null;
     const fallback = this.actions.find(entry => {
-      const value = this._eval(entry.value, ctx);
-      const entryCombatType = this._eval(entry.combatType, ctx) ?? 'Default';
+      const value = this.eval(entry.value, ctx);
+      const entryCombatType = this.eval(entry.combatType, ctx) ?? 'Default';
       return value === action && entryCombatType === 'Default';
     });
-    return fallback ? this._eval(fallback.color, ctx) || null : null;
-  },
+    return fallback ? this.eval(fallback.color, ctx) || null : null;
+  }
 
-  difficulty(action: any, combatType: CombatType = 'Default'): string | null {
+  public difficulty(action: any, combatType: CombatType = 'Default'): string | null {
     const ctx: Context = {
       action,
       combatType
     };
     const exact = this.actions.find(entry => {
-      const value = this._eval(entry.value, ctx);
-      const entryCombatType = this._eval(entry.combatType, ctx) ?? 'Default';
+      const value = this.eval(entry.value, ctx);
+      const entryCombatType = this.eval(entry.combatType, ctx) ?? 'Default';
       return value === action && entryCombatType === combatType;
     });
-    if (exact) return this._eval(exact.difficulty, ctx) ?? null;
+    if (exact) return this.eval(exact.difficulty, ctx) ?? null;
     const fallback = this.actions.find(entry => {
-      const value = this._eval(entry.value, ctx);
-      const entryCombatType = this._eval(entry.combatType, ctx) ?? 'Default';
+      const value = this.eval(entry.value, ctx);
+      const entryCombatType = this.eval(entry.combatType, ctx) ?? 'Default';
       return value === action && entryCombatType === 'Default';
     });
-    return fallback ? (this._eval(fallback.difficulty, ctx) ?? null) : null;
+    return fallback ? (this.eval(fallback.difficulty, ctx) ?? null) : null;
   }
-};
 
-export default CombatAction;
+  public effect(...actionTypes: ActionType[]): string {
+    const result: string[] = [];
+    const targetTypes = actionTypes.length ? actionTypes : [...new Set(this.actions.map(entry => entry.actionType))];
+    targetTypes.forEach(actionType => {
+      this.actions.forEach(entry => {
+        if (entry.actionType !== actionType) return;
+        const ctx: Context = { actionType, id: entry.id };
+        const value = this.eval(entry.value, ctx);
+        const effect = this.eval(entry.effect, ctx);
+        if (value == null || !effect) return;
+        const actionVar = `$${actionType}`;
+        const defaultVar = `$${actionType}default`;
+        result.push(`<<if ${actionVar} is ${JSON.stringify(value)}>>\n\t<<set ${actionVar} to 0>><<set ${defaultVar} to ${JSON.stringify(value)}>>\n\t${effect}\n<</if>>`);
+      });
+    });
+    return result.join('\n');
+  }
+}
+
+export default CombatActions;

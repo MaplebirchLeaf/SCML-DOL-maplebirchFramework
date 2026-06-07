@@ -1,10 +1,11 @@
+import { Passage } from '@scml/types/sugarcube-2-ModLoader/SugarCube2';
+import { SugarCubeObject, SaveAPI, StateAPI, WikifierAPI as WikifierAPI$1, MacroContext as MacroContext$1 } from 'twine-sugarcube';
 import { SC2DataManager } from '@scml/types/sugarcube-2-ModLoader/SC2DataManager';
 import { ModUtils } from '@scml/types/sugarcube-2-ModLoader/Utils';
 import { Gui } from '@scml/types/Mod_LoaderGui/Gui';
 import jsyaml from 'js-yaml';
 import { Howl, Howler } from 'howler';
 import * as marked from 'marked';
-import { Passage } from '@scml/types/sugarcube-2-ModLoader/SugarCube2';
 import { ModInfo, ModBootJson } from '@scml/types/sugarcube-2-ModLoader/ModLoader';
 import { JSZipLikeReadOnlyInterface } from '@scml/types/sugarcube-2-ModLoader/JSZipLikeReadOnlyInterface';
 import { ModZipReader } from '@scml/types/sugarcube-2-ModLoader/ModZipReader';
@@ -326,14 +327,57 @@ declare global {
   }
 }
 
-interface WikifierAPI {
+interface WikifierAPI extends WikifierAPI$1 {
   new (destination: Node | DocumentFragment | string | null, source?: string): any;
   wikifyEval(text: string, passageObj?: { title: string }, passageTitle?: string): DocumentFragment;
 }
 
-type TwineSugarCube = any & {
+interface SugarCubeUtilAPI {
+  sameValueZero(left: any, right: any): boolean;
+  slugify(value: string): string;
+  [key: string]: any;
+}
+
+interface DolStateAPI extends StateAPI {
+  readonly qc: number;
+  show(): void;
+  deltaEncode(history: any[]): any;
+  deltaDecode(delta: any): any[];
+}
+
+interface DolSaveAPI extends SaveAPI {
+  serialize(metadata?: any): string;
+  deserialize(saveStr: string): any;
+}
+
+interface TwineSugarCube {
+  Browser: SugarCubeObject['Browser'];
+  Config: SugarCubeObject['Config'];
+  Dialog: SugarCubeObject['Dialog'];
+  Engine: SugarCubeObject['Engine'];
+  Fullscreen: SugarCubeObject['Fullscreen'];
+  Has: SugarCubeObject['Has'];
+  L10n: any;
+  Macro: SugarCubeObject['Macro'];
+  Passage: typeof Passage;
+  Save: DolSaveAPI;
+  Scripting: SugarCubeObject['Scripting'];
+  Setting: SugarCubeObject['Setting'];
+  SimpleAudio: SugarCubeObject['SimpleAudio'];
+  State: DolStateAPI;
+  Story: SugarCubeObject['Story'];
+  UI: SugarCubeObject['UI'];
+  UIBar: SugarCubeObject['UIBar'];
+  DebugBar: any;
+  Util: SugarCubeUtilAPI;
+  Visibility: any;
   Wikifier: WikifierAPI;
-};
+  session: SugarCubeObject['session'];
+  settings: SugarCubeObject['settings'];
+  setup: SugarCubeObject['setup'];
+  storage: SugarCubeObject['storage'];
+  version: SugarCubeObject['version'];
+}
 
 declare class Logger {
     readonly core: MaplebirchCore;
@@ -366,11 +410,9 @@ declare class IndexedDBService {
         options?: IDBIndexParameters;
     }>): void;
     init(): Promise<void>;
-    checkStore(): Promise<void>;
     withTransaction<T>(storeNames: string | string[], mode: IDBTransactionMode, callback: (tx: any) => T | Promise<T>): Promise<T>;
     clearStore(storeName: string): Promise<void>;
     deleteDatabase(): Promise<boolean>;
-    resetDatabase(): Promise<void>;
 }
 
 type CloudSaveSlot = number;
@@ -986,12 +1028,10 @@ interface MacroPayload {
     args: any;
     contents?: string;
 }
-interface MacroContext {
-    args: any[];
+interface MacroContext extends Omit<MacroContext$1, 'createShadowWrapper' | 'error' | 'payload'> {
     payload?: MacroPayload[] | null;
-    output: HTMLElement;
-    error: (msg: string) => any;
-    createShadowWrapper: (fn?: Function | null, fn2?: Function | null) => (event: JQuery.Event) => void;
+    error(msg: string): any;
+    createShadowWrapper(callback: Function, doneCallback?: Function, startCallback?: Function): (...args: any[]) => void;
     passageObj?: any;
     lanListboxCache?: Record<string, {
         options: ListboxOption[];
@@ -1890,6 +1930,7 @@ interface ActionEntry {
     value: (ctx: Context) => any;
     color: (ctx: Context) => string;
     difficulty: (ctx: Context) => string;
+    effect: (ctx: Context) => string;
     combatType: (ctx: Context) => CombatType;
     order: (ctx: Context) => number;
 }
@@ -1901,26 +1942,26 @@ interface ActionConfig {
     value: (ctx: Context) => any;
     color?: string | ((ctx: Context) => string);
     difficulty?: string | ((ctx: Context) => string);
+    effect?: string | ((ctx: Context) => string);
     combatType?: CombatType | ((ctx: Context) => CombatType);
     order?: number | ((ctx: Context) => number);
 }
 interface OptionsTable {
     [key: string]: any;
 }
-interface CombatActionApi {
-    actions: ActionEntry[];
-    reg(...configs: ActionConfig[]): CombatActionApi;
-    _eval<T>(fnOrValue: T | ((ctx: Context) => T), ctx: Context): T | null;
-    action(optionsTable: OptionsTable, actionType: ActionType, combatType?: CombatType): OptionsTable;
+declare class CombatActions {
+    readonly actions: ActionEntry[];
+    reg(...configs: ActionConfig[]): this;
+    patchOptions(optionsTable: OptionsTable, actionType: ActionType, combatType?: CombatType): OptionsTable;
     color(action: any, encounterType?: CombatType): string | null;
     difficulty(action: any, combatType?: CombatType): string | null;
+    effect(...actionTypes: ActionType[]): string;
 }
-declare const CombatAction: CombatActionApi;
 
 declare class CombatManager {
     readonly core: MaplebirchCore;
     readonly log: ReturnType<typeof createlog>;
-    readonly CombatAction: typeof CombatAction;
+    readonly CombatAction: CombatActions;
     constructor(core: MaplebirchCore);
     Init(): void;
 }

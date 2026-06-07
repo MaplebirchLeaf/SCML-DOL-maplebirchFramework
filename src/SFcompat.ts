@@ -61,25 +61,25 @@ class TimeEvent {
     private readonly eventId: string
   ) {}
 
-  public cond(handler: TimeEventHandler): this {
+  public Cond(handler: TimeEventHandler): this {
     this._cond = handler;
     this.refresh();
     return this;
   }
 
-  public action(handler: TimeEventHandler): this {
+  public Action(handler: TimeEventHandler): this {
     this._action = handler;
     this.register();
     return this;
   }
 
-  public once(isOnce = true): this {
+  public Once(isOnce = true): this {
     this.options.once = isOnce;
     this.refresh();
     return this;
   }
 
-  public priority(priority: number): this {
+  public Priority(priority: number): this {
     this.options.priority = priority;
     this.refresh();
     return this;

@@ -1,6 +1,7 @@
 // ./src/SugarCubeMacros.ts
 
 import maplebirch, { type MaplebirchCore } from './core';
+import type { MacroContext as SugarCubeMacroContext } from 'twine-sugarcube';
 
 const CONVERT_MODES = ['lower', 'upper', 'capitalize', 'title', 'camel', 'pascal', 'snake', 'kebab', 'constant'] as const;
 type ConvertMode = (typeof CONVERT_MODES)[number];
@@ -11,12 +12,10 @@ interface MacroPayload {
   contents?: string;
 }
 
-export interface MacroContext {
-  args: any[];
+export interface MacroContext extends Omit<SugarCubeMacroContext, 'createShadowWrapper' | 'error' | 'payload'> {
   payload?: MacroPayload[] | null;
-  output: HTMLElement;
-  error: (msg: string) => any;
-  createShadowWrapper: (fn?: Function | null, fn2?: Function | null) => (event: JQuery.Event) => void;
+  error(msg: string): any;
+  createShadowWrapper(callback: Function, doneCallback?: Function, startCallback?: Function): (...args: any[]) => void;
   passageObj?: any;
   lanListboxCache?: Record<string, { options: ListboxOption[]; selectedIdx: number }>;
 }
@@ -210,7 +209,7 @@ function _languageButton(this: MacroContext): void {
         role: 'button',
         one: false
       },
-      this.createShadowWrapper(content ? () => maplebirch.SugarCube.Wikifier.wikifyEval(content, passageObj) : null)
+      this.createShadowWrapper(content ? () => maplebirch.SugarCube.Wikifier.wikifyEval(content, passageObj) : () => {})
     );
     $button.appendTo(this.output);
     setup.maplebirch?.language?.add('lanButton', update);
@@ -280,7 +279,7 @@ function _languageLink(this: MacroContext): void {
         role: passageName != null ? 'link' : 'button',
         one: passageName != null
       },
-      this.createShadowWrapper(content ? () => maplebirch.SugarCube.Wikifier.wikifyEval(content, passageObj) : null, passageName != null ? () => maplebirch.SugarCube.Engine.play(passageName) : null)
+      this.createShadowWrapper(content ? () => maplebirch.SugarCube.Wikifier.wikifyEval(content, passageObj) : () => {}, passageName != null ? () => maplebirch.SugarCube.Engine.play(passageName) : undefined)
     );
     $container.append($link);
     $container.appendTo(this.output);
