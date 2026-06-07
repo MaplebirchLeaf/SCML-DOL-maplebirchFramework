@@ -1,6 +1,10 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "ignorePatterns": ["node_modules/", "dist/", "publish/", "temp/", ".cache/"],
+  "options": {
+    "typeAware": false,
+    "typeCheck": false
+  },
   "plugins": ["import", "jsdoc", "node", "oxc", "promise", "typescript", "unicorn"],
   "rules": {
     "no-implied-eval": "off",

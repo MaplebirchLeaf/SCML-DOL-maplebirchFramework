@@ -1,12 +1,15 @@
 // .src/constants.ts
 
-import { lastModifiedBy, lastUpdate } from '../package.json';
+import builtinTranslationsCN from '@/assets/translations/CN.yaml';
+import builtinTranslationsEN from '@/assets/translations/EN.yaml';
 
-const version = window.modUtils.getMod('maplebirch').version;
-const Languages = ['EN', 'CN'] as const;
+export type LanguageCode = (typeof Languages)[number];
+
+export const version = window.modUtils.getMod('maplebirch')!.version;
+export const Languages = ['EN', 'CN'] as const;
 
 // prettier-ignore
-const Config = {
+export const Config = {
   Title            : ['Maplebirch Framworks', '秋枫白桦框架'],
   DEBUG            : ['DEBUG MODE', '调试模式'],
   DEBUGSTATUS      : ['DEBUG MODE STATUS', '调试模式状态'],
@@ -22,34 +25,59 @@ const Config = {
 };
 
 // prettier-ignore
-const ModuleState: {[key: string|number]: string|number} = (() => {
+export const ModuleState: {[key: string|number]: string|number} = (() => {
   const state: {[key: string|number]: string|number} = {
     REGISTERED: 0,
-    LOADED    : 1,
-    MOUNTED   : 2,
-    ERROR     : 3,
-    EXTENSION : 4
+    MOUNTED   : 1,
+    ERROR     : 2,
+    EXPOSED   : 3,
+    DISABLED  : 4
   };
   Object.entries(state).forEach(([key, value]) => state[value] = key);
   return state;
 })();
 
-const TimeConstants = (() => {
+export const Translations: Partial<Record<LanguageCode, string>> = {
+  CN: builtinTranslationsCN,
+  EN: builtinTranslationsEN
+};
+
+export const TimeConstants = (() => {
   const secondsPerDay = 86400;
   const secondsPerHour = 3600;
   const secondsPerMinute = 60;
+  const minutesPerHour = 60;
   const standardYearMonths = Object.freeze([31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]);
   const leapYearMonths = Object.freeze([31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]);
   const synodicMonth = 29.53058867;
+  const MIN_DATE = Object.freeze({
+    timeStamp: -315537984000,
+    year: -9999,
+    month: 1,
+    day: 1,
+    hour: 0,
+    minute: 0,
+    second: 0
+  });
+  const MAX_DATE = Object.freeze({
+    timeStamp: 315537897599,
+    year: 9999,
+    month: 12,
+    day: 31,
+    hour: 23,
+    minute: 59,
+    second: 59
+  });
 
   return Object.freeze({
     secondsPerDay,
     secondsPerHour,
     secondsPerMinute,
+    minutesPerHour,
     standardYearMonths,
     leapYearMonths,
-    synodicMonth
+    synodicMonth,
+    MIN_DATE,
+    MAX_DATE
   });
 })();
-
-export { version, lastUpdate, lastModifiedBy, Languages, Config, ModuleState, TimeConstants };

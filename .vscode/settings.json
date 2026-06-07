@@ -6,7 +6,7 @@
   "editor.codeActionsOnSave": {
     "source.fixAll.oxc": "always"
   },
-  "oxc.typeAware": true,
+  "oxc.typeAware": false,
   "[javascript]": {
     "editor.defaultFormatter": "oxc.oxc-vscode",
     "editor.formatOnSave": true
@@ -14,5 +14,6 @@
   "[typescript]": {
     "editor.defaultFormatter": "oxc.oxc-vscode",
     "editor.formatOnSave": true
-  }
+  },
+  "go.toolsEnvVars": {}
 }

@@ -1,50 +1,72 @@
-// ./src/modules/NamedNPCAddon/NPCSiderbarConfig/neck_layers.ts
+// ./src/modules/NamedNPCAddon/NPCSidebarConfig/neck_layers.ts
 
 import maplebirch from '../../../core';
 import { gray_suffix, clothes_layer } from './functions';
-import { LayerOptions } from '../../../../types/npcsidebar-layers';
+
+type NPCSidebarOptions = {
+  filters?: Record<string, any>;
+  maplebirch: {
+    nnpc: Record<string, any>;
+    [key: string]: any;
+  };
+  [key: string]: any;
+};
 
 const neck_layers = {
   nnpc_neck_main: clothes_layer('neck', 'main', {
-    masksrcfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.high_waist_suspenders ? [options.maplebirch.nnpc.close_up_mask!, 'img/clothes/neck/suspenders/mask.png'] : options.maplebirch.nnpc.close_up_mask;
-    },
-    srcfn(options: LayerOptions) {
+    masksrcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
-      const collar =
-        nnpc.clothes!.neck!.has_collar === 1 && nnpc.clothes!.upper!.has_collar === 1
-          ? '_nocollar'
-          : nnpc.clothes!.neck!.name === 'sailor ribbon' && nnpc.clothes!.upper!.name === 'serafuku'
-            ? '_serafuku'
-            : '';
-      const pattern = nnpc.clothes!.neck!.pattern && !['tertiary', 'secondary'].includes(nnpc.clothes!.neck!.pattern_layer!) ? `_${nnpc.clothes!.neck!.pattern.replace(/ /g, '_')}` : '';
-      return gray_suffix(`img/clothes/neck/${nnpc.clothes!.neck!.variable}/${nnpc.clothes!.neck!.integrity}${collar}${pattern}.png`, options.filters!['nnpc_neck']);
+      if (nnpc.high_waist_suspenders) return [nnpc.close_up_mask, 'img/clothes/neck/suspenders/mask.png'];
+      return nnpc.close_up_mask;
     },
-    showfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.clothes!.neck!.mainImage !== 0 && !options.maplebirch.nnpc.hide_all && options.maplebirch.nnpc.show && options.maplebirch.nnpc.model;
+
+    srcfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      const neck = nnpc.clothes.neck;
+      const upper = nnpc.clothes.upper;
+      const collar = neck.has_collar === 1 && upper.has_collar === 1 ? '-nocollar' : neck.name === 'sailor ribbon' && upper.name === 'serafuku' ? '-serafuku' : '';
+      const pattern = neck.pattern && !['tertiary', 'secondary'].includes(neck.pattern_layer) ? `-${neck.pattern.replace(/ /g, '-')}` : '';
+      return gray_suffix(`img/clothes/neck/${neck.variable}/${neck.integrity}${collar}${pattern}.png`, options.filters?.nnpc_neck);
     },
-    zfn(options: LayerOptions) {
-      return (options.maplebirch.nnpc.hood_mask ? maplebirch.char.ZIndices.collar : maplebirch.char.ZIndices.neck) + options.maplebirch.nnpc.position!;
+
+    showfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      const neck = nnpc.clothes.neck;
+      return neck.index > 0 && neck.mainImage !== 0 && !nnpc.hide_all && nnpc.show && nnpc.model;
+    },
+
+    zfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      return (nnpc.hood_mask ? maplebirch.char.ZIndices.collar : maplebirch.char.ZIndices.neck) + nnpc.position;
     }
   }),
+
   nnpc_neck_acc: clothes_layer('neck', 'acc', {
-    srcfn(options: LayerOptions) {
+    srcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
-      const integrity = nnpc.clothes!.neck!.accessory_integrity_img ? `_${nnpc.clothes!.neck!.integrity}` : '';
-      const pattern = nnpc.clothes!.neck?.pattern && nnpc.clothes!.neck?.pattern_layer === 'secondary' ? `_${nnpc.clothes!.neck!.pattern.replace(/ /g, '_')}` : '';
-      return gray_suffix(`img/clothes/neck/${nnpc.clothes!.neck!.variable}/acc${integrity}${pattern}.png`, options.filters!['nnpc_neck_acc']);
+      const neck = nnpc.clothes.neck;
+      const integrity = neck.accessory_integrity_img ? `-${neck.integrity}` : '';
+      const pattern = neck.pattern && neck.pattern_layer === 'secondary' ? `-${neck.pattern.replace(/ /g, '-')}` : '';
+      return gray_suffix(`img/clothes/neck/${neck.variable}/acc${integrity}${pattern}.png`, options.filters?.nnpc_neck_acc);
     },
-    showfn(options: LayerOptions) {
+
+    showfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
-      return nnpc.clothes!.neck!.accImage !== 0 && nnpc.clothes!.neck!.accessory === 1 && !nnpc.hide_leash && nnpc.show && nnpc.model;
+      const neck = nnpc.clothes.neck;
+      return neck.index > 0 && neck.accImage !== 0 && neck.accessory === 1 && !nnpc.hide_leash && !nnpc.hide_all && nnpc.show && nnpc.model;
     },
-    zfn(options: LayerOptions) {
+
+    zfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
-      const check = nnpc.clothes!.head!.mask_img === 1 && !(nnpc.clothes!.upper!.hoodposition === 'down' && nnpc.clothes!.head!.hood && nnpc.clothes!.head!.outfitSecondary != null);
-      return (check ? maplebirch.char.ZIndices.collar : maplebirch.char.ZIndices.neck) + nnpc.position!;
+      const head = nnpc.clothes.head;
+      const upper = nnpc.clothes.upper;
+      const covered = head.mask_img === 1 && !(upper.hoodposition === 'down' && head.hood && head.outfitSecondary != null);
+      return (covered ? maplebirch.char.ZIndices.collar : maplebirch.char.ZIndices.neck) + nnpc.position;
     },
-    dyfn(options: LayerOptions) {
-      return (options.maplebirch.nnpc.high_waist_suspenders ? -8 : 0) + options.maplebirch.nnpc.dyfn!;
+
+    dyfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      return (nnpc.high_waist_suspenders ? -8 : 0) + nnpc.dyfn;
     }
   })
 };

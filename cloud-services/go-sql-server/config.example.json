@@ -1,0 +1,5 @@
+{
+  "addr": ":8787",
+  "dbPath": "./cloud-save.db",
+  "sessionDays": 30
+}

@@ -1,0 +1,184 @@
+'English': English
+'Chinese': Chinese
+'mods': mods
+'maplebirch': maplebirch
+'introduction': introduction
+'contents': contents
+'settings': settings
+'cheats': cheats
+'statistics': statistics
+'cloud save': cloud save
+'apply': apply
+'search': search
+'clear': clear
+'character': character
+'panel': panel
+'previous': previous
+'next': next
+'playback': playback
+'pause': pause
+'stop': stop
+'resume': resume
+'loop mode': loop mode
+'volume': volume
+'cache': cache
+'mobile client': mobile client
+'desktop client': desktop client
+'disable': disable
+'enable': enable
+'execute': execute
+'set': set
+'hidden': hidden
+'default': default
+'delete': delete
+'confirm': confirm
+'cancel': cancel
+'all': all
+'create': create
+'modify': modify
+'sort': sort
+'reset': reset
+'status': status
+'choose': choose
+'calendar': calendar
+
+'traditional': traditional
+'gentle': gentle
+'catty': catty
+'aloof': aloof
+'sweet': sweet
+'foxy': foxy
+'gloomy': gloomy
+
+'low ombré': low ombré
+'high ombré': high ombré
+'split': split
+'face-framing highlights': face-framing highlights
+
+'Prioritise headwear over horns': Prioritise headwear over horns
+'Prioritise horns over headwear': Prioritise horns over headwear
+'Push tail back': Push tail back
+'Move tail forward': Move tail forward
+'Push wings behind': Push wings behind
+'Move wings forward': Move wings forward
+
+'None': None
+
+'male': male
+'famale': famale
+'asexual': asexual
+'hermaphrodite': hermaphrodite
+'businessperson': businessperson
+'businessman': businessman
+'businesswoman': businesswoman
+'crimson hound': crimson hound
+'caretaker': caretaker
+'brothel owner': brothel owner
+'dance coach': dance coach
+'club owner': club owner
+'English teacher': English teacher
+'huntress': huntress
+'hunter': hunter
+'shopkeeper': shopkeeper
+'curious': curious
+'doctor': doctor
+'silver fox': silver fox
+'pious': pious
+'nun': nun
+'monk': monk
+'loner': loner
+'criminal': criminal
+'headteacher': headteacher
+'headmaster': headmaster
+'headmistress': headmistress
+'swimming teacher': swimming teacher
+'sewer dweller': sewer dweller
+'maths teacher': maths teacher
+'orphan': orphan
+'cafe owner': cafe owner
+'science teacher': science teacher
+'bully': bully
+'history teacher': history teacher
+'alpha': alpha
+'photographer': photographer
+'mayor': mayor
+'farmer': farmer
+'high elk': high elk
+'scarred': scarred
+'farmhand': farmhand
+'terror': terror
+'smuggler': smuggler
+'faithful': faithful
+'fallen': fallen
+'reflection': reflection
+'explorer': explorer
+'delinquent': delinquent
+'captain': captain
+'pirate': pirate
+'priestess': priestess
+'priest': priest
+
+'reset defaults': reset defaults
+'save current settings': save current settings
+'restore saved settings': restore saved settings
+
+'framework.notice.desc': 'Maplebirch Framework provides loading, extension, and compatibility support for Degrees of Lewdity mods. When enabled, the game may be affected by the framework itself or by related mods.'
+'framework.notice.issue.title': 'Before reporting an issue, please check where it comes from:'
+'framework.notice.issue.mod': 'If the issue appears in the content of a specific mod, please contact that mod author first.'
+'framework.notice.issue.framework': 'If the issue is related to framework loading, APIs, compatibility, or core framework features, please report it to the framework author.'
+'framework.notice.issue.report': 'When reporting an issue, please include the framework version, game version, enabled mod list, error screenshots, or reproduction steps if possible.'
+'framework.notice.verify': 'I have read and understood the notice above'
+'framework.notice.confirm': 'I Understand'
+
+'credential.auth.title': 'Mod Credential'
+'credential.auth.label': 'credential'
+'credential.auth.placeholder': 'Enter credential'
+'credential.auth.hint': 'This protected mod needs a valid credential for its first unlock.'
+'credential.auth.unlock': 'Unlock'
+'credential.auth.error.format': 'Invalid credential format'
+'credential.auth.error.signature': 'Invalid credential signature'
+'credential.auth.error.mismatch': 'Credential does not match this mod'
+
+'cloud.save.none.loaded': No remote saves loaded.
+'cloud.save.none': No remote saves.
+'cloud.save.action.connect': Connect
+'cloud.save.action.register': Register
+'cloud.save.action.delete.account': Delete Account
+'cloud.save.action.upload': Upload
+'cloud.save.action.download': Download
+'cloud.save.action.delete': Delete
+'cloud.save.action.code.current': Get Save Code
+'cloud.save.action.code.upload': Upload Code
+'cloud.save.action.code.download': Download Code
+'cloud.save.action.code.load': Load Save Code
+'cloud.save.status.working': Working...
+'cloud.save.status.connect': Connected.
+'cloud.save.status.registered': Registered and logged in.
+'cloud.save.status.account.delete': Account deleted with its cloud saves.
+'cloud.save.status.upload': Uploaded.
+'cloud.save.status.download': Downloaded.
+'cloud.save.status.delete': Deleted.
+'cloud.save.status.refresh': Remote saves refreshed.
+'cloud.save.status.code.generate': Save code generated.
+'cloud.save.status.slot.code.generate': Slot save code generated.
+'cloud.save.status.code.upload': Save code uploaded.
+'cloud.save.status.code.download': Save code downloaded.
+'cloud.save.status.code.load': Save code loaded.
+'cloud.save.error.download': Download failed.
+'cloud.save.error.code.invalid': Invalid save code.
+'cloud.save.error.code.notFound': Remote save code not found.
+'cloud.save.error.code.empty': Remote save code is empty.
+'cloud.save.error.slot.range': Slot must be between 0 and 10.
+'cloud.save.error.webdav.credentials': Please fill in the address, account, and password.
+'cloud.save.error.decrypt': Decrypt failed. The password does not match this cloud save.
+'cloud.save.error.decompress': This browser cannot decompress cloud saves.
+'cloud.save.error.code.tools': Save code tools are not available.
+
+'General Traits': 'General Traits'
+'Medicinal Traits': 'Medicinal Traits'
+'Special Traits': 'Special Traits'
+'School Traits': 'School Traits'
+'Trauma Traits': 'Trauma Traits'
+'NPC Traits': 'NPC Traits'
+'Hypnosis Traits': 'Hypnosis Traits'
+'Acceptance Traits': 'Acceptance Traits'

@@ -1,19 +1,19 @@
-// types/global.d.ts
-
 import { SC2DataManager } from '@scml/types/sugarcube-2-ModLoader/SC2DataManager';
 import { GameOriginalImagePack } from '@scml/types/GameOriginalImagePackMod/GameOriginalImagePack';
 import { BeautySelectorAddon } from '@scml/types/AddonMod_BeautySelector/BeautySelectorAddon';
 import { ImgLoaderHooker } from '@scml/types/Hook_ImgLoader/ImgLoaderHooker';
 import { Gui } from '@scml/types/Mod_LoaderGui/Gui';
-import { ModInfo } from '@scml/types/sugarcube-2-ModLoader/ModLoader';
 import { ModUtils } from '@scml/types/sugarcube-2-ModLoader/Utils';
-import { _languageSwitch } from '../src/database/SugarCubeMacros';
+import { _languageSwitch } from '../src/SugarCubeMacros';
 
 declare global {
   interface Window {
     readonly modSC2DataManager: SC2DataManager;
     readonly modGameOriginalImagePack: GameOriginalImagePack;
     readonly modImgLoaderHooker: ImgLoaderHooker;
+    readonly modLoaderGui: Gui;
+    readonly modUtils: ModUtils;
+    readonly addonBeautySelectorAddon: BeautySelectorAddon;
     readonly Time: typeof Time;
     DateTime: typeof DateTime;
     closeOverlay(): void;
@@ -24,103 +24,10 @@ declare global {
     readonly T: typeof T;
   }
 
-  const lanSwitch = _languageSwitch;
+  const lanSwitch: typeof _languageSwitch;
 
   const Links: any;
   const StartConfig: any;
-
-  class DateTime {
-    static isLeapYear(year: number): boolean;
-    constructor(year?: number, month?: number, day?: number, hour?: number, minute?: number, second?: number);
-    constructor(timestamp: number);
-    constructor(dateTime: DateTime);
-    year: number;
-    month: number;
-    day: number;
-    hour: number;
-    minute: number;
-    second: number;
-    timeStamp: number;
-    get weekDay(): number;
-    weekDayName: string;
-    get monthName(): string;
-    weekEnd: boolean;
-    lastDayOfMonth: number;
-    yearDay: number;
-    get moonPhaseFraction(): number;
-    get fractionOfDay(): number;
-    get fractionOfDayFromNoon(): number;
-    simplifiedDayFactor: number;
-    fractionOfYear: number;
-    seasonFactor: number;
-    static getDaysOfYear(year: number): number;
-    static getDaysOfMonthFromYear(year: number): Array<number>;
-    compareWith(otherDateTime: DateTime, getSeconds?: boolean): { years: number; months: number; days: number; hours: number; minutes: number; seconds: number } | number;
-    dayDifference(otherDateTime: DateTime): number;
-    getFirstWeekdayOfMonth(weekDay: number): DateTime;
-    getNextWeekdayDate(weekDay: number): DateTime;
-    getPreviousWeekdayDate(weekDay: number): DateTime;
-    addYears(years: number): DateTime;
-    addMonths(months: number): DateTime;
-    addDays(days: number): DateTime;
-    addHours(hours: number): DateTime;
-    addMinutes(minutes: number): DateTime;
-    addSeconds(seconds: number): DateTime;
-    isLastDayOfMonth(): boolean;
-    isFirstDayOfMonth(): boolean;
-    between(startDate: DateTime, endDate: DateTime): boolean;
-  }
-
-  const Time: {
-    date: DateTime;
-    holidayMonths: number[];
-    second: number;
-    minute: number;
-    hour: number;
-    monthNames: string[];
-    weekDay: number;
-    weekDayName: string;
-    monthDay: number;
-    month: number;
-    monthName: string;
-    year: number;
-    days: number;
-    season: string;
-    startDate: DateTime;
-    tomorrow: DateTime;
-    yesterday: DateTime;
-    schoolTerm: boolean;
-    schoolDay: boolean;
-    schoolTime: boolean;
-    dayState: 'night' | 'dusk' | 'day' | 'dawn';
-    nextSchoolTermStartDate: DateTime;
-    nextSchoolTermEndDate: DateTime;
-    lastDayOfMonth: number;
-    dayOfYear: number;
-    secondsSinceMidnight: number;
-    currentMoonPhase: string;
-    moonPhases: Record<string, { start: number; end: number; description: string; endAlt?: number }>;
-    daysOfWeek: string[];
-    set(time: number | DateTime): void;
-    setDate(date: DateTime): void;
-    setTime(hour: number, minute?: number): void;
-    setTimeRelative(hour: number, minute?: number): void;
-    pass(seconds: number): DocumentFragment;
-    isSchoolTerm(date: DateTime): boolean;
-    isSchoolDay(date: DateTime): boolean;
-    isSchoolTime(date: DateTime): boolean;
-    getDayOfYear(date: DateTime): number;
-    getSecondsSinceMidnight(date: DateTime): number;
-    getNextSchoolTermStartDate(date: DateTime): DateTime;
-    getNextSchoolTermEndDate(date: DateTime): DateTime;
-    nextMoonPhase(targetPhase: string): DateTime;
-    previousMoonPhase(targetPhase: string): DateTime;
-    isBloodMoon(date?: DateTime): boolean;
-    getSeason(date: DateTime): 'winter' | 'spring' | 'summer' | 'autumn';
-    getNextWeekdayDate(weekDay: number): DateTime;
-    getPreviousWeekdayDate(weekDay: number): DateTime;
-    isWeekEnd(): boolean;
-  };
 
   interface ErrorsConfig {
     debug: boolean;

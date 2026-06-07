@@ -1,21 +1,25 @@
 // ./src/modules/NamedNPCAddon/NPCClothes.ts
 
-import { ModZipReader } from '@scml/types/sugarcube-2-ModLoader/ModZipReader';
+import type { ModZipReader } from '@scml/types/sugarcube-2-ModLoader/ModZipReader';
 import maplebirch from '../../core';
-import { convert } from '../../utils';
-import NPCManager from '../NamedNPC';
+import type NPCManager from '../NamedNPC';
+import builtinWardrobe from '@/assets/npc-clothes.yaml';
 
-export interface ClothesConfig {
+type Condition = boolean | string | (() => boolean) | Condition[];
+
+export interface OutfitSetConfig {
   name: string;
   type?: string;
   gender?: string;
   outfit?: number;
-  upper: string | UpperConfig;
-  lower: string | LowerConfig;
+  upper: string | OutfitPartConfig;
+  lower: string | OutfitPartConfig;
   desc?: string;
 }
 
-interface UpperConfig {
+export type ClothesConfig = OutfitSetConfig;
+
+interface OutfitPartConfig {
   name: string;
   integrity_max?: number;
   word?: string;
@@ -23,104 +27,111 @@ interface UpperConfig {
   readonly desc?: string;
 }
 
-interface LowerConfig {
-  name: string;
-  integrity_max?: number;
-  word?: string;
-  action?: string;
-  readonly desc?: string;
-}
-
-interface ClothingSet {
+interface OutfitSet {
   name: string;
   type: string;
   gender: string;
   outfit: number;
-  clothes: { upper: UpperConfig; lower: LowerConfig };
+  clothes: {
+    upper: Required<OutfitPartConfig>;
+    lower: Required<OutfitPartConfig>;
+  };
   desc: string;
 }
 
-interface Layer {
-  cond?: any;
+interface ArtLayer {
+  cond?: Condition;
   zIndex?: number | string;
   img: string;
 }
 
-interface ConfigData {
+type ArtPart = 'head' | 'face' | 'neck' | 'upper' | 'lower' | 'legs' | 'feet' | 'hands';
+
+interface ArtConfig {
   key: string;
   name: string;
   body: string;
-  head?: Layer[];
-  face?: Layer[];
-  neck?: Layer[];
-  upper?: Layer[];
-  lower?: Layer[];
-  legs?: Layer[];
-  feet?: Layer[];
-  hands?: Layer[];
+  head?: ArtLayer[];
+  face?: ArtLayer[];
+  neck?: ArtLayer[];
+  upper?: ArtLayer[];
+  lower?: ArtLayer[];
+  legs?: ArtLayer[];
+  feet?: ArtLayer[];
+  hands?: ArtLayer[];
+  [key: string]: any;
 }
 
 interface WardrobeItem {
   [key: string]: any;
 }
 
-interface RegisterItem {
+interface WearRule {
   key: string;
-  cond?: any;
+  cond?: Condition;
 }
 
-// prettier-ignore
-const evaluate = function(cond: any): boolean {
-  return Array.isArray(cond) ? cond.every(evaluate) :
-  typeof cond === 'boolean' ? cond :
-  typeof cond === 'string' ? (() => {
-    try { return new Function(`return ${cond}`)(); }
-    catch { maplebirch.npc.log(`条件求值失败: ${cond}`, 'WARN'); return false; }
-  })() :
-  typeof cond === 'function' ? (() => {
-    try { return cond(); }
-    catch (e: any) { maplebirch.npc.log(`条件函数执行失败: ${e.message}`, 'WARN'); return false; }
-  })() : false;
+const artParts: ArtPart[] = ['head', 'face', 'neck', 'upper', 'lower', 'legs', 'feet', 'hands'];
+
+function evaluate(cond?: Condition): boolean {
+  if (cond == null) return true;
+  if (Array.isArray(cond)) return cond.every(evaluate);
+  if (typeof cond === 'boolean') return cond;
+  if (typeof cond === 'function') {
+    try {
+      return cond();
+    } catch (e: any) {
+      maplebirch.npc.log(`条件函数执行失败: ${e.message}`, 'WARN');
+      return false;
+    }
+  }
+  if (typeof cond === 'string') {
+    try {
+      return new Function(`return (${cond})`)();
+    } catch {
+      maplebirch.npc.log(`条件求值失败: ${cond}`, 'WARN');
+      return false;
+    }
+  }
+  return false;
 }
 
-class VanillaClothes {
-  private npcClothesSets: ClothingSet[] = [];
+class NPCOutfitSets {
+  private sets: OutfitSet[] = [];
 
-  add(...configs: ClothesConfig[]) {
-    const clothesList = (Array.isArray(configs[0]) ? configs[0] : configs).filter(Boolean);
+  public add(...configs: OutfitSetConfig[]) {
+    const clothesList = configs.filter(Boolean);
     if (!clothesList.length) return;
 
     clothesList.forEach(config => {
       const { name, type = 'custom', gender = 'n', outfit = 0, upper, lower, desc } = config;
       if (!name) return;
-      const toConfig = (cfg: string | UpperConfig | LowerConfig) => (typeof cfg === 'string' ? { name: cfg } : cfg);
-      const upperCfg = toConfig(upper) as UpperConfig;
-      const lowerCfg = toConfig(lower) as LowerConfig;
+      const upperConfig = typeof upper === 'string' ? { name: upper } : upper;
+      const lowerConfig = typeof lower === 'string' ? { name: lower } : lower;
 
-      if (!upperCfg.name || !lowerCfg.name) {
-        maplebirch.npc.log('衣物配置缺少name属性', 'ERROR');
+      if (!upperConfig?.name || !lowerConfig?.name) {
+        maplebirch.npc.log('衣物配置缺少 name 属性', 'ERROR');
         return;
       }
 
-      // prettier-ignore
-      const createPart = (cfg: UpperConfig | LowerConfig, defWord: string) => ({
-        name         : cfg.name,
-        integrity_max: cfg.integrity_max ?? 100,
-        word         : cfg.word ?? defWord,
-        action       : cfg.action ?? 'lift',
-        desc         : cfg.desc ?? cfg.name
+      const createPart = (part: OutfitPartConfig, word: string, action: string): Required<OutfitPartConfig> => ({
+        name: part.name,
+        integrity_max: part.integrity_max ?? 100,
+        word: part.word ?? word,
+        action: part.action ?? action,
+        desc: part.desc ?? part.name
       });
 
-      this.npcClothesSets.push({
+      this.sets.push({
         name,
         type,
         gender,
         outfit,
         clothes: {
-          upper: createPart(upperCfg, 'a'),
-          lower: createPart(lowerCfg, 'n')
+          upper: createPart(upperConfig, 'a', 'lift'),
+          lower: createPart(lowerConfig, 'n', 'pull')
         },
-        desc: desc ?? `${upperCfg.name}和${lowerCfg.name}`
+        desc: desc ?? lanSwitch(`${upperConfig.name} and ${lowerConfig.name}`, `${upperConfig.name}和${lowerConfig.name}`)
       });
     });
 
@@ -129,18 +140,18 @@ class VanillaClothes {
 
   private merge() {
     setup.npcClothesSets ??= [];
-    this.npcClothesSets.forEach(set => {
-      if (setup.npcClothesSets.some((s: ClothingSet) => s.name === set.name)) {
+    this.sets.forEach(set => {
+      if (setup.npcClothesSets.some((item: OutfitSet) => item.name === set.name)) {
         maplebirch.npc.log(`服装套装 ${set.name} 已存在，跳过添加`, 'WARN');
         return;
       }
       setup.npcClothesSets.push(set);
     });
-    this.npcClothesSets.length = 0;
+    this.sets.length = 0;
   }
 
   // prettier-ignore
-  init() {
+  public init() {
     try {
       this.add(
         {
@@ -157,15 +168,20 @@ class VanillaClothes {
         }
       );
     } catch (e: any) {
-      maplebirch.npc.log(`VanillaClothes 初始化失败: ${e.message}`, 'ERROR');
+      maplebirch.npc.log(`NPCOutfitSets 初始化失败: ${e.message}`, 'ERROR');
     }
+  }
+
+  public get data() {
+    setup.npcClothesSets ??= [];
+    return setup.npcClothesSets;
   }
 }
 
-class NPCSidebarData {
-  private configs: ConfigData[] = [];
+class NPCSidebarArt {
+  private configs: ArtConfig[] = [];
 
-  async import(modName: string, modZip: ModZipReader, filePaths: string | string[]) {
+  public async import(modName: string, modZip: ModZipReader, filePaths: string | string[]) {
     if (!modZip) {
       maplebirch.npc.log('无效的模组压缩包', 'ERROR');
       return [];
@@ -173,40 +189,54 @@ class NPCSidebarData {
 
     const paths = Array.isArray(filePaths) ? filePaths : [filePaths];
     const imagePaths: string[] = [];
-    const parts = ['head', 'face', 'neck', 'upper', 'lower', 'legs', 'feet', 'hands'];
 
     for (const filePath of paths) {
       const file = modZip.zip.file(filePath);
       if (!file) continue;
 
-      const content = await file.async('string');
       let data: any;
 
-      if (filePath.endsWith('.json')) data = JSON.parse(content);
-      else if (filePath.endsWith('.yml') || filePath.endsWith('.yaml')) data = maplebirch.yaml.load(content);
-      else {
-        maplebirch.npc.log(`不支持的文件格式: ${filePath}`, 'WARN');
+      try {
+        const content = await file.async('string');
+        if (filePath.endsWith('.json')) {
+          data = JSON.parse(content);
+        } else if (filePath.endsWith('.yml') || filePath.endsWith('.yaml')) {
+          data = maplebirch.yaml.load(content);
+        } else {
+          maplebirch.npc.log(`不支持的文件格式: ${filePath}`, 'WARN');
+          continue;
+        }
+      } catch (e: any) {
+        maplebirch.npc.log(`读取侧边栏人模配置失败: ${filePath} - ${e.message}`, 'ERROR');
         continue;
       }
 
       const fileName = filePath.split('/').pop()?.split('.')[0] || 'unknown';
       const dataArray = Array.isArray(data) ? data : [data];
 
-      dataArray.forEach((item: any, _i: number) => {
-        if (!item.name) return;
+      dataArray.forEach((item: any, index: number) => {
+        if (!item?.name) return;
 
-        const npcName = convert(item.name, 'capitalize');
+        const npcName = item.name.convert('title');
+        const key = dataArray.length > 1 ? `${modName}_${fileName}_${index}` : fileName;
+
         if (item.body) imagePaths.push(item.body);
 
-        parts.forEach(part => item[part]?.forEach((layer: Layer) => layer?.img && imagePaths.push(layer.img)));
+        artParts.forEach(part => {
+          const layers = Array.isArray(item[part]) ? item[part] : [];
+          layers.forEach((layer: ArtLayer) => {
+            if (layer?.img) imagePaths.push(layer.img);
+          });
+        });
 
-        const key = dataArray.length > 1 ? `${modName}_${fileName}` : fileName;
-        this.configs.push({
+        const config: ArtConfig = {
           key,
           name: npcName,
-          body: item.body ?? '',
-          ...parts.reduce((acc, p) => ({ ...acc, [p]: item[p] ?? [] }), {})
-        });
+          body: item.body ?? ''
+        };
+
+        artParts.forEach(part => (config[part] = Array.isArray(item[part]) ? item[part] : []));
+        this.configs.push(config);
 
         if (maplebirch.npc.Sidebar.display) {
           const displaySet = maplebirch.npc.Sidebar.display.get(npcName) ?? new Set();
@@ -215,132 +245,150 @@ class NPCSidebarData {
         }
       });
     }
+
     return imagePaths;
   }
 
-  get layers() {
-    const clothesMap = new Map();
-    const parts = ['head', 'face', 'neck', 'upper', 'lower', 'legs', 'feet', 'hands'];
+  public get layers() {
+    const result = new Map<string, any>();
 
     this.configs.forEach(config => {
-      const result: any = { key: config.key, body: config.body };
+      const layers: any = {
+        key: config.key,
+        body: config.body
+      };
 
-      parts.forEach(part => {
-        const layer = config[part]?.find((l: Layer) => !l.cond || evaluate(l.cond));
-        if (layer) result[part] = { zIndex: layer.zIndex || 'auto', img: layer.img };
+      artParts.forEach(part => {
+        const layer = config[part]?.find((item: ArtLayer) => evaluate(item.cond));
+        if (layer) {
+          layers[part] = {
+            zIndex: layer.zIndex ?? 'auto',
+            img: layer.img
+          };
+        }
       });
 
-      clothesMap.set(config.name, result);
+      result.set(config.name, layers);
     });
 
-    return clothesMap;
+    return result;
   }
 }
 
-class WardrobeClothing {
-  constructor(
+class NPCSidebarWardrobeProfile {
+  public constructor(
     public name: string,
     public outfits: string[] = ['naked'],
-    private location: Record<string, RegisterItem[]> = {},
-    private global: RegisterItem[] = []
+    private location: Record<string, WearRule[]> = {},
+    private global: WearRule[] = []
   ) {}
 
-  register(location: string, key: string, cond?: any) {
-    if (!NPCWardrobe.wardrobe[key]) {
-      maplebirch.npc.log(`服装配置 ${key} 不存在`, 'WARN');
-      return;
+  public wear(location: string, key: string, cond?: Condition) {
+    if (!NPCSidebarWardrobe.wardrobe[key]) {
+      maplebirch.npc.log(`侧边栏服装配置 ${key} 不存在`, 'WARN');
+      return this;
     }
-
     const list = location === '*' ? this.global : (this.location[location] ??= []);
     list.push({ key, cond });
     if (!this.outfits.includes(key)) this.outfits.push(key);
+    return this;
   }
 
-  get worn(): WardrobeItem {
+  public get worn(): WardrobeItem {
     const loc = maplebirch.npc.Schedule.location[this.name];
-    const find = (list: RegisterItem[]) => list.find(i => evaluate(i.cond))?.key;
-
-    return NPCWardrobe.mergeWithNaked(NPCWardrobe.wardrobe[find(this.location[loc] || []) ?? find(this.global) ?? 'naked']);
+    const find = (list?: WearRule[]) => list?.find(item => evaluate(item.cond))?.key;
+    const key = find(this.location[loc]) ?? find(this.global) ?? 'naked';
+    return NPCSidebarWardrobe.mergeWithNaked(NPCSidebarWardrobe.wardrobe[key]);
   }
 }
 
-class NPCWardrobe {
-  static wardrobe: Record<string, WardrobeItem> = {};
-  static clothes: Record<string, WardrobeClothing> = {};
+class NPCSidebarWardrobe {
+  public static wardrobe: Record<string, WardrobeItem> = {};
+  public static profiles: Record<string, NPCSidebarWardrobeProfile> = {};
 
-  static async load(modName = 'maplebirch', filePath = 'npc-clothes.yaml') {
+  public static async load(modName: string, filePath: string) {
     try {
       const modZip = maplebirch.modUtils.getModZip(modName);
-      if (!modZip) throw new Error('未找到maplebirch模组');
+      if (!modZip) throw new Error(`未找到模组: ${modName}`);
       if (typeof filePath !== 'string') throw new Error('路径格式错误');
-
       const file = modZip.zip.file(filePath);
       if (!file) throw new Error(`未找到文件: ${filePath}`);
-
-      const content = await file.async('text');
-      const data = filePath.endsWith('.json') ? JSON.parse(content) : filePath.endsWith('.yml') || filePath.endsWith('.yaml') ? maplebirch.yaml.load(content) : null;
-
-      if (!data) throw new Error('无法解析配置文件');
+      const content = await file.async('string');
+      let data: any;
+      if (filePath.endsWith('.json')) {
+        data = JSON.parse(content);
+      } else if (filePath.endsWith('.yml') || filePath.endsWith('.yaml')) {
+        data = maplebirch.yaml.load(content);
+      } else {
+        throw new Error(`不支持的文件格式: ${filePath}`);
+      }
+      if (!data || typeof data !== 'object') throw new Error('无法解析配置文件');
       Object.assign(this.wardrobe, data);
     } catch (e: any) {
-      maplebirch.npc.log(`加载服装配置失败: ${e.message}`, 'ERROR');
+      maplebirch.npc.log(`加载侧边栏衣柜配置失败: ${e.message}`, 'ERROR');
     }
   }
 
-  static mergeWithNaked(selected: WardrobeItem = {}) {
-    const base = this.wardrobe['naked'] || {};
-    return [...new Set([...Object.keys(base), ...Object.keys(selected)])].reduce((res, part) => ({ ...res, [part]: selected[part] ?? base[part] }), {});
+  public static mergeWithNaked(selected: WardrobeItem = {}) {
+    const base = this.wardrobe.naked ?? {};
+    const result: WardrobeItem = { ...base };
+    Object.keys(selected).forEach(part => (result[part] = selected[part] ?? base[part]));
+    return result;
   }
 
-  static async init(manager: NPCManager) {
+  public static async init(manager: NPCManager) {
     try {
-      await this.load();
-      manager.NPCNameList.forEach(name => (this.clothes[name] ??= new WardrobeClothing(name, ['naked'])));
+      const data = maplebirch.yaml.load(builtinWardrobe);
+      if (!data || typeof data !== 'object') throw new Error('无法解析内置衣柜配置');
+      Object.assign(this.wardrobe, data);
+      manager.NPCNameList.forEach(name => (this.profiles[name] ??= new NPCSidebarWardrobeProfile(name)));
     } catch (e: any) {
-      maplebirch.npc.log(`NPCWardrobe 初始化失败: ${e.message}`, 'ERROR');
+      maplebirch.npc.log(`NPCSidebarWardrobe 初始化失败: ${e.message}`, 'ERROR');
     }
   }
 
-  static register(npcName: string, location: string, key: string, cond?: any) {
-    const cloth = (this.clothes[npcName] ??= new WardrobeClothing(npcName, ['naked', key]));
-    if (!cloth.outfits.includes(key)) cloth.outfits.push(key);
-    cloth.register(location, key, cond);
-    return cloth;
+  public static wear(npcName: string, location: string, key: string, cond?: Condition) {
+    const profile = (this.profiles[npcName] ??= new NPCSidebarWardrobeProfile(npcName, ['naked', key]));
+    return profile.wear(location, key, cond);
   }
 
-  static worn(npcName: string) {
-    const cloth = this.clothes[npcName];
-    if (!cloth) {
-      maplebirch.npc.log(`没有对应NPC:${npcName}数据`, 'WARN');
-      return;
+  public static worn(npcName: string) {
+    const profile = this.profiles[npcName];
+    if (!profile) {
+      maplebirch.npc.log(`没有对应 NPC 侧边栏衣柜数据: ${npcName}`, 'WARN');
+      return NPCSidebarWardrobe.mergeWithNaked();
     }
-    return cloth.worn;
+    return profile.worn;
   }
 }
 
 const NPCClothes = ((core: typeof maplebirch) => {
-  const vc = new VanillaClothes();
-  const sd = new NPCSidebarData();
+  const outfitSets = new NPCOutfitSets();
+  const sidebarArt = new NPCSidebarArt();
 
-  const init = async (manager: NPCManager) => {
+  async function init(manager: NPCManager) {
     try {
-      await Promise.all([NPCWardrobe.init(manager), vc.init()]);
+      await NPCSidebarWardrobe.init(manager);
+      outfitSets.init();
     } catch (e: any) {
       core.npc.log(`NPC服装初始化失败: ${e.message}`, 'ERROR');
     }
-  };
+  }
 
   // prettier-ignore
   return {
-    add     : (...c: ClothesConfig[]) => vc.add(...c),
     init,
-    import  : (m: string, z: any, p: string | string[]) => sd.import(m, z, p),
-    load    : (m?: string, f?: string) => NPCWardrobe.load(m, f),
-    register: (n: string, l: string, k: string, c?: any) => NPCWardrobe.register(n, l, k, c),
-    worn    : (n: string) => NPCWardrobe.worn(n),
-    get layers() { return sd.layers; },
-    get wardrobe() { return NPCWardrobe.wardrobe; },
-    get clothes() { return NPCWardrobe.clothes; }
+
+    addOutfitSet : (...configs: OutfitSetConfig[]) => outfitSets.add(...configs),
+    importArt    : (modName: string, modZip: ModZipReader, filePaths: string | string[]) => sidebarArt.import(modName, modZip, filePaths),
+    loadWardrobe : (modName: string, filePath: string) => NPCSidebarWardrobe.load(modName, filePath),
+    wear         : (npcName: string, location: string, key: string, cond?: Condition) => NPCSidebarWardrobe.wear(npcName, location, key, cond),
+    worn         : (npcName: string) => NPCSidebarWardrobe.worn(npcName),
+
+    get outfitSets() { return outfitSets.data; },
+    get art() { return sidebarArt.layers; },
+    get wardrobe() { return NPCSidebarWardrobe.wardrobe; },
+    get profiles() { return NPCSidebarWardrobe.profiles; }
   };
 })(maplebirch);
 

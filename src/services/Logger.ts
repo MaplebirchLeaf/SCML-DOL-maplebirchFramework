@@ -1,6 +1,6 @@
 // ./src/services/Logger.ts
 
-import { MaplebirchCore } from '../core';
+import type { MaplebirchCore } from '../core';
 
 interface LogConfig {
   level: number;
@@ -28,44 +28,37 @@ class Logger {
 
   private level: number;
 
-  constructor(readonly core: MaplebirchCore) {
+  public constructor(readonly core: MaplebirchCore) {
     this.level = Logger.LogLevel.INFO as number;
   }
 
-  async fromIDB(): Promise<void> {
+  public async fromIDB(): Promise<void> {
     try {
       const DEBUG = await this.core.idb.withTransaction(['settings'], 'readonly', async (tx: any) => await tx.objectStore('settings').get('DEBUG'));
-      this.level = (this.core.lodash.get(DEBUG, 'value', false) as boolean) ? (Logger.LogLevel.DEBUG as number) : (Logger.LogLevel.INFO as number);
+      this.level = DEBUG?.value === true ? (Logger.LogLevel.DEBUG as number) : (Logger.LogLevel.INFO as number);
     } catch {
       this.level = Logger.LogLevel.INFO as number;
     }
   }
 
-  log(message: string, levelName: string | number = 'INFO', ...objects: any[]): void {
+  public log(message: string, levelName: string | number = 'INFO', ...objects: any[]): void {
+    const lname = typeof levelName === 'number' ? (Logger.LogLevel[levelName] as LogLevelKey) || 'INFO' : (String(levelName || 'INFO').toUpperCase() as LogLevelKey);
+    const config = Logger.LogConfig[lname] || Logger.LogConfig.INFO;
+    if (config.level < this.level) return;
+    console.log(`%c[maplebirch]${config.tag} ${message}`, config.style);
+    objects.forEach(o => console.dir(o));
     try {
-      const lname = String(levelName || 'INFO').toUpperCase() as LogLevelKey;
-      const config = Logger.LogConfig[lname] || Logger.LogConfig.INFO;
-      if (config.level < this.level) return;
-      console.log(`%c[maplebirch]${config.tag} ${message}`, config.style);
-      objects?.forEach(o => console.dir(o));
-      const modLogger = this.core.modUtils.getLogger();
-      if (lname === 'INFO' && this.level === Logger.LogLevel.DEBUG) {
-        modLogger.log(message);
-      } else if (lname === 'WARN') {
-        modLogger.warn(message);
-      } else if (lname === 'ERROR') {
-        modLogger.error(message);
-      }
-    } catch (e) {
-      try {
-        console.error('[Logger] 写日志失败:', e);
-      } catch {
-        /* ignore */
-      }
+      const modLogger = this.core.manager?.modSC2DataManager?.getModUtils?.()?.getLogger?.();
+      if (!modLogger) return;
+      if (lname === 'INFO' && this.level === Logger.LogLevel.DEBUG) modLogger.log?.(message);
+      if (lname === 'WARN') modLogger.warn?.(message);
+      if (lname === 'ERROR') modLogger.error?.(message);
+    } catch {
+      /* ignore */
     }
   }
 
-  set LevelName(levelName: string) {
+  public set LevelName(levelName: string) {
     if (!levelName) return;
     const u = levelName.toUpperCase() as LogLevelKey;
     if (!Logger.LogConfig[u]) {
@@ -76,7 +69,7 @@ class Logger {
     this.log(`日志级别变更为: ${u}`, u);
   }
 
-  get LevelName(): string {
+  public get LevelName(): string {
     return (Logger.LogLevel[this.level] as string) || 'INFO';
   }
 }

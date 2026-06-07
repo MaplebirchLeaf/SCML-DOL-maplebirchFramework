@@ -11,9 +11,7 @@ export function devServerConfig(modFilename: string): RspackOptions {
           .filter(f => f.endsWith('.zip'))
           .map(f => `/mods/${f}`)
       : [];
-
     const modI18N = mods.find(m => m.includes('ModI18N'));
-
     res.json([...(modI18N ? [modI18N] : []), ...mods.filter(m => !m.includes('ModI18N')), `/${modFilename}`]);
   };
 

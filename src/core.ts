@@ -2,26 +2,31 @@
 
 import type { TwineSugarCube } from '../types/twine-sugarcube';
 import type { SC2DataManager } from '@scml/types/sugarcube-2-ModLoader/SC2DataManager';
+import type { ModUtils } from '@scml/types/sugarcube-2-ModLoader/Utils';
 import type { Gui } from '@scml/types/Mod_LoaderGui/Gui';
+import { author } from '../package.json';
 import jsyaml from 'js-yaml';
 import { Howl, Howler } from 'howler';
-import * as lodash from 'lodash-es';
 import * as marked from 'marked';
-import { version, lastModifiedBy, lastUpdate, Languages } from './constants';
+import { lastModifiedBy, lastUpdate } from '../package.json';
+import { version, Languages } from './constants';
+import * as utils from './utils';
 import Logger from './services/Logger';
 import EventEmitter from './services/EventEmitter';
 import IndexedDBService from './services/IndexedDBService';
+import CredentialVault from './services/CredentialVault';
+import CloudSaveService from './services/CloudSaveService';
 import LanguageManager from './services/LanguageManager';
 import ModuleSystem from './services/ModuleSystem';
 import GUIControl from './services/GUIControl';
-import AddonPlugin from './modules/AddonPlugin';
-import DynamicManager from './modules/Dynamic';
-import ToolCollection from './modules/ToolCollection';
-import AudioManager from './modules/Audio';
-import Variables from './modules/Variables';
-import Character from './modules/Character';
-import NPCManager from './modules/NamedNPC';
-import CombatManager from './modules/Combat';
+import type AddonPlugin from './modules/AddonPlugin';
+import type DynamicManager from './modules/Dynamic';
+import type ToolCollection from './modules/ToolCollection';
+import type AudioManager from './modules/Audio';
+import type Variables from './modules/Variables';
+import type Character from './modules/Character';
+import type NPCManager from './modules/NamedNPC';
+import type CombatManager from './modules/Combat';
 
 const renderer = new marked.Renderer();
 
@@ -48,237 +53,178 @@ marked.setOptions({
 
 let jsSugarCube: TwineSugarCube;
 
+interface Extensions {}
+
+type Instance = MaplebirchCore & Extensions;
+
 class MaplebirchCore {
-  static meta = {
+  public static meta = {
     name: 'maplebirch Frameworks' as const,
-    author: '楓樺葉' as const,
+    author: author,
     version: version,
     modifiedby: lastModifiedBy,
     updateDate: lastUpdate,
     Languages: Languages,
     early: ['addon', 'dynamic', 'tool', 'char', 'npc'] as const,
-    core: ['addon', 'dynamic', 'tool', 'audio', 'var', 'char', 'npc', 'combat']
+    core: ['addon', 'dynamic', 'tool', 'audio', 'var', 'char', 'npc', 'combat'] as const,
+    protected: ['addon', 'dynamic', 'tool', 'audio', 'var', 'char', 'npc', 'combat', 'internals'] as const
   };
 
-  readonly meta: typeof MaplebirchCore.meta;
-  modList: string[];
-  readonly manager: { modSC2DataManager: SC2DataManager; modLoaderGui: Gui };
-  passage: any;
-  onLoad: boolean;
-  readonly yaml: typeof jsyaml;
-  readonly howler: { Howl: typeof Howl; Howler: typeof Howler };
-  readonly logger: Logger;
-  readonly tracer: EventEmitter;
-  readonly idb: IndexedDBService;
-  readonly lang: LanguageManager;
-  readonly modules: ModuleSystem;
-  readonly gui: GUIControl;
-  readonly addon: AddonPlugin;
-  readonly dynamic: DynamicManager;
-  readonly tool: ToolCollection;
-  readonly audio: AudioManager;
-  readonly var: Variables;
-  readonly char: Character;
-  readonly npc: NPCManager;
-  readonly combat: CombatManager;
+  public readonly meta: typeof MaplebirchCore.meta;
+  public modList: string[];
+  public readonly manager: { modSC2DataManager: SC2DataManager; modLoaderGui: Gui };
+  public passage: any;
+  public readonly yaml: typeof jsyaml;
+  public readonly howler: { Howl: typeof Howl; Howler: typeof Howler };
+  public readonly logger: Logger;
+  public readonly tracer: EventEmitter;
+  public readonly idb: IndexedDBService;
+  public readonly credential: CredentialVault;
+  public readonly cloudSave: CloudSaveService;
+  public readonly lang: LanguageManager;
+  public readonly modules: ModuleSystem;
+  public readonly gui: GUIControl;
+  declare public readonly addon: AddonPlugin;
+  declare public readonly dynamic: DynamicManager;
+  declare public readonly tool: ToolCollection;
+  declare public readonly audio: AudioManager;
+  declare public readonly var: Variables;
+  declare public readonly char: Character;
+  declare public readonly npc: NPCManager;
+  declare public readonly combat: CombatManager;
 
-  constructor(modSC2DataManager: SC2DataManager, modLoaderGui: Gui) {
+  public constructor(modSC2DataManager: SC2DataManager, modLoaderGui: Gui) {
     this.meta = { ...MaplebirchCore.meta };
     this.modList = [];
     this.manager = { modSC2DataManager, modLoaderGui };
     this.passage = null;
-    this.onLoad = false;
     this.yaml = Object.freeze(jsyaml);
     this.howler = Object.freeze({ Howl, Howler });
     this.logger = Object.seal(new Logger(this));
     this.tracer = Object.seal(new EventEmitter(this));
     this.idb = Object.seal(new IndexedDBService(this));
     this.lang = Object.seal(new LanguageManager(this));
+    this.credential = Object.seal(new CredentialVault(this));
+    this.cloudSave = Object.seal(new CloudSaveService(this));
     this.modules = Object.seal(new ModuleSystem(this));
     this.gui = Object.seal(new GUIControl(this));
-
-    void this.logger.fromIDB();
-    this.log(`开始设置初始化流程\n核心系统创建完成(v${MaplebirchCore.meta.version})`, 'INFO');
-    const events = [':passageinit', ':passagestart', ':passagerender', ':passagedisplay', ':passageend', ':storyready'];
-    events.forEach(event => $(document).on(event, (ev: any) => this.trigger(event, ev)));
-
-    this.once(':import', async () => {
-      await this.lang.preload();
-      for await (const p of this.lang.importAll('maplebirch')) if (p.error) this.log(`导入失败: ${p.lang}`, 'ERROR');
-    });
-
-    this.once(':allModule', async () => {
-      this.log('所有模块注册完成，开始预初始化', 'INFO');
-      await this.trigger(':IndexedDB').then(async () => await this.idb.init().then(async () => await this.idb.checkStore()));
-      await this.pre();
-    });
-
-    this.on(
-      ':passageinit',
-      async (ev: any) => {
-        this.passage = ev.passage;
-        if (!!this.passage && !this.passage.tags.includes('widget')) this.log(`处理段落: ${this.passage.title}`, 'INFO');
-      },
-      'collect passages'
-    );
-
-    this.on(
-      ':passagestart',
-      async () => {
-        if (this.passage.title == 'Start' || this.passage.title == 'Downgrade Waiting Room') return;
-        this.modules.initPhase.postInitExecuted = false;
-        await this.init();
-        if (this.onLoad) {
-          await this.load().then(() => {
-            void this.trigger(':onLoadSave').then(async () => await this.post());
-            this.onLoad = false;
-          });
-        } else {
-          await this.post();
-        }
-      },
-      'loadInit'
-    );
-
-    this.once(':storyready', async () => {
-      this.SugarCube.Save.onSave.add(async () => this.trigger(':onSave'));
-      this.SugarCube.Save.onLoad.add(async () => {
-        await this.trigger(':onLoad').then(() => (this.onLoad = true));
-        this.modules.initPhase.loadInitExecuted = false;
-      });
-    });
-
-    this.log('初始化流程设置结束', 'INFO');
+    this.log(`框架核心系统创建完成(v${MaplebirchCore.meta.version})`, 'INFO');
   }
 
-  log(msg: string, level: string = 'INFO', ...objs: any[]): void {
+  public log(msg: string, level: string = 'INFO', ...objs: any[]): void {
     this.logger.log(msg, level, ...objs);
   }
 
-  on(eventName: string, callback: (...args: any[]) => any, description: string = ''): boolean {
+  public on(eventName: string, callback: (...args: any[]) => any, description: string = ''): boolean {
     return this.tracer.on(eventName, callback, description);
   }
 
-  off(eventName: string, identifier: string | ((...args: any[]) => any)): boolean {
+  public off(eventName: string, identifier: string | ((...args: any[]) => any)): boolean {
     return this.tracer.off(eventName, identifier);
   }
 
-  once(eventName: string, callback: (...args: any[]) => any, description: string = ''): boolean {
+  public once(eventName: string, callback: (...args: any[]) => any, description: string = ''): boolean {
     return this.tracer.once(eventName, callback, description);
   }
 
-  after(eventName: string, callback: (...args: any[]) => any) {
+  public after(eventName: string, callback: (...args: any[]) => any) {
     return this.tracer.after(eventName, callback);
   }
 
-  async trigger(evt: string, ...args: any[]): Promise<void> {
+  public async trigger(evt: string, ...args: any[]): Promise<void> {
     await this.tracer.trigger(evt, ...args);
   }
 
-  use(...names: string[]): string[] {
-    const core = this.meta.core;
-    for (const name of names) if (!core.includes(name)) core.push(name);
-    return core;
+  public register(name: string, module: any, dependencies: string[] = []): boolean {
+    return this.modules.register(name, module, dependencies);
   }
 
-  register(name: string, module: any, dependencies: string[] = [], source?: string): boolean {
-    return this.modules.register(name, module, dependencies, source);
-  }
-
-  async pre(): Promise<void> {
-    return await this.modules.preInit();
-  }
-
-  async init(): Promise<void> {
-    return await this.modules.init();
-  }
-
-  async load(): Promise<void> {
-    return await this.modules.loadInit();
-  }
-
-  async post(): Promise<void> {
-    return await this.modules.postInit();
-  }
-
-  t(key: string, space: boolean = false): string {
+  public t(key: string, space: boolean = false): string {
     return this.lang.t(key, space);
   }
 
-  auto(text: string): string {
+  public auto(text: string): string {
     return this.lang.auto(text);
   }
 
-  async disabled(modName: string): Promise<boolean> {
+  public async disabled(modNames: string | string[], reload: boolean = true): Promise<boolean> {
     const modLoadController = this.modUtils.getModLoadController();
-    const [enabledMods, disabledMods] = await Promise.all([modLoadController.listModIndexDB(), modLoadController.loadHiddenModList()]);
-    if (!enabledMods.includes(modName)) return false;
-    enabledMods.splice(enabledMods.indexOf(modName), 1);
-    if (!disabledMods.includes(modName)) disabledMods.push(modName);
-    await Promise.all([modLoadController.overwriteModIndexDBModList(enabledMods), modLoadController.overwriteModIndexDBHiddenModList(disabledMods)]);
-    location.reload();
+    const [enabledModsRaw = [], disabledModsRaw = []] = await Promise.all([modLoadController.listModIndexDB(), modLoadController.loadHiddenModList()]);
+    const enabledMods = [...new Set(enabledModsRaw.map(name => name.trim()).filter(Boolean))];
+    const disabledMods = [...new Set(disabledModsRaw.map(name => name.trim()).filter(Boolean))];
+    const enabledSet = new Set(enabledMods);
+    const disabledSet = new Set(disabledMods);
+    const targets = new Set((Array.isArray(modNames) ? modNames : [modNames]).map(name => name.trim()).filter(name => name && enabledSet.has(name)));
+    if (targets.size === 0) return false;
+    const nextEnabledMods = enabledMods.filter(modName => !targets.has(modName));
+    const nextDisabledMods = [...disabledMods, ...[...targets].filter(modName => !disabledSet.has(modName))];
+    if (nextEnabledMods.length === enabledMods.length && nextDisabledMods.length === disabledMods.length) return false;
+    await Promise.all([modLoadController.overwriteModIndexDBModList(nextEnabledMods), modLoadController.overwriteModIndexDBHiddenModList(nextDisabledMods)]);
+    if (reload) location.reload();
     return true;
   }
 
-  get lodash(): typeof lodash {
-    return lodash;
+  public get lodash(): ReturnType<ModUtils['getLodash']> {
+    return this.modUtils.getLodash();
   }
 
-  get marked(): typeof marked {
+  public get marked(): typeof marked {
     return marked;
   }
 
-  set SugarCube(parts: TwineSugarCube) {
+  public set SugarCube(parts: TwineSugarCube) {
     jsSugarCube = parts;
   }
 
-  get SugarCube(): TwineSugarCube {
+  public get SugarCube(): TwineSugarCube {
     return jsSugarCube;
   }
 
-  set Language(lang: string) {
-    this.lang.setLanguage(lang);
-    void this.trigger(':language');
+  public set Language(lang: string) {
+    void this.lang.setLanguage(lang).then(() => this.trigger(':language'));
   }
 
-  get Language(): string {
+  public get Language(): string {
     return this.lang.language;
   }
 
-  set LogLevel(level: string) {
+  public set LogLevel(level: string) {
     this.logger.LevelName = level;
   }
 
-  get LogLevel(): string {
+  public get LogLevel(): string {
     return this.logger.LevelName;
   }
 
-  getModule(name: string): any {
+  public get(name: string): any {
     return this.modules.registry.modules.get(name);
   }
 
-  get dependencyGraph(): any {
+  public get dependencyGraph(): any {
     return this.modules.dependencyGraph;
   }
 
-  get modLoader(): any {
-    return this.manager.modSC2DataManager?.getModLoader();
+  public get modLoader(): ReturnType<SC2DataManager['getModLoader']> {
+    return this.manager.modSC2DataManager.getModLoader();
   }
 
-  get modUtils(): any {
-    return this.manager.modSC2DataManager?.getModUtils();
+  public get modUtils(): ModUtils {
+    return this.manager.modSC2DataManager.getModUtils();
   }
 
-  get gameVersion(): string {
+  public get gameVersion(): string {
     return (StartConfig as any).version;
   }
 }
 
-var maplebirch = new MaplebirchCore(window.modSC2DataManager, window.modLoaderGui);
+var maplebirch = new MaplebirchCore(window.modSC2DataManager, window.modLoaderGui) as Instance;
+
+utils.prototypeUtils();
+for (const [key, value] of Object.entries(utils.publicUtils)) Object.defineProperty(window, key, { value, enumerable: true, writable: false, configurable: false });
 
 function createlog(prefix: string) {
   return (message: string, level: string = 'INFO', ...objects: any[]) => maplebirch.log(`[${prefix}] ${message}`, level, ...objects);
 }
 
-export { MaplebirchCore, createlog };
+export { MaplebirchCore, type Extensions, createlog };
 export default maplebirch;

@@ -1,70 +1,83 @@
-// ./src/modules/NamedNPCAddon/NPCSiderbarConfig/base_layers.ts
+// ./src/modules/NamedNPCAddon/NPCSidebarConfig/base_layers.ts
 
 import maplebirch from '../../../core';
 import { nnpc_sidepart } from './functions';
-import { LayerOptions } from '../../../../types/npcsidebar-layers';
+
+type NPCSidebarOptions = {
+  filters?: Record<string, any>;
+  maplebirch: {
+    nnpc: Record<string, any>;
+    [key: string]: any;
+  };
+  [key: string]: any;
+};
 
 const base_layers = {
   nnpc_body: {
-    masksrcfn(options: LayerOptions) {
+    masksrcfn(options: NPCSidebarOptions) {
       if (options.maplebirch.nnpc.model) return options.maplebirch.nnpc.close_up_mask;
       return null;
     },
-    srcfn(options: LayerOptions) {
+    srcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
-      if (nnpc.model) return 'img/body/basenoarms-classic.png';
-      const npcsidebar = (V.options.maplebirch ??= {}).npcsidebar;
-      if (!npcsidebar.display[nnpc.name!]) return undefined;
-      if (npcsidebar.display[nnpc.name!] === maplebirch.npc.Clothes.layers.get(nnpc.name!)?.key) return maplebirch.npc.Clothes.layers.get(nnpc.name!)?.body;
+      if (nnpc.model) return 'img/body/base-classic.png';
+      const selected = V.options.maplebirch.npcsidebar.display[nnpc.name];
+      const art = maplebirch.npc.Clothes.art.get(nnpc.name);
+      if (!selected) return;
+      if (selected === art?.key) return art.body;
     },
-    showfn(options: LayerOptions) {
+    showfn(options: NPCSidebarOptions) {
       return options.maplebirch.nnpc.show;
     },
-    zfn(options: LayerOptions) {
-      return maplebirch.char.ZIndices.base + options.maplebirch.nnpc.position!;
+    zfn(options: NPCSidebarOptions) {
+      return maplebirch.char.ZIndices.base + options.maplebirch.nnpc.position;
     },
-    dxfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.model ? options.maplebirch.nnpc.dxfn! : 0;
+    dxfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.model ? options.maplebirch.nnpc.dxfn : 0;
     },
-    dyfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.model ? options.maplebirch.nnpc.dyfn! : 0;
+    dyfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.model ? options.maplebirch.nnpc.dyfn : 0;
     },
-    filters: ['nnpc_tan'],
-    animation: 'idle'
-  },
-  nnpc_head: {
-    masksrcfn(options: LayerOptions) {
-      if (options.maplebirch.nnpc.model) return options.maplebirch.nnpc.close_up_mask;
-      return null;
-    },
-    srcfn(options: LayerOptions) {
-      const nnpc = options.maplebirch.nnpc;
-      if (nnpc.model) return 'img/body/basehead.png';
-      const npcsidebar = (V.options.maplebirch ??= {}).npcsidebar;
-      if (!npcsidebar.display[nnpc.name!]) return undefined;
-      if (npcsidebar.display[nnpc.name!] === maplebirch.npc.Clothes.layers.get(nnpc.name!)?.key) return maplebirch.npc.Clothes.layers.get(nnpc.name!)?.head.img;
-    },
-    showfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.show;
-    },
-    zfn(options: LayerOptions) {
-      const nnpc = options.maplebirch.nnpc;
-      if (nnpc.model) return maplebirch.char.ZIndices.basehead + nnpc.position!;
-      const layer = maplebirch.npc.Clothes.layers.get(nnpc.name!);
-      if (layer && typeof layer.head?.zIndex === 'number') return layer.head.zIndex;
-      return maplebirch.char.ZIndices.head + nnpc.position!;
-    },
-    dxfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.model ? options.maplebirch.nnpc.dxfn! : 0;
-    },
-    dyfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.model ? options.maplebirch.nnpc.dyfn! : 0;
-    },
-    filtersfn(options: LayerOptions) {
+    filtersfn(options: NPCSidebarOptions) {
       return options.maplebirch.nnpc.model ? ['nnpc_tan'] : [];
     },
     animation: 'idle'
   },
+
+  nnpc_head: {
+    masksrcfn(options: NPCSidebarOptions) {
+      if (options.maplebirch.nnpc.model) return options.maplebirch.nnpc.close_up_mask;
+      return null;
+    },
+    srcfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      if (nnpc.model) return 'img/body/base-head.png';
+      const selected = V.options.maplebirch.npcsidebar.display[nnpc.name];
+      const art = maplebirch.npc.Clothes.art.get(nnpc.name);
+      if (!selected) return;
+      if (selected === art?.key) return art.head?.img;
+    },
+    showfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.show;
+    },
+    zfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      const art = maplebirch.npc.Clothes.art.get(nnpc.name);
+      if (!nnpc.model && typeof art?.head?.zIndex === 'number') return art.head.zIndex;
+      return (nnpc.model ? maplebirch.char.ZIndices.basehead : maplebirch.char.ZIndices.head) + nnpc.position;
+    },
+    dxfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.model ? options.maplebirch.nnpc.dxfn : 0;
+    },
+    dyfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.model ? options.maplebirch.nnpc.dyfn : 0;
+    },
+    filtersfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.model ? ['nnpc_tan'] : [];
+    },
+    animation: 'idle'
+  },
+
   nnpc_face: nnpc_sidepart('face'),
   nnpc_neck: nnpc_sidepart('neck'),
   nnpc_upper: nnpc_sidepart('upper'),
@@ -72,355 +85,413 @@ const base_layers = {
   nnpc_legs: nnpc_sidepart('legs'),
   nnpc_feet: nnpc_sidepart('feet'),
   nnpc_hands: nnpc_sidepart('hands'),
+
   nnpc_breasts: {
-    masksrcfn(options: LayerOptions) {
+    masksrcfn(options: NPCSidebarOptions) {
       return options.maplebirch.nnpc.close_up_mask;
     },
-    srcfn(options: LayerOptions) {
-      if (!options.maplebirch.nnpc.breasts) return '';
-      const suffix = options.maplebirch.nnpc.breasts === 'cleavage' && (options.maplebirch.nnpc.breast_size || 0) >= 3 ? '_clothed.png' : '.png';
-      return `img/body/breasts/breasts${options.maplebirch.nnpc.breast_size || 0}${suffix}`;
+    srcfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      if (!nnpc.breasts) return '';
+      const breastType = nnpc.breasts === 'cleavage' && (nnpc.breast_size ?? 0) >= 3 ? 'clothed' : 'breasts';
+      return `img/body/breasts/${breastType}-${nnpc.breast_size ?? 0}.png`;
     },
-    showfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.show && options.maplebirch.nnpc.model;
+    showfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      return nnpc.show && nnpc.model;
     },
-    zfn(options: LayerOptions) {
-      return maplebirch.char.ZIndices.breasts + options.maplebirch.nnpc.position!;
+    zfn(options: NPCSidebarOptions) {
+      return maplebirch.char.ZIndices.breasts + options.maplebirch.nnpc.position;
     },
-    dxfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dxfn!;
+    dxfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dxfn;
     },
-    dyfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dyfn!;
+    dyfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dyfn;
     },
     filters: ['nnpc_tan'],
     animation: 'idle'
   },
+
   nnpc_leftarm: {
-    masksrcfn(options: LayerOptions) {
+    masksrcfn(options: NPCSidebarOptions) {
       return options.maplebirch.nnpc.close_up_mask;
     },
-    src: 'img/body/leftarmidle-classic.png',
-    showfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.show && options.maplebirch.nnpc.model;
+    srcfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      if (nnpc.arm_left === 'cover') return 'img/body/left-arm-cover.png';
+      return 'img/body/left-arm-idle-classic.png';
     },
-    zfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.arm_left === 'cover' ? maplebirch.char.ZIndices.left_cover_arm : options.maplebirch.nnpc.zarms!;
+    showfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      return nnpc.show && nnpc.model && nnpc.arm_left !== 'none';
     },
-    dxfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dxfn!;
+    zfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      return nnpc.arm_left === 'cover' ? maplebirch.char.ZIndices.left_cover_arm + nnpc.position : nnpc.zarms;
     },
-    dyfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dyfn!;
+    dxfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dxfn;
+    },
+    dyfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dyfn;
     },
     filters: ['nnpc_tan'],
     animation: 'idle'
   },
+
   nnpc_rightarm: {
-    masksrcfn(options: LayerOptions) {
+    masksrcfn(options: NPCSidebarOptions) {
       return options.maplebirch.nnpc.close_up_mask;
     },
-    src: 'img/body/rightarmidle-classic.png',
-    showfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.show && options.maplebirch.nnpc.model;
+    srcfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      if (nnpc.arm_right === 'idle') return 'img/body/right-arm-idle-classic.png';
+      return `img/body/right-arm-${nnpc.arm_right}.png`;
     },
-    zfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.arm_right === 'cover' || options.maplebirch.nnpc.arm_right === 'hold' ? maplebirch.char.ZIndices.right_cover_arm : options.maplebirch.nnpc.zarms!;
+    showfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      return nnpc.show && nnpc.model && nnpc.arm_right !== 'none';
     },
-    dxfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dxfn!;
+    zfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      return nnpc.arm_right === 'cover' || nnpc.arm_right === 'hold' ? maplebirch.char.ZIndices.right_cover_arm + nnpc.position : nnpc.zarms;
     },
-    dyfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dyfn!;
+    dxfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dxfn;
+    },
+    dyfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dyfn;
     },
     filters: ['nnpc_tan'],
     animation: 'idle'
   },
+
   nnpc_penis: {
-    masksrcfn(options: LayerOptions) {
+    masksrcfn(options: NPCSidebarOptions) {
       return options.maplebirch.nnpc.close_up_mask;
     },
-    srcfn(options: LayerOptions) {
-      if (!!options.maplebirch.nnpc.name) return '';
-      if (options.maplebirch.nnpc.genitals_chastity) {
-        const genitalsName = options.maplebirch.nnpc.clothes?.genitals?.name;
-        if (!genitalsName) return '';
-        if (['chastity belt', 'flat chastity cage', 'chastity parasite'].includes(genitalsName)) return '';
-        if (genitalsName === 'small chastity cage') return 'img/body/penis/penis_chastitysmall.png';
-        return 'img/body/penis/penis_chastity.png';
-      }
-      const underLower = options.maplebirch.nnpc.clothes?.under_lower;
-      if (underLower && Array.isArray(underLower.type) && underLower.type.includes('strap-on') && underLower.state === 'waist') return '';
-      const prefix = options.maplebirch.nnpc.penis === 'virgin' ? 'penis_virgin' : 'penis';
-      return `img/body/penis/${prefix}${options.maplebirch.nnpc.penis_size || 0}.png`;
+
+    srcfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      if (!nnpc.name) return '';
+      if (nnpc.genitals_chastity) return 'img/body/penis/chastity.png';
+      const underLower = nnpc.clothes.under_lower;
+      if (underLower.type?.includes('strap-on') && underLower.state === 'waist') return '';
+      const folder = nnpc.balls ? 'penis' : 'penis-no-balls';
+      return `img/body/${folder}/${nnpc.penis}.png`;
     },
-    showfn(options: LayerOptions) {
-      return !!options.maplebirch.nnpc.crotch_visible && !!options.maplebirch.nnpc.penis && !!options.maplebirch.nnpc.show && !!options.maplebirch.nnpc.model;
+
+    showfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      const underLower = nnpc.clothes.under_lower;
+      const strapon = underLower.type?.includes('strap-on') && underLower.state === 'waist';
+      return nnpc.crotch_visible && !!nnpc.penis && !strapon && nnpc.show && nnpc.model;
     },
-    zfn(options: LayerOptions) {
-      if (!options.maplebirch.nnpc.crotch_exposed) return maplebirch.char.ZIndices.penisunderclothes + options.maplebirch.nnpc.position!;
-      return options.maplebirch.nnpc.genitals_chastity
-        ? maplebirch.char.ZIndices.penis_chastity + options.maplebirch.nnpc.position!
-        : maplebirch.char.ZIndices.penis + options.maplebirch.nnpc.position!;
+
+    zfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      if (!nnpc.crotch_exposed) return maplebirch.char.ZIndices.penisunderclothes + nnpc.position;
+      return (nnpc.genitals_chastity ? maplebirch.char.ZIndices.penis_chastity : maplebirch.char.ZIndices.penis) + nnpc.position;
     },
-    dxfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dxfn!;
+
+    dxfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dxfn;
     },
-    dyfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dyfn!;
+
+    dyfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dyfn;
     },
+
     filters: ['nnpc_tan'],
     animation: 'idle'
   },
+
   nnpc_freckles: {
-    masksrcfn(options: LayerOptions) {
+    masksrcfn(options: NPCSidebarOptions) {
       return options.maplebirch.nnpc.close_up_mask;
     },
-    srcfn(options: LayerOptions) {
-      return `img/face/${options.maplebirch.nnpc.facestyle}/freckles.png`;
+    srcfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      return `img/face/${nnpc.facestyle}/freckles.png`;
     },
-    showfn(options: LayerOptions) {
-      return !!options.maplebirch.nnpc.freckles && options.maplebirch.nnpc.show && options.maplebirch.nnpc.model;
+    showfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      return !!nnpc.freckles && nnpc.show && nnpc.model;
     },
-    zfn(options: LayerOptions) {
-      return maplebirch.char.ZIndices.freckles + options.maplebirch.nnpc.position!;
+    zfn(options: NPCSidebarOptions) {
+      return maplebirch.char.ZIndices.freckles + options.maplebirch.nnpc.position;
     },
-    dxfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dxfn!;
+    dxfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dxfn;
     },
-    dyfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dyfn!;
+    dyfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dyfn;
     },
     filters: ['nnpc_tan']
   },
+
   nnpc_ears: {
-    masksrcfn(options: LayerOptions) {
+    masksrcfn(options: NPCSidebarOptions) {
       return options.maplebirch.nnpc.close_up_mask;
     },
-    srcfn(options: LayerOptions) {
-      return `img/face/${options.maplebirch.nnpc.facestyle}/ears.png`;
+    srcfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      return `img/face/${nnpc.facestyle}/ears.png`;
     },
-    showfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.ears_position === 'front' && options.maplebirch.nnpc.show && options.maplebirch.nnpc.model;
+    showfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      return nnpc.ears_position === 'front' && nnpc.show && nnpc.model;
     },
-    zfn(options: LayerOptions) {
-      return maplebirch.char.ZIndices.ears + options.maplebirch.nnpc.position!;
+    zfn(options: NPCSidebarOptions) {
+      return maplebirch.char.ZIndices.ears + options.maplebirch.nnpc.position;
     },
-    dxfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dxfn!;
+    dxfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dxfn;
     },
-    dyfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dyfn!;
+    dyfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dyfn;
     },
     filters: ['nnpc_tan']
   },
+
   nnpc_eyes: {
-    masksrcfn(options: LayerOptions) {
+    masksrcfn(options: NPCSidebarOptions) {
       return options.maplebirch.nnpc.close_up_mask;
     },
-    srcfn(options: LayerOptions) {
-      return `img/face/${options.maplebirch.nnpc.facestyle}/${options.maplebirch.nnpc.facevariant}/eyes.png`;
+    srcfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      return `img/face/${nnpc.facestyle}/${nnpc.facevariant}/eyes.png`;
     },
-    showfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.show && options.maplebirch.nnpc.model;
+    showfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      return nnpc.show && nnpc.model;
     },
-    zfn(options: LayerOptions) {
-      return maplebirch.char.ZIndices.eyes + options.maplebirch.nnpc.position!;
+    zfn(options: NPCSidebarOptions) {
+      return maplebirch.char.ZIndices.eyes + options.maplebirch.nnpc.position;
     },
-    dxfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dxfn!;
+    dxfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dxfn;
     },
-    dyfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dyfn!;
+    dyfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dyfn;
     },
     filters: ['nnpc_tan']
   },
+
   nnpc_sclera: {
-    masksrcfn(options: LayerOptions) {
+    masksrcfn(options: NPCSidebarOptions) {
       return options.maplebirch.nnpc.close_up_mask;
     },
-    srcfn(options: LayerOptions) {
-      return `img/face/${options.maplebirch.nnpc.facestyle}/${options.maplebirch.nnpc.facevariant}/sclera.png`;
+    srcfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      return `img/face/${nnpc.facestyle}/${nnpc.facevariant}/sclera.png`;
     },
-    showfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.show && options.maplebirch.nnpc.model;
+    showfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      return nnpc.show && nnpc.model;
     },
-    zfn(options: LayerOptions) {
-      return maplebirch.char.ZIndices.sclera + options.maplebirch.nnpc.position!;
+    zfn(options: NPCSidebarOptions) {
+      return maplebirch.char.ZIndices.sclera + options.maplebirch.nnpc.position;
     },
-    dxfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dxfn!;
+    dxfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dxfn;
     },
-    dyfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dyfn!;
+    dyfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dyfn;
     }
   },
+
   nnpc_iris: {
-    masksrcfn(options: LayerOptions) {
+    masksrcfn(options: NPCSidebarOptions) {
       return options.maplebirch.nnpc.close_up_mask;
     },
-    srcfn(options: LayerOptions) {
-      return `img/face/${options.maplebirch.nnpc.facestyle}/${options.maplebirch.nnpc.facevariant}/iris.png`;
+    srcfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      return `img/face/${nnpc.facestyle}/${nnpc.facevariant}/iris.png`;
     },
-    showfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.show && options.maplebirch.nnpc.model;
+    showfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      return nnpc.show && nnpc.model;
     },
-    zfn(options: LayerOptions) {
-      return maplebirch.char.ZIndices.iris + options.maplebirch.nnpc.position!;
+    zfn(options: NPCSidebarOptions) {
+      return maplebirch.char.ZIndices.iris + options.maplebirch.nnpc.position;
     },
-    dxfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dxfn!;
+    dxfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dxfn;
     },
-    dyfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dyfn!;
+    dyfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dyfn;
     },
     filters: ['nnpc_eyes'],
     animation: 'idle'
   },
+
   nnpc_eyelids: {
-    masksrcfn(options: LayerOptions) {
+    masksrcfn(options: NPCSidebarOptions) {
       return options.maplebirch.nnpc.close_up_mask;
     },
-    srcfn(options: LayerOptions) {
-      return `img/face/${options.maplebirch.nnpc.facestyle}/${options.maplebirch.nnpc.facevariant}/eyelids.png`;
+    srcfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      return `img/face/${nnpc.facestyle}/${nnpc.facevariant}/eyelids.png`;
     },
-    showfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.show && options.maplebirch.nnpc.model;
+    showfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      return nnpc.show && nnpc.model;
     },
-    zfn(options: LayerOptions) {
-      return maplebirch.char.ZIndices.eyelids + options.maplebirch.nnpc.position!;
+    zfn(options: NPCSidebarOptions) {
+      return maplebirch.char.ZIndices.eyelids + options.maplebirch.nnpc.position;
     },
-    dxfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dxfn!;
+    dxfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dxfn;
     },
-    dyfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dyfn!;
+    dyfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dyfn;
     },
     filters: ['nnpc_tan'],
-    animationfn(options: LayerOptions) {
+    animationfn(options: NPCSidebarOptions) {
       return options.blink ? 'blink' : '';
     }
   },
+
   nnpc_lashes: {
-    masksrcfn(options: LayerOptions) {
+    masksrcfn(options: NPCSidebarOptions) {
       return options.maplebirch.nnpc.close_up_mask;
     },
-    srcfn(options: LayerOptions) {
-      return `img/face/${options.maplebirch.nnpc.facestyle}/${options.maplebirch.nnpc.facevariant}/lashes.png`;
+    srcfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      return `img/face/${nnpc.facestyle}/${nnpc.facevariant}/lashes.png`;
     },
-    showfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.show && options.maplebirch.nnpc.model;
+    showfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      return nnpc.show && nnpc.model;
     },
-    zfn(options: LayerOptions) {
-      return maplebirch.char.ZIndices.lashes + options.maplebirch.nnpc.position!;
+    zfn(options: NPCSidebarOptions) {
+      return maplebirch.char.ZIndices.lashes + options.maplebirch.nnpc.position;
     },
-    dxfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dxfn!;
+    dxfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dxfn;
     },
-    dyfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dyfn!;
+    dyfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dyfn;
     },
     filters: ['nnpc_tan'],
-    animationfn(options: LayerOptions) {
+    animationfn(options: NPCSidebarOptions) {
       return options.blink ? 'blink' : '';
     }
   },
+
   nnpc_brows: {
-    masksrcfn(options: LayerOptions) {
+    masksrcfn(options: NPCSidebarOptions) {
       return options.maplebirch.nnpc.close_up_mask;
     },
-    srcfn(options: LayerOptions) {
-      return `img/face/${options.maplebirch.nnpc.facestyle}/${options.maplebirch.nnpc.facevariant}/brow-top.png`;
+    srcfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      return `img/face/${nnpc.facestyle}/${nnpc.facevariant}/brow-top.png`;
     },
-    showfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.show && options.maplebirch.nnpc.model;
+    showfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      return nnpc.show && nnpc.model;
     },
-    zfn(options: LayerOptions) {
-      return maplebirch.char.ZIndices.brow + options.maplebirch.nnpc.position!;
+    zfn(options: NPCSidebarOptions) {
+      return maplebirch.char.ZIndices.brow + options.maplebirch.nnpc.position;
     },
-    dxfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dxfn!;
+    dxfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dxfn;
     },
-    dyfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dyfn!;
+    dyfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dyfn;
     },
     filters: ['nnpc_brows']
   },
+
   nnpc_mouth: {
-    masksrcfn(options: LayerOptions) {
+    masksrcfn(options: NPCSidebarOptions) {
       return options.maplebirch.nnpc.close_up_mask;
     },
-    srcfn(options: LayerOptions) {
-      return `img/face/${options.maplebirch.nnpc.facestyle}/mouth-smile.png`;
+    srcfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      return `img/face/${nnpc.facestyle}/mouth-smile.png`;
     },
-    showfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.show && options.maplebirch.nnpc.model;
+    showfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      return nnpc.show && nnpc.model;
     },
-    zfn(options: LayerOptions) {
-      return maplebirch.char.ZIndices.mouth + options.maplebirch.nnpc.position!;
+    zfn(options: NPCSidebarOptions) {
+      return maplebirch.char.ZIndices.mouth + options.maplebirch.nnpc.position;
     },
-    dxfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dxfn!;
+    dxfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dxfn;
     },
-    dyfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dyfn!;
+    dyfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dyfn;
     },
     filters: ['nnpc_tan']
   },
-  nnpc_hair_sides: {
-    masksrcfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.head_mask;
-    },
-    srcfn(options: LayerOptions) {
-      return `img/hair/sides/${options.maplebirch.nnpc.hair_sides_type}/${options.maplebirch.nnpc.hair_length}.png`;
-    },
-    showfn(options: LayerOptions) {
-      return !!options.maplebirch.nnpc.hair_sides_type && options.maplebirch.nnpc.show && options.maplebirch.nnpc.model;
-    },
-    zfn(options: LayerOptions) {
-      return (options.maplebirch.nnpc.hair_position === 'front' ? maplebirch.char.ZIndices.hair_forward : maplebirch.char.ZIndices.backhair) + options.maplebirch.nnpc.position!;
-    },
-    dxfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dxfn!;
-    },
-    dyfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dyfn!;
-    },
-    filters: ['nnpc_hair'],
-    animation: 'idle'
-  },
-  nnpc_hair_fringe: {
-    masksrcfn(options: LayerOptions) {
-      const fringe_mask_src =
-        ['fro', 'afro pouf', 'afro puffs'].includes(options.maplebirch.nnpc.hair_sides_type!) && options.maplebirch.nnpc.hair_fringe_type === 'fro'
-          ? [options.maplebirch.nnpc.close_up_mask, `img/hair/fringe/${options.maplebirch.nnpc.hair_fringe_type}/mask.png`]
-          : options.maplebirch.nnpc.close_up_mask;
 
-      return options.maplebirch.nnpc.head_mask ? options.maplebirch.nnpc.head_mask : fringe_mask_src;
+  nnpc_hair_sides: {
+    masksrcfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.head_mask;
     },
-    srcfn(options: LayerOptions) {
-      return `img/hair/fringe/${options.maplebirch.nnpc.hair_fringe_type}/${options.maplebirch.nnpc.hair_length}.png`;
+    srcfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      return `img/hair/sides/${nnpc.hair_sides_type}/${nnpc.hair_sides_length}.png`;
     },
-    showfn(options: LayerOptions) {
-      return !!options.maplebirch.nnpc.hair_fringe_type && options.maplebirch.nnpc.show && options.maplebirch.nnpc.model;
+    showfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      return !!nnpc.show_hair && !!nnpc.hair_sides_type && nnpc.show && nnpc.model;
     },
-    zfn(options: LayerOptions) {
-      return maplebirch.char.ZIndices.front_hair + options.maplebirch.nnpc.position!;
+    zfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      return (nnpc.hair_sides_position === 'front' ? maplebirch.char.ZIndices.hair_forward : maplebirch.char.ZIndices.backhair) + nnpc.position;
     },
-    dxfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dxfn!;
+    dxfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dxfn;
     },
-    dyfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dyfn!;
+    dyfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dyfn;
     },
     filters: ['nnpc_hair'],
     animation: 'idle'
   },
+
+  nnpc_hair_fringe: {
+    masksrcfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+
+      if (Array.isArray(nnpc.head_mask) && nnpc.head_mask.length) return nnpc.head_mask;
+
+      if (nnpc.fringe_mask_src) return [nnpc.close_up_mask, nnpc.fringe_mask_src];
+
+      return nnpc.close_up_mask;
+    },
+    srcfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      return `img/hair/fringe/${nnpc.hair_fringe_type}/${nnpc.hair_fringe_length}.png`;
+    },
+    showfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      return !!nnpc.show_hair && !!nnpc.hair_fringe_type && nnpc.show && nnpc.model;
+    },
+    zfn(options: NPCSidebarOptions) {
+      return maplebirch.char.ZIndices.front_hair + options.maplebirch.nnpc.position;
+    },
+    dxfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dxfn;
+    },
+    dyfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dyfn;
+    },
+    filters: ['nnpc_hair_fringe'],
+    animation: 'idle'
+  },
+
   nnpc_hair_extra: {
-    masksrcfn(options: LayerOptions) {
+    masksrcfn(options: NPCSidebarOptions) {
       return options.maplebirch.nnpc.head_mask;
     },
-    srcfn(options: LayerOptions) {
+    srcfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
       const hairs = [
         'default',
         'loose',
@@ -440,22 +511,24 @@ const base_layers = {
         'sleek',
         'bedhead'
       ];
-      const path = `img/hair/back/${options.maplebirch.nnpc.hair_sides_type}`;
-      if (options.hair_sides_length === 'feet' && [...hairs, 'straight'].includes(options.maplebirch.nnpc.hair_sides_type!)) return `${path}/feet.png`;
-      if (options.hair_sides_length === 'thighs' && hairs.includes(options.maplebirch.nnpc.hair_sides_type!)) return `${path}/thighs.png`;
-      if (options.hair_sides_length === 'navel' && options.maplebirch.nnpc.hair_sides_type === 'messy ponytail') return `${path}/navel.png`;
+      const path = `img/hair/back/${nnpc.hair_sides_type}`;
+      if (nnpc.hair_sides_length === 'feet' && [...hairs, 'straight'].includes(nnpc.hair_sides_type)) return `${path}/feet.png`;
+      if (nnpc.hair_sides_length === 'thighs' && hairs.includes(nnpc.hair_sides_type)) return `${path}/thighs.png`;
+      if (nnpc.hair_sides_length === 'navel' && nnpc.hair_sides_type === 'messy ponytail') return `${path}/navel.png`;
+      return '';
     },
-    showfn(options: LayerOptions) {
-      return !!options.maplebirch.nnpc.hair_sides_type && options.maplebirch.nnpc.show && options.maplebirch.nnpc.model;
+    showfn(options: NPCSidebarOptions) {
+      const nnpc = options.maplebirch.nnpc;
+      return !!nnpc.show_hair && !!nnpc.hair_sides_type && nnpc.show && nnpc.model;
     },
-    zfn(options: LayerOptions) {
-      return maplebirch.char.ZIndices.backhair + options.maplebirch.nnpc.position!;
+    zfn(options: NPCSidebarOptions) {
+      return maplebirch.char.ZIndices.backhair + options.maplebirch.nnpc.position;
     },
-    dxfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dxfn!;
+    dxfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dxfn;
     },
-    dyfn(options: LayerOptions) {
-      return options.maplebirch.nnpc.dyfn!;
+    dyfn(options: NPCSidebarOptions) {
+      return options.maplebirch.nnpc.dyfn;
     },
     filters: ['nnpc_hair'],
     animation: 'idle'

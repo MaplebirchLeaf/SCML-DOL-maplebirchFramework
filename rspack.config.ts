@@ -4,8 +4,9 @@ import { defineConfig } from '@rspack/cli';
 import { name, version } from './package.json';
 import { production } from './scripts/production';
 import { devServerConfig } from './scripts/devServer';
+import { devZipFileName } from './scripts/zip';
 
-const modFilename = `${name}-${version}.mod.zip`;
+const modFilename = devZipFileName(name, version);
 
 function commonConfig(isProduction: boolean): Configuration {
   return {
@@ -29,8 +30,7 @@ function commonConfig(isProduction: boolean): Configuration {
     module: {
       rules: [
         {
-          test: /\.twee$/,
-          resourceQuery: /raw/,
+          test: /\.(css|twee|ya?ml)$/,
           type: 'asset/source'
         },
         {

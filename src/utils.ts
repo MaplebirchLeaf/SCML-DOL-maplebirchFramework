@@ -1,46 +1,114 @@
 // ./src/utils.ts
 
-import maplebirch from './core';
-const _ = maplebirch.lodash;
+const _ = window.modSC2DataManager.getModUtils().getLodash();
+const textEncoder = new TextEncoder();
+const textDecoder = new TextDecoder();
 
 type TypedArrayLike = Int8Array | Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array | BigInt64Array | BigUint64Array;
+
 const isTypedArray = (source: any): source is TypedArrayLike => ArrayBuffer.isView(source) && !(source instanceof DataView);
 
-/**
- * 深度克隆对象
- * @example clone({a:1, b:{c:2}}) // 深克隆对象
- * @example clone([1,[2,3]], {deep:false}) // 浅克隆数组
- * @example clone(new Date(), {proto:false}) // 克隆Date对象
- */
-function clone(source: any, opt: { deep?: boolean; proto?: boolean } = {}, map = new WeakMap<object, any>()): any {
-  const { deep = true, proto = true } = opt;
+type ContainsMode = 'all' | 'any' | 'none';
+
+type ContainsOptions = {
+  case?: boolean;
+  compare?: (item: unknown, value: unknown) => boolean;
+  deep?: boolean;
+};
+
+type CloneOptions = { deep?: boolean; proto?: boolean };
+type MergeMode = 'replace' | 'concat' | 'merge';
+type MergeFilterFn = (key: string, value: any, depth: number, targetValue: any) => boolean;
+type ConvertMode = 'lower' | 'upper' | 'capitalize' | 'title' | 'camel' | 'pascal' | 'snake' | 'kebab' | 'constant';
+
+declare global {
+  interface ObjectConstructor {
+    merge<T extends object = any>(...sources: any[]): T;
+    append<T extends object = any>(...sources: any[]): T;
+    cover<T extends object = any>(...sources: any[]): T;
+    mergefn<T extends object = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T;
+    appendfn<T extends object = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T;
+    coverfn<T extends object = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T;
+  }
+
+  interface Object {
+    clone(deep?: boolean, proto?: boolean): any;
+    equal(value: any): boolean;
+    merge(...sources: any[]): any;
+    append(...sources: any[]): any;
+    cover(...sources: any[]): any;
+    mergefn(filterFn: MergeFilterFn | null, ...sources: any[]): any;
+    appendfn(filterFn: MergeFilterFn | null, ...sources: any[]): any;
+    coverfn(filterFn: MergeFilterFn | null, ...sources: any[]): any;
+    contains(value: unknown, mode?: ContainsMode, opt?: ContainsOptions): boolean;
+  }
+
+  interface Array<T> {
+    contains(value: unknown, mode?: ContainsMode, opt?: ContainsOptions): boolean;
+    random(): T | undefined;
+    either(weights?: number[], allowNull?: boolean): T | null | undefined;
+  }
+
+  interface ArrayConstructor {
+    merge<T = any>(...sources: any[]): T[];
+    append<T = any>(...sources: any[]): T[];
+    cover<T = any>(...sources: any[]): T[];
+    mergefn<T = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T[];
+    appendfn<T = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T[];
+    coverfn<T = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T[];
+  }
+
+  interface ReadonlyArray<T> {
+    contains(value: unknown, mode?: ContainsMode, opt?: ContainsOptions): boolean;
+    random(): T | undefined;
+    either(weights?: number[], allowNull?: boolean): T | null | undefined;
+  }
+
+  interface String {
+    contains(value: string, opt?: { case?: boolean }): boolean;
+    convert(mode?: ConvertMode, opt?: { delimiter?: string; acronym?: boolean }): string;
+  }
+
+  interface Math {
+    random(): number;
+    random(max: number): number;
+    random(min: number, max: number, float?: boolean): number;
+    clamp(value: any, min: number, max: number, fallback?: number): number;
+  }
+}
+
+function clone(source: any, deep = true, proto = true, map = new WeakMap<object, any>()): any {
   if (source === null || typeof source !== 'object') return source;
   if (map.has(source)) return map.get(source);
   if (source instanceof Date) return new Date(source.getTime());
   if (source instanceof RegExp) return new RegExp(source.source, source.flags);
+  if (typeof source === 'function') return source;
+  if (source instanceof ArrayBuffer) return source.slice(0);
+  if (source instanceof DataView) {
+    const buffer = source.buffer.slice(source.byteOffset, source.byteOffset + source.byteLength);
+    return new DataView(buffer);
+  }
+  if (isTypedArray(source)) {
+    const Constructor = source.constructor as new (buffer: ArrayBufferLike, byteOffset?: number, length?: number) => any;
+    const buffer = source.buffer.slice(source.byteOffset, source.byteOffset + source.byteLength);
+    return new Constructor(buffer, 0, source.length);
+  }
   if (source instanceof Map) {
     const copy = new Map();
     map.set(source, copy);
-    source.forEach((v, k) => copy.set(deep ? clone(k, opt, map) : k, deep ? clone(v, opt, map) : v));
+    source.forEach((v, k) => copy.set(deep ? clone(k, deep, proto, map) : k, deep ? clone(v, deep, proto, map) : v));
     return copy;
   }
   if (source instanceof Set) {
     const copy = new Set();
     map.set(source, copy);
-    source.forEach(v => copy.add(deep ? clone(v, opt, map) : v));
+    source.forEach(v => copy.add(deep ? clone(v, deep, proto, map) : v));
     return copy;
   }
-  if (source instanceof DataView) return new DataView(source.buffer.slice(0), source.byteOffset, source.byteLength);
-  if (isTypedArray(source)) {
-    const Constructor = source.constructor as new (buffer: ArrayBufferLike, byteOffset?: number, length?: number) => any;
-    return new Constructor(source.buffer.slice(0), source.byteOffset, source.length);
-  }
-  if (source instanceof ArrayBuffer) return source.slice(0);
-  if (typeof source === 'function') return source;
   if (Array.isArray(source)) {
     const copy: any[] = [];
     map.set(source, copy);
-    for (let i = 0; i < source.length; i++) copy[i] = deep ? clone(source[i], opt, map) : source[i];
+    for (let i = 0; i < source.length; i++) copy[i] = deep ? clone(source[i], deep, proto, map) : source[i];
     return copy;
   }
   const copy = proto ? Object.create(Object.getPrototypeOf(source)) : {};
@@ -49,43 +117,27 @@ function clone(source: any, opt: { deep?: boolean; proto?: boolean } = {}, map =
   for (const key of keys) {
     const desc = Object.getOwnPropertyDescriptor(source, key);
     if (desc && !desc.enumerable) continue;
-    copy[key] = deep ? clone(source[key], opt, map) : source[key];
+    copy[key] = deep ? clone(source[key], deep, proto, map) : source[key];
   }
   return copy;
 }
 
-/**
- * 深度比较两个值
- * @example equal(new Date(2023,0,1), new Date(2023,0,1)) // true
- * @example equal({a:[1,{b:2}]}, {a:[1,{b:2}]}) // true
- * @example equal(/abc/i, /abc/i) // true
- * @example equal({a:1}, {a:2}) // false
- */
 function equal(a: any, b: any): boolean {
   return _.isEqual(a, b);
 }
 
-/**
- * 递归合并对象（原地修改 target）
- * @example merge({a:1}, {b:2}) // {a:1, b:2}
- * @example merge({arr:[1,2]}, {arr:[3,4]}, {mode:'concat'}) // {arr:[1,2,3,4]}
- * @example merge({arr:[1,2]}, {arr:[3]}, {mode:'merge'}) // {arr:[3,2]}
- * @example merge({obj:{x:1}}, {obj:{y:2}}) // {obj:{x:1, y:2}}
- */
-function merge(target: any, ...sources: any[]): any {
-  if (sources.length === 0) return target;
-  const isMergeOption = (value: any): boolean => {
-    if (!_.isPlainObject(value)) return false;
-    return _.has(value, 'mode') || _.has(value, 'filterFn');
-  };
-  let opt: any = {};
-  const last = sources[sources.length - 1];
-  if (sources.length > 1 && isMergeOption(last)) opt = sources.pop();
+function clamp(value: any, min: number, max: number, fallback?: number): number {
+  const low = Math.min(min, max);
+  const high = Math.max(min, max);
+  const result = _.toNumber(value);
+  return _.clamp(_.isFinite(result) ? result : (fallback ?? low), low, high);
+}
 
-  const { mode = 'replace', filterFn = null } = opt;
+function mergeByMode(target: any, mode: MergeMode, filterFn: MergeFilterFn | null, sources: any[]): any {
+  if (sources.length === 0) return target;
   const mergeRec = (t: any, s: any, depth = 1) => {
     if (s === null || typeof s !== 'object' || typeof s === 'function') return s;
-    for (const key in s) {
+    for (const key of Object.keys(s)) {
       const sv = s[key];
       const tv = t[key];
       if (filterFn && !filterFn(key, sv, depth, tv)) continue;
@@ -96,7 +148,7 @@ function merge(target: any, ...sources: any[]): any {
           case 'concat':
             t[key] = [...tv, ...sv];
             break;
-          case 'merge':
+          case 'merge': {
             const max = Math.max(tv.length, sv.length);
             t[key] = Array.from({ length: max }, (_, i) => {
               if (i < tv.length && i < sv.length) return mergeRec(tv[i], sv[i], depth + 1);
@@ -104,8 +156,10 @@ function merge(target: any, ...sources: any[]): any {
               return sv[i];
             });
             break;
+          }
           default:
             t[key] = [...sv];
+            break;
         }
       } else if (_.isPlainObject(sv) && _.isPlainObject(tv)) {
         t[key] = mergeRec(tv, sv, depth + 1);
@@ -119,77 +173,62 @@ function merge(target: any, ...sources: any[]): any {
   return target;
 }
 
-/**
- * 检查数组是否包含指定元素
- * @example contains([1,2,3], [1,2]) // true (all模式)
- * @example contains([1,2,3], [1,5], 'any') // true
- * @example contains(['A','B'], 'a', 'all', {case:false}) // true
- * @example contains([{x:1}], {x:1}, 'all', {deep:true}) // true
- */
-function contains(arr: any[], value: any, mode: 'all' | 'any' | 'none' = 'all', opt: { case?: boolean; compare?: Function; deep?: boolean } = {}): boolean {
+function merge(target: any, ...sources: any[]): any {
+  return mergeByMode(target, 'merge', null, sources);
+}
+
+function append(target: any, ...sources: any[]): any {
+  return mergeByMode(target, 'concat', null, sources);
+}
+
+function cover(target: any, ...sources: any[]): any {
+  return mergeByMode(target, 'replace', null, sources);
+}
+
+function mergeFn(target: any, filterFn: MergeFilterFn | null, ...sources: any[]): any {
+  return mergeByMode(target, 'merge', filterFn, sources);
+}
+
+function appendFn(target: any, filterFn: MergeFilterFn | null, ...sources: any[]): any {
+  return mergeByMode(target, 'concat', filterFn, sources);
+}
+
+function coverFn(target: any, filterFn: MergeFilterFn | null, ...sources: any[]): any {
+  return mergeByMode(target, 'replace', filterFn, sources);
+}
+
+function contains(arr: unknown[], value: unknown, mode: ContainsMode = 'all', opt: ContainsOptions = {}): boolean {
   if (!Array.isArray(arr)) return false;
-  const { case: cs = true, compare = null, deep = false } = opt;
-  const match = (item: unknown, val: unknown) => {
+  const { case: cs = true, compare, deep = false } = opt;
+  const match = (item: unknown, val: unknown): boolean => {
     if (compare) return compare(item, val);
     if (deep) return _.isEqual(item, val);
     if (!cs && typeof val === 'string' && typeof item === 'string') return item.toLowerCase() === val.toLowerCase();
     if (Number.isNaN(val)) return Number.isNaN(item);
     return item === val;
   };
-  const values = Array.isArray(value) ? value : [value];
+  const values: unknown[] = Array.isArray(value) ? value : [value];
   switch (mode) {
     case 'all':
-      return _.every(values, v => _.some(arr, item => match(item, v)));
+      return _.every(values, (v: unknown) => _.some(arr, (item: unknown) => match(item, v)));
     case 'any':
-      return _.some(values, v => _.some(arr, item => match(item, v)));
+      return _.some(values, (v: unknown) => _.some(arr, (item: unknown) => match(item, v)));
     case 'none':
-      return _.every(values, v => !_.some(arr, item => match(item, v)));
+      return _.every(values, (v: unknown) => !_.some(arr, (item: unknown) => match(item, v)));
     default:
       throw new Error(`Invalid mode: '${mode as string}'. Expected 'all', 'any' or 'none'.`);
   }
 }
 
-/**
- * 生成随机数
- * @example random() // 0-1之间的浮点数
- * @example random(10) // 0-10的整数
- * @example random(5, 10) // 5-10的整数
- * @example random(5, 10, true) // 5-10的浮点数
- * @example random({min:5, max:10, float:true}) // 5-10的浮点数
- */
-function random(min?: number | { min: number; max: number; float?: boolean }, max?: number, float = false): number {
+function random(min?: number, max?: number, float = false): number {
   if (min == null && max == null) return _.random(0, 1, true);
   if (max == null) {
-    if (typeof min === 'object' && min !== null) {
-      const { min: mn = 0, max: mx = 1, float: flt = false } = min;
-      return _.random(mn, mx, flt);
-    }
-    return _.random(0, min as number, false);
+    return _.random(0, min, false);
   }
-  return _.random(min as number, max, float);
+  return _.random(min, max, float);
 }
 
-/**
- * 从选项中随机选择一个
- * @example either(['a','b','c']) // 随机返回其中一个
- * @example either('a','b',{weights:[0.8,0.2]}) // 80%返回'a'，20%返回'b'
- * @example either(['a','b'],{null:true}) // 33%返回null，33%'a'，33%'b'
- */
-function either(itemsOrA: any, ...rest: any[]): any {
-  const isEitherOption = (value: any): boolean => {
-    if (!_.isPlainObject(value)) return false;
-    return _.has(value, 'weights') || _.has(value, 'null');
-  };
-  let opt: any = {};
-  let items: any[];
-  if (Array.isArray(itemsOrA)) {
-    items = itemsOrA;
-    if (rest.length && isEitherOption(rest[rest.length - 1])) opt = rest.pop();
-  } else {
-    items = [itemsOrA, ...rest];
-    if (items.length && isEitherOption(items[items.length - 1])) opt = items.pop();
-  }
-  const { weights = null, null: allowNull = false } = opt;
+function either(items: any[], weights: number[] | null = null, allowNull = false): any {
   if (!items.length) return undefined;
   if (weights) {
     if (!Array.isArray(weights)) throw new TypeError('weights must be an array');
@@ -215,106 +254,78 @@ interface CaseItem {
   result: any;
 }
 
-/**
- * 条件选择器类
- * @example
- * new SelectCase()
- *   .case(1, 'One')
- *   .caseRange(3, 5, 'Three to Five')
- *   .else('Other')
- *   .match(3) // 返回'Three to Five'
- * @example
- * new SelectCase()
- *   .caseIncludes(['admin','root'], '管理员')
- *   .else('普通用户')
- *   .match('admin_user') // 返回'管理员'
- * @example
- * new SelectCase()
- *   .case(x => x > 10, '大于10')
- *   .else('小于等于10')
- *   .match(15) // 返回'大于10'
- */
 class SelectCase {
   private cases: CaseItem[] = [];
   private defaultResult: any = null;
   private valueType: string | null = null;
   private allowMixedTypes = false;
 
-  /** 精确匹配 */
-  case(cond: string | number, result: any): this;
-  case(cond: (input: any, meta?: any) => boolean, result: any): this;
-  case(cond: any, result: any): this {
+  public case(cond: string | number, result: any): this;
+  public case(cond: (input: any, meta?: any) => boolean, result: any): this;
+  public case(cond: any, result: any): this {
     if (typeof cond === 'function') {
       this.allowMixedTypes = true;
       this.cases.push({ type: 'predicate', condition: cond, result });
     } else {
-      this.#validateType(cond);
+      this.validateType(cond);
       this.cases.push({ type: 'exact', condition: cond, result });
     }
     return this;
   }
 
-  /** 自定义条件 */
-  casePredicate(fn: (input: any, meta?: any) => boolean, result: any): this {
+  public casePredicate(fn: (input: any, meta?: any) => boolean, result: any): this {
     if (typeof fn !== 'function') throw new TypeError('predicate must be a function');
     this.allowMixedTypes = true;
     this.cases.push({ type: 'predicate', condition: fn, result });
     return this;
   }
 
-  /** 数值范围匹配 */
-  caseRange(min: number, max: number, result: any): this {
+  public caseRange(min: number, max: number, result: any): this {
     if (typeof min !== 'number' || typeof max !== 'number') throw new TypeError('range values must be numbers');
-    this.#validateType(min);
+    this.validateType(min);
     this.cases.push({ type: 'range', condition: [min, max], result });
     return this;
   }
 
-  /** 集合包含匹配 */
-  caseIn(values: any[], result: any): this {
+  public caseIn(values: any[], result: any): this {
     if (!Array.isArray(values)) throw new TypeError('set values must be an array');
     if (values.length === 0) return this;
-    this.#validateType(values[0]);
+    this.validateType(values[0]);
     this.cases.push({ type: 'set', condition: values, result });
     return this;
   }
 
-  /** 子字符串匹配 */
-  caseIncludes(subs: string | string[], result: any): this {
-    if (!Array.isArray(subs)) subs = [subs];
-    _.each(subs, s => {
+  public caseIncludes(subs: string | string[], result: any): this {
+    const values = Array.isArray(subs) ? subs : [subs];
+    values.forEach((s: string) => {
       if (typeof s !== 'string') throw new TypeError('substrings must be strings');
     });
-    this.#validateType('string');
-    this.cases.push({ type: 'substring', condition: subs, result });
+    this.validateType('string');
+    this.cases.push({ type: 'substring', condition: values, result });
     return this;
   }
 
-  /** 正则匹配 */
-  caseRegex(regex: RegExp, result: any): this {
+  public caseRegex(regex: RegExp, result: any): this {
     if (!(regex instanceof RegExp)) throw new TypeError('condition must be a RegExp');
-    this.#validateType('string');
+    this.validateType('string');
     this.cases.push({ type: 'regex', condition: regex, result });
     return this;
   }
 
-  /** 数值比较 */
-  caseCompare(op: '<' | '<=' | '>' | '>=', val: number, result: any): this {
+  public caseCompare(op: '<' | '<=' | '>' | '>=', val: number, result: any): this {
     if (!['<', '<=', '>', '>='].includes(op)) throw new Error(`Invalid comparator: ${op}`);
     if (typeof val !== 'number') throw new TypeError('comparison value must be a number');
-    this.#validateType(val);
+    this.validateType(val);
     this.cases.push({ type: 'comparison', condition: { comparator: op, value: val }, result });
     return this;
   }
 
-  /** 设置默认值 */
-  else(result: any): this {
+  public else(result: any): this {
     this.defaultResult = result;
     return this;
   }
 
-  /** 执行匹配 */
-  match(input: any, meta: any = {}): any {
+  public match(input: any, meta: any = {}): any {
     for (const { type, condition, result } of this.cases) {
       let matched = false;
       switch (type) {
@@ -333,7 +344,7 @@ class SelectCase {
         case 'regex':
           matched = typeof input === 'string' && condition.test(input);
           break;
-        case 'comparison':
+        case 'comparison': {
           const { comparator, value } = condition;
           switch (comparator) {
             case '<':
@@ -350,6 +361,7 @@ class SelectCase {
               break;
           }
           break;
+        }
         case 'predicate':
           try {
             matched = condition(input, meta);
@@ -363,8 +375,7 @@ class SelectCase {
     return typeof this.defaultResult === 'function' ? this.defaultResult(input, meta) : this.defaultResult;
   }
 
-  /** 验证类型一致性 */
-  #validateType(value: any): void {
+  private validateType(value: any): void {
     if (this.allowMixedTypes) return;
     const valueType = typeof value;
     if (this.valueType === null) {
@@ -375,27 +386,7 @@ class SelectCase {
   }
 }
 
-/**
- * 字符串格式转换
- * @example convert('Hello World') // 'hello world' (默认lower)
- * @example convert('hello world', 'upper') // 'HELLO WORLD'
- * @example convert('Hello World', 'capitalize') // 'Hello world'
- * @example convert('hello world', 'title') // 'Hello World'
- * @example convert('hello world', 'camel') // 'helloWorld'
- * @example convert('hello world', 'pascal') // 'HelloWorld'
- * @example convert('hello world', 'snake') // 'hello_world'
- * @example convert('hello world', 'kebab') // 'hello-world'
- * @example convert('hello world', 'constant') // 'HELLO_WORLD'
- * @example convert('userProfile', 'camel') // 'userProfile' (保持不变)
- * @example convert('user_profile', 'camel', {delimiter:'_'}) // 'userProfile'
- * @example convert('HTTP API', 'title', {acronym:false}) // 'Http Api'
- * @example convert('HTTP API', 'title', {acronym:true}) // 'HTTP API'
- */
-function convert(
-  str: string,
-  mode: 'lower' | 'upper' | 'capitalize' | 'title' | 'camel' | 'pascal' | 'snake' | 'kebab' | 'constant' = 'lower',
-  opt: { delimiter?: string; acronym?: boolean } = {}
-): string {
+function convert(str: string, mode: ConvertMode = 'lower', opt: { delimiter?: string; acronym?: boolean } = {}): string {
   if (typeof str !== 'string') return str;
   const { delimiter = ' ', acronym = true } = opt;
   const splitWords = (s: string) => {
@@ -437,186 +428,316 @@ function convert(
   }
 }
 
-/**
- * 数值修整
- * @example number('12.5') // 12.5
- * @example number(undefined, 10) // 10
- * @example number(120, 0, 0, 100) // 100
- * @example number(5.8, 0, 0, 10, 'floor') // 5
- * @example number(17, 0, 0, 100, 'round', {step:5}) // 15
- * @example number(370, 0, 0, 360, 'none', {loop:true}) // 10
- * @example number(75, 0, 0, 200, 'none', {percent:true}) // 37.5
- */
-function number(
-  value: any,
-  fallback = 0,
-  min = -Infinity,
-  max = Infinity,
-  mode: 'none' | 'floor' | 'ceil' | 'round' | 'trunc' = 'none',
-  opt: {
-    step?: number;
-    percent?: boolean;
-    loop?: boolean;
-  } = {}
-): number {
-  const { step = 0, percent = false, loop = false } = opt;
+function definePrototype<T extends object>(target: T, name: string, value: Function, override = false): void {
+  if (!override && Object.prototype.hasOwnProperty.call(target, name)) return;
+  Object.defineProperty(target, name, {
+    value,
+    enumerable: false,
+    writable: true,
+    configurable: true
+  });
+}
 
-  let result = _.toNumber(value);
-  if (!_.isFinite(result)) result = fallback;
+const nativeMathRandom = Math.random.bind(Math);
 
-  const hasRange = _.isFinite(min) && _.isFinite(max) && max >= min;
-  const range = max - min;
-
-  const clampValue = (num: number): number => _.clamp(num, min, max);
-  const loopValue = (num: number): number => {
-    if (!hasRange || range === 0) return min;
-    return ((((num - min) % range) + range) % range) + min;
-  };
-
-  result = loop ? loopValue(result) : clampValue(result);
-
-  if (_.isFinite(step) && step > 0) {
-    const offset = (result - min) / step;
-    switch (mode) {
-      case 'floor':
-        result = min + _.floor(offset) * step;
-        break;
-      case 'ceil':
-        result = min + _.ceil(offset) * step;
-        break;
-      case 'trunc':
-        result = min + Math.trunc(offset) * step;
-        break;
-      case 'round':
-        result = min + _.round(offset) * step;
-        break;
-      default:
-        result = min + offset * step;
-        break;
-    }
-  } else {
-    switch (mode) {
-      case 'floor':
-        result = _.floor(result);
-        break;
-      case 'ceil':
-        result = _.ceil(result);
-        break;
-      case 'trunc':
-        result = Math.trunc(result);
-        break;
-      case 'round':
-        result = _.round(result);
-        break;
-    }
-  }
-
-  result = loop ? loopValue(result) : clampValue(result);
-
-  if (percent) {
-    if (!hasRange || range === 0) return 0;
-    return _.clamp(((result - min) / range) * 100, 0, 100);
-  }
-
-  return result;
+function prototypeUtils(): void {
+  definePrototype(Object.prototype, 'clone', function (this: any, deep = true, proto = true) {
+    return clone(this.valueOf(), deep, proto);
+  });
+  definePrototype(Object.prototype, 'equal', function (this: any, value: any) {
+    return equal(this.valueOf(), value);
+  });
+  definePrototype(Object.prototype, 'merge', function (this: any, ...sources: any[]) {
+    return merge(this.valueOf(), ...sources);
+  });
+  definePrototype(Object.prototype, 'append', function (this: any, ...sources: any[]) {
+    return append(this.valueOf(), ...sources);
+  });
+  definePrototype(Object.prototype, 'cover', function (this: any, ...sources: any[]) {
+    return cover(this.valueOf(), ...sources);
+  });
+  definePrototype(Object.prototype, 'mergefn', function (this: any, filterFn: MergeFilterFn | null, ...sources: any[]) {
+    return mergeFn(this.valueOf(), filterFn, ...sources);
+  });
+  definePrototype(Object.prototype, 'appendfn', function (this: any, filterFn: MergeFilterFn | null, ...sources: any[]) {
+    return appendFn(this.valueOf(), filterFn, ...sources);
+  });
+  definePrototype(Object.prototype, 'coverfn', function (this: any, filterFn: MergeFilterFn | null, ...sources: any[]) {
+    return coverFn(this.valueOf(), filterFn, ...sources);
+  });
+  definePrototype(Object, 'merge', function (...sources: any[]) {
+    return merge({}, ...sources);
+  });
+  definePrototype(Object, 'append', function (...sources: any[]) {
+    return append({}, ...sources);
+  });
+  definePrototype(Object, 'cover', function (...sources: any[]) {
+    return cover({}, ...sources);
+  });
+  definePrototype(Object, 'mergefn', function (filterFn: MergeFilterFn | null, ...sources: any[]) {
+    return mergeFn({}, filterFn, ...sources);
+  });
+  definePrototype(Object, 'appendfn', function (filterFn: MergeFilterFn | null, ...sources: any[]) {
+    return appendFn({}, filterFn, ...sources);
+  });
+  definePrototype(Object, 'coverfn', function (filterFn: MergeFilterFn | null, ...sources: any[]) {
+    return coverFn({}, filterFn, ...sources);
+  });
+  definePrototype(Array, 'merge', function (...sources: any[]) {
+    return merge([], ...sources);
+  });
+  definePrototype(Array, 'append', function (...sources: any[]) {
+    return append([], ...sources);
+  });
+  definePrototype(Array, 'cover', function (...sources: any[]) {
+    return cover([], ...sources);
+  });
+  definePrototype(Array, 'mergefn', function (filterFn: MergeFilterFn | null, ...sources: any[]) {
+    return mergeFn([], filterFn, ...sources);
+  });
+  definePrototype(Array, 'appendfn', function (filterFn: MergeFilterFn | null, ...sources: any[]) {
+    return appendFn([], filterFn, ...sources);
+  });
+  definePrototype(Array, 'coverfn', function (filterFn: MergeFilterFn | null, ...sources: any[]) {
+    return coverFn([], filterFn, ...sources);
+  });
+  definePrototype(Object.prototype, 'contains', function (this: any, value: unknown, mode: ContainsMode = 'any', opt: ContainsOptions = {}) {
+    const source = this.valueOf();
+    if (Array.isArray(source)) return contains(source, value, mode, opt);
+    if (source instanceof Set) return contains([...source], value, mode, opt);
+    if (source instanceof Map) return contains([...source.values()], value, mode, opt);
+    if (source && typeof source === 'object') return contains(Object.values(source), value, mode, opt);
+    return false;
+  });
+  definePrototype(Array.prototype, 'contains', function (this: unknown[], value: unknown, mode: ContainsMode = 'any', opt: ContainsOptions = {}) {
+    return contains(this, value, mode, opt);
+  });
+  definePrototype(Array.prototype, 'random', function (this: unknown[]) {
+    return _.sample(this);
+  });
+  definePrototype(Array.prototype, 'either', function (this: unknown[], weights?: number[], allowNull = false) {
+    return either(this, weights, allowNull);
+  });
+  definePrototype(String.prototype, 'contains', function (this: string, value: string, opt: { case?: boolean } = {}) {
+    const source = String(this);
+    const target = String(value);
+    return opt.case === false ? source.toLowerCase().includes(target.toLowerCase()) : source.includes(target);
+  });
+  definePrototype(String.prototype, 'convert', function (this: string, mode: ConvertMode = 'lower', opt: { delimiter?: string; acronym?: boolean } = {}) {
+    return convert(String(this), mode, opt);
+  });
+  definePrototype(
+    Math,
+    'random',
+    function (min?: number, max?: number, float = false) {
+      if (min == null && max == null) return nativeMathRandom();
+      return random(min, max, float);
+    },
+    true
+  );
+  definePrototype(Math, 'clamp', function (value: any, min: number, max: number, fallback?: number) {
+    return clamp(value, min, max, fallback);
+  });
 }
 
 const imageCache = new Map<string, boolean>();
+const imagePending = new Map<string, Promise<boolean>>();
+
+let sidebarRefreshTimer: ReturnType<typeof setTimeout> | null = null;
+
+function queueSidebarRefresh(delay = 100) {
+  if (sidebarRefreshTimer) return;
+  sidebarRefreshTimer = setTimeout(() => {
+    sidebarRefreshTimer = null;
+    try {
+      Errors.Reporter.hide(true);
+      Renderer.clearCaches(T.modelclass);
+      $.wiki('<<updatesidebarimg>>');
+    } catch {}
+  }, delay);
+}
 
 function checkImageExist(src: string): boolean | Promise<boolean> {
   if (imageCache.has(src)) return imageCache.get(src)!;
-
-  for (const hooker of window.modImgLoaderHooker.sideHooker) {
-    if (hooker.hookName === 'GameOriginalImagePackImageSideHook') {
-      const n = window.modGameOriginalImagePack?.selfImg.get(src);
-      if (n && !n.getter.invalid) {
-        imageCache.set(src, true);
-        return true;
-      }
-      continue;
-    }
-    if (hooker.checkImageExist?.(src) === true) {
+  if (imagePending.has(src)) return imagePending.get(src)!;
+  if (!src) {
+    imageCache.set(src, false);
+    return false;
+  }
+  const pending = new Promise<boolean>(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      img.onload = null;
+      img.onerror = null;
       imageCache.set(src, true);
-      return true;
-    }
-  }
-
-  if (!window.modGameOriginalImagePack) {
-    if (!src) {
+      resolve(true);
+    };
+    img.onerror = () => {
+      img.onload = null;
+      img.onerror = null;
       imageCache.set(src, false);
-      return false;
-    }
-
-    return new Promise<boolean>(resolve => {
-      const img = new Image();
-
-      img.onload = () => {
-        imageCache.set(src, true);
-        resolve(true);
-      };
-
-      img.onerror = () => {
-        imageCache.set(src, false);
-        resolve(false);
-
-        void Promise.resolve().then(() => {
-          Errors.Reporter.hide(true);
-          Renderer.clearCaches(T.modelclass);
-          $.wiki('<<updatesidebarimg>>');
-        });
-      };
-      img.src = src;
-    });
-  }
-
-  imageCache.set(src, false);
-  return false;
+      resolve(false);
+      queueSidebarRefresh(100);
+    };
+    img.src = src;
+  }).finally(() => {
+    imagePending.delete(src);
+  });
+  imagePending.set(src, pending);
+  return pending;
 }
 
-/**
- * 图片加载
- * @example loadImage('character.png').then(data => img.src = data)
- * @example await loadImage('https://example.com/image.jpg')
- * @example const data = await loadImage('character.png');
- */
 function loadImage(src: string): string | boolean | Promise<string | boolean> {
   try {
-    const checkResult = checkImageExist(src);
-    if (checkResult instanceof Promise) return checkResult.then(exists => (exists ? maplebirch.modUtils.getImage(src) || exists : exists));
-    return checkResult ? maplebirch.modUtils.getImage(src) || checkResult : checkResult;
-  } catch (error) {
+    if (!src) return false;
+    return window.modUtils.getImage(src).then(value => {
+      if (value) {
+        imageCache.set(src, true);
+        return value;
+      }
+      const checkResult = checkImageExist(src);
+      return checkResult instanceof Promise ? checkResult.then(exists => (exists ? src : false)) : checkResult ? src : false;
+    });
+  } catch {
     return src;
   }
 }
 
-/**
- * 提取 widget 内容
- * @example widgets('abc <<widget "x">>123<</widget>>') // ['<<widget "x">>123<</widget>>']
- * @example widgets('  <<widget "a">>A<</widget>>  ', 'text') // ['<<widget "a">>A<</widget>>', 'text']
- */
-function widgets(...rawContents: string[]): string[] {
-  return rawContents.map(content => {
-    const widgetStart = content.indexOf('<<widget');
-    return widgetStart >= 0 ? content.substring(widgetStart).trim() : content.trim();
-  });
+function widgets(content: string): string;
+function widgets(...contents: string[]): string[];
+function widgets(...rawContents: string[]): string | string[] {
+  const parse = (content: string): string =>
+    String(content ?? '')
+      .replace(/^\uFEFF/, '')
+      .replace(/\r\n?/g, '\n')
+      .replace(/^::[^\n]*(?:\n[ \t]*)*/, '')
+      .trim();
+  const result = rawContents.map(parse);
+  return result.length === 1 ? result[0] : result;
 }
 
-const tools = {
-  clone: Object.freeze(clone),
-  merge: Object.freeze(merge),
-  equal: Object.freeze(equal),
-  contains: Object.freeze(contains),
-  SelectCase: Object.freeze(SelectCase),
-  random: Object.freeze(random),
-  either: Object.freeze(either),
-  convert: Object.freeze(convert),
-  number: Object.freeze(number),
-  loadImage: Object.freeze(loadImage)
-};
+function textToBytes(value: string): Uint8Array {
+  return textEncoder.encode(value);
+}
 
-const toolNames = ['clone', 'merge', 'equal', 'contains', 'SelectCase', 'random', 'either', 'convert', 'number', 'loadImage'];
-_.each(toolNames, name => {
-  if (!window.hasOwnProperty(name)) Object.defineProperty(window, name, { value: (tools as any)[name], enumerable: true });
+function bytesToText(bytes: Uint8Array | ArrayBuffer): string {
+  return textDecoder.decode(bytes);
+}
+
+function jsonToBytes(value: unknown): Uint8Array {
+  return textToBytes(JSON.stringify(value));
+}
+
+function bytesToJson<T = any>(bytes: Uint8Array | ArrayBuffer): T {
+  return JSON.parse(bytesToText(bytes)) as T;
+}
+
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+}
+
+function normalizeBase64(value: string): string {
+  const base64 = value.replace(/-/g, '+').replace(/_/g, '/');
+  return base64.padEnd(Math.ceil(base64.length / 4) * 4, '=');
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
+function base64ToBytes(base64: string): Uint8Array {
+  const binary = atob(normalizeBase64(base64));
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+function base64ToArrayBuffer(base64: string): ArrayBuffer {
+  return toArrayBuffer(base64ToBytes(base64));
+}
+
+function basicAuth(username: string, password: string): string {
+  return bytesToBase64(textToBytes(`${username}:${password}`));
+}
+
+function trimSlashes(value: string): string {
+  return String(value ?? '').replace(/^\/+|\/+$/g, '');
+}
+
+function joinPath(...parts: string[]): string {
+  return parts.map(trimSlashes).filter(Boolean).join('/');
+}
+
+function joinEncodedPath(...parts: string[]): string {
+  return parts
+    .map(part => encodeURIComponent(trimSlashes(part)))
+    .filter(Boolean)
+    .join('/');
+}
+
+function escapeHtmlText(value: string): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+const publicUtils = Object.freeze({
+  clone,
+  equal,
+  merge,
+  append,
+  cover,
+  mergefn: mergeFn,
+  appendfn: appendFn,
+  coverfn: coverFn,
+  contains,
+  random,
+  either,
+  SelectCase,
+  convert,
+  clamp,
+  loadImage
 });
 
-export { clone, equal, merge, contains, random, either, SelectCase, convert, number, loadImage, widgets };
+type PublicUtils = typeof publicUtils;
+
+export {
+  clone,
+  equal,
+  merge,
+  append,
+  cover,
+  mergeFn as mergefn,
+  appendFn as appendfn,
+  coverFn as coverfn,
+  contains,
+  random,
+  either,
+  SelectCase,
+  convert,
+  clamp,
+  prototypeUtils,
+  loadImage,
+  widgets,
+  textToBytes,
+  bytesToText,
+  jsonToBytes,
+  bytesToJson,
+  toArrayBuffer,
+  normalizeBase64,
+  bytesToBase64,
+  base64ToBytes,
+  base64ToArrayBuffer,
+  basicAuth,
+  trimSlashes,
+  joinPath,
+  joinEncodedPath,
+  escapeHtmlText,
+  publicUtils
+};
+export type { CloneOptions, ContainsMode, ContainsOptions, ConvertMode, MergeMode, MergeFilterFn, PublicUtils };
