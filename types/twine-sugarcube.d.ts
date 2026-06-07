@@ -1,3 +1,6 @@
+import type { Passage } from '@scml/types/sugarcube-2-ModLoader/SugarCube2';
+import type { SaveAPI, StateAPI, SugarCubeObject, WikifierAPI as SugarCubeWikifierAPI } from 'twine-sugarcube';
+
 declare module 'twine-sugarcube/userdata' {
   export interface SugarCubeSetupObject {
     [x: string]: any;
@@ -315,11 +318,54 @@ declare global {
   }
 }
 
-export interface WikifierAPI {
+export interface WikifierAPI extends SugarCubeWikifierAPI {
   new (destination: Node | DocumentFragment | string | null, source?: string): any;
   wikifyEval(text: string, passageObj?: { title: string }, passageTitle?: string): DocumentFragment;
 }
 
-export type TwineSugarCube = any & {
+export interface SugarCubeUtilAPI {
+  sameValueZero(left: any, right: any): boolean;
+  slugify(value: string): string;
+  [key: string]: any;
+}
+
+export interface DolStateAPI extends StateAPI {
+  readonly qc: number;
+  show(): void;
+  deltaEncode(history: any[]): any;
+  deltaDecode(delta: any): any[];
+}
+
+export interface DolSaveAPI extends SaveAPI {
+  serialize(metadata?: any): string;
+  deserialize(saveStr: string): any;
+}
+
+export interface TwineSugarCube {
+  Browser: SugarCubeObject['Browser'];
+  Config: SugarCubeObject['Config'];
+  Dialog: SugarCubeObject['Dialog'];
+  Engine: SugarCubeObject['Engine'];
+  Fullscreen: SugarCubeObject['Fullscreen'];
+  Has: SugarCubeObject['Has'];
+  L10n: any;
+  Macro: SugarCubeObject['Macro'];
+  Passage: typeof Passage;
+  Save: DolSaveAPI;
+  Scripting: SugarCubeObject['Scripting'];
+  Setting: SugarCubeObject['Setting'];
+  SimpleAudio: SugarCubeObject['SimpleAudio'];
+  State: DolStateAPI;
+  Story: SugarCubeObject['Story'];
+  UI: SugarCubeObject['UI'];
+  UIBar: SugarCubeObject['UIBar'];
+  DebugBar: any;
+  Util: SugarCubeUtilAPI;
+  Visibility: any;
   Wikifier: WikifierAPI;
-};
+  session: SugarCubeObject['session'];
+  settings: SugarCubeObject['settings'];
+  setup: SugarCubeObject['setup'];
+  storage: SugarCubeObject['storage'];
+  version: SugarCubeObject['version'];
+}

@@ -13,6 +13,8 @@ type EventListener = {
 class EventEmitter {
   private readonly events: Map<string, EventListener[]>;
   private readonly afters: Map<string, EventCallback[]>;
+  private readonly stickyEvents = new Set([':sugarcube', ':idbReady', ':storyready', ':modLoaderEnd', ':language']);
+  private readonly stickyArgs = new Map<string, any[]>();
 
   public constructor(readonly core: MaplebirchCore) {
     // prettier-ignore
@@ -51,6 +53,7 @@ class EventEmitter {
     const internalId = description || `evt_${Math.random().toString(36).slice(2, 10)}_${Date.now()}`;
     listeners.push({ callback, description, internalId });
     this.core.logger.log(`注册事件监听器: ${eventName}${description ? ` (描述: ${description})` : ''} (当前: ${listeners.length})`, 'DEBUG');
+    this.callSticky(eventName, callback);
     return true;
   }
 
@@ -75,6 +78,10 @@ class EventEmitter {
   }
 
   public once(eventName: string, callback: EventCallback, description: string = ''): boolean {
+    if (this.stickyArgs.has(eventName)) {
+      this.callSticky(eventName, callback);
+      return true;
+    }
     let fired = false;
     const onceWrapper: EventCallback = async (...args) => {
       if (fired) return;
@@ -90,6 +97,7 @@ class EventEmitter {
   }
 
   public async trigger(eventName: string, ...args: any[]): Promise<void> {
+    if (this.stickyEvents.has(eventName)) this.stickyArgs.set(eventName, args);
     const listeners = this.events.get(eventName);
     if (listeners?.length) {
       const snapshot = [...listeners];
@@ -117,12 +125,26 @@ class EventEmitter {
   }
 
   public after(eventName: string, callback: EventCallback): void {
+    if (this.stickyArgs.has(eventName)) {
+      this.callSticky(eventName, callback, 'after');
+      return;
+    }
     let callbacks = this.afters.get(eventName);
     if (!callbacks) {
       callbacks = [];
       this.afters.set(eventName, callbacks);
     }
     callbacks.push(callback);
+  }
+
+  private callSticky(eventName: string, callback: EventCallback, type: 'listener' | 'after' = 'listener'): void {
+    if (!this.stickyArgs.has(eventName)) return;
+    try {
+      const result = callback(...(this.stickyArgs.get(eventName) ?? []));
+      if (result && typeof result.catch === 'function') result.catch((error: any) => this.core.logger.log(`${eventName} sticky ${type} error: ${error?.message || error}`, 'ERROR'));
+    } catch (error: any) {
+      this.core.logger.log(`${eventName} sticky ${type} error: ${error?.message || error}`, 'ERROR');
+    }
   }
 }
 
