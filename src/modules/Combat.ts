@@ -2,11 +2,11 @@
 
 import maplebirch, { type MaplebirchCore, createlog } from '../core';
 import type { MacroContext } from '../SugarCubeMacros';
-import CombatAction, { type ActionType, type CombatType, type OptionsTable } from './CombatAddon/CombatAction';
+import CombatActions, { type ActionType, type CombatType, type OptionsTable } from './CombatAddon/CombatAction';
 
 class CombatManager {
   public readonly log: ReturnType<typeof createlog>;
-  public readonly CombatAction: typeof CombatAction = CombatAction;
+  public readonly CombatAction = new CombatActions();
 
   public constructor(readonly core: MaplebirchCore) {
     this.log = createlog('combat');
@@ -18,7 +18,9 @@ class CombatManager {
   }
 
   private _generateCombatAction() {
-    const self = this as this;
+    const CombatAction = this.CombatAction;
+    const log = this.log;
+    const combatButtonAdjustments = this._combatButtonAdjustments.bind(this);
 
     return function (this: MacroContext) {
       const optionsTable = this.args[0] as OptionsTable;
@@ -29,15 +31,15 @@ class CombatManager {
       const el = (val: string) => document.createElement(val);
 
       try {
-        self.CombatAction.action(optionsTable, actionType, combatType);
+        CombatAction.patchOptions(optionsTable, actionType, combatType);
       } catch (e) {
-        self.log('mod战斗动作对象错误', 'ERROR', e);
+        log('mod战斗动作对象错误', 'ERROR', e);
       }
       if (['lists', 'limitedLists'].includes(controls)) {
-        const actions = Object.values(optionsTable);
+        const optionValues = Object.values(optionsTable);
         const listSpan = el('span');
         listSpan.id = `${actionType}Select`;
-        listSpan.className = `${combatListColor(actionType, actions.includes(V[actionType]) ? V[actionType] : actions[0], combatType)}List flavorText ${T.reducedWidths ? 'reducedWidth' : ''}`;
+        listSpan.className = `${combatListColor(actionType, optionValues.includes(V[actionType]) ? V[actionType] : optionValues[0], combatType)}List flavorText ${T.reducedWidths ? 'reducedWidth' : ''}`;
         T[`${actionType}options`] = optionsTable;
         const listBox = maplebirch.SugarCube.Wikifier.wikifyEval(`<<listbox '$${actionType}' autoselect>><<optionsfrom _${actionType}options>><</listbox>>`);
         listSpan.append(listBox);
@@ -59,10 +61,10 @@ class CombatManager {
           }
           nameSpan.innerText = ` ${name} `;
           try {
-            const modDifficulty = self.CombatAction.difficulty(action, combatType);
+            const modDifficulty = CombatAction.difficulty(action, combatType);
             difficultyText = maplebirch.SugarCube.Wikifier.wikifyEval(modDifficulty || `<<${actionType}Difficulty${combatType} ${action}>>`);
           } catch (e) {
-            self.log('mod战斗动作难度提示错误', 'ERROR', e);
+            log('mod战斗动作难度提示错误', 'ERROR', e);
           }
           if (controls === 'radio' && n < optionNames.length - 1) difficultyText.append(' |\xa0');
           label.append(radioButton, nameSpan, difficultyText);
@@ -71,7 +73,7 @@ class CombatManager {
         if (!combatType && controls !== 'columnRadio') frag.append(el('br'), el('br'));
       }
       this.output.append(frag);
-      if (['lists', 'limitedLists'].includes(controls)) self._combatButtonAdjustments(actionType, combatType);
+      if (['lists', 'limitedLists'].includes(controls)) combatButtonAdjustments(actionType, combatType);
     };
   }
 

@@ -41,6 +41,10 @@ class Internals {
       macro.define('radiobuttonsfrom', _radiobuttonsfrom, null, false, true);
       macro.define('maplebirchReplace', (name: string, type: string) => _overlayReplace(name, type));
       macro.define('maplebirchTextOutput', this.core.tool.text.makeTextOutput());
+      macro.define('maplebirchCombatAction', function () {
+        const effects = maplebirch.combat?.CombatAction?.effect?.(...this.args);
+        if (effects) this.output.append(maplebirch.SugarCube.Wikifier.wikifyEval(effects));
+      });
       macro.defineS('maplebirchFrameworkVersions', this.showModVersions.bind(this));
       macro.defineS('maplebirchFrameworkInfo', () => this.showFrameworkInfo());
       macro.defineS('maplebirchFrameworkNotice', () => this.showFrameworkNotice());

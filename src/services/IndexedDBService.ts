@@ -46,15 +46,10 @@ class IndexedDBService {
     if (this.opening) return this.opening;
     this.opening = (async () => {
       try {
-        this.db = await openDB(IndexedDBService.DATABASE_NAME, IndexedDBService.DATABASE_VERSION, { upgrade: db => this.createStores(db) });
-        this.ready = true;
-        this.core.logger.log('IDB数据库初始化完成', 'INFO', this.stores);
+        await this.openDatabase();
       } catch (error: any) {
-        this.db = null;
-        this.ready = false;
         this.core.logger.log(`IDB数据库初始化失败: ${error?.message || error}`, 'ERROR');
-        await this.deleteDatabase();
-        await this.core.disabled('maplebirch');
+        if (await this.reopenDatabase()) return;
         throw error;
       }
     })();
@@ -65,25 +60,31 @@ class IndexedDBService {
     }
   }
 
+  private async reopenDatabase(): Promise<boolean> {
+    try {
+      this.core.logger.log('IDB数据库初始化失败，正在重置数据库', 'WARN');
+      if (!(await this.deleteDatabase())) return false;
+      await this.openDatabase();
+      return true;
+    } catch (error: any) {
+      this.core.logger.log(`IDB数据库重置失败: ${error?.message || error}`, 'ERROR');
+      return false;
+    }
+  }
+
+  private async openDatabase(): Promise<void> {
+    this.db = await openDB(IndexedDBService.DATABASE_NAME, IndexedDBService.DATABASE_VERSION, { upgrade: db => this.createStores(db) });
+    const missingStores = [...this.stores.keys()].filter(name => !this.db!.objectStoreNames.contains(name));
+    if (missingStores.length) throw new Error(`IDB缺少存储: ${missingStores.join(', ')}`);
+    this.ready = true;
+    this.core.logger.log('IDB数据库初始化完成', 'INFO', this.stores);
+  }
+
   private createStores(db: IDBPDatabase<unknown>): void {
     for (const storeDef of this.stores.values()) {
       if (!db.objectStoreNames.contains(storeDef.name)) {
         const store = db.createObjectStore(storeDef.name, storeDef.options);
         for (const indexDef of storeDef.indexes || []) store.createIndex(indexDef.name, indexDef.keyPath, indexDef.options || {});
-      }
-    }
-  }
-
-  public async checkStore(): Promise<void> {
-    if (!this.ready) await this.init();
-    if (!this.db) return;
-    const dbStoreNames = Array.from(this.db.objectStoreNames);
-    const storeNames = Array.from(this.stores.keys());
-    for (const storeName of storeNames) {
-      if (!dbStoreNames.includes(storeName)) {
-        this.core.logger.log(`IDB缺少存储: ${storeName}`, 'WARN');
-        await this.resetDatabase();
-        break;
       }
     }
   }
@@ -127,16 +128,6 @@ class IndexedDBService {
     }
   }
 
-  public async resetDatabase(): Promise<void> {
-    try {
-      const deleted = await this.deleteDatabase();
-      if (!deleted) throw new Error('删除数据库失败');
-      await this.init();
-      location.reload();
-    } catch (error: any) {
-      this.core.logger.log(`数据库重置失败: ${error?.message || error}`, 'ERROR');
-    }
-  }
 }
 
 export default IndexedDBService;

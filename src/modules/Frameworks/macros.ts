@@ -37,7 +37,7 @@ class defineMacros {
       isAsync,
       isWidget: !isAsync,
       tags,
-      skipArgs,
+      skipArgs: skipArgs ?? undefined,
       handler() {
         try {
           const result = macroFunction.apply(this, this.args);

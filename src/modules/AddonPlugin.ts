@@ -90,7 +90,6 @@ class AddonPlugin {
     this.log('所有模块注册完成，开始预初始化', 'INFO');
     await this.core.trigger(':indexedDB');
     await this.core.idb.init();
-    await this.core.idb.checkStore();
     await this.core.logger.fromIDB();
     await this.core.trigger(':idbReady');
     await this.core.lang.preload();
