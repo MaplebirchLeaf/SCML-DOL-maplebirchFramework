@@ -101,7 +101,7 @@ class NPCPregnancy {
         const incomplete = V?.settings?.incompletePregnancyEnabled;
         const ignored = setup?.pregnancy?.ignoresIncompleteCheck?.includes(npc.nam);
 
-        if ((explicit || (data.enabled == null && !infertile && this.has(type) && ((incomplete && !ignored) || forced))) && !Array.isArray(data.fetus)) {
+        if ((explicit || (data.enabled == null && !infertile && this.types.has(type) && ((incomplete && !ignored) || forced))) && !Array.isArray(data.fetus)) {
           const cycleDaysTotal = data.cycleDaysTotal ?? Math.random(24, 32);
           data = {
             ...data,
@@ -155,10 +155,6 @@ class NPCPregnancy {
       if (typeof config.childActivity === 'function') this.childActivities.set(key, config.childActivity);
       if (config.text) this.texts.set(key, config.text);
     }
-  }
-
-  public has(type: string) {
-    return this.types.has(type);
   }
 
   public typeOf(target: string | PregnancyNPC | null | undefined) {
@@ -323,7 +319,7 @@ class NPCPregnancy {
     const spermArray: SpermEntry[] = [];
 
     for (const sperm of spermObject) {
-      if (!sperm?.type || !this.has(sperm.type)) continue;
+      if (!sperm?.type || !this.types.has(sperm.type)) continue;
       if (V?.settings?.incompletePregnancyEnabled === false && V?.NPCNameList?.includes(sperm.source) && !setup?.pregnancy?.canImpregnatePlayer?.includes(sperm.source)) continue;
       if (!this.allowsPlayerPregnancyType(sperm.type, player)) continue;
       if (!trackedNPCs.find(npc => npc.source === sperm.source)) trackedNPCs.push({ type: sperm.type, source: sperm.source });

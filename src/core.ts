@@ -108,7 +108,7 @@ class MaplebirchCore {
     this.cloudSave = Object.seal(new CloudSaveService(this));
     this.modules = Object.seal(new ModuleSystem(this));
     this.gui = Object.seal(new GUIControl(this));
-    this.log(`框架核心系统创建完成(v${MaplebirchCore.meta.version})`, 'INFO');
+    this.log(`框架核心系统创建完成(v${MaplebirchCore.meta.version})`, 'DEBUG');
   }
 
   public log(msg: string, level: string = 'INFO', ...objs: any[]): void {

@@ -105,7 +105,6 @@ class Variables {
     try {
       if (action === 'save') {
         localStorage.setItem(Variables.OPTIONS_STORAGE_KEY, JSON.stringify(V.options?.maplebirch ?? {}));
-        this.log('框架设置已保存', 'DEBUG');
         return null;
       }
 

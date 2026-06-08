@@ -138,7 +138,6 @@ export class zonesManager {
 
   public storyInit(): void {
     if (this.initFunction.length === 0) return;
-    this.log(`执行 ${this.initFunction.length} 个初始化函数`, 'DEBUG');
     for (const item of this.initFunction) {
       try {
         if (typeof item === 'function') {
@@ -197,12 +196,10 @@ export class zonesManager {
       } catch (error: any) {
         const message = error?.message || error;
         this.log(`处理段落 ${title} 时出错: ${message}`, 'ERROR', error);
-        manager.log(`PatchScene: ${title} ${message}`);
       }
     }
     SCdata.passageDataItems.back2Array();
     manager.modUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
-    this.log('框架补丁应用完成', 'DEBUG');
   }
 
   private get widgets(): string {
@@ -365,7 +362,6 @@ export class zonesManager {
       content : this.widgethtml
     };
     passageData.set('Maplebirch Frameworks Widgets', data);
-    this.log('创建宏部件段落: Maplebirch Frameworks Widgets', 'DEBUG', [this.widgethtml.clone()]);
     const storyInit = passageData.get('StoryInit');
     if (storyInit && !String(storyInit.content).includes('<<maplebirchInit>>')) {
       storyInit.content += '\n<<maplebirchInit>>\n';

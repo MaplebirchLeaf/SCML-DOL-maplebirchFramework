@@ -211,7 +211,6 @@ class htmlTools {
         return;
       }
       this.log(`无法找到宏输出目标: ${String(macro)}`, 'WARN');
-      console.log(fragment);
     } catch (error: any) {
       this.log(`渲染到宏输出失败: ${error?.message || error}`, 'ERROR', error);
     }

@@ -65,14 +65,14 @@ class AddonPlugin {
   public constructor(readonly core: MaplebirchCore) {
     this.SC2DataManager = this.core.manager.modSC2DataManager;
     this.modUtils = this.core.modUtils;
-    this.log('框架开始初始化流程', 'INFO');
+    this.log('框架开始初始化流程', 'DEBUG');
     this.modUtils.getAddonPluginManager().registerAddonPlugin('maplebirch', 'maplebirchAddon', this);
     this.SC2DataManager.getModLoadController().addLifeTimeCircleHook('maplebirchFramework', this);
     const modName = this.modUtils.getNowRunningModName()!;
     const modInfo = this.modUtils.getMod(modName) as ModInfo;
     if (!modName || !modInfo) return;
     modInfo.modRef = this;
-    this.log('框架初始化流程结束');
+    this.log('框架初始化流程结束', 'DEBUG');
   }
 
   public async canLoadThisMod(bootJson: ModBootJson, zip: JSZipLikeReadOnlyInterface): Promise<boolean> {
@@ -87,7 +87,7 @@ class AddonPlugin {
     if (!this.disabledMods.includes('Simple Frameworks')) await this.core.disabled('Simple Frameworks');
     await this.scriptFiles();
     await this.executeScripts(this.moduleFiles, 'Module');
-    this.log('所有模块注册完成，开始预初始化', 'INFO');
+    this.log('所有模块注册完成，开始预初始化', 'DEBUG');
     await this.core.trigger(':indexedDB');
     await this.core.idb.init();
     await this.core.logger.fromIDB();
@@ -160,7 +160,6 @@ class AddonPlugin {
 
   public async whenSC2PassageInit(passage: Passage): Promise<any> {
     this.core.passage = passage;
-    if (!!this.core.passage && !this.core.passage.tags.includes('widget')) this.log(`处理段落: ${this.core.passage.title}`, 'INFO');
     await this.core.trigger(':passageinit', passage);
   }
 
