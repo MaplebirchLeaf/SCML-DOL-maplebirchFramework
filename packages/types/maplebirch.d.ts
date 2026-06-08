@@ -1761,18 +1761,6 @@ declare const NPCSidebar: {
     init(manager: NPCManager): void;
 };
 
-interface VanillaPregnancyHooks {
-    recordSperm?: (options?: any) => any;
-    pregnancyDaysEta?: (pregnancyObject: any) => number | null;
-    getChildDays?: (childId: string) => number | null;
-    macros: {
-        playerPregnancyAttempt?: MacroDefinition;
-        namedNpcPregnancy?: MacroDefinition;
-        pregnancyBabyText?: MacroDefinition;
-        updateChildActivity?: MacroDefinition;
-    };
-}
-
 type PregnancyNPC = {
     nam: string;
     type: string;
@@ -1798,17 +1786,15 @@ type PregnancyData = Record<string, any> & {
     pills?: string | null;
 };
 type PregnancyGenerator = (mother: string, father: string, fatherKnown: boolean, genital: string, ...args: any[]) => any;
-type PregnancyBirthResolver = (type: string, pregnancy?: PregnancyData) => PregnancyBirthConfig;
+type PregnancyBirthResolver = (type: string, pregnancy?: PregnancyData, npcName?: string) => PregnancyBirthConfig;
 type PregnancyEtaResolver = (pregnancy: PregnancyData) => number | null;
 type PregnancyChildActivityResolver = (childId: string, child: any) => string | null | false | void;
+type PregnancyChildDefaultsResolver = (child: any, pregnancy: PregnancyData, npcName?: string) => Record<string, any> | null | false | void;
+type PregnancyChildTransformResolver = (child: any, pregnancy: PregnancyData, npcName?: string) => PregnancyChildTransformConfig | null | false | void;
 type PregnancyTextResolver = (pregnancy: PregnancyData, count: number, target?: string) => string;
-interface PregnancyAddConfig {
-    generator?: PregnancyGenerator;
-    birth?: PregnancyBirthConfig | PregnancyBirthResolver;
-    eta?: PregnancyEtaResolver;
-    childActivity?: PregnancyChildActivityResolver;
-    text?: PregnancyTextConfig | PregnancyTextResolver;
-}
+type PregnancyMultiplierResolver = (npcName: string, pregnancy: PregnancyData) => number;
+type PregnancyAutoEndResolver = (npcName: string, pregnancy: PregnancyData) => boolean;
+type PregnancyCycleMode = 'range' | 'after';
 interface PregnancyBirthConfig {
     birthLocation?: string;
     location?: string;
@@ -1818,6 +1804,55 @@ interface PregnancyTextConfig {
     multiple?: string;
     resolver?: PregnancyTextResolver;
 }
+type PregnancyChildTransformConfig = string | string[] | PregnancyChildTransformFields;
+interface PregnancyChildTransformFields {
+    animal?: string | null;
+    divine?: string | null;
+    maplebirch?: string | string[] | Record<string, any> | null;
+    features?: Record<string, any>;
+}
+interface PregnancyChildConfig {
+    defaults?: Record<string, any> | PregnancyChildDefaultsResolver;
+    transform?: PregnancyChildTransformConfig | PregnancyChildTransformResolver;
+    activity?: PregnancyChildActivityResolver;
+    text?: PregnancyTextConfig | PregnancyTextResolver;
+}
+interface PregnancyNpcConfig {
+    type?: string;
+    enabled?: boolean;
+    canBePregnant?: boolean;
+    canImpregnatePlayer?: boolean;
+    birth?: PregnancyBirthConfig | PregnancyBirthResolver;
+    multiplier?: number | PregnancyMultiplierResolver;
+    autoEnd?: boolean | PregnancyAutoEndResolver;
+    cycleMode?: PregnancyCycleMode;
+    forcePregnancy?: boolean | PregnancyAutoEndResolver;
+    nonCycleFlag?: string;
+    onMissedBirth?: (npcName: string, pregnancy: PregnancyData) => void;
+}
+interface PregnancyAddConfig extends PregnancyNpcConfig {
+    generator?: PregnancyGenerator;
+    eta?: PregnancyEtaResolver;
+    child?: PregnancyChildConfig;
+    childActivity?: PregnancyChildActivityResolver;
+    text?: PregnancyTextConfig | PregnancyTextResolver;
+    npc?: Record<string, PregnancyNpcConfig>;
+}
+
+interface VanillaPregnancyHooks {
+    recordSperm?: (options?: any) => any;
+    pregnancyDaysEta?: (pregnancyObject: any) => number | null;
+    getChildDays?: (childId: string) => number | null;
+    macros: {
+        playerPregnancyAttempt?: MacroDefinition;
+        namedNpcPregnancy?: MacroDefinition;
+        endNpcPregnancy?: MacroDefinition;
+        pregnancyBabyText?: MacroDefinition;
+        updateChildActivity?: MacroDefinition;
+        updateRecordedSperm?: MacroDefinition;
+    };
+}
+
 declare class NPCPregnancy {
     readonly manager: NPCManager;
     readonly vanillaTypes: Set<string>;
@@ -1832,8 +1867,10 @@ declare class NPCPregnancy {
     definePregnancyProperty(npc: PregnancyNPC): void;
     get typesEnabled(): string[];
     add(type: string, config?: PregnancyGenerator | PregnancyAddConfig): void;
+    addNpc(npcName: string, typeOrConfig: string | PregnancyNpcConfig, config?: PregnancyNpcConfig): void;
+    addChild(type: string, config: PregnancyChildConfig): void;
     typeOf(target: string | PregnancyNPC | null | undefined): any;
-    birthLocation(type: string, pregnancy?: PregnancyData): PregnancyBirthConfig;
+    birthLocation(type: string, pregnancy?: PregnancyData, npcName?: string): PregnancyBirthConfig;
     NPCPregnancy(npc: PregnancyNPC): void;
     avoidance(npc: PregnancyNPC): void;
     savedPregnancy(): any;
@@ -1844,6 +1881,8 @@ declare class NPCPregnancy {
     updateCustomChildActivity(childId?: string): boolean;
     babyText(pregnancy: PregnancyData | undefined, target?: string): string;
     vanillaMacro(macro: MacroDefinition | undefined, args: any[], context?: any): false | void;
+    cycle(days?: number): void;
+    endNpcPregnancy(npcName: string, birthLocation?: string, location?: string, context?: any): false | void;
 }
 
 type PronounCode = 'm' | 'f' | 'i' | 'n' | 't';
