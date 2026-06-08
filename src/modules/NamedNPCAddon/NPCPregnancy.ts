@@ -2,85 +2,60 @@
 
 import type { MacroDefinition } from 'twine-sugarcube';
 import type NPCManager from '../NamedNPC';
+import {
+  DEFAULT_AVOIDANCE,
+  DEFAULT_NPC_CONFIGS,
+  DEFAULT_TYPE_CONFIGS,
+  VANILLA_TYPES,
+  type PregnancyAddConfig,
+  type PregnancyBirthResolver,
+  type PregnancyBirthConfig,
+  type PregnancyChildConfig,
+  type PregnancyChildActivityResolver,
+  type PregnancyChildTransformConfig,
+  type PregnancyData,
+  type PregnancyEtaResolver,
+  type PregnancyGenerator,
+  type PregnancyNPC,
+  type PregnancyNpcConfig,
+  type PregnancyTextConfig,
+  type PregnancyTextResolver,
+  type SpermData,
+  type SpermEntry
+} from './NPCPregnancyConfig';
 import NPCPregnancyPatch, { type VanillaPregnancyHooks } from './NPCPregnancyPatch';
 
-type PregnancyNPC = {
-  nam: string;
-  type: string;
-  penis?: string;
-  vagina?: string;
-  pregnancy: Record<string, any> | null;
-  pregnancyAvoidance?: number;
-};
-
-type SpermData = {
-  type: string;
-  source: string;
-  quantity?: number;
-  mod?: number;
-};
-
-export type SpermEntry = {
-  type: string;
-  source: string;
-};
-
-type PregnancyData = Record<string, any> & {
-  enabled?: boolean;
-  fetus?: any[];
-  sperm?: SpermData[];
-  pills?: string | null;
-};
-
-export type PregnancyGenerator = (mother: string, father: string, fatherKnown: boolean, genital: string, ...args: any[]) => any;
-export type PregnancyBirthResolver = (type: string, pregnancy?: PregnancyData) => PregnancyBirthConfig;
-export type PregnancyEtaResolver = (pregnancy: PregnancyData) => number | null;
-export type PregnancyChildActivityResolver = (childId: string, child: any) => string | null | false | void;
-export type PregnancyTextResolver = (pregnancy: PregnancyData, count: number, target?: string) => string;
-
-export interface PregnancyAddConfig {
-  generator?: PregnancyGenerator;
-  birth?: PregnancyBirthConfig | PregnancyBirthResolver;
-  eta?: PregnancyEtaResolver;
-  childActivity?: PregnancyChildActivityResolver;
-  text?: PregnancyTextConfig | PregnancyTextResolver;
-}
-
-export interface PregnancyBirthConfig {
-  birthLocation?: string;
-  location?: string;
-}
-
-export interface PregnancyTextConfig {
-  single?: string;
-  multiple?: string;
-  resolver?: PregnancyTextResolver;
-}
+export type { PregnancyAddConfig, PregnancyChildConfig, PregnancyGenerator, PregnancyNpcConfig, SpermEntry } from './NPCPregnancyConfig';
 
 class NPCPregnancy {
-  public readonly vanillaTypes = new Set(['human', 'wolf', 'wolfboy', 'wolfgirl', 'hawk', 'harpy']);
+  public readonly vanillaTypes = new Set(VANILLA_TYPES);
   public readonly types = new Set(this.vanillaTypes);
   public readonly infertile = ['Bailey', 'Leighton'];
-  public readonly canBePregnant = ['Alex', 'Black Wolf', 'Great Hawk'];
-  public readonly canImpregnatePlayer = ['Alex', 'Black Wolf', 'Great Hawk'];
+  public readonly canBePregnant = Object.keys(DEFAULT_NPC_CONFIGS);
+  public readonly canImpregnatePlayer = Object.keys(DEFAULT_NPC_CONFIGS);
   public readonly randomAlwaysKeep = ['wolf_cave'];
   public readonly vanilla: VanillaPregnancyHooks = { macros: {} };
   public readonly generators = new Map<string, PregnancyGenerator>();
 
   private readonly patch: NPCPregnancyPatch;
+  // 种族级配置：一个 type 可以被多个 NPC 共用，负责生成器、默认地点、周期倍率、孩子文本等。
+  private readonly configs = new Map<string, PregnancyAddConfig>();
+  // NPC 级配置：只覆盖某个命名 NPC 的怀孕类型、出生地点、周期模式等，不重复保存 NPC 基础数据。
+  private readonly npcConfigs = new Map<string, PregnancyNpcConfig>();
+  // 下面几个 Map 是从 configs 拆出的快速索引，运行时少做类型判断。
   private readonly births = new Map<string, PregnancyBirthConfig | PregnancyBirthResolver>();
   private readonly etas = new Map<string, PregnancyEtaResolver>();
+  private readonly children = new Map<string, PregnancyChildConfig>();
   private readonly childActivities = new Map<string, PregnancyChildActivityResolver>();
   private readonly texts = new Map<string, PregnancyTextConfig | PregnancyTextResolver>();
 
   public constructor(public readonly manager: NPCManager) {
     this.patch = new NPCPregnancyPatch(this);
+    // 原版特殊 NPC 也走注册数据，避免在周期逻辑里继续堆 switch/case。
+    for (const [type, config] of Object.entries(DEFAULT_TYPE_CONFIGS)) this.add(type, config);
+    for (const [npcName, config] of Object.entries(DEFAULT_NPC_CONFIGS)) this.addNpc(npcName, config);
+    // 等原版 pregnancy 宏和 window.pregnancyGenerator 创建后，再保存原版入口并替换需要扩展的宏。
     manager.core.once(':storyready', () => this.patch.inject());
-    manager.core.dynamic.regTimeEvent('onDay', 'NPCPregnancyCycle', {
-      action: () => this.NPCPregnancyCycle(),
-      cond: () => !V.statFreeze && V.settings.npcPregnancyEnabled === true && V.settings.pregnancyType === 'realistic',
-      exact: true
-    });
   }
 
   public definePregnancyProperty(npc: PregnancyNPC) {
@@ -94,12 +69,13 @@ class NPCPregnancy {
         if (ready) return data;
         ready = true;
 
+        const config = this.npcConfigs.get(npc.nam);
         const type = this.typeOf(npc);
         const explicit = data.enabled === true;
         const infertile = this.infertile.includes(npc.nam);
         const forced = this.canBePregnant.includes(npc.nam);
-        const incomplete = V?.settings?.incompletePregnancyEnabled;
-        const ignored = setup?.pregnancy?.ignoresIncompleteCheck?.includes(npc.nam);
+        const incomplete = V.settings.incompletePregnancyEnabled;
+        const ignored = setup.pregnancy.ignoresIncompleteCheck?.includes(npc.nam);
 
         if ((explicit || (data.enabled == null && !infertile && this.types.has(type) && ((incomplete && !ignored) || forced))) && !Array.isArray(data.fetus)) {
           const cycleDaysTotal = data.cycleDaysTotal ?? Math.random(24, 32);
@@ -113,7 +89,7 @@ class NPCPregnancy {
             waterBreaking: null,
             npcAwareOf: null,
             pcAwareOf: null,
-            type: data.type ?? null,
+            type: data.type ?? config?.type ?? type,
             enabled: true,
             cycleDaysTotal,
             cycleDay: Math.random(1, cycleDaysTotal),
@@ -149,24 +125,54 @@ class NPCPregnancy {
     if (typeof config === 'function') {
       this.generators.set(key, config);
     } else if (config && typeof config === 'object') {
+      this.configs.set(key, config);
       if (typeof config.generator === 'function') this.generators.set(key, config.generator);
       if (config.birth) this.births.set(key, config.birth);
       if (typeof config.eta === 'function') this.etas.set(key, config.eta);
+      if (config.child) this.children.set(key, config.child);
       if (typeof config.childActivity === 'function') this.childActivities.set(key, config.childActivity);
+      if (typeof config.child?.activity === 'function') this.childActivities.set(key, config.child.activity);
+      if (config.child?.text) this.texts.set(key, config.child.text);
       if (config.text) this.texts.set(key, config.text);
+      if (config.npc) for (const [npcName, npcConfig] of Object.entries(config.npc)) this.addNpc(npcName, npcConfig);
     }
+  }
+
+  public addNpc(npcName: string, typeOrConfig: string | PregnancyNpcConfig, config: PregnancyNpcConfig = {}) {
+    const key = npcName.trim();
+    if (!key) return;
+    const data = typeof typeOrConfig === 'string' ? { ...config, type: typeOrConfig } : typeOrConfig;
+    if (!data || typeof data !== 'object') return;
+    this.npcConfigs.set(key, data);
+    if (data.type) this.types.add(data.type);
+    if (data.enabled !== false && data.canBePregnant !== false) this.canBePregnant.pushUnique(key);
+    if (data.canImpregnatePlayer === true) this.canImpregnatePlayer.pushUnique(key);
+  }
+
+  public addChild(type: string, config: PregnancyChildConfig) {
+    const key = type.trim();
+    if (!key || !config || typeof config !== 'object') return;
+    this.children.set(key, config);
+    if (typeof config.activity === 'function') this.childActivities.set(key, config.activity);
+    if (config.text) this.texts.set(key, config.text);
   }
 
   public typeOf(target: string | PregnancyNPC | null | undefined) {
     const npc = typeof target === 'string' ? (C.npc[target] ?? (Array.isArray(V.NPCName) ? V.NPCName.find((item: { nam?: string }) => item.nam === target) : null)) : target;
-    const data = npc.pregnancy;
-    return typeof data.type === 'string' && data.type.trim() ? data.type.trim() : (npc.type ?? '');
+    const data = npc?.pregnancy;
+    const name = this.npcNameOf(target, npc);
+    const config = name ? this.npcConfigs.get(name) : null;
+    return typeof data?.type === 'string' && data.type.trim() ? data.type.trim() : (config?.type ?? npc?.type ?? '');
   }
 
-  public birthLocation(type: string, pregnancy?: PregnancyData): PregnancyBirthConfig {
-    const birth = this.births.get(type);
-    if (typeof birth === 'function') return birth(type, pregnancy);
-    return birth ?? {};
+  private npcNameOf(target: string | PregnancyNPC | null | undefined, npc?: PregnancyNPC | null) {
+    if (typeof target === 'string') return target;
+    if (npc && V.per_npc && typeof V.per_npc === 'object') {
+      const found = Object.entries(V.per_npc).find(([, value]) => value === npc);
+      if (found) return found[0];
+    }
+    const name = npc?.nam || npc?.fullDescription || npc?.description || '';
+    return V.NPCNameList?.includes(name) ? name : '';
   }
 
   public NPCPregnancy(npc: PregnancyNPC) {
@@ -181,13 +187,7 @@ class NPCPregnancy {
   public avoidance(npc: PregnancyNPC) {
     if (!V) return;
     if (npc.pregnancyAvoidance != null && !(V.settings != null && V.objectVersion?.pregnancyAvoidance == null)) return;
-    if (['Kylar', 'Black Wolf', 'Great Hawk', 'Eden', 'Ivory Wraith', 'Gwylan'].includes(npc.nam)) {
-      npc.pregnancyAvoidance = 0;
-    } else if (['Robin', 'Whitney', 'Alex', 'Wren', 'Avery'].includes(npc.nam)) {
-      npc.pregnancyAvoidance = 50;
-    } else {
-      npc.pregnancyAvoidance = Math.random(100);
-    }
+    npc.pregnancyAvoidance = DEFAULT_AVOIDANCE[npc.nam] ?? Math.random(100);
   }
 
   public savedPregnancy() {
@@ -201,6 +201,7 @@ class NPCPregnancy {
     const pregnancy = setup.pregnancy;
     if (!pregnancy) return null;
 
+    // 原版 recordSperm / namedNpcPregnancy 会查 setup.pregnancy 的名单，所以注册数据最终要落到这里。
     pregnancy.typesEnabled ??= [];
     pregnancy.canBePregnant ??= [];
     pregnancy.canImpregnatePlayer ??= [];
@@ -219,6 +220,7 @@ class NPCPregnancy {
     if (!pregnancy || pregnancy.fetus?.length || Number.isNaN(baseMulti) || baseMulti < 1 || V.settings?.pregnancyType !== 'realistic') return false;
     const [trackedNPCs, spermArray] = this.spermObjectToArray(V.sexStats[genital].sperm, true);
     const customSperm = spermArray.filter(sperm => !this.vanillaTypes.has(sperm.type));
+    // 纯原版精液直接交回原版宏；混合精液先给原版一次机会，再处理自定义种族。
     if (!customSperm.length) return this.vanillaMacro(this.vanilla.macros.playerPregnancyAttempt, [baseMulti, genital]);
     if (spermArray.length > customSperm.length && this.vanillaMacro(this.vanilla.macros.playerPregnancyAttempt, [baseMulti, genital])) return true;
     const picked = this.pickPlayerSperm(customSperm, baseMulti);
@@ -231,6 +233,7 @@ class NPCPregnancy {
     if (!namedNPC || V.settings?.npcPregnancyEnabled === false) return false;
 
     const motherType = this.typeOf(namedNPC);
+    // 原版能处理的组合不截胡，避免影响 Alex/Black Wolf/Great Hawk 等已有剧情。
     if (this.vanillaTypes.has(fatherSpecies) && this.vanillaTypes.has(motherType))
       return this.vanillaMacro(this.vanilla.macros.namedNpcPregnancy, [mother, father, fatherSpecies, fatherKnown, trackedNPCs, awareOf]);
 
@@ -298,20 +301,152 @@ class NPCPregnancy {
     return macro.handler.call(macroContext);
   }
 
-  private NPCPregnancyCycle() {
+  public cycle(days = 1) {
+    // time.js 的每日 npcPregnancyCycle() 调用点会被替换到这里；作弊 timeTravel 不自动补算。
+    const count = Math.max(0, Math.floor(Number(days) || 0));
+    for (let i = 0; i < count; i++) this.cycleDay();
+  }
+
+  public endNpcPregnancy(npcName: string, birthLocation?: string, location?: string, context?: any) {
+    const npc = C.npc[npcName];
+    const pregnancy = npc?.pregnancy as PregnancyData | undefined;
+    if (!npc || npc.vagina === 'none' || pregnancy?.enabled === undefined || !pregnancy.fetus?.length) return false;
+    const type = this.typeOf(npc);
+    const resolved = this.birthLocation(type, pregnancy, npcName, birthLocation, location);
+    // 原版宏会清空/改写 pregnancy，所以先记下 fetus 里的 childId，出生后再补自定义 child 配置。
+    const childIds = pregnancy.fetus.map(child => child?.childId).filter((childId): childId is string => typeof childId === 'string' && childId.length > 0);
+    const ended = this.vanillaMacro(this.vanilla.macros.endNpcPregnancy, [npcName, resolved.birthLocation, resolved.location], context);
+    if (ended) this.applyChildConfig(childIds, pregnancy, npcName);
+    return ended;
+  }
+
+  private cycleDay() {
+    if (V.statFreeze) return;
     for (const npcName of V.NPCNameList ?? []) {
       const npc = C.npc[npcName];
       const pregnancy = npc?.pregnancy as PregnancyData | undefined;
-      if (!npc || !pregnancy?.enabled || pregnancy.fetus?.length || !pregnancy.sperm?.length) continue;
-      const motherType = this.typeOf(npc);
-      const hasCustomSperm = pregnancy.sperm.some(sperm => sperm?.type && !this.vanillaTypes.has(sperm.type));
-      if (this.vanillaTypes.has(motherType) && !hasCustomSperm) continue;
-      if (V.settings.fertilityCycleEnabled === true) {
-        if (between(pregnancy.cycleDay, pregnancy.cycleDangerousDay - 1, pregnancy.cycleDangerousDay + 1)) this.namedNpcPregnancyAttempt(npcName, false, pregnancy.sperm);
-      } else if (pregnancy.nonCycleRng?.[0] === 0) {
-        this.namedNpcPregnancyAttempt(npcName, false, pregnancy.sperm);
+      if (!npc || !pregnancy) continue;
+      if (pregnancy.fetus?.length) {
+        this.progressPregnancy(npcName, npc, pregnancy);
+      } else if (pregnancy.enabled && V.settings.npcPregnancyEnabled === true) {
+        this.progressCycle(npcName, pregnancy);
       }
+      // updateRecordedSperm 是原版局部函数，只暴露成宏；不能直接当 window 函数调用。
+      this.vanillaMacro(this.vanilla.macros.updateRecordedSperm, ['vagina', npcName, 1]);
     }
+  }
+
+  private progressPregnancy(npcName: string, npc: PregnancyNPC, pregnancy: PregnancyData) {
+    const multiplier = this.multiplier(npcName, pregnancy);
+    pregnancy.timer += parseFloat(multiplier.toFixed(3));
+    if (pregnancy.timer > pregnancy.timerEnd * 0.2 && !pregnancy.npcAwareOf) pregnancy.npcAwareOf = true;
+    if (pregnancy.timer <= pregnancy.timerEnd) return;
+    if (!this.shouldAutoEnd(npcName, pregnancy)) return;
+
+    if (pregnancy.timer >= pregnancy.timerEnd + 14 * multiplier) {
+      this.handleMissedBirth(npcName, pregnancy);
+      const locations = this.birthLocation(this.typeOf(npc), pregnancy, npcName);
+      this.endNpcPregnancy(npcName, locations.birthLocation, locations.location);
+      return;
+    }
+
+    pregnancy.waterBreaking = true;
+  }
+
+  private progressCycle(npcName: string, pregnancy: PregnancyData) {
+    const config = this.configFor(npcName, pregnancy);
+    const forcePregnancy = this.forcePregnancy(config, npcName, pregnancy);
+    if (V.settings.fertilityCycleEnabled === true) {
+      pregnancy.cycleDay++;
+      if (pregnancy.cycleDay >= pregnancy.cycleDaysTotal) {
+        pregnancy.cycleDay = 1;
+      } else if (this.isDangerousDay(config, pregnancy)) {
+        this.namedNpcPregnancyAttempt(npcName, forcePregnancy, pregnancy.sperm);
+      }
+      return;
+    }
+
+    pregnancy.nonCycleRng.push(random(0, 4));
+    pregnancy.nonCycleRng.deleteAt(0);
+    if (config.nonCycleFlag && pregnancy.nonCycleRng[0] === 0) pregnancy[config.nonCycleFlag] = true;
+    if (pregnancy.nonCycleRng[0] === 0) this.namedNpcPregnancyAttempt(npcName, forcePregnancy, pregnancy.sperm);
+  }
+
+  private multiplier(npcName: string, pregnancy: PregnancyData) {
+    const custom = this.configFor(npcName, pregnancy).multiplier;
+    if (typeof custom === 'function') return Math.max(0, Number(custom(npcName, pregnancy)) || 0);
+    if (typeof custom === 'number') return Math.max(0, custom);
+    return 1;
+  }
+
+  private shouldAutoEnd(npcName: string, pregnancy: PregnancyData) {
+    const setting = this.configFor(npcName, pregnancy).autoEnd;
+    if (typeof setting === 'function') return !!setting(npcName, pregnancy);
+    if (typeof setting === 'boolean') return setting;
+    return true;
+  }
+
+  private handleMissedBirth(npcName: string, pregnancy: PregnancyData) {
+    const custom = this.configFor(npcName, pregnancy).onMissedBirth;
+    if (custom) {
+      custom(npcName, pregnancy);
+      return;
+    }
+  }
+
+  private birthLocation(type: string, pregnancy?: PregnancyData, npcName?: string, birthLocation?: string, location?: string): PregnancyBirthConfig {
+    const birth = this.configFor(npcName, pregnancy, type).birth;
+    const resolved = typeof birth === 'function' ? birth(type, pregnancy, npcName) : birth;
+    return {
+      birthLocation: birthLocation || resolved?.birthLocation || 'unknown',
+      location: location || resolved?.location || 'unknown'
+    };
+  }
+
+  private configFor(npcName?: string, pregnancy?: PregnancyData, fallbackType?: string): PregnancyNpcConfig {
+    const type = pregnancy?.type || fallbackType || '';
+    // NPC 配置覆盖种族配置；例如同为 human，某个 NPC 可以拥有自己的倍率或出生地点。
+    return {
+      ...(type ? this.configs.get(type) : undefined),
+      ...(npcName ? this.npcConfigs.get(npcName) : undefined)
+    };
+  }
+
+  private isDangerousDay(config: PregnancyNpcConfig, pregnancy: PregnancyData) {
+    if (config.cycleMode === 'after') return pregnancy.cycleDay >= pregnancy.cycleDangerousDay;
+    return between(pregnancy.cycleDay, pregnancy.cycleDangerousDay - 1, pregnancy.cycleDangerousDay + 1);
+  }
+
+  private forcePregnancy(config: PregnancyNpcConfig, npcName: string, pregnancy: PregnancyData) {
+    const force = config.forcePregnancy;
+    return typeof force === 'function' ? !!force(npcName, pregnancy) : !!force;
+  }
+
+  private applyChildConfig(childIds: string[], pregnancy: PregnancyData, npcName?: string) {
+    for (const childId of childIds) {
+      const child = V.children?.[childId];
+      const config = child?.type ? this.children.get(child.type) : null;
+      if (!child || !config) continue;
+
+      // child 配置只在出生后处理，避免干扰原版孕期 fetus 数据结构。
+      const data = typeof config.defaults === 'function' ? config.defaults(child, pregnancy, npcName) : config.defaults;
+      if (data && typeof data === 'object') Object.assign(child, data);
+
+      const transform = typeof config.transform === 'function' ? config.transform(child, pregnancy, npcName) : config.transform;
+      if (transform) this.applyChildTransform(child, transform);
+    }
+  }
+
+  private applyChildTransform(child: any, transform: PregnancyChildTransformConfig) {
+    child.features ??= {};
+    if (typeof transform === 'string' || Array.isArray(transform)) {
+      child.features.maplebirchTransform = transform;
+      return;
+    }
+    if ('animal' in transform) child.features.beastTransform = transform.animal;
+    if ('divine' in transform) child.features.divineTransform = transform.divine;
+    if ('maplebirch' in transform) child.features.maplebirchTransform = transform.maplebirch;
+    if (transform.features && typeof transform.features === 'object') Object.assign(child.features, transform.features);
   }
 
   private spermObjectToArray(spermObject: SpermData[] = [], player: boolean, disableRng?: boolean) {
@@ -320,6 +455,7 @@ class NPCPregnancy {
 
     for (const sperm of spermObject) {
       if (!sperm?.type || !this.types.has(sperm.type)) continue;
+      // 原版不完整怀孕设置关闭时，未进入 canImpregnatePlayer 的命名 NPC 精液不参与 PC 怀孕。
       if (V?.settings?.incompletePregnancyEnabled === false && V?.NPCNameList?.includes(sperm.source) && !setup?.pregnancy?.canImpregnatePlayer?.includes(sperm.source)) continue;
       if (!this.allowsPlayerPregnancyType(sperm.type, player)) continue;
       if (!trackedNPCs.find(npc => npc.source === sperm.source)) trackedNPCs.push({ type: sperm.type, source: sperm.source });
