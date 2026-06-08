@@ -11,7 +11,7 @@ export function patchTimeConstantsAsset(content: string): string {
 
 export function patchDateTimeAsset(content: string): string {
   if (content.includes('maplebirch.dynamic.Time.patchDateTime(DateTime)')) return content;
-  return replace(content, [[/(?:\r?\n)?window\.DateTime\s*=\s*DateTime\s*;/, `\nDateTime = maplebirch.dynamic.Time.patchDateTime(DateTime);\nwindow.DateTime = DateTime;`]], 'DateTime asset patch');
+  return replace(content, [[/(\r?\n?window\.DateTime\s*=\s*DateTime\s*;)/, `\nDateTime = maplebirch.dynamic.Time.patchDateTime(DateTime);$1`]], 'DateTime asset patch');
 }
 
 function patchDateTime(BaseDateTime: DateTimeConstructor): DateTimeConstructor {

@@ -1,5 +1,5 @@
 import { Passage } from '@scml/types/sugarcube-2-ModLoader/SugarCube2';
-import { SugarCubeObject, SaveAPI, StateAPI, WikifierAPI as WikifierAPI$1, MacroContext as MacroContext$1 } from 'twine-sugarcube';
+import { SugarCubeObject, SaveAPI, StateAPI, WikifierAPI as WikifierAPI$1, MacroContext as MacroContext$1, MacroDefinition } from 'twine-sugarcube';
 import { SC2DataManager } from '@scml/types/sugarcube-2-ModLoader/SC2DataManager';
 import { ModUtils } from '@scml/types/sugarcube-2-ModLoader/Utils';
 import { Gui } from '@scml/types/Mod_LoaderGui/Gui';
@@ -1761,6 +1761,92 @@ declare const NPCSidebar: {
     init(manager: NPCManager): void;
 };
 
+interface VanillaPregnancyHooks {
+    recordSperm?: (options?: any) => any;
+    pregnancyDaysEta?: (pregnancyObject: any) => number | null;
+    getChildDays?: (childId: string) => number | null;
+    macros: {
+        playerPregnancyAttempt?: MacroDefinition;
+        namedNpcPregnancy?: MacroDefinition;
+        pregnancyBabyText?: MacroDefinition;
+        updateChildActivity?: MacroDefinition;
+    };
+}
+
+type PregnancyNPC = {
+    nam: string;
+    type: string;
+    penis?: string;
+    vagina?: string;
+    pregnancy: Record<string, any> | null;
+    pregnancyAvoidance?: number;
+};
+type SpermData = {
+    type: string;
+    source: string;
+    quantity?: number;
+    mod?: number;
+};
+type SpermEntry = {
+    type: string;
+    source: string;
+};
+type PregnancyData = Record<string, any> & {
+    enabled?: boolean;
+    fetus?: any[];
+    sperm?: SpermData[];
+    pills?: string | null;
+};
+type PregnancyGenerator = (mother: string, father: string, fatherKnown: boolean, genital: string, ...args: any[]) => any;
+type PregnancyBirthResolver = (type: string, pregnancy?: PregnancyData) => PregnancyBirthConfig;
+type PregnancyEtaResolver = (pregnancy: PregnancyData) => number | null;
+type PregnancyChildActivityResolver = (childId: string, child: any) => string | null | false | void;
+type PregnancyTextResolver = (pregnancy: PregnancyData, count: number, target?: string) => string;
+interface PregnancyAddConfig {
+    generator?: PregnancyGenerator;
+    birth?: PregnancyBirthConfig | PregnancyBirthResolver;
+    eta?: PregnancyEtaResolver;
+    childActivity?: PregnancyChildActivityResolver;
+    text?: PregnancyTextConfig | PregnancyTextResolver;
+}
+interface PregnancyBirthConfig {
+    birthLocation?: string;
+    location?: string;
+}
+interface PregnancyTextConfig {
+    single?: string;
+    multiple?: string;
+    resolver?: PregnancyTextResolver;
+}
+declare class NPCPregnancy {
+    readonly manager: NPCManager;
+    readonly vanillaTypes: Set<string>;
+    readonly types: Set<string>;
+    readonly infertile: string[];
+    readonly canBePregnant: string[];
+    readonly canImpregnatePlayer: string[];
+    readonly randomAlwaysKeep: string[];
+    readonly vanilla: VanillaPregnancyHooks;
+    readonly generators: Map<string, PregnancyGenerator>;
+    constructor(manager: NPCManager);
+    definePregnancyProperty(npc: PregnancyNPC): void;
+    get typesEnabled(): string[];
+    add(type: string, config?: PregnancyGenerator | PregnancyAddConfig): void;
+    has(type: string): boolean;
+    typeOf(target: string | PregnancyNPC | null | undefined): any;
+    birthLocation(type: string, pregnancy?: PregnancyData): PregnancyBirthConfig;
+    NPCPregnancy(npc: PregnancyNPC): void;
+    avoidance(npc: PregnancyNPC): void;
+    savedPregnancy(): any;
+    playerPregnancyAttempt(baseMulti?: number, genital?: string): boolean | void;
+    namedNpcPregnancy(mother: string, father: string, fatherSpecies: string, fatherKnown?: boolean, trackedNPCs?: SpermEntry[], awareOf?: boolean): boolean | void;
+    pregnancyDaysEta(pregnancy: PregnancyData): number | null;
+    childPregnancyDays(childId: string): number | null;
+    updateCustomChildActivity(childId?: string): boolean;
+    babyText(pregnancy: PregnancyData | undefined, target?: string): string;
+    vanillaMacro(macro: MacroDefinition | undefined, args: any[], context?: any): false | void;
+}
+
 type PronounCode = 'm' | 'f' | 'i' | 'n' | 't';
 type TranslationInput = Map<string, Translation> | Record<string, Translation>;
 interface NPCData {
@@ -1858,7 +1944,6 @@ declare const NamedNPC: {
         descCache: Record<string, any>;
         setPronouns(): void;
         setBodyTraits(data: NPCData): void;
-        applyVanillaPregnancySystem(manager: NPCManager): void;
         bodyPartdescription(): void;
     };
 } & {
@@ -1874,9 +1959,7 @@ declare class NPCManager {
     readonly log: ReturnType<typeof createlog>;
     readonly data: Map<string, any>;
     NPCNameList: string[];
-    readonly pregnancy: {
-        [x: string]: Array<string>;
-    };
+    readonly pregnancy: NPCPregnancy;
     readonly type: {
         [x: string]: Array<string>;
     };
@@ -1892,6 +1975,7 @@ declare class NPCManager {
     readonly Sidebar: typeof NPCSidebar;
     constructor(core: MaplebirchCore);
     add(npcData: NPCData, config?: NPCConfig, translationsData?: TranslationInput): boolean;
+    addPregnancy(type: string, config?: PregnancyGenerator | PregnancyAddConfig): void;
     addSchedule(npcName: string, config: ScheduleConfig | ScheduleBuilder): Schedule;
     addStats(statsObject: {
         [x: string]: any;

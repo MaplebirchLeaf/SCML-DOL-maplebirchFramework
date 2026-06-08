@@ -22,6 +22,10 @@ declare global {
     readonly V: typeof V;
     readonly C: typeof C;
     readonly T: typeof T;
+    pregnancyGenerator: typeof pregnancyGenerator;
+    recordSperm: typeof recordSperm;
+    pregnancyDaysEta: typeof pregnancyDaysEta;
+    getChildDays: typeof getChildDays;
   }
 
   const lanSwitch: typeof _languageSwitch;
@@ -74,9 +78,16 @@ declare global {
   const ZIndices: { [key: string]: number };
   function wikifier(widget: string, ...args: any): DocumentFragment;
   function playerNormalPregnancyType(): string;
+  function getPregnancyObject(mother?: string, returnGenital?: false): any;
+  function getPregnancyObject(mother: string | undefined, returnGenital: true): [any, string];
+  const pregnancyGenerator: Record<string, (...args: any[]) => any>;
+  let recordSperm: (options?: any) => any;
+  let pregnancyDaysEta: (pregnancyObject: any) => number | null;
+  let getChildDays: (childId: string) => number | null;
   function hasSexStat(input: string, required: number, modifiers?: boolean): boolean;
   function clothesIndex(slot: string, itemToIndex: object): number;
   function integrityKeyword(worn: object, slot: string): string;
+  function between(value: number, min: number, max: number): boolean;
   let isPossibleLoveInterest: (name: string) => boolean;
   let combatListColor: (name: any, value: any, type?: any) => any;
   const combatActionColours: CombatActionColours;

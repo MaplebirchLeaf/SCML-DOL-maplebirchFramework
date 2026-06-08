@@ -36,6 +36,7 @@
 - [角色图层](Character/Character.md)
 - [角色转化](Character/Transformation.md)
 - [NPC 注册](NamedNPC/NamedNPC.md)
+- [NPC 怀孕](NamedNPC/NamedNPCPregnancy.md)
 - [NPC 数值](NamedNPC/NamedNPCStats.md)
 - [NPC 日程](NamedNPC/NamedNPCSchedule.md)
 - [NPC 服装](NamedNPC/NamedNPCClothes.md)
