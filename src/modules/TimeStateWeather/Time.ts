@@ -5,7 +5,7 @@ import { replace } from '../AddonPluginProcess';
 
 export function patchTimeAsset(content: string): string {
   if (content.includes('maplebirch.dynamic.Time.patchTime(Time)')) return content;
-  return replace(content, [[/\nwindow\.Time = Time;/, `\nmaplebirch.dynamic.Time.patchTime(Time);\nwindow.Time = Time;`]], 'Time asset patch');
+  return replace(content, [[/(\nwindow\.Time = Time;)/, `\nmaplebirch.dynamic.Time.patchTime(Time);$1`]], 'Time asset patch');
 }
 
 interface TimeHandlers {
