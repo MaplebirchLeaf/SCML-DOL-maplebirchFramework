@@ -49,17 +49,22 @@ function patchTime(time: any): void {
   let cachedDate: DateTime | null = null;
   let cachedAbsoluteTimestamp: number | null = null;
 
-  const set = (value: number | DateTime = 0): void => {
+  const set = (value?: number | DateTime): void => {
     if (value && typeof value === 'object' && typeof (value as any).timeStamp === 'number') {
-      vanillaTime.setDate?.(value);
       cachedDate = new window.DateTime(value);
       cachedAbsoluteTimestamp = cachedDate.timeStamp;
+      V.startDate ??= new window.DateTime(2022, 9, 4, 7).timeStamp;
+      V.timeStamp = cachedAbsoluteTimestamp - V.startDate;
       return;
     }
-    const elapsedTimestamp = Number(value);
+    const elapsedTimestamp = Number(value ?? V.timeStamp ?? 0);
     vanillaTime.set?.(Number.isFinite(elapsedTimestamp) ? elapsedTimestamp : 0);
     cachedDate = null;
     cachedAbsoluteTimestamp = null;
+  };
+
+  const setDate = (value: DateTime): void => {
+    set(value);
   };
 
   const date = (): DateTime => {
@@ -315,6 +320,12 @@ function patchTime(time: any): void {
 
     set: {
       value: set,
+      writable: true,
+      configurable: true
+    },
+
+    setDate: {
+      value: setDate,
       writable: true,
       configurable: true
     },

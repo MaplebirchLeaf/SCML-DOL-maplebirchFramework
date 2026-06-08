@@ -47,7 +47,6 @@ class AddonPluginProcess {
             continue;
           }
 
-          addon.core.log(`为 ${modName} 导入语言: ${languages.join(', ')}`, 'DEBUG');
           for await (const progress of addon.core.lang.import(modName, languages)) if (progress.type === 'error') addon.core.log(`导入失败: ${progress.language}`, 'ERROR');
           continue;
         }
@@ -57,7 +56,6 @@ class AddonPluginProcess {
           continue;
         }
 
-        addon.core.log(`为 ${modName} 导入自定义语言文件`, 'DEBUG');
         for (const [rawLanguage, rawFile] of Object.entries(config)) {
           const language = rawLanguage.toUpperCase();
 
@@ -110,7 +108,6 @@ class AddonPluginProcess {
             continue;
           }
 
-          addon.core.log(`为 ${modName} 导入音频目录: ${folder}`, 'DEBUG');
           await addon.core.audio.import(modName, folder);
         }
       }
@@ -299,7 +296,6 @@ class AddonPluginProcess {
     }
 
     if (typeof widget === 'string' || Array.isArray(widget) || (widget && typeof widget === 'object' && widget.widget)) {
-      addon.core.log(`为 ${modName} 添加部件到区域: ${zone}`, 'DEBUG');
       addon.core.tool.zone.addTo(zone, widget);
       return;
     }
@@ -342,7 +338,6 @@ class AddonPluginProcess {
       params.imgFileList = imagePaths;
       plugin.params = params;
       await window.addonBeautySelectorAddon.registerMod('BeautySelectorAddon', modInfo, modZip);
-      addon.core.log(`成功注册 ${modName} 的 ${imagePaths.length} 个 NPC 侧边栏图片`, 'DEBUG');
     } catch (error: any) {
       addon.core.log(`注册 ${modName} 的 NPC 侧边栏图片失败: ${error?.message || error}`, 'ERROR');
     }

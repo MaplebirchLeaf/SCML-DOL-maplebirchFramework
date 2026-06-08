@@ -121,7 +121,7 @@ class ModuleSystem {
       if (this.initPhase.preInitCompleted) return;
       for (const name of this.getTopologicalOrder()) await this.initModule(name, true);
       this.initPhase.preInitCompleted = true;
-      this.core.logger.log('预初始化完成', 'INFO');
+      this.core.logger.log('预初始化完成', 'DEBUG');
       return;
     }
 
@@ -130,7 +130,7 @@ class ModuleSystem {
       if (!this.initPhase.preInitCompleted) await this.init('pre');
       for (const name of this.getTopologicalOrder()) await this.initModule(name, false);
       this.initPhase.mainInitCompleted = true;
-      this.core.logger.log('主初始化完成', 'INFO');
+      this.core.logger.log('主初始化完成', 'DEBUG');
       return;
     }
 
@@ -340,7 +340,7 @@ class ModuleSystem {
         this.core.logger.log(`[${name}] ${logName}失败: ${error.message}`, 'ERROR');
       }
     }
-    this.core.logger.log(`${logName}完成`, 'INFO');
+    this.core.logger.log(`${logName}完成`, 'DEBUG');
   }
 
   private getTopologicalOrder(): string[] {

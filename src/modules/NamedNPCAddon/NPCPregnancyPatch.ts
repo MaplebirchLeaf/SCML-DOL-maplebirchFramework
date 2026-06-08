@@ -26,7 +26,6 @@ class NPCPregnancyPatch {
     this.injectGenerators();
     this.patchFunctions();
     this.patchMacros();
-    host.manager.log('NPC怀孕系统已注入', 'DEBUG');
   }
 
   private save() {

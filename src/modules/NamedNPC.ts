@@ -193,7 +193,7 @@ export const NamedNPC = (core => {
       this.bodyPartdescription();
       this.pregnancy = data.pregnancy ?? null;
       this.pregnancyAvoidance = data.pregnancyAvoidance;
-      manager.pregnancy.definePregnancyProperty(this);
+      manager.Pregnancy.definePregnancyProperty(this);
       this.skincolour = data.skincolour ?? 0;
       this.init = data.init ?? 0;
       this.intro = data.intro ?? 0;
@@ -511,7 +511,7 @@ class NPCManager {
   public readonly data: Map<string, any> = new Map();
   public NPCNameList: string[] = [];
 
-  public readonly pregnancy: NPCPregnancy;
+  public readonly Pregnancy: NPCPregnancy;
 
   // prettier-ignore
   public readonly type: { [x: string]: Array<string> } = {
@@ -543,7 +543,7 @@ class NPCManager {
 
   public constructor(readonly core: MaplebirchCore) {
     this.log = createlog('npc');
-    this.pregnancy = new NPCPregnancy(this);
+    this.Pregnancy = new NPCPregnancy(this);
     this.core.on(
       ':language',
       () => {
@@ -562,7 +562,7 @@ class NPCManager {
   }
 
   public addPregnancy(type: string, config?: PregnancyGenerator | PregnancyAddConfig) {
-    return this.pregnancy.add(type, config);
+    return this.Pregnancy.add(type, config);
   }
 
   public addSchedule(npcName: string, config: ScheduleConfig | ScheduleBuilder) {
@@ -667,14 +667,14 @@ class NPCManager {
     this.Schedule.init(this);
     await this.Clothes.init(this);
     setupNpcData(this, 'init');
-    this.pregnancy.savedPregnancy();
+    this.Pregnancy.savedPregnancy();
     isPossibleLoveInterest = (name: string) => isPossible(this, name);
   }
 
   public loadInit() {
     this.injectModNPCs();
     setupNpcData(this, 'init');
-    this.pregnancy.savedPregnancy();
+    this.Pregnancy.savedPregnancy();
   }
 
   public postInit() {

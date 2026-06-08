@@ -30,7 +30,6 @@ class defineMacros {
     }
     if (this.Macro.has(macroName)) {
       this.Macro.delete(macroName);
-      this.log(`已删除现有宏: ${macroName}`, 'DEBUG');
     }
     const log = this.log;
     this.Macro.add(macroName, {
@@ -49,7 +48,6 @@ class defineMacros {
       }
     });
     if (!this.macros.includes(macroName)) this.macros.push(macroName);
-    this.log(`已定义/更新宏: ${macroName}`, 'DEBUG');
   }
 
   public defineS(macroName: string, macroFunction: SimpleMacroFunction, tags?: MacroTags, skipArgs?: SkipArgs, maintainContext = false): void {
@@ -104,7 +102,6 @@ class defineMacros {
     this.define(name, function () {
       this.output.append(fn(...this.args));
     });
-    this.log(`已创建状态显示函数: ${name}`, 'DEBUG');
   }
 
   public callStatFunction(name: string, ...args: any[]): DocumentFragment {

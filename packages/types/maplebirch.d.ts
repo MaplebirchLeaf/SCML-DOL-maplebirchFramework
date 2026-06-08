@@ -1832,7 +1832,6 @@ declare class NPCPregnancy {
     definePregnancyProperty(npc: PregnancyNPC): void;
     get typesEnabled(): string[];
     add(type: string, config?: PregnancyGenerator | PregnancyAddConfig): void;
-    has(type: string): boolean;
     typeOf(target: string | PregnancyNPC | null | undefined): any;
     birthLocation(type: string, pregnancy?: PregnancyData): PregnancyBirthConfig;
     NPCPregnancy(npc: PregnancyNPC): void;
@@ -1959,7 +1958,7 @@ declare class NPCManager {
     readonly log: ReturnType<typeof createlog>;
     readonly data: Map<string, any>;
     NPCNameList: string[];
-    readonly pregnancy: NPCPregnancy;
+    readonly Pregnancy: NPCPregnancy;
     readonly type: {
         [x: string]: Array<string>;
     };

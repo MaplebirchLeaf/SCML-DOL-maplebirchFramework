@@ -194,7 +194,7 @@ export class TimeManager {
         pass: (seconds: number) => this.handleTimePass(seconds),
         timeTravel: (date: DateTime) => this.handleTimeTravel(date)
       });
-      this.log('时间事件系统已激活', 'INFO');
+      this.log('时间事件系统已激活', 'DEBUG');
     } catch (e: any) {
       this.log(`初始化时间事件系统失败: ${e.message}`, 'ERROR');
     }

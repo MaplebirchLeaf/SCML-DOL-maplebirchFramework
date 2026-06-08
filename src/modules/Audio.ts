@@ -298,7 +298,7 @@ class AudioManager {
     }
     this.playlists.delete(modName);
     await this.getPlaylist(modName);
-    this.log(`导入 ${successCount}/${audioFiles.length} 个音频`, 'INFO');
+    this.log(`导入 ${successCount}/${audioFiles.length} 个音频`, 'DEBUG');
     return successCount > 0;
   }
 
