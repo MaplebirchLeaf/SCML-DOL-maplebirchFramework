@@ -117,7 +117,7 @@ maplebirch.npc.addPregnancy('plant', {
 
 Pregnancy registration has two layers:
 
-- `addPregnancy(type, config)` registers a pregnancy type. A type owns the generator, ETA, default birth locations, child config, baby wording, and transformation data.
+- `maplebirch.npc.addPregnancy(type, config)` registers a pregnancy type. A type owns the generator, ETA, default birth locations, child config, baby wording, and transformation data.
 - `maplebirch.npc.Pregnancy.addNpc(npcName, type, config)` registers a single NPC. An NPC entry decides whether that character joins the pregnancy system, which pregnancy type it uses, whether it can be pregnant or impregnate the PC, and whether it overrides cycle or birth behavior.
 
 The two layers are separate. Multiple NPCs can use the same pregnancy type, and an NPC can use a pregnancy type different from its normal `npc.type`.
@@ -342,7 +342,7 @@ child: {
 
 ```mermaid
 flowchart TD
-  A["Mod registers addPregnancy(type)"] --> B["Pregnancy type registry"]
+  A["Mod registers maplebirch.npc.addPregnancy(type)"] --> B["Pregnancy type registry"]
   C["Mod registers Pregnancy.addNpc(npcName, type)"] --> D["Per-NPC registry"]
   E["NPC init / save load"] --> F["definePregnancyProperty lazy-inits pregnancy"]
   F --> G["savedPregnancy writes setup.pregnancy types and NPC lists"]

@@ -40,7 +40,6 @@
 'reset': reset
 'status': status
 'choose': choose
-'calendar': calendar
 
 'traditional': traditional
 'gentle': gentle

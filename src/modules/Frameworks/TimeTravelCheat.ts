@@ -1,7 +1,5 @@
 ﻿// ./src/modules/Frameworks/TimeTravelCheat.ts
 
-import flatpickr from 'flatpickr';
-import { Mandarin } from 'flatpickr/dist/l10n/zh';
 import { TimeConstants } from '../../constants';
 import type { MaplebirchCore } from '../../core';
 
@@ -36,48 +34,10 @@ class TimeTravelCheat {
     const current = new window.DateTime(Time.date);
     this.setFields(root, current);
 
-    const picker = this.createPicker(root, current);
-    const calendarButton = root.querySelector<HTMLButtonElement>('.maplebirch-time-travel-calendar');
-    if (calendarButton) calendarButton.dataset.timeTravelCalendarPopup = '';
-
     root.querySelector<HTMLButtonElement>('.maplebirch-time-travel-confirm')?.addEventListener('click', () => this.travel(root));
-    root.querySelector<HTMLButtonElement>('[data-time-travel-calendar-popup]')?.addEventListener('click', () => {
-      try {
-        const date = this.readFields(root);
-        picker?.setDate(new Date(date.year, date.month - 1, date.day, date.hour, date.minute, 0), false);
-        picker?.open();
-      } catch (error: any) {
-        this.status(root, error?.message || String(error));
-      }
-    });
 
     root.querySelectorAll<HTMLInputElement>('[data-time-travel-field]').forEach(input => input.addEventListener('change', () => this.syncDayLimit(root)));
     this.syncDayLimit(root);
-  }
-
-  private createPicker(root: HTMLElement, current: DateTime) {
-    const pickerInput = root.querySelector<HTMLInputElement>('[data-time-travel-picker]');
-    if (!pickerInput) return null;
-    return flatpickr(pickerInput, {
-      enableTime: true,
-      time_24hr: true,
-      dateFormat: 'Y/m/d H:i',
-      defaultDate: new Date(current.year, current.month - 1, current.day, current.hour, current.minute, 0),
-      clickOpens: false,
-      disableMobile: true,
-      locale: this.core.Language === 'CN' ? Mandarin : undefined,
-      onChange: selectedDates => {
-        const selected = selectedDates[0];
-        if (!selected) return;
-        this.setFields(root, {
-          year: selected.getFullYear(),
-          month: selected.getMonth() + 1,
-          day: selected.getDate(),
-          hour: selected.getHours(),
-          minute: selected.getMinutes()
-        });
-      }
-    });
   }
 
   private render(): string {
@@ -101,11 +61,9 @@ class TimeTravelCheat {
             ${field('minute', lan('Minute', '分'), 0, 59)}
           </div>
           <div class="maplebirch-time-travel-actions">
-            <<lanButton 'calendar' 'title' { class: 'maplebirch-time-travel-calendar', iconOnly: true }>><</lanButton>>
             <<lanButton 'confirm' 'title' { class: 'maplebirch-time-travel-confirm' }>><</lanButton>>
           </div>
         </div>
-        <input class="maplebirch-time-travel-picker" type="text" data-time-travel-picker autocomplete="off" tabindex="-1" aria-hidden="true">
         <div class="maplebirch-time-travel-status" data-time-travel-status></div>
       </div>`;
   }

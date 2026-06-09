@@ -45,3 +45,7 @@
 ## 战斗
 
 - [战斗行动](Combat/Actions.md)
+
+## 云存档
+
+- [云存档服务](../../cloud-services/README.md)

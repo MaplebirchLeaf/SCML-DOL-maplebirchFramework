@@ -77,7 +77,7 @@ function setupNpcData(manager: NPCManager, phase = 'init') {
     V.maplebirch.npc[name].bodydata ??= {};
     V.maplebirch.npc[name].outfits ??= [];
     V.maplebirch.npc[name].tucked ??= [false, false];
-    manager.transformation.ensure(npcName);
+    manager.Transformation.ensure(npcName);
     NPCFluids.ensure(npcName);
     if (!Object.prototype.hasOwnProperty.call(V.maplebirch.npc[name], 'clothes')) {
       Object.defineProperty(V.maplebirch.npc[name], 'clothes', {
