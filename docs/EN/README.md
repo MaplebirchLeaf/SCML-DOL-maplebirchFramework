@@ -37,11 +37,17 @@ This directory contains English documentation for mod authors using **`maplebirc
 - [Character Layers](Character/Character.md)
 - [Transformation System](Character/Transformation.md)
 - [Named NPC](NamedNPC/NamedNPC.md)
+- [NPC Transformation](NamedNPC/NamedNPCTransformation.md)
+- [NPC Pregnancy](NamedNPC/NamedNPCPregnancy.md)
 - [NPC Stats](NamedNPC/NamedNPCStats.md)
 - [NPC Schedule](NamedNPC/NamedNPCSchedule.md)
 - [NPC Clothes](NamedNPC/NamedNPCClothes.md)
 - [NPC Sidebar](NamedNPC/NamedNPCSidebar.md)
 - [Combat Actions](Combat/Actions.md)
+
+## Cloud Save
+
+- [Cloud Save Services](../../cloud-services/README.md)
 
 ## Translation Status
 

@@ -178,7 +178,7 @@ class LanguageManager {
       const records = await this.core.idb.withTransaction([this.STORE], 'readonly', async (tx: any) => await tx.objectStore(this.STORE).index('bucket').getAll('translation'));
       for (const record of records as TranslationRecord[]) this.translations.set(record.translationKey, record.translations);
       this.preloaded = true;
-      this.core.logger.log(`预加载完成: ${records.length} 条`, 'INFO');
+      this.core.logger.log(`预加载完成: ${records.length} 条`, 'DEBUG');
     } catch (error: any) {
       this.core.logger.log(`预加载失败: ${error.message}`, 'ERROR');
     }

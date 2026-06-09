@@ -380,9 +380,7 @@ class Character {
       const modelLayers = layerEntries.filter(({ target }) => targetMatched(target, modelName, options)).map(({ layers }) => layers);
       if (!modelLayers.length) return options;
       let patchedLayers = options.layers.clone();
-      for (const layers of modelLayers) {
-        patchedLayers = patchedLayers.mergefn((_key: any, value: any, depth: number) => depth <= 3 && value != null, layers);
-      }
+      for (const layers of modelLayers) patchedLayers = patchedLayers.mergefn((_key: any, value: any, depth: number) => depth <= 3 && value != null, layers);
       return { ...options, layers: patchedLayers };
     };
     const patchProcess = (model: CanvasModel) => {

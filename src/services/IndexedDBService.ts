@@ -77,7 +77,7 @@ class IndexedDBService {
     const missingStores = [...this.stores.keys()].filter(name => !this.db!.objectStoreNames.contains(name));
     if (missingStores.length) throw new Error(`IDB缺少存储: ${missingStores.join(', ')}`);
     this.ready = true;
-    this.core.logger.log('IDB数据库初始化完成', 'INFO', this.stores);
+    this.core.logger.log('IDB数据库初始化完成', 'DEBUG', this.stores);
   }
 
   private createStores(db: IDBPDatabase<unknown>): void {

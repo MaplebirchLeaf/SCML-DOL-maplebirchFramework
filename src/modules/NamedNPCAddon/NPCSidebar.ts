@@ -4,6 +4,7 @@ import type { ModZipReader } from '@scml/types/sugarcube-2-ModLoader/ModZipReade
 import maplebirch from '../../core';
 import { lookupColour, clothes_layer } from './NPCSidebarConfig/functions';
 import base_layers from './NPCSidebarConfig/base_layers';
+import fluids_layers from './NPCSidebarConfig/fluids_layers';
 import head_layers from './NPCSidebarConfig/head_layers';
 import face_layers from './NPCSidebarConfig/face_layers';
 import neck_layers from './NPCSidebarConfig/neck_layers';
@@ -13,6 +14,7 @@ import hands_layers from './NPCSidebarConfig/hands_layers';
 import handheld_layers from './NPCSidebarConfig/handheld_layers';
 import legs_layers from './NPCSidebarConfig/legs_layers';
 import feet_layers from './NPCSidebarConfig/feet_layers';
+import NPCFluids from './NPCFluids';
 import type NPCManager from '../NamedNPC';
 
 type NPCSidebarOptions = {
@@ -36,6 +38,8 @@ const clothesSlots: ClothesSlot[] = [
 ];
 
 const hairLengthList = ['short', 'shoulder', 'chest', 'navel', 'thighs', 'feet'] as const;
+const upperCombatSlots: ClothesSlot[] = ['over_upper', 'upper', 'under_upper'];
+const lowerCombatSlots: ClothesSlot[] = ['over_lower', 'lower', 'under_lower'];
 
 function loadFromMod(modZip: ModZipReader, npcNames: string[]) {
   if (!modZip || !Array.isArray(npcNames) || npcNames.length === 0) return [];
@@ -60,15 +64,13 @@ function loadFromMod(modZip: ModZipReader, npcNames: string[]) {
 }
 
 function clothesIndex(slot: ClothesSlot, clothes: any) {
-  const fn = (globalThis as any).clothesIndex;
-
+  const fn = window.clothesIndex;
   if (typeof fn === 'function') return fn(slot, clothes);
-
   return clothes?.index ?? 0;
 }
 
 function Integrity(clothes: any, slot: ClothesSlot) {
-  const fn = (globalThis as any).integrityKeyword;
+  const fn = window.integrityKeyword;
   if (typeof fn === 'function') {
     try {
       return fn(clothes, slot);
@@ -124,6 +126,33 @@ function NPCClothes(npcData: any, options: NPCSidebarOptions) {
   return clothes;
 }
 
+function combatNpc(name: string) {
+  const list = Array.isArray(V.NPCList) ? V.NPCList : [];
+  return list.find((npc: any) => {
+    const npcName = npc?.fullDescription ?? npc?.description ?? npc?.nam ?? npc?.name;
+    return npcName === name;
+  });
+}
+
+function nakedClothes(slot: ClothesSlot) {
+  const data = setup.clothes[slot]?.[0] ?? { index: 0, name: 'naked', variable: 'naked', type: ['naked'] };
+  return {
+    ...data,
+    index: 0,
+    setup: data,
+    type: data.type ?? ['naked'],
+    integrity: Integrity(data, slot)
+  };
+}
+
+function applyCombatClothesState(nnpc: Record<string, any>) {
+  if (V.combat !== 1) return;
+  const npc = combatNpc(nnpc.name);
+  if (!npc) return;
+  if (npc.chest != null && npc.chest !== 'clothed') upperCombatSlots.forEach(slot => (nnpc.clothes[slot] = nakedClothes(slot)));
+  if (npc.penis != null && npc.vagina != null && npc.penis !== 'clothed' && npc.vagina !== 'clothed') lowerCombatSlots.forEach(slot => (nnpc.clothes[slot] = nakedClothes(slot)));
+}
+
 function setupBasicData(options: NPCSidebarOptions) {
   options.maplebirch ??= {};
   options.maplebirch.nnpc ??= {};
@@ -161,6 +190,7 @@ function setupClothesData(options: NPCSidebarOptions, nnpc: Record<string, any>,
   options.filters!.nnpc_tan = setup.colours.getSkinFilter(nnpc.skin_type, nnpc.tan);
 
   nnpc.clothes = NPCClothes(npcData, options);
+  applyCombatClothesState(nnpc);
 
   const clothes = nnpc.clothes;
   const allSlots = Array.isArray(setup.clothes_all_slots) ? setup.clothes_all_slots : clothesSlots;
@@ -249,7 +279,7 @@ function setupClothesData(options: NPCSidebarOptions, nnpc: Record<string, any>,
 
 function setupBodyData(options: NPCSidebarOptions, nnpc: Record<string, any>, npcData: any) {
   const filters = options.filters!;
-  const bodydata = npcData.bodydata ?? {};
+  const bodydata = nnpc.bodydata ?? npcData.bodydata ?? {};
   const clothes = nnpc.clothes;
   const npc = Array.isArray(V.NPCName) ? V.NPCName.find((npc: { nam?: string; name?: string }) => (npc.nam ?? npc.name) === nnpc.name) : undefined;
 
@@ -356,13 +386,17 @@ function preprocess(options: NPCSidebarOptions) {
     nnpc.model = false;
     return;
   }
+  maplebirch.npc.Transformation.applyBody(nnpc, npcData);
+  maplebirch.npc.Transformation.applySidebar(nnpc);
   setupClothesData(options, nnpc, npcData);
   setupBodyData(options, nnpc, npcData);
+  NPCFluids.apply(nnpc, npcData);
   setupMaskData(nnpc);
 }
 
 const layers = {
   ...base_layers,
+  ...fluids_layers,
   ...head_layers,
   ...face_layers,
   ...neck_layers,
@@ -452,6 +486,11 @@ const NPCSidebar = (() => {
       });
       manager.core.char.use('pre', preprocess, 'main');
       manager.core.char.use(layers, 'main');
+      manager.core.dynamic.regTimeEvent('onHour', 'maplebirch.npc.fluids.decay', {
+        action: data => NPCFluids.decay(data.triggeredByAccumulator?.count ?? 1),
+        accumulate: { unit: 'hour', target: 1 },
+        priority: -10
+      });
     }
   }
 

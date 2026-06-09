@@ -2,6 +2,7 @@
 
 import maplebirch from '../../core';
 import type NPCManager from '../NamedNPC';
+import NPCFluids from './NPCFluids';
 
 const body = ['penis', 'vagina', 'virginity', 'hair_side_type', 'hair_fringe_type', 'hair_position', 'hairlength', 'eyeColour', 'hairColour', 'penissize', 'breastsize', 'ballssize'];
 
@@ -76,6 +77,8 @@ function setupNpcData(manager: NPCManager, phase = 'init') {
     V.maplebirch.npc[name].bodydata ??= {};
     V.maplebirch.npc[name].outfits ??= [];
     V.maplebirch.npc[name].tucked ??= [false, false];
+    manager.Transformation.ensure(npcName);
+    NPCFluids.ensure(npcName);
     if (!Object.prototype.hasOwnProperty.call(V.maplebirch.npc[name], 'clothes')) {
       Object.defineProperty(V.maplebirch.npc[name], 'clothes', {
         get: () => manager.Clothes.worn(npcName),

@@ -258,7 +258,7 @@ export class WeatherManager {
     this.Exceptions.length = 0;
     for (const weatherType of this.WeatherTypes) if (!setup.WeatherGeneration.weatherTypes.find((type: any) => type.name === weatherType.name)) setup.WeatherGeneration.weatherTypes.push(weatherType);
     this.WeatherTypes.length = 0;
-    this.log('天气事件系统已激活', 'INFO');
+    this.log('天气事件系统已激活', 'DEBUG');
   }
 
   public modifyWeatherJavaScript(manager: AddonPlugin): void {

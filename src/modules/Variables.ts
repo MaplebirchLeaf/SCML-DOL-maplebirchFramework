@@ -3,7 +3,7 @@
 import maplebirch, { MaplebirchCore, createlog } from '../core';
 import migration from './Frameworks/migration';
 
-const version = '3.2.0';
+const version = '4.0.0';
 
 const defaults = {
   player: {
@@ -105,7 +105,6 @@ class Variables {
     try {
       if (action === 'save') {
         localStorage.setItem(Variables.OPTIONS_STORAGE_KEY, JSON.stringify(V.options?.maplebirch ?? {}));
-        this.log('框架设置已保存', 'DEBUG');
         return null;
       }
 

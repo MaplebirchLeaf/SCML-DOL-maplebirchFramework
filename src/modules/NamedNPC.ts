@@ -5,6 +5,9 @@ import type { Translation } from '../services/LanguageManager';
 import NPCSchedules, { ScheduleConfig, ScheduleBuilder } from './NamedNPCAddon/NPCSchedules';
 import NPCClothes, { ClothesConfig } from './NamedNPCAddon/NPCClothes';
 import NPCSidebar from './NamedNPCAddon/NPCSidebar';
+import NPCPregnancy, { type PregnancyAddConfig, type PregnancyGenerator } from './NamedNPCAddon/NPCPregnancy';
+import NPCFluids from './NamedNPCAddon/NPCFluids';
+import NPCTransformation from './NamedNPCAddon/NPCTransformation';
 import { setupNpcData, isPossible } from './NamedNPCAddon/NPCUtils';
 
 type LanguageCode = 'CN' | 'EN';
@@ -192,7 +195,7 @@ export const NamedNPC = (core => {
       this.bodyPartdescription();
       this.pregnancy = data.pregnancy ?? null;
       this.pregnancyAvoidance = data.pregnancyAvoidance;
-      this.applyVanillaPregnancySystem(manager);
+      manager.Pregnancy.definePregnancyProperty(this);
       this.skincolour = data.skincolour ?? 0;
       this.init = data.init ?? 0;
       this.intro = data.intro ?? 0;
@@ -263,62 +266,6 @@ export const NamedNPC = (core => {
           break;
       }
       if (!this.outfits.includes(defaultOutfit)) this.outfits.push(defaultOutfit);
-    }
-
-    public applyVanillaPregnancySystem(manager: NPCManager) {
-      if (this.pregnancy == null) this.pregnancy = {};
-      let pregnancyData = this.pregnancy;
-      let initialized = false;
-      Object.defineProperty(this, 'pregnancy', {
-        get: () => {
-          if (!initialized) {
-            initialized = true;
-            const infertile = manager.pregnancy.infertile.includes(this.nam);
-            const typeOk = manager.pregnancy.typesEnabled.includes(this.type);
-            const forceOk = manager.pregnancy.canBePregnant.includes(this.nam);
-            const incomplete = V.settings?.incompletePregnancyEnabled;
-            const ignored = setup.pregnancy?.ignoresIncompleteCheck?.includes(this.nam);
-            if (pregnancyData.enabled == null && !infertile && typeOk && ((incomplete && !ignored) || forceOk)) {
-              pregnancyData.fetus = [];
-              pregnancyData.givenBirth = 0;
-              pregnancyData.totalBirthEvents = 0;
-              pregnancyData.timer = null;
-              pregnancyData.timerEnd = null;
-              pregnancyData.waterBreaking = null;
-              pregnancyData.npcAwareOf = null;
-              pregnancyData.pcAwareOf = null;
-              pregnancyData.type = null;
-              pregnancyData.enabled = true;
-              pregnancyData.cycleDaysTotal = Math.random(24, 32);
-              pregnancyData.cycleDay = Math.random(1, pregnancyData.cycleDaysTotal);
-              pregnancyData.cycleDangerousDay = 10;
-              pregnancyData.sperm = [];
-              pregnancyData.potentialFathers = [];
-              pregnancyData.nonCycleRng = [Math.random(3), Math.random(3)];
-              pregnancyData.pills = null;
-            } else if (infertile || (!forceOk && !incomplete)) {
-              pregnancyData = {};
-            }
-          }
-          return pregnancyData;
-        },
-        set: value => {
-          pregnancyData = value;
-          initialized = true;
-        },
-        configurable: true,
-        enumerable: true
-      });
-      if (this.pregnancyAvoidance == null || (V.settings != null && V.objectVersion?.pregnancyAvoidance == null)) {
-        const name = this.nam;
-        if (['Kylar', 'Black Wolf', 'Great Hawk', 'Eden', 'Ivory Wraith', 'Gwylan'].includes(name)) {
-          this.pregnancyAvoidance = 0;
-        } else if (['Robin', 'Whitney', 'Alex', 'Wren', 'Avery'].includes(name)) {
-          this.pregnancyAvoidance = 50;
-        } else {
-          this.pregnancyAvoidance = Math.random(100);
-        }
-      }
     }
 
     public bodyPartdescription() {
@@ -566,12 +513,8 @@ class NPCManager {
   public readonly data: Map<string, any> = new Map();
   public NPCNameList: string[] = [];
 
-  // prettier-ignore
-  public readonly pregnancy: { [x: string]: Array<string> } = {
-    infertile    : ['Bailey', 'Leighton'],
-    typesEnabled : ['human', 'wolf', 'wolfboy', 'wolfgirl', 'hawk', 'harpy'],
-    canBePregnant: ['Alex', 'Black Wolf', 'Great Hawk']
-  };
+  public readonly Pregnancy: NPCPregnancy;
+  public readonly Transformation: NPCTransformation;
 
   // prettier-ignore
   public readonly type: { [x: string]: Array<string> } = {
@@ -600,9 +543,12 @@ class NPCManager {
   public readonly Schedule: typeof NPCSchedules = NPCSchedules;
   public readonly Clothes: typeof NPCClothes = NPCClothes;
   public readonly Sidebar: typeof NPCSidebar = NPCSidebar;
+  public readonly fluids: typeof NPCFluids = NPCFluids;
 
   public constructor(readonly core: MaplebirchCore) {
     this.log = createlog('npc');
+    this.Transformation = Object.seal(new NPCTransformation(this));
+    this.Pregnancy = new NPCPregnancy(this);
     this.core.on(
       ':language',
       () => {
@@ -618,6 +564,10 @@ class NPCManager {
 
   public add(npcData: NPCData, config: NPCConfig = {}, translationsData?: TranslationInput) {
     return this.NamedNPC.add(this, npcData, config, translationsData);
+  }
+
+  public addPregnancy(type: string, config?: PregnancyGenerator | PregnancyAddConfig) {
+    return this.Pregnancy.add(type, config);
   }
 
   public addSchedule(npcName: string, config: ScheduleConfig | ScheduleBuilder) {
@@ -722,12 +672,14 @@ class NPCManager {
     this.Schedule.init(this);
     await this.Clothes.init(this);
     setupNpcData(this, 'init');
+    this.Pregnancy.savedPregnancy();
     isPossibleLoveInterest = (name: string) => isPossible(this, name);
   }
 
   public loadInit() {
     this.injectModNPCs();
     setupNpcData(this, 'init');
+    this.Pregnancy.savedPregnancy();
   }
 
   public postInit() {

@@ -38,10 +38,10 @@ Use this framework when your mod needs to:
 - Add widgets to existing UI zones such as options, status bar, menus, and link areas.
 - Register SugarCube macros or reusable text builders.
 - Register time, state, and weather events.
-- Add named NPCs, NPC stats, schedules, clothes, and sidebar displays.
+- Add named NPCs, NPC stats, schedules, clothes, sidebar displays, NPC transformations, and NPC pregnancy extensions.
 - Add character layers, face styles, and transformations.
 - Add custom combat actions.
-- Use shared helpers such as `clone`, `merge`, `random`, `either`, and `number`.
+- Use shared helpers such as `source.clone()`, `Object.merge()`, `list.contains()`, `list.either()`, and `Math.clamp()`.
 
 English documentation is organized under **[docs/EN](docs/EN/README.md)** and mirrors the Chinese documentation structure.
 
@@ -192,7 +192,10 @@ Feature areas:
 - [NPC schedule](docs/EN/NamedNPC/NamedNPCSchedule.md)
 - [NPC clothes](docs/EN/NamedNPC/NamedNPCClothes.md)
 - [NPC sidebar](docs/EN/NamedNPC/NamedNPCSidebar.md)
+- [NPC transformation](docs/EN/NamedNPC/NamedNPCTransformation.md)
+- [NPC pregnancy](docs/EN/NamedNPC/NamedNPCPregnancy.md)
 - [Combat actions](docs/EN/Combat/Actions.md)
+- [Cloud save services](cloud-services/README.md)
 
 Complete Chinese docs:
 

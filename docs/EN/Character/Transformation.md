@@ -48,6 +48,7 @@ maplebirch.tool.onInit(() => {
 | `decayConditions` | Function[] | Conditions required for decay |
 | `suppress` | boolean | Whether it can suppress other transformations |
 | `suppressConditions` | Function[] | Conditions for suppression |
+| `target` | string, string[], or function | Canvas model target for `pre`, `post`, and `layers`. Defaults to `main`. |
 | `pre` | function | Runs before character rendering |
 | `post` | function | Runs after character rendering |
 | `layers` | object | Character rendering layers |
@@ -116,3 +117,23 @@ post: options => {
 ```
 
 Transformation state is stored under `V.maplebirch.transformation`.
+
+## Canvas Model Target
+
+By default, transformation rendering hooks are applied to the original `main` player model. If a mod needs the same transformation to appear on another model, pass `target`.
+
+```javascript
+maplebirch.char.transformation.add('fairy', 'physical', {
+  target: ['main', 'combat'],
+  parts: [{ name: 'wings', tfRequired: 1 }],
+  pre(options) {
+    options.fairy_glow = true;
+  },
+  layers: {
+    fairy_wings: {
+      srcfn: () => 'img/transformations/fairy/wings.png',
+      showfn: () => V.maplebirch.transformation.fairy.level >= 1
+    }
+  }
+});
+```

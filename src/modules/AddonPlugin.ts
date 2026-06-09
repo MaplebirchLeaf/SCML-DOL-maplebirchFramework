@@ -8,7 +8,6 @@ import type { TypeOrderItem } from '@scml/types/AddonMod_BeautySelector/BeautySe
 import type { SC2DataManager } from '@scml/types/sugarcube-2-ModLoader/SC2DataManager';
 import type { ModUtils } from '@scml/types/sugarcube-2-ModLoader/Utils';
 import type { CryptOptions } from '../services/CredentialVault';
-import FlatpickrStyles from 'flatpickr/dist/themes/dark.css';
 import MaplebrichStyles from '@/styles/MaplebrichStyles.css';
 import maplebirch, { type MaplebirchCore, createlog } from '../core';
 import AddonPluginProcess, { type Task, type LanguageConfig, type AudioConfig, type FrameworkConfig, type Replacement, replace, defineTwineAsset } from './AddonPluginProcess';
@@ -65,14 +64,14 @@ class AddonPlugin {
   public constructor(readonly core: MaplebirchCore) {
     this.SC2DataManager = this.core.manager.modSC2DataManager;
     this.modUtils = this.core.modUtils;
-    this.log('框架开始初始化流程', 'INFO');
+    this.log('框架开始初始化流程', 'DEBUG');
     this.modUtils.getAddonPluginManager().registerAddonPlugin('maplebirch', 'maplebirchAddon', this);
     this.SC2DataManager.getModLoadController().addLifeTimeCircleHook('maplebirchFramework', this);
     const modName = this.modUtils.getNowRunningModName()!;
     const modInfo = this.modUtils.getMod(modName) as ModInfo;
     if (!modName || !modInfo) return;
     modInfo.modRef = this;
-    this.log('框架初始化流程结束');
+    this.log('框架初始化流程结束', 'DEBUG');
   }
 
   public async canLoadThisMod(bootJson: ModBootJson, zip: JSZipLikeReadOnlyInterface): Promise<boolean> {
@@ -87,7 +86,7 @@ class AddonPlugin {
     if (!this.disabledMods.includes('Simple Frameworks')) await this.core.disabled('Simple Frameworks');
     await this.scriptFiles();
     await this.executeScripts(this.moduleFiles, 'Module');
-    this.log('所有模块注册完成，开始预初始化', 'INFO');
+    this.log('所有模块注册完成，开始预初始化', 'DEBUG');
     await this.core.trigger(':indexedDB');
     await this.core.idb.init();
     await this.core.logger.fromIDB();
@@ -137,7 +136,6 @@ class AddonPlugin {
       'maplebirch/sugarcube-bridge.js',
       `(function(maplebirch){'use strict';maplebirch.SugarCube={Browser,Config,Dialog,Engine,Fullscreen,Has,L10n,Macro,Passage,Save,Scripting,Setting,SimpleAudio,State,Story,UI,UIBar,DebugBar,Util,Visibility,Wikifier,session,settings,setup,storage,version};void maplebirch.trigger(':sugarcube');})(window.maplebirch);`
     );
-    defineTwineAsset('style', 'flatpickr.css', FlatpickrStyles);
     defineTwineAsset('style', 'maplebirch-styles.css', MaplebrichStyles);
   }
 
@@ -160,7 +158,6 @@ class AddonPlugin {
 
   public async whenSC2PassageInit(passage: Passage): Promise<any> {
     this.core.passage = passage;
-    if (!!this.core.passage && !this.core.passage.tags.includes('widget')) this.log(`处理段落: ${this.core.passage.title}`, 'INFO');
     await this.core.trigger(':passageinit', passage);
   }
 

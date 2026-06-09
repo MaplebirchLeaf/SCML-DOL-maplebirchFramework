@@ -101,3 +101,17 @@ myMod/
 ```
 
 Use static images for simple NPCs and layered config when the NPC needs clothes, expressions, or conditional visual states.
+
+## Dynamic Model Fluids
+
+Dynamic NPC sidebar models can show the same cum and drip sprites used by the original player model. The framework stores this as sidebar display state under `V.maplebirch.npc[name].fluids`; it does not write to the original player `setup.bodyliquid` data.
+
+```javascript
+maplebirch.npc.fluids.add('Robin', 'mouth', 2);
+maplebirch.npc.fluids.set('Robin', 'face', 3);
+maplebirch.npc.fluids.reduce('Robin', 'mouth');
+maplebirch.npc.fluids.clear('Robin', 'face');
+maplebirch.npc.fluids.clear('Robin');
+```
+
+Supported parts are `vagina`, `anus`, `mouth`, `chest`, `face`, `feet`, `leftarm`, `rightarm`, `neck`, `thigh`, and `tummy`. Values are clamped from `0` to `5`. The sidebar renderer converts those values to original `drip_*` and `cum_*` model options during render.
