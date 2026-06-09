@@ -19,7 +19,7 @@
     "package:modpack": "bun run scripts/package.ts --modpack-only",
     "build:all": "bun run prep && bun run build && bun run types && bun run package",
     "bump": "bumpp --no-push",
-    "release": "bumpp --push",
+    "release": "bun run scripts/release.ts",
     "check": "oxlint && oxfmt --check",
     "fix": "oxlint --fix && oxfmt",
     "cloud:go": "cd cloud-services/go-sql-server && go run .",
