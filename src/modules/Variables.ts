@@ -3,7 +3,7 @@
 import maplebirch, { MaplebirchCore, createlog } from '../core';
 import migration from './Frameworks/migration';
 
-const version = '3.2.0';
+const version = '4.0.0';
 
 const defaults = {
   player: {

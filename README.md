@@ -46,10 +46,10 @@
 - 向游戏选项页、状态栏、菜单、链接区域等位置追加 widget。
 - 注册自定义 SugarCube 宏、文本构建器和页面文本处理。
 - 注册时间事件、状态事件、天气事件。
-- 添加命名 NPC、NPC 状态、NPC 日程、NPC 服装与 NPC 侧边栏显示。
+- 添加命名 NPC、NPC 状态、NPC 日程、NPC 服装、NPC 侧边栏、NPC 转化与 NPC 怀孕扩展。
 - 添加角色侧边栏图层、面部样式、转化内容。
 - 向战斗界面添加自定义动作按钮。
-- 使用 `clone`、`merge`、`random`、`either`、`number` 等常用工具函数。
+- 使用 `source.clone()`、`Object.merge()`、`list.contains()`、`list.either()`、`Math.clamp()` 等常用工具函数。
 
 如果你正在制作的是内容型模组，可以优先阅读 `NPC 管理`、`动态事件`、`区域管理` 和 `语言管理`。如果你正在制作 UI 或工具型模组，可以优先阅读 `boot.json 配置`、`SugarCube 宏`、`文本工具` 和 `工具函数`。如果你的模组涉及角色外观或战斗行为，则建议从 `角色管理`、`转化管理` 和 `战斗按钮` 开始。
 
@@ -239,8 +239,11 @@ npm install -D @scml-maplebirch/types
   - [NPC 日程][NamedNPCSchedule]
   - [NPC 服装][NamedNPCClothes]
   - [NPC 侧边栏][NamedNPCSidebar]
+  - [NPC 转化][NamedNPCTransformation]
+  - [NPC 怀孕][NamedNPCPregnancy]
 - [战斗管理][Combat]
   - [战斗按钮][CombatActions]
+- [云存档服务][CloudServices]
 
 ## boot.json 配置
 
@@ -348,5 +351,8 @@ npm install -D @scml-maplebirch/types
 [NamedNPCSchedule]: docs/CN/NamedNPC/NamedNPCSchedule.md
 [NamedNPCClothes]: docs/CN/NamedNPC/NamedNPCClothes.md
 [NamedNPCSidebar]: docs/CN/NamedNPC/NamedNPCSidebar.md
+[NamedNPCTransformation]: docs/CN/NamedNPC/NamedNPCTransformation.md
+[NamedNPCPregnancy]: docs/CN/NamedNPC/NamedNPCPregnancy.md
 [Combat]: docs/CN/Combat/
 [CombatActions]: docs/CN/Combat/Actions.md
+[CloudServices]: cloud-services/README.md

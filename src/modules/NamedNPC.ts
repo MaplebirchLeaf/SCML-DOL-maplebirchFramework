@@ -514,7 +514,7 @@ class NPCManager {
   public NPCNameList: string[] = [];
 
   public readonly Pregnancy: NPCPregnancy;
-  public readonly transformation: NPCTransformation;
+  public readonly Transformation: NPCTransformation;
 
   // prettier-ignore
   public readonly type: { [x: string]: Array<string> } = {
@@ -547,7 +547,7 @@ class NPCManager {
 
   public constructor(readonly core: MaplebirchCore) {
     this.log = createlog('npc');
-    this.transformation = Object.seal(new NPCTransformation(this));
+    this.Transformation = Object.seal(new NPCTransformation(this));
     this.Pregnancy = new NPCPregnancy(this);
     this.core.on(
       ':language',

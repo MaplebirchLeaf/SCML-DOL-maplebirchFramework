@@ -251,32 +251,23 @@ class CloudSaveService {
     const password = this.currentConfig().password || '';
     switch (action) {
       case 'connectRemote':
-        await this.connect(this.currentConfig().username || '', password);
-        await this.refreshPanel(panel);
-        return this.status(panel, this.core.t('cloud.save.status.connect'), true);
+        return this.panelDone(panel, this.core.t('cloud.save.status.connect'), async () => await this.connect(this.currentConfig().username || '', password));
       case 'registerServer':
-        await this.register(this.currentConfig().username || '', password);
-        await this.refreshPanel(panel);
-        return this.status(panel, this.core.t('cloud.save.status.registered'), true);
+        return this.panelDone(panel, this.core.t('cloud.save.status.registered'), async () => await this.register(this.currentConfig().username || '', password));
       case 'deleteServerAccount':
         await this.deleteAccount(password);
         this.setField(panel, 'password', '');
         return this.status(panel, this.core.t('cloud.save.status.account.delete'), true);
       case 'uploadSlot':
-        await this.upload(slot);
-        await this.refreshPanel(panel);
-        return this.status(panel, this.core.t('cloud.save.status.upload'), true);
+        return this.panelDone(panel, this.core.t('cloud.save.status.upload'), async () => await this.upload(slot));
       case 'downloadSlot':
-        if (!(await this.download(slot))) throw new Error(this.core.t('cloud.save.error.download'));
-        await this.refreshPanel(panel);
-        return this.status(panel, this.core.t('cloud.save.status.download'), true);
+        return this.panelDone(panel, this.core.t('cloud.save.status.download'), async () => {
+          if (!(await this.download(slot))) throw new Error(this.core.t('cloud.save.error.download'));
+        });
       case 'deleteRemoteSlot':
-        await this.deleteRemote(slot);
-        await this.refreshPanel(panel);
-        return this.status(panel, this.core.t('cloud.save.status.delete'), true);
+        return this.panelDone(panel, this.core.t('cloud.save.status.delete'), async () => await this.deleteRemote(slot));
       case 'refreshRemoteList':
-        await this.refreshPanel(panel);
-        return this.status(panel, this.core.t('cloud.save.status.refresh'), true);
+        return this.panelDone(panel, this.core.t('cloud.save.status.refresh'));
       case 'exportCurrentCode':
         this.setField(panel, 'code', this.exportCode());
         return this.status(panel, this.core.t('cloud.save.status.code.generate'), true);
@@ -293,6 +284,12 @@ class CloudSaveService {
         if (!this.importCode(this.field(panel, 'code'))) throw new Error(this.core.t('cloud.save.error.code.invalid'));
         return this.status(panel, this.core.t('cloud.save.status.code.load'), true);
     }
+  }
+
+  private async panelDone(panel: HTMLElement, message: string, action?: () => Promise<unknown>): Promise<void> {
+    if (action) await action();
+    await this.refreshPanel(panel);
+    this.status(panel, message, true);
   }
 
   private readPanel(panel: HTMLElement): CloudSaveConfig {

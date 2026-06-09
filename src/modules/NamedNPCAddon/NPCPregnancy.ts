@@ -125,15 +125,7 @@ class NPCPregnancy {
     if (typeof config === 'function') {
       this.generators.set(key, config);
     } else if (config && typeof config === 'object') {
-      this.configs.set(key, config);
-      if (typeof config.generator === 'function') this.generators.set(key, config.generator);
-      if (config.birth) this.births.set(key, config.birth);
-      if (typeof config.eta === 'function') this.etas.set(key, config.eta);
-      if (config.child) this.children.set(key, config.child);
-      if (typeof config.childActivity === 'function') this.childActivities.set(key, config.childActivity);
-      if (typeof config.child?.activity === 'function') this.childActivities.set(key, config.child.activity);
-      if (config.child?.text) this.texts.set(key, config.child.text);
-      if (config.text) this.texts.set(key, config.text);
+      this.addTypeConfig(key, config);
       if (config.npc) for (const [npcName, npcConfig] of Object.entries(config.npc)) this.addNpc(npcName, npcConfig);
     }
   }
@@ -152,9 +144,23 @@ class NPCPregnancy {
   public addChild(type: string, config: PregnancyChildConfig) {
     const key = type.trim();
     if (!key || !config || typeof config !== 'object') return;
-    this.children.set(key, config);
-    if (typeof config.activity === 'function') this.childActivities.set(key, config.activity);
-    if (config.text) this.texts.set(key, config.text);
+    this.addChildConfig(key, config);
+  }
+
+  private addTypeConfig(type: string, config: PregnancyAddConfig) {
+    this.configs.set(type, config);
+    if (typeof config.generator === 'function') this.generators.set(type, config.generator);
+    if (config.birth) this.births.set(type, config.birth);
+    if (typeof config.eta === 'function') this.etas.set(type, config.eta);
+    if (config.child) this.addChildConfig(type, config.child);
+    if (typeof config.childActivity === 'function') this.childActivities.set(type, config.childActivity);
+    if (config.text) this.texts.set(type, config.text);
+  }
+
+  private addChildConfig(type: string, config: PregnancyChildConfig) {
+    this.children.set(type, config);
+    if (typeof config.activity === 'function') this.childActivities.set(type, config.activity);
+    if (config.text) this.texts.set(type, config.text);
   }
 
   public typeOf(target: string | PregnancyNPC | null | undefined) {
@@ -162,8 +168,8 @@ class NPCPregnancy {
     const data = npc?.pregnancy;
     const name = this.npcNameOf(target, npc);
     const config = name ? this.npcConfigs.get(name) : null;
-    const transformed = name ? this.manager.transformation.pregnancyType(name) : '';
-    return typeof data?.type === 'string' && data.type.trim() ? data.type.trim() : (config?.type || transformed || npc?.type || '');
+    const transformed = name ? this.manager.Transformation.pregnancyType(name) : '';
+    return typeof data?.type === 'string' && data.type.trim() ? data.type.trim() : config?.type || transformed || npc?.type || '';
   }
 
   private npcNameOf(target: string | PregnancyNPC | null | undefined, npc?: PregnancyNPC | null) {

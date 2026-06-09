@@ -6,7 +6,6 @@
       "name": "maplebirch",
       "dependencies": {
         "fflate": "^0.8.3",
-        "flatpickr": "^4.6.13",
         "howler": "^2.2.4",
         "idb": "^8.0.3",
         "js-yaml": "^4.1.0",
@@ -14,8 +13,8 @@
       },
       "devDependencies": {
         "@cloudflare/workers-types": "^4.20260602.1",
-        "@rspack/cli": "^^2.0.5",
-        "@rspack/core": "^^2.0.5",
+        "@rspack/cli": "^2.0.5",
+        "@rspack/core": "^2.0.5",
         "@scml/types": "^1.0.7",
         "@types/adm-zip": "^0.5.7",
         "@types/bun": "1.3.14",
@@ -478,8 +477,6 @@
     "fflate": ["fflate@0.8.3", "", {}, "sha512-tbZNuJrLwGUp3zshBtdy4W+ORxZuIh8a5ilyIEQDC5rY1f3U20JMry0Ll3WBzU58EZKsEuJFXhb5gwv8CsPvgA=="],
 
     "fix-dts-default-cjs-exports": ["fix-dts-default-cjs-exports@1.0.1", "", { "dependencies": { "magic-string": "^0.30.17", "mlly": "^1.7.4", "rollup": "^4.34.8" } }, "sha512-pVIECanWFC61Hzl2+oOCtoJ3F17kglZC/6N94eRWycFgBH35hHx0Li604ZIzhseh97mf2p0cv7vVrOZGoqhlEg=="],
-
-    "flatpickr": ["flatpickr@4.6.13", "", {}, "sha512-97PMG/aywoYpB4IvbvUJi0RQi8vearvU0oov1WW3k0WZPBMrTQVqekSX5CjSG/M4Q3i6A/0FKXC7RyAoAUUSPw=="],
 
     "fsevents": ["fsevents@2.3.3", "", { "os": "darwin" }, "sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw=="],
 

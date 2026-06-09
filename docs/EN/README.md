@@ -45,6 +45,10 @@ This directory contains English documentation for mod authors using **`maplebirc
 - [NPC Sidebar](NamedNPC/NamedNPCSidebar.md)
 - [Combat Actions](Combat/Actions.md)
 
+## Cloud Save
+
+- [Cloud Save Services](../../cloud-services/README.md)
+
 ## Translation Status
 
 The English docs mirror the Chinese documentation structure and focus on public APIs that mod authors are likely to use.

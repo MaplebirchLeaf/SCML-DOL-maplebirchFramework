@@ -8,7 +8,6 @@ import type { TypeOrderItem } from '@scml/types/AddonMod_BeautySelector/BeautySe
 import type { SC2DataManager } from '@scml/types/sugarcube-2-ModLoader/SC2DataManager';
 import type { ModUtils } from '@scml/types/sugarcube-2-ModLoader/Utils';
 import type { CryptOptions } from '../services/CredentialVault';
-import FlatpickrStyles from 'flatpickr/dist/themes/dark.css';
 import MaplebrichStyles from '@/styles/MaplebrichStyles.css';
 import maplebirch, { type MaplebirchCore, createlog } from '../core';
 import AddonPluginProcess, { type Task, type LanguageConfig, type AudioConfig, type FrameworkConfig, type Replacement, replace, defineTwineAsset } from './AddonPluginProcess';
@@ -137,7 +136,6 @@ class AddonPlugin {
       'maplebirch/sugarcube-bridge.js',
       `(function(maplebirch){'use strict';maplebirch.SugarCube={Browser,Config,Dialog,Engine,Fullscreen,Has,L10n,Macro,Passage,Save,Scripting,Setting,SimpleAudio,State,Story,UI,UIBar,DebugBar,Util,Visibility,Wikifier,session,settings,setup,storage,version};void maplebirch.trigger(':sugarcube');})(window.maplebirch);`
     );
-    defineTwineAsset('style', 'flatpickr.css', FlatpickrStyles);
     defineTwineAsset('style', 'maplebirch-styles.css', MaplebrichStyles);
   }
 

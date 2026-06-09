@@ -386,8 +386,8 @@ function preprocess(options: NPCSidebarOptions) {
     nnpc.model = false;
     return;
   }
-  maplebirch.npc.transformation.applyBody(nnpc, npcData);
-  maplebirch.npc.transformation.applySidebar(nnpc);
+  maplebirch.npc.Transformation.applyBody(nnpc, npcData);
+  maplebirch.npc.Transformation.applySidebar(nnpc);
   setupClothesData(options, nnpc, npcData);
   setupBodyData(options, nnpc, npcData);
   NPCFluids.apply(nnpc, npcData);

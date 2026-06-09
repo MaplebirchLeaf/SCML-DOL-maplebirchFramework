@@ -439,6 +439,16 @@ function definePrototype<T extends object>(target: T, name: string, value: Funct
 }
 
 const nativeMathRandom = Math.random.bind(Math);
+const mergeMethods = [
+  ['merge', merge],
+  ['append', append],
+  ['cover', cover]
+] as const;
+const mergeFnMethods = [
+  ['mergefn', mergeFn],
+  ['appendfn', appendFn],
+  ['coverfn', coverFn]
+] as const;
 
 function prototypeUtils(): void {
   definePrototype(Object.prototype, 'clone', function (this: any, deep = true, proto = true) {
@@ -447,60 +457,28 @@ function prototypeUtils(): void {
   definePrototype(Object.prototype, 'equal', function (this: any, value: any) {
     return equal(this.valueOf(), value);
   });
-  definePrototype(Object.prototype, 'merge', function (this: any, ...sources: any[]) {
-    return merge(this.valueOf(), ...sources);
-  });
-  definePrototype(Object.prototype, 'append', function (this: any, ...sources: any[]) {
-    return append(this.valueOf(), ...sources);
-  });
-  definePrototype(Object.prototype, 'cover', function (this: any, ...sources: any[]) {
-    return cover(this.valueOf(), ...sources);
-  });
-  definePrototype(Object.prototype, 'mergefn', function (this: any, filterFn: MergeFilterFn | null, ...sources: any[]) {
-    return mergeFn(this.valueOf(), filterFn, ...sources);
-  });
-  definePrototype(Object.prototype, 'appendfn', function (this: any, filterFn: MergeFilterFn | null, ...sources: any[]) {
-    return appendFn(this.valueOf(), filterFn, ...sources);
-  });
-  definePrototype(Object.prototype, 'coverfn', function (this: any, filterFn: MergeFilterFn | null, ...sources: any[]) {
-    return coverFn(this.valueOf(), filterFn, ...sources);
-  });
-  definePrototype(Object, 'merge', function (...sources: any[]) {
-    return merge({}, ...sources);
-  });
-  definePrototype(Object, 'append', function (...sources: any[]) {
-    return append({}, ...sources);
-  });
-  definePrototype(Object, 'cover', function (...sources: any[]) {
-    return cover({}, ...sources);
-  });
-  definePrototype(Object, 'mergefn', function (filterFn: MergeFilterFn | null, ...sources: any[]) {
-    return mergeFn({}, filterFn, ...sources);
-  });
-  definePrototype(Object, 'appendfn', function (filterFn: MergeFilterFn | null, ...sources: any[]) {
-    return appendFn({}, filterFn, ...sources);
-  });
-  definePrototype(Object, 'coverfn', function (filterFn: MergeFilterFn | null, ...sources: any[]) {
-    return coverFn({}, filterFn, ...sources);
-  });
-  definePrototype(Array, 'merge', function (...sources: any[]) {
-    return merge([], ...sources);
-  });
-  definePrototype(Array, 'append', function (...sources: any[]) {
-    return append([], ...sources);
-  });
-  definePrototype(Array, 'cover', function (...sources: any[]) {
-    return cover([], ...sources);
-  });
-  definePrototype(Array, 'mergefn', function (filterFn: MergeFilterFn | null, ...sources: any[]) {
-    return mergeFn([], filterFn, ...sources);
-  });
-  definePrototype(Array, 'appendfn', function (filterFn: MergeFilterFn | null, ...sources: any[]) {
-    return appendFn([], filterFn, ...sources);
-  });
-  definePrototype(Array, 'coverfn', function (filterFn: MergeFilterFn | null, ...sources: any[]) {
-    return coverFn([], filterFn, ...sources);
-  });
+  for (const [name, fn] of mergeMethods) {
+    definePrototype(Object.prototype, name, function (this: any, ...sources: any[]) {
+      return fn(this.valueOf(), ...sources);
+    });
+    definePrototype(Object, name, function (...sources: any[]) {
+      return fn({}, ...sources);
+    });
+    definePrototype(Array, name, function (...sources: any[]) {
+      return fn([], ...sources);
+    });
+  }
+  for (const [name, fn] of mergeFnMethods) {
+    definePrototype(Object.prototype, name, function (this: any, filterFn: MergeFilterFn | null, ...sources: any[]) {
+      return fn(this.valueOf(), filterFn, ...sources);
+    });
+    definePrototype(Object, name, function (filterFn: MergeFilterFn | null, ...sources: any[]) {
+      return fn({}, filterFn, ...sources);
+    });
+    definePrototype(Array, name, function (filterFn: MergeFilterFn | null, ...sources: any[]) {
+      return fn([], filterFn, ...sources);
+    });
+  }
   definePrototype(Object.prototype, 'contains', function (this: any, value: unknown, mode: ContainsMode = 'any', opt: ContainsOptions = {}) {
     const source = this.valueOf();
     if (Array.isArray(source)) return contains(source, value, mode, opt);

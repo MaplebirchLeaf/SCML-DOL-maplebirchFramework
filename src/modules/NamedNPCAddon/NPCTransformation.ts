@@ -22,9 +22,7 @@ function key(npcName: string) {
 
 function stateLevel(build: number, levels: number[]) {
   let level = 0;
-  for (const threshold of levels) {
-    if (build >= threshold) level++;
-  }
+  for (const threshold of levels) if (build >= threshold) level++;
   return level;
 }
 
