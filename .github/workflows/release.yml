@@ -11,7 +11,7 @@ on:
         default: ''
       extra_build_refs:
         required: false
-        default: 'dol-v0.5.8.10'
+        default: 'dol-v0.5.8.10, dol-v0.5.9.8'
 
 jobs:
   prepare:
