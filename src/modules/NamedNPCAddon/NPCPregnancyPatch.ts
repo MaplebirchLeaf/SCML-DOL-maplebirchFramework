@@ -22,7 +22,6 @@ class NPCPregnancyPatch {
   public constructor(private readonly pregnancy: NPCPregnancy) {}
 
   public inject() {
-    const host = this.pregnancy;
     if (typeof window.recordSperm !== 'function') return;
     this.save();
     this.injectGenerators();

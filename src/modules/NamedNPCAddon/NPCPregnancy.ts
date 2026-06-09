@@ -162,7 +162,8 @@ class NPCPregnancy {
     const data = npc?.pregnancy;
     const name = this.npcNameOf(target, npc);
     const config = name ? this.npcConfigs.get(name) : null;
-    return typeof data?.type === 'string' && data.type.trim() ? data.type.trim() : (config?.type ?? npc?.type ?? '');
+    const transformed = name ? this.manager.transformation.pregnancyType(name) : '';
+    return typeof data?.type === 'string' && data.type.trim() ? data.type.trim() : (config?.type || transformed || npc?.type || '');
   }
 
   private npcNameOf(target: string | PregnancyNPC | null | undefined, npc?: PregnancyNPC | null) {

@@ -6,6 +6,8 @@ import NPCSchedules, { ScheduleConfig, ScheduleBuilder } from './NamedNPCAddon/N
 import NPCClothes, { ClothesConfig } from './NamedNPCAddon/NPCClothes';
 import NPCSidebar from './NamedNPCAddon/NPCSidebar';
 import NPCPregnancy, { type PregnancyAddConfig, type PregnancyGenerator } from './NamedNPCAddon/NPCPregnancy';
+import NPCFluids from './NamedNPCAddon/NPCFluids';
+import NPCTransformation from './NamedNPCAddon/NPCTransformation';
 import { setupNpcData, isPossible } from './NamedNPCAddon/NPCUtils';
 
 type LanguageCode = 'CN' | 'EN';
@@ -512,6 +514,7 @@ class NPCManager {
   public NPCNameList: string[] = [];
 
   public readonly Pregnancy: NPCPregnancy;
+  public readonly transformation: NPCTransformation;
 
   // prettier-ignore
   public readonly type: { [x: string]: Array<string> } = {
@@ -540,9 +543,11 @@ class NPCManager {
   public readonly Schedule: typeof NPCSchedules = NPCSchedules;
   public readonly Clothes: typeof NPCClothes = NPCClothes;
   public readonly Sidebar: typeof NPCSidebar = NPCSidebar;
+  public readonly fluids: typeof NPCFluids = NPCFluids;
 
   public constructor(readonly core: MaplebirchCore) {
     this.log = createlog('npc');
+    this.transformation = Object.seal(new NPCTransformation(this));
     this.Pregnancy = new NPCPregnancy(this);
     this.core.on(
       ':language',

@@ -37,6 +37,7 @@ This directory contains English documentation for mod authors using **`maplebirc
 - [Character Layers](Character/Character.md)
 - [Transformation System](Character/Transformation.md)
 - [Named NPC](NamedNPC/NamedNPC.md)
+- [NPC Transformation](NamedNPC/NamedNPCTransformation.md)
 - [NPC Pregnancy](NamedNPC/NamedNPCPregnancy.md)
 - [NPC Stats](NamedNPC/NamedNPCStats.md)
 - [NPC Schedule](NamedNPC/NamedNPCSchedule.md)
