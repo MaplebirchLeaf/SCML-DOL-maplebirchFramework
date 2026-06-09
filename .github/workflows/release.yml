@@ -139,6 +139,7 @@ jobs:
         id: extract_changelog
         run: |
           CURRENT_VERSION="${{ needs.prepare.outputs.version }}"
+          CURRENT_SERIES="${CURRENT_VERSION%.*}.x"
           CHANGELOG_FILE="UPDATE.md"
 
           if [ ! -f "$CHANGELOG_FILE" ]; then
@@ -146,10 +147,11 @@ jobs:
             exit 0
           fi
 
-          LOG_CONTENT=$(awk -v ver="$CURRENT_VERSION" '
+          LOG_CONTENT=$(awk -v ver="$CURRENT_VERSION" -v series="$CURRENT_SERIES" '
             { gsub(/\r$/, "") }
             $0 ~ "^##### \\(v\\." ver "更新日志\\):" { found=1; next }
-            found && /^##### \(v\.[0-9]+\.[0-9]+\.[0-9]+更新日志\):/ { exit }
+            $0 ~ "^##### \\(v\\." series "更新日志\\):" { found=1; next }
+            found && /^##### \(v\.[0-9]+\.[0-9]+\.(x|[0-9]+)更新日志\):/ { exit }
             found { print }
           ' "$CHANGELOG_FILE")
 
