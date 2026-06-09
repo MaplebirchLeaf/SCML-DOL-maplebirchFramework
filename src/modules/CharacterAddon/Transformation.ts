@@ -5,6 +5,7 @@ import { Translation } from '../../services/LanguageManager';
 import type AddonPlugin from '../AddonPlugin';
 import type { Replacement } from '../AddonPluginProcess';
 import type Character from '../Character';
+import type { ModelTarget } from '../Character';
 
 interface Part {
   name: string;
@@ -25,6 +26,7 @@ type TransformMessage = Record<string, { up: string[]; down: string[] }>;
 type TranslationInput = Record<string, Translation> | Map<string, Translation>;
 
 interface EntryOptions {
+  target?: ModelTarget;
   build?: number;
   level?: number;
   update?: number[];
@@ -164,9 +166,10 @@ class Transformation {
     if (type === 'physical' && options.suppress !== false && !this.suppressConditions[name])
       this.suppressConditions[name] = options.suppressConditions ?? [(sourceName: string) => sourceName !== name];
 
-    if (options.pre) this.manager.use('pre', options.pre, 'main');
-    if (options.post) this.manager.use('post', options.post, 'main');
-    if (options.layers) this.manager.use(options.layers, 'main');
+    const target = options.target ?? 'main';
+    if (options.pre) this.manager.use('pre', options.pre, target);
+    if (options.post) this.manager.use('post', options.post, target);
+    if (options.layers) this.manager.use(options.layers, target);
 
     if (options.translations) {
       const translations = options.translations instanceof Map ? options.translations.entries() : Object.entries(options.translations);
