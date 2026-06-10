@@ -98,26 +98,25 @@ maplebirch.after(':language', () => {
 
 ## 常用框架事件
 
-| 事件 | 适合做什么 |
-| :--- | :--- |
-| `:storyready` | SugarCube 故事准备完成后的逻辑 |
-| `:passageinit` | 获取当前 passage 信息 |
-| `:passagestart` | passage 开始时刷新状态 |
-| `:passagerender` | passage 渲染时处理 DOM 前逻辑 |
-| `:passagedisplay` | passage 显示后处理页面 |
-| `:passageend` | passage 结束阶段 |
-| `:onSave` | 存档前后同步数据 |
-| `:onLoad` | 读档时处理数据 |
-| `:onLoadSave` | 读档进入页面流程后 |
-| `:language` | 框架语言切换后 |
-| `:modLoaderEnd` | ModLoader 加载结束 |
+| 事件              | 适合做什么                     |
+| :---------------- | :----------------------------- |
+| `:storyready`     | SugarCube 故事准备完成后的逻辑 |
+| `:passageinit`    | 获取当前 passage 信息          |
+| `:passagestart`   | passage 开始时刷新状态         |
+| `:passagerender`  | passage 渲染时处理 DOM 前逻辑  |
+| `:passagedisplay` | passage 显示后处理页面         |
+| `:passageend`     | passage 结束阶段               |
+| `:onSave`         | 存档前后同步数据               |
+| `:onLoad`         | 读档时处理数据                 |
+| `:language`       | 框架语言切换后                 |
+| `:modLoaderEnd`   | ModLoader 加载结束             |
 
 ---
 
 ## 示例：读档后修复模组变量
 
 ```javascript
-maplebirch.on(':onLoadSave', () => {
+maplebirch.on(':onLoad', () => {
   V.myMod ??= {};
   V.myMod.flags ??= {};
 });

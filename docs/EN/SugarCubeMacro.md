@@ -6,15 +6,15 @@ The framework adds SugarCube macros for multilingual text, buttons, links, listb
 
 ## Common Macros
 
-| Macro | Purpose |
-| :--- | :--- |
-| `<<language>>` | Display content by language |
-| `<<lanSwitch>>` | Output language-specific text |
-| `<<lanButton>>` | Multilingual button |
-| `<<lanLink>>` | Multilingual link |
-| `<<lanListbox>>` | Multilingual listbox |
-| `<<radiobuttonsfrom>>` | Generate radio buttons from data |
-| `<<maplebirchReplace>>` | Replace framework overlay content |
+| Macro                      | Purpose                                |
+| :------------------------- | :------------------------------------- |
+| `<<language>>`             | Display content by language            |
+| `<<lanSwitch>>`            | Output language-specific text          |
+| `<<lanButton>>`            | Multilingual button                    |
+| `<<lanLink>>`              | Multilingual link                      |
+| `<<lanListbox>>`           | Multilingual listbox                   |
+| `<<radiobuttonsfrom>>`     | Generate radio buttons from data       |
+| `<<maplebirchReplace>>`    | Replace framework overlay content      |
 | `<<maplebirchTextOutput>>` | Output registered text builder content |
 
 ## language

@@ -62,7 +62,7 @@ class DynamicManager {
     return this.Weather.addWeatherData(data);
   }
 
-  public async Init(): Promise<void> {
+  public Init(): void {
     this.Time.init();
     this.State.init();
     this.Weather.init();

@@ -213,7 +213,7 @@ class MaplebirchCore {
   }
 
   public get gameVersion(): string {
-    return (StartConfig as any).version;
+    return StartConfig.version;
   }
 }
 

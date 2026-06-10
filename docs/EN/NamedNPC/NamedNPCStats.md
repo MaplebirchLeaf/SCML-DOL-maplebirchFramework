@@ -39,12 +39,12 @@ maplebirch.npc.addStats({
 }
 ```
 
-| Field | Required | Description |
-| :--- | :--- | :--- |
-| `min` | Yes | Minimum value |
-| `max` | Yes | Maximum value |
-| `default` | Yes | Initial value |
-| `position` | No | Display order in the NPC stat list |
+| Field      | Required | Description                        |
+| :--------- | :------- | :--------------------------------- |
+| `min`      | Yes      | Minimum value                      |
+| `max`      | Yes      | Maximum value                      |
+| `default`  | Yes      | Initial value                      |
+| `position` | No       | Display order in the NPC stat list |
 
 `position` can be a number, `first`, or `last`.
 

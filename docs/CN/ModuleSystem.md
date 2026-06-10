@@ -139,15 +139,15 @@ class MyModule {
     this.cache = new Map();
   }
 
-  async Init() {
+  Init() {
     this.setup();
   }
 
-  async loadInit() {
+  loadInit() {
     this.restoreFromSave();
   }
 
-  async postInit() {
+  postInit() {
     this.refreshPassageState();
   }
 

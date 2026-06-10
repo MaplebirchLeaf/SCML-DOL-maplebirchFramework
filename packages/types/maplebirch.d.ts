@@ -524,15 +524,13 @@ interface ModuleRegistry {
 interface InitPhase {
     preInitCompleted: boolean;
     mainInitCompleted: boolean;
-    loadInitExecuted: boolean;
-    postInitExecuted: boolean;
 }
 declare class ModuleSystem {
     readonly core: MaplebirchCore;
     readonly registry: ModuleRegistry;
     readonly initPhase: InitPhase;
     constructor(core: MaplebirchCore);
-    runWithSource<T>(source: string, callback: () => T | Promise<T>): Promise<T>;
+    withSource<T>(source: string, callback: () => T | Promise<T>): Promise<T>;
     register(name: string, module: any, dependencies?: string[]): boolean;
     get dependencyGraph(): any;
     init(phase: 'pre' | 'init' | 'load' | 'post'): Promise<void>;
@@ -759,7 +757,7 @@ declare class DynamicManager {
     regWeatherEvent(eventId: string, options: WeatherEventOptions): boolean;
     delWeatherEvent(eventId: string): boolean;
     addWeather(data: WeatherException | WeatherTypeConfig): boolean | void;
-    Init(): Promise<void>;
+    Init(): void;
 }
 
 type ContainsMode = 'all' | 'any' | 'none';
@@ -1537,6 +1535,10 @@ declare class Pet {
     configure(options?: PetOptions): this;
 }
 
+type DecayCondition = () => boolean;
+type SuppressCondition = (sourceName: string) => boolean;
+type BuildUpdater = (change: number) => void;
+
 interface Part {
     name: string;
     tfRequired: number;
@@ -1544,8 +1546,6 @@ interface Part {
     [key: string]: any;
 }
 type TransformHook = (options: any, model?: CanvasModel) => void;
-type DecayCondition = () => boolean;
-type SuppressCondition = (sourceName: string) => boolean;
 type TransformMessage = Record<string, {
     up: string[];
     down: string[];
@@ -1574,6 +1574,7 @@ interface TransformationOption extends EntryOptions {
 declare class Transformation {
     readonly decayConditions: Record<string, DecayCondition[]>;
     readonly suppressConditions: Record<string, SuppressCondition[]>;
+    readonly buildUpdaters: Record<string, BuildUpdater>;
     constructor(manager: Character);
     wikifier(widget: string, ...args: any[]): any;
     modifyEffect(manager: AddonPlugin): void;
@@ -1741,7 +1742,7 @@ declare class NPCSidebarWardrobeProfile {
     get worn(): WardrobeItem;
 }
 declare const NPCClothes: {
-    init: (manager: NPCManager) => Promise<void>;
+    init: (manager: NPCManager) => void;
     addOutfitSet: (...configs: OutfitSetConfig[]) => void;
     importArt: (modName: string, modZip: ModZipReader, filePaths: string | string[]) => Promise<string[]>;
     loadWardrobe: (modName: string, filePath: string) => Promise<void>;
@@ -2076,7 +2077,7 @@ declare class NPCManager {
     vanillaInit(npcName: string): void;
     vanillaInject(npcName: string, npcno: number): void;
     preInit(): void;
-    Init(): Promise<void>;
+    Init(): void;
     loadInit(): void;
     postInit(): void;
 }
@@ -2272,7 +2273,7 @@ interface FileItem {
 }
 declare class AddonPlugin {
     readonly core: MaplebirchCore;
-    onLoad: boolean;
+    onStart: boolean;
     readonly replace: typeof replace;
     readonly SC2DataManager: SC2DataManager;
     readonly modUtils: ModUtils;

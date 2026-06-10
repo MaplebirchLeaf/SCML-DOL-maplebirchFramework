@@ -33,14 +33,14 @@ maplebirch.dynamic.regWeatherEvent('myMod.rainyDay', {
 
 ## Options
 
-| Option | Type | Description |
-| :--- | :--- | :--- |
-| `condition` | function | Returns whether the event is active |
-| `onEnter` | function | Runs once when the condition becomes true |
-| `onExit` | function | Runs once when the condition becomes false |
-| `once` | boolean | Remove after the event completes |
-| `priority` | number | Higher runs earlier |
-| Custom fields | any | Can be used for weather-state matching |
+| Option        | Type     | Description                                |
+| :------------ | :------- | :----------------------------------------- |
+| `condition`   | function | Returns whether the event is active        |
+| `onEnter`     | function | Runs once when the condition becomes true  |
+| `onExit`      | function | Runs once when the condition becomes false |
+| `once`        | boolean  | Remove after the event completes           |
+| `priority`    | number   | Higher runs earlier                        |
+| Custom fields | any      | Can be used for weather-state matching     |
 
 ## Field Matching
 
@@ -62,9 +62,7 @@ maplebirch.dynamic.regWeatherEvent('myMod.coldNight', {
 ## Patching Layers And Effects
 
 ```javascript
-maplebirch.dynamic.Weather
-  .addLayer('rain', { animation: { speed: 2 } }, 'merge')
-  .addEffect('thunder', { volume: 0.8 }, 'merge');
+maplebirch.dynamic.Weather.addLayer('rain', { animation: { speed: 2 } }, 'merge').addEffect('thunder', { volume: 0.8 }, 'merge');
 ```
 
 Patch modes are usually `replace`, `merge`, or `concat`.

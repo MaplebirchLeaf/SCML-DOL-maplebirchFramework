@@ -23,14 +23,14 @@ Put complex conditions and runtime logic in JavaScript files loaded through **`s
 
 ## params Fields
 
-| Field | Purpose |
-| :--- | :--- |
-| `script` | Load normal JavaScript files |
-| `module` | Load earlier module-extension scripts |
-| `language` | Import translation files |
-| `audio` | Import audio folders |
+| Field       | Purpose                                                     |
+| :---------- | :---------------------------------------------------------- |
+| `script`    | Load normal JavaScript files                                |
+| `module`    | Load earlier module-extension scripts                       |
+| `language`  | Import translation files                                    |
+| `audio`     | Import audio folders                                        |
 | `framework` | Add UI widgets, traits, bodywriting, foodstuff, or antiques |
-| `npc` | Register NPC resources |
+| `npc`       | Register NPC resources                                      |
 
 ## script
 
@@ -139,13 +139,13 @@ Related docs:
 }
 ```
 
-| Field | Purpose |
-| :--- | :--- |
-| `NamedNPC` | Register named NPCs |
-| `Stats` | Register NPC stats |
-| `Sidebar.image` | Import static sidebar images |
-| `Sidebar.clothes` | Import wardrobe config |
-| `Sidebar.config` | Import sidebar model layer config |
+| Field             | Purpose                           |
+| :---------------- | :-------------------------------- |
+| `NamedNPC`        | Register named NPCs               |
+| `Stats`           | Register NPC stats                |
+| `Sidebar.image`   | Import static sidebar images      |
+| `Sidebar.clothes` | Import wardrobe config            |
+| `Sidebar.config`  | Import sidebar model layer config |
 
 ## Full Example
 
