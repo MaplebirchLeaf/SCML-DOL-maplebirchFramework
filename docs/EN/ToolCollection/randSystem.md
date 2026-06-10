@@ -34,16 +34,16 @@ const index = rng.int(5); // 0-5
 
 ## API
 
-| API | Description |
-| :--- | :--- |
-| `maplebirch.tool.rand.create(state?)` | Create a generator |
-| `rng.seed` | Get or reset the seed |
-| `rng.int(max)` | Generate an integer from `0` to `max` |
-| `rng.percent()` | Generate an integer from `1` to `100` |
-| `rng.back(steps?)` | Move the random history pointer backward |
-| `rng.forward(steps?)` | Move the pointer forward through existing history |
-| `rng.history` | Copy of generated result history |
-| `rng.index` | Current history pointer |
+| API                                   | Description                                       |
+| :------------------------------------ | :------------------------------------------------ |
+| `maplebirch.tool.rand.create(state?)` | Create a generator                                |
+| `rng.seed`                            | Get or reset the seed                             |
+| `rng.int(max)`                        | Generate an integer from `0` to `max`             |
+| `rng.percent()`                       | Generate an integer from `1` to `100`             |
+| `rng.back(steps?)`                    | Move the random history pointer backward          |
+| `rng.forward(steps?)`                 | Move the pointer forward through existing history |
+| `rng.history`                         | Copy of generated result history                  |
+| `rng.index`                           | Current history pointer                           |
 
 ## Reproducible Rolls
 

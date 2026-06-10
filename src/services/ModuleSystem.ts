@@ -16,8 +16,6 @@ interface ModuleRegistry {
 interface InitPhase {
   preInitCompleted: boolean;
   mainInitCompleted: boolean;
-  loadInitExecuted: boolean;
-  postInitExecuted: boolean;
 }
 
 class ModuleSystem {
@@ -33,9 +31,7 @@ class ModuleSystem {
 
   public readonly initPhase: InitPhase = {
     preInitCompleted: false,
-    mainInitCompleted: false,
-    loadInitExecuted: false,
-    postInitExecuted: false
+    mainInitCompleted: false
   };
 
   private sourceStack: string[] = [];
@@ -46,7 +42,7 @@ class ModuleSystem {
 
   public constructor(readonly core: MaplebirchCore) {}
 
-  public async runWithSource<T>(source: string, callback: () => T | Promise<T>): Promise<T> {
+  public async withSource<T>(source: string, callback: () => T | Promise<T>): Promise<T> {
     this.sourceStack.push(source);
     try {
       return await callback();
@@ -68,7 +64,7 @@ class ModuleSystem {
     const lifecycle = ['preInit', 'Init', 'loadInit', 'postInit'].some(method => typeof module?.[method] === 'function');
     const state = exposed && !lifecycle ? ModuleState.EXPOSED : ModuleState.REGISTERED;
 
-    if (this.hasCircularDependency(name, allDependencies)) {
+    if (this.circularDependency(name, allDependencies)) {
       this.core.logger.log(`模块 ${name} 注册失败: 存在循环依赖`, 'ERROR');
       return false;
     }
@@ -119,34 +115,27 @@ class ModuleSystem {
   public async init(phase: 'pre' | 'init' | 'load' | 'post'): Promise<void> {
     if (phase === 'pre') {
       if (this.initPhase.preInitCompleted) return;
-      for (const name of this.getTopologicalOrder()) await this.initModule(name, true);
+      for (const name of this.TopologicalOrder()) await this.moduleInit(name, true);
       this.initPhase.preInitCompleted = true;
       this.core.logger.log('预初始化完成', 'DEBUG');
       return;
     }
 
     if (phase === 'init') {
-      if (this.initPhase.mainInitCompleted) return;
       if (!this.initPhase.preInitCompleted) await this.init('pre');
-      for (const name of this.getTopologicalOrder()) await this.initModule(name, false);
-      this.initPhase.mainInitCompleted = true;
-      this.core.logger.log('主初始化完成', 'DEBUG');
-      return;
+      if (!this.initPhase.mainInitCompleted) {
+        for (const name of this.TopologicalOrder()) await this.moduleInit(name, false);
+        this.initPhase.mainInitCompleted = true;
+        this.core.logger.log('主初始化完成', 'DEBUG');
+      }
     }
 
-    if (phase === 'load') {
-      if (this.initPhase.loadInitExecuted || !this.initPhase.mainInitCompleted) return;
-      await this.executePhaseInit('loadInit', '存档初始化');
-      this.initPhase.loadInitExecuted = true;
-      return;
-    }
-
-    if (this.initPhase.postInitExecuted || !this.initPhase.mainInitCompleted) return;
-    await this.executePhaseInit('postInit', '后初始化');
-    this.initPhase.postInitExecuted = true;
+    if (!this.initPhase.mainInitCompleted) return;
+    if (phase === 'load') void this.phaseInit('loadInit', '存档初始化');
+    void this.phaseInit('postInit', '后初始化');
   }
 
-  private async isModuleDisabled(name: string): Promise<boolean> {
+  private async moduleDisabled(name: string): Promise<boolean> {
     if ((this.core.meta.protected as readonly string[]).includes(name)) return false;
     if (!this.disabledNames) {
       try {
@@ -175,23 +164,19 @@ class ModuleSystem {
 
   private scheduleEarlyMountCheck(name: string, module: any, unmetDeps: string[]): void {
     const maxRetries = 10;
-    let retries = 0;
-
-    const checkDeps = () => {
+    const retryDelay = 5;
+    const retry = (count = 0): void => {
+      if ((this.core as any)[name] === module) return;
       const stillUnmet = unmetDeps.filter(dep => !(this.core as any)[dep]);
       if (stillUnmet.length === 0) {
         (this.core as any)[name] = module;
         this.core.logger.log(`[${name}] 模块已在依赖满足后挂载 (earlyMount)`, 'DEBUG');
         return;
       }
-      if (retries++ < maxRetries) {
-        setTimeout(checkDeps, 5);
-        return;
-      }
-      this.core.logger.log(`[${name}] earlyMount 超时: 依赖未满足 [${stillUnmet.join(', ')}]`, 'WARN');
+      if (count >= maxRetries) return;
+      setTimeout(() => retry(count + 1), retryDelay);
     };
-
-    setTimeout(checkDeps, 0);
+    retry();
   }
 
   private collectAllDependencies(directDependencies: string[]): Set<string> {
@@ -225,7 +210,7 @@ class ModuleSystem {
     const waitingModules = this.registry.waitingQueue.get(name);
     if (!waitingModules) return;
     const pendingModules = [...waitingModules].filter(moduleName => this.registry.states.get(moduleName) === ModuleState.REGISTERED);
-    if (pendingModules.length > 0) queueMicrotask(() => pendingModules.forEach(moduleName => void this.initModule(moduleName)));
+    if (pendingModules.length > 0) queueMicrotask(() => pendingModules.forEach(moduleName => void this.moduleInit(moduleName)));
     this.registry.waitingQueue.delete(name);
   }
 
@@ -276,14 +261,14 @@ class ModuleSystem {
     queue.add(moduleName);
   }
 
-  private async initModule(moduleName: string, isPreInit = false): Promise<boolean> {
+  private async moduleInit(moduleName: string, isPreInit = false): Promise<boolean> {
     const module = this.registry.modules.get(moduleName);
     if (!module) return false;
     const state = this.registry.states.get(moduleName);
     if (state === ModuleState.EXPOSED) return true;
     if (state === ModuleState.DISABLED) return false;
     if (state === ModuleState.MOUNTED || state === ModuleState.ERROR) return state === ModuleState.MOUNTED;
-    if (await this.isModuleDisabled(moduleName)) {
+    if (await this.moduleDisabled(moduleName)) {
       this.core.logger.log(`模块 ${moduleName} 被禁用，跳过初始化`, 'DEBUG');
       if (module?.exposed === true && (this.core as any)[moduleName] === module) delete (this.core as any)[moduleName];
       this.registry.states.set(moduleName, ModuleState.DISABLED);
@@ -292,7 +277,7 @@ class ModuleSystem {
     }
     if (!(await this.checkDependencies(moduleName, isPreInit))) return false;
     try {
-      await this.executeModuleInit(module, isPreInit ? 'preInit' : 'Init', moduleName);
+      await this.moduleHook(module, isPreInit ? 'preInit' : 'Init', moduleName);
       if (isPreInit) {
         this.handlePreInitComplete(moduleName, module);
       } else {
@@ -307,10 +292,9 @@ class ModuleSystem {
     }
   }
 
-  private async executeModuleInit(module: any, methodName: string, moduleName: string): Promise<void> {
+  private async moduleHook(module: any, methodName: string, moduleName: string): Promise<void> {
     const initMethod = module[methodName];
     if (typeof initMethod !== 'function') return;
-
     try {
       const result = initMethod.call(module);
       if (result && typeof result.then === 'function') await result;
@@ -327,15 +311,14 @@ class ModuleSystem {
     this.preInitialized.add(moduleName);
   }
 
-  private async executePhaseInit(phase: string, logName: string): Promise<void> {
-    for (const name of this.getTopologicalOrder()) {
+  private phaseInit(phase: string, logName: string): void {
+    for (const name of this.TopologicalOrder()) {
       const module = this.registry.modules.get(name);
       if (this.registry.states.get(name) !== ModuleState.MOUNTED) continue;
       const phaseMethod = module[phase];
       if (typeof phaseMethod !== 'function') continue;
       try {
-        const result = phaseMethod.call(module);
-        if (result && typeof result.then === 'function') await result;
+        phaseMethod.call(module);
       } catch (error: any) {
         this.core.logger.log(`[${name}] ${logName}失败: ${error.message}`, 'ERROR');
       }
@@ -343,7 +326,7 @@ class ModuleSystem {
     this.core.logger.log(`${logName}完成`, 'DEBUG');
   }
 
-  private getTopologicalOrder(): string[] {
+  private TopologicalOrder(): string[] {
     const inDegree = new Map<string, number>();
     const queue: string[] = [];
     const result: string[] = [];
@@ -368,7 +351,7 @@ class ModuleSystem {
     return result;
   }
 
-  private hasCircularDependency(moduleName: string, allDependencies: Set<string>): boolean {
+  private circularDependency(moduleName: string, allDependencies: Set<string>): boolean {
     if (this.circularCache.has(moduleName)) return this.circularCache.get(moduleName)!;
     const hasCircular = this.detectCircularDependency(moduleName, [...allDependencies]);
     this.circularCache.set(moduleName, hasCircular);

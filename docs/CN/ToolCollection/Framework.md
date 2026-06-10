@@ -115,12 +115,12 @@ maplebirch.tool.addTo('StatusBar', {
 
 字段说明：
 
-| 字段 | 说明 |
-| :--- | :--- |
-| `widget` | widget 名称 |
-| `passage` | 只在指定 passage 显示 |
-| `exclude` | 在指定 passage 不显示 |
-| `match` | 用正则匹配 passage 标题 |
+| 字段      | 说明                    |
+| :-------- | :---------------------- |
+| `widget`  | widget 名称             |
+| `passage` | 只在指定 passage 显示   |
+| `exclude` | 在指定 passage 不显示   |
+| `match`   | 用正则匹配 passage 标题 |
 
 ---
 
@@ -171,50 +171,50 @@ maplebirch.tool.onInit('MyModInitWidget');
 
 ### 常用区域
 
-| 区域 | 位置 |
-| :--- | :--- |
-| `Options` | 选项页 |
-| `Cheats` | 作弊页 |
-| `Information` | 选项覆盖层信息区 |
-| `Header` | passage 页眉 |
-| `Footer` | passage 页脚 |
-| `StatusBar` | 侧边栏状态区域 |
-| `MenuBig` | 大菜单按钮区域 |
-| `MenuSmall` | 小菜单按钮区域 |
-| `BeforeLinkZone` | 链接区之前 |
-| `AfterLinkZone` | 链接区之后 |
-| `CustomLinkZone` | 指定链接位置 |
-| `Journal` | 日志页 |
-| `CharaDescription` | 角色描述区域 |
-| `StatusSocial` | 社交页自定义状态 |
-| `NPCinit` | NPC 初遇初始化 |
-| `NPCinject` | NPC 生成初始化 |
+| 区域               | 位置             |
+| :----------------- | :--------------- |
+| `Options`          | 选项页           |
+| `Cheats`           | 作弊页           |
+| `Information`      | 选项覆盖层信息区 |
+| `Header`           | passage 页眉     |
+| `Footer`           | passage 页脚     |
+| `StatusBar`        | 侧边栏状态区域   |
+| `MenuBig`          | 大菜单按钮区域   |
+| `MenuSmall`        | 小菜单按钮区域   |
+| `BeforeLinkZone`   | 链接区之前       |
+| `AfterLinkZone`    | 链接区之后       |
+| `CustomLinkZone`   | 指定链接位置     |
+| `Journal`          | 日志页           |
+| `CharaDescription` | 角色描述区域     |
+| `StatusSocial`     | 社交页自定义状态 |
+| `NPCinit`          | NPC 初遇初始化   |
+| `NPCinject`        | NPC 生成初始化   |
 
 角色与属性页区域：
 
-| 区域 | 位置 |
-| :--- | :--- |
-| `CaptionDescription` | 侧边栏描述区域 |
+| 区域                      | 位置           |
+| :------------------------ | :------------- |
+| `CaptionDescription`      | 侧边栏描述区域 |
 | `CaptionAfterDescription` | 侧边栏描述之后 |
-| `HintMobile` | 移动端提示区域 |
-| `MobileStats` | 移动端状态区域 |
-| `DegreesBonusDisplay` | 属性加成显示前 |
-| `DegreesBox` | 属性框 |
-| `SkillsBonusDisplay` | 技能加成显示前 |
-| `SkillsBox` | 技能框 |
-| `SubjectBoxBonusDisplay` | 学科加成显示前 |
-| `SchoolSubjectsBox` | 学科框 |
-| `SchoolMarksText` | 成绩文本 |
-| `WeaponBox` | 武器框 |
+| `HintMobile`              | 移动端提示区域 |
+| `MobileStats`             | 移动端状态区域 |
+| `DegreesBonusDisplay`     | 属性加成显示前 |
+| `DegreesBox`              | 属性框         |
+| `SkillsBonusDisplay`      | 技能加成显示前 |
+| `SkillsBox`               | 技能框         |
+| `SubjectBoxBonusDisplay`  | 学科加成显示前 |
+| `SchoolSubjectsBox`       | 学科框         |
+| `SchoolMarksText`         | 成绩文本       |
+| `WeaponBox`               | 武器框         |
 
 社交页区域：
 
-| 区域 | 位置 |
-| :--- | :--- |
-| `ReputationModify` | 声誉显示修改区 |
-| `Reputation` | 声誉显示之后 |
-| `FameModify` | 知名度显示修改区 |
-| `Fame` | 知名度显示之后 |
+| 区域               | 位置             |
+| :----------------- | :--------------- |
+| `ReputationModify` | 声誉显示修改区   |
+| `Reputation`       | 声誉显示之后     |
+| `FameModify`       | 知名度显示修改区 |
+| `Fame`             | 知名度显示之后   |
 
 ---
 

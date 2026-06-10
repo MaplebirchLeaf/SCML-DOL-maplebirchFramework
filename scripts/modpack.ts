@@ -91,10 +91,10 @@ function serializeBsonDocument(value: Record<string, any>): Uint8Array {
     if (item === undefined) continue;
     let type = 0x00;
 
-    if (typeof item === "string") type = 0x02;
-    else if (typeof item === "number") type = 0x10;
-    else if (typeof item === "boolean") type = 0x08;
-    else if (item && typeof item === "object" && !Array.isArray(item)) type = 0x03;
+    if (typeof item === 'string') type = 0x02;
+    else if (typeof item === 'number') type = 0x10;
+    else if (typeof item === 'boolean') type = 0x08;
+    else if (item && typeof item === 'object' && !Array.isArray(item)) type = 0x03;
     else throw new Error(`Unsupported BSON value for key "${key}"`);
 
     push(Uint8Array.of(type));
@@ -294,7 +294,14 @@ function createMeta(modName: string, boot: BlockData, files: FileBlock[], tree: 
 }
 
 function buildModPack(parts: Parts): Buffer {
-  const size = parts.magic.paddedDataLength + BLOCK_SIZE + parts.meta.paddedDataLength + parts.boot.paddedDataLength + parts.files.reduce((sum, file) => sum + file.paddedDataLength, 0) + parts.tree.paddedDataLength + 8;
+  const size =
+    parts.magic.paddedDataLength +
+    BLOCK_SIZE +
+    parts.meta.paddedDataLength +
+    parts.boot.paddedDataLength +
+    parts.files.reduce((sum, file) => sum + file.paddedDataLength, 0) +
+    parts.tree.paddedDataLength +
+    8;
   const buffer = new Uint8Array(size);
   const view = new DataView(buffer.buffer);
   let offset = 0;

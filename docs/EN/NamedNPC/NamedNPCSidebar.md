@@ -4,9 +4,9 @@ The NPC sidebar system lets a mod show custom NPCs in the sidebar. It supports s
 
 ## Display Modes
 
-| Mode | Use case |
-| :--- | :--- |
-| Static image | Pre-rendered portrait images |
+| Mode          | Use case                                          |
+| :------------ | :------------------------------------------------ |
+| Static image  | Pre-rendered portrait images                      |
 | Dynamic model | Layered rendering based on clothes and conditions |
 
 ## Static Images
@@ -58,11 +58,11 @@ Register the NPC image folder in `boot.json`:
 }
 ```
 
-| Field | Description |
-| :--- | :--- |
-| `image` | NPC names whose static portrait folders should be loaded |
-| `clothes` | Wardrobe config files, YAML or JSON |
-| `config` | Sidebar layer config files, YAML or JSON |
+| Field     | Description                                              |
+| :-------- | :------------------------------------------------------- |
+| `image`   | NPC names whose static portrait folders should be loaded |
+| `clothes` | Wardrobe config files, YAML or JSON                      |
+| `config`  | Sidebar layer config files, YAML or JSON                 |
 
 ## Layer Config
 
@@ -74,17 +74,9 @@ Register the NPC image folder in `boot.json`:
     - { img: 'img/npc/elara/ears.png', zIndex: 7 }
   face:
     - { img: 'img/npc/elara/face_default.png', zIndex: 10 }
-    - {
-        img: 'img/npc/elara/blush.png',
-        zIndex: 12,
-        cond: "C.npc.Elara.mood === 'shy'"
-      }
+    - { img: 'img/npc/elara/blush.png', zIndex: 12, cond: "C.npc.Elara.mood === 'shy'" }
   upper:
-    - {
-        img: 'img/npc/elara/top_default.png',
-        zIndex: 15,
-        cond: "maplebirch.npc.Clothes.worn('Elara').upper.name === 'elven_robe'"
-      }
+    - { img: 'img/npc/elara/top_default.png', zIndex: 15, cond: "maplebirch.npc.Clothes.worn('Elara').upper.name === 'elven_robe'" }
 ```
 
 `body` is the base layer. Groups such as `head`, `face`, `upper`, and `lower` are rendered as logical layer groups. `zIndex` controls stacking order, and `cond` controls whether a layer is shown.

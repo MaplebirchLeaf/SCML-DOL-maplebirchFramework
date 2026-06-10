@@ -5,17 +5,14 @@
 Access it with:
 
 ```javascript
-maplebirch.tool.text
+maplebirch.tool.text;
 ```
 
 ## Register A Text Handler
 
 ```javascript
 maplebirch.tool.text.reg('gameStatus', tools => {
-  tools
-    .text('Character status:', 'header')
-    .line(`Health: ${V.health}`)
-    .line(`Location: ${V.location}`);
+  tools.text('Character status:', 'header').line(`Health: ${V.health}`).line(`Location: ${V.location}`);
 });
 ```
 
@@ -27,22 +24,22 @@ Render it in SugarCube:
 
 ## API
 
-| API | Description |
-| :--- | :--- |
-| `reg(key, handler, id?)` | Register a text handler |
-| `delete(key, idOrHandler?)` | Remove a handler |
-| `replaceText(oldText, newText)` | Replace passage text |
-| `replaceLink(oldLink, newLink)` | Replace link text |
+| API                             | Description             |
+| :------------------------------ | :---------------------- |
+| `reg(key, handler, id?)`        | Register a text handler |
+| `delete(key, idOrHandler?)`     | Remove a handler        |
+| `replaceText(oldText, newText)` | Replace passage text    |
+| `replaceLink(oldLink, newLink)` | Replace link text       |
 
 ## Builder Methods
 
-| Method | Description |
-| :--- | :--- |
-| `text(content, style?)` | Add text |
+| Method                   | Description                        |
+| :----------------------- | :--------------------------------- |
+| `text(content, style?)`  | Add text                           |
 | `line(content?, style?)` | Add a line break and optional text |
-| `wikify(content)` | Add SugarCube wiki syntax |
-| `raw(content)` | Add a raw node or string |
-| `box(content?, style?)` | Add a styled container |
+| `wikify(content)`        | Add SugarCube wiki syntax          |
+| `raw(content)`           | Add a raw node or string           |
+| `box(content?, style?)`  | Add a styled container             |
 
 Example:
 
@@ -66,10 +63,7 @@ maplebirch.tool.text.reg('inventorySummary', tools => {
 ## Text Replacement
 
 ```javascript
-maplebirch.tool.text.replaceText(
-  'You see a small hut in the forest.',
-  'You find a small hut between the trees.'
-);
+maplebirch.tool.text.replaceText('You see a small hut in the forest.', 'You find a small hut between the trees.');
 
 maplebirch.tool.text.replaceLink('Enter the hut', 'Step inside');
 ```

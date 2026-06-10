@@ -64,7 +64,7 @@ maplebirch.npc.add(
 `loveAlias` can be a static array or a function. When using an array, the order is `[English, Chinese]`.
 
 ```javascript
-loveAlias: ['Affection', '好感']
+loveAlias: ['Affection', '好感'];
 ```
 
 Dynamic aliases may return either a string or an `[English, Chinese]` array:
@@ -73,7 +73,7 @@ Dynamic aliases may return either a string or an `[English, Chinese]` array:
 loveAlias: () => {
   const trust = V.playerTrust || 0;
   return trust > 50 ? ['Trust', '信赖'] : ['Affection', '好感'];
-}
+};
 ```
 
 ## boot.json

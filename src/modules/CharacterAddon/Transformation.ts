@@ -6,6 +6,19 @@ import type AddonPlugin from '../AddonPlugin';
 import type { Replacement } from '../AddonPluginProcess';
 import type Character from '../Character';
 import type { ModelTarget } from '../Character';
+import {
+  AnimalMacros,
+  AnimalTransforms,
+  DecayConditions,
+  HistoryTransforms,
+  SuppressConditions,
+  BuildUpdaters,
+  type NativeMacroMap,
+  type DecayCondition,
+  type SuppressCondition,
+  type BuildUpdater
+} from './TransformationConfig';
+import DoLPcompat from '../../DoLPcompat';
 
 interface Part {
   name: string;
@@ -20,8 +33,6 @@ interface TransformData {
 }
 
 type TransformHook = (options: any, model?: CanvasModel) => void;
-type DecayCondition = () => boolean;
-type SuppressCondition = (sourceName: string) => boolean;
 type TransformMessage = Record<string, { up: string[]; down: string[] }>;
 type TranslationInput = Record<string, Translation> | Map<string, Translation>;
 
@@ -72,72 +83,39 @@ class Entry {
 class Transformation {
   private log: ReturnType<typeof createlog>;
   private config: Map<string, Entry> = new Map();
-  // prettier-ignore
-  public readonly decayConditions: Record<string, DecayCondition[]> = {
-    wolf: [
-      () => V.wolfbuild >= 1,
-      () => V.worn.neck.name !== 'spiked collar',
-      () => V.worn.neck.name !== 'spiked collar with leash',
-      () => playerNormalPregnancyType() !== 'wolf'
-    ],
-    cat: [
-      () => V.catbuild >= 1,
-      () => V.worn.neck.name !== 'cat bell collar',
-      () => playerNormalPregnancyType() !== 'cat'
-    ],
-    cow: [
-      () => V.cowbuild >= 1,
-      () => V.worn.neck.name !== 'cow bell',
-      () => playerNormalPregnancyType() !== 'cow'
-    ],
-    bird: [
-      () => V.birdbuild >= 1,
-      () => V.worn.head.name !== 'feathered hair clip',
-      () => V.worn.neck.name !== 'feather necklace',
-      () => playerNormalPregnancyType() !== 'hawk'
-    ],
-    fox: [
-      () => V.foxbuild >= 1,
-      () => V.worn.head.name !== 'spirit mask',
-      () => V.worn.neck.name !== 'jasper pendant',
-      () => playerNormalPregnancyType() !== 'fox'
-    ]
-  };
-
-  // prettier-ignore
-  public readonly suppressConditions: Record<string, SuppressCondition[]> = {
-    wolf: [
-      (sourceName: string) => sourceName !== 'wolf',
-      () => V.worn.neck.name !== 'spiked collar',
-      () => V.worn.neck.name !== 'spiked collar with leash'
-    ],
-    cat: [
-      (sourceName: string) => sourceName !== 'cat',
-      () => V.worn.neck.name !== 'cat bell collar'
-    ],
-    cow: [
-      (sourceName: string) => sourceName !== 'cow',
-      () => V.worn.neck.name !== 'cow bell'
-    ],
-    bird: [
-      (sourceName: string) => sourceName !== 'bird',
-      () => V.worn.head.name !== 'feathered hair clip',
-      () => V.worn.neck.name !== 'feather necklace'
-    ],
-    fox: [
-      (sourceName: string) => sourceName !== 'fox',
-      () => V.worn.head.name !== 'spirit mask',
-      () => V.worn.neck.name !== 'jasper pendant'
-    ]
-  };
+  public readonly decayConditions: Record<string, DecayCondition[]> = { ...DecayConditions };
+  public readonly suppressConditions: Record<string, SuppressCondition[]> = { ...SuppressConditions };
+  public readonly buildUpdaters: Record<string, BuildUpdater> = { ...BuildUpdaters };
 
   public constructor(private manager: Character) {
     this.log = manager.log;
+    manager.core.once(':sugarcube', () => {
+      this.isDoLP = String(maplebirch.gameVersion ?? '').includes('DoLP');
+      if (this.isDoLP) {
+        Object.cover(this.decayConditions, DoLPcompat.DecayConditions);
+        Object.cover(this.suppressConditions, DoLPcompat.SuppressConditions);
+        Object.cover(this.buildUpdaters, DoLPcompat.BuildUpdaters);
+      }
+    });
     manager.core.once(':storyready', () => {
       manager.core.tool.macro.define('transform', (name: string, change: number) => this._transform(name, change));
       manager.core.tool.macro.define('transformationAlteration', () => this._transformationAlteration());
       manager.core.tool.macro.define('transformationStateUpdate', () => this._transformationStateUpdate());
     });
+  }
+
+  private isDoLP = false;
+
+  private get animalTransforms() {
+    return this.isDoLP ? [...AnimalTransforms, ...DoLPcompat.AnimalTransforms] : AnimalTransforms;
+  }
+
+  private get animalMacros(): NativeMacroMap {
+    return this.isDoLP ? (Object.cover({}, AnimalMacros, DoLPcompat.AnimalMacros) as NativeMacroMap) : AnimalMacros;
+  }
+
+  private get historyTransforms() {
+    return this.isDoLP ? [...HistoryTransforms, ...DoLPcompat.HistoryTransforms] : HistoryTransforms;
   }
 
   public wikifier(widget: string, ...args: any[]): any {
@@ -219,7 +197,8 @@ class Transformation {
       });
     }
 
-    setup.transformations = [...base, ...injected.filter(tf => !baseNames.has(tf.name))];
+    const transformations = [...base, ...injected.filter(tf => !baseNames.has(tf.name))];
+    setup.transformations = this.isDoLP ? DoLPcompat.mergeTransformations(transformations) : transformations;
 
     const collectNames = (list?: Part[]): string[] => {
       if (!Array.isArray(list)) return [];
@@ -272,7 +251,7 @@ class Transformation {
     }
   }
 
-  #suppress(name: string, change: number): void {
+  private suppress(name: string, change: number): void {
     const absChange = Math.abs(change);
     for (const [target, conditions] of Object.entries(this.suppressConditions)) {
       if (target === name) continue;
@@ -283,27 +262,16 @@ class Transformation {
   public _transform(name: string, change: number): void {
     if (!change) return;
 
-    // prettier-ignore
-    switch (name) {
-      case 'wolf'  : V.wolfbuild   = Math.clamp(V.wolfbuild + change, 0, 100); break;
-      case 'cat'   : V.catbuild    = Math.clamp(V.catbuild + change, 0, 100); break;
-      case 'cow'   : V.cowbuild    = Math.clamp(V.cowbuild + change, 0, 100); break;
-      case 'bird'  : V.birdbuild   = Math.clamp(V.birdbuild + change, 0, 100); break;
-      case 'fox'   : V.foxbuild    = Math.clamp(V.foxbuild + change, 0, 100); break;
-      case 'angel' : V.angelbuild  = Math.clamp(V.angelbuild + change, 0, 100); break;
-      case 'fallen': V.fallenbuild = Math.clamp(V.fallenbuild + change, 0, 100); break;
-      case 'demon' : V.demonbuild  = Math.clamp(V.demonbuild + change, 0, 100); break;
-      default: {
-        const config = this.config.get(name);
-        const data = V.maplebirch?.transformation?.[name];
-        if (config && data) {
-          data.build = Math.clamp(data.build + change, 0, config.build);
-        }
-        break;
-      }
+    const updater = this.buildUpdaters[name];
+    if (updater) {
+      updater(change);
+    } else {
+      const config = this.config.get(name);
+      const data = V.maplebirch?.transformation?.[name];
+      if (config && data) data.build = Math.clamp(data.build + change, 0, config.build);
     }
 
-    if (Object.hasOwn(this.suppressConditions, name) && change > 0 && !(V.worn.neck.name === 'familiar collar' && V.worn.neck.cursed === 1)) this.#suppress(name, change);
+    if (Object.hasOwn(this.suppressConditions, name) && change > 0 && !(V.worn.neck.name === 'familiar collar' && V.worn.neck.cursed === 1)) this.suppress(name, change);
   }
 
   public updateTransform(name: string): void {
@@ -367,13 +335,11 @@ class Transformation {
     }
 
     if (V.settings.transformAnimalEnabled) {
-      const transforms: Array<{ name: string; level: number; build: number }> = [
-        { name: 'wolf', level: V.wolfgirl, build: V.wolfbuild },
-        { name: 'cat', level: V.cat, build: V.catbuild },
-        { name: 'cow', level: V.cow, build: V.cowbuild },
-        { name: 'bird', level: V.harpy, build: V.birdbuild },
-        { name: 'fox', level: V.fox, build: V.foxbuild }
-      ];
+      const transforms: Array<{ name: string; level: number; build: number }> = this.animalTransforms.map(transform => ({
+        name: transform.name,
+        level: transform.level(),
+        build: transform.build()
+      }));
 
       for (const [name, entry] of this.config) {
         if (entry.type !== 'physical') continue;
@@ -399,15 +365,7 @@ class Transformation {
       }
 
       if (selected) {
-        // prettier-ignore
-        const vanilla: Record<string, [string, number]> = {
-          wolf: ['wolfTransform', V.wolfgirl],
-          cat : ['catTransform', V.cat],
-          cow : ['cowTransform', V.cow],
-          bird: ['harpyTransform', V.harpy],
-          fox : ['foxTransform', V.fox]
-        };
-
+        const vanilla: Record<string, [string, number]> = Object.fromEntries(Object.entries(this.animalMacros).map(([name, [macro, level]]) => [name, [macro, level()]]));
         if (vanilla[selected.name]) {
           const [macro, level] = vanilla[selected.name];
           this.wikifier(macro, level);
@@ -435,23 +393,18 @@ class Transformation {
     this._transformationAlteration();
 
     V.physicalTransform =
-      V.cat > 0 ||
-      V.wolfgirl > 0 ||
-      V.cow > 0 ||
-      V.harpy > 0 ||
-      V.fox > 0 ||
+      this.animalTransforms.some(transform => transform.level() > 0) ||
       Array.from(this.config.entries()).some(([name, entry]) => entry.type === 'physical' && (V.maplebirch?.transformation?.[name]?.level ?? 0) > 0)
         ? 1
         : 0;
 
     if ((V.physicalTransform === 1 || V.specialTransform === 1) && !(V.hypnosis_traits?.peace && V.settings.hypnosisEnabled)) this.#handleHiddenTransformParts();
 
-    for (const tf of ['angel', 'fallenangel', 'demon', 'dryad', 'wolfgirl', 'cat', 'cow', 'harpy', 'fox']) {
-      const level = V[tf as keyof typeof V] as number;
-      const max = tf === 'fallenangel' ? 2 : 6;
-      if (level >= max) {
+    for (const tf of this.historyTransforms) {
+      const level = tf.level();
+      if (level >= tf.max) {
         V.transformationHistory ??= [];
-        if (!V.transformationHistory.includes(tf)) V.transformationHistory.push(tf);
+        if (!V.transformationHistory.includes(tf.name)) V.transformationHistory.push(tf.name);
       }
     }
 

@@ -112,7 +112,7 @@ class CombatManager {
     return '';
   }
 
-  public Init() {
+  public Init(): void {
     combatListColor = this._combatListColor.bind(this);
   }
 }

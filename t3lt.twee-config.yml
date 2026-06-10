@@ -82,7 +82,8 @@ sugarcube-2:
       Hawk"|"Black Wolf"|"Gwylan"'
     loveInterestDesc: '`"Robin"` | `"Whitney"` | `"Kylar"` | `"Sydney"` | `"Eden"` |
       `"Avery"` | `"Alex"` | `"Great Hawk"` | `"Black Wolf"` | `"Gwylan"`'
-    namedNPC: '"Avery"|"Bailey"|"Briar"|"Charlie"|"Darryl"|"Doren"|"Eden"|"Gwylan"|"Harper"|"Jordan"|"Kylar"|"Landry"|"Leighton"|"Mason"|"Morgan"|"River"|"Robin"|"Sam"|"Sirris"|"Whitney"|"Winter"|"Black
+    namedNPC:
+      '"Avery"|"Bailey"|"Briar"|"Charlie"|"Darryl"|"Doren"|"Eden"|"Gwylan"|"Harper"|"Jordan"|"Kylar"|"Landry"|"Leighton"|"Mason"|"Morgan"|"River"|"Robin"|"Sam"|"Sirris"|"Whitney"|"Winter"|"Black
       Wolf"|"Niki"|"Quinn"|"Remy"|"Alex"|"Great Hawk"|"Wren"|"Sydney"|"Ivory
       Wraith"|"Zephyr"'
     namedNPCDesc: '`"Avery"` | `"Bailey"` | `"Briar"` | `"Charlie"` | `"Darryl"` |
@@ -198,7 +199,7 @@ sugarcube-2:
           - %insecurityTypesDesc%
         - **change**: `number` - +/- change to apply
       parameters:
-        - "%insecurityTypes% &+ number"
+        - '%insecurityTypes% &+ number'
     acceptassignment:
       name: acceptassignment
     acceptbrothelshow:
@@ -656,7 +657,7 @@ sugarcube-2:
 
         To remove any existing events, use `<<cleareventpool>>`
       parameters:
-        - "|+ string |+ number"
+        - '|+ string |+ number'
     addNNPCOutfit:
       name: addNNPCOutfit
     addVaginalWetness:
@@ -760,7 +761,7 @@ sugarcube-2:
         - **minute** _optional_: `number` - minute to calculate
           - Defaults to `0`
       parameters:
-        - "|+ number |+ number"
+        - '|+ number |+ number'
       tags:
         - text
     analdifficulty:
@@ -829,7 +830,7 @@ sugarcube-2:
         - **className** _optional_: `string` - class or space-separated classes
         of canvas element to be inserted when placed in the DOM
       parameters:
-        - "|+ text|string"
+        - '|+ text|string'
       tags:
         - dom
     anticatcall:
@@ -1037,7 +1038,7 @@ sugarcube-2:
         - **noRebuy** _optional_: `boolean` - skip rebuying command (truthy)
           - Defaults to `false`
       parameters:
-        - "|+ bool |+ bool"
+        - '|+ bool |+ bool'
       tags:
         - refactor
     attackstat:
@@ -1068,7 +1069,7 @@ sugarcube-2:
         - **target**: `string` - target npc to print drink of
           - %cardsDesc%
       parameters:
-        - "%cards%"
+        - '%cards%'
       tags:
         - text
     avery_cards_end:
@@ -1291,7 +1292,7 @@ sugarcube-2:
           - **reason** _optional_: `string` - key corresponding to start reason
           - **notes** _optional_: `string` - additional text to include
       parameters:
-        - "|+ string |+ ...(var|bareword|text)"
+        - '|+ string |+ ...(var|bareword|text)'
     badEndTrackingEnd:
       description: >-
         Records the end of a bad end
@@ -1313,7 +1314,7 @@ sugarcube-2:
           - **reason** _optional_: `string` - key corresponding to end reason
           - **notes** _optional_: `string` - additional text to include
       parameters:
-        - "|+ string |+ ...(var|bareword|text)"
+        - '|+ string |+ ...(var|bareword|text)'
     balloonRobinAngryHelp:
       name: balloonRobinAngryHelp
       tags:
@@ -1458,7 +1459,7 @@ sugarcube-2:
         - **npcIndex** _optional_: `number` - zero-based index of active npcs
           - `0-5`: Defaults to 0
       parameters:
-        - "|+ number"
+        - '|+ number'
       tags:
         - text
     beastGenders:
@@ -1526,7 +1527,7 @@ sugarcube-2:
         - **npcIndex** _optional_: `number` - zero-based index of active npcs
           - `0-5`: Defaults to 0
       parameters:
-        - "|+ number"
+        - '|+ number'
       tags:
         - text
     beastTrainGenerate:
@@ -1539,7 +1540,7 @@ sugarcube-2:
         - **npcIndex** _optional_: `number` - zero-based index of active npcs
           - `0-5`: Defaults to 0
       parameters:
-        - "|+ number"
+        - '|+ number'
       tags:
         - text
     beasttypes:
@@ -1615,7 +1616,7 @@ sugarcube-2:
         - **npcIndex** _optional_: `number` - zero-based index of npc to output
           - Defaults to `0`
       parameters:
-        - "|+ number"
+        - '|+ number'
       tags:
         - text
         - refactor
@@ -1637,7 +1638,7 @@ sugarcube-2:
         - **npcIndex** _optional_: `number` - zero-based index of npc to output
           - Defaults to `0`
       parameters:
-        - "|+ number"
+        - '|+ number'
       tags:
         - text
         - refactor
@@ -1660,7 +1661,7 @@ sugarcube-2:
         - **npcIndex** _optional_: `number` - zero-based index of npc to output
           - Defaults to `0`
       parameters:
-        - "|+ number"
+        - '|+ number'
       tags:
         - text
         - refactor
@@ -1683,7 +1684,7 @@ sugarcube-2:
         - **npcIndex** _optional_: `number` - zero-based index of npc to output
           - Defaults to `0`
       parameters:
-        - "|+ number"
+        - '|+ number'
       tags:
         - unused
         - text
@@ -1708,7 +1709,7 @@ sugarcube-2:
         - **npcIndex** _optional_: `number` - zero-based index of npc to output
           - Defaults to `0`
       parameters:
-        - "|+ number"
+        - '|+ number'
       tags:
         - text
         - refactor
@@ -1731,7 +1732,7 @@ sugarcube-2:
         - **npcIndex** _optional_: `number` - zero-based index of npc to output
           - Defaults to `0`
       parameters:
-        - "|+ number"
+        - '|+ number'
       tags:
         - unused
         - text
@@ -1755,7 +1756,7 @@ sugarcube-2:
         - **npcIndex** _optional_: `number` - zero-based index of npc to output
           - Defaults to `0`
       parameters:
-        - "|+ number"
+        - '|+ number'
       tags:
         - unused
         - text
@@ -1780,7 +1781,7 @@ sugarcube-2:
         - **npcIndex** _optional_: `number` - zero-based index of npc to output
           - Defaults to `0`
       parameters:
-        - "|+ number"
+        - '|+ number'
       tags:
         - unused
         - text
@@ -1804,7 +1805,7 @@ sugarcube-2:
         - **npcIndex** _optional_: `number` - zero-based index of npc to output
           - Defaults to `0`
       parameters:
-        - "|+ number"
+        - '|+ number'
       tags:
         - text
         - refactor
@@ -1827,7 +1828,7 @@ sugarcube-2:
         - **npcIndex** _optional_: `number` - zero-based index of npc to output
           - Defaults to `0`
       parameters:
-        - "|+ number"
+        - '|+ number'
       tags:
         - text
         - refactor
@@ -2204,7 +2205,7 @@ sugarcube-2:
         - **skipRng** _optional_: `boolean` - don't select a random exposed
         bodywriting (truthy)
       parameters:
-        - "|+ boolean |+ boolean"
+        - '|+ boolean |+ boolean'
       tags:
         - temp
     bodywritingHiddenCheck:
@@ -2233,7 +2234,7 @@ sugarcube-2:
         - **skipRng** _optional_: `boolean` - don't select a random hidden
         bodywriting (truthy)
       parameters:
-        - "|+ boolean |+ boolean"
+        - '|+ boolean |+ boolean'
       tags:
         - temp
     bodywritingMenu:
@@ -2367,7 +2368,7 @@ sugarcube-2:
         - **override** _optional_: `number` - override amount to use instead of
         random amount
       parameters:
-        - "|+ number"
+        - '|+ number'
     breastfeed:
       description: >-
         Milks the pc and applies effects of being milked
@@ -2469,7 +2470,7 @@ sugarcube-2:
         hours passed (truthy)
           - Defaults to `false`
       parameters:
-        - "|+ bool"
+        - '|+ bool'
     cafecoffeeflasharousal:
       name: cafecoffeeflasharousal
     cafecoffeesip:
@@ -2600,7 +2601,7 @@ sugarcube-2:
         - **className**: `string` - class or space-separated classes of canvas
         element to be inserted when placed in the DOM
       parameters:
-        - "|+ text|string"
+        - '|+ text|string'
       tags:
         - dom
         - unused
@@ -2625,7 +2626,7 @@ sugarcube-2:
         - **className**: `string` - class or space-separated classes of canvas
         element to be inserted when placed in the DOM
       parameters:
-        - "|+ number |+ text|string"
+        - '|+ number |+ text|string'
       tags:
         - dom
         - unused
@@ -2760,7 +2761,7 @@ sugarcube-2:
         - **slot**: `string` - carried clothing slot to erase
           - %clothesTypesDesc%
       parameters:
-        - "%clothesTypes%"
+        - '%clothesTypes%'
     carriedSend:
       name: carriedSend
     carryblock:
@@ -2900,7 +2901,7 @@ sugarcube-2:
         - **className** _optional_: `string` - class or space-separated classes
         of div element to be inserted when placed in the DOM
       parameters:
-        - "|+ %combatPositions% |+ %combatProps% |+ text|string"
+        - '|+ %combatPositions% |+ %combatProps% |+ text|string'
       tags:
         - dom
     chastityBreakWraith:
@@ -2929,7 +2930,7 @@ sugarcube-2:
         - **npcName**: `string` - name of NPC to create pregnancy stepper for
           - %namedNPCDesc%
       parameters:
-        - "%namedNPC%"
+        - '%namedNPC%'
       tags:
         - text
         - links
@@ -3053,7 +3054,7 @@ sugarcube-2:
         - **npcIndex** _optional_: `number` - zero-based index of active npcs
           - `0-5`: Defaults to 0
       parameters:
-        - "|+ number"
+        - '|+ number'
       tags:
         - text
     chefspeechoptions:
@@ -3129,7 +3130,7 @@ sugarcube-2:
         currently selected child
           - Defaults to currently selected
       parameters:
-        - "|+ text|string"
+        - '|+ text|string'
       tags:
         - text
     childfinger:
@@ -3143,7 +3144,7 @@ sugarcube-2:
         currently selected child
           - Defaults to currently selected
       parameters:
-        - "|+ text|string"
+        - '|+ text|string'
       tags:
         - text
     childFirstWord:
@@ -3236,7 +3237,7 @@ sugarcube-2:
         - **childId** _optional_: `string` - childId to use in place of
         currently selected child
       parameters:
-        - "|+ text|string"
+        - '|+ text|string'
       tags:
         - text
     childsons:
@@ -3267,7 +3268,7 @@ sugarcube-2:
         currently selected child
           - Defaults to currently selected
       parameters:
-        - "|+ text|string"
+        - '|+ text|string'
       tags:
         - text
     childtoy:
@@ -3699,7 +3700,7 @@ sugarcube-2:
         - **type**: `string` - type in setup.crimeNames
           - %crimeTypesDesc%
       parameters:
-        - "%crimeTypes%"
+        - '%crimeTypes%'
       tags:
         - text
     combatDefaults:
@@ -3941,7 +3942,7 @@ sugarcube-2:
         `<<combattrauma change>>`
         - **change**: `number` - +/- change to apply
       parameters:
-        - "|+ number"
+        - '|+ number'
       tags:
         - refactor
     commercial:
@@ -4119,7 +4120,7 @@ sugarcube-2:
         - **type**: `string` - type in setup.crimeNames
           - %crimeTypesDesc%
       parameters:
-        - "%crimeTypes%"
+        - '%crimeTypes%'
       tags:
         - text
     crimeClear:
@@ -4149,7 +4150,7 @@ sugarcube-2:
         - **type**: `string` - type in setup.crimeNames
           - %crimeTypesDesc%
       parameters:
-        - "%crimeTypes%"
+        - '%crimeTypes%'
       tags:
         - text
     crimeUp:
@@ -4476,7 +4477,7 @@ sugarcube-2:
         - **noRebuy** _optional_: `boolean` - skip rebuying command (truthy)
           - Defaults to `false`
       parameters:
-        - "|+ bool |+ bool"
+        - '|+ bool |+ bool'
       tags:
         - refactor
     detention:
@@ -4738,7 +4739,7 @@ sugarcube-2:
           - `"id=X"`: id of the div element where X is the DOM id (auto-generated by default)
           - `"class=X"`: class of the div element where X is the DOM classlist
       parameters:
-        - "|+ ...text|string"
+        - '|+ ...text|string'
     earnAllFeats:
       name: earnAllFeats
     earnFeat:
@@ -4767,7 +4768,7 @@ sugarcube-2:
         passage as well (truthy)
           - Defaults to `false`
       parameters:
-        - "|+ bool"
+        - '|+ bool'
     earSlimeFocusChoice:
       name: earSlimeFocusChoice
     earSlimePoundLinks:
@@ -5591,7 +5592,7 @@ sugarcube-2:
         - **noRebuy** _optional_: `boolean` - skip rebuying command (truthy)
           - Defaults to `false`
       parameters:
-        - "|+ bool"
+        - '|+ bool'
     facesend:
       name: facesend
     FaceShop:
@@ -5796,7 +5797,7 @@ sugarcube-2:
         - **type**: `string` - type of fame
           - `%fameTypesDesc%`
       parameters:
-        - "%fameTypes%"
+        - '%fameTypes%'
       tags:
         - text
     fameprostitution:
@@ -6265,7 +6266,7 @@ sugarcube-2:
         - **noRebuy** _optional_: `boolean` - skip rebuying command (truthy)
           - Defaults to `false`
       parameters:
-        - "|+ bool"
+        - '|+ bool'
     feetRunClothed:
       name: feetRunClothed
       tags:
@@ -6674,7 +6675,7 @@ sugarcube-2:
         - **target**: `string` - target npc to print drink of
           - %cardsDesc%
       parameters:
-        - "%cards%"
+        - '%cards%'
       tags:
         - text
     gchaos:
@@ -6704,7 +6705,7 @@ sugarcube-2:
         player
           - Defaults to 1
       parameters:
-        - "|+ number"
+        - '|+ number'
       tags:
         - text
     gcontrol:
@@ -6727,7 +6728,7 @@ sugarcube-2:
         - **type**: `string` - type in setup.crimeNames
           - %crimeTypesDesc%
       parameters:
-        - "|+ %crimeTypes%"
+        - '|+ %crimeTypes%'
       tags:
         - text
     gdanceskill:
@@ -6755,7 +6756,7 @@ sugarcube-2:
         - **NPCName** _optional_: `string` - name to display as their lust
           - `"Robin"`: Displays "Confidence" instead
       parameters:
-        - "|+ text|string"
+        - '|+ text|string'
       tags:
         - text
     gdrugged:
@@ -6829,7 +6830,7 @@ sugarcube-2:
         currently located
           - `$worn` | `$carried`
       parameters:
-        - "%clothesTypes% &+ var|bareword"
+        - '%clothesTypes% &+ var|bareword'
     generalSend:
       name: generalSend
     generalSteal:
@@ -7644,7 +7645,7 @@ sugarcube-2:
         - **noRebuy** _optional_: `boolean` - skip rebuying command (truthy)
           - Defaults to `false`
       parameters:
-        - "|+ bool"
+        - '|+ bool'
     genitalssend:
       name: genitalssend
       tags:
@@ -7821,7 +7822,7 @@ sugarcube-2:
         - **target**: `string` - target npc to print drink of
           - %cardsDesc%
       parameters:
-        - "%cards%"
+        - '%cards%'
       tags:
         - text
     ggchaos:
@@ -7857,7 +7858,7 @@ sugarcube-2:
         - **type**: `string` - type in setup.crimeNames
           - %crimeTypesDesc%
       parameters:
-        - "|+ %crimeTypes%"
+        - '|+ %crimeTypes%'
       tags:
         - text
     ggdanceskill:
@@ -7886,7 +7887,7 @@ sugarcube-2:
         - **NPCName** _optional_: `string` - name to display as their lust
           - `"Robin"`: Displays "Confidence" instead
       parameters:
-        - "|+ text|string"
+        - '|+ text|string'
       tags:
         - text
     ggdrugged:
@@ -7981,7 +7982,7 @@ sugarcube-2:
         - **target**: `string` - target npc to print drink of
           - %cardsDesc%
       parameters:
-        - "%cards%"
+        - '%cards%'
       tags:
         - unused
         - text
@@ -8019,7 +8020,7 @@ sugarcube-2:
         - **type**: `string` - type in setup.crimeNames
           - %crimeTypesDesc%
       parameters:
-        - "|+ %crimeTypes%"
+        - '|+ %crimeTypes%'
       tags:
         - text
     gggdanceskill:
@@ -8049,7 +8050,7 @@ sugarcube-2:
         - **NPCName** _optional_: `string` - name to display as their lust
           - `"Robin"`: Displays "Confidence" instead
       parameters:
-        - "|+ text|string"
+        - '|+ text|string'
       tags:
         - text
     gggdrugged:
@@ -8161,7 +8162,7 @@ sugarcube-2:
         `<<ggglust NPCName?>>`
         - **NPCName** _optional_: `string` - name to display as their lust
       parameters:
-        - "|+ text|string"
+        - '|+ text|string'
       tags:
         - text
     gggmaths:
@@ -8244,7 +8245,7 @@ sugarcube-2:
         `<<gggrtrauma force?>>`
         - **force** _optional_: `boolean` - prints even if trauma is 20
       parameters:
-        - "|+ bool"
+        - '|+ bool'
       tags:
         - unused
         - text
@@ -8428,7 +8429,7 @@ sugarcube-2:
         `<<gglust NPCName?>>`
         - **NPCName** _optional_: `string` - name to display as their lust
       parameters:
-        - "|+ text|string"
+        - '|+ text|string'
       tags:
         - text
     ggmaths:
@@ -8505,7 +8506,7 @@ sugarcube-2:
         `<<ggrtrauma force?>>`
         - **force** _optional_: `boolean` - prints even if trauma is 20
       parameters:
-        - "|+ bool"
+        - '|+ bool'
       tags:
         - unused
         - text
@@ -8682,7 +8683,7 @@ sugarcube-2:
           - %insecurityTypesDesc%
         - **amount** _optional_: `number` - number of +'s to add
       parameters:
-        - "%insecurityTypes% |+ number"
+        - '%insecurityTypes% |+ number'
       tags:
         - text
     ginterest:
@@ -8710,7 +8711,7 @@ sugarcube-2:
         - **npcName**: `string` - love interest NPC name
           - %loveInterestDesc%
       parameters:
-        - "%loveInterest%"
+        - '%loveInterest%'
     giveHarpyEggs:
       description: Sets the amount of eggs a harpy player will produce as part of
         their menstrual cycle and, if unfertilised, the number of days until
@@ -8761,7 +8762,7 @@ sugarcube-2:
         `<<glust NPCName?>>`
         - **NPCName** _optional_: `string` - name to display as their lust
       parameters:
-        - "|+ text|string"
+        - '|+ text|string'
       tags:
         - text
     gmaths:
@@ -8795,7 +8796,7 @@ sugarcube-2:
         - **change** _optional_: `number` - amount to add
           - Defaults to `1`
       parameters:
-        - "|+ number"
+        - '|+ number'
     goo:
       name: goo
     goocount:
@@ -8909,7 +8910,7 @@ sugarcube-2:
         `<<grtrauma force?>>`
         - **force** _optional_: `boolean` - prints even if trauma is 20
       parameters:
-        - "|+ bool"
+        - '|+ bool'
       tags:
         - unused
         - text
@@ -9106,7 +9107,7 @@ sugarcube-2:
         - **level** _optional_: `number` - for devotion, the level of the event
         for determining whether it causes any increase
       parameters:
-        - "%hypnosisTimedTypes% &+ number |+ number"
+        - '%hypnosisTimedTypes% &+ number |+ number'
     gwylanitem:
       name: gwylanitem
       tags:
@@ -9278,7 +9279,7 @@ sugarcube-2:
         - **noRebuy** _optional_: `boolean` - do not rebuy item
         - **propOnly** _optional_: `boolean` - only destroy prop
       parameters:
-        - "|+ bool |+ bool"
+        - '|+ bool |+ bool'
     handheldsend:
       name: handheldsend
     HandheldShop:
@@ -9338,7 +9339,7 @@ sugarcube-2:
         - **noRebuy** _optional_: `boolean` - skip rebuying command (truthy)
           - Defaults to `false`
       parameters:
-        - "|+ bool"
+        - '|+ bool'
     handssend:
       name: handssend
       tags:
@@ -9397,7 +9398,7 @@ sugarcube-2:
         - **slot**: `string` - category of worn clothing to check
           - %clothesTypesDesc%
       parameters:
-        - "%clothesTypes%"
+        - '%clothesTypes%'
     hatchUi:
       name: hatchUi
     hawkCaughtYouSpeech:
@@ -9606,7 +9607,7 @@ sugarcube-2:
         for
           - %namedNPCDesc%
       parameters:
-        - "|+ %namedNPC%"
+        - '|+ %namedNPC%'
       tags:
         - text
         - refactor
@@ -9631,7 +9632,7 @@ sugarcube-2:
           - %namedNPCDesc%: Sets pronoun and outputs
           - `number`: Switches selected npc to zero-based index and outputs
       parameters:
-        - "|+ %namedNPC%|number"
+        - '|+ %namedNPC%|number'
       tags:
         - text
         - refactor
@@ -9647,7 +9648,7 @@ sugarcube-2:
         Does not use arguments like `<<He>>` or `<<he>>`. Consider refactoring
         to match
       parameters:
-        - ""
+        - ''
       tags:
         - text
     head_down:
@@ -9670,7 +9671,7 @@ sugarcube-2:
         - **noRebuy** _optional_: `boolean` - skip rebuying command (truthy)
           - Defaults to `false`
       parameters:
-        - "|+ bool"
+        - '|+ bool'
     headsend:
       name: headsend
       tags:
@@ -9783,7 +9784,7 @@ sugarcube-2:
         for
           - %namedNPCDesc%
       parameters:
-        - "|+ %namedNPC%"
+        - '|+ %namedNPC%'
       tags:
         - text
         - refactor
@@ -9807,7 +9808,7 @@ sugarcube-2:
         for
           - %namedNPCDesc%
       parameters:
-        - "|+ %namedNPC%"
+        - '|+ %namedNPC%'
       tags:
         - text
         - refactor
@@ -9830,7 +9831,7 @@ sugarcube-2:
         for
           - %namedNPCDesc%
       parameters:
-        - "|+ %namedNPC%"
+        - '|+ %namedNPC%'
       tags:
         - text
         - refactor
@@ -10017,7 +10018,7 @@ sugarcube-2:
         - **size** _optional_: `boolean` - print size adjective instead of state
         (truthy)
       parameters:
-        - "|+ bool|var|bareword"
+        - '|+ bool|var|bareword'
     hospitalparasite:
       name: hospitalparasite
     housekeeping:
@@ -10181,7 +10182,7 @@ sugarcube-2:
         - **change** _optional_: `number` - + change to apply
           - Defaults to `10`
       parameters:
-        - "|+ number"
+        - '|+ number'
       tags:
         - text
     incompletePregnancy:
@@ -10318,7 +10319,7 @@ sugarcube-2:
           - %insecurityTypesDesc%
         - **change**: `number` - +/- change to apply
       parameters:
-        - "%insecurityTypes% &+ number"
+        - '%insecurityTypes% &+ number'
     inspectionexpect:
       name: inspectionexpect
     insufficientStat:
@@ -10384,7 +10385,7 @@ sugarcube-2:
         - **text** _optional_: `string` - if text displays or not
           - `"no_text"`: Doesn't print `Your [clothing item has] ripped into scraps.`
       parameters:
-        - "|+ text|string"
+        - '|+ text|string'
       tags:
         - text
     integrityWord:
@@ -10480,7 +10481,7 @@ sugarcube-2:
         - **slot**: `string` - category of worn clothing to check
           - %clothesTypesDesc%
       parameters:
-        - "%clothesTypes%"
+        - '%clothesTypes%'
     itis:
       description: >-
         Prints a pronoun/ present indicative pair (they are/it is) describing
@@ -10495,7 +10496,7 @@ sugarcube-2:
         - **slot**: `string` - category of worn clothing to check
           - %clothesTypesDesc%
       parameters:
-        - "%clothesTypes%"
+        - '%clothesTypes%'
     journal:
       name: journal
     journalInventory:
@@ -10708,7 +10709,7 @@ sugarcube-2:
         - **target**: `string` - target npc to print drink of
           - %cardsDesc%
       parameters:
-        - "%cards%"
+        - '%cards%'
       tags:
         - text
     lchaos:
@@ -10752,7 +10753,7 @@ sugarcube-2:
         - **NPCName** _optional_: `string` - name to display as their lust
           - `"Robin"`: Displays "Confidence" instead
       parameters:
-        - "|+ text|string"
+        - '|+ text|string'
       tags:
         - text
     learn_recipe:
@@ -10894,7 +10895,7 @@ sugarcube-2:
         - **noRebuy** _optional_: `boolean` - skip rebuying command (truthy)
           - Defaults to `false`
       parameters:
-        - "|+ bool"
+        - '|+ bool'
     legssend:
       name: legssend
       tags:
@@ -11152,7 +11153,7 @@ sugarcube-2:
         - **target**: `string` - target npc to print drink of
           - %cardsDesc%
       parameters:
-        - "%cards%"
+        - '%cards%'
       tags:
         - text
     llchaos:
@@ -11197,7 +11198,7 @@ sugarcube-2:
         - **NPCName** _optional_: `string` - name to display as their lust
           - `"Robin"`: Displays "Confidence" instead
       parameters:
-        - "|+ text|string"
+        - '|+ text|string'
       tags:
         - text
     llendear:
@@ -11288,7 +11289,7 @@ sugarcube-2:
         - **target**: `string` - target npc to print drink of
           - %cardsDesc%
       parameters:
-        - "%cards%"
+        - '%cards%'
       tags:
         - text
     lllchaos:
@@ -11333,7 +11334,7 @@ sugarcube-2:
         - **NPCName** _optional_: `string` - name to display as their lust
           - `"Robin"`: Displays "Confidence" instead
       parameters:
-        - "|+ text|string"
+        - '|+ text|string'
       tags:
         - text
     lllendear:
@@ -11398,7 +11399,7 @@ sugarcube-2:
         `<<llllove NPCName?>>`
         - **NPCName** _optional_: `string` - name to display as their love
       parameters:
-        - "|+ text|string"
+        - '|+ text|string'
       tags:
         - text
     llllust:
@@ -11408,7 +11409,7 @@ sugarcube-2:
         `<<llllust NPCName?>>`
         - **NPCName** _optional_: `string` - name to display as their lust
       parameters:
-        - "|+ text|string"
+        - '|+ text|string'
       tags:
         - text
     lllobey:
@@ -11422,7 +11423,7 @@ sugarcube-2:
         `<<lllove NPCName?>>`
         - **NPCName** _optional_: `string` - name to display as their love
       parameters:
-        - "|+ text|string"
+        - '|+ text|string'
       tags:
         - text
     lllpain:
@@ -11473,7 +11474,7 @@ sugarcube-2:
         `<<lllrtrauma force?>>`
         - **force** _optional_: `boolean` - prints even if trauma is 0
       parameters:
-        - "|+ bool"
+        - '|+ bool'
       tags:
         - unused
         - text
@@ -11539,7 +11540,7 @@ sugarcube-2:
         `<<lllust NPCName?>>`
         - **NPCName** _optional_: `string` - name to display as their lust
       parameters:
-        - "|+ text|string"
+        - '|+ text|string'
       tags:
         - text
     lllworldcorruption:
@@ -11561,7 +11562,7 @@ sugarcube-2:
         `<<llove NPCName?>>`
         - **NPCName** _optional_: `string` - name to display as their love
       parameters:
-        - "|+ text|string"
+        - '|+ text|string'
       tags:
         - text
     llpain:
@@ -11611,7 +11612,7 @@ sugarcube-2:
         `<<llrtrauma force?>>`
         - **force** _optional_: `boolean` - prints even if trauma is 0
       parameters:
-        - "|+ bool"
+        - '|+ bool'
       tags:
         - unused
         - text
@@ -11678,7 +11679,7 @@ sugarcube-2:
         `<<llust NPCName?>>`
         - **NPCName** _optional_: `string` - name to display as their lust
       parameters:
-        - "|+ text|string"
+        - '|+ text|string'
       tags:
         - text
     llworldcorruption:
@@ -11754,7 +11755,7 @@ sugarcube-2:
         - **change** _optional_: `number` - amount to subtract
           - Defaults to `1`
       parameters:
-        - "|+ number"
+        - '|+ number'
     location:
       name: location
     location_text:
@@ -11796,9 +11797,9 @@ sugarcube-2:
     lockereventpassages:
       name: lockereventpassages
     lockerkeyoptions:
-      description: "Shows the options for what to do with the locker key, in all cases
+      description: 'Shows the options for what to do with the locker key, in all cases
         of `:: Hallways Delinquent Lockers` where the player ends up with the
-        key"
+        key'
     log:
       name: log
       tags:
@@ -11832,7 +11833,7 @@ sugarcube-2:
         - **npcName**: `string` - love interest NPC name
           - %loveInterestDesc%
       parameters:
-        - "%loveInterest%"
+        - '%loveInterest%'
     lowerhas:
       description: Prints plural/singular prose of has (have/has) for worn `"lower"` slot
     lowerimg:
@@ -11858,7 +11859,7 @@ sugarcube-2:
         - **noRebuy** _optional_: `boolean` - skip rebuying command (truthy)
           - Defaults to `false`
       parameters:
-        - "|+ bool"
+        - '|+ bool'
     lowersend:
       name: lowersend
     lowerslither:
@@ -11953,7 +11954,7 @@ sugarcube-2:
         `<<lrtrauma force?>>`
         - **force** _optional_: `boolean` - prints even if trauma is 0
       parameters:
-        - "|+ bool"
+        - '|+ bool'
       tags:
         - unused
         - text
@@ -12788,7 +12789,7 @@ sugarcube-2:
         - **noRebuy** _optional_: `boolean` - skip rebuying command (truthy)
           - Defaults to `false`
       parameters:
-        - "|+ bool"
+        - '|+ bool'
     necksend:
       name: necksend
       tags:
@@ -12880,7 +12881,7 @@ sugarcube-2:
         - **namedNPCName**: `string` - named NPC name
           - %namedNPCDesc%
       parameters:
-        - "%namedNPC%"
+        - '%namedNPC%'
       tags:
         - text
     nnpc_Brother:
@@ -12891,7 +12892,7 @@ sugarcube-2:
         - **namedNPCName**: `string` - named NPC name
           - %namedNPCDesc%
       parameters:
-        - "%namedNPC%"
+        - '%namedNPC%'
       tags:
         - text
     nnpc_daughter:
@@ -12902,7 +12903,7 @@ sugarcube-2:
         - **namedNPCName**: `string` - named NPC name
           - %namedNPCDesc%
       parameters:
-        - "%namedNPC%"
+        - '%namedNPC%'
       tags:
         - text
     nnpc_gender:
@@ -12915,7 +12916,7 @@ sugarcube-2:
         - **namedNPCName**: `string` - named NPC name
           - %namedNPCDesc%
       parameters:
-        - "%namedNPC%"
+        - '%namedNPC%'
       tags:
         - text
     nnpc_gendery:
@@ -12928,7 +12929,7 @@ sugarcube-2:
         - **namedNPCName**: `string` - named NPC name
           - %namedNPCDesc%
       parameters:
-        - "%namedNPC%"
+        - '%namedNPC%'
       tags:
         - text
     nnpc_genitals:
@@ -12945,7 +12946,7 @@ sugarcube-2:
         - **namedNPCName**: `string` - named NPC name
           - %namedNPCDesc%
       parameters:
-        - "%namedNPC%"
+        - '%namedNPC%'
       tags:
         - text
         - refactor
@@ -12957,7 +12958,7 @@ sugarcube-2:
         - **namedNPCName**: `string` - named NPC name
           - %namedNPCDesc%
       parameters:
-        - "%namedNPC%"
+        - '%namedNPC%'
       tags:
         - text
     nnpc_he:
@@ -12968,7 +12969,7 @@ sugarcube-2:
         - **namedNPCName**: `string` - named NPC name
           - %namedNPCDesc%
       parameters:
-        - "%namedNPC%"
+        - '%namedNPC%'
       tags:
         - text
     nnpc_He:
@@ -12979,7 +12980,7 @@ sugarcube-2:
         - **namedNPCName**: `string` - named NPC name
           - %namedNPCDesc%
       parameters:
-        - "%namedNPC%"
+        - '%namedNPC%'
       tags:
         - text
     nnpc_hers:
@@ -12990,7 +12991,7 @@ sugarcube-2:
         - **namedNPCName**: `string` - named NPC name
           - %namedNPCDesc%
       parameters:
-        - "%namedNPC%"
+        - '%namedNPC%'
       tags:
         - text
     nnpc_hes:
@@ -13001,7 +13002,7 @@ sugarcube-2:
         - **namedNPCName**: `string` - named NPC name
           - %namedNPCDesc%
       parameters:
-        - "%namedNPC%"
+        - '%namedNPC%'
       tags:
         - text
     nnpc_Hes:
@@ -13015,7 +13016,7 @@ sugarcube-2:
         - **namedNPCName**: `string` - named NPC name
           - %namedNPCDesc%
       parameters:
-        - "%namedNPC%"
+        - '%namedNPC%'
       tags:
         - text
     nnpc_him:
@@ -13026,7 +13027,7 @@ sugarcube-2:
         - **namedNPCName**: `string` - named NPC name
           - %namedNPCDesc%
       parameters:
-        - "%namedNPC%"
+        - '%namedNPC%'
       tags:
         - text
     nnpc_Him:
@@ -13037,7 +13038,7 @@ sugarcube-2:
         - **namedNPCName**: `string` - named NPC name
           - %namedNPCDesc%
       parameters:
-        - "%namedNPC%"
+        - '%namedNPC%'
       tags:
         - unused
         - text
@@ -13049,7 +13050,7 @@ sugarcube-2:
         - **namedNPCName**: `string` - named NPC name
           - %namedNPCDesc%
       parameters:
-        - "%namedNPC%"
+        - '%namedNPC%'
       tags:
         - text
     nnpc_his:
@@ -13060,7 +13061,7 @@ sugarcube-2:
         - **namedNPCName**: `string` - named NPC name
           - %namedNPCDesc%
       parameters:
-        - "%namedNPC%"
+        - '%namedNPC%'
       tags:
         - text
     nnpc_His:
@@ -13071,7 +13072,7 @@ sugarcube-2:
         - **namedNPCName**: `string` - named NPC name
           - %namedNPCDesc%
       parameters:
-        - "%namedNPC%"
+        - '%namedNPC%'
       tags:
         - text
     nnpc_lass:
@@ -13082,7 +13083,7 @@ sugarcube-2:
         - **namedNPCName**: `string` - named NPC name
           - %namedNPCDesc%
       parameters:
-        - "%namedNPC%"
+        - '%namedNPC%'
       tags:
         - text
     nnpc_title:
@@ -13093,7 +13094,7 @@ sugarcube-2:
         - **namedNPCName**: `string` - named NPC name
           - %namedNPCDesc%
       parameters:
-        - "%namedNPC%"
+        - '%namedNPC%'
       tags:
         - text
     nnpc_Title:
@@ -13104,7 +13105,7 @@ sugarcube-2:
         - **namedNPCName**: `string` - named NPC name
           - %namedNPCDesc%
       parameters:
-        - "%namedNPC%"
+        - '%namedNPC%'
       tags:
         - text
     nnpc_wife:
@@ -13115,7 +13116,7 @@ sugarcube-2:
         - **namedNPCName**: `string` - named NPC name
           - %namedNPCDesc%
       parameters:
-        - "%namedNPC%"
+        - '%namedNPC%'
       tags:
         - text
     noClothingCheck:
@@ -13164,7 +13165,7 @@ sugarcube-2:
         - **npcIndex** _optional_: `number` - zero-based index of active npcs
           - `0-5`: Defaults to current `$index`
       parameters:
-        - "|+ number"
+        - '|+ number'
       tags:
         - text
     npcAttractionSettings:
@@ -13198,7 +13199,7 @@ sugarcube-2:
         - **npcIndex** _optional_: `number` - zero-based index of active npcs
           - `0-5`: Defaults to current `$index`
       parameters:
-        - "|+ number"
+        - '|+ number'
       tags:
         - text
     npcClothesName:
@@ -13274,7 +13275,7 @@ sugarcube-2:
         - **namedNPCIndex**: `string` - named NPC name
           - %namedNPCDesc%
       parameters:
-        - "%namedNPC%"
+        - '%namedNPC%'
     npchand:
       name: npchand
     npcHurt:
@@ -13317,7 +13318,7 @@ sugarcube-2:
         - **npcIndex** _optional_: `number` - zero-based index of active npcs
           - `0-5`: Defaults to current `$index`
       parameters:
-        - "|+ number"
+        - '|+ number'
       tags:
         - text
     npcPenisColored:
@@ -13330,7 +13331,7 @@ sugarcube-2:
         - **npcIndex** _optional_: `number` - zero-based index of active npcs
           - `0-5`: Defaults to current `$index`
       parameters:
-        - "|+ number"
+        - '|+ number'
       tags:
         - unused
         - text
@@ -13344,7 +13345,7 @@ sugarcube-2:
         - **npcIndex** _optional_: `number` - zero-based index of active npcs
           - `0-5`: Defaults to current `$index`
       parameters:
-        - "|+ number"
+        - '|+ number'
       tags:
         - text
     npcPregnancyUpdater:
@@ -13441,7 +13442,7 @@ sugarcube-2:
         - **npcIndex** _optional_: `number` - zero-based index of active npcs
           - `0-5`: Defaults to current `$index`
       parameters:
-        - "|+ number"
+        - '|+ number'
       tags:
         - text
     NPCVirginityTakenByOther:
@@ -13456,7 +13457,7 @@ sugarcube-2:
         - **virginityType**: `string` - type of virginity to check and warn
           - %virginityTypesDesc%
       parameters:
-        - "%namedNPC% &+ %virginityTypes%"
+        - '%namedNPC% &+ %virginityTypes%'
     nude_text:
       description: |-
         Prints general exposure state as adjective
@@ -13902,7 +13903,7 @@ sugarcube-2:
         - **noRebuy** _optional_: `boolean` - skip rebuying command (truthy)
           - Defaults to `false`
       parameters:
-        - "|+ bool"
+        - '|+ bool'
     overheadsend:
       name: overheadsend
       tags:
@@ -13957,7 +13958,7 @@ sugarcube-2:
         - **noRebuy** _optional_: `boolean` - skip rebuying command (truthy)
           - Defaults to `false`
       parameters:
-        - "|+ bool"
+        - '|+ bool'
     overlowersend:
       name: overlowersend
       tags:
@@ -14033,7 +14034,7 @@ sugarcube-2:
         - **noRebuy** _optional_: `boolean` - skip rebuying command (truthy)
           - Defaults to `false`
       parameters:
-        - "|+ bool"
+        - '|+ bool'
     OverTopShop:
       name: OverTopShop
     overupperhas:
@@ -14068,7 +14069,7 @@ sugarcube-2:
         - **noRebuy** _optional_: `boolean` - skip rebuying command (truthy)
           - Defaults to `false`
       parameters:
-        - "|+ bool"
+        - '|+ bool'
     overuppersend:
       name: overuppersend
       tags:
@@ -14129,7 +14130,7 @@ sugarcube-2:
         - **setPhase** _optional_: `number|string|bool` - set `$phase` to
         `setPhase`. defaults to "oxygenrecovery" if not a number or string
       parameters:
-        - "|+ number|string|bool"
+        - '|+ number|string|bool'
     oxygenrefresh:
       name: oxygenrefresh
     pain:
@@ -14941,7 +14942,7 @@ sugarcube-2:
         - **slot**: `string` - category of worn clothing to check
           - %clothesTypesDesc%
       parameters:
-        - "%clothesTypes%"
+        - '%clothesTypes%'
     pluralise:
       description: >-
         Pluralises a given word if the count is not 1
@@ -15052,7 +15053,7 @@ sugarcube-2:
         - **skipWork** _optional_: `boolean` - to always be returned to the main
         pound menu (except when exposed)
       parameters:
-        - "|+ bool"
+        - '|+ bool'
     ppackbrother:
       name: ppackbrother
     pPackbrother:
@@ -15781,7 +15782,7 @@ sugarcube-2:
         animation
           - Defaults to false
       parameters:
-        - "|+ text|string |+ bool|bareword|var"
+        - '|+ text|string |+ bool|bareword|var'
       tags:
         - dom
     rent_avery:
@@ -16012,7 +16013,7 @@ sugarcube-2:
         - **min**: `string` - minimum (inclusive) value
           - Defaults to `1`
       parameters:
-        - "|+ number |+ number"
+        - '|+ number |+ number'
     rngWraith:
       name: rngWraith
     rngWraithSocial:
@@ -16386,7 +16387,7 @@ sugarcube-2:
         - **noPrint** _optional_: `boolean` - Suppress output and only write to
         temp (truthy)
       parameters:
-        - "|+ bool"
+        - '|+ bool'
       tags:
         - text
         - temp
@@ -17311,7 +17312,7 @@ sugarcube-2:
         - **skipWakeEvents** _optional_: `boolean` - skip events that could wake
         pc from sleep, even if they would normally occur
       parameters:
-        - "|+ bool"
+        - '|+ bool'
     sleep_clamp:
       name: sleep_clamp
     sleepeffects:
@@ -17343,7 +17344,7 @@ sugarcube-2:
         - **liquid**: `string` - liquid to apply to pc
           - %liquidTypesDesc%
       parameters:
-        - "%liquidTypes%"
+        - '%liquidTypes%'
     slimeWakeMasturbation:
       description: Activates forced slime masturbation outcome out of sleep
       tags:
@@ -17395,7 +17396,7 @@ sugarcube-2:
         - **npcIndex** _optional_: `number` - zero-based index of active npcs
           - `0-5`: Defaults to 0
       parameters:
-        - "|+ number"
+        - '|+ number'
     someones:
       description: >-
         Prints possessive pronoun of an NPC, either provided or previously
@@ -17764,7 +17765,7 @@ sugarcube-2:
         `<<stockholmTrait type?>>`
         - **type** _optional_: `string` - additional label to apply to output
       parameters:
-        - "|+ text|string"
+        - '|+ text|string'
       tags:
         - text
     storeactions:
@@ -18413,8 +18414,8 @@ sugarcube-2:
         - **max** _optional_: `object` - max number of plants to pick
           - Defaults to `5`
       parameters:
-        - "%plantTypes%"
-        - "%plantTypes% &+ number &+ number"
+        - '%plantTypes%'
+        - '%plantTypes% &+ number &+ number'
     tending_season_notice:
       name: tending_season_notice
     tending_text:
@@ -18560,7 +18561,7 @@ sugarcube-2:
         - **slot**: `string` - category of worn clothing to check
           - %clothesTypesDesc%
       parameters:
-        - "%clothesTypes%"
+        - '%clothesTypes%'
       tags:
         - text
     the_pillory_person:
@@ -18593,7 +18594,7 @@ sugarcube-2:
         - **npcIndex** _optional_: `number` - zero-based index of active npcs
           - `0-5`: Defaults to 0
       parameters:
-        - "|+ number"
+        - '|+ number'
       tags:
         - text
     theowner:
@@ -18672,7 +18673,7 @@ sugarcube-2:
         - **source**: `string` - source key
           - %timeTrackingSourcesDesc%
       parameters:
-        - "%timeTrackingSources%"
+        - '%timeTrackingSources%'
     timeTrackingEndBrothel:
       description: Stops tracking time for sources related to the brothel
     timeTrackingEndCafe:
@@ -18707,7 +18708,7 @@ sugarcube-2:
         - **source**: `string` - source key
           - %timeTrackingSourcesDesc%
       parameters:
-        - "%timeTrackingSources%"
+        - '%timeTrackingSources%'
     timeTrackingStartDanceJobs:
       description: Starts tracking time for sources related to dance jobs
     tinyPenisDryOrgasmChance:
@@ -18806,7 +18807,7 @@ sugarcube-2:
         - **slot**: `string` - clothing slot being toggled
           - %clothesTypesDesc%
       parameters:
-        - "%clothesTypes%"
+        - '%clothesTypes%'
     toggleAltSleeve:
       description: >-
         Toggles unique clothing between alternate sleeve states
@@ -18821,7 +18822,7 @@ sugarcube-2:
         are using their alt image
           - Defaults to "Unroll sleeves"
       parameters:
-        - "|+ text|string |+ text|string"
+        - '|+ text|string |+ text|string'
       tags:
         - dom
     toggleBellyTuck:
@@ -18838,7 +18839,7 @@ sugarcube-2:
         untucked
           - Defaults to "Tuck in"
       parameters:
-        - "|+ text|string |+ text|string"
+        - '|+ text|string |+ text|string'
       tags:
         - dom
     toggledebug:
@@ -18908,7 +18909,7 @@ sugarcube-2:
         untucked
           - Defaults to "Tuck in"
       parameters:
-        - "|+ text|string |+ text|string"
+        - '|+ text|string |+ text|string'
       tags:
         - dom
     toggleMannequinGender:
@@ -18930,7 +18931,7 @@ sugarcube-2:
         untucked
           - Defaults to "Tuck in"
       parameters:
-        - "|+ text|string |+ text|string"
+        - '|+ text|string |+ text|string'
       tags:
         - dom
     top:
@@ -19198,7 +19199,7 @@ sugarcube-2:
         - **noRebuy** _optional_: `boolean` - skip rebuying command (truthy)
           - Defaults to `false`
       parameters:
-        - "|+ bool"
+        - '|+ bool'
     underuppersend:
       name: underuppersend
     underuppersteal:
@@ -19293,7 +19294,7 @@ sugarcube-2:
 
         - **slot**: `string`or `array` - slots to keep
       parameters:
-        - "|+ text|string |+ text|string"
+        - '|+ text|string |+ text|string'
     undressmid:
       name: undressmid
     undressNPC:
@@ -19435,7 +19436,7 @@ sugarcube-2:
         - **clearCache** _optional_: `string` - clear render cache
           - Defaults to true
       parameters:
-        - "|+ bool"
+        - '|+ bool'
     updatesidebarmoney:
       name: updatesidebarmoney
     updateStoredSlot:
@@ -19502,7 +19503,7 @@ sugarcube-2:
         - **noRebuy** _optional_: `boolean` - skip rebuying command (truthy)
           - Defaults to `false`
       parameters:
-        - "|+ bool"
+        - '|+ bool'
     uppersend:
       name: uppersend
     upperslither:
@@ -19739,7 +19740,7 @@ sugarcube-2:
         clothes for
           - `0-5`: Only affects swimsuit clothing check, not text output
       parameters:
-        - "|+ number"
+        - '|+ number'
       tags:
         - text
         - temp
@@ -19794,7 +19795,7 @@ sugarcube-2:
         - **slot**: `string` - clothing slot player has selected selected
           - %clothesTypesDesc%
       parameters:
-        - "%clothesTypes%"
+        - '%clothesTypes%'
       tags:
         - dom
     wardrobeListReorder:
@@ -19835,7 +19836,7 @@ sugarcube-2:
           - Defaults to false
           - Currently implemented as pseudo-teleportator while debug is enabled
       parameters:
-        - "|+ bool"
+        - '|+ bool'
       tags:
         - refactor
     wardrobeSend:
@@ -20086,7 +20087,7 @@ sugarcube-2:
         - **slot**: `string` - category of worn clothing to check
           - %clothesTypesDesc%
       parameters:
-        - "%clothesTypes%"
+        - '%clothesTypes%'
       tags:
         - text
     wordify_i:

@@ -35,24 +35,24 @@ maplebirch.tool.onInit(() => {
 
 ## Main Config
 
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| `parts` | array | Transformation parts unlocked by level |
-| `traits` | array | Optional transformation traits |
-| `build` | number | Maximum build value |
-| `level` | number | Maximum level |
-| `update` | number[] | Build thresholds for each level |
-| `icon` | string | Optional icon path |
-| `message` | object | Level-up and level-down messages |
-| `decay` | boolean | Whether the transformation can decay |
-| `decayConditions` | Function[] | Conditions required for decay |
-| `suppress` | boolean | Whether it can suppress other transformations |
-| `suppressConditions` | Function[] | Conditions for suppression |
-| `target` | string, string[], or function | Canvas model target for `pre`, `post`, and `layers`. Defaults to `main`. |
-| `pre` | function | Runs before character rendering |
-| `post` | function | Runs after character rendering |
-| `layers` | object | Character rendering layers |
-| `translations` | object | Display translations |
+| Field                | Type                          | Description                                                              |
+| :------------------- | :---------------------------- | :----------------------------------------------------------------------- |
+| `parts`              | array                         | Transformation parts unlocked by level                                   |
+| `traits`             | array                         | Optional transformation traits                                           |
+| `build`              | number                        | Maximum build value                                                      |
+| `level`              | number                        | Maximum level                                                            |
+| `update`             | number[]                      | Build thresholds for each level                                          |
+| `icon`               | string                        | Optional icon path                                                       |
+| `message`            | object                        | Level-up and level-down messages                                         |
+| `decay`              | boolean                       | Whether the transformation can decay                                     |
+| `decayConditions`    | Function[]                    | Conditions required for decay                                            |
+| `suppress`           | boolean                       | Whether it can suppress other transformations                            |
+| `suppressConditions` | Function[]                    | Conditions for suppression                                               |
+| `target`             | string, string[], or function | Canvas model target for `pre`, `post`, and `layers`. Defaults to `main`. |
+| `pre`                | function                      | Runs before character rendering                                          |
+| `post`               | function                      | Runs after character rendering                                           |
+| `layers`             | object                        | Character rendering layers                                               |
+| `translations`       | object                        | Display translations                                                     |
 
 ## Parts And Traits
 

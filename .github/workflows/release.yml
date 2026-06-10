@@ -4,18 +4,12 @@ on:
   push:
     tags:
       - 'maplebirch-release-v*'
-  workflow_dispatch:
-    inputs:
-      release_tag:
-        required: false
-        default: ''
-      extra_build_refs:
-        required: false
-        default: 'dol-v0.5.8.10, dol-v0.5.9.8'
 
 jobs:
   prepare:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       version: ${{ steps.release.outputs.VERSION }}
       tag_name: ${{ steps.release.outputs.TAG_NAME }}
@@ -23,10 +17,9 @@ jobs:
     steps:
       - name: Resolve release refs
         id: release
-        env:
-          RELEASE_TAG_INPUT: ${{ inputs.release_tag }}
         run: |
-          TAG_NAME="${RELEASE_TAG_INPUT:-${GITHUB_REF_NAME}}"
+          TAG_NAME="${GITHUB_REF_NAME}"
+
           if [[ "$TAG_NAME" != maplebirch-release-v* ]]; then
             echo "Error: release tag must match maplebirch-release-v* (got: $TAG_NAME)"
             exit 1
@@ -40,22 +33,68 @@ jobs:
         id: matrix
         env:
           RELEASE_TAG: ${{ steps.release.outputs.TAG_NAME }}
-          EXTRA_BUILD_REFS: ${{ inputs.extra_build_refs || vars.RELEASE_EXTRA_BUILD_REFS || 'dol-v0.5.8.10' }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_API_URL: ${{ github.api_url }}
         run: |
           node <<'NODE' >> "$GITHUB_OUTPUT"
           const releaseTag = process.env.RELEASE_TAG;
-          const extras = (process.env.EXTRA_BUILD_REFS || '')
-            .split(/[\n,]/)
-            .map(ref => ref.trim())
-            .filter(Boolean);
+          const repo = process.env.GITHUB_REPOSITORY;
+          const api = process.env.GITHUB_API_URL;
+          const token = process.env.GITHUB_TOKEN;
 
-          const refs = [releaseTag, ...extras.filter(ref => ref !== releaseTag)];
-          const include = refs.map(ref => ({
-            ref,
-            label: ref.replace(/^refs\/(?:heads|tags)\//, '').replace(/[^A-Za-z0-9._-]+/g, '-')
-          }));
+          async function dolBranches() {
+            const branches = [];
+            let page = 1;
 
-          console.log(`BUILD_MATRIX=${JSON.stringify({ include })}`);
+            while (true) {
+              const url = `${api}/repos/${repo}/branches?per_page=100&page=${page}`;
+              const res = await fetch(url, {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  Accept: 'application/vnd.github+json',
+                },
+              });
+
+              if (!res.ok) {
+                throw new Error(`Failed to fetch branches: ${res.status} ${res.statusText}`);
+              }
+
+              const data = await res.json();
+              if (!Array.isArray(data) || data.length === 0) break;
+
+              for (const branch of data) {
+                if (/^dol-v\d+\.\d+\.\d+(?:\.\d+)?$/.test(branch.name)) {
+                  branches.push(branch.name);
+                }
+              }
+
+              page++;
+            }
+
+            return branches.sort((a, b) =>
+              b.localeCompare(a, undefined, { numeric: true, sensitivity: 'base' })
+            );
+          }
+
+          dolBranches().then(branches => {
+            const refs = [
+              releaseTag,
+              ...branches.filter(ref => ref !== releaseTag),
+            ];
+
+            const include = refs.map(ref => ({
+              ref,
+              label: ref
+                .replace(/^refs\/(?:heads|tags)\//, '')
+                .replace(/[^A-Za-z0-9._-]+/g, '-'),
+            }));
+
+            console.log(`BUILD_MATRIX=${JSON.stringify({ include })}`);
+          }).catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
           NODE
 
   build:
@@ -82,9 +121,11 @@ jobs:
         run: bun install
 
       - name: Verify Version Consistency
+        if: matrix.ref == needs.prepare.outputs.tag_name
         run: |
           PKG_VERSION=$(node -p "require('./package.json').version")
           TAG_VERSION="${{ needs.prepare.outputs.version }}"
+
           if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
             echo "Error: Version mismatch on ${{ matrix.ref }} (package.json: $PKG_VERSION, tag: $TAG_VERSION)"
             exit 1
@@ -93,11 +134,20 @@ jobs:
       - name: Build and Package
         run: bun run build:all
 
+      - name: Rename package files
+        run: |
+          mkdir -p package-renamed
+
+          for file in package/*.zip; do
+            base="$(basename "$file" .zip)"
+            cp "$file" "package-renamed/${base}-${{ matrix.label }}.zip"
+          done
+
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
         with:
           name: package-${{ matrix.label }}
-          path: package/*.zip
+          path: package-renamed/*.zip
           if-no-files-found: error
 
   release:
@@ -120,8 +170,11 @@ jobs:
       - name: Find Previous Tag
         id: prev_tag
         run: |
+          git fetch --tags --force
+
           CURRENT_TAG="${{ needs.prepare.outputs.tag_name }}"
           PREV_TAG=$(git tag --list 'maplebirch-release-v*' --sort=-version:refname | grep -Fxv "$CURRENT_TAG" | head -n 1 || true)
+
           echo "PREV_TAG=$PREV_TAG" >> "$GITHUB_OUTPUT"
 
       - name: Build Compare Link
@@ -139,7 +192,7 @@ jobs:
         id: extract_changelog
         run: |
           CURRENT_VERSION="${{ needs.prepare.outputs.version }}"
-          CURRENT_SERIES="${CURRENT_VERSION%.*}.x"
+          CURRENT_MINOR="${CURRENT_VERSION%.*}"
           CHANGELOG_FILE="UPDATE.md"
 
           if [ ! -f "$CHANGELOG_FILE" ]; then
@@ -147,16 +200,26 @@ jobs:
             exit 0
           fi
 
-          LOG_CONTENT=$(awk -v ver="$CURRENT_VERSION" -v series="$CURRENT_SERIES" '
+          LOG_CONTENT=$(awk -v minor="$CURRENT_MINOR" '
             { gsub(/\r$/, "") }
-            $0 ~ "^##### \\(v\\." ver "更新日志\\):" { found=1; next }
-            $0 ~ "^##### \\(v\\." series "更新日志\\):" { found=1; next }
-            found && /^##### \(v\.[0-9]+\.[0-9]+\.(x|[0-9]+)更新日志\):/ { exit }
+
+            /^##### \(v\.[0-9]+\.[0-9]+\.(x|[0-9]+)更新日志\):/ {
+              if ($0 ~ "^##### \\(v\\." minor "\\.(x|[0-9]+)更新日志\\):") {
+                found=1
+                print
+                next
+              }
+
+              if (found) {
+                found=0
+              }
+            }
+
             found { print }
           ' "$CHANGELOG_FILE")
 
           if [ -z "$LOG_CONTENT" ]; then
-            echo "changelog_body=No changelog found for v.$CURRENT_VERSION." >> "$GITHUB_OUTPUT"
+            echo "changelog_body=No changelog found for v.$CURRENT_MINOR.x." >> "$GITHUB_OUTPUT"
           else
             echo "changelog_body<<EOF" >> "$GITHUB_OUTPUT"
             echo "$LOG_CONTENT" >> "$GITHUB_OUTPUT"
@@ -176,6 +239,7 @@ jobs:
 
             #### 相关链接
             ${{ steps.compare_link.outputs.compare_md }}
+            - [枯木逢春](https://github.com/MaplebirchLeaf/Deadwood-Reblooms) - 依赖于框架制作的功能模组
             - [模组保护工具](https://github.com/MaplebirchLeaf/dol-mod-protection-tools) - 为模组提供凭证加密功能
             - [完整更新日志](https://github.com/${{ github.repository }}/blob/main/UPDATE.md) - 查看所有版本历史记录
           draft: false
