@@ -171,7 +171,7 @@ export class StateManager {
   }
 
   public init(): void {
-    this.manager.core.on(':passagedisplay', () => new maplebirch.SugarCube.Wikifier(document.getElementById('append'), this.trigger('append')));
+    this.manager.core.on(':passagedisplay', () => new maplebirch.SugarCube.Wikifier(document.getElementById('append')!, this.trigger('append')));
     this.log('状态事件系统已激活', 'DEBUG');
   }
 }

@@ -1,14 +1,791 @@
-import { Passage } from '@scml/types/sugarcube-2-ModLoader/SugarCube2';
-import { SugarCubeObject, SaveAPI, StateAPI, WikifierAPI as WikifierAPI$1, MacroContext as MacroContext$1, MacroDefinition } from 'twine-sugarcube';
 import { SC2DataManager } from '@scml/types/sugarcube-2-ModLoader/SC2DataManager';
 import { ModUtils } from '@scml/types/sugarcube-2-ModLoader/Utils';
 import { Gui } from '@scml/types/Mod_LoaderGui/Gui';
 import jsyaml from 'js-yaml';
 import { Howl, Howler } from 'howler';
 import * as marked from 'marked';
+import { Passage } from '@scml/types/sugarcube-2-ModLoader/SugarCube2';
 import { ModInfo, ModBootJson } from '@scml/types/sugarcube-2-ModLoader/ModLoader';
 import { JSZipLikeReadOnlyInterface } from '@scml/types/sugarcube-2-ModLoader/JSZipLikeReadOnlyInterface';
 import { ModZipReader } from '@scml/types/sugarcube-2-ModLoader/ModZipReader';
+import { MacroContext as MacroContext$1, MacroDefinition } from 'twine-sugarcube';
+
+interface BrowserAPI {
+  readonly userAgent: string;
+  readonly isMobile: boolean;
+  readonly isGecko: boolean;
+  readonly isIE: boolean;
+  readonly ieVersion: number | null;
+  readonly isOpera: boolean;
+  readonly operaVersion: number | null;
+  readonly isVivaldi: boolean;
+}
+
+/*
+	Object Exports.
+	General settings.
+	Audio settings.
+	State history settings.
+	Macros settings.
+	Navigation settings.
+	Passages settings.
+	Saves settings.
+	UI settings.
+*/
+interface ConfigHistoryAPI {
+  controls: boolean;
+  maxStates: number;
+  maxSessionStates: number;
+  maxExpired: number;
+}
+
+interface ConfigAudioAPI {
+  pauseOnFadeToZero: boolean;
+  preloadMetadata: boolean;
+}
+
+interface ConfigMacrosAPI {
+  ifAssignmentError: boolean;
+  maxLoopIterations: number;
+  typeSkipKey: string;
+  typeVisitedPassages: boolean;
+}
+
+interface ConfigNavigationAPI {
+  override: ((...args: unknown[]) => unknown) | null | undefined;
+  gotohell: unknown;
+  rememberYPos: unknown;
+}
+
+interface ConfigPassagesAPI {
+  descriptions:
+    | boolean
+    | Record<string, string>
+    | ((this: null) => string | undefined)
+    | null
+    | undefined;
+  displayTitles: boolean;
+  nobr: boolean;
+  onProcess: ((opts: { title: string; tags: string[]; text: string }) => string) | null | undefined;
+  start: string | null | undefined;
+  transitionOut: string | number | null | undefined;
+}
+
+interface ConfigSavesAPI {
+  autoload: boolean | string | ((...args: unknown[]) => unknown) | null | undefined;
+  autosave: boolean | string[] | ((...args: unknown[]) => unknown) | null | undefined;
+  id: string;
+  isAllowed: ((...args: unknown[]) => unknown) | null | undefined;
+  slots: number;
+  tryDiskOnMobile: boolean;
+  version: unknown;
+  useLZString: number;
+}
+
+interface ConfigUIAPI {
+  stowBarInitially: boolean | number;
+  updateStoryElements: boolean;
+}
+
+interface ConfigAPI {
+  debug: boolean;
+  addVisitedLinkClass: boolean;
+  cleanupWikifierOutput: boolean;
+  loadDelay: number;
+  audio: ConfigAudioAPI;
+  history: ConfigHistoryAPI;
+  macros: ConfigMacrosAPI;
+  navigation: ConfigNavigationAPI;
+  passages: ConfigPassagesAPI;
+  saves: ConfigSavesAPI;
+  ui: ConfigUIAPI;
+}
+
+/*
+	Module Exports.
+	Debug Bar Functions.
+	Watch Functions.
+*/
+interface DebugBarWatchAPI {
+  add(name: string, getValue: () => unknown): void;
+  all(): void;
+  clear(): void;
+  delete(name: string): void;
+  disable(name: string): void;
+  enable(name: string): void;
+  isEnabled(name: string): boolean;
+  toggle(name: string): void;
+}
+
+interface DebugBarAPI {
+  init(): void;
+  isStowed(): boolean;
+  start(): void;
+  stow(): void;
+  toggle(): void;
+  unstow(): void;
+  watch: DebugBarWatchAPI;
+}
+
+interface DialogAPI {
+  append(...args: unknown[]): DialogAPI;
+  body(): HTMLElement | undefined;
+  close(ev?: unknown): DialogAPI;
+  create(title?: string, classNames?: string): DialogAPI;
+  empty(): DialogAPI;
+  init(): void;
+  isOpen(classNames?: string): boolean;
+  open(options?: { top?: number }, onClose?: () => void): DialogAPI;
+  resize(options?: { top?: number }): void;
+  wiki(...args: unknown[]): DialogAPI;
+  wikiPassage(name: string): DialogAPI;
+  /** Deprecated Functions. */
+  setup(title?: string, classNames?: string): HTMLElement | undefined;
+}
+
+/*
+	Module Exports.
+	Constants.
+	Core Functions.
+	Legacy Functions.
+*/
+/* Engine state types object (pseudo-enumeration). */
+interface EngineStatesAPI {
+  Idle: string;
+  Playing: string;
+  Rendering: string;
+}
+
+interface EngineAPI {
+  /* Constants. */
+  readonly States: EngineStatesAPI;
+  /* Minimum delay for DOM actions (in milliseconds). */
+  readonly minDomActionDelay: number;
+  init(): void;
+  start(): void;
+  restart(): void;
+  readonly state: string;
+  isIdle(): boolean;
+  isPlaying(): boolean;
+  isRendering(): boolean;
+  readonly lastPlay: number | null;
+  goTo(index: number): void;
+  go(delta: number): void;
+  backward(): void;
+  forward(): void;
+  show(passage: string, ...args: unknown[]): void;
+  play(passage?: string, ...args: unknown[]): void;
+  /* Legacy Functions. */
+  display(passage?: string, ...args: unknown[]): void;
+  flags: Record<string, unknown>;
+}
+
+interface FullscreenAPI {
+  readonly vendor: unknown;
+  readonly element: Element | null;
+  isEnabled(): boolean;
+  isFullscreen(): boolean;
+  request(): Promise<void>;
+  exit(): Promise<void>;
+  toggle(): Promise<void>;
+  onChange(handler: () => void): void;
+  offChange(handler: () => void): void;
+  onError(handler: (err: unknown) => void): void;
+  offError(handler: (err: unknown) => void): void;
+}
+
+/* Module Exports. */
+interface HasAPI {
+  readonly audio: boolean;
+  readonly fileAPI: boolean;
+  readonly geolocation: boolean;
+  readonly mutationObserver: boolean;
+  readonly performance: boolean;
+  readonly touch: boolean;
+  readonly transitionEndEvent: string;
+}
+
+/*
+ * "simple" indexedDB backend for storing save data, working similarly to existing webStorage system
+ * indexedDB works faster, has virtually unlimited storage, but does not work properly in private mode. then again, localStorage doesn't persist in private mode either
+ * indexedDB operates asynchronously, by making requests that may be fulfilled or rejected later, without blocking the rest of the code, but also without a guarantee that requested values will be available when that rest of the code runs. this requires some working around.
+ * unlike old synchronous operations, most functions do not return the value immediately, but a promise to return it when it's completed. these promises can then be used to retrieve that data by calling Promise.then() callback function
+ * for example, `idb.getItem(0).then((value) => console.log(value))` will first attempt to retrieve save data from slot 0, and then when that is done - the then() function triggers, in this case printing retrieved value to the console
+ *
+ * this implementation doesn't rely on caches, doesn't compress save data in any way, and separates save details store from save data store to speed up building the save list and allow extra features like timestamp highlighting at minimal processing cost
+ * as a consequence, it requires more disk space, and a completely separate namespace that might need extra setup for games that override the default save list appearance
+ * generally though, just adding a "saveList" id or class to the div element where the saves should appear and replacing the function/macro that populates that div with "if (idb.active) idb.saveList(); else old-custom-way-of-building-save-menu" should be enough to make it work.
+ */
+interface IdbAPI {
+  dbName: string;
+  lock: boolean;
+  active: boolean;
+  listLength: number;
+  listPage: number;
+  footerHTML: string | false;
+  readonly baddies: unknown;
+  init(dbName?: string): Promise<unknown>;
+  getSaveDetails(): Promise<unknown>;
+  getAllSaves(): Promise<unknown>;
+  saveList(): void;
+  saveState(): Promise<unknown>;
+  loadState(): Promise<unknown>;
+  setItem(slot: number, value: unknown): Promise<void>;
+  getItem(slot: number): Promise<unknown>;
+  deleteItem(slot: number): Promise<void>;
+  clearAll(): Promise<void>;
+  updateSettings(): void;
+  funNuke(): void;
+  ekuNnuf(): void;
+  importFromLocalStorage(): Promise<void>;
+}
+
+interface L10nAPI {
+  init(): void;
+  get(id: string, context?: Record<string, unknown>): string;
+}
+
+interface LinksAPI {
+  init(): void;
+  generate(): void;
+  generateLinkNumbers(): void;
+  pushTheButton(): void;
+  numberPrepend: string;
+  numberAppend: string;
+  skipElements: unknown;
+  includeElements: unknown;
+  enabled: boolean;
+  disableRNGReload: boolean;
+  disableNumbers: boolean;
+  throttle: number;
+  readonly currentLinks: unknown;
+}
+
+interface LoadScreenAPI {
+  init(): void;
+  clear(): void;
+  hide(): void;
+  show(): void;
+  lock(): number;
+  unlock(lockId: number): void;
+}
+
+/*
+	Module Exports.
+	Macro Functions.
+	Hook API
+	Tags Functions.
+	Legacy Aliases.
+*/
+interface MacroTagsAPI {
+  register(name: string, handler: (...args: unknown[]) => unknown): void;
+  unregister(name: string): void;
+  has(name: string): boolean;
+  get(name: string): (...args: unknown[]) => unknown;
+}
+
+interface MacroHooksAPI {
+  on(event: string, handler: (...args: unknown[]) => void): void;
+  off(event: string, handler?: (...args: unknown[]) => void): void;
+  emit(event: string, ...args: unknown[]): void;
+}
+
+interface MacroAPI {
+  add(name: string, definition: unknown): void;
+  delete(name: string): void;
+  isEmpty(): boolean;
+  has(name: string): boolean;
+  get(name: string): unknown;
+  init(): void;
+  hooks: MacroHooksAPI;
+  tags: MacroTagsAPI;
+  evalStatements(...args: unknown[]): unknown;
+}
+
+/*
+	Passage Class.
+	Passage title/ID.
+	Passage data element (within the story data element; i.e. T1: '[tiddler]', T2: 'tw-passagedata').
+	Passage tags array (unique).
+*/
+interface PassageAPI {
+  readonly title: string;
+  readonly element: Element | null;
+  readonly tags: readonly string[];
+  readonly domId: string;
+  readonly classes: readonly string[];
+  readonly className: string;
+  readonly text: string;
+  description(): string;
+  processText(): string;
+  render(options?: unknown): DocumentFragment;
+}
+
+/** Constructor type for Passage (static methods live here). */
+interface PassageConstructor {
+  new (title: string, el?: Element | null): PassageAPI;
+  getExcerptFromNode(node: Node, count?: number): string;
+  getExcerptFromText(text: string, count?: number): string;
+}
+
+/*
+	Module Exports.
+	Save Functions.
+	Autosave Functions.
+	Slots Functions.
+	Disk Import/Export Functions.
+	Serialization Functions.
+	Event Functions.
+*/
+interface SaveOnLoadAPI {
+  add(handler: (...args: unknown[]) => unknown): void;
+  clear(): void;
+  delete(handler: (...args: unknown[]) => unknown): void;
+  readonly size: number;
+  readonly handlers: readonly ((...args: unknown[]) => unknown)[];
+}
+
+interface SaveOnSaveAPI {
+  add(handler: (...args: unknown[]) => unknown): void;
+  clear(): void;
+  delete(handler: (...args: unknown[]) => unknown): void;
+  readonly size: number;
+  readonly handlers: readonly ((...args: unknown[]) => unknown)[];
+}
+
+interface SaveAutosaveAPI {
+  ok(): boolean;
+  has(): boolean;
+  get(): unknown;
+  load(): void;
+  save(): void;
+  delete(): void;
+}
+
+interface SaveSlotsAPI {
+  ok(): boolean;
+  readonly length: number;
+  isEmpty(): boolean;
+  count(): number;
+  has(slot: number): boolean;
+  get(slot: number): unknown;
+  load(slot: number): void;
+  save(slot: number, title?: string): void;
+  delete(slot: number): void;
+}
+
+interface SaveAPI {
+  init(): void;
+  get(): { autosave: unknown; slots: unknown[] };
+  clear(): void;
+  ok(): boolean;
+  autosave: SaveAutosaveAPI;
+  slots: SaveSlotsAPI;
+  export(): void;
+  import(): void;
+  serialize(): string;
+  deserialize(data: string): unknown;
+  onLoad: SaveOnLoadAPI;
+  onSave: SaveOnSaveAPI;
+  readonly meta: unknown;
+}
+
+interface ScriptingAPI {
+  parse(script: string): unknown;
+  evalJavaScript(script: string): unknown;
+  evalTwineScript(script: string): unknown;
+}
+
+/*
+	Module Exports.
+	Enumerations.
+	Settings Functions.
+	Definitions Functions.
+*/
+interface SettingTypesAPI {
+  [key: string]: unknown;
+}
+
+interface SettingAPI {
+  readonly Types: SettingTypesAPI;
+  init(): void;
+  create(): void;
+  save(): void;
+  load(): void;
+  clear(): void;
+  reset(): void;
+  forEach(callback: (...args: unknown[]) => void): void;
+  add(name: string, definition: unknown): void;
+  addHeader(name: string, definition: unknown): void;
+  addToggle(name: string, definition: unknown): void;
+  addList(name: string, definition: unknown): void;
+  addRange(name: string, definition: unknown): void;
+  isEmpty(): boolean;
+  has(name: string): boolean;
+  get(name: string): unknown;
+  delete(name: string): void;
+}
+
+interface SimpleAudioTracksAPI {
+  add(name: string, definition: unknown): void;
+  delete(name: string): void;
+  clear(): void;
+  has(name: string): boolean;
+  get(name: string): unknown;
+}
+
+interface SimpleAudioGroupsAPI {
+  add(name: string, definition: unknown): void;
+  delete(name: string): void;
+  clear(): void;
+  has(name: string): boolean;
+  get(name: string): unknown;
+}
+
+interface SimpleAudioListsAPI {
+  add(name: string, definition: unknown): void;
+  delete(name: string): void;
+  clear(): void;
+  has(name: string): boolean;
+  get(name: string): unknown;
+}
+
+interface SimpleAudioAPI {
+  tracks: SimpleAudioTracksAPI;
+  groups: SimpleAudioGroupsAPI;
+  lists: SimpleAudioListsAPI;
+  select: unknown;
+  load(...args: unknown[]): void;
+  loadWithScreen(...args: unknown[]): void;
+  mute(flag?: boolean): void;
+  muteOnHidden(flag?: boolean): void;
+  rate(value?: number): number;
+  stop(): void;
+  unload(): void;
+  volume(value?: number): number;
+}
+
+/*
+	Adapters List.
+	Core Functions.
+*/
+interface SimpleStoreInstanceAPI {
+  readonly name: string;
+  readonly id: string;
+  readonly persistent: boolean;
+  size(): number;
+  keys(): string[];
+  has(key: string): boolean;
+  get(key: string): unknown;
+  set(key: string, value: unknown): void;
+  delete(key: string): void;
+}
+
+interface SimpleStoreAPI {
+  readonly adapters: unknown[];
+  create(storageId: string, persistent: boolean): SimpleStoreInstanceAPI;
+}
+
+/*
+	State Functions.
+	Moment Functions.
+	History Functions.
+	PRNG Functions.
+	Temporary Variables Functions.
+	Local variables.
+	Variable Chain Parsing Functions.
+	Story Metadata Functions.
+	qc stuff
+	Legacy Aliases.
+*/
+interface StateMoment {
+  readonly title: string;
+  readonly variables: Record<string, unknown>;
+}
+
+interface StateMetadataAPI {
+  clear(): void;
+  delete(key: string): boolean;
+  entries(): Iterable<[string, unknown]>;
+  get(key: string): unknown;
+  has(key: string): boolean;
+  keys(): Iterable<string>;
+  set(key: string, value: unknown): void;
+  readonly size: number;
+}
+
+interface StatePRNGAPI {
+  init(seed: string | number): void;
+  isEnabled(): boolean;
+  pull: number;
+  readonly seed: string | number;
+  str2int(str: string): number;
+  test(seed: string | number): boolean;
+  peek(): number;
+}
+
+interface StateAPI {
+  /* State Functions. */
+  reset(): void;
+  restore(soft?: boolean): boolean;
+  marshalForSave(): unknown;
+  unmarshalForSave(stateObj: unknown): void;
+  readonly expired: string[];
+  readonly turns: number;
+  readonly passages: string[];
+  hasPlayed(passage: string): boolean;
+  getSessionState(): unknown;
+  setSessionState(state: unknown): void;
+
+  /* Moment Functions. */
+  readonly active: StateMoment;
+  readonly activeIndex: number;
+  /** shortcut for `State.active.title` */
+  readonly passage: string;
+  /** shortcut for `State.active.variables` */
+  readonly variables: Record<string, unknown>;
+
+  /* History Functions. */
+  readonly history: StateMoment[];
+  readonly length: number;
+  readonly size: number;
+  isEmpty(): boolean;
+  readonly current: StateMoment | undefined;
+  readonly top: StateMoment | undefined;
+  readonly bottom: StateMoment | undefined;
+  index(offset?: number): number;
+  peek(offset?: number): StateMoment | undefined;
+  has(offset: number): boolean;
+  create(): StateMoment;
+  goTo(index: number): void;
+  go(delta: number): void;
+  deltaEncode(moments: StateMoment[]): unknown;
+  deltaDecode(data: unknown): StateMoment[];
+
+  /* PRNG Functions. */
+  readonly prng: StatePRNGAPI;
+  random(): number;
+
+  /* Temporary Variables Functions. */
+  clearTemporary(): void;
+  readonly temporary: Record<string, unknown>;
+
+  /* Local variables. */
+  pushLocal(): void;
+  popLocal(): Record<string, unknown> | undefined;
+  peekLocal(): Record<string, unknown> | undefined;
+  readonly local: Record<string, unknown>;
+  clearLocal(): void;
+
+  /* Variable Chain Parsing Functions. */
+  getVar(path: string): unknown;
+  setVar(path: string, value: unknown): void;
+
+  /* Story Metadata Functions. */
+  readonly metadata: StateMetadataAPI;
+
+  /* qc stuff */
+  readonly qc: unknown;
+  qcadd(fn: (...args: unknown[]) => void): void;
+
+  /* Legacy Aliases. */
+  initPRNG(seed: string | number): void;
+  restart(): void;
+  backward(): void;
+  forward(): void;
+  display(...args: unknown[]): void;
+  show(...args: unknown[]): void;
+  play(...args: unknown[]): void;
+}
+
+/*
+	Module Exports.
+	Story Functions.
+	Passage Functions.
+*/
+
+
+interface StoryAPI {
+  load(): void;
+  init(): void;
+  readonly title: string;
+  readonly domId: string;
+  readonly ifId: string;
+  add(passage: PassageAPI): void;
+  has(title: string): boolean;
+  get(title: string): PassageAPI;
+  getAllInit(): readonly PassageAPI[];
+  getAllRegular(): readonly PassageAPI[];
+  getAllScript(): readonly string[];
+  getAllStylesheet(): readonly string[];
+  getAllWidget(): readonly string[];
+  lookup(tags: string | string[]): PassageAPI[];
+  lookupWith(predicate: (p: PassageAPI) => boolean): PassageAPI[];
+}
+
+interface TemplateAPI {
+  add(name: string, template: string | ((...args: unknown[]) => string)): void;
+  delete(name: string): void;
+  get(name: string): ((...args: unknown[]) => string) | undefined;
+  has(name: string): boolean;
+  readonly size: number;
+}
+
+/*
+	UI Functions, Core.
+	UI Functions, Built-ins.
+	Legacy Aliases.
+*/
+
+
+interface UIAPI {
+  assembleLinkList(passage?: string): unknown;
+  alert(title: string, message: string): void;
+  jumpto(): void;
+  restart(): void;
+  saves(): void;
+  settings(): void;
+  share(): void;
+  buildAutoload(): unknown;
+  buildJumpto(): unknown;
+  buildRestart(): unknown;
+  buildSaves(): unknown;
+  buildSettings(): unknown;
+  buildShare(): unknown;
+  stow(): void;
+  unstow(): void;
+  setStoryElements(): void;
+  isOpen(...args: Parameters<DialogAPI["isOpen"]>): boolean;
+  body(): ReturnType<DialogAPI["body"]>;
+  setup(...args: Parameters<DialogAPI["setup"]>): ReturnType<DialogAPI["setup"]>;
+  addClickHandler(...args: unknown[]): unknown;
+  open(...args: Parameters<DialogAPI["open"]>): DialogAPI;
+  close(...args: Parameters<DialogAPI["close"]>): DialogAPI;
+  resize(): void;
+  buildDialogAutoload(): unknown;
+  buildDialogJumpto(): unknown;
+  buildDialogRestart(): unknown;
+  buildDialogSaves(): unknown;
+  buildDialogSettings(): unknown;
+  buildDialogShare(): unknown;
+  buildLinkListFromPassage(passage?: string): unknown;
+}
+
+/*
+	UI Bar Functions.
+	Object Exports.
+	Legacy Functions.
+*/
+interface UIBarAPI {
+  destroy(): void;
+  hide(): UIBarAPI;
+  init(): void;
+  isHidden(): boolean;
+  isStowed(): boolean;
+  show(): UIBarAPI;
+  start(): void;
+  stow(): void;
+  unstow(): void;
+  update(): void;
+  setStoryElements(): void;
+}
+
+interface UtilAPI {
+  getType(value: unknown): string;
+  isBoolean(value: unknown): boolean;
+  isIterable(value: unknown): boolean;
+  isNumeric(value: unknown): boolean;
+  sameValueZero(x: unknown, y: unknown): boolean;
+  toEnum<T extends Record<string, string>>(obj: T): T;
+  toStringTag(value: unknown): string;
+  slugify(str: string): string;
+  sanitizeFilename(str: string): string;
+  escapeMarkup(str: string): string;
+  escape(str: string): string;
+  unescape(str: string): string;
+  charAndPosAt(str: string, index: number): { char: string; start: number; end: number };
+  now(): number;
+  fromCssTime(value: string): number;
+  toCssTime(value: number): string;
+  fromCssProperty(value: string): unknown;
+  parseUrl(url: string): { href: string; [key: string]: unknown };
+  newExceptionFrom(ex: unknown): Error;
+  scrubEventKey(key: string): string;
+  hasMediaQuery(query: string): boolean;
+  random(): number;
+  entityEncode(str: string): string;
+  entityDecode(str: string): string;
+  evalExpression(script: string): unknown;
+  evalStatements(script: string): unknown;
+}
+
+/*
+	Version object.
+*/
+interface VersionInfo {
+  readonly title: string;
+  readonly major: string;
+  readonly minor: string;
+  readonly patch: string;
+  readonly prerelease: string;
+  readonly build: string;
+  readonly date: Date;
+  readonly extensions: Record<string, unknown>;
+  toString(): string;
+  short(): string;
+  long(): string;
+}
+
+interface VisibilityAPI {
+  readonly vendor: unknown;
+  readonly state: string;
+  isEnabled(): boolean;
+  isHidden(): boolean;
+  readonly hiddenProperty: string | undefined;
+  readonly stateProperty: string | undefined;
+  readonly changeEvent: string | undefined;
+}
+
+interface WikifierParserProfileAPI {
+  readonly profiles: unknown;
+  compile(name: string, compiler: (...args: unknown[]) => string): void;
+  isEmpty(): boolean;
+  has(name: string): boolean;
+  get(name: string): unknown;
+}
+
+interface WikifierParserAPI {
+  readonly parsers: unknown[];
+  add(parser: { name: string; [key: string]: unknown }): void;
+  delete(name: string): void;
+  isEmpty(): boolean;
+  has(name: string): boolean;
+  get(name: string): unknown;
+  readonly Profile: WikifierParserProfileAPI;
+}
+
+interface WikifierHelpersAPI {
+  inlineCss?: (w: { nextMatch: number; [key: string]: unknown }) => void;
+  [key: string]: unknown;
+}
+
+interface WikifierStaticAPI {
+  Parser: WikifierParserAPI;
+  helpers: WikifierHelpersAPI;
+  stopWikify: boolean;
+  getValue: (path: string) => unknown;
+  setValue: (path: string, value: unknown) => void;
+  parse: (script: string) => unknown;
+  evalExpression: (script: string) => unknown;
+  evalStatements: (script: string) => unknown;
+  textPrimitives: unknown;
+}
+
+interface WikifierConstructor {
+  new (context: DocumentFragment | Element, text: string, options?: unknown): unknown;
+}
+
+type WikifierAPI$1 = WikifierConstructor & WikifierStaticAPI;
 
 declare module 'twine-sugarcube/userdata' {
   export interface SugarCubeSetupObject {
@@ -33,6 +810,57 @@ declare module 'twine-sugarcube' {
     isAsync?: boolean;
     isWidget?: boolean;
   }
+}
+
+interface DolStateAPI extends StateAPI {
+  show(): void;
+}
+
+interface DolSaveAPI extends SaveAPI {
+  serialize(metadata?: any): string;
+  deserialize(saveStr: string): any;
+}
+
+type WikifierAPI = WikifierAPI$1 & {
+  wikifyEval(text: string, passageObj?: { title: string }, passageTitle?: string): DocumentFragment;
+};
+
+interface SugarCubeUtilAPI extends UtilAPI {
+  [key: string]: any;
+}
+
+interface TwineSugarCube {
+  Browser: BrowserAPI;
+  Config: ConfigAPI;
+  Dialog: DialogAPI;
+  Engine: EngineAPI;
+  Fullscreen: FullscreenAPI;
+  Has: HasAPI;
+  L10n: L10nAPI;
+  Links: LinksAPI;
+  LoadScreen: LoadScreenAPI;
+  Macro: MacroAPI;
+  Passage: PassageConstructor;
+  Save: DolSaveAPI;
+  Scripting: ScriptingAPI;
+  Setting: SettingAPI;
+  SimpleAudio: SimpleAudioAPI;
+  SimpleStore: SimpleStoreAPI;
+  State: DolStateAPI;
+  Story: StoryAPI;
+  Template: TemplateAPI;
+  UI: UIAPI;
+  UIBar: UIBarAPI;
+  DebugBar: DebugBarAPI;
+  Util: SugarCubeUtilAPI;
+  Visibility: VisibilityAPI;
+  Wikifier: WikifierAPI;
+  idb: IdbAPI;
+  session: SimpleStoreInstanceAPI | null;
+  settings: Record<string, unknown>;
+  setup: Record<string, unknown>;
+  storage: SimpleStoreInstanceAPI | null;
+  version: VersionInfo;
 }
 
 declare global {
@@ -200,7 +1028,6 @@ declare global {
   type CanvasLayerMap = Record<string, LayerConfig>;
   type CanvasLayerFilter = string | Record<string, any>;
 
-  // DOL 的 src / masksrc 有时可能是 string[]，所以单独抽出来
   type CanvasLayerSrc = string | string[] | undefined;
 
   type CanvasLayerValueFn<T = any> = (options: any) => T;
@@ -327,60 +1154,11 @@ declare global {
   }
 }
 
-interface WikifierAPI extends WikifierAPI$1 {
-  new (destination: Node | DocumentFragment | string | null, source?: string): any;
-  wikifyEval(text: string, passageObj?: { title: string }, passageTitle?: string): DocumentFragment;
-}
-
-interface SugarCubeUtilAPI {
-  sameValueZero(left: any, right: any): boolean;
-  slugify(value: string): string;
-  [key: string]: any;
-}
-
-interface DolStateAPI extends StateAPI {
-  readonly qc: number;
-  show(): void;
-  deltaEncode(history: any[]): any;
-  deltaDecode(delta: any): any[];
-}
-
-interface DolSaveAPI extends SaveAPI {
-  serialize(metadata?: any): string;
-  deserialize(saveStr: string): any;
-}
-
-interface TwineSugarCube {
-  Browser: SugarCubeObject['Browser'];
-  Config: SugarCubeObject['Config'];
-  Dialog: SugarCubeObject['Dialog'];
-  Engine: SugarCubeObject['Engine'];
-  Fullscreen: SugarCubeObject['Fullscreen'];
-  Has: SugarCubeObject['Has'];
-  L10n: any;
-  Macro: SugarCubeObject['Macro'];
-  Passage: typeof Passage;
-  Save: DolSaveAPI;
-  Scripting: SugarCubeObject['Scripting'];
-  Setting: SugarCubeObject['Setting'];
-  SimpleAudio: SugarCubeObject['SimpleAudio'];
-  State: DolStateAPI;
-  Story: SugarCubeObject['Story'];
-  UI: SugarCubeObject['UI'];
-  UIBar: SugarCubeObject['UIBar'];
-  DebugBar: any;
-  Util: SugarCubeUtilAPI;
-  Visibility: any;
-  Wikifier: WikifierAPI;
-  session: SugarCubeObject['session'];
-  settings: SugarCubeObject['settings'];
-  setup: SugarCubeObject['setup'];
-  storage: SugarCubeObject['storage'];
-  version: SugarCubeObject['version'];
-}
-
 declare class Logger {
     readonly core: MaplebirchCore;
+    private static readonly LogConfig;
+    private static readonly LogLevel;
+    private level;
     constructor(core: MaplebirchCore);
     fromIDB(): Promise<void>;
     log(message: string, levelName?: string | number, ...objects: any[]): void;
@@ -391,18 +1169,27 @@ declare class Logger {
 type EventCallback = (...args: any[]) => any;
 declare class EventEmitter {
     readonly core: MaplebirchCore;
+    private readonly events;
+    private readonly afters;
+    private readonly stickyEvents;
+    private readonly stickyArgs;
     constructor(core: MaplebirchCore);
     on(eventName: string, callback: EventCallback, description?: string): boolean;
     off(eventName: string, identifier: EventCallback | string): boolean;
     once(eventName: string, callback: EventCallback, description?: string): boolean;
     trigger(eventName: string, ...args: any[]): Promise<void>;
     after(eventName: string, callback: EventCallback): void;
+    private callSticky;
 }
 
 declare class IndexedDBService {
     readonly core: MaplebirchCore;
     static DATABASE_NAME: string;
     static DATABASE_VERSION: number;
+    private db;
+    private ready;
+    private opening;
+    private stores;
     constructor(core: MaplebirchCore);
     register(name: string, options?: IDBObjectStoreParameters, indexes?: Array<{
         name: string;
@@ -410,6 +1197,9 @@ declare class IndexedDBService {
         options?: IDBIndexParameters;
     }>): void;
     init(): Promise<void>;
+    private reopenDatabase;
+    private openDatabase;
+    private createStores;
     withTransaction<T>(storeNames: string | string[], mode: IDBTransactionMode, callback: (tx: any) => T | Promise<T>): Promise<T>;
     clearStore(storeName: string): Promise<void>;
     deleteDatabase(): Promise<boolean>;
@@ -458,6 +1248,8 @@ interface CloudSaveAuthResponse {
 }
 declare class CloudSaveService {
     readonly core: MaplebirchCore;
+    private static readonly PANEL_STORAGE_KEY;
+    private config;
     constructor(core: MaplebirchCore);
     configure(config: CloudSaveConfig): this;
     register(username: string, password: string, passphrase?: string): Promise<CloudSaveAuthResponse>;
@@ -480,6 +1272,47 @@ declare class CloudSaveService {
     downloadCode(): Promise<string>;
     mountPanel(): void;
     panelAction(action: PanelAction, slot?: CloudSaveSlot): Promise<void>;
+    private runPanelAction;
+    private panelDone;
+    private readPanel;
+    private panel;
+    private field;
+    private setField;
+    private panelSlot;
+    private loadPanelConfig;
+    private savePanelConfig;
+    private refreshPanel;
+    private remoteRow;
+    private status;
+    private errorMessage;
+    private auth;
+    private connect;
+    private isServerEndpoint;
+    private server;
+    private setServerAuth;
+    private webdavPutSlot;
+    private webdavPutCode;
+    private readManifest;
+    private updateManifest;
+    private emptyManifest;
+    private ensureWebdav;
+    private webdavRequest;
+    private webdavFetch;
+    private webdavPath;
+    private packSlot;
+    private unpackSlot;
+    private packCode;
+    private unpackCode;
+    private normalizeSave;
+    private encrypt;
+    private decrypt;
+    private compress;
+    private decompress;
+    private deriveKey;
+    private isServer;
+    private currentConfig;
+    private endpointUrl;
+    private activePassphrase;
 }
 
 type LanguageCode = (typeof Languages)[number];
@@ -500,16 +1333,37 @@ declare class LanguageManager {
     static readonly DEFAULT_LANGS: readonly LanguageCode[];
     static readonly BATCH_SIZE = 500;
     language: LanguageCode;
+    private readonly STORE;
+    private translations;
+    private textCache;
+    private fileHashes;
+    private preloaded;
     constructor(core: MaplebirchCore);
+    private initDB;
     setLanguage(language?: string): Promise<LanguageCode>;
     import(modName: string, languages?: readonly LanguageCode[]): AsyncGenerator<ImportProgress>;
     importFile(modName: string, language: LanguageCode, path: string): AsyncGenerator<ImportProgress>;
     t(translationKey: string, space?: boolean): string;
     auto(text: string): string;
     preload(): Promise<void>;
+    private loadBundledTranslations;
     clearStorage(): Promise<void>;
     has(translationKey: string): boolean;
     set(translationKey: string, translations: Record<string, unknown>): boolean;
+    private writeTranslations;
+    private writeBatch;
+    private writeBatchRaw;
+    private removeOldTranslations;
+    private readFileRecord;
+    private writeFileRecord;
+    private loadFileTranslations;
+    private loadTranslation;
+    private findLoadedText;
+    private findTextInDB;
+    private parseTranslations;
+    private computeHash;
+    private getModFile;
+    private setFileHash;
 }
 
 interface ModuleRegistry {
@@ -529,11 +1383,33 @@ declare class ModuleSystem {
     readonly core: MaplebirchCore;
     readonly registry: ModuleRegistry;
     readonly initPhase: InitPhase;
+    private sourceStack;
+    private preInitialized;
+    private waiters;
+    private disabledNames;
+    private circularCache;
     constructor(core: MaplebirchCore);
     withSource<T>(source: string, callback: () => T | Promise<T>): Promise<T>;
     register(name: string, module: any, dependencies?: string[]): boolean;
     get dependencyGraph(): any;
     init(phase: 'pre' | 'init' | 'load' | 'post'): Promise<void>;
+    private moduleDisabled;
+    private handleEarlyMount;
+    private scheduleEarlyMountCheck;
+    private collectAllDependencies;
+    private storeModule;
+    private processWaitingQueue;
+    private waitForModule;
+    private resolveWaiters;
+    private checkDependencies;
+    private addToWaitingQueue;
+    private moduleInit;
+    private moduleHook;
+    private handlePreInitComplete;
+    private phaseInit;
+    private TopologicalOrder;
+    private circularDependency;
+    private detectCircularDependency;
 }
 
 type ModuleType = 'protected' | 'mounted' | 'exposed' | 'module';
@@ -555,13 +1431,21 @@ declare class GUIControl {
     disabledModules: ModuleInfo[];
     enabledScripts: string[];
     disabledScripts: string[];
+    private modSubUiAngularJsService;
     constructor(core: MaplebirchCore);
+    private initSettings;
     init(): Promise<void>;
+    private loadSettings;
+    private modNames;
+    private currentModules;
     typeLabel(type: ModuleType): string;
+    private modulesStore;
+    private scriptsStore;
     saveModules(enabled: ModuleInfo[], disabled: ModuleInfo[]): Promise<void>;
     saveScripts(enabled: string[], disabled: string[]): Promise<void>;
     cascadeModules(action: 'enable' | 'disable', moduleName: string, modules: ModulesSettings): string[];
     get moduleList(): string;
+    private whenCreate;
 }
 
 type TimeUnit = 'sec' | 'min' | 'hour' | 'day' | 'week' | 'month' | 'year';
@@ -635,6 +1519,10 @@ interface TimeTravelOptions {
     addSeconds?: number;
 }
 declare class TimeManager {
+    private readonly manager;
+    private readonly eventTypes;
+    private readonly timeEvents;
+    private readonly sortedEventsCache;
     readonly log: (message: string, level?: string, ...objects: any[]) => void;
     readonly TimeConstants: Readonly<{
         secondsPerDay: 86400;
@@ -671,6 +1559,12 @@ declare class TimeManager {
     unregister(type: string, eventId: string): boolean;
     timeTravel(options?: TimeTravelOptions): boolean;
     updateTimeLanguage(choice?: 'JournalTime'): string | boolean;
+    private handleTimePass;
+    private handleTimeTravel;
+    private targetDate;
+    private timeData;
+    private triggerUnitEvents;
+    private trigger;
 }
 
 interface StateEventOptions {
@@ -687,8 +1581,13 @@ interface StateEventOptions {
     };
 }
 declare class StateManager {
+    private readonly manager;
+    private readonly stateEvents;
+    private readonly log;
     constructor(manager: DynamicManager);
     trigger(type: 'gate' | 'append'): string;
+    private processGateEvents;
+    private processAppendEvents;
     register(type: string, eventId: string, options: StateEventOptions): boolean;
     unregister(type: string, eventId: string): boolean;
     init(): void;
@@ -728,7 +1627,18 @@ interface WeatherException {
     temperature?: number;
 }
 declare class WeatherManager {
+    private readonly manager;
+    private readonly weatherEvents;
+    private readonly activeEvents;
+    private sortedEventsCache;
+    private readonly Exceptions;
+    private readonly WeatherTypes;
+    private readonly layerModifications;
+    private readonly effectModifications;
+    private weatherTriggered;
+    private readonly log;
     constructor(manager: DynamicManager);
+    private checkEvents;
     register(eventId: string, options: WeatherEventOptions): boolean;
     unregister(eventId: string): boolean;
     addLayer(layerName: string, patch: any, mode?: 'concat' | 'replace' | 'merge'): this;
@@ -840,6 +1750,10 @@ declare function contains(arr: unknown[], value: unknown, mode?: ContainsMode, o
 declare function random(min?: number, max?: number, float?: boolean): number;
 declare function either(items: any[], weights?: number[] | null, allowNull?: boolean): any;
 declare class SelectCase {
+    private cases;
+    private defaultResult;
+    private valueType;
+    private allowMixedTypes;
     case(cond: string | number, result: any): this;
     case(cond: (input: any, meta?: any) => boolean, result: any): this;
     casePredicate(fn: (input: any, meta?: any) => boolean, result: any): this;
@@ -850,6 +1764,7 @@ declare class SelectCase {
     caseCompare(op: '<' | '<=' | '>' | '>=', val: number, result: any): this;
     else(result: any): this;
     match(input: any, meta?: any): any;
+    private validateType;
 }
 declare function convert(str: string, mode?: ConvertMode$1, opt?: {
     delimiter?: string;
@@ -933,8 +1848,19 @@ declare namespace utils {
 }
 
 declare class TimeTravelCheat {
+    private readonly core;
+    private readonly ids;
     constructor(core: MaplebirchCore);
     fragment(): DocumentFragment;
+    private createRoot;
+    private bind;
+    private render;
+    private fieldInput;
+    private setFields;
+    private readFields;
+    private syncDayLimit;
+    private travel;
+    private status;
 }
 
 interface JSExecutionResult {
@@ -962,11 +1888,22 @@ interface ExecutionResult {
 }
 declare class CheatConsole {
     readonly manager: ToolCollection;
+    private readonly log;
+    private readonly core;
+    private readonly globals;
     readonly timeTravel: TimeTravelCheat;
+    private readonly jsStatus;
+    private readonly twineStatus;
+    private readonly twineOutputs;
     constructor(manager: ToolCollection);
     executeJS(code?: string): JSExecutionResult;
     executeTwine(code?: string): TwineExecutionResult;
     execute(type: 'javascript' | 'twine', code?: string): ExecutionResult;
+    private runJavaScript;
+    private linkTarget;
+    private html;
+    private format;
+    private showStatus;
 }
 
 interface Step {
@@ -992,9 +1929,13 @@ declare class migration {
     readonly log: (message: string, level?: string, ...objects: any[]) => void;
     readonly utils: Utils;
     steps: Step[];
+    private readonly unsafeKeys;
     constructor();
     add(from: string, to: string, apply: Step['apply']): void;
     run(data: Record<string, any>, targetVersion: string): void;
+    private path;
+    private move;
+    private compare;
 }
 
 interface RandState {
@@ -1007,6 +1948,8 @@ declare class randSystem {
     static create(state?: Partial<RandState>): randSystem;
     readonly log: (message: string, level?: string, ...objects: any[]) => void;
     readonly state: RandState;
+    private readonly maxHistory;
+    private readonly modulus;
     constructor(state?: Partial<RandState>);
     reset(seed?: number): void;
     int(max: number): number;
@@ -1017,6 +1960,8 @@ declare class randSystem {
     set seed(value: number);
     get history(): number[];
     get index(): number;
+    private next;
+    private normalize;
 }
 
 declare const CONVERT_MODES: readonly ["lower", "upper", "capitalize", "title", "camel", "pascal", "snake", "kebab", "constant"];
@@ -1081,6 +2026,8 @@ declare class Builder {
 declare class htmlTools {
     readonly core: ToolCollection['core'];
     readonly log: ReturnType<typeof createlog>;
+    private uid;
+    private readonly store;
     constructor(manager: ToolCollection);
     get Wikifier(): any;
     replaceText(oldText: string, newText: string): void;
@@ -1133,6 +2080,7 @@ declare class zonesManager {
     locationPassage: Record<string, PatchSet[]>;
     widgetPassage: Record<string, PatchSet[]>;
     widgethtml: string;
+    private functions;
     constructor(manager: ToolCollection);
     inject(...databases: Partial<Pick<zonesManager, 'specialWidget' | 'defaultData' | 'locationPassage' | 'widgetPassage'>>[]): void;
     onInit(...widgets: InitFunction[]): void;
@@ -1141,6 +2089,19 @@ declare class zonesManager {
     call(name: string): any;
     play(zone: string, passageTitle?: string): any;
     patchModToGame(manager: AddonPlugin, type: 'before' | 'after'): void;
+    private get widgets();
+    private get specials();
+    private defaultContent;
+    private render;
+    private shouldRender;
+    private customLinkItem;
+    private matchAndApply;
+    private applyPatch;
+    private wrapSpecialPassage;
+    private applyContentPatches;
+    private patchPassage;
+    private widgetInit;
+    private hash;
 }
 
 interface CustomZone {
@@ -1170,6 +2131,14 @@ declare class LinkZoneManager {
     constructor(containerId?: string, linkSelector?: string, logger?: typeof log);
     detect(): boolean;
     applyZones(config: LinkZoneConfig, customZones: CustomZone[]): boolean;
+    private applyBefore;
+    private applyAfter;
+    private applyCustom;
+    private zone;
+    private insertAfterBreak;
+    private findBreakBefore;
+    private isBreak;
+    private visible;
 }
 declare const applyLinkZone: typeof LinkZoneManager;
 
@@ -1366,6 +2335,8 @@ declare class Playlist {
     tracks: Track[];
     currentIndex: number;
     playMode: PlayModeType;
+    private shuffleOrder;
+    private shuffleIndex;
     constructor(name: string);
     add(input: Track | Track[]): void;
     removeAt(index: number): boolean;
@@ -1376,6 +2347,8 @@ declare class Playlist {
     next(): Track | null;
     previous(): Track | null;
     get length(): number;
+    private resetShuffle;
+    private shuffle;
 }
 
 declare const PlayState: {
@@ -1411,7 +2384,24 @@ interface AudioSnapshot {
 declare class AudioManager {
     readonly core: MaplebirchCore;
     readonly log: ReturnType<typeof createlog>;
+    private readonly STORE;
+    private readonly playlists;
+    private readonly eventListeners;
+    private readonly cache;
+    private activePlaylist;
+    private currentTrack;
+    private currentHowl;
+    private state;
+    private volume;
+    private muted;
+    private autoNext;
+    private maxCache;
+    private cacheCount;
+    private playRequestId;
+    private progressTimer;
+    private progressBindings;
     constructor(core: MaplebirchCore);
+    private initDB;
     protected on(event: string, handler: AudioEventHandler): void;
     protected off(event: string, handler: AudioEventHandler): boolean;
     protected once(event: string, handler: AudioEventHandler): void;
@@ -1454,6 +2444,20 @@ declare class AudioManager {
     bindProgress(sliderId: string, timeId: string, interval?: number): void;
     unbindProgress(sliderId: string, timeId: string): void;
     preInit(): Promise<void>;
+    private load;
+    private save;
+    private readRecords;
+    private cacheAudio;
+    private unloadCache;
+    private trimCache;
+    private release;
+    private stopCurrent;
+    private get outputVolume();
+    private startProgressTimer;
+    private stopProgressTimer;
+    private handleTrackEnd;
+    private dispatch;
+    private emit;
 }
 
 interface HairGradientsReturn {
@@ -1462,6 +2466,7 @@ interface HairGradientsReturn {
 }
 declare class Variables {
     readonly core: MaplebirchCore;
+    private static readonly OPTIONS_STORAGE_KEY;
     static get options(): {
         character: {
             mask: number;
@@ -1509,6 +2514,7 @@ declare class Variables {
     readonly migration: migration;
     hairgradients: () => HairGradientsReturn;
     constructor(core: MaplebirchCore);
+    private mapProcessing;
     optionsStorage(action: 'save' | 'restore' | 'reset' | 'load'): any | null;
     optionsCheck(): void;
     Init(): void;
@@ -1525,7 +2531,13 @@ interface PetOptions {
 }
 type PetTarget = string | HTMLElement;
 declare class Pet {
+    private manager;
     readonly modelName: string;
+    private canvas?;
+    private model?;
+    private container?;
+    private options;
+    private cleanupDrag?;
     constructor(manager: Character);
     sync(): boolean;
     capture(mainModel?: CanvasModelOptions): void;
@@ -1533,6 +2545,25 @@ declare class Pet {
     unmount(): void;
     refresh(): boolean;
     configure(options?: PetOptions): this;
+    private get models();
+    private get displaySize();
+    private readSettings;
+    private ensureModelReady;
+    private renderCanvas;
+    private drawWithModel;
+    private renderOptions;
+    private pickLayers;
+    private isPetLayer;
+    private resolveTarget;
+    private resetBox;
+    private applyBoxLayout;
+    private enableDrag;
+    private applyFloatingPosition;
+    private clampPosition;
+    private loadPosition;
+    private savePosition;
+    private cleanupCurrent;
+    private stopAnimation;
 }
 
 type DecayCondition = () => boolean;
@@ -1572,21 +2603,30 @@ interface TransformationOption extends EntryOptions {
     traits?: Part[];
 }
 declare class Transformation {
+    private manager;
+    private log;
+    private config;
     readonly decayConditions: Record<string, DecayCondition[]>;
     readonly suppressConditions: Record<string, SuppressCondition[]>;
     readonly buildUpdaters: Record<string, BuildUpdater>;
     constructor(manager: Character);
+    private isDoLP;
+    private get animalTransforms();
+    private get animalMacros();
+    private get historyTransforms();
     wikifier(widget: string, ...args: any[]): any;
     modifyEffect(manager: AddonPlugin): void;
     add(name: string, type: string, options: TransformationOption): this;
     inject(): void;
     _update(): void;
     _clear(): void;
+    private suppress;
     _transform(name: string, change: number): void;
     updateTransform(name: string): void;
     _updateParts(name: string, oldLevel: number, newLevel: number): void;
     _transformationAlteration(): void;
     _transformationStateUpdate(): void;
+    private handleHiddenTransformParts;
     message(key: string, tools: {
         element: (tag: string, text: any, className?: string) => void;
         wikifier: (macro: string, param: string) => void;
@@ -1613,6 +2653,8 @@ declare class Character {
     readonly mask: typeof mask;
     readonly faceStyleSrcFn: typeof faceStyleSrcFn;
     readonly faceStyleMap: Map<string, string[]>;
+    private readonly handlers;
+    private readonly layers;
     readonly pet: Pet;
     readonly transformation: Transformation;
     constructor(core: MaplebirchCore);
@@ -1626,6 +2668,12 @@ declare class Character {
     process(type: ProcessType, options: CanvasModelOptionsData, model?: CanvasModel): void;
     modifyFaceStyle(manager: AddonPlugin): void;
     faceStyleImagePaths(): Promise<void>;
+    private addFaceOption;
+    private label;
+    private _faceStyleSetupOption;
+    private renderCharacter;
+    private renderOverlay;
+    private adjustCanvasSize;
     render(): Promise<void>;
     preInit(): void;
     Init(): void;
@@ -1695,6 +2743,7 @@ declare class Schedule {
     resolveLocation(loc: ScheduleLocation, date: EnhancedDate): string;
     createEnhancedDate(date: DateTime): EnhancedDate;
     buildEnhancedDateProto(): EnhancedDate;
+    private dailyLocation;
 }
 declare const NPCSchedules: typeof Schedule & {
     readonly schedules: Map<string, Schedule>;
@@ -1737,6 +2786,8 @@ interface WearRule {
 declare class NPCSidebarWardrobeProfile {
     name: string;
     outfits: string[];
+    private location;
+    private global;
     constructor(name: string, outfits?: string[], location?: Record<string, WearRule[]>, global?: WearRule[]);
     wear(location: string, key: string, cond?: Condition): this;
     get worn(): WardrobeItem;
@@ -1868,13 +2919,24 @@ declare class NPCPregnancy {
     readonly randomAlwaysKeep: string[];
     readonly vanilla: VanillaPregnancyHooks;
     readonly generators: Map<string, PregnancyGenerator>;
+    private readonly patch;
+    private readonly configs;
+    private readonly npcConfigs;
+    private readonly births;
+    private readonly etas;
+    private readonly children;
+    private readonly childActivities;
+    private readonly texts;
     constructor(manager: NPCManager);
     definePregnancyProperty(npc: PregnancyNPC): void;
     get typesEnabled(): string[];
     add(type: string, config?: PregnancyGenerator | PregnancyAddConfig): void;
     addNpc(npcName: string, typeOrConfig: string | PregnancyNpcConfig, config?: PregnancyNpcConfig): void;
     addChild(type: string, config: PregnancyChildConfig): void;
+    private addTypeConfig;
+    private addChildConfig;
     typeOf(target: string | PregnancyNPC | null | undefined): any;
+    private npcNameOf;
     NPCPregnancy(npc: PregnancyNPC): void;
     avoidance(npc: PregnancyNPC): void;
     savedPregnancy(): any;
@@ -1887,6 +2949,24 @@ declare class NPCPregnancy {
     vanillaMacro(macro: MacroDefinition | undefined, args: any[], context?: any): false | void;
     cycle(days?: number): void;
     endNpcPregnancy(npcName: string, birthLocation?: string, location?: string, context?: any): false | void;
+    private cycleDay;
+    private progressPregnancy;
+    private progressCycle;
+    private multiplier;
+    private shouldAutoEnd;
+    private handleMissedBirth;
+    private birthLocation;
+    private configFor;
+    private isDangerousDay;
+    private forcePregnancy;
+    private applyChildConfig;
+    private applyChildTransform;
+    private spermObjectToArray;
+    private playerPregnancy;
+    private namedNpcPregnancyAttempt;
+    private pickPlayerSperm;
+    private allowsPlayerPregnancyType;
+    private validPregnancy;
 }
 
 type NPCFluidPart = 'vagina' | 'anus' | 'mouth' | 'chest' | 'face' | 'feet' | 'leftarm' | 'rightarm' | 'neck' | 'thigh' | 'tummy';
@@ -1917,6 +2997,8 @@ interface NPCTransformationConfig {
     layers?: CanvasLayerMap;
 }
 declare class NPCTransformation {
+    private readonly manager;
+    private readonly configs;
     constructor(manager: NPCManager);
     add(type: string, config?: NPCTransformationConfig): this;
     ensure(npcName: string, type?: string): Record<string, NPCTransformationState>;
@@ -1929,6 +3011,7 @@ declare class NPCTransformation {
     pregnancyType(npcName: string): string;
     applyBody(nnpc: Record<string, any>, npcData: any): void;
     applySidebar(nnpc: Record<string, any>): void;
+    private active;
 }
 
 type PronounCode = 'm' | 'f' | 'i' | 'n' | 't';
@@ -2122,6 +3205,7 @@ interface OptionsTable {
 declare class CombatActions {
     readonly actions: ActionEntry[];
     reg(...configs: ActionConfig[]): this;
+    private eval;
     patchOptions(optionsTable: OptionsTable, actionType: ActionType, combatType?: CombatType): OptionsTable;
     color(action: any, encounterType?: CombatType): string | null;
     difficulty(action: any, combatType?: CombatType): string | null;
@@ -2133,6 +3217,9 @@ declare class CombatManager {
     readonly log: ReturnType<typeof createlog>;
     readonly CombatAction: CombatActions;
     constructor(core: MaplebirchCore);
+    private _generateCombatAction;
+    private _combatListColor;
+    private _combatButtonAdjustments;
     Init(): void;
 }
 
@@ -2253,8 +3340,22 @@ interface CryptOptions {
 }
 declare class CredentialVault {
     readonly core: MaplebirchCore;
+    private static readonly STORE;
+    private static readonly TOKEN_PREFIX;
+    private dialogQueue;
     constructor(core: MaplebirchCore);
+    private readPassword;
+    private unlock;
     loadCrypt(options: CryptOptions): Promise<boolean>;
+    private decryptAndLoad;
+    private storePassword;
+    private ensurePromptStyle;
+    private promptCredential;
+    private verify;
+    private forget;
+    private ensureStorageKey;
+    private encryptRecord;
+    private decryptRecord;
 }
 
 interface Task<T = any> {
@@ -2274,6 +3375,9 @@ interface FileItem {
 declare class AddonPlugin {
     readonly core: MaplebirchCore;
     onStart: boolean;
+    private onSaveLoadTracer;
+    private readonly disabledMods;
+    private readonly blockedPassages;
     readonly replace: typeof replace;
     readonly SC2DataManager: SC2DataManager;
     readonly modUtils: ModUtils;
@@ -2306,6 +3410,13 @@ declare class AddonPlugin {
     whenSC2PassageDisplay(passage: Passage, content: HTMLDivElement): Promise<any>;
     whenSC2PassageEnd(passage: Passage, content: HTMLDivElement): Promise<any>;
     loadCrypt(options: CryptOptions): Promise<boolean>;
+    private scriptFiles;
+    private dataReplace;
+    private loadFiles;
+    private executeScripts;
+    private processInit;
+    private static modifyOptionsDateFormat;
+    private saveHandle;
 }
 
 export { type Extensions, MaplebirchCore, maplebirch as default, utils };

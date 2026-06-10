@@ -1,6 +1,6 @@
 {
   "name": "@scml-maplebirch/types",
-  "version": "4.1.0",
+  "version": "4.1.1",
   "description": "TypeScript definitions for maplebirchFramework.",
   "license": "MIT",
   "types": "index.d.ts",
@@ -27,6 +27,7 @@
     "access": "public"
   },
   "dependencies": {
+    "@scml/sc2-verlnir": "^1.0.7",
     "@scml/types": "^1.0.7",
     "@types/howler": "^2.2.12",
     "@types/js-yaml": "^4.0.5",

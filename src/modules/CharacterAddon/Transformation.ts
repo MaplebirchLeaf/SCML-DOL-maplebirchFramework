@@ -398,7 +398,7 @@ class Transformation {
         ? 1
         : 0;
 
-    if ((V.physicalTransform === 1 || V.specialTransform === 1) && !(V.hypnosis_traits?.peace && V.settings.hypnosisEnabled)) this.#handleHiddenTransformParts();
+    if ((V.physicalTransform === 1 || V.specialTransform === 1) && !(V.hypnosis_traits?.peace && V.settings.hypnosisEnabled)) this.handleHiddenTransformParts();
 
     for (const tf of this.historyTransforms) {
       const level = tf.level();
@@ -418,7 +418,7 @@ class Transformation {
     }
   }
 
-  #handleHiddenTransformParts(): void {
+  private handleHiddenTransformParts(): void {
     let excludeWings = false;
 
     if (V.harpy >= 6 && V.transformationParts.bird?.wings !== 'hidden') {
