@@ -25,7 +25,6 @@ class EventEmitter {
       [':variable'       , []], // V变量可注入时机
       [':onSave'         , []], // 存档
       [':onLoad'         , []], // 读档
-      [':onLoadSave'     , []], // 加载存档
       [':language'       , []], // 语言切换
       [':storyready'     , []], // 游戏准备
       [':passageinit'    , []], // 段落注入

@@ -54,34 +54,34 @@ When the player selects this action, `$leftaction` becomes `myModQuickStrike`. D
 
 ## Config
 
-| Field | Required | Description |
-| :--- | :--- | :--- |
-| `id` | Yes | Unique action id; a mod prefix is recommended |
-| `actionType` | Yes | Target action list |
-| `cond(ctx)` | Yes | Button visibility |
-| `display(ctx)` | Yes | Text shown on the button/list option |
-| `value(ctx)` | Yes | Value written into `$leftaction`, `$rightaction`, etc. |
-| `effect` | No | Twine text or function executed in `effectsman` |
-| `color` | No | Button/list color, default `white` |
-| `difficulty` | No | Difficulty or hint text shown near the action |
-| `combatType` | No | Combat type filter, default `Default` |
-| `order` | No | Sort value, default `-4`; lower values appear earlier |
+| Field          | Required | Description                                            |
+| :------------- | :------- | :----------------------------------------------------- |
+| `id`           | Yes      | Unique action id; a mod prefix is recommended          |
+| `actionType`   | Yes      | Target action list                                     |
+| `cond(ctx)`    | Yes      | Button visibility                                      |
+| `display(ctx)` | Yes      | Text shown on the button/list option                   |
+| `value(ctx)`   | Yes      | Value written into `$leftaction`, `$rightaction`, etc. |
+| `effect`       | No       | Twine text or function executed in `effectsman`        |
+| `color`        | No       | Button/list color, default `white`                     |
+| `difficulty`   | No       | Difficulty or hint text shown near the action          |
+| `combatType`   | No       | Combat type filter, default `Default`                  |
+| `order`        | No       | Sort value, default `-4`; lower values appear earlier  |
 
 Most fields except `id` and `actionType` may be functions. Functions receive a `ctx` object.
 
 ## actionType
 
-| Value | Meaning |
-| :--- | :--- |
-| `leftaction` | Left hand |
-| `rightaction` | Right hand |
-| `feetaction` | Feet |
-| `mouthaction` | Mouth |
-| `penisaction` | Penis |
-| `vaginaaction` | Vagina |
-| `anusaction` | Anus |
-| `chestaction` | Chest |
-| `thighaction` | Thighs |
+| Value          | Meaning    |
+| :------------- | :--------- |
+| `leftaction`   | Left hand  |
+| `rightaction`  | Right hand |
+| `feetaction`   | Feet       |
+| `mouthaction`  | Mouth      |
+| `penisaction`  | Penis      |
+| `vaginaaction` | Vagina     |
+| `anusaction`   | Anus       |
+| `chestaction`  | Chest      |
+| `thighaction`  | Thighs     |
 
 The same action can be registered to multiple lists:
 
@@ -101,13 +101,13 @@ maplebirch.combat.CombatAction.reg({
 `effect` is the Twine content that runs after the action is selected. The recommended form is a widget call:
 
 ```javascript
-effect: '<<myModGuardEffect>>'
+effect: '<<myModGuardEffect>>';
 ```
 
 It can also be a function:
 
 ```javascript
-effect: ctx => ctx.actionType === 'leftaction' ? '<<myModLeftGuardEffect>>' : '<<myModRightGuardEffect>>'
+effect: ctx => (ctx.actionType === 'leftaction' ? '<<myModLeftGuardEffect>>' : '<<myModRightGuardEffect>>');
 ```
 
 The framework wraps the `effect` in an action check, resets the corresponding action variable to `0`, and updates the default action:
@@ -145,7 +145,7 @@ maplebirch.combat.CombatAction.reg({
     const hour = Time.hour;
     return V.myMod?.moonBlessing && (hour >= 18 || hour <= 6);
   },
-  display: () => Time.hour >= 0 && Time.hour <= 3 ? 'Moonlight heal (strong)' : 'Moonlight heal',
+  display: () => (Time.hour >= 0 && Time.hour <= 3 ? 'Moonlight heal (strong)' : 'Moonlight heal'),
   value: () => 'myModMoonlightHeal',
   color: 'green',
   difficulty: () => '<span class="green">(Safe)</span>',

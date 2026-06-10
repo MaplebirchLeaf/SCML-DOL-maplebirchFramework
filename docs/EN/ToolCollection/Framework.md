@@ -59,18 +59,18 @@ maplebirch.tool.addTo('StatusBar', {
 
 ## Common Zones
 
-| Zone | Position |
-| :--- | :--- |
-| `Options` | Options page |
-| `Cheats` | Cheats page |
-| `Information` | Information area |
-| `Header` | Passage header |
-| `Footer` | Passage footer |
-| `StatusBar` | Sidebar status |
-| `MenuBig` | Big menu area |
-| `MenuSmall` | Small menu area |
-| `BeforeLinkZone` | Before link area |
-| `AfterLinkZone` | After link area |
+| Zone             | Position               |
+| :--------------- | :--------------------- |
+| `Options`        | Options page           |
+| `Cheats`         | Cheats page            |
+| `Information`    | Information area       |
+| `Header`         | Passage header         |
+| `Footer`         | Passage footer         |
+| `StatusBar`      | Sidebar status         |
+| `MenuBig`        | Big menu area          |
+| `MenuSmall`      | Small menu area        |
+| `BeforeLinkZone` | Before link area       |
+| `AfterLinkZone`  | After link area        |
 | `CustomLinkZone` | Specific link position |
-| `Journal` | Journal extension |
-| `MobileStats` | Mobile stats area |
+| `Journal`        | Journal extension      |
+| `MobileStats`    | Mobile stats area      |

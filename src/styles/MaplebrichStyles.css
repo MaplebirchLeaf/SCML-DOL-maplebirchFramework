@@ -611,30 +611,73 @@
   }
 }
 
+/* TimeTravelCheat */
 .maplebirch-time-travel {
+  --tt-input-width: 4.5rem;
+  --tt-button-width: 4.5rem;
+
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
+  width: 100%;
 }
 
-.maplebirch-time-travel-form,
+.maplebirch-time-travel-form {
+  display: grid;
+  grid-template-columns: repeat(6, max-content);
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem 0.75rem;
+  width: max-content;
+  max-width: 100%;
+  margin-inline: auto;
+  box-sizing: border-box;
+}
+
 .maplebirch-time-travel-date,
 .maplebirch-time-travel-clock {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  display: contents;
 }
 
-
-.maplebirch-time-travel label {
-  display: flex;
+#maplebirch .maplebirch-time-travel-field {
+  display: inline-flex;
   align-items: center;
   gap: 0.35rem;
   margin: 0;
+  padding-left: 0;
+  line-height: 1.4;
+  white-space: nowrap;
+  grid-column: var(--tt-col);
+  grid-row: var(--tt-row);
+}
+
+.maplebirch-time-travel-field[data-time-travel-field-wrap='year'] {
+  --tt-col: 1;
+  --tt-row: 1;
+}
+
+.maplebirch-time-travel-field[data-time-travel-field-wrap='month'] {
+  --tt-col: 2;
+  --tt-row: 1;
+}
+
+.maplebirch-time-travel-field[data-time-travel-field-wrap='day'] {
+  --tt-col: 3;
+  --tt-row: 1;
+}
+
+.maplebirch-time-travel-field[data-time-travel-field-wrap='hour'] {
+  --tt-col: 4;
+  --tt-row: 1;
+}
+
+.maplebirch-time-travel-field[data-time-travel-field-wrap='minute'] {
+  --tt-col: 5;
+  --tt-row: 1;
 }
 
 .maplebirch-time-travel input[type='number'] {
-  width: 4.5rem;
+  width: var(--tt-input-width);
   max-width: none;
   box-sizing: border-box;
   padding: 0.35rem 0.45rem;
@@ -645,21 +688,80 @@
 }
 
 .maplebirch-time-travel-actions {
+  grid-column: 6;
+  grid-row: 1;
+  justify-self: start;
   display: flex;
-  gap: 0.5rem;
   align-items: center;
-  margin-left: auto;
 }
 
-.maplebirch-time-travel-actions button {
-  min-width: 5rem;
-  padding: 0.45rem 0.75rem;
+.maplebirch-time-travel-actions button,
+.maplebirch-time-travel-actions .macro-button,
+.maplebirch-time-travel-actions .saveMenuButton {
+  width: var(--tt-button-width);
+  min-width: var(--tt-button-width);
+  padding: 0.45rem 0;
   border: 1px solid var(--600);
   background: var(--750);
   color: var(--000);
   cursor: pointer;
+  box-sizing: border-box;
+  text-align: center;
+  white-space: nowrap;
 }
 
+.maplebirch-time-travel-actions button:hover,
+.maplebirch-time-travel-actions .macro-button:hover,
+.maplebirch-time-travel-actions .saveMenuButton:hover {
+  background: var(--700);
+}
+
+@media (max-width: 760px) {
+  .maplebirch-time-travel-form {
+    grid-template-columns: repeat(3, max-content);
+  }
+
+  .maplebirch-time-travel-field[data-time-travel-field-wrap='hour'] {
+    --tt-col: 1;
+    --tt-row: 2;
+  }
+
+  .maplebirch-time-travel-field[data-time-travel-field-wrap='minute'] {
+    --tt-col: 2;
+    --tt-row: 2;
+  }
+
+  .maplebirch-time-travel-actions {
+    grid-column: 3;
+    grid-row: 2;
+  }
+}
+
+@media (max-width: 520px) {
+  .maplebirch-time-travel-form {
+    grid-template-columns: repeat(2, max-content);
+  }
+
+  .maplebirch-time-travel-field[data-time-travel-field-wrap='day'] {
+    --tt-col: 1;
+    --tt-row: 2;
+  }
+
+  .maplebirch-time-travel-field[data-time-travel-field-wrap='hour'] {
+    --tt-col: 2;
+    --tt-row: 2;
+  }
+
+  .maplebirch-time-travel-field[data-time-travel-field-wrap='minute'] {
+    --tt-col: 1;
+    --tt-row: 3;
+  }
+
+  .maplebirch-time-travel-actions {
+    grid-column: 2;
+    grid-row: 3;
+  }
+}
 
 .maplebirch-time-travel-status {
   display: none;
@@ -679,20 +781,6 @@
 .maplebirch-time-travel-status.error {
   color: var(--red);
   border-color: var(--red);
-}
-
-@media (max-width: 768px) {
-  .maplebirch-time-travel-form {
-    flex-direction: column;
-    justify-content: center;
-  }
-
-  .maplebirch-time-travel-date,
-  .maplebirch-time-travel-clock,
-  .maplebirch-time-travel-actions {
-    justify-content: center;
-    margin-left: 0;
-  }
 }
 
 /* 社交栏NPC状态 */

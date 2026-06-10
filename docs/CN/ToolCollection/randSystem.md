@@ -42,16 +42,16 @@ const index = rng.int(5); // 0-5
 
 ### API
 
-| API | 说明 |
-| :--- | :--- |
-| `maplebirch.tool.rand.create(state?)` | 创建随机数生成器 |
-| `rng.seed` | 获取或重置种子 |
-| `rng.int(max)` | 生成 `0-max` 的整数 |
-| `rng.percent()` | 生成 `1-100` 的整数 |
-| `rng.back(steps?)` | 把随机历史指针向后回退 |
-| `rng.forward(steps?)` | 在已生成的历史中把指针向前恢复 |
-| `rng.history` | 已生成结果的副本 |
-| `rng.index` | 当前历史指针 |
+| API                                   | 说明                           |
+| :------------------------------------ | :----------------------------- |
+| `maplebirch.tool.rand.create(state?)` | 创建随机数生成器               |
+| `rng.seed`                            | 获取或重置种子                 |
+| `rng.int(max)`                        | 生成 `0-max` 的整数            |
+| `rng.percent()`                       | 生成 `1-100` 的整数            |
+| `rng.back(steps?)`                    | 把随机历史指针向后回退         |
+| `rng.forward(steps?)`                 | 在已生成的历史中把指针向前恢复 |
+| `rng.history`                         | 已生成结果的副本               |
+| `rng.index`                           | 当前历史指针                   |
 
 ---
 

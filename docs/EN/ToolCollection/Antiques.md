@@ -45,16 +45,16 @@ maplebirch.tool.patch.addAntiques('antiquemyitem', {
 
 ## Config Fields
 
-| Field | Description |
-| :--- | :--- |
-| `hint` | Winter hint text |
-| `museum` | Display text after the antique is in the museum |
-| `name` | True name |
-| `cn_name` | Optional Chinese display name |
-| `journal` | Journal description |
-| `journalName` | Optional journal display name |
-| `icon` | Icon path |
-| `key` | Unique id when using array config |
+| Field         | Description                                     |
+| :------------ | :---------------------------------------------- |
+| `hint`        | Winter hint text                                |
+| `museum`      | Display text after the antique is in the museum |
+| `name`        | True name                                       |
+| `cn_name`     | Optional Chinese display name                   |
+| `journal`     | Journal description                             |
+| `journalName` | Optional journal display name                   |
+| `icon`        | Icon path                                       |
+| `key`         | Unique id when using array config               |
 
 ## State Flow
 

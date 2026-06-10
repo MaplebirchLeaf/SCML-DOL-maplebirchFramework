@@ -54,34 +54,34 @@ maplebirch.combat.CombatAction.reg({
 
 ## 配置字段
 
-| 字段 | 必填 | 说明 |
-| :--- | :--- | :--- |
-| `id` | 是 | 动作唯一标识，建议带模组名前缀 |
-| `actionType` | 是 | 要添加到哪个动作列表 |
-| `cond(ctx)` | 是 | 返回 `true` 时显示按钮 |
-| `display(ctx)` | 是 | 按钮显示文本 |
-| `value(ctx)` | 是 | 选中后写入 `$leftaction` 等动作变量的值 |
-| `effect` | 否 | 选中该动作后在 `effectsman` 中执行的 Twine 文本或函数 |
-| `color` | 否 | 按钮/列表颜色，默认 `white` |
-| `difficulty` | 否 | 按钮旁边的难度或提示文本 |
-| `combatType` | 否 | 限定战斗类型，默认 `Default` |
-| `order` | 否 | 排序值，默认 `-4`，越小越靠前 |
+| 字段           | 必填 | 说明                                                  |
+| :------------- | :--- | :---------------------------------------------------- |
+| `id`           | 是   | 动作唯一标识，建议带模组名前缀                        |
+| `actionType`   | 是   | 要添加到哪个动作列表                                  |
+| `cond(ctx)`    | 是   | 返回 `true` 时显示按钮                                |
+| `display(ctx)` | 是   | 按钮显示文本                                          |
+| `value(ctx)`   | 是   | 选中后写入 `$leftaction` 等动作变量的值               |
+| `effect`       | 否   | 选中该动作后在 `effectsman` 中执行的 Twine 文本或函数 |
+| `color`        | 否   | 按钮/列表颜色，默认 `white`                           |
+| `difficulty`   | 否   | 按钮旁边的难度或提示文本                              |
+| `combatType`   | 否   | 限定战斗类型，默认 `Default`                          |
+| `order`        | 否   | 排序值，默认 `-4`，越小越靠前                         |
 
 除 `id`、`actionType` 外，多数字段都支持函数。函数会收到 `ctx` 参数。
 
 ## actionType
 
-| 值 | 说明 |
-| :--- | :--- |
-| `leftaction` | 左手动作 |
-| `rightaction` | 右手动作 |
-| `feetaction` | 脚部动作 |
-| `mouthaction` | 嘴部动作 |
-| `penisaction` | 阴茎动作 |
+| 值             | 说明     |
+| :------------- | :------- |
+| `leftaction`   | 左手动作 |
+| `rightaction`  | 右手动作 |
+| `feetaction`   | 脚部动作 |
+| `mouthaction`  | 嘴部动作 |
+| `penisaction`  | 阴茎动作 |
 | `vaginaaction` | 阴道动作 |
-| `anusaction` | 肛门动作 |
-| `chestaction` | 胸部动作 |
-| `thighaction` | 大腿动作 |
+| `anusaction`   | 肛门动作 |
+| `chestaction`  | 胸部动作 |
+| `thighaction`  | 大腿动作 |
 
 同一动作可以注册到多个动作列表：
 
@@ -101,13 +101,13 @@ maplebirch.combat.CombatAction.reg({
 `effect` 用于填写动作被选中后要执行的 Twine 内容。推荐写成一个 widget：
 
 ```javascript
-effect: '<<myModGuardEffect>>'
+effect: '<<myModGuardEffect>>';
 ```
 
 也可以写成函数：
 
 ```javascript
-effect: ctx => ctx.actionType === 'leftaction' ? '<<myModLeftGuardEffect>>' : '<<myModRightGuardEffect>>'
+effect: ctx => (ctx.actionType === 'leftaction' ? '<<myModLeftGuardEffect>>' : '<<myModRightGuardEffect>>');
 ```
 
 框架会自动为 `effect` 外层包上动作判断，并把对应动作变量设回 `0`，同时更新默认动作：
@@ -145,7 +145,7 @@ maplebirch.combat.CombatAction.reg({
     const hour = Time.hour;
     return V.myMod?.moonBlessing && (hour >= 18 || hour <= 6);
   },
-  display: () => Time.hour >= 0 && Time.hour <= 3 ? '月光治疗（强）' : '月光治疗',
+  display: () => (Time.hour >= 0 && Time.hour <= 3 ? '月光治疗（强）' : '月光治疗'),
   value: () => 'myModMoonlightHeal',
   color: 'green',
   difficulty: () => '<span class="green">(Safe)</span>',

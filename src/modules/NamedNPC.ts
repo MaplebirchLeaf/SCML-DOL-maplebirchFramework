@@ -349,23 +349,40 @@ export const NamedNPC = (core => {
   }
 
   function clearInvalidNPC(manager: NPCManager) {
-    manager.log(`开始解析NPC...`, 'DEBUG', V.NPCName.clone(), setup.NPCNameList.clone());
+    manager.log('开始解析NPC...', 'DEBUG', V.NPCName.clone(), setup.NPCNameList.clone());
     if (!Array.isArray(V.NPCName)) {
       V.NPCName = [];
       updateNPCNameList(manager);
       return false;
     }
     const oldLength = V.NPCName.length;
-    V.NPCName = V.NPCName.filter((npc: { nam?: string }) => typeof npc?.nam === 'string' && npc.nam.trim() !== '');
-    updateNPCNameList(manager);
+
+    const validNameSet = new Set(
+      [...Array.from(vanillaList), ...(Array.isArray(setup.NPCNameList) ? setup.NPCNameList : []), ...Array.from(manager.data.keys())]
+        .filter((name): name is string => typeof name === 'string' && name.trim() !== '')
+        .map(name => name.trim().toLowerCase())
+    );
+
+    const removedNPCNames: string[] = [];
+
+    V.NPCName = V.NPCName.filter((npc: { nam?: string } | null | undefined) => {
+      if (typeof npc?.nam !== 'string') return false;
+      const name = npc.nam.trim();
+      if (!name) return false;
+      const valid = validNameSet.has(name.toLowerCase());
+      if (!valid) removedNPCNames.push(name);
+      return valid;
+    });
+
     if (V.maplebirch?.npc) {
-      const validNameSet = new Set(manager.NPCNameList.map(name => name.toLowerCase()));
       Object.keys(V.maplebirch.npc).forEach(npcKey => {
-        if (!validNameSet.has(npcKey.toLowerCase())) delete V.maplebirch.npc[npcKey];
+        if (!validNameSet.has(npcKey.trim().toLowerCase())) delete V.maplebirch.npc[npcKey];
       });
     }
+
+    updateNPCNameList(manager);
     const cleanedCount = oldLength - V.NPCName.length;
-    if (cleanedCount > 0) manager.log(`清理了 ${cleanedCount} 个无效NPC`, 'DEBUG');
+    if (cleanedCount > 0) manager.log(`清理了 ${cleanedCount} 个无效NPC: ${removedNPCNames.join(', ')}`, 'DEBUG');
     return cleanedCount > 0;
   }
 
@@ -379,6 +396,7 @@ export const NamedNPC = (core => {
         .filter((name: string): name is string => typeof name === 'string' && name.trim() !== '')
         .map((name: string) => name.trim())
     );
+
     for (const [npcName, npcEntry] of manager.data) {
       if (savedNPCNameSet.has(npcName)) {
         skippedCount++;
@@ -389,6 +407,7 @@ export const NamedNPC = (core => {
       addedCount++;
       manager.log(`注入模组NPC到内部状态: ${npcName}`, 'DEBUG');
     }
+
     updateNPCNameList(manager);
     updateNPCCProxy(manager);
     setupNameTranslations();
@@ -590,7 +609,6 @@ class NPCManager {
   }
 
   public injectModNPCs() {
-    this.NamedNPC.get(this);
     this.NamedNPC.clear(this);
     this.NamedNPC.update(this);
     this.NamedNPC.setup(this);
@@ -667,10 +685,10 @@ class NPCManager {
     this.Sidebar.init(this);
   }
 
-  public async Init() {
+  public Init(): void {
     if (!['Start', 'Downgrade Waiting Room'].includes(this.core.passage?.title)) this.injectModNPCs();
     this.Schedule.init(this);
-    await this.Clothes.init(this);
+    this.Clothes.init(this);
     setupNpcData(this, 'init');
     this.Pregnancy.savedPregnancy();
     isPossibleLoveInterest = (name: string) => isPossible(this, name);

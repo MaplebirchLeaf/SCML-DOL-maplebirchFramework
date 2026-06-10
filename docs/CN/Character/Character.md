@@ -34,10 +34,10 @@ maplebirch.char.use(layers).use('pre', preHandler);
 
 `target` 支持三种写法：
 
-| 写法 | 说明 |
-| :--- | :--- |
-| `'main'` | 指定单个模型 |
-| `['main', 'clothes']` | 指定多个模型 |
+| 写法                                | 说明                        |
+| :---------------------------------- | :-------------------------- |
+| `'main'`                            | 指定单个模型                |
+| `['main', 'clothes']`               | 指定多个模型                |
 | `(name, modelOrOptions) => boolean` | 按模型名和模型/选项动态判断 |
 
 常见模型名来自原版 `Renderer.CanvasModels`，例如 `main`、`lighting` 等。
@@ -86,14 +86,14 @@ maplebirch.char.use(layers, name => name.startsWith('main'));
 
 图层配置：
 
-| 字段 | 说明 |
-| :--- | :--- |
-| `srcfn(options)` | 返回图层图片路径 |
+| 字段                 | 说明             |
+| :------------------- | :--------------- |
+| `srcfn(options)`     | 返回图层图片路径 |
 | `masksrcfn(options)` | 返回遮罩图片路径 |
-| `showfn(options)` | 返回是否显示 |
-| `zfn(options)` | 返回图层层级 |
-| `filtersfn(options)` | 返回滤镜列表 |
-| `animation` | 动画标识 |
+| `showfn(options)`    | 返回是否显示     |
+| `zfn(options)`       | 返回图层层级     |
+| `filtersfn(options)` | 返回滤镜列表     |
+| `animation`          | 动画标识         |
 
 `options` 是原版模型渲染传入的参数，里面会包含角色状态、外观选项和框架扩展字段。
 

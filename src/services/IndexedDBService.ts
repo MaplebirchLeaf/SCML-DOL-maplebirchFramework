@@ -127,7 +127,6 @@ class IndexedDBService {
       return false;
     }
   }
-
 }
 
 export default IndexedDBService;

@@ -50,11 +50,7 @@ Sidebar clothes define how an NPC should look in the sidebar renderer. Config fi
     - { img: 'img/npc/luna/hair_back.png', zIndex: 5 }
     - { img: 'img/npc/luna/face_base.png', zIndex: 10 }
   upper:
-    - {
-        img: 'img/npc/luna/top_casual.png',
-        zIndex: 15,
-        cond: "maplebirch.npc.Clothes.worn('Luna').upper.name === 'casual_top'"
-      }
+    - { img: 'img/npc/luna/top_casual.png', zIndex: 15, cond: "maplebirch.npc.Clothes.worn('Luna').upper.name === 'casual_top'" }
 ```
 
 Load sidebar config from `boot.json`:
