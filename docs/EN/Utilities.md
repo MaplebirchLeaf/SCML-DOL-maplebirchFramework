@@ -57,30 +57,30 @@ Prefer `Object.merge()`, `Object.append()`, `Object.cover()`, `Array.merge()`, `
 
 ## Common Methods
 
-| Method | Description |
-| :--- | :--- |
-| `value.clone(deep, proto)` | Clone a value |
-| `value.equal(other)` | Deep equality check |
-| `target.merge(...sources)` | Recursive merge; arrays merge by index |
-| `target.append(...sources)` | Recursive merge; arrays append |
-| `target.cover(...sources)` | Recursive merge; arrays replace |
-| `target.mergefn(fn, ...sources)` | Filtered `merge` |
-| `target.appendfn(fn, ...sources)` | Filtered `append` |
-| `target.coverfn(fn, ...sources)` | Filtered `cover` |
-| `Object.merge(...sources)` | Create a new object and merge |
-| `Object.append(...sources)` | Create a new object and append |
-| `Object.cover(...sources)` | Create a new object and cover |
-| `Array.merge(...sources)` | Create a new array and merge |
-| `Array.append(...sources)` | Create a new array and append |
-| `Array.cover(...sources)` | Create a new array and cover |
-| `value.contains(value, mode, opt)` | Containment check |
-| `array.random()` | Pick a random array item |
-| `array.either(weights, allowNull)` | Pick a random item, optionally weighted |
-| `string.convert(mode, opt)` | Convert string case |
-| `Math.random(max)` | Integer from `0` to `max` |
-| `Math.random(min, max, float)` | Random number between `min` and `max` |
-| `Math.clamp(value, min, max, fallback)` | Clamp a number |
-| `loadImage(src)` | Check or load an image resource |
+| Method                                  | Description                             |
+| :-------------------------------------- | :-------------------------------------- |
+| `value.clone(deep, proto)`              | Clone a value                           |
+| `value.equal(other)`                    | Deep equality check                     |
+| `target.merge(...sources)`              | Recursive merge; arrays merge by index  |
+| `target.append(...sources)`             | Recursive merge; arrays append          |
+| `target.cover(...sources)`              | Recursive merge; arrays replace         |
+| `target.mergefn(fn, ...sources)`        | Filtered `merge`                        |
+| `target.appendfn(fn, ...sources)`       | Filtered `append`                       |
+| `target.coverfn(fn, ...sources)`        | Filtered `cover`                        |
+| `Object.merge(...sources)`              | Create a new object and merge           |
+| `Object.append(...sources)`             | Create a new object and append          |
+| `Object.cover(...sources)`              | Create a new object and cover           |
+| `Array.merge(...sources)`               | Create a new array and merge            |
+| `Array.append(...sources)`              | Create a new array and append           |
+| `Array.cover(...sources)`               | Create a new array and cover            |
+| `value.contains(value, mode, opt)`      | Containment check                       |
+| `array.random()`                        | Pick a random array item                |
+| `array.either(weights, allowNull)`      | Pick a random item, optionally weighted |
+| `string.convert(mode, opt)`             | Convert string case                     |
+| `Math.random(max)`                      | Integer from `0` to `max`               |
+| `Math.random(min, max, float)`          | Random number between `min` and `max`   |
+| `Math.clamp(value, min, max, fallback)` | Clamp a number                          |
+| `loadImage(src)`                        | Check or load an image resource         |
 
 ## clone
 
@@ -92,10 +92,10 @@ const plainCopy = source.clone(true, false);
 
 Arguments:
 
-| Argument | Default | Description |
-| :--- | :--- | :--- |
-| `deep` | `true` | Deep clone |
-| `proto` | `true` | Preserve prototypes |
+| Argument | Default | Description         |
+| :------- | :------ | :------------------ |
+| `deep`   | `true`  | Deep clone          |
+| `proto`  | `true`  | Preserve prototypes |
 
 Supports plain objects, arrays, `Date`, `RegExp`, `Map`, `Set`, `ArrayBuffer`, `DataView`, and TypedArray values.
 
@@ -114,18 +114,15 @@ const same = dataA.equal(dataB);
 These methods recursively merge objects. Their main difference is array handling.
 
 ```javascript
-({ list: [1, 2] }).merge({ list: [3] });  // { list: [3, 2] }
+({ list: [1, 2] }).merge({ list: [3] }); // { list: [3, 2] }
 ({ list: [1, 2] }).append({ list: [3] }); // { list: [1, 2, 3] }
-({ list: [1, 2] }).cover({ list: [3] });  // { list: [3] }
+({ list: [1, 2] }).cover({ list: [3] }); // { list: [3] }
 ```
 
 Objects are merged recursively:
 
 ```javascript
-const result = Object.merge(
-  { npc: { enabled: true, count: 2 } },
-  { npc: { count: 4 } }
-);
+const result = Object.merge({ npc: { enabled: true, count: 2 } }, { npc: { count: 4 } });
 // { npc: { enabled: true, count: 4 } }
 ```
 
@@ -145,12 +142,12 @@ target.mergefn((key, value, depth, targetValue) => targetValue === undefined, so
 
 Filter arguments:
 
-| Argument | Description |
-| :--- | :--- |
-| `key` | Current field name |
-| `value` | Source value |
-| `depth` | Recursion depth, starting at `1` |
-| `targetValue` | Existing target value |
+| Argument      | Description                      |
+| :------------ | :------------------------------- |
+| `key`         | Current field name               |
+| `value`       | Source value                     |
+| `depth`       | Recursion depth, starting at `1` |
+| `targetValue` | Existing target value            |
 
 Examples:
 
@@ -188,19 +185,19 @@ Strings:
 
 Modes:
 
-| Mode | Description |
-| :--- | :--- |
-| `all` | Every provided value must exist |
-| `any` | At least one value must exist |
-| `none` | No provided value may exist |
+| Mode   | Description                     |
+| :----- | :------------------------------ |
+| `all`  | Every provided value must exist |
+| `any`  | At least one value must exist   |
+| `none` | No provided value may exist     |
 
 Options:
 
-| Option | Default | Description |
-| :--- | :--- | :--- |
-| `case` | `true` | Case-sensitive string comparison |
-| `deep` | `false` | Use deep equality |
-| `compare` | None | Custom comparison function |
+| Option    | Default | Description                      |
+| :-------- | :------ | :------------------------------- |
+| `case`    | `true`  | Case-sensitive string comparison |
+| `deep`    | `false` | Use deep equality                |
+| `compare` | None    | Custom comparison function       |
 
 ```javascript
 const list = [{ id: 1 }, { id: 2 }];
@@ -255,24 +252,24 @@ For reproducible random sequences, use [randSystem](ToolCollection/randSystem.md
 
 Supported modes:
 
-| Mode | Example |
-| :--- | :--- |
-| `lower` | `hello world` |
-| `upper` | `HELLO WORLD` |
+| Mode         | Example       |
+| :----------- | :------------ |
+| `lower`      | `hello world` |
+| `upper`      | `HELLO WORLD` |
 | `capitalize` | `Hello world` |
-| `title` | `Hello World` |
-| `camel` | `helloWorld` |
-| `pascal` | `HelloWorld` |
-| `snake` | `hello_world` |
-| `kebab` | `hello-world` |
-| `constant` | `HELLO_WORLD` |
+| `title`      | `Hello World` |
+| `camel`      | `helloWorld`  |
+| `pascal`     | `HelloWorld`  |
+| `snake`      | `hello_world` |
+| `kebab`      | `hello-world` |
+| `constant`   | `HELLO_WORLD` |
 
 Options:
 
-| Option | Default | Description |
-| :--- | :--- | :--- |
-| `delimiter` | Space | Preferred word delimiter |
-| `acronym` | `true` | Preserve all-caps acronyms in `title` mode |
+| Option      | Default | Description                                |
+| :---------- | :------ | :----------------------------------------- |
+| `delimiter` | Space   | Preferred word delimiter                   |
+| `acronym`   | `true`  | Preserve all-caps acronyms in `title` mode |
 
 ```javascript
 'NPC name'.convert('title'); // NPC Name
@@ -309,12 +306,12 @@ if (result) {
 
 Possible return values:
 
-| Return | Description |
-| :--- | :--- |
-| `string` | Available image path |
-| `true` | Image exists |
-| `false` | Image unavailable |
-| `Promise<string \| boolean>` | Async result |
+| Return                       | Description          |
+| :--------------------------- | :------------------- |
+| `string`                     | Available image path |
+| `true`                       | Image exists         |
+| `false`                      | Image unavailable    |
+| `Promise<string \| boolean>` | Async result         |
 
 Use `await` in async flows.
 
@@ -334,17 +331,17 @@ const bytesAgain = base64ToBytes(base64);
 const buffer = base64ToArrayBuffer(base64);
 ```
 
-| Function | Description |
-| :--- | :--- |
-| `textToBytes(text)` | Convert string to `Uint8Array` |
-| `bytesToText(bytes)` | Convert `Uint8Array` / `ArrayBuffer` to string |
-| `jsonToBytes(value)` | Convert JSON data to bytes |
-| `bytesToJson(bytes)` | Convert bytes to JSON data |
-| `toArrayBuffer(bytes)` | Slice an exact `ArrayBuffer` from `Uint8Array` |
-| `bytesToBase64(bytes)` | Convert bytes to Base64 |
-| `base64ToBytes(base64)` | Convert Base64 to bytes |
-| `base64ToArrayBuffer(base64)` | Convert Base64 to `ArrayBuffer` |
-| `normalizeBase64(base64)` | Normalize URL-safe Base64 and padding |
+| Function                      | Description                                    |
+| :---------------------------- | :--------------------------------------------- |
+| `textToBytes(text)`           | Convert string to `Uint8Array`                 |
+| `bytesToText(bytes)`          | Convert `Uint8Array` / `ArrayBuffer` to string |
+| `jsonToBytes(value)`          | Convert JSON data to bytes                     |
+| `bytesToJson(bytes)`          | Convert bytes to JSON data                     |
+| `toArrayBuffer(bytes)`        | Slice an exact `ArrayBuffer` from `Uint8Array` |
+| `bytesToBase64(bytes)`        | Convert bytes to Base64                        |
+| `base64ToBytes(base64)`       | Convert Base64 to bytes                        |
+| `base64ToArrayBuffer(base64)` | Convert Base64 to `ArrayBuffer`                |
+| `normalizeBase64(base64)`     | Normalize URL-safe Base64 and padding          |
 
 ## Path and Text Helpers
 
@@ -355,13 +352,13 @@ joinEncodedPath('user name', 'slot 1'); // user%20name/slot%201
 escapeHtmlText('<b>text</b>'); // &lt;b&gt;text&lt;/b&gt;
 ```
 
-| Function | Description |
-| :--- | :--- |
+| Function                        | Description                                        |
+| :------------------------------ | :------------------------------------------------- |
 | `basicAuth(username, password)` | Generate the Base64 credential part for Basic Auth |
-| `trimSlashes(value)` | Remove leading and trailing path slashes |
-| `joinPath(...parts)` | Join plain path parts |
-| `joinEncodedPath(...parts)` | Join and encode path parts |
-| `escapeHtmlText(value)` | Escape HTML text |
+| `trimSlashes(value)`            | Remove leading and trailing path slashes           |
+| `joinPath(...parts)`            | Join plain path parts                              |
+| `joinEncodedPath(...parts)`     | Join and encode path parts                         |
+| `escapeHtmlText(value)`         | Escape HTML text                                   |
 
 ## widgets
 
@@ -384,29 +381,22 @@ const list = widgets(Options, Cheats);
 `SelectCase` is useful for writing chained condition/result tables.
 
 ```javascript
-const result = new SelectCase()
-  .case('wolf', 'Wolf')
-  .caseIn(['cat', 'dog'], 'Animal')
-  .caseRange(0, 10, 'Low')
-  .caseIncludes('NPC', 'Character')
-  .caseRegex(/^mod:/, 'Mod')
-  .else('Unknown')
-  .match(value);
+const result = new SelectCase().case('wolf', 'Wolf').caseIn(['cat', 'dog'], 'Animal').caseRange(0, 10, 'Low').caseIncludes('NPC', 'Character').caseRegex(/^mod:/, 'Mod').else('Unknown').match(value);
 ```
 
 Common methods:
 
-| Method | Description |
-| :--- | :--- |
-| `case(value, result)` | Exact match |
-| `case(fn, result)` | Predicate function |
-| `caseRange(min, max, result)` | Numeric range |
-| `caseIn(values, result)` | Value exists in an array |
-| `caseIncludes(text, result)` | String contains text |
-| `caseRegex(regex, result)` | Regex match |
-| `caseCompare(op, value, result)` | Numeric comparison |
-| `else(result)` | Default result |
-| `match(value, meta)` | Execute matching |
+| Method                           | Description              |
+| :------------------------------- | :----------------------- |
+| `case(value, result)`            | Exact match              |
+| `case(fn, result)`               | Predicate function       |
+| `caseRange(min, max, result)`    | Numeric range            |
+| `caseIn(values, result)`         | Value exists in an array |
+| `caseIncludes(text, result)`     | String contains text     |
+| `caseRegex(regex, result)`       | Regex match              |
+| `caseCompare(op, value, result)` | Numeric comparison       |
+| `else(result)`                   | Default result           |
+| `match(value, meta)`             | Execute matching         |
 
 ## Global Functions
 

@@ -36,31 +36,31 @@ maplebirch.npc.addSchedule('Luna', {
 
 `daily` 用于固定时间日程。
 
-| 字段 | 说明 |
-| :--- | :--- |
-| `time` | 小时，或 `[开始小时, 结束小时]` |
-| `location` | 地点 ID |
+| 字段       | 说明                            |
+| :--------- | :------------------------------ |
+| `time`     | 小时，或 `[开始小时, 结束小时]` |
+| `location` | 地点 ID                         |
 
 ```javascript
 daily: [
   { time: 9, location: 'school' },
   { time: [13, 15], location: 'gym' }
-]
+];
 ```
 
 ### `special`
 
 `special` 用于条件日程。满足条件时会覆盖普通 `daily` 日程。
 
-| 字段 | 说明 |
-| :--- | :--- |
-| `id` | 日程 ID，可选；不填时自动生成 |
-| `condition` | 条件函数，接收增强日期对象 |
-| `location` | 地点 ID，或返回地点的函数 |
-| `override` | 是否优先于其它特殊日程 |
-| `before` | 排在某个特殊日程之前 |
-| `after` | 排在某个特殊日程之后 |
-| `insteadOf` | 替代某个特殊日程 |
+| 字段        | 说明                          |
+| :---------- | :---------------------------- |
+| `id`        | 日程 ID，可选；不填时自动生成 |
+| `condition` | 条件函数，接收增强日期对象    |
+| `location`  | 地点 ID，或返回地点的函数     |
+| `override`  | 是否优先于其它特殊日程        |
+| `before`    | 排在某个特殊日程之前          |
+| `after`     | 排在某个特殊日程之后          |
+| `insteadOf` | 替代某个特殊日程              |
 
 ```javascript
 special: [
@@ -69,7 +69,7 @@ special: [
     condition: date => date.weekEnd && Weather.name !== 'rain',
     location: 'park'
   }
-]
+];
 ```
 
 ---
@@ -80,11 +80,7 @@ special: [
 
 ```javascript
 maplebirch.npc.addSchedule('Robin', schedule => {
-  schedule
-    .at(7, 'home')
-    .at([8, 15], 'school')
-    .at(16, 'library')
-    .at(18, 'home');
+  schedule.at(7, 'home').at([8, 15], 'school').at(16, 'library').at(18, 'home');
 
   schedule.when(
     date => date.weekEnd,
@@ -106,10 +102,10 @@ maplebirch.npc.addSchedule('Robin', schedule => {
 schedule.at(time, location);
 ```
 
-| 参数 | 说明 |
-| :--- | :--- |
-| `time` | 小时，或 `[开始小时, 结束小时]` |
-| `location` | 地点 ID |
+| 参数       | 说明                            |
+| :--------- | :------------------------------ |
+| `time`     | 小时，或 `[开始小时, 结束小时]` |
+| `location` | 地点 ID                         |
 
 ```javascript
 schedule.at(8, 'school');
@@ -124,18 +120,14 @@ schedule.at([19, 22], 'dormitory');
 schedule.when(condition, location, options);
 ```
 
-| 参数 | 说明 |
-| :--- | :--- |
-| `condition` | 条件函数 |
-| `location` | 地点 ID、返回地点的函数，或返回另一个 `Schedule` |
-| `options` | 特殊日程选项 |
+| 参数        | 说明                                             |
+| :---------- | :----------------------------------------------- |
+| `condition` | 条件函数                                         |
+| `location`  | 地点 ID、返回地点的函数，或返回另一个 `Schedule` |
+| `options`   | 特殊日程选项                                     |
 
 ```javascript
-schedule.when(
-  date => C.npc.Robin?.love >= 30 && date.weekEnd,
-  'arcade',
-  { id: 'weekend_arcade' }
-);
+schedule.when(date => C.npc.Robin?.love >= 30 && date.weekEnd, 'arcade', { id: 'weekend_arcade' });
 ```
 
 动态地点：
@@ -191,13 +183,13 @@ maplebirch.npc.Schedule.clearAll();
 
 常用属性：
 
-| 属性 | 说明 |
-| :--- | :--- |
-| `schoolDay` | 是否上学日 |
-| `weekEnd` | 是否周末 |
-| `spring` / `summer` / `autumn` / `winter` | 当前季节 |
-| `dawn` / `daytime` / `dusk` / `night` | 当前时段 |
-| `schedule` | 一个新的 `Schedule` 实例，可用于嵌套日程 |
+| 属性                                      | 说明                                     |
+| :---------------------------------------- | :--------------------------------------- |
+| `schoolDay`                               | 是否上学日                               |
+| `weekEnd`                                 | 是否周末                                 |
+| `spring` / `summer` / `autumn` / `winter` | 当前季节                                 |
+| `dawn` / `daytime` / `dusk` / `night`     | 当前时段                                 |
+| `schedule`                                | 一个新的 `Schedule` 实例，可用于嵌套日程 |
 
 常用方法：
 

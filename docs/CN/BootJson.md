@@ -39,14 +39,14 @@
 
 **`params`** 是配置主体。常用字段如下：
 
-| 字段 | 说明 |
-| :--- | :--- |
-| `script` | 加载普通 JavaScript 脚本 |
-| `module` | 加载更早执行的模块脚本 |
-| `language` | 导入翻译文件 |
-| `audio` | 导入音频目录 |
+| 字段        | 说明                                        |
+| :---------- | :------------------------------------------ |
+| `script`    | 加载普通 JavaScript 脚本                    |
+| `module`    | 加载更早执行的模块脚本                      |
+| `language`  | 导入翻译文件                                |
+| `audio`     | 导入音频目录                                |
 | `framework` | 添加区域 widget、注册特质、纹身、食物或古董 |
-| `npc` | 注册 NPC 相关资源 |
+| `npc`       | 注册 NPC 相关资源                           |
 
 ---
 
@@ -227,13 +227,13 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 }
 ```
 
-| 字段 | 说明 |
-| :--- | :--- |
-| `title` | 特质标识 |
-| `name` | 显示名称 |
-| `colour` | 显示颜色 |
-| `has` | 是否拥有该特质 |
-| `text` | 特质说明 |
+| 字段     | 说明           |
+| :------- | :------------- |
+| `title`  | 特质标识       |
+| `name`   | 显示名称       |
+| `colour` | 显示颜色       |
+| `has`    | 是否拥有该特质 |
+| `text`   | 特质说明       |
 
 `has` 可以写布尔值，也可以写判断表达式。表达式会作为代码执行，只应写可信内容。
 
@@ -289,13 +289,13 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 }
 ```
 
-| 字段 | 说明 |
-| :--- | :--- |
-| `NamedNPC` | 注册命名 NPC |
-| `Stats` | 注册 NPC 状态 |
-| `Sidebar.image` | 导入 NPC 静态侧边栏图片 |
-| `Sidebar.clothes` | 导入 NPC 衣柜配置 |
-| `Sidebar.config` | 导入 NPC 侧边栏模型资源配置 |
+| 字段              | 说明                        |
+| :---------------- | :-------------------------- |
+| `NamedNPC`        | 注册命名 NPC                |
+| `Stats`           | 注册 NPC 状态               |
+| `Sidebar.image`   | 导入 NPC 静态侧边栏图片     |
+| `Sidebar.clothes` | 导入 NPC 衣柜配置           |
+| `Sidebar.config`  | 导入 NPC 侧边栏模型资源配置 |
 
 示例：
 

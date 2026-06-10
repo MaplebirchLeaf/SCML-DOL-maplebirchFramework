@@ -11,10 +11,10 @@ maplebirch.dynamic.delStateEvent(type, eventId);
 
 ## Event Types
 
-| Type | Timing | Behavior |
-| :--- | :--- | :--- |
-| `gate` | Passage start | Can interrupt or replace the current passage flow |
-| `append` | Passage end | Appends extra output after the passage content |
+| Type     | Timing        | Behavior                                          |
+| :------- | :------------ | :------------------------------------------------ |
+| `gate`   | Passage start | Can interrupt or replace the current passage flow |
+| `append` | Passage end   | Appends extra output after the passage content    |
 
 ## Registering An Event
 
@@ -41,16 +41,16 @@ The `output` value is the name of a SugarCube widget:
 
 ## Options
 
-| Option | Type | Description |
-| :--- | :--- | :--- |
-| `output` | string | Widget name to render |
-| `action` | function | JavaScript callback to run |
-| `cond` | function | Condition function |
-| `priority` | number | Higher runs earlier |
-| `once` | boolean | Remove after first trigger |
-| `forceExit` | boolean/function | Force the current passage to stop, mainly for `gate` |
-| `extra.passage` | string[] | Only trigger in these passages |
-| `extra.exclude` | string[] | Do not trigger in these passages |
+| Option          | Type             | Description                                          |
+| :-------------- | :--------------- | :--------------------------------------------------- |
+| `output`        | string           | Widget name to render                                |
+| `action`        | function         | JavaScript callback to run                           |
+| `cond`          | function         | Condition function                                   |
+| `priority`      | number           | Higher runs earlier                                  |
+| `once`          | boolean          | Remove after first trigger                           |
+| `forceExit`     | boolean/function | Force the current passage to stop, mainly for `gate` |
+| `extra.passage` | string[]         | Only trigger in these passages                       |
+| `extra.exclude` | string[]         | Do not trigger in these passages                     |
 
 ## Append Example
 

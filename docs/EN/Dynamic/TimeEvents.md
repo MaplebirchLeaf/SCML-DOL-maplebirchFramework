@@ -23,38 +23,36 @@ maplebirch.dynamic.regTimeEvent('onDay', 'myMod.dailyCheck', {
 
 ## Common Types
 
-| Type | Trigger |
-| :--- | :--- |
-| `onSec` | Seconds passed |
-| `onMin` | Minutes passed |
-| `onHour` | Hour changed/passed |
-| `onDay` | Day changed/passed |
-| `onWeek` | Week changed/passed |
-| `onMonth` | Month changed/passed |
-| `onYear` | Year changed/passed |
-| `onBefore` | Before time pass |
-| `onAfter` | After time pass |
-| `onTimeTravel` | Time travel |
+| Type           | Trigger              |
+| :------------- | :------------------- |
+| `onSec`        | Seconds passed       |
+| `onMin`        | Minutes passed       |
+| `onHour`       | Hour changed/passed  |
+| `onDay`        | Day changed/passed   |
+| `onWeek`       | Week changed/passed  |
+| `onMonth`      | Month changed/passed |
+| `onYear`       | Year changed/passed  |
+| `onBefore`     | Before time pass     |
+| `onAfter`      | After time pass      |
+| `onTimeTravel` | Time travel          |
 
 ## Options
 
-| Field | Purpose |
-| :--- | :--- |
-| `cond(data)` | Whether to run |
-| `action(data)` | Code to run |
-| `priority` | Higher runs earlier |
-| `once` | Remove after running |
-| `exact` | Require exact boundary |
-| `accumulate` | Accumulated unit trigger |
+| Field          | Purpose                  |
+| :------------- | :----------------------- |
+| `cond(data)`   | Whether to run           |
+| `action(data)` | Code to run              |
+| `priority`     | Higher runs earlier      |
+| `once`         | Remove after running     |
+| `exact`        | Require exact boundary   |
+| `accumulate`   | Accumulated unit trigger |
 
 ## Legacy TimeEvent
 
 Some older Simple Framework style mods may use:
 
 ```javascript
-new TimeEvent('onDay', 'dailyCheck')
-  .Cond(data => true)
-  .Action(data => {});
+new TimeEvent('onDay', 'dailyCheck').Cond(data => true).Action(data => {});
 ```
 
 New code should prefer `maplebirch.dynamic.regTimeEvent()`.

@@ -1,9 +1,8 @@
 // ./src/modules/Variables.ts
 
+import { version } from '../constants';
 import maplebirch, { MaplebirchCore, createlog } from '../core';
 import migration from './Frameworks/migration';
-
-const version = '4.0.2';
 
 const defaults = {
   player: {
@@ -14,7 +13,7 @@ const defaults = {
 };
 
 function dataUpdate(migration: migration): void {
-  migration.add('0.0.0', version, (data, utils) => utils.fill(data, defaults.clone()));
+  migration.add('*', version, (data, utils) => utils.fill(data, defaults.clone()));
 }
 
 interface Color {
@@ -137,7 +136,7 @@ class Variables {
     V.options.maplebirch = Object.merge(Variables.options, current ?? {});
   }
 
-  public Init() {
+  public Init(): void {
     try {
       V.maplebirch ??= {};
       if (this.tool.core.passage?.title === 'Start2') V.maplebirch = { ...defaults, version: this.version }.clone();
