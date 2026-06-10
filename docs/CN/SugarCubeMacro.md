@@ -6,16 +6,16 @@
 
 常用宏：
 
-| 宏 | 用途 |
-| :--- | :--- |
-| `<<language>>` | 按当前语言显示不同内容块 |
-| `<<lanSwitch>>` | 输出当前语言对应文本 |
-| `<<lanButton>>` | 多语言按钮 |
-| `<<lanLink>>` | 多语言链接 |
-| `<<lanListbox>>` | 多语言下拉框 |
-| `<<radiobuttonsfrom>>` | 从数组/对象生成单选按钮 |
-| `<<maplebirchReplace>>` | 替换框架覆盖层内容 |
-| `<<maplebirchTextOutput>>` | 输出文本工具注册的内容 |
+| 宏                         | 用途                     |
+| :------------------------- | :----------------------- |
+| `<<language>>`             | 按当前语言显示不同内容块 |
+| `<<lanSwitch>>`            | 输出当前语言对应文本     |
+| `<<lanButton>>`            | 多语言按钮               |
+| `<<lanLink>>`              | 多语言链接               |
+| `<<lanListbox>>`           | 多语言下拉框             |
+| `<<radiobuttonsfrom>>`     | 从数组/对象生成单选按钮  |
+| `<<maplebirchReplace>>`    | 替换框架覆盖层内容       |
+| `<<maplebirchTextOutput>>` | 输出文本工具注册的内容   |
 
 ---
 
@@ -87,12 +87,12 @@
 
 常用参数：
 
-| 参数 | 说明 |
-| :--- | :--- |
-| 翻译键 | 按 `maplebirch.t()` 获取文本 |
-| `title` / `upper` / `lower` 等 | 文本格式转换 |
-| `class:xxx` | 添加 CSS 类 |
-| `style:xxx` | 添加内联样式 |
+| 参数                           | 说明                         |
+| :----------------------------- | :--------------------------- |
+| 翻译键                         | 按 `maplebirch.t()` 获取文本 |
+| `title` / `upper` / `lower` 等 | 文本格式转换                 |
+| `class:xxx`                    | 添加 CSS 类                  |
+| `style:xxx`                    | 添加内联样式                 |
 
 ---
 

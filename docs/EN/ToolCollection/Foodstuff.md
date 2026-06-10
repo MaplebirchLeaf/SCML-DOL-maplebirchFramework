@@ -27,21 +27,21 @@ maplebirch.tool.patch.addFoodstuff('my_mod_berry', {
 
 ## Common Fields
 
-| Field | Description | Default |
-| :--- | :--- | :--- |
-| `index` | Vanilla foodstuff index | Auto |
-| `name` | Display name | Derived from key |
-| `singular` | Singular name | `name` |
-| `plural` | Plural name | `name + "s"` |
-| `icon` | Icon filename | `${key}.png` |
-| `category` | Category such as `fruit`, `ingredient`, or `dish` | `ingredient` |
-| `kitchen_item_type_icon` | Kitchen category icon | `recipe-ingredient.png` |
-| `prop_folder` | Prop image folder | `ingredient` |
-| `shop.sell_price` | Sell price | `0` |
-| `shop.available_in` | Shops where it can appear, such as `["supermarket"]` | - |
-| `recipe` | Recipe config | - |
-| `food.tags` | Food tags such as `vegan`, `drink`, or `sweet` | - |
-| `tending` | Growable item config | - |
+| Field                    | Description                                          | Default                 |
+| :----------------------- | :--------------------------------------------------- | :---------------------- |
+| `index`                  | Vanilla foodstuff index                              | Auto                    |
+| `name`                   | Display name                                         | Derived from key        |
+| `singular`               | Singular name                                        | `name`                  |
+| `plural`                 | Plural name                                          | `name + "s"`            |
+| `icon`                   | Icon filename                                        | `${key}.png`            |
+| `category`               | Category such as `fruit`, `ingredient`, or `dish`    | `ingredient`            |
+| `kitchen_item_type_icon` | Kitchen category icon                                | `recipe-ingredient.png` |
+| `prop_folder`            | Prop image folder                                    | `ingredient`            |
+| `shop.sell_price`        | Sell price                                           | `0`                     |
+| `shop.available_in`      | Shops where it can appear, such as `["supermarket"]` | -                       |
+| `recipe`                 | Recipe config                                        | -                       |
+| `food.tags`              | Food tags such as `vegan`, `drink`, or `sweet`       | -                       |
+| `tending`                | Growable item config                                 | -                       |
 
 ## Dish Example
 

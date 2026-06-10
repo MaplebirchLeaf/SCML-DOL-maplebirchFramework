@@ -36,9 +36,10 @@ interface FileItem {
 }
 
 class AddonPlugin {
-  public onLoad: boolean = false;
+  public onStart: boolean = false;
   private onSaveLoadTracer: boolean = false;
-  private disabledMods: Array<string> = [];
+  private readonly disabledMods: Array<string> = [];
+  private readonly blockedPassages = new Set<string>(['Start', 'Downgrade Waiting Room']);
   public readonly replace = replace;
   public readonly SC2DataManager: SC2DataManager;
   public readonly modUtils: ModUtils;
@@ -149,10 +150,12 @@ class AddonPlugin {
     await this.core.trigger(':storyready');
     if (this.onSaveLoadTracer) return;
     this.onSaveLoadTracer = true;
-    this.core.SugarCube.Save.onSave.add(async () => this.core.trigger(':onSave'));
-    this.core.SugarCube.Save.onLoad.add(async () => {
-      await this.core.trigger(':onLoad').then(() => (this.onLoad = true));
-      this.core.modules.initPhase.loadInitExecuted = false;
+    this.core.SugarCube.Save.onSave.add((saveObj: any, details?: any) => void this.core.trigger(':onSave', this.saveHandle(saveObj, details)));
+    this.core.SugarCube.Save.onLoad.add((saveObj: any) => {
+      const save = this.saveHandle(saveObj);
+      void this.core.trigger(':onLoad', save);
+      save.use(save.V, () => void this.core.modules.init('load'));
+      if (!this.core.passage || this.blockedPassages.has(this.core.passage.title)) this.onStart = true;
     });
   }
 
@@ -162,17 +165,13 @@ class AddonPlugin {
   }
 
   public async whenSC2PassageStart(passage: Passage, content: HTMLDivElement): Promise<any> {
-    if (!this.core.passage || this.core.passage.title === 'Start' || this.core.passage.title === 'Downgrade Waiting Room') return;
-    this.core.modules.initPhase.postInitExecuted = false;
+    if (!this.core.passage || this.blockedPassages.has(this.core.passage.title)) return;
     await this.core.modules.init('init');
-    if (!this.onLoad) {
-      await this.core.modules.init('post');
-      return;
-    }
-    await this.core.modules.init('load');
-    void this.core.trigger(':onLoadSave').then(async () => await this.core.modules.init('post'));
-    this.onLoad = false;
     await this.core.trigger(':passagestart', passage, content);
+    if (this.onStart) {
+      this.core.SugarCube.Engine.show();
+      this.onStart = false;
+    }
   }
 
   public async whenSC2PassageRender(passage: Passage, content: HTMLDivElement): Promise<any> {
@@ -210,7 +209,7 @@ class AddonPlugin {
 
   // prettier-ignore
   private dataReplace(): void {
-    try { modifyOptionsDateFormat(this);                           } catch { this.log('modifyOptionsDateFormat 出错', 'ERROR'); }
+    try { AddonPlugin.modifyOptionsDateFormat(this);               } catch { this.log('modifyOptionsDateFormat 出错', 'ERROR'); }
     try { this.core.dynamic.Weather.modifyWeatherJavaScript(this); } catch { this.log('modifyWeatherJavaScript 出错', 'ERROR'); }
     try { this.core.char.modifyCanvasModel(this);                  } catch { this.log('modifyCanvasModel 出错', 'ERROR');       }
     try { this.core.char.modifyFaceStyle(this);                    } catch { this.log('modifyFaceStyle 出错', 'ERROR');         }
@@ -254,7 +253,7 @@ class AddonPlugin {
           await execute();
           continue;
         }
-        await this.core.modules.runWithSource(file.modName, execute);
+        await this.core.modules.withSource(file.modName, execute);
       } catch (error: any) {
         this.log(`执行 ${type} 文件失败: ${file.filePath} (来自 ${file.modName}): ${error?.message || error}`, 'ERROR');
       } finally {
@@ -270,32 +269,66 @@ class AddonPlugin {
     try { await AddonPluginProcess.Framework(this); } catch (error: any) { this.log(`框架处理过程失败: ${error?.message || error}`, 'ERROR'); }
     try { await AddonPluginProcess.NPC(this); }       catch (error: any) { this.log(`NPC处理过程失败: ${error?.message || error}`, 'ERROR'); }
   }
-}
 
-function modifyOptionsDateFormat(manager: AddonPlugin): void {
-  const oldSCdata = manager.SC2DataManager.getSC2DataInfoAfterPatch();
-  const SCdata = oldSCdata.cloneSC2DataInfo();
-  const passageData = SCdata.passageDataItems.map;
-  const passageTitle = 'Options Overlay';
-  const passage = passageData.get(passageTitle)!;
-  const replacements: Replacement[] = [
-    [
-      /<label\s+class="en-GB">\s*<<radiobutton\s*"\$options\.dateFormat"\s*"en-GB"\s*autocheck\s*>>\s*([^<]+)<\/label>/,
-      `<label class="en-GB"><<radiobutton "$options.dateFormat" "en-GB" autocheck>> ${manager.modUtils.getModListNameNoAlias().includes('ModI18N') ? '英(日/月/年)' : 'GB(dd/mm/yyyy)'}</label>`
-    ],
-    [
-      /<label\s+class="en-US">\s*<<radiobutton\s*"\$options\.dateFormat"\s*"en-US"\s*autocheck\s*>>\s*([^<]+)<\/label>/,
-      `<label class="en-US"><<radiobutton "$options.dateFormat" "en-US" autocheck>> ${manager.modUtils.getModListNameNoAlias().includes('ModI18N') ? '美(月/日/年)' : 'US(mm/dd/yyyy)'}</label>`
-    ],
-    [
-      /<label\s+class="zh-CN">\s*<<radiobutton\s*"\$options\.dateFormat"\s*"zh-CN"\s*autocheck\s*>>\s*([^<]+)<\/label>/,
-      `<label class="zh-CN"><<radiobutton "$options.dateFormat" "zh-CN" autocheck>> ${manager.modUtils.getModListNameNoAlias().includes('ModI18N') ? '中(年/月/日)' : 'CN(yyyy/mm/dd)'}</label>`
-    ]
-  ];
-  passage.content = replace(passage.content, replacements, 'Options Overlay dateFormat');
-  passageData.set(passageTitle, passage);
-  SCdata.passageDataItems.back2Array();
-  manager.modUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
+  private static modifyOptionsDateFormat(manager: AddonPlugin): void {
+    const oldSCdata = manager.SC2DataManager.getSC2DataInfoAfterPatch();
+    const SCdata = oldSCdata.cloneSC2DataInfo();
+    const passageData = SCdata.passageDataItems.map;
+    const passageTitle = 'Options Overlay';
+    const passage = passageData.get(passageTitle)!;
+    const replacements: Replacement[] = [
+      [
+        /<label\s+class="en-GB">\s*<<radiobutton\s*"\$options\.dateFormat"\s*"en-GB"\s*autocheck\s*>>\s*([^<]+)<\/label>/,
+        `<label class="en-GB"><<radiobutton "$options.dateFormat" "en-GB" autocheck>> ${manager.modUtils.getModListNameNoAlias().includes('ModI18N') ? '英(日/月/年)' : 'GB(dd/mm/yyyy)'}</label>`
+      ],
+      [
+        /<label\s+class="en-US">\s*<<radiobutton\s*"\$options\.dateFormat"\s*"en-US"\s*autocheck\s*>>\s*([^<]+)<\/label>/,
+        `<label class="en-US"><<radiobutton "$options.dateFormat" "en-US" autocheck>> ${manager.modUtils.getModListNameNoAlias().includes('ModI18N') ? '美(月/日/年)' : 'US(mm/dd/yyyy)'}</label>`
+      ],
+      [
+        /<label\s+class="zh-CN">\s*<<radiobutton\s*"\$options\.dateFormat"\s*"zh-CN"\s*autocheck\s*>>\s*([^<]+)<\/label>/,
+        `<label class="zh-CN"><<radiobutton "$options.dateFormat" "zh-CN" autocheck>> ${manager.modUtils.getModListNameNoAlias().includes('ModI18N') ? '中(年/月/日)' : 'CN(yyyy/mm/dd)'}</label>`
+      ]
+    ];
+    passage.content = replace(passage.content, replacements, 'Options Overlay dateFormat');
+    passageData.set(passageTitle, passage);
+    SCdata.passageDataItems.back2Array();
+    manager.modUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
+  }
+
+  private saveHandle(saveObj: any, details?: any) {
+    const State = this.core.SugarCube.State;
+    const history: any[] = Array.isArray(saveObj?.state?.history) ? saveObj.state.history : [];
+
+    const replace = (target: any, source: any) => {
+      Object.keys(target).forEach(key => delete target[key]);
+      Object.assign(target, source);
+      return target;
+    };
+
+    const use = <T>(variables: any, fn: () => T): T => {
+      const runtime = State.variables;
+      const backup = runtime.clone();
+      replace(runtime, variables.clone());
+      try {
+        const result = fn();
+        replace(variables, runtime.clone());
+        return result;
+      } finally {
+        replace(runtime, backup);
+      }
+    };
+
+    return {
+      saveObj,
+      details,
+      get V() {
+        const index = saveObj?.state?.index;
+        return history[index]?.variables ?? history[history.length - 1]?.variables;
+      },
+      use
+    };
+  }
 }
 
 let order: TypeOrderItem[] = window.addonBeautySelectorAddon.typeOrderUsed!;

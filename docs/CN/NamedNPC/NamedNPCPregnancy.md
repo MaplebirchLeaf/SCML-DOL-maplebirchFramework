@@ -145,25 +145,25 @@ maplebirch.npc.addPregnancy('plant', {
 
 ## 注册字段
 
-| 字段 | 类型 | 作用 |
-| :--- | :--- | :--- |
-| `generator` | `(mother, father, fatherKnown, genital) => pregnancy` | 生成怀孕数据，并安装到 `window.pregnancyGenerator[type]`。 |
-| `birth` | 对象或 `(type, pregnancy, npcName) => object` | 注册种族或单个 NPC 的默认出生地点和孩子地点。 |
-| `type` | 字符串 | 仅 NPC 配置使用，指定这个 NPC 使用的怀孕种族。 |
-| `enabled` | 布尔值 | 仅 NPC 配置使用，设为 `false` 时只保存覆盖配置，不自动加入可怀孕名单。 |
-| `canBePregnant` | 布尔值 | 仅 NPC 配置使用，是否把这个 NPC 加入 `setup.pregnancy.canBePregnant`。 |
-| `canImpregnatePlayer` | 布尔值 | 仅 NPC 配置使用，是否把这个 NPC 加入 `setup.pregnancy.canImpregnatePlayer`。 |
-| `multiplier` | 数字或 `(npcName, pregnancy) => number` | 每日怀孕计时增长倍率。 |
-| `autoEnd` | 布尔值或 `(npcName, pregnancy) => boolean` | 是否在错过分娩事件后自动结束怀孕。 |
-| `cycleMode` | `'range'` 或 `'after'` | 排卵危险日检查模式。 |
-| `forcePregnancy` | 布尔值或 `(npcName, pregnancy) => boolean` | 随机未抽中时，是否强制使用第一份可用精液。 |
-| `nonCycleFlag` | 字符串 | 非周期 RNG 成功时写入怀孕对象的字段名。 |
-| `onMissedBirth` | `(npcName, pregnancy) => void` | 自动处理错过分娩前执行的回调。 |
-| `npc` | `Record<npcName, config>` | 写在种族配置里的单个 NPC 覆盖配置。 |
-| `eta` | `(pregnancy) => number \| null` | 覆盖这个种族的 `window.pregnancyDaysEta()` 显示。 |
-| `child` | 对象 | 注册孩子出生后的默认字段、转化、日常活动和宝宝称呼。 |
-| `childActivity` | `(childId, child) => string \| null \| false \| void` | 旧式写法，等同于 `child.activity`。 |
-| `text` | 对象或 `(pregnancy, count, target) => string` | 旧式写法，等同于 `child.text`。 |
+| 字段                  | 类型                                                  | 作用                                                                         |
+| :-------------------- | :---------------------------------------------------- | :--------------------------------------------------------------------------- |
+| `generator`           | `(mother, father, fatherKnown, genital) => pregnancy` | 生成怀孕数据，并安装到 `window.pregnancyGenerator[type]`。                   |
+| `birth`               | 对象或 `(type, pregnancy, npcName) => object`         | 注册种族或单个 NPC 的默认出生地点和孩子地点。                                |
+| `type`                | 字符串                                                | 仅 NPC 配置使用，指定这个 NPC 使用的怀孕种族。                               |
+| `enabled`             | 布尔值                                                | 仅 NPC 配置使用，设为 `false` 时只保存覆盖配置，不自动加入可怀孕名单。       |
+| `canBePregnant`       | 布尔值                                                | 仅 NPC 配置使用，是否把这个 NPC 加入 `setup.pregnancy.canBePregnant`。       |
+| `canImpregnatePlayer` | 布尔值                                                | 仅 NPC 配置使用，是否把这个 NPC 加入 `setup.pregnancy.canImpregnatePlayer`。 |
+| `multiplier`          | 数字或 `(npcName, pregnancy) => number`               | 每日怀孕计时增长倍率。                                                       |
+| `autoEnd`             | 布尔值或 `(npcName, pregnancy) => boolean`            | 是否在错过分娩事件后自动结束怀孕。                                           |
+| `cycleMode`           | `'range'` 或 `'after'`                                | 排卵危险日检查模式。                                                         |
+| `forcePregnancy`      | 布尔值或 `(npcName, pregnancy) => boolean`            | 随机未抽中时，是否强制使用第一份可用精液。                                   |
+| `nonCycleFlag`        | 字符串                                                | 非周期 RNG 成功时写入怀孕对象的字段名。                                      |
+| `onMissedBirth`       | `(npcName, pregnancy) => void`                        | 自动处理错过分娩前执行的回调。                                               |
+| `npc`                 | `Record<npcName, config>`                             | 写在种族配置里的单个 NPC 覆盖配置。                                          |
+| `eta`                 | `(pregnancy) => number \| null`                       | 覆盖这个种族的 `window.pregnancyDaysEta()` 显示。                            |
+| `child`               | 对象                                                  | 注册孩子出生后的默认字段、转化、日常活动和宝宝称呼。                         |
+| `childActivity`       | `(childId, child) => string \| null \| false \| void` | 旧式写法，等同于 `child.activity`。                                          |
+| `text`                | 对象或 `(pregnancy, count, target) => string`         | 旧式写法，等同于 `child.text`。                                              |
 
 ## 孩子配置
 
@@ -214,12 +214,12 @@ child: {
 }
 ```
 
-| 字段 | 写入位置 | 用途 |
-| :--- | :--- | :--- |
-| `animal` | `child.features.beastTransform` | 动物转化标记。值可以是原版动物转化名，也可以是框架新增的物理/动物转化名。 |
-| `divine` | `child.features.divineTransform` | 神圣转化标记。值可以是原版神圣/恶魔转化名，也可以是框架新增的神圣转化名。 |
-| `features` | `child.features` | 直接补充任意原版兼容 feature 字段。 |
-| `maplebirch` | `child.features.maplebirchTransform` | 给框架或模组自定义转化保存标记。 |
+| 字段         | 写入位置                             | 用途                                                                      |
+| :----------- | :----------------------------------- | :------------------------------------------------------------------------ |
+| `animal`     | `child.features.beastTransform`      | 动物转化标记。值可以是原版动物转化名，也可以是框架新增的物理/动物转化名。 |
+| `divine`     | `child.features.divineTransform`     | 神圣转化标记。值可以是原版神圣/恶魔转化名，也可以是框架新增的神圣转化名。 |
+| `features`   | `child.features`                     | 直接补充任意原版兼容 feature 字段。                                       |
+| `maplebirch` | `child.features.maplebirchTransform` | 给框架或模组自定义转化保存标记。                                          |
 
 ## 运行流程
 
@@ -242,14 +242,14 @@ flowchart TD
 
 ## 原版修改点
 
-| 原版入口 | 框架处理 |
-| :--- | :--- |
-| `time.js` 每日 `npcPregnancyCycle()` | 替换为 `maplebirch.npc.Pregnancy.cycle()`。 |
-| `window.pregnancyGenerator` | 注入自定义种族生成器。 |
-| `window.recordSperm` | 先给自定义命名 NPC 补齐 `spermType`，再交回原版。 |
-| `<<playerPregnancyAttempt>>` | 自定义精液走框架，原版种族回退原版宏。 |
-| `<<namedNpcPregnancy>>` | 自定义母体/父方组合走框架，原版组合回退原版宏。 |
-| `<<endNpcPregnancy>>` | 先解析注册出生地点，交回原版出生，之后应用 child 配置。 |
-| `window.pregnancyDaysEta()` | 自定义种族走注册 `eta`，否则回退原版。 |
-| `<<updateChildActivity>>` | 自定义孩子走 `child.activity`，否则回退原版。 |
-| `<<pregnancyBabyText>>` | 自定义种族走 `child.text`，否则回退原版。 |
+| 原版入口                             | 框架处理                                                |
+| :----------------------------------- | :------------------------------------------------------ |
+| `time.js` 每日 `npcPregnancyCycle()` | 替换为 `maplebirch.npc.Pregnancy.cycle()`。             |
+| `window.pregnancyGenerator`          | 注入自定义种族生成器。                                  |
+| `window.recordSperm`                 | 先给自定义命名 NPC 补齐 `spermType`，再交回原版。       |
+| `<<playerPregnancyAttempt>>`         | 自定义精液走框架，原版种族回退原版宏。                  |
+| `<<namedNpcPregnancy>>`              | 自定义母体/父方组合走框架，原版组合回退原版宏。         |
+| `<<endNpcPregnancy>>`                | 先解析注册出生地点，交回原版出生，之后应用 child 配置。 |
+| `window.pregnancyDaysEta()`          | 自定义种族走注册 `eta`，否则回退原版。                  |
+| `<<updateChildActivity>>`            | 自定义孩子走 `child.activity`，否则回退原版。           |
+| `<<pregnancyBabyText>>`              | 自定义种族走 `child.text`，否则回退原版。               |

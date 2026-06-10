@@ -19,9 +19,7 @@ async function readJson<T>(request: Request): Promise<T | Response> {
 }
 
 async function listSaves(env: Env, user: AuthUser) {
-  const rows = await env.SAVE_DB.prepare('SELECT slot, updated_at AS updatedAt FROM saves WHERE user_id = ? ORDER BY slot')
-    .bind(user.id)
-    .all<RemoteSaveItem>();
+  const rows = await env.SAVE_DB.prepare('SELECT slot, updated_at AS updatedAt FROM saves WHERE user_id = ? ORDER BY slot').bind(user.id).all<RemoteSaveItem>();
   return jsonResponse(rows.results ?? []);
 }
 
@@ -59,9 +57,7 @@ async function deleteSave(env: Env, user: AuthUser, slot: number) {
 }
 
 async function getSaveCode(env: Env, user: AuthUser) {
-  const row = await env.SAVE_DB.prepare('SELECT updated_at AS updatedAt, object_key AS objectKey FROM save_codes WHERE user_id = ?')
-    .bind(user.id)
-    .first<RemoteSaveCode & { objectKey: string }>();
+  const row = await env.SAVE_DB.prepare('SELECT updated_at AS updatedAt, object_key AS objectKey FROM save_codes WHERE user_id = ?').bind(user.id).first<RemoteSaveCode & { objectKey: string }>();
   if (!row) return textResponse('not found', 404);
   const item = await getJson<RemoteSaveCode>(env, row.objectKey);
   if (!item) return textResponse('not found', 404);

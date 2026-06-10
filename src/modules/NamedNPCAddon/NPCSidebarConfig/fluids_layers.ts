@@ -72,8 +72,18 @@ const fluids_layers = {
   nnpc_cum_chest: cumLayer('chest', 'cum_chest', nnpc => maplebirch.char.ZIndices.tears + nnpc.position),
   nnpc_cum_face: cumLayer('face', 'cum_face', nnpc => maplebirch.char.ZIndices.tears + nnpc.position, faceUncovered),
   nnpc_cum_feet: cumLayer('feet', 'cum_feet', nnpc => maplebirch.char.ZIndices.feet + 0.2 + nnpc.position),
-  nnpc_cum_leftarm: cumLayer('left-arm', 'cum_leftarm', nnpc => nnpc.zarms + 0.05, nnpc => nnpc.arm_left !== 'none' && nnpc.arm_left !== 'cover'),
-  nnpc_cum_rightarm: cumLayer('right-arm', 'cum_rightarm', nnpc => nnpc.zarms + 0.05, nnpc => nnpc.arm_right !== 'none' && nnpc.arm_right !== 'cover' && nnpc.arm_right !== 'hold'),
+  nnpc_cum_leftarm: cumLayer(
+    'left-arm',
+    'cum_leftarm',
+    nnpc => nnpc.zarms + 0.05,
+    nnpc => nnpc.arm_left !== 'none' && nnpc.arm_left !== 'cover'
+  ),
+  nnpc_cum_rightarm: cumLayer(
+    'right-arm',
+    'cum_rightarm',
+    nnpc => nnpc.zarms + 0.05,
+    nnpc => nnpc.arm_right !== 'none' && nnpc.arm_right !== 'cover' && nnpc.arm_right !== 'hold'
+  ),
   nnpc_cum_neck: cumLayer('neck', 'cum_neck', nnpc => maplebirch.char.ZIndices.tears + nnpc.position),
   nnpc_cum_thigh: cumLayer('thighs', 'cum_thigh', nnpc => maplebirch.char.ZIndices.tears + nnpc.position),
   nnpc_cum_tummy: cumLayer('tummy', 'cum_tummy', nnpc => maplebirch.char.ZIndices.tears + nnpc.position)

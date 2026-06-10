@@ -259,15 +259,15 @@ maplebirch.npc.add(
 
 ### 配置选项
 
-| 属性            | 类型                         | 说明              |
-| :-------------- | :--------------------------- | :---------------- |
-| `love`          | object                       | 好感度配置        |
-| `love.maxValue` | number                       | 最大好感度值      |
+| 属性            | 类型                         | 说明                                  |
+| :-------------- | :--------------------------- | :------------------------------------ |
+| `love`          | object                       | 好感度配置                            |
+| `love.maxValue` | number                       | 最大好感度值                          |
 | `loveAlias`     | [string, string] 或 function | 好感度别名，数组顺序为 `[英文, 中文]` |
-| `important`     | boolean 或 function          | 是否为重要NPC     |
-| `special`       | boolean 或 function          | 是否为特殊NPC     |
-| `loveInterest`  | boolean 或 function          | 是否为可恋爱对象  |
-| `romance`       | Function[]                   | 恋爱条件函数数组  |
+| `important`     | boolean 或 function          | 是否为重要NPC                         |
+| `special`       | boolean 或 function          | 是否为特殊NPC                         |
+| `loveInterest`  | boolean 或 function          | 是否为可恋爱对象                      |
+| `romance`       | Function[]                   | 恋爱条件函数数组                      |
 
 ### 示例配置
 

@@ -17,9 +17,13 @@ maplebirch.after(eventName, callback);
 ## Example
 
 ```javascript
-maplebirch.on(':passagestart', () => {
-  console.log('passage started');
-}, 'myMod passage hook');
+maplebirch.on(
+  ':passagestart',
+  () => {
+    console.log('passage started');
+  },
+  'myMod passage hook'
+);
 ```
 
 Remove it:
@@ -42,14 +46,13 @@ await maplebirch.trigger('myMod:refresh', {
 
 ## Common Events
 
-| Event | Use |
-| :--- | :--- |
-| `:storyready` | SugarCube story is ready |
-| `:passageinit` | Passage init |
-| `:passagestart` | Passage starts |
-| `:passagedisplay` | Passage displayed |
-| `:passageend` | Passage ends |
-| `:onSave` | Save hook |
-| `:onLoad` | Load hook |
-| `:onLoadSave` | After loading into passage flow |
-| `:language` | Framework language changed |
+| Event             | Use                        |
+| :---------------- | :------------------------- |
+| `:storyready`     | SugarCube story is ready   |
+| `:passageinit`    | Passage init               |
+| `:passagestart`   | Passage starts             |
+| `:passagedisplay` | Passage displayed          |
+| `:passageend`     | Passage ends               |
+| `:onSave`         | Save hook                  |
+| `:onLoad`         | Load hook                  |
+| `:language`       | Framework language changed |

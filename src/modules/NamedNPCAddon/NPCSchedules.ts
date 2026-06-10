@@ -299,7 +299,7 @@ export class Schedule {
 }
 
 const NPCSchedules = ((core: typeof maplebirch) => {
-  function initData(manager: NPCManager) {
+  function initData(manager: NPCManager): boolean {
     if (!Array.isArray(manager.NPCNameList)) {
       manager.log('NPCSchedules: 需要传入NPC名称数组', 'WARN');
       return false;

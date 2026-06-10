@@ -34,30 +34,30 @@ maplebirch.npc.addSchedule('Luna', {
 
 `daily` is for fixed hourly locations.
 
-| Field | Description |
-| :--- | :--- |
-| `time` | Hour, or `[startHour, endHour]` |
-| `location` | Location id |
+| Field      | Description                     |
+| :--------- | :------------------------------ |
+| `time`     | Hour, or `[startHour, endHour]` |
+| `location` | Location id                     |
 
 ```javascript
 daily: [
   { time: 9, location: 'school' },
   { time: [13, 15], location: 'gym' }
-]
+];
 ```
 
 ## Special Schedule
 
 `special` is for conditional schedules. When a condition matches, it can override the daily location.
 
-| Field | Description |
-| :--- | :--- |
-| `id` | Optional schedule id |
-| `condition` | Function receiving an enhanced date object |
-| `location` | Location id or function |
-| `override` | Prioritize before other special schedules |
-| `before` | Sort before another special schedule |
-| `after` | Sort after another special schedule |
+| Field       | Description                                  |
+| :---------- | :------------------------------------------- |
+| `id`        | Optional schedule id                         |
+| `condition` | Function receiving an enhanced date object   |
+| `location`  | Location id or function                      |
+| `override`  | Prioritize before other special schedules    |
+| `before`    | Sort before another special schedule         |
+| `after`     | Sort after another special schedule          |
 | `insteadOf` | Replace another special schedule in ordering |
 
 ```javascript
@@ -67,7 +67,7 @@ special: [
     condition: date => date.weekEnd && Weather.name !== 'rain',
     location: 'park'
   }
-]
+];
 ```
 
 ## Builder Function
@@ -76,11 +76,7 @@ For more complex schedules, pass a function. It receives a `Schedule` instance.
 
 ```javascript
 maplebirch.npc.addSchedule('Robin', schedule => {
-  schedule
-    .at(7, 'home')
-    .at([8, 15], 'school')
-    .at(16, 'library')
-    .at(18, 'home');
+  schedule.at(7, 'home').at([8, 15], 'school').at(16, 'library').at(18, 'home');
 
   schedule.when(
     date => date.weekEnd,
@@ -100,10 +96,10 @@ maplebirch.npc.addSchedule('Robin', schedule => {
 schedule.at(time, location);
 ```
 
-| Argument | Description |
-| :--- | :--- |
-| `time` | Hour, or `[startHour, endHour]` |
-| `location` | Location id |
+| Argument   | Description                     |
+| :--------- | :------------------------------ |
+| `time`     | Hour, or `[startHour, endHour]` |
+| `location` | Location id                     |
 
 ```javascript
 schedule.at(8, 'school');
@@ -116,18 +112,14 @@ schedule.at([19, 22], 'dormitory');
 schedule.when(condition, location, options);
 ```
 
-| Argument | Description |
-| :--- | :--- |
-| `condition` | Condition function |
-| `location` | Location id, location function, or another `Schedule` |
-| `options` | Special schedule options |
+| Argument    | Description                                           |
+| :---------- | :---------------------------------------------------- |
+| `condition` | Condition function                                    |
+| `location`  | Location id, location function, or another `Schedule` |
+| `options`   | Special schedule options                              |
 
 ```javascript
-schedule.when(
-  date => C.npc.Robin?.love >= 30 && date.weekEnd,
-  'arcade',
-  { id: 'weekend_arcade' }
-);
+schedule.when(date => C.npc.Robin?.love >= 30 && date.weekEnd, 'arcade', { id: 'weekend_arcade' });
 ```
 
 Dynamic location:
@@ -179,13 +171,13 @@ Schedule conditions and dynamic locations receive an enhanced date object based 
 
 Common properties:
 
-| Property | Description |
-| :--- | :--- |
-| `schoolDay` | Whether it is a school day |
-| `weekEnd` | Whether it is a weekend |
-| `spring` / `summer` / `autumn` / `winter` | Current season |
-| `dawn` / `daytime` / `dusk` / `night` | Current day state |
-| `schedule` | A new `Schedule` instance for nested schedule logic |
+| Property                                  | Description                                         |
+| :---------------------------------------- | :-------------------------------------------------- |
+| `schoolDay`                               | Whether it is a school day                          |
+| `weekEnd`                                 | Whether it is a weekend                             |
+| `spring` / `summer` / `autumn` / `winter` | Current season                                      |
+| `dawn` / `daytime` / `dusk` / `night`     | Current day state                                   |
+| `schedule`                                | A new `Schedule` instance for nested schedule logic |
 
 Common methods:
 

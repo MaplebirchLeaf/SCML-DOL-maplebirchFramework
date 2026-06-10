@@ -57,30 +57,30 @@ const list = Array.append(base, extra);
 
 ## 常用方法总览
 
-| 方法 | 说明 |
-| :--- | :--- |
-| `value.clone(deep, proto)` | 克隆值 |
-| `value.equal(other)` | 深度比较 |
-| `target.merge(...sources)` | 递归合并，数组按下标合并 |
-| `target.append(...sources)` | 递归合并，数组追加 |
-| `target.cover(...sources)` | 递归合并，数组替换 |
-| `target.mergefn(fn, ...sources)` | 带过滤函数的 `merge` |
-| `target.appendfn(fn, ...sources)` | 带过滤函数的 `append` |
-| `target.coverfn(fn, ...sources)` | 带过滤函数的 `cover` |
-| `Object.merge(...sources)` | 创建新对象并 merge |
-| `Object.append(...sources)` | 创建新对象并 append |
-| `Object.cover(...sources)` | 创建新对象并 cover |
-| `Array.merge(...sources)` | 创建新数组并 merge |
-| `Array.append(...sources)` | 创建新数组并 append |
-| `Array.cover(...sources)` | 创建新数组并 cover |
-| `value.contains(value, mode, opt)` | 判断包含关系 |
-| `array.random()` | 从数组随机取一个元素 |
-| `array.either(weights, allowNull)` | 从数组随机取一个元素，可带权重 |
-| `string.convert(mode, opt)` | 字符串格式转换 |
-| `Math.random(max)` | `0` 到 `max` 的整数 |
-| `Math.random(min, max, float)` | `min` 到 `max` 的随机数 |
-| `Math.clamp(value, min, max, fallback)` | 限制数值范围 |
-| `loadImage(src)` | 检查或加载图片资源 |
+| 方法                                    | 说明                           |
+| :-------------------------------------- | :----------------------------- |
+| `value.clone(deep, proto)`              | 克隆值                         |
+| `value.equal(other)`                    | 深度比较                       |
+| `target.merge(...sources)`              | 递归合并，数组按下标合并       |
+| `target.append(...sources)`             | 递归合并，数组追加             |
+| `target.cover(...sources)`              | 递归合并，数组替换             |
+| `target.mergefn(fn, ...sources)`        | 带过滤函数的 `merge`           |
+| `target.appendfn(fn, ...sources)`       | 带过滤函数的 `append`          |
+| `target.coverfn(fn, ...sources)`        | 带过滤函数的 `cover`           |
+| `Object.merge(...sources)`              | 创建新对象并 merge             |
+| `Object.append(...sources)`             | 创建新对象并 append            |
+| `Object.cover(...sources)`              | 创建新对象并 cover             |
+| `Array.merge(...sources)`               | 创建新数组并 merge             |
+| `Array.append(...sources)`              | 创建新数组并 append            |
+| `Array.cover(...sources)`               | 创建新数组并 cover             |
+| `value.contains(value, mode, opt)`      | 判断包含关系                   |
+| `array.random()`                        | 从数组随机取一个元素           |
+| `array.either(weights, allowNull)`      | 从数组随机取一个元素，可带权重 |
+| `string.convert(mode, opt)`             | 字符串格式转换                 |
+| `Math.random(max)`                      | `0` 到 `max` 的整数            |
+| `Math.random(min, max, float)`          | `min` 到 `max` 的随机数        |
+| `Math.clamp(value, min, max, fallback)` | 限制数值范围                   |
+| `loadImage(src)`                        | 检查或加载图片资源             |
 
 ## clone
 
@@ -92,9 +92,9 @@ const plainCopy = source.clone(true, false);
 
 参数：
 
-| 参数 | 默认 | 说明 |
-| :--- | :--- | :--- |
-| `deep` | `true` | 是否深拷贝 |
+| 参数    | 默认   | 说明           |
+| :------ | :----- | :------------- |
+| `deep`  | `true` | 是否深拷贝     |
 | `proto` | `true` | 是否保留原型链 |
 
 支持普通对象、数组、`Date`、`RegExp`、`Map`、`Set`、`ArrayBuffer`、`DataView` 和 TypedArray。
@@ -114,18 +114,15 @@ const same = dataA.equal(dataB);
 这三个方法都会递归合并对象，区别主要在数组处理方式。
 
 ```javascript
-({ list: [1, 2] }).merge({ list: [3] });  // { list: [3, 2] }
+({ list: [1, 2] }).merge({ list: [3] }); // { list: [3, 2] }
 ({ list: [1, 2] }).append({ list: [3] }); // { list: [1, 2, 3] }
-({ list: [1, 2] }).cover({ list: [3] });  // { list: [3] }
+({ list: [1, 2] }).cover({ list: [3] }); // { list: [3] }
 ```
 
 对象会递归合并：
 
 ```javascript
-const result = Object.merge(
-  { npc: { enabled: true, count: 2 } },
-  { npc: { count: 4 } }
-);
+const result = Object.merge({ npc: { enabled: true, count: 2 } }, { npc: { count: 4 } });
 // { npc: { enabled: true, count: 4 } }
 ```
 
@@ -145,12 +142,12 @@ target.mergefn((key, value, depth, targetValue) => targetValue === undefined, so
 
 过滤函数参数：
 
-| 参数 | 说明 |
-| :--- | :--- |
-| `key` | 当前字段名 |
-| `value` | 来源对象中的值 |
-| `depth` | 当前递归深度，第一层为 `1` |
-| `targetValue` | 目标对象中已有的值 |
+| 参数          | 说明                       |
+| :------------ | :------------------------- |
+| `key`         | 当前字段名                 |
+| `value`       | 来源对象中的值             |
+| `depth`       | 当前递归深度，第一层为 `1` |
+| `targetValue` | 目标对象中已有的值         |
 
 常见用法：
 
@@ -193,19 +190,19 @@ new Map([['key', 'value']]).contains('value'); // true
 
 `mode` 可选：
 
-| 模式 | 说明 |
-| :--- | :--- |
-| `all` | 传入数组时，所有值都必须存在 |
-| `any` | 任意一个值存在即可 |
-| `none` | 所有值都不能存在 |
+| 模式   | 说明                         |
+| :----- | :--------------------------- |
+| `all`  | 传入数组时，所有值都必须存在 |
+| `any`  | 任意一个值存在即可           |
+| `none` | 所有值都不能存在             |
 
 `options` 可选：
 
-| 参数 | 默认 | 说明 |
-| :--- | :--- | :--- |
-| `case` | `true` | 字符串比较是否区分大小写 |
-| `deep` | `false` | 是否使用深度比较 |
-| `compare` | 无 | 自定义比较函数 |
+| 参数      | 默认    | 说明                     |
+| :-------- | :------ | :----------------------- |
+| `case`    | `true`  | 字符串比较是否区分大小写 |
+| `deep`    | `false` | 是否使用深度比较         |
+| `compare` | 无      | 自定义比较函数           |
 
 示例：
 
@@ -262,24 +259,24 @@ Math.random(5, 10, true); // 5 到 10 的浮点数
 
 支持模式：
 
-| 模式 | 示例 |
-| :--- | :--- |
-| `lower` | `hello world` |
-| `upper` | `HELLO WORLD` |
+| 模式         | 示例          |
+| :----------- | :------------ |
+| `lower`      | `hello world` |
+| `upper`      | `HELLO WORLD` |
 | `capitalize` | `Hello world` |
-| `title` | `Hello World` |
-| `camel` | `helloWorld` |
-| `pascal` | `HelloWorld` |
-| `snake` | `hello_world` |
-| `kebab` | `hello-world` |
-| `constant` | `HELLO_WORLD` |
+| `title`      | `Hello World` |
+| `camel`      | `helloWorld`  |
+| `pascal`     | `HelloWorld`  |
+| `snake`      | `hello_world` |
+| `kebab`      | `hello-world` |
+| `constant`   | `HELLO_WORLD` |
 
 可选参数：
 
-| 参数 | 默认 | 说明 |
-| :--- | :--- | :--- |
-| `delimiter` | 空格 | 拆分词语时优先使用的分隔符 |
-| `acronym` | `true` | `title` 模式下是否保留全大写缩写 |
+| 参数        | 默认   | 说明                             |
+| :---------- | :----- | :------------------------------- |
+| `delimiter` | 空格   | 拆分词语时优先使用的分隔符       |
+| `acronym`   | `true` | `title` 模式下是否保留全大写缩写 |
 
 ```javascript
 'NPC name'.convert('title'); // NPC Name
@@ -316,12 +313,12 @@ if (result) {
 
 返回值可能是：
 
-| 返回值 | 说明 |
-| :--- | :--- |
-| `string` | 可用图片路径 |
-| `true` | 图片存在 |
-| `false` | 图片不可用 |
-| `Promise<string \| boolean>` | 异步结果 |
+| 返回值                       | 说明         |
+| :--------------------------- | :----------- |
+| `string`                     | 可用图片路径 |
+| `true`                       | 图片存在     |
+| `false`                      | 图片不可用   |
+| `Promise<string \| boolean>` | 异步结果     |
 
 异步场景建议始终使用 `await`。
 
@@ -341,17 +338,17 @@ const bytesAgain = base64ToBytes(base64);
 const buffer = base64ToArrayBuffer(base64);
 ```
 
-| 函数 | 说明 |
-| :--- | :--- |
-| `textToBytes(text)` | 字符串转 `Uint8Array` |
-| `bytesToText(bytes)` | `Uint8Array` / `ArrayBuffer` 转字符串 |
-| `jsonToBytes(value)` | JSON 数据转字节 |
-| `bytesToJson(bytes)` | 字节转 JSON 数据 |
-| `toArrayBuffer(bytes)` | 从 `Uint8Array` 截取准确的 `ArrayBuffer` |
-| `bytesToBase64(bytes)` | 字节转 Base64 |
-| `base64ToBytes(base64)` | Base64 转字节 |
-| `base64ToArrayBuffer(base64)` | Base64 转 `ArrayBuffer` |
-| `normalizeBase64(base64)` | 修正 URL-safe Base64 和补齐 `=` |
+| 函数                          | 说明                                     |
+| :---------------------------- | :--------------------------------------- |
+| `textToBytes(text)`           | 字符串转 `Uint8Array`                    |
+| `bytesToText(bytes)`          | `Uint8Array` / `ArrayBuffer` 转字符串    |
+| `jsonToBytes(value)`          | JSON 数据转字节                          |
+| `bytesToJson(bytes)`          | 字节转 JSON 数据                         |
+| `toArrayBuffer(bytes)`        | 从 `Uint8Array` 截取准确的 `ArrayBuffer` |
+| `bytesToBase64(bytes)`        | 字节转 Base64                            |
+| `base64ToBytes(base64)`       | Base64 转字节                            |
+| `base64ToArrayBuffer(base64)` | Base64 转 `ArrayBuffer`                  |
+| `normalizeBase64(base64)`     | 修正 URL-safe Base64 和补齐 `=`          |
 
 ## 路径与文本工具
 
@@ -362,13 +359,13 @@ joinEncodedPath('user name', 'slot 1'); // user%20name/slot%201
 escapeHtmlText('<b>text</b>'); // &lt;b&gt;text&lt;/b&gt;
 ```
 
-| 函数 | 说明 |
-| :--- | :--- |
+| 函数                            | 说明                               |
+| :------------------------------ | :--------------------------------- |
 | `basicAuth(username, password)` | 生成 Basic Auth 的 Base64 凭据部分 |
-| `trimSlashes(value)` | 去掉路径两端斜杠 |
-| `joinPath(...parts)` | 拼接普通路径 |
-| `joinEncodedPath(...parts)` | 拼接并编码路径 |
-| `escapeHtmlText(value)` | 转义 HTML 文本 |
+| `trimSlashes(value)`            | 去掉路径两端斜杠                   |
+| `joinPath(...parts)`            | 拼接普通路径                       |
+| `joinEncodedPath(...parts)`     | 拼接并编码路径                     |
+| `escapeHtmlText(value)`         | 转义 HTML 文本                     |
 
 ## widgets
 
@@ -391,29 +388,22 @@ const list = widgets(Options, Cheats);
 `SelectCase` 适合把一组条件和结果写成链式结构。
 
 ```javascript
-const result = new SelectCase()
-  .case('wolf', '狼')
-  .caseIn(['cat', 'dog'], '动物')
-  .caseRange(0, 10, '低')
-  .caseIncludes('NPC', '角色')
-  .caseRegex(/^mod:/, '模组')
-  .else('未知')
-  .match(value);
+const result = new SelectCase().case('wolf', '狼').caseIn(['cat', 'dog'], '动物').caseRange(0, 10, '低').caseIncludes('NPC', '角色').caseRegex(/^mod:/, '模组').else('未知').match(value);
 ```
 
 常用方法：
 
-| 方法 | 说明 |
-| :--- | :--- |
-| `case(value, result)` | 精确匹配 |
-| `case(fn, result)` | 使用函数判断 |
-| `caseRange(min, max, result)` | 数值范围 |
-| `caseIn(values, result)` | 值在数组中 |
-| `caseIncludes(text, result)` | 字符串包含 |
-| `caseRegex(regex, result)` | 正则匹配 |
-| `caseCompare(op, value, result)` | 比较运算 |
-| `else(result)` | 默认结果 |
-| `match(value, meta)` | 执行匹配 |
+| 方法                             | 说明         |
+| :------------------------------- | :----------- |
+| `case(value, result)`            | 精确匹配     |
+| `case(fn, result)`               | 使用函数判断 |
+| `caseRange(min, max, result)`    | 数值范围     |
+| `caseIn(values, result)`         | 值在数组中   |
+| `caseIncludes(text, result)`     | 字符串包含   |
+| `caseRegex(regex, result)`       | 正则匹配     |
+| `caseCompare(op, value, result)` | 比较运算     |
+| `else(result)`                   | 默认结果     |
+| `match(value, meta)`             | 执行匹配     |
 
 ## 全局函数
 

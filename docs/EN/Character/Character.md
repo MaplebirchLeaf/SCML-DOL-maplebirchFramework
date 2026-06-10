@@ -19,10 +19,10 @@ By default, `use()` targets the vanilla `main` model only. Pass `target` when a 
 
 `target` accepts:
 
-| Form | Purpose |
-| :--- | :--- |
-| `'main'` | One model |
-| `['main', 'lighting']` | Multiple models |
+| Form                                | Purpose          |
+| :---------------------------------- | :--------------- |
+| `'main'`                            | One model        |
+| `['main', 'lighting']`              | Multiple models  |
 | `(name, modelOrOptions) => boolean` | Dynamic matching |
 
 ## Add a Layer
@@ -80,14 +80,14 @@ The second handler argument is the active `CanvasModel` instance. Ignore it when
 
 ## Layer Fields
 
-| Field | Purpose |
-| :--- | :--- |
-| `srcfn(options)` | Image path |
+| Field                | Purpose         |
+| :------------------- | :-------------- |
+| `srcfn(options)`     | Image path      |
 | `masksrcfn(options)` | Mask image path |
-| `showfn(options)` | Visibility |
-| `zfn(options)` | Z index |
-| `filtersfn(options)` | Filters |
-| `animation` | Animation key |
+| `showfn(options)`    | Visibility      |
+| `zfn(options)`       | Z index         |
+| `filtersfn(options)` | Filters         |
+| `animation`          | Animation key   |
 
 ## Face Style Images
 

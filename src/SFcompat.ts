@@ -19,91 +19,92 @@ interface CompatTimeEventOptions {
 
 type TimeEventHandler = (timeData: CompatTimeData) => boolean | void;
 
-const zoneMap: Record<string, string> = {
-  ModStatusBar: 'StatusBar',
-  ModMenuBig: 'MenuBig',
-  ModMenuSmall: 'MenuSmall',
-  iModInit: 'Init',
-  iModHeader: 'Header',
-  iModFooter: 'Footer',
-  iModOptions: 'Options',
-  iModCheats: 'Cheats',
-  iModFame: 'Fame',
-  iModStatist: 'Statistics',
-  iModReady: 'State',
-  iModExtraStatist: 'Statistics',
-  iModInformation: 'Information',
-  ExtraLinkZone: 'AfterLinkZone',
-  ModCaptionAfterDescription: 'CaptionAfterDescription'
-};
+class SFcompat {
+  private static readonly zoneMap: Record<string, string> = {
+    ModStatusBar: 'StatusBar',
+    ModMenuBig: 'MenuBig',
+    ModMenuSmall: 'MenuSmall',
+    iModInit: 'Init',
+    iModHeader: 'Header',
+    iModFooter: 'Footer',
+    iModOptions: 'Options',
+    iModCheats: 'Cheats',
+    iModFame: 'Fame',
+    iModStatist: 'Statistics',
+    iModReady: 'State',
+    iModExtraStatist: 'Statistics',
+    iModInformation: 'Information',
+    ExtraLinkZone: 'AfterLinkZone',
+    ModCaptionAfterDescription: 'CaptionAfterDescription'
+  };
 
-function addto(zoneName: string, ...widgets: any[]): void {
-  maplebirch.tool.addTo(zoneMap[zoneName] || zoneName, ...widgets);
-}
+  public static addto(zoneName: string, ...widgets: any[]): void {
+    maplebirch.tool.addTo(SFcompat.zoneMap[zoneName] || zoneName, ...widgets);
+  }
 
-function compatTimeData(timeData: any): CompatTimeData {
-  return {
-    ...timeData,
-    prev: timeData.prevDate || timeData.prev,
-    current: timeData.currentDate || timeData.current,
-    option: {}
+  private static compatTimeData(timeData: any): CompatTimeData {
+    return {
+      ...timeData,
+      prev: timeData.prevDate || timeData.prev,
+      current: timeData.currentDate || timeData.current,
+      option: {}
+    };
+  }
+
+  public static readonly TimeEvent = class TimeEvent {
+    private _cond: TimeEventHandler = () => true;
+    private _action: TimeEventHandler = () => {};
+    private options: CompatTimeEventOptions = { exact: true };
+    private registered = false;
+
+    public constructor(
+      private readonly type: string,
+      private readonly eventId: string
+    ) {}
+
+    public Cond(handler: TimeEventHandler): this {
+      this._cond = handler;
+      this.refresh();
+      return this;
+    }
+
+    public Action(handler: TimeEventHandler): this {
+      this._action = handler;
+      this.register();
+      return this;
+    }
+
+    public Once(isOnce = true): this {
+      this.options.once = isOnce;
+      this.refresh();
+      return this;
+    }
+
+    public Priority(priority: number): this {
+      this.options.priority = priority;
+      this.refresh();
+      return this;
+    }
+
+    private refresh(): void {
+      if (!this.registered) return;
+
+      maplebirch.dynamic.delTimeEvent(this.type, this.eventId);
+      this.registered = false;
+      this.register();
+    }
+
+    private register(): void {
+      const success = maplebirch.dynamic.regTimeEvent(this.type, this.eventId, {
+        ...this.options,
+        cond: (timeData: any) => !!this._cond(SFcompat.compatTimeData(timeData)),
+        action: (timeData: any) => this._action(SFcompat.compatTimeData(timeData))
+      });
+
+      this.registered = !!success;
+    }
   };
 }
 
-class TimeEvent {
-  private _cond: TimeEventHandler = () => true;
-  private _action: TimeEventHandler = () => {};
-  private options: CompatTimeEventOptions = { exact: true };
-  private registered = false;
-
-  public constructor(
-    private readonly type: string,
-    private readonly eventId: string
-  ) {}
-
-  public Cond(handler: TimeEventHandler): this {
-    this._cond = handler;
-    this.refresh();
-    return this;
-  }
-
-  public Action(handler: TimeEventHandler): this {
-    this._action = handler;
-    this.register();
-    return this;
-  }
-
-  public Once(isOnce = true): this {
-    this.options.once = isOnce;
-    this.refresh();
-    return this;
-  }
-
-  public Priority(priority: number): this {
-    this.options.priority = priority;
-    this.refresh();
-    return this;
-  }
-
-  private refresh(): void {
-    if (!this.registered) return;
-    maplebirch.dynamic.delTimeEvent(this.type, this.eventId);
-    this.registered = false;
-    this.register();
-  }
-
-  private register(): void {
-    const success = maplebirch.dynamic.regTimeEvent(this.type, this.eventId, {
-      ...this.options,
-      cond: timeData => !!this._cond(compatTimeData(timeData)),
-      action: timeData => this._action(compatTimeData(timeData))
-    });
-    this.registered = success;
-  }
-}
-
-(() => {
-  'use strict';
-  (window as any).simpleFrameworks = { addto };
-  (window as any).TimeEvent = TimeEvent;
-})();
+(window as any).simpleFrameworks = { addto: SFcompat.addto };
+(window as any).TimeEvent = SFcompat.TimeEvent;

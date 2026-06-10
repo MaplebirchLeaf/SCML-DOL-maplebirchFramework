@@ -43,7 +43,7 @@ class TimeTravelCheat {
   private render(): string {
     const lan = (en: string, cn: string) => lanSwitch(en, cn);
     const field = (name: TimeTravelField, label: string, min: number, max: number) => `
-      <label>
+      <label class="maplebirch-time-travel-field" data-time-travel-field-wrap="${name}">
         <input id="${this.ids[name]}" class="macro-numberbox" type="number" min="${min}" max="${max}" step="1" data-time-travel-field="${name}">
         <span>${label}</span>
       </label>`;

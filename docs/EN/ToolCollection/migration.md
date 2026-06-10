@@ -39,14 +39,14 @@ After running, `data.version` is updated to the target version and the registere
 
 ## Utility Methods
 
-| Method | Description |
-| :--- | :--- |
+| Method                                     | Description                  |
+| :----------------------------------------- | :--------------------------- |
 | `resolvePath(obj, path, createIfMissing?)` | Resolve a dotted object path |
-| `rename(data, oldPath, newPath)` | Rename or move a value |
-| `move(data, oldPath, newPath)` | Alias-style move operation |
-| `remove(data, path)` | Delete a value |
-| `transform(data, path, fn)` | Transform a value in place |
-| `fill(target, defaults, options)` | Fill missing default fields |
+| `rename(data, oldPath, newPath)`           | Rename or move a value       |
+| `move(data, oldPath, newPath)`             | Alias-style move operation   |
+| `remove(data, path)`                       | Delete a value               |
+| `transform(data, path, fn)`                | Transform a value in place   |
+| `fill(target, defaults, options)`          | Fill missing default fields  |
 
 ## Examples
 

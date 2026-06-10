@@ -60,7 +60,10 @@ export function _languageLink(this: MacroContext): void {
 
     $link.ariaClick(
       { namespace: '.macros', role: passageName != null ? 'link' : 'button', one: passageName != null },
-      this.createShadowWrapper(content ? () => maplebirch.SugarCube.Wikifier.wikifyEval(content, passageObj) : () => {}, passageName != null ? () => maplebirch.SugarCube.Engine.play(passageName) : undefined)
+      this.createShadowWrapper(
+        content ? () => maplebirch.SugarCube.Wikifier.wikifyEval(content, passageObj) : () => {},
+        passageName != null ? () => maplebirch.SugarCube.Engine.play(passageName) : undefined
+      )
     );
     $container.append($link);
     $container.appendTo(this.output);

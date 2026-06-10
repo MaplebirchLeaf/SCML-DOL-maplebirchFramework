@@ -664,8 +664,8 @@ class Character {
     this.use(layers, 'main');
   }
 
-  public Init() {
-    this.core.on(':modhint', () => void this.render(), 'character render');
+  public Init(): void {
+    void this.core.on(':modhint', () => void this.render(), 'character render');
     void this.transformation.inject();
   }
 

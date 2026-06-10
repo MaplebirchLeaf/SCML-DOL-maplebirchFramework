@@ -151,7 +151,7 @@ class NPCOutfitSets {
   }
 
   // prettier-ignore
-  public init() {
+  public init(): void {
     try {
       this.add(
         {
@@ -336,7 +336,7 @@ class NPCSidebarWardrobe {
     return result;
   }
 
-  public static async init(manager: NPCManager) {
+  public static init(manager: NPCManager): void {
     try {
       const data = maplebirch.yaml.load(builtinWardrobe);
       if (!data || typeof data !== 'object') throw new Error('无法解析内置衣柜配置');
@@ -366,9 +366,9 @@ const NPCClothes = ((core: typeof maplebirch) => {
   const outfitSets = new NPCOutfitSets();
   const sidebarArt = new NPCSidebarArt();
 
-  async function init(manager: NPCManager) {
+  function init(manager: NPCManager): void {
     try {
-      await NPCSidebarWardrobe.init(manager);
+      NPCSidebarWardrobe.init(manager);
       outfitSets.init();
     } catch (e: any) {
       core.npc.log(`NPC服装初始化失败: ${e.message}`, 'ERROR');

@@ -72,37 +72,27 @@ class migration {
 
   public add(from: string, to: string, apply: Step['apply']): void {
     if (typeof apply !== 'function') return;
-    if (this.compare(from, to) >= 0) {
-      this.log(`无效迁移版本: ${from} -> ${to}`, 'WARN');
-      return;
-    }
-    if (this.steps.some(step => step.from === from && step.to === to)) {
-      this.log(`重复迁移: ${from} -> ${to}`, 'WARN');
-      return;
-    }
+    if (from !== '*' && this.compare(from, to) >= 0) return;
+    if (this.steps.some(step => step.from === from && step.to === to)) return;
     this.steps.push({ from, to, apply });
   }
 
   public run(data: Record<string, any>, targetVersion: string): void {
-    if (!data || typeof data !== 'object') {
-      this.log('迁移数据无效', 'WARN');
-      return;
-    }
-    if (!/^\d+(?:\.\d+)*$/.test(targetVersion)) this.log(`目标版本格式无效: ${targetVersion}`, 'WARN');
+    if (!data || typeof data !== 'object') return;
     let current = String(data.version || '0.0.0');
     data.version = current;
     if (this.compare(current, targetVersion) >= 0) return;
-    const steps = [...this.steps].sort((a, b) => this.compare(a.from, b.from) || this.compare(a.to, b.to));
+    const exactSteps = this.steps.filter(step => step.from !== '*').sort((a, b) => this.compare(a.from, b.from) || this.compare(a.to, b.to));
+    const wildcardSteps = this.steps.filter(step => step.from === '*').sort((a, b) => this.compare(b.to, a.to));
     for (let count = 0; this.compare(current, targetVersion) < 0 && count < 100; count++) {
-      const next = steps
+      const exactNext = exactSteps
         .filter(step => this.compare(step.from, current) === 0)
         .filter(step => this.compare(step.to, current) > 0)
         .filter(step => this.compare(step.to, targetVersion) <= 0)
         .sort((a, b) => this.compare(b.to, a.to))[0];
-      if (!next) {
-        this.log(`迁移链中断: ${current} -> ${targetVersion}`, 'WARN');
-        return;
-      }
+      const wildcardNext = wildcardSteps.filter(step => this.compare(step.to, current) > 0).filter(step => this.compare(step.to, targetVersion) <= 0)[0];
+      const next = exactNext ?? wildcardNext;
+      if (!next) return;
       try {
         this.log(`迁移中: ${current} → ${next.to}`, 'DEBUG');
         next.apply(data, this.utils);
