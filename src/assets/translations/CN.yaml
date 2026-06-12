@@ -37,6 +37,8 @@
 'create': 创建
 'modify': 修改
 'sort': 排序
+'export': 导出
+'import': 导入
 'reset': 重置
 'status': 状态
 'choose': 选择

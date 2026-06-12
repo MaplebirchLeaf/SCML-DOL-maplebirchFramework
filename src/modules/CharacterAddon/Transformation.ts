@@ -168,7 +168,7 @@ class Transformation {
     this._clear();
   }
 
-  public _update(): void {
+  private _update(): void {
     const base = Array.isArray(setup.transformations)
       ? setup.transformations.filter((tf: { name?: string }) => {
           if (!tf?.name) return true;
@@ -218,7 +218,7 @@ class Transformation {
     }
   }
 
-  public _clear(): void {
+  private _clear(): void {
     const valid = {
       names: new Set<string>(),
       traits: new Set<string>()

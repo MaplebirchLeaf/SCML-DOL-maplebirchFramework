@@ -2618,8 +2618,8 @@ declare class Transformation {
     modifyEffect(manager: AddonPlugin): void;
     add(name: string, type: string, options: TransformationOption): this;
     inject(): void;
-    _update(): void;
-    _clear(): void;
+    private _update;
+    private _clear;
     private suppress;
     _transform(name: string, change: number): void;
     updateTransform(name: string): void;
@@ -2671,14 +2671,9 @@ declare class Character {
     private addFaceOption;
     private label;
     private _faceStyleSetupOption;
-    private renderCharacter;
-    private renderOverlay;
-    private adjustCanvasSize;
-    render(): Promise<void>;
     preInit(): void;
     Init(): void;
     loadInit(): void;
-    postInit(): void;
 }
 
 interface ScheduleCondition {

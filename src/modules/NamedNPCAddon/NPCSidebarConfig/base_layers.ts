@@ -128,7 +128,7 @@ const base_layers = {
     },
     zfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
-      return nnpc.arm_left === 'cover' ? maplebirch.char.ZIndices.left_cover_arm + nnpc.position : nnpc.zarms;
+      return nnpc.arm_left === 'cover' ? maplebirch.char.ZIndices.left_cover_arm + nnpc.position : maplebirch.char.ZIndices.armsidle + nnpc.position;
     },
     dxfn(options: NPCSidebarOptions) {
       return options.maplebirch.nnpc.dxfn;
@@ -155,7 +155,7 @@ const base_layers = {
     },
     zfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
-      return nnpc.arm_right === 'cover' || nnpc.arm_right === 'hold' ? maplebirch.char.ZIndices.right_cover_arm + nnpc.position : nnpc.zarms;
+      return nnpc.arm_right === 'cover' || nnpc.arm_right === 'hold' ? maplebirch.char.ZIndices.right_cover_arm + nnpc.position : maplebirch.char.ZIndices.armsidle + nnpc.position;
     },
     dxfn(options: NPCSidebarOptions) {
       return options.maplebirch.nnpc.dxfn;

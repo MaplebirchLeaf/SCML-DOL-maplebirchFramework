@@ -524,142 +524,18 @@ class Character {
     setup.faceVariantOptions = nextVariantOptions;
   }
 
-  private async renderCharacter() {
-    const container = document.getElementById('maplebirch-character');
-    if (!container) return;
-    container.innerHTML = '';
-    const originalModelClass = T.modelclass;
-    const originalModelOptions = T.modeloptions;
-    try {
-      T.modelclass = Renderer.locateModel('lighting', 'panel');
-      T.modeloptions = T.modelclass.defaultOptions();
-      T.modelclass.reset();
-      const lightingCanvas = T.modelclass.createCanvas(true);
-      T.modelclass.render(lightingCanvas, T.modeloptions, Renderer.defaultListener);
-      lightingCanvas.canvas.classList.add('maplebirch-canvas', 'maplebirch-lighting');
-      lightingCanvas.canvas.style.zIndex = '1';
-      container.appendChild(lightingCanvas.canvas);
-      T.modelclass = Renderer.locateModel('main', 'panel');
-      T.modeloptions = T.modelclass.defaultOptions();
-      T.modelclass.reset();
-      wikifier('modelprepare-player-body');
-      wikifier('modelprepare-player-clothes');
-      const mainCanvas = T.modelclass.createCanvas(false);
-      if (V.options.sidebarAnimations) {
-        T.modelclass.animate(mainCanvas, T.modeloptions, Renderer.defaultListener);
-      } else {
-        T.modelclass.render(mainCanvas, T.modeloptions, Renderer.defaultListener);
-      }
-      mainCanvas.canvas.classList.add('maplebirch-canvas', 'maplebirch-main');
-      mainCanvas.canvas.style.zIndex = '2';
-      container.appendChild(mainCanvas.canvas);
-      this.adjustCanvasSize(container);
-    } catch (error) {
-      this.log('角色渲染错误:', 'ERROR', error);
-    } finally {
-      T.modelclass = originalModelClass;
-      T.modeloptions = originalModelOptions;
-    }
-  }
-
-  private async renderOverlay() {
-    const overlay = document.getElementById('maplebirch-character-overlay');
-    if (!overlay) return;
-    overlay.innerHTML = '';
-    const leftContainer = document.createElement('div');
-    leftContainer.className = 'maplebirch-overlay-left';
-    const rightContainer = document.createElement('div');
-    rightContainer.className = 'maplebirch-overlay-right';
-    if (V.settings.condomLevel >= 1 && V.condoms != null) {
-      const condomContainer = document.createElement('div');
-      condomContainer.className = 'maplebirch-condom-display';
-      condomContainer.setAttribute('tooltip', `<span class='meek'><<lanSwitch 'Total condoms: ' '避孕套总数：'>>${V.condoms}</span>`);
-      const condomText = document.createElement('span');
-      condomText.className = 'maplebirch-condom-count';
-      condomText.textContent = `${V.condoms}x`;
-      const condomImg = document.createElement('img');
-      condomImg.draggable = false;
-      condomImg.src = 'img/ui/condom.png';
-      condomImg.className = 'maplebirch-condom-icon';
-      condomContainer.appendChild(condomText);
-      condomContainer.appendChild(condomImg);
-      leftContainer.appendChild(condomContainer);
-    }
-    if (V.spray != null) {
-      const pepperContainer = document.createElement('div');
-      pepperContainer.className = 'maplebirch-pepper-display';
-      pepperContainer.setAttribute('tooltip', `<span class='def'><<lanSwitch 'Pepper sprays: ' '防狼喷雾：'>>${V.spray} / ${V.spraymax}</span>`);
-      const showMultipleSprays = (V.options.pepperSprayDisplay === 'sprays' && V.spraymax <= 7) || (V.options.pepperSprayDisplay === 'both' && V.spraymax <= 5);
-      if (showMultipleSprays) {
-        const multipleContainer = document.createElement('div');
-        multipleContainer.className = 'maplebirch-pepper-multiple';
-        for (let i = 1; i <= V.spraymax; i++) {
-          const pepperImg = document.createElement('img');
-          pepperImg.draggable = false;
-          pepperImg.src = V.spray >= i ? 'img/ui/pepperspray.png' : 'img/ui/emptyspray.png';
-          pepperImg.className = 'maplebirch-pepper-icon';
-          multipleContainer.appendChild(pepperImg);
-        }
-        pepperContainer.appendChild(multipleContainer);
-      } else {
-        const singleContainer = document.createElement('div');
-        singleContainer.className = 'maplebirch-pepper-single';
-        const pepperText = document.createElement('span');
-        pepperText.className = 'maplebirch-pepper-count';
-        pepperText.textContent = `${V.spray}×`;
-        const pepperImg = document.createElement('img');
-        pepperImg.draggable = false;
-        pepperImg.src = 'img/ui/pepperspray.png';
-        pepperImg.className = 'maplebirch-pepper-icon';
-        singleContainer.appendChild(pepperText);
-        singleContainer.appendChild(pepperImg);
-        pepperContainer.appendChild(singleContainer);
-      }
-      rightContainer.appendChild(pepperContainer);
-    }
-    overlay.appendChild(leftContainer);
-    overlay.appendChild(rightContainer);
-  }
-
-  private adjustCanvasSize(container: HTMLElement) {
-    const canvases = container.querySelectorAll<HTMLCanvasElement>('.maplebirch-canvas');
-    const containerWidth = container.clientWidth;
-    const containerHeight = container.clientHeight;
-    canvases.forEach(canvas => {
-      const originalWidth = canvas.width || canvas.clientWidth;
-      const originalHeight = canvas.height || canvas.clientHeight;
-      if (!originalWidth || !originalHeight) return;
-      const scale = Math.min(containerWidth / originalWidth, containerHeight / originalHeight);
-      canvas.style.width = `${originalWidth * scale}px`;
-      canvas.style.height = `${originalHeight * scale}px`;
-      canvas.style.position = 'absolute';
-      canvas.style.top = '50%';
-      canvas.style.left = '50%';
-      canvas.style.transform = 'translate(-50%, -50%)';
-    });
-  }
-
-  public async render() {
-    await this.renderCharacter();
-    await this.renderOverlay();
-  }
-
   public preInit() {
+    this.core.on(':passagedisplay', () => void this.pet.sync());
     this.use('pre', preprocess, 'main');
     this.use(layers, 'main');
   }
 
   public Init(): void {
-    void this.core.on(':modhint', () => void this.render(), 'character render');
     void this.transformation.inject();
   }
 
   public loadInit() {
     void this.transformation.inject();
-  }
-
-  public postInit() {
-    void this.pet.sync();
   }
 }
 

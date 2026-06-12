@@ -110,7 +110,8 @@ function NPCClothes(npcData: any, options: NPCSidebarOptions) {
       ...data,
       index,
       setup: setupData,
-      type: data.type ?? setupData.type ?? []
+      type: data.type ?? setupData.type ?? [],
+      altdisabled: data.altdisabled ?? setupData.altdisabled ?? []
     };
 
     clothes[slot].integrity = Integrity(clothes[slot], slot);
