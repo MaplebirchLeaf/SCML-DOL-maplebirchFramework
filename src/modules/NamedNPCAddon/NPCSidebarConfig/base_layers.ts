@@ -20,7 +20,7 @@ const base_layers = {
     },
     srcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
-      if (nnpc.model) return 'img/body/basenoarms-classic.png';
+      if (nnpc.model) return 'img/body/base-classic.png';
       const selected = V.options.maplebirch.npcsidebar.display[nnpc.name];
       const art = maplebirch.npc.Clothes.art.get(nnpc.name);
       if (!selected) return;
@@ -51,7 +51,7 @@ const base_layers = {
     },
     srcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
-      if (nnpc.model) return 'img/body/basehead.png';
+      if (nnpc.model) return 'img/body/base-head.png';
       const selected = V.options.maplebirch.npcsidebar.display[nnpc.name];
       const art = maplebirch.npc.Clothes.art.get(nnpc.name);
       if (!selected) return;
@@ -93,8 +93,8 @@ const base_layers = {
     srcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
       if (!nnpc.breasts) return '';
-      const suffix = nnpc.breasts === 'cleavage' && (nnpc.breast_size ?? 0) >= 3 ? '_clothed' : '';
-      return `img/body/breasts/breasts${nnpc.breast_size ?? 0}${suffix}.png`;
+      const breastType = nnpc.breasts === 'cleavage' && (nnpc.breast_size ?? 0) >= 3 ? 'clothed' : 'breasts';
+      return `img/body/breasts/${breastType}-${nnpc.breast_size ?? 0}.png`;
     },
     showfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
@@ -119,7 +119,8 @@ const base_layers = {
     },
     srcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
-      return 'img/body/leftarmidle-classic.png';
+      if (nnpc.arm_left === 'cover') return 'img/body/left-arm-cover.png';
+      return 'img/body/left-arm-idle-classic.png';
     },
     showfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
@@ -127,7 +128,7 @@ const base_layers = {
     },
     zfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
-      return nnpc.arm_left === 'cover' ? maplebirch.char.ZIndices.left_cover_arm + nnpc.position : nnpc.zarms;
+      return nnpc.arm_left === 'cover' ? maplebirch.char.ZIndices.left_cover_arm + nnpc.position : maplebirch.char.ZIndices.armsidle + nnpc.position;
     },
     dxfn(options: NPCSidebarOptions) {
       return options.maplebirch.nnpc.dxfn;
@@ -145,7 +146,8 @@ const base_layers = {
     },
     srcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
-      return 'img/body/rightarmidle-classic.png';
+      if (nnpc.arm_right === 'idle') return 'img/body/right-arm-idle-classic.png';
+      return `img/body/right-arm-${nnpc.arm_right}.png`;
     },
     showfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
@@ -153,7 +155,7 @@ const base_layers = {
     },
     zfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
-      return nnpc.arm_right === 'cover' || nnpc.arm_right === 'hold' ? maplebirch.char.ZIndices.right_cover_arm + nnpc.position : nnpc.zarms;
+      return nnpc.arm_right === 'cover' || nnpc.arm_right === 'hold' ? maplebirch.char.ZIndices.right_cover_arm + nnpc.position : maplebirch.char.ZIndices.armsidle + nnpc.position;
     },
     dxfn(options: NPCSidebarOptions) {
       return options.maplebirch.nnpc.dxfn;
@@ -173,13 +175,11 @@ const base_layers = {
     srcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
       if (!nnpc.name) return '';
-      if (nnpc.genitals_chastity) return 'img/body/penis/penis_chastity.png';
+      if (nnpc.genitals_chastity) return 'img/body/penis/chastity.png';
       const underLower = nnpc.clothes.under_lower;
       if (underLower.type?.includes('strap-on') && underLower.state === 'waist') return '';
-      const folder = nnpc.balls ? 'penis' : 'penisnoballs';
-      const legacyPrefix = String(nnpc.penis).includes('virgin') ? 'penis_virgin' : 'penis';
-      const legacySize = Math.max(1, Math.min((nnpc.penis_size || 0) - 2, 4));
-      return `img/body/${folder}/${legacyPrefix}${legacySize}.png`;
+      const folder = nnpc.balls ? 'penis' : 'penis-no-balls';
+      return `img/body/${folder}/${nnpc.penis}.png`;
     },
 
     showfn(options: NPCSidebarOptions) {

@@ -134,6 +134,7 @@ jobs:
       - name: Build and Package
         run: bun run build:all
 
+<<<<<<< HEAD
       - name: Rename package files
         run: |
           mkdir -p package-renamed
@@ -143,11 +144,17 @@ jobs:
             cp "$file" "package-renamed/${base}-${{ matrix.label }}.zip"
           done
 
+=======
+>>>>>>> main
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
         with:
           name: package-${{ matrix.label }}
+<<<<<<< HEAD
           path: package-renamed/*.zip
+=======
+          path: package/*.zip
+>>>>>>> main
           if-no-files-found: error
 
   release:

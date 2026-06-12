@@ -63,7 +63,7 @@ function outfitProperties(npcName: string) {
   });
 }
 
-function setupNpcData(manager: NPCManager, phase = 'init') {
+function setupNPCData(manager: NPCManager, phase = 'init') {
   if (!V.maplebirch || typeof V.maplebirch !== 'object') V.maplebirch = {};
   if (!V.maplebirch.npc || typeof V.maplebirch.npc !== 'object') V.maplebirch.npc = {};
   const NPCNameList = manager.NamedNPC.get(manager);
@@ -103,4 +103,4 @@ function setupNpcData(manager: NPCManager, phase = 'init') {
   });
 }
 
-export { isPossible, setupNpcData };
+export { isPossible, setupNPCData };

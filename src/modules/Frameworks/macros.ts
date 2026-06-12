@@ -37,7 +37,7 @@ class defineMacros {
       isWidget: !isAsync,
       tags,
       skipArgs: skipArgs ?? undefined,
-      handler() {
+      handler(this: MacroContext) {
         try {
           const result = macroFunction.apply(this, this.args);
           if (isAsync && result && typeof result.then === 'function') return result.catch((error: any) => log(`宏执行错误: ${macroName}\n${error?.message || error}`, 'ERROR', error));

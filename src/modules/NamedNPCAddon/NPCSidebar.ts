@@ -110,7 +110,8 @@ function NPCClothes(npcData: any, options: NPCSidebarOptions) {
       ...data,
       index,
       setup: setupData,
-      type: data.type ?? setupData.type ?? []
+      type: data.type ?? setupData.type ?? [],
+      altdisabled: data.altdisabled ?? setupData.altdisabled ?? []
     };
 
     clothes[slot].integrity = Integrity(clothes[slot], slot);
@@ -348,12 +349,12 @@ function setupMaskData(nnpc: Record<string, any>) {
   if (clothes.upper.mask_img === 1 && clothes.upper.name === 'cocoon') nnpc.head_mask.push('img/clothes/upper/cocoon/mask.png');
 
   if (clothes.over_head.mask_img === 1 && !(nnpc.hood_down && clothes.over_head.hood && clothes.over_head.outfitSecondary !== undefined)) {
-    nnpc.head_mask.push(`img/clothes/head/${clothes.over_head.variable}/mask.png`);
+    nnpc.head_mask.push(`img/clothes/over_head/${clothes.over_head.variable}/mask.png`);
   }
 
   if (clothes.head.mask_img === 1 && !(nnpc.hood_down && clothes.head.hood && clothes.head.outfitSecondary !== undefined)) {
     const ponytail = (clothes.head.mask_img_ponytail === 1 && hairTails.includes(nnpc.hair_sides_type)) || (thickTails.includes(nnpc.hair_sides_type) && furCap.includes(clothes.head.variable));
-    nnpc.head_mask.push(`img/clothes/head/${clothes.head.variable}/${ponytail ? 'mask_ponytail' : 'mask'}.png`);
+    nnpc.head_mask.push(`img/clothes/head/${clothes.head.variable}/${ponytail ? 'mask-ponytail' : 'mask'}.png`);
   }
 
   if (clothes.handheld.mask_img === 1) nnpc.head_mask.push(`img/clothes/handheld/${clothes.handheld.variable}/mask.png`);
@@ -410,13 +411,7 @@ const layers = {
     srcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch!.nnpc!;
       const genitals = nnpc.clothes.genitals;
-      let size = '';
-      if (genitals.penisSize) {
-        if (nnpc.penis_size <= 0) size = '0';
-        else if (nnpc.penis_size <= 2) size = '1';
-        else if (nnpc.penis_size <= 4) size = '2';
-      }
-      return `img/clothes/genitals/${genitals.variable}/${genitals.integrity}${size}.png`;
+      return `img/clothes/genitals/${genitals.variable}/${genitals.integrity}.png`;
     },
 
     showfn(options: NPCSidebarOptions) {

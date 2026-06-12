@@ -29,13 +29,10 @@ interface HairGradientPreprocessOptions {
   hair_fringe_colour_gradient?: HairGradientOptions;
   hair_fringe_type?: string;
   show_hair?: boolean;
-  head_mask_src?: string | string[];
   headMask?: string[];
   fringe_mask_src?: string | null;
   maplebirch?: {
     char?: {
-      mask?: number;
-      rotation?: number;
       mask_src?: string;
       mask_src_close_up?: string;
     };
@@ -189,8 +186,6 @@ function hairColourGradient(part: string, gradient: HairGradientOptions, hairTyp
 function preprocess(options: HairGradientPreprocessOptions) {
   (options.maplebirch ??= {}).char ??= {};
   const characterOptions = V.options?.maplebirch?.character ?? {};
-  options.maplebirch.char.mask = characterOptions.mask ?? 0;
-  options.maplebirch.char.rotation = characterOptions.rotation ?? 0;
   options.maplebirch.char.mask_src = mask(characterOptions.mask ?? 0, characterOptions.rotation ?? 0);
   options.maplebirch.char.mask_src_close_up = mask(characterOptions.mask ?? 0, characterOptions.rotation ?? 0, true);
   const gradients = (style: string, key: string, part: string, type: string, lengthKey: string, prefilter: string) => {
@@ -210,19 +205,18 @@ function preprocess(options: HairGradientPreprocessOptions) {
 const layers: CanvasLayerMap = {
   hair_sides: {
     masksrcfn(options: HairGradientPreprocessOptions) {
-      const headMask = options.headMask?.length ? options.headMask : options.head_mask_src;
-      return headMask || options.maplebirch?.char?.mask_src || mask(options.maplebirch?.char?.mask, options.maplebirch?.char?.rotation);
+      return options.headMask?.length ? options.headMask : options.maplebirch?.char?.mask_src;
     }
   },
   hair_sides_close_up: {
     masksrcfn(options: HairGradientPreprocessOptions) {
-      return options.maplebirch?.char?.mask_src_close_up || mask(options.maplebirch?.char?.mask, options.maplebirch?.char?.rotation, true);
+      return options.maplebirch?.char?.mask_src_close_up;
     },
     srcfn(options: HairGradientPreprocessOptions) {
       return `img/hair/sides/${options.hair_sides_type}/${options.hair_sides_length}.png`;
     },
     showfn(options: HairGradientPreprocessOptions) {
-      return !!options.show_hair && !!options.hair_sides_type && !options.headMask?.length && !options.head_mask_src;
+      return !!options.show_hair && !!options.hair_sides_type && !options.headMask?.length;
     },
     zfn(options: HairGradientPreprocessOptions) {
       return options.hair_sides_position === 'front' ? maplebirch.char.ZIndices.hair_forward : maplebirch.char.ZIndices.backhair;
@@ -234,19 +228,18 @@ const layers: CanvasLayerMap = {
   },
   hair_fringe: {
     masksrcfn(options: HairGradientPreprocessOptions) {
-      const headMask = options.headMask?.length ? options.headMask : options.head_mask_src;
-      return headMask || options.fringe_mask_src || options.maplebirch?.char?.mask_src || mask(options.maplebirch?.char?.mask, options.maplebirch?.char?.rotation);
+      return options.headMask?.length ? options.headMask : options.fringe_mask_src || options.maplebirch?.char?.mask_src;
     }
   },
   hair_fringe_close_up: {
     masksrcfn(options: HairGradientPreprocessOptions) {
-      return options.maplebirch?.char?.mask_src_close_up || mask(options.maplebirch?.char?.mask, options.maplebirch?.char?.rotation, true);
+      return options.maplebirch?.char?.mask_src_close_up;
     },
     srcfn(options: HairGradientPreprocessOptions) {
       return `img/hair/fringe/${options.hair_fringe_type}/${options.hair_fringe_length}.png`;
     },
     showfn(options: HairGradientPreprocessOptions) {
-      return !!options.show_hair && !!options.hair_fringe_type && !options.headMask?.length && !options.head_mask_src && !options.fringe_mask_src;
+      return !!options.show_hair && !!options.hair_fringe_type && !options.headMask?.length && !options.fringe_mask_src;
     },
     zfn() {
       return maplebirch.char.ZIndices.front_hair;
@@ -313,24 +306,16 @@ const layers: CanvasLayerMap = {
     srcfn: faceStyleSrcFn((options: FaceStyleOptions) => `brow-${options.brows}`)
   },
   mouth: {
-    srcfn(options: FaceStyleOptions) {
-      return `img/face/${options.facestyle}/mouth-${options.mouth}.png`;
-    }
+    srcfn: faceStyleSrcFn((options: FaceStyleOptions) => `mouth-${options.mouth}`)
   },
   makeup_lipstick: {
-    srcfn(options: FaceStyleOptions) {
-      return `img/face/${options.facestyle}/lipstick-${options.mouth}.png`;
-    }
+    srcfn: faceStyleSrcFn((options: FaceStyleOptions) => `lipstick-${options.mouth}`)
   },
   blush: {
-    srcfn(options: FaceStyleOptions) {
-      return `img/face/${options.facestyle}/blush${options.blush}.png`;
-    }
+    srcfn: faceStyleSrcFn((options: FaceStyleOptions) => `blush-${options.blush}`)
   },
   tears: {
-    srcfn(options: FaceStyleOptions) {
-      return `img/face/${options.facestyle}/tear${options.tears}.png`;
-    }
+    srcfn: faceStyleSrcFn((options: FaceStyleOptions) => `tears-${options.tears}`)
   },
   makeup_mascara_tears: {
     srcfn: faceStyleSrcFn((options: FaceStyleOptions) => `makeup/mascara${options.mascara_running}`)
@@ -539,142 +524,18 @@ class Character {
     setup.faceVariantOptions = nextVariantOptions;
   }
 
-  private async renderCharacter() {
-    const container = document.getElementById('maplebirch-character');
-    if (!container) return;
-    container.innerHTML = '';
-    const originalModelClass = T.modelclass;
-    const originalModelOptions = T.modeloptions;
-    try {
-      T.modelclass = Renderer.locateModel('lighting', 'panel');
-      T.modeloptions = T.modelclass.defaultOptions();
-      T.modelclass.reset();
-      const lightingCanvas = T.modelclass.createCanvas(true);
-      T.modelclass.render(lightingCanvas, T.modeloptions, Renderer.defaultListener);
-      lightingCanvas.canvas.classList.add('maplebirch-canvas', 'maplebirch-lighting');
-      lightingCanvas.canvas.style.zIndex = '1';
-      container.appendChild(lightingCanvas.canvas);
-      T.modelclass = Renderer.locateModel('main', 'panel');
-      T.modeloptions = T.modelclass.defaultOptions();
-      T.modelclass.reset();
-      wikifier('modelprepare-player-body');
-      wikifier('modelprepare-player-clothes');
-      const mainCanvas = T.modelclass.createCanvas(false);
-      if (V.options.sidebarAnimations) {
-        T.modelclass.animate(mainCanvas, T.modeloptions, Renderer.defaultListener);
-      } else {
-        T.modelclass.render(mainCanvas, T.modeloptions, Renderer.defaultListener);
-      }
-      mainCanvas.canvas.classList.add('maplebirch-canvas', 'maplebirch-main');
-      mainCanvas.canvas.style.zIndex = '2';
-      container.appendChild(mainCanvas.canvas);
-      this.adjustCanvasSize(container);
-    } catch (error) {
-      this.log('角色渲染错误:', 'ERROR', error);
-    } finally {
-      T.modelclass = originalModelClass;
-      T.modeloptions = originalModelOptions;
-    }
-  }
-
-  private async renderOverlay() {
-    const overlay = document.getElementById('maplebirch-character-overlay');
-    if (!overlay) return;
-    overlay.innerHTML = '';
-    const leftContainer = document.createElement('div');
-    leftContainer.className = 'maplebirch-overlay-left';
-    const rightContainer = document.createElement('div');
-    rightContainer.className = 'maplebirch-overlay-right';
-    if (V.settings.condomLevel >= 1 && V.condoms != null) {
-      const condomContainer = document.createElement('div');
-      condomContainer.className = 'maplebirch-condom-display';
-      condomContainer.setAttribute('tooltip', `<span class='meek'><<lanSwitch 'Total condoms: ' '避孕套总数：'>>${V.condoms}</span>`);
-      const condomText = document.createElement('span');
-      condomText.className = 'maplebirch-condom-count';
-      condomText.textContent = `${V.condoms}x`;
-      const condomImg = document.createElement('img');
-      condomImg.draggable = false;
-      condomImg.src = 'img/ui/condom.png';
-      condomImg.className = 'maplebirch-condom-icon';
-      condomContainer.appendChild(condomText);
-      condomContainer.appendChild(condomImg);
-      leftContainer.appendChild(condomContainer);
-    }
-    if (V.spray != null) {
-      const pepperContainer = document.createElement('div');
-      pepperContainer.className = 'maplebirch-pepper-display';
-      pepperContainer.setAttribute('tooltip', `<span class='def'><<lanSwitch 'Pepper sprays: ' '防狼喷雾：'>>${V.spray} / ${V.spraymax}</span>`);
-      const showMultipleSprays = (V.options.pepperSprayDisplay === 'sprays' && V.spraymax <= 7) || (V.options.pepperSprayDisplay === 'both' && V.spraymax <= 5);
-      if (showMultipleSprays) {
-        const multipleContainer = document.createElement('div');
-        multipleContainer.className = 'maplebirch-pepper-multiple';
-        for (let i = 1; i <= V.spraymax; i++) {
-          const pepperImg = document.createElement('img');
-          pepperImg.draggable = false;
-          pepperImg.src = V.spray >= i ? 'img/ui/pepperspray.png' : 'img/ui/emptyspray.png';
-          pepperImg.className = 'maplebirch-pepper-icon';
-          multipleContainer.appendChild(pepperImg);
-        }
-        pepperContainer.appendChild(multipleContainer);
-      } else {
-        const singleContainer = document.createElement('div');
-        singleContainer.className = 'maplebirch-pepper-single';
-        const pepperText = document.createElement('span');
-        pepperText.className = 'maplebirch-pepper-count';
-        pepperText.textContent = `${V.spray}×`;
-        const pepperImg = document.createElement('img');
-        pepperImg.draggable = false;
-        pepperImg.src = 'img/ui/pepperspray.png';
-        pepperImg.className = 'maplebirch-pepper-icon';
-        singleContainer.appendChild(pepperText);
-        singleContainer.appendChild(pepperImg);
-        pepperContainer.appendChild(singleContainer);
-      }
-      rightContainer.appendChild(pepperContainer);
-    }
-    overlay.appendChild(leftContainer);
-    overlay.appendChild(rightContainer);
-  }
-
-  private adjustCanvasSize(container: HTMLElement) {
-    const canvases = container.querySelectorAll<HTMLCanvasElement>('.maplebirch-canvas');
-    const containerWidth = container.clientWidth;
-    const containerHeight = container.clientHeight;
-    canvases.forEach(canvas => {
-      const originalWidth = canvas.width || canvas.clientWidth;
-      const originalHeight = canvas.height || canvas.clientHeight;
-      if (!originalWidth || !originalHeight) return;
-      const scale = Math.min(containerWidth / originalWidth, containerHeight / originalHeight);
-      canvas.style.width = `${originalWidth * scale}px`;
-      canvas.style.height = `${originalHeight * scale}px`;
-      canvas.style.position = 'absolute';
-      canvas.style.top = '50%';
-      canvas.style.left = '50%';
-      canvas.style.transform = 'translate(-50%, -50%)';
-    });
-  }
-
-  public async render() {
-    await this.renderCharacter();
-    await this.renderOverlay();
-  }
-
   public preInit() {
+    this.core.on(':passagedisplay', () => void this.pet.sync());
     this.use('pre', preprocess, 'main');
     this.use(layers, 'main');
   }
 
   public Init(): void {
-    void this.core.on(':modhint', () => void this.render(), 'character render');
     void this.transformation.inject();
   }
 
   public loadInit() {
     void this.transformation.inject();
-  }
-
-  public postInit() {
-    void this.pet.sync();
   }
 }
 

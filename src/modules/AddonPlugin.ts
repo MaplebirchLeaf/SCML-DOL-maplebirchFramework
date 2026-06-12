@@ -169,7 +169,7 @@ class AddonPlugin {
     await this.core.modules.init('init');
     await this.core.trigger(':passagestart', passage, content);
     if (this.onStart) {
-      this.core.SugarCube.Engine.show();
+      this.core.SugarCube.Engine.show(this.core.SugarCube.State.passage);
       this.onStart = false;
     }
   }

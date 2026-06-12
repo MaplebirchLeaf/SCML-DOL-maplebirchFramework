@@ -173,12 +173,12 @@ class Pet {
 
     this.configure(options);
 
-    const rendered = this.renderCanvas(`inline-${container.id || 'pet'}`);
-    if (!rendered) return false;
-
     const previousContainer = this.container;
 
     this.cleanupCurrent();
+
+    const rendered = this.renderCanvas();
+    if (!rendered) return false;
 
     if (previousContainer && previousContainer !== container) this.resetBox(previousContainer);
 
@@ -259,10 +259,10 @@ class Pet {
     return false;
   }
 
-  private renderCanvas(slot: string): { model: CanvasModel; canvas: HTMLCanvasElement } | null {
+  private renderCanvas(): { model: CanvasModel; canvas: HTMLCanvasElement } | null {
     if (!this.ensureModelReady()) return null;
 
-    const model = Renderer.locateModel(PET.model, slot);
+    const model = Renderer.locateModel(PET.model);
     const context = model.createCanvas(false);
 
     model.reset();

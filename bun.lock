@@ -15,6 +15,7 @@
         "@cloudflare/workers-types": "^4.20260602.1",
         "@rspack/cli": "^2.0.5",
         "@rspack/core": "^2.0.5",
+        "@scml/sc2-verlnir": "^1.0.7",
         "@scml/types": "^1.0.7",
         "@types/adm-zip": "^0.5.7",
         "@types/bun": "1.3.14",
@@ -375,6 +376,8 @@
     "@rspack/cli": ["@rspack/cli@2.0.5", "", { "peerDependencies": { "@rspack/core": "^2.0.0-0", "@rspack/dev-server": "^2.0.0-0" }, "optionalPeers": ["@rspack/dev-server"], "bin": { "rspack": "./bin/rspack.js" } }, "sha512-AAyuY/8sfegb0IcsFEhn5gLOTxy1uDmwjP49RY81PENz2pCk/7NU0zDdt0ke5wmpOH5s6IxS+Kw4aWdvl8FGpQ=="],
 
     "@rspack/core": ["@rspack/core@2.0.5", "", { "dependencies": { "@rspack/binding": "2.0.5" }, "peerDependencies": { "@module-federation/runtime-tools": "^0.24.1 || ^2.0.0", "@swc/helpers": "^0.5.23" }, "optionalPeers": ["@module-federation/runtime-tools", "@swc/helpers"] }, "sha512-9tv2HAnSiTote5WPH2tmz1hLZ1zKbzkiZc1eYp7LP/8jcsiJBuf40ihiWidAgbbuYtJo3kWET6q+qOm5UhNiGA=="],
+
+    "@scml/sc2-verlnir": ["@scml/sc2-verlnir@1.0.7", "", {}, "sha512-Zbl5D/9S/aE6IF3K4TWIguKS3Y1AEApRGNbb8gIrYAy+YduDmOyPlbz/HKluyYtVKP1gnQ4VdIW2ANgrb+OlZw=="],
 
     "@scml/types": ["@scml/types@1.0.7", "", {}, "sha512-H4+jOUYPvvbeHkgN82hxOXEyIpSOiaK6M/fxjwR++gP0JAV2CriGJxBxYeaWqoPWuFWOFlSqTOd2Eu6XhnfgTw=="],
 
