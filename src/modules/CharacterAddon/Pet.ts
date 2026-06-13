@@ -145,16 +145,23 @@ class Pet {
   private options: Required<PetOptions> = { ...DEFAULT_OPTIONS };
 
   private cleanupDrag?: () => void;
+  private syncing = false;
 
   public constructor(private manager: Character) {}
 
   public sync(): boolean {
-    const settings = this.readSettings();
-    if (!settings.enabled) {
-      this.unmount();
-      return false;
+    if (this.syncing) return false;
+    this.syncing = true;
+    try {
+      const settings = this.readSettings();
+      if (!settings.enabled) {
+        this.unmount();
+        return false;
+      }
+      return this.render(`#${PET.elementId}`, settings);
+    } finally {
+      this.syncing = false;
     }
-    return this.render(`#${PET.elementId}`, settings);
   }
 
   public capture(mainModel?: CanvasModelOptions): void {

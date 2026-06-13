@@ -249,6 +249,12 @@ const layers: CanvasLayerMap = {
     },
     animation: 'idle'
   },
+  basehead: {
+    srcfn(options: FaceStyleOptions & { mannequin?: boolean }) {
+      if (options.mannequin) return 'img/body/mannequin/base-head.png';
+      return resolveFaceImagePath([`img/face/${options.facestyle}/basehead.png`, 'img/body/base-head.png']);
+    }
+  },
   freckles: {
     srcfn: faceStyleSrcFn('freckles')
   },

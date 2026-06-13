@@ -2538,6 +2538,7 @@ declare class Pet {
     private container?;
     private options;
     private cleanupDrag?;
+    private syncing;
     constructor(manager: Character);
     sync(): boolean;
     capture(mainModel?: CanvasModelOptions): void;
