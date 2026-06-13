@@ -13,12 +13,6 @@ type NPCSidebarOptions = {
   [key: string]: any;
 };
 
-function basehead(nnpc: Record<string, any>, fallback: string) {
-  const path = `img/face/${nnpc.facestyle}/basehead.png`;
-  const result = loadImage(path);
-  return result === path || result === true ? path : fallback;
-}
-
 const base_layers = {
   nnpc_body: {
     masksrcfn(options: NPCSidebarOptions) {
@@ -58,7 +52,10 @@ const base_layers = {
     },
     srcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
-      if (nnpc.model) return basehead(nnpc, 'img/body/basehead.png');
+      if (nnpc.model) {
+        const path = `img/face/${nnpc.facestyle}/basehead.png`;
+        return loadImage(path) === false ? 'img/body/basehead.png' : path;
+      }
       const selected = V.options.maplebirch.npcsidebar.display[nnpc.name];
       const art = maplebirch.npc.Clothes.art.get(nnpc.name);
       if (!selected) return;
