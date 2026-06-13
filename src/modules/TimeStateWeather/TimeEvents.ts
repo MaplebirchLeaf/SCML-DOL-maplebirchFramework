@@ -287,7 +287,8 @@ export class TimeManager {
     V.weatherObj.keypointsArr = [];
     V.weatherObj.fogKeypoints = [];
     Time.setDate(target);
-    Weather.WeatherGeneration.updateWeather(target);
+    if (Weather.WeatherGeneration.updateWeather) Weather.WeatherGeneration.updateWeather(target);
+    else Weather.WeatherGeneration.generate(target);
     Weather.FogGeneration.generateFogKeypoints(V.weatherObj.keypointsArr);
     Weather.Observables.checkForUpdate();
     void this.manager.core.trigger(':onWeather');
