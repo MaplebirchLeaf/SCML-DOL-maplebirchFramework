@@ -568,6 +568,7 @@ function checkImageExist(src: string): boolean | Promise<boolean> {
 function loadImage(src: string): string | boolean | Promise<string | boolean> {
   try {
     if (!src) return false;
+    if (imageCache.has(src)) return imageCache.get(src) ? src : false;
     return window.modUtils.getImage(src).then(value => {
       if (value) {
         imageCache.set(src, true);
