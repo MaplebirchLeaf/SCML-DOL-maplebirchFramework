@@ -1,5 +1,31 @@
 import type { Passage } from '@scml/types/sugarcube-2-ModLoader/SugarCube2';
-import type { SaveAPI, StateAPI, SugarCubeObject, WikifierAPI as SugarCubeWikifierAPI } from 'twine-sugarcube';
+import type { BrowserAPI } from '@scml/sc2-verlnir/src/browser';
+import type { ConfigAPI } from '@scml/sc2-verlnir/src/config';
+import type { DebugBarAPI } from '@scml/sc2-verlnir/src/debugbar';
+import type { DialogAPI } from '@scml/sc2-verlnir/src/dialog';
+import type { EngineAPI } from '@scml/sc2-verlnir/src/engine';
+import type { FullscreenAPI } from '@scml/sc2-verlnir/src/fullscreen';
+import type { HasAPI } from '@scml/sc2-verlnir/src/has';
+import type { IdbAPI } from '@scml/sc2-verlnir/src/idb';
+import type { L10nAPI } from '@scml/sc2-verlnir/src/l10n';
+import type { LinksAPI } from '@scml/sc2-verlnir/src/links';
+import type { LoadScreenAPI } from '@scml/sc2-verlnir/src/loadscreen';
+import type { MacroAPI } from '@scml/sc2-verlnir/src/macro';
+import type { PassageAPI, PassageConstructor } from '@scml/sc2-verlnir/src/passage';
+import type { SaveAPI as VerlnirSaveAPI } from '@scml/sc2-verlnir/src/save';
+import type { ScriptingAPI } from '@scml/sc2-verlnir/src/scripting';
+import type { SettingAPI } from '@scml/sc2-verlnir/src/setting';
+import type { SimpleAudioAPI } from '@scml/sc2-verlnir/src/simpleaudio';
+import type { SimpleStoreAPI, SimpleStoreInstanceAPI } from '@scml/sc2-verlnir/src/simplestore';
+import type { StateAPI as VerlnirStateAPI } from '@scml/sc2-verlnir/src/state';
+import type { StoryAPI } from '@scml/sc2-verlnir/src/story';
+import type { TemplateAPI } from '@scml/sc2-verlnir/src/template';
+import type { UIAPI } from '@scml/sc2-verlnir/src/ui';
+import type { UIBarAPI } from '@scml/sc2-verlnir/src/uibar';
+import type { UtilAPI } from '@scml/sc2-verlnir/src/util';
+import type { VersionInfo } from '@scml/sc2-verlnir/src/version';
+import type { VisibilityAPI } from '@scml/sc2-verlnir/src/visibility';
+import type { WikifierAPI as VerlnirWikifierAPI, WikifierStaticAPI, WikifierParserAPI, WikifierHelpersAPI } from '@scml/sc2-verlnir/src/wikifier';
 
 declare module 'twine-sugarcube/userdata' {
   export interface SugarCubeSetupObject {
@@ -24,6 +50,57 @@ declare module 'twine-sugarcube' {
     isAsync?: boolean;
     isWidget?: boolean;
   }
+}
+
+export interface DolStateAPI extends VerlnirStateAPI {
+  show(): void;
+}
+
+export interface DolSaveAPI extends VerlnirSaveAPI {
+  serialize(metadata?: any): string;
+  deserialize(saveStr: string): any;
+}
+
+export type WikifierAPI = VerlnirWikifierAPI & {
+  wikifyEval(text: string, passageObj?: { title: string }, passageTitle?: string): DocumentFragment;
+};
+
+export interface SugarCubeUtilAPI extends UtilAPI {
+  [key: string]: any;
+}
+
+export interface TwineSugarCube {
+  Browser: BrowserAPI;
+  Config: ConfigAPI;
+  Dialog: DialogAPI;
+  Engine: EngineAPI;
+  Fullscreen: FullscreenAPI;
+  Has: HasAPI;
+  L10n: L10nAPI;
+  Links: LinksAPI;
+  LoadScreen: LoadScreenAPI;
+  Macro: MacroAPI;
+  Passage: PassageConstructor;
+  Save: DolSaveAPI;
+  Scripting: ScriptingAPI;
+  Setting: SettingAPI;
+  SimpleAudio: SimpleAudioAPI;
+  SimpleStore: SimpleStoreAPI;
+  State: DolStateAPI;
+  Story: StoryAPI;
+  Template: TemplateAPI;
+  UI: UIAPI;
+  UIBar: UIBarAPI;
+  DebugBar: DebugBarAPI;
+  Util: SugarCubeUtilAPI;
+  Visibility: VisibilityAPI;
+  Wikifier: WikifierAPI;
+  idb: IdbAPI;
+  session: SimpleStoreInstanceAPI | null;
+  settings: Record<string, unknown>;
+  setup: Record<string, unknown>;
+  storage: SimpleStoreInstanceAPI | null;
+  version: VersionInfo;
 }
 
 declare global {
@@ -191,7 +268,6 @@ declare global {
   type CanvasLayerMap = Record<string, LayerConfig>;
   type CanvasLayerFilter = string | Record<string, any>;
 
-  // DOL 的 src / masksrc 有时可能是 string[]，所以单独抽出来
   type CanvasLayerSrc = string | string[] | undefined;
 
   type CanvasLayerValueFn<T = any> = (options: any) => T;
@@ -316,56 +392,4 @@ declare global {
   export interface JQueryAriaClickOptions {
     role?: string;
   }
-}
-
-export interface WikifierAPI extends SugarCubeWikifierAPI {
-  new (destination: Node | DocumentFragment | string | null, source?: string): any;
-  wikifyEval(text: string, passageObj?: { title: string }, passageTitle?: string): DocumentFragment;
-}
-
-export interface SugarCubeUtilAPI {
-  sameValueZero(left: any, right: any): boolean;
-  slugify(value: string): string;
-  [key: string]: any;
-}
-
-export interface DolStateAPI extends StateAPI {
-  readonly qc: number;
-  show(): void;
-  deltaEncode(history: any[]): any;
-  deltaDecode(delta: any): any[];
-}
-
-export interface DolSaveAPI extends SaveAPI {
-  serialize(metadata?: any): string;
-  deserialize(saveStr: string): any;
-}
-
-export interface TwineSugarCube {
-  Browser: SugarCubeObject['Browser'];
-  Config: SugarCubeObject['Config'];
-  Dialog: SugarCubeObject['Dialog'];
-  Engine: SugarCubeObject['Engine'];
-  Fullscreen: SugarCubeObject['Fullscreen'];
-  Has: SugarCubeObject['Has'];
-  L10n: any;
-  Macro: SugarCubeObject['Macro'];
-  Passage: typeof Passage;
-  Save: DolSaveAPI;
-  Scripting: SugarCubeObject['Scripting'];
-  Setting: SugarCubeObject['Setting'];
-  SimpleAudio: SugarCubeObject['SimpleAudio'];
-  State: DolStateAPI;
-  Story: SugarCubeObject['Story'];
-  UI: SugarCubeObject['UI'];
-  UIBar: SugarCubeObject['UIBar'];
-  DebugBar: any;
-  Util: SugarCubeUtilAPI;
-  Visibility: any;
-  Wikifier: WikifierAPI;
-  session: SugarCubeObject['session'];
-  settings: SugarCubeObject['settings'];
-  setup: SugarCubeObject['setup'];
-  storage: SugarCubeObject['storage'];
-  version: SugarCubeObject['version'];
 }

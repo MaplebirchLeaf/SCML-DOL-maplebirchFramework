@@ -37,6 +37,8 @@
 'create': create
 'modify': modify
 'sort': sort
+'export': export
+'import': import
 'reset': reset
 'status': status
 'choose': choose

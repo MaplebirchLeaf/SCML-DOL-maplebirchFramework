@@ -25,11 +25,6 @@ interface AccumulateConfig {
   target?: number;
 }
 
-interface PassSnapshot {
-  prevDate: DateTime;
-  seconds: number;
-}
-
 export interface TimeData {
   prevDate?: DateLike;
   currentDate?: DateLike;
@@ -289,7 +284,13 @@ export class TimeManager {
     const prevDate = new window.DateTime(Time.date);
     const target = new window.DateTime(targetDate);
     if (target.timeStamp < TimeConstants.MIN_DATE.timeStamp || target.timeStamp > TimeConstants.MAX_DATE.timeStamp) throw new Error(`Invalid time travel target: ${target.timeStamp}`);
+    V.weatherObj.keypointsArr = [];
+    V.weatherObj.fogKeypoints = [];
     Time.setDate(target);
+    Weather.WeatherGeneration.updateWeather(target);
+    Weather.FogGeneration.generateFogKeypoints(V.weatherObj.keypointsArr);
+    Weather.Observables.checkForUpdate();
+    void this.manager.core.trigger(':onWeather');
     const currentDate = new window.DateTime(Time.date);
     const elapsedSeconds = currentDate.timeStamp - prevDate.timeStamp;
     const eventData = this.timeData(prevDate, currentDate, elapsedSeconds);

@@ -25,9 +25,12 @@ async function writeTypesPackage(): Promise<void> {
   const version = await readRootVersion();
   await mkdir(packageDir, { recursive: true });
   const maplebirchTypes = (await readFile(distTypes, 'utf8'))
-    .replace(/^\/\/\/ <reference types="[^"]+" \/>\r?\n/gm, '')
-    .replace(/^\s*#private;\r?\n/gm, '')
-    .replace(/^\s*private\b.*;\r?\n/gm, '');
+    .replace(
+      /^import\s*\{[^}]*\}\s*from\s*'\.\/(passage|dialog|state|save|wikifier|macro|config|engine|util|browser|story|setting|simpleaudio|uibar|ui|fullscreen|has|l10n|links|loadscreen|scripting|simplestore|template|visibility|debugbar|idb|alert|version|jquery-shim)\.js';\r?\n/gm,
+      ''
+    )
+    .replace(/PassageAPI\$1/g, 'PassageAPI')
+    .replace(/DialogAPI\$1/g, 'DialogAPI');
   await Bun.write(distTypes, maplebirchTypes);
   await Bun.write(path.join(packageDir, 'maplebirch.d.ts'), maplebirchTypes);
 
@@ -58,6 +61,7 @@ async function writeTypesPackage(): Promise<void> {
           access: 'public'
         },
         dependencies: {
+          '@scml/sc2-verlnir': '^1.0.7',
           '@scml/types': '^1.0.7',
           '@types/howler': '^2.2.12',
           '@types/js-yaml': '^4.0.5',

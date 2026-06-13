@@ -8,7 +8,7 @@ import NPCSidebar from './NamedNPCAddon/NPCSidebar';
 import NPCPregnancy, { type PregnancyAddConfig, type PregnancyGenerator } from './NamedNPCAddon/NPCPregnancy';
 import NPCFluids from './NamedNPCAddon/NPCFluids';
 import NPCTransformation from './NamedNPCAddon/NPCTransformation';
-import { setupNpcData, isPossible } from './NamedNPCAddon/NPCUtils';
+import { setupNPCData, isPossible } from './NamedNPCAddon/NPCUtils';
 
 type LanguageCode = 'CN' | 'EN';
 type PronounCode = 'm' | 'f' | 'i' | 'n' | 't';
@@ -689,20 +689,20 @@ class NPCManager {
     if (!['Start', 'Downgrade Waiting Room'].includes(this.core.passage?.title)) this.injectModNPCs();
     this.Schedule.init(this);
     this.Clothes.init(this);
-    setupNpcData(this, 'init');
+    setupNPCData(this, 'init');
     this.Pregnancy.savedPregnancy();
     isPossibleLoveInterest = (name: string) => isPossible(this, name);
   }
 
   public loadInit() {
     this.injectModNPCs();
-    setupNpcData(this, 'init');
+    setupNPCData(this, 'init');
     this.Pregnancy.savedPregnancy();
   }
 
   public postInit() {
     this.NamedNPC.setup(this);
-    setupNpcData(this, 'postInit');
+    setupNPCData(this, 'postInit');
   }
 }
 

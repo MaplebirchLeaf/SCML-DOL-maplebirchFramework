@@ -365,18 +365,14 @@ export function replace(content: string, replacements: Replacement[], label = 'r
 type TwineAssetMode = 'append' | 'replace' | 'patch';
 
 function normalizeTwineAssetName(name: string): string {
-  return name.replace(/\\\\/g, '\\').replace(/\//g, '\\').toLowerCase();
+  return name
+    .trim()
+    .replace(/[\\/]+/g, '\\')
+    .toLowerCase();
 }
 
-export function defineTwineAsset(type: 'script' | 'style', name: string, content: string | ((current: string) => string), mode: TwineAssetMode = 'append') {
-  const story = document.getElementsByTagName('tw-storydata')[0];
-  if (!story) return;
-  const node = story.getElementsByTagName(type)[0];
-  if (!node) return;
-  const text = node.textContent || '';
-  const kind = type === 'script' ? 'twine-user-script' : 'twine-user-stylesheet';
-  const re = new RegExp(`/\\* ${kind} #(\\d+): "([^'"]+)" \\*/`, 'g');
-  const targetName = normalizeTwineAssetName(name);
+function findTwineAssetBlock(text: string, kind: string, targetName: string) {
+  const re = new RegExp(`^\\/\\*[ \\t]*${kind}[ \\t]+#(\\d+):[ \\t]*"([^"]+)"[ \\t]*\\*\\/[ \\t]*$`, 'gm');
   let maxId = 0;
   let found: { start: number; contentStart: number; end: number; id: number; name: string } | null = null;
   let previous: RegExpExecArray | null = null;
@@ -407,6 +403,19 @@ export function defineTwineAsset(type: 'script' | 'style', name: string, content
     };
   }
 
+  return { found, maxId };
+}
+
+export function defineTwineAsset(type: 'script' | 'style', name: string, content: string | ((current: string) => string), mode: TwineAssetMode = 'append') {
+  const story = document.getElementsByTagName('tw-storydata')[0];
+  if (!story) return;
+  const node = story.getElementsByTagName(type)[0];
+  if (!node) return;
+  const text = node.textContent || '';
+  const kind = type === 'script' ? 'twine-user-script' : 'twine-user-stylesheet';
+  const targetName = normalizeTwineAssetName(name);
+  const { found, maxId } = findTwineAssetBlock(text, kind, targetName);
+
   if (found) {
     if (mode === 'append') return;
     const current = text
@@ -414,7 +423,8 @@ export function defineTwineAsset(type: 'script' | 'style', name: string, content
       .replace(/^\r?\n/, '')
       .replace(/\r?\n$/, '');
     const nextContent = typeof content === 'function' ? content(current) : content;
-    node.textContent = `${text.slice(0, found.start)}/* ${kind} #${found.id}: "${found.name}" */\n${nextContent}\n${text.slice(found.end).replace(/^\r?\n/, '')}`;
+    const normalizedContent = nextContent.replace(/^\r?\n/, '').replace(/\r?\n$/, '');
+    node.textContent = text.slice(0, found.start) + `/* ${kind} #${found.id}: "${found.name}" */\n` + `${normalizedContent}\n` + text.slice(found.end).replace(/^\r?\n/, '');
     return;
   }
 
@@ -424,7 +434,9 @@ export function defineTwineAsset(type: 'script' | 'style', name: string, content
   }
 
   const nextContent = typeof content === 'function' ? content('') : content;
-  node.textContent = `${text}\n/* ${kind} #${maxId + 1}: "${name}" */\n${nextContent}`;
+  const normalizedContent = nextContent.replace(/^\r?\n/, '').replace(/\r?\n$/, '');
+  const separator = text.length === 0 ? '' : text.endsWith('\n') ? '\n' : '\n\n';
+  node.textContent = text + separator + `/* ${kind} #${maxId + 1}: "${name}" */\n` + normalizedContent;
 }
 
 export default AddonPluginProcess;

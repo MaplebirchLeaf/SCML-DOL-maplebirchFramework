@@ -36,12 +36,12 @@ class NPCPregnancyPatch {
     host.vanilla.recordSperm = window.recordSperm;
     host.vanilla.pregnancyDaysEta = window.pregnancyDaysEta;
     host.vanilla.getChildDays = window.getChildDays;
-    host.vanilla.macros.playerPregnancyAttempt = macro.has('playerPregnancyAttempt') ? macro.get('playerPregnancyAttempt') : undefined;
-    host.vanilla.macros.namedNpcPregnancy = macro.has('namedNpcPregnancy') ? macro.get('namedNpcPregnancy') : undefined;
-    host.vanilla.macros.endNpcPregnancy = macro.has('endNpcPregnancy') ? macro.get('endNpcPregnancy') : undefined;
-    host.vanilla.macros.pregnancyBabyText = macro.has('pregnancyBabyText') ? macro.get('pregnancyBabyText') : undefined;
-    host.vanilla.macros.updateChildActivity = macro.has('updateChildActivity') ? macro.get('updateChildActivity') : undefined;
-    host.vanilla.macros.updateRecordedSperm = macro.has('updateRecordedSperm') ? macro.get('updateRecordedSperm') : undefined;
+    host.vanilla.macros.playerPregnancyAttempt = macro.has('playerPregnancyAttempt') ? (macro.get('playerPregnancyAttempt') as MacroDefinition) : undefined;
+    host.vanilla.macros.namedNpcPregnancy = macro.has('namedNpcPregnancy') ? (macro.get('namedNpcPregnancy') as MacroDefinition) : undefined;
+    host.vanilla.macros.endNpcPregnancy = macro.has('endNpcPregnancy') ? (macro.get('endNpcPregnancy') as MacroDefinition) : undefined;
+    host.vanilla.macros.pregnancyBabyText = macro.has('pregnancyBabyText') ? (macro.get('pregnancyBabyText') as MacroDefinition) : undefined;
+    host.vanilla.macros.updateChildActivity = macro.has('updateChildActivity') ? (macro.get('updateChildActivity') as MacroDefinition) : undefined;
+    host.vanilla.macros.updateRecordedSperm = macro.has('updateRecordedSperm') ? (macro.get('updateRecordedSperm') as MacroDefinition) : undefined;
   }
 
   private injectGenerators() {

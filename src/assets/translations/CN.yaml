@@ -37,6 +37,8 @@
 'create': 创建
 'modify': 修改
 'sort': 排序
+'export': 导出
+'import': 导入
 'reset': 重置
 'status': 状态
 'choose': 选择
@@ -105,7 +107,7 @@
 'high elk': 高麋鹿
 'scarred': 疤面
 'farmhand': 农工
-'terror': 恐怖者
+'terror': 凶怖者
 'smuggler': 走私者
 'faithful': 虔信者
 'fallen': 堕落者

@@ -5,6 +5,9 @@
     "moduleResolution": "bundler",
     "lib": ["es2022", "dom", "dom.iterable"],
     "types": ["bun", "twine-sugarcube"],
+    "paths": {
+      "@scml/sc2-verlnir/*": ["./node_modules/@scml/sc2-verlnir/*"]
+    },
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true
