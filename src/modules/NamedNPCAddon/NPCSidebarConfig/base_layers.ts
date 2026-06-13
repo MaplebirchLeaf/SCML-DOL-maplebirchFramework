@@ -1,6 +1,7 @@
 // ./src/modules/NamedNPCAddon/NPCSidebarConfig/base_layers.ts
 
 import maplebirch from '../../../core';
+import { loadImage } from '../../../utils';
 import { nnpc_sidepart } from './functions';
 
 type NPCSidebarOptions = {
@@ -11,6 +12,12 @@ type NPCSidebarOptions = {
   };
   [key: string]: any;
 };
+
+function basehead(nnpc: Record<string, any>, fallback: string) {
+  const path = `img/face/${nnpc.facestyle}/basehead.png`;
+  const result = loadImage(path);
+  return result === path || result === true ? path : fallback;
+}
 
 const base_layers = {
   nnpc_body: {
@@ -51,7 +58,7 @@ const base_layers = {
     },
     srcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
-      if (nnpc.model) return 'img/body/basehead.png';
+      if (nnpc.model) return basehead(nnpc, 'img/body/basehead.png');
       const selected = V.options.maplebirch.npcsidebar.display[nnpc.name];
       const art = maplebirch.npc.Clothes.art.get(nnpc.name);
       if (!selected) return;
