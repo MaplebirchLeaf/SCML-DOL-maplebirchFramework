@@ -287,8 +287,8 @@ export class TimeManager {
     V.weatherObj.keypointsArr = [];
     V.weatherObj.fogKeypoints = [];
     Time.setDate(target);
-    Weather.WeatherGeneration.updateWeather(target);
-    Weather.FogGeneration.generateFogKeypoints(V.weatherObj.keypointsArr);
+    if (Weather.WeatherGeneration.updateWeather) Weather.WeatherGeneration.updateWeather(target);
+    else Weather.WeatherGeneration.generate(target);
     Weather.Observables.checkForUpdate();
     void this.manager.core.trigger(':onWeather');
     const currentDate = new window.DateTime(Time.date);
