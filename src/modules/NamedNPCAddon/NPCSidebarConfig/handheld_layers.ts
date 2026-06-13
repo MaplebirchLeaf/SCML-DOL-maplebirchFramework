@@ -36,7 +36,7 @@ const handheld_layers = {
     srcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
       const handheld = nnpc.clothes.handheld;
-      const cover = nnpc.arm_left === 'cover' ? 'left-cover' : 'left';
+      const cover = nnpc.arm_left === 'cover' ? 'left_cover' : 'left';
       const directory = handheld.type.includes('prop') ? 'props' : 'handheld';
       const category =
         directory === 'props'
@@ -76,13 +76,13 @@ const handheld_layers = {
     srcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
       const handheld = nnpc.clothes.handheld;
-      const cover = nnpc.arm_left === 'cover' ? 'left-cover' : 'left';
+      const cover = nnpc.arm_left === 'cover' ? 'left_cover' : 'left';
       const directory = handheld.type.includes('prop') ? 'props' : 'handheld';
       const category =
         directory === 'props'
           ? (handheld.type.find((type: string) => ['food', 'ingredient', 'recipe', 'tending', 'antique', 'sex toy', 'child toy', 'book', 'furniture'].includes(type)) || 'general') + '/'
           : '';
-      return gray_suffix(`img/clothes/${directory}/${category}${handheld.variable}/${cover}-acc.png`, options.filters?.nnpc_handheld_acc);
+      return gray_suffix(`img/clothes/${directory}/${category}${handheld.variable}/${cover}_acc.png`, options.filters?.nnpc_handheld_acc);
     },
 
     showfn(options: NPCSidebarOptions) {
