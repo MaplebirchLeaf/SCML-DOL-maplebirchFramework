@@ -48,13 +48,13 @@ img/face/my-style/basehead.png
 When the current `facestyle` has `basehead.png`, the framework uses it first. Otherwise it falls back to vanilla:
 
 ```text
-img/body/base-head.png
+img/body/basehead.png
 ```
 
 `options.mannequin` keeps the vanilla path and does not use the faceStyle base head:
 
 ```text
-img/body/mannequin/base-head.png
+img/body/mannequin/basehead.png
 ```
 
 ---

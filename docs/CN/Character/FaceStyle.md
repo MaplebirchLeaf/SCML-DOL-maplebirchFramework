@@ -48,13 +48,13 @@ img/face/my-style/basehead.png
 当当前 `facestyle` 下存在 `basehead.png` 时，框架会优先使用它；否则回退到原版：
 
 ```text
-img/body/base-head.png
+img/body/basehead.png
 ```
 
 `options.mannequin` 仍保持原版逻辑，不会走 faceStyle 头部底图：
 
 ```text
-img/body/mannequin/base-head.png
+img/body/mannequin/basehead.png
 ```
 
 ---
