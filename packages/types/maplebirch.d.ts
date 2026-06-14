@@ -2672,14 +2672,9 @@ declare class Character {
     private addFaceOption;
     private label;
     private _faceStyleSetupOption;
-    private renderCharacter;
-    private renderOverlay;
-    private adjustCanvasSize;
-    render(): Promise<void>;
     preInit(): void;
     Init(): void;
     loadInit(): void;
-    postInit(): void;
 }
 
 interface ScheduleCondition {
