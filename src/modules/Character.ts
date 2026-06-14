@@ -252,7 +252,7 @@ const layers: CanvasLayerMap = {
   basehead: {
     srcfn(options: FaceStyleOptions & { mannequin?: boolean }) {
       if (options.mannequin) return 'img/body/mannequin/base-head.png';
-      return resolveFaceImagePath([`img/face/${options.facestyle}/basehead.png`, 'img/body/base-head.png']);
+      return resolveFaceImagePath([`img/face/${options.facestyle}/base-head.png`, 'img/body/base-head.png']);
     }
   },
   freckles: {

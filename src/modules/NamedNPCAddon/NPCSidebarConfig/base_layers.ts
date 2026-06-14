@@ -53,7 +53,7 @@ const base_layers = {
     srcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
       if (nnpc.model) {
-        const path = `img/face/${nnpc.facestyle}/basehead.png`;
+        const path = `img/face/${nnpc.facestyle}/base-head.png`;
         return loadImage(path) === false ? 'img/body/base-head.png' : path;
       }
       const selected = V.options.maplebirch.npcsidebar.display[nnpc.name];

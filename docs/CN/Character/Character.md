@@ -173,7 +173,7 @@ img/face/
 
 `faceStyleSrcFn()` 用于生成面部图层图片路径函数。
 
-面部风格资源和 `basehead.png` 头部底图规则见 [FaceStyle](./FaceStyle.md)。
+面部风格资源和 `base-head.png` 头部底图规则见 [FaceStyle](./FaceStyle.md)。
 
 ```javascript
 const eyesSrc = maplebirch.char.faceStyleSrcFn('eyes');
