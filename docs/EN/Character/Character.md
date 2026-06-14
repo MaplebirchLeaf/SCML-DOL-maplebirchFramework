@@ -91,7 +91,7 @@ The second handler argument is the active `CanvasModel` instance. Ignore it when
 
 ## Face Style Images
 
-See [FaceStyle](./FaceStyle.md) for face image layout and `basehead.png` rules.
+See [FaceStyle](./FaceStyle.md) for face image layout and `base-head.png` rules.
 
 Recommended structure:
 
