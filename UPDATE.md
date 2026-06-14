@@ -1,3 +1,7 @@
+##### (v.4.1.7更新日志):
+
+- 修复 `faceStyle` 中 `basehead.png` 的图层，使其0.5.8.10遵守 `basehead.png`，0.5.9.8遵守 `base-head.png`
+
 ##### (v.4.1.6更新日志):
 
 - 优化 **`@scml-maplebirch/types`** 类型包内容，补充并修正框架公开接口、SugarCube/全局对象与部分模块声明，便于模组项目引用。
