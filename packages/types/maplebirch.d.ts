@@ -2539,6 +2539,8 @@ declare class Pet {
     private options;
     private cleanupDrag?;
     private syncing;
+    private rendering;
+    private syncFrame;
     constructor(manager: Character);
     sync(): boolean;
     capture(mainModel?: CanvasModelOptions): void;
@@ -2546,24 +2548,12 @@ declare class Pet {
     unmount(): void;
     refresh(): boolean;
     configure(options?: PetOptions): this;
-    private get models();
+    private cancel;
     private get displaySize();
     private readSettings;
-    private ensureModelReady;
-    private renderCanvas;
-    private drawWithModel;
-    private renderOptions;
-    private pickLayers;
-    private isPetLayer;
-    private resolveTarget;
-    private resetBox;
-    private applyBoxLayout;
+    private draw;
+    private clearBox;
     private enableDrag;
-    private applyFloatingPosition;
-    private clampPosition;
-    private loadPosition;
-    private savePosition;
-    private cleanupCurrent;
     private stopAnimation;
 }
 
@@ -2584,7 +2574,6 @@ type TransformMessage = Record<string, {
 }>;
 type TranslationInput$1 = Record<string, Translation> | Map<string, Translation>;
 interface EntryOptions {
-    target?: ModelTarget;
     build?: number;
     level?: number;
     update?: number[];

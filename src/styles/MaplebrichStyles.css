@@ -1,5 +1,5 @@
-.button.saveMenuButton.deleteButton,
-.button.saveMenuButton.saves-clear {
+button.saveMenuButton.deleteButton,
+button.saveMenuButton.saves-clear {
   white-space: nowrap !important;
   word-break: keep-all !important;
 }

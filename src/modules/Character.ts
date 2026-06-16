@@ -363,18 +363,23 @@ class Character {
     const layerEntries = this.layers;
     const runProcess = this.process.bind(this);
     const pet = this.pet;
-    const targetMatched = (target: ModelTarget<CanvasModelOptions>, modelName: string, options?: CanvasModelOptions) =>
-      typeof target === 'function' ? target(modelName, options) : Array.isArray(target) ? target.includes(modelName) : target === modelName;
+    const patchFlag = Symbol('maplebirchProcessPatched');
+    const modelLayers = (modelName: string, model?: CanvasModel | CanvasModelOptions) =>
+      layerEntries
+        .filter(({ target }) => (typeof target === 'function' ? target(modelName, model) : Array.isArray(target) ? target.includes(modelName) : target === modelName))
+        .map(({ layers }) => layers);
     const patchLayers = (options?: CanvasModelOptions) => {
       if (!options?.layers) return options;
-      const modelName = options.name || '';
-      const modelLayers = layerEntries.filter(({ target }) => targetMatched(target, modelName, options)).map(({ layers }) => layers);
-      if (!modelLayers.length) return options;
+      const matchedLayers = modelLayers(options.name || '', options);
+      if (!matchedLayers.length) return options;
       let patchedLayers = options.layers.clone();
-      for (const layers of modelLayers) patchedLayers = patchedLayers.mergefn((_key: any, value: any, depth: number) => depth <= 3 && value != null, layers);
+      for (const layers of matchedLayers) patchedLayers = patchedLayers.mergefn((_key: any, value: any, depth: number) => depth <= 3 && value != null, layers);
       return { ...options, layers: patchedLayers };
     };
     const patchProcess = (model: CanvasModel) => {
+      const patched = model as CanvasModel & { [patchFlag]?: true };
+      if (patched[patchFlag]) return;
+      patched[patchFlag] = true;
       const vanillaPre = model.preprocess;
       const vanillaPost = model.postprocess;
       model.preprocess = (processOptions: CanvasModelOptionsData) => {
@@ -386,17 +391,38 @@ class Character {
         runProcess('post', processOptions, model);
       };
     };
+    const patchCachedLayers = (model: CanvasModel) => {
+      const missing: CanvasLayerMap = {};
+      for (const entry of modelLayers(model.name, model)) for (const [name, layer] of Object.entries(entry)) if (!model.layers?.[name]) missing[name] = layer;
+      if (!Object.keys(missing).length) return;
+      const initialized = new BaseCanvasModel({
+        name: model.name,
+        width: model.width,
+        height: model.height,
+        frames: model.frames,
+        scale: model.scale,
+        layers: missing
+      } as CanvasModelOptions);
+      Object.assign(model.layers, initialized.layers);
+      model.layerList = Object.values(model.layers);
+    };
+    const patchModel = (model: CanvasModel) => {
+      if (model.name === pet.modelName) return model;
+      patchProcess(model);
+      patchCachedLayers(model);
+      return model;
+    };
     return class PatchedCanvasModel extends BaseCanvasModel {
+      static create(id: string, slot?: string) {
+        return patchModel(BaseCanvasModel.create(id, slot));
+      }
       constructor(...args: any[]) {
-        let [options] = args as [CanvasModelOptions?];
+        const [options] = args as [CanvasModelOptions?];
         const modelName = options?.name || '';
         if (modelName === 'main') pet.capture(options);
-        if (modelName !== pet.modelName) {
-          options = patchLayers(options);
-          args[0] = options;
-        }
+        if (modelName !== pet.modelName) args[0] = patchLayers(options);
         super(...args);
-        if (modelName !== pet.modelName) patchProcess(this);
+        patchModel(this);
       }
     } as T;
   }

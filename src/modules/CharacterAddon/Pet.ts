@@ -14,10 +14,6 @@ interface PetSettings extends PetOptions {
   enabled?: boolean;
 }
 
-type CanvasModelRegistry = Record<string, CanvasModelOptions | undefined> & {
-  main?: CanvasModelOptions;
-};
-
 type PetTarget = string | HTMLElement;
 
 const PET = {
@@ -146,68 +142,136 @@ class Pet {
 
   private cleanupDrag?: () => void;
   private syncing = false;
+  private rendering = false;
+  private syncFrame = 0;
 
   public constructor(private manager: Character) {}
 
   public sync(): boolean {
     if (this.syncing) return false;
-    this.syncing = true;
-    try {
-      const settings = this.readSettings();
-      if (!settings.enabled) {
-        this.unmount();
-        return false;
-      }
-      return this.render(`#${PET.elementId}`, settings);
-    } finally {
-      this.syncing = false;
+
+    const settings = this.readSettings();
+    if (!settings.enabled) {
+      this.cancel();
+      this.unmount();
+      return false;
     }
-  }
 
-  public capture(mainModel?: CanvasModelOptions): void {
-    if (!mainModel?.layers || this.models[PET.model]) return;
-
-    this.models[PET.model] = {
-      ...mainModel,
-      name: PET.model,
-      layers: this.pickLayers(mainModel.layers)
-    };
-  }
-
-  public render(target: PetTarget, options: PetOptions = {}): boolean {
-    const container = this.resolveTarget(target);
-    if (!container) return false;
-
-    this.configure(options);
-
-    const previousContainer = this.container;
-
-    this.cleanupCurrent();
-
-    const rendered = this.renderCanvas();
-    if (!rendered) return false;
-
-    if (previousContainer && previousContainer !== container) this.resetBox(previousContainer);
-
-    this.resetBox(container);
-
-    this.model = rendered.model;
-    this.canvas = rendered.canvas;
-    this.container = container;
-
-    container.replaceChildren(rendered.canvas);
-    this.applyBoxLayout(container, rendered.canvas);
-
-    if (this.options.floating) this.enableDrag(container);
+    this.cancel();
+    this.syncFrame = requestAnimationFrame(() => {
+      this.syncFrame = 0;
+      if (this.syncing) return;
+      this.syncing = true;
+      try {
+        this.render(`#${PET.elementId}`, settings);
+      } finally {
+        this.syncing = false;
+      }
+    });
 
     return true;
   }
 
+  public capture(mainModel?: CanvasModelOptions): void {
+    const models = Renderer.CanvasModels as Record<string, CanvasModelOptions | undefined>;
+    if (!mainModel?.layers || models[PET.model]) return;
+
+    const layers = Object.fromEntries(
+      Object.entries(mainModel.layers).filter(([name]) => petLayers.exact.has(name) || petLayers.prefixes.some(prefix => name === prefix || name.startsWith(`${prefix}_`)))
+    ) as CanvasLayerMap;
+
+    models[PET.model] = {
+      ...mainModel,
+      name: PET.model,
+      layers
+    };
+  }
+
+  public render(target: PetTarget, options: PetOptions = {}): boolean {
+    if (this.rendering) return false;
+    this.rendering = true;
+    try {
+      const container = typeof target === 'string' ? document.querySelector<HTMLElement>(target) : target;
+      if (!container) return false;
+
+      this.configure(options);
+
+      const previousContainer = this.container;
+
+      this.stopAnimation();
+      this.cleanupDrag?.();
+      this.cleanupDrag = undefined;
+
+      const models = Renderer.CanvasModels as Record<string, CanvasModelOptions | undefined>;
+      if (!models[PET.model]) this.capture(models.main);
+
+      if (!models[PET.model]) {
+        this.manager.log('pet 模型尚未准备完成。', 'WARN');
+        return false;
+      }
+
+      const model = Renderer.locateModel(PET.model);
+      const context = model.createCanvas(false);
+      const canvas = context.canvas;
+
+      model.reset();
+      this.draw(model, context);
+
+      if (previousContainer && previousContainer !== container) this.clearBox(previousContainer);
+
+      this.clearBox(container);
+
+      this.model = model;
+      this.canvas = canvas;
+      this.container = container;
+
+      const size = this.displaySize;
+      const maskSrc = this.manager.mask(this.options.mask, this.options.rotation);
+
+      container.classList.add('maplebirch-character-pet');
+      container.replaceChildren(canvas);
+
+      Object.assign(container.style, {
+        width: `${size}px`,
+        height: `${size}px`,
+        overflow: 'hidden',
+
+        webkitMaskImage: maskSrc ? `url("${maskSrc}")` : '',
+        maskImage: maskSrc ? `url("${maskSrc}")` : '',
+
+        webkitMaskSize: '200% 100%',
+        maskSize: '200% 100%',
+
+        webkitMaskPosition: 'left top',
+        maskPosition: 'left top',
+
+        webkitMaskRepeat: 'no-repeat',
+        maskRepeat: 'no-repeat'
+      });
+
+      Object.assign(canvas.style, {
+        width: `${size}px`,
+        height: `${size}px`,
+        transform: '',
+        imageRendering: 'auto'
+      });
+
+      if (this.options.floating) this.enableDrag(container);
+
+      return true;
+    } finally {
+      this.rendering = false;
+    }
+  }
+
   public unmount(): void {
-    this.cleanupCurrent();
+    this.cancel();
+    this.stopAnimation();
+    this.cleanupDrag?.();
+    this.cleanupDrag = undefined;
 
     const box = this.container ?? document.getElementById(PET.elementId);
-    if (box) this.resetBox(box);
+    if (box) this.clearBox(box);
 
     this.canvas = undefined;
     this.model = undefined;
@@ -215,12 +279,12 @@ class Pet {
   }
 
   public refresh(): boolean {
-    if (!this.canvas) return this.sync();
+    if (!this.canvas) return false;
 
     const context = this.canvas.getContext('2d');
     if (!context || !this.model) return false;
 
-    this.drawWithModel(this.model, context);
+    this.draw(this.model, context);
     return true;
   }
 
@@ -236,8 +300,10 @@ class Pet {
     return this;
   }
 
-  private get models(): CanvasModelRegistry {
-    return Renderer.CanvasModels as CanvasModelRegistry;
+  private cancel(): void {
+    if (!this.syncFrame) return;
+    cancelAnimationFrame(this.syncFrame);
+    this.syncFrame = 0;
   }
 
   private get displaySize(): number {
@@ -257,107 +323,90 @@ class Pet {
     };
   }
 
-  private ensureModelReady(): boolean {
-    this.capture(this.models.main);
+  private draw(model: CanvasModel, context: CanvasRenderingContext2D): void {
+    const sidebar = Renderer.CanvasModelCaches?.main?.sidebar as CanvasModel | undefined;
+    const source = sidebar?.options ?? model.defaultOptions();
+    const options = { ...(source ?? { filters: {} }) };
+    const filters = source?.filters ?? {};
+    options.filters = Object.fromEntries(
+      Object.entries(filters).map(([key, value]) => {
+        if (Array.isArray(value)) return [key, [...value]];
+        if (value && typeof value === 'object') return [key, { ...value }];
+        return [key, value];
+      })
+    );
 
-    if (this.models[PET.model]) return true;
-
-    this.manager.log('pet 模型尚未准备完成。', 'WARN');
-    return false;
-  }
-
-  private renderCanvas(): { model: CanvasModel; canvas: HTMLCanvasElement } | null {
-    if (!this.ensureModelReady()) return null;
-
-    const model = Renderer.locateModel(PET.model);
-    const context = model.createCanvas(false);
-
-    model.reset();
-    this.drawWithModel(model, context);
-
-    return {
-      model,
-      canvas: context.canvas
-    };
-  }
-
-  private drawWithModel(model: CanvasModel, context: CanvasRenderingContext2D): void {
-    const options = this.renderOptions(model);
+    for (const key of ignoredOptions) options[key] = '';
 
     this.stopAnimation();
 
-    if (this.options.animated) {
-      model.animate(context, options, Renderer.defaultListener);
-    } else {
+    try {
+      if (this.options.animated) {
+        model.animate(context, options, Renderer.defaultListener);
+      } else {
+        model.render(context, options, Renderer.defaultListener);
+      }
+    } catch (error) {
+      if (!this.options.animated) throw error;
+      this.options.animated = false;
       model.render(context, options, Renderer.defaultListener);
     }
   }
 
-  private renderOptions(model = this.model): CanvasModelOptionsData {
-    const sidebar = Renderer.CanvasModelCaches?.main?.sidebar as CanvasModel | undefined;
-    const options = sidebar?.options?.deepCopy?.() ?? model?.defaultOptions() ?? { filters: {} };
-    for (const key of ignoredOptions) options[key] = '';
-    return options;
-  }
-
-  private pickLayers(layers: CanvasLayerMap): CanvasLayerMap {
-    return Object.fromEntries(Object.entries(layers).filter(([name]) => this.isPetLayer(name))) as CanvasLayerMap;
-  }
-
-  private isPetLayer(name: string): boolean {
-    return petLayers.exact.has(name) || petLayers.prefixes.some(prefix => name === prefix || name.startsWith(`${prefix}_`));
-  }
-
-  private resolveTarget(target: PetTarget): HTMLElement | null {
-    if (typeof target !== 'string') return target;
-    return document.querySelector<HTMLElement>(target);
-  }
-
-  private resetBox(box: HTMLElement): void {
+  private clearBox(box: HTMLElement): void {
     box.replaceChildren();
     box.classList.remove('maplebirch-character-pet', 'dragging');
     box.removeAttribute('style');
   }
 
-  private applyBoxLayout(box: HTMLElement, canvas?: HTMLCanvasElement): void {
+  private enableDrag(box: HTMLElement): void {
     const size = this.displaySize;
-    const maskSrc = this.manager.mask(this.options.mask, this.options.rotation);
 
-    box.classList.add('maplebirch-character-pet');
+    const clamp = (left: number, top: number) => ({
+      left: Math.clamp(left, 0, Math.max(0, window.innerWidth - size)),
+      top: Math.clamp(top, 0, Math.max(0, window.innerHeight - size))
+    });
+
+    const loadPosition = (): { left: number; top: number } | null => {
+      try {
+        const data = JSON.parse(localStorage.getItem(PET.storageKey) || 'null');
+        if (typeof data?.left === 'number' && typeof data?.top === 'number') return data;
+      } catch {}
+
+      return null;
+    };
+
+    const savePosition = (): void => {
+      const rect = box.getBoundingClientRect();
+      localStorage.setItem(PET.storageKey, JSON.stringify(clamp(rect.left, rect.top)));
+    };
+
+    const fallback = {
+      left: window.innerWidth - size - DEFAULT_OFFSET.right,
+      top: window.innerHeight - size - DEFAULT_OFFSET.bottom
+    };
+
+    const position = loadPosition();
+    const current = clamp(position?.left ?? fallback.left, position?.top ?? fallback.top);
 
     Object.assign(box.style, {
-      width: `${size}px`,
-      height: `${size}px`,
-      overflow: 'hidden',
+      position: 'fixed',
 
-      webkitMaskImage: maskSrc ? `url("${maskSrc}")` : '',
-      maskImage: maskSrc ? `url("${maskSrc}")` : '',
+      left: `${current.left}px`,
+      top: `${current.top}px`,
 
-      webkitMaskSize: '200% 100%',
-      maskSize: '200% 100%',
+      right: 'auto',
+      bottom: 'auto',
 
-      webkitMaskPosition: 'left top',
-      maskPosition: 'left top',
+      zIndex: '999',
 
-      webkitMaskRepeat: 'no-repeat',
-      maskRepeat: 'no-repeat'
+      cursor: 'grab',
+      touchAction: 'none',
+      userSelect: 'none',
+      pointerEvents: 'auto',
+
+      display: 'block'
     });
-
-    if (!canvas) return;
-
-    Object.assign(canvas.style, {
-      width: `${size}px`,
-      height: `${size}px`,
-      transform: '',
-      imageRendering: 'auto'
-    });
-  }
-
-  private enableDrag(box: HTMLElement): void {
-    this.cleanupDrag?.();
-    this.cleanupDrag = undefined;
-
-    this.applyFloatingPosition(box, this.loadPosition());
 
     let pointerId: number | null = null;
 
@@ -368,7 +417,7 @@ class Pet {
     let startTop = 0;
 
     const moveTo = (left: number, top: number): void => {
-      const next = this.clampPosition(left, top);
+      const next = clamp(left, top);
 
       box.style.left = `${next.left}px`;
       box.style.top = `${next.top}px`;
@@ -396,10 +445,7 @@ class Pet {
     const onPointerMove = (event: PointerEvent): void => {
       if (pointerId !== event.pointerId) return;
 
-      const dx = event.clientX - startX;
-      const dy = event.clientY - startY;
-
-      moveTo(startLeft + dx, startTop + dy);
+      moveTo(startLeft + event.clientX - startX, startTop + event.clientY - startY);
 
       event.preventDefault();
     };
@@ -412,7 +458,7 @@ class Pet {
       box.releasePointerCapture?.(event.pointerId);
       box.classList.remove('dragging');
 
-      this.savePosition(box);
+      savePosition();
 
       event.preventDefault();
     };
@@ -421,7 +467,7 @@ class Pet {
       const rect = box.getBoundingClientRect();
 
       moveTo(rect.left, rect.top);
-      this.savePosition(box);
+      savePosition();
     };
 
     box.addEventListener('pointerdown', onPointerDown);
@@ -439,65 +485,6 @@ class Pet {
 
       window.removeEventListener('resize', onResize);
     };
-  }
-
-  private applyFloatingPosition(box: HTMLElement, position: { left: number; top: number } | null): void {
-    const size = this.displaySize;
-
-    const fallback = {
-      left: window.innerWidth - size - DEFAULT_OFFSET.right,
-      top: window.innerHeight - size - DEFAULT_OFFSET.bottom
-    };
-
-    const next = this.clampPosition(position?.left ?? fallback.left, position?.top ?? fallback.top);
-
-    Object.assign(box.style, {
-      position: 'fixed',
-
-      left: `${next.left}px`,
-      top: `${next.top}px`,
-
-      right: 'auto',
-      bottom: 'auto',
-
-      zIndex: '999',
-
-      cursor: 'grab',
-      touchAction: 'none',
-      userSelect: 'none',
-      pointerEvents: 'auto',
-
-      display: 'block'
-    });
-  }
-
-  private clampPosition(left: number, top: number): { left: number; top: number } {
-    const size = this.displaySize;
-
-    return {
-      left: Math.clamp(left, 0, Math.max(0, window.innerWidth - size)),
-      top: Math.clamp(top, 0, Math.max(0, window.innerHeight - size))
-    };
-  }
-
-  private loadPosition(): { left: number; top: number } | null {
-    try {
-      const data = JSON.parse(localStorage.getItem(PET.storageKey) || 'null');
-      if (typeof data?.left === 'number' && typeof data?.top === 'number') return data;
-    } catch {}
-    return null;
-  }
-
-  private savePosition(box: HTMLElement): void {
-    const rect = box.getBoundingClientRect();
-    const position = this.clampPosition(rect.left, rect.top);
-    localStorage.setItem(PET.storageKey, JSON.stringify(position));
-  }
-
-  private cleanupCurrent(): void {
-    this.stopAnimation();
-    this.cleanupDrag?.();
-    this.cleanupDrag = undefined;
   }
 
   private stopAnimation(): void {
