@@ -44,16 +44,6 @@ interface HairGradientPreprocessOptions {
   [key: string]: any;
 }
 
-interface LayerConfig {
-  masksrcfn?: (options: any) => any;
-  srcfn?: (options: any) => string;
-  showfn?: (options: any) => boolean;
-  zfn?: (options: any) => number;
-  filtersfn?: (options: any) => string[];
-  animation?: string;
-  [key: string]: any;
-}
-
 type FaceStyleNameFn = (options: FaceStyleOptions) => string | string[];
 type FaceStyleName = string | string[];
 

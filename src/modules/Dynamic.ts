@@ -1,7 +1,7 @@
 // ./src/modules/Dynamic.ts
 
 import maplebirch, { type MaplebirchCore, createlog } from '../core';
-import { TimeManager, TimeEventOptions, TimeTravelOptions } from './TimeStateWeather/TimeEvents';
+import { TimeManager, TimeEventOptions, TimeTravelOptions, type TimeEventType } from './TimeStateWeather/TimeEvents';
 import { StateManager, StateEventOptions } from './TimeStateWeather/StateEvents';
 import { WeatherManager, WeatherEventOptions, WeatherTypeConfig, WeatherException } from './TimeStateWeather/WeatherEvents';
 
@@ -18,11 +18,11 @@ class DynamicManager {
     this.Weather = Object.seal(new WeatherManager(this));
   }
 
-  public regTimeEvent(type: string, eventId: string, options: TimeEventOptions): boolean {
+  public regTimeEvent(type: TimeEventType, eventId: string, options: TimeEventOptions): boolean {
     return this.Time.register(type, eventId, options);
   }
 
-  public delTimeEvent(type: string, eventId: string): boolean {
+  public delTimeEvent(type: TimeEventType, eventId: string): boolean {
     return this.Time.unregister(type, eventId);
   }
 
@@ -34,11 +34,11 @@ class DynamicManager {
     return (this.Time as any).timeEvents;
   }
 
-  public regStateEvent(type: string, eventId: string, options: StateEventOptions): boolean {
+  public regStateEvent(type: 'gate' | 'append', eventId: string, options: StateEventOptions): boolean {
     return this.State.register(type, eventId, options);
   }
 
-  public delStateEvent(type: string, eventId: string): boolean {
+  public delStateEvent(type: 'gate' | 'append', eventId: string): boolean {
     return this.State.unregister(type, eventId);
   }
 

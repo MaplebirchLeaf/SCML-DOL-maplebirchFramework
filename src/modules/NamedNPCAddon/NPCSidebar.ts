@@ -14,6 +14,7 @@ import hands_layers from './NPCSidebarConfig/hands_layers';
 import handheld_layers from './NPCSidebarConfig/handheld_layers';
 import legs_layers from './NPCSidebarConfig/legs_layers';
 import feet_layers from './NPCSidebarConfig/feet_layers';
+import transformation_layers, { transformationDefaults } from './NPCSidebarConfig/transformation_layers';
 import NPCFluids from './NPCFluids';
 import type NPCManager from '../NamedNPC';
 
@@ -387,6 +388,7 @@ function preprocess(options: NPCSidebarOptions) {
     nnpc.model = false;
     return;
   }
+  Object.assign(nnpc, transformationDefaults);
   maplebirch.npc.Transformation.applyBody(nnpc, npcData);
   maplebirch.npc.Transformation.applySidebar(nnpc);
   setupClothesData(options, nnpc, npcData);
@@ -407,6 +409,7 @@ const layers = {
   ...handheld_layers,
   ...legs_layers,
   ...feet_layers,
+  ...transformation_layers,
   nnpc_genitals: clothes_layer('genitals', 'main', {
     srcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch!.nnpc!;
