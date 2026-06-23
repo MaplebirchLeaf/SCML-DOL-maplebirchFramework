@@ -1309,10 +1309,9 @@ declare class CloudSaveService {
     private compress;
     private decompress;
     private deriveKey;
-    private isServer;
-    private currentConfig;
-    private endpointUrl;
-    private activePassphrase;
+    private get current();
+    private get endpoint();
+    private get passphrase();
 }
 
 type LanguageCode = (typeof Languages)[number];
@@ -1448,6 +1447,7 @@ declare class GUIControl {
     private whenCreate;
 }
 
+type TimeEventType = 'onSec' | 'onMin' | 'onHour' | 'onDay' | 'onWeek' | 'onMonth' | 'onYear' | 'onBefore' | 'onThread' | 'onAfter' | 'onTimeTravel';
 type TimeUnit = 'sec' | 'min' | 'hour' | 'day' | 'week' | 'month' | 'year';
 interface DateLike {
     hour: number;
@@ -1555,7 +1555,7 @@ declare class TimeManager {
     init(): void;
     patchDateTime(DateTimeClass: typeof DateTime): typeof DateTime;
     patchTime(TimeObject: typeof Time): void;
-    register(type: string, eventId: string, options: TimeEventOptions): boolean;
+    register(type: TimeEventType, eventId: string, options: TimeEventOptions): boolean;
     unregister(type: string, eventId: string): boolean;
     timeTravel(options?: TimeTravelOptions): boolean;
     updateTimeLanguage(choice?: 'JournalTime'): string | boolean;
@@ -1588,8 +1588,8 @@ declare class StateManager {
     trigger(type: 'gate' | 'append'): string;
     private processGateEvents;
     private processAppendEvents;
-    register(type: string, eventId: string, options: StateEventOptions): boolean;
-    unregister(type: string, eventId: string): boolean;
+    register(type: 'gate' | 'append', eventId: string, options: StateEventOptions): boolean;
+    unregister(type: 'gate' | 'append', eventId: string): boolean;
     init(): void;
 }
 
@@ -1656,12 +1656,12 @@ declare class DynamicManager {
     readonly Weather: WeatherManager;
     readonly log: ReturnType<typeof createlog>;
     constructor(core: MaplebirchCore);
-    regTimeEvent(type: string, eventId: string, options: TimeEventOptions): boolean;
-    delTimeEvent(type: string, eventId: string): boolean;
+    regTimeEvent(type: TimeEventType, eventId: string, options: TimeEventOptions): boolean;
+    delTimeEvent(type: TimeEventType, eventId: string): boolean;
     timeTravel(options?: TimeTravelOptions): boolean;
     get TimeEvents(): any;
-    regStateEvent(type: string, eventId: string, options: StateEventOptions): boolean;
-    delStateEvent(type: string, eventId: string): boolean;
+    regStateEvent(type: 'gate' | 'append', eventId: string, options: StateEventOptions): boolean;
+    delStateEvent(type: 'gate' | 'append', eventId: string): boolean;
     trigger(type: 'gate' | 'append'): string;
     get StateEvents(): any;
     regWeatherEvent(eventId: string, options: WeatherEventOptions): boolean;
@@ -2539,6 +2539,8 @@ declare class Pet {
     private options;
     private cleanupDrag?;
     private syncing;
+    private rendering;
+    private syncFrame;
     constructor(manager: Character);
     sync(): boolean;
     capture(mainModel?: CanvasModelOptions): void;
@@ -2546,24 +2548,12 @@ declare class Pet {
     unmount(): void;
     refresh(): boolean;
     configure(options?: PetOptions): this;
-    private get models();
+    private cancel;
     private get displaySize();
     private readSettings;
-    private ensureModelReady;
-    private renderCanvas;
-    private drawWithModel;
-    private renderOptions;
-    private pickLayers;
-    private isPetLayer;
-    private resolveTarget;
-    private resetBox;
-    private applyBoxLayout;
+    private draw;
+    private clearBox;
     private enableDrag;
-    private applyFloatingPosition;
-    private clampPosition;
-    private loadPosition;
-    private savePosition;
-    private cleanupCurrent;
     private stopAnimation;
 }
 
@@ -2584,7 +2574,6 @@ type TransformMessage = Record<string, {
 }>;
 type TranslationInput$1 = Record<string, Translation> | Map<string, Translation>;
 interface EntryOptions {
-    target?: ModelTarget;
     build?: number;
     level?: number;
     update?: number[];

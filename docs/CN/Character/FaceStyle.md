@@ -31,21 +31,21 @@ img/face/
 
 ## 头部底图
 
-从 4.1.3 起，`basehead` 也可以跟随 `faceStyle` 替换。
+从 4.1.3 起，`base-head` 也可以跟随 `faceStyle` 替换。
 
 如果某个面部风格需要替换头部底图，只需要提供：
 
 ```text
-img/face/<facestyle>/basehead.png
+img/face/<facestyle>/base-head.png
 ```
 
 例如：
 
 ```text
-img/face/my-style/basehead.png
+img/face/my-style/base-head.png
 ```
 
-当当前 `facestyle` 下存在 `basehead.png` 时，框架会优先使用它；否则回退到原版：
+当当前 `facestyle` 下存在 `base-head.png` 时，框架会优先使用它；否则回退到原版：
 
 ```text
 img/body/basehead.png
@@ -65,7 +65,7 @@ img/body/mannequin/basehead.png
 img/
   face/
     author-style/
-      basehead.png
+      base-head.png
       default/
         eyes.png
         sclera.png
@@ -73,4 +73,4 @@ img/
         mouth-smile.png
 ```
 
-`basehead.png` 放在风格根目录，不放在 `default/` 变体目录里。
+`base-head.png` 放在风格根目录，不放在 `default/` 变体目录里。

@@ -90,9 +90,7 @@ class CredentialVault {
   }
 
   private async readPassword(subject: string, key: string): Promise<string | null> {
-    const record = await this.core.idb.withTransaction(CredentialVault.STORE, 'readonly', async (tx: any) => {
-      return await tx.objectStore(CredentialVault.STORE).get(['license', `${subject}:${key}`]);
-    });
+    const record = await this.core.idb.withTransaction(CredentialVault.STORE, 'readonly', (tx: any) => tx.objectStore(CredentialVault.STORE).get(['license', `${subject}:${key}`]));
     if (!record) return null;
     const stored = await this.decryptRecord<StoredCredential>(record as CredentialRecord);
     if (!stored?.password) return null;
@@ -120,14 +118,15 @@ class CredentialVault {
   public async loadCrypt(options: CryptOptions): Promise<boolean> {
     const modName = options.modName || this.core.modUtils.getNowRunningModName?.() || '';
     if (!modName) throw new Error('无法获取当前模组名');
-    if (options.cache?.subject && options.cache?.key) {
-      const saved = await this.readPassword(options.cache.subject, options.cache.key);
+    const cache = options.cache?.subject && options.cache.key ? options.cache : undefined;
+    if (cache) {
+      const saved = await this.readPassword(cache.subject, cache.key);
       if (saved) {
         try {
           const loaded = await this.decryptAndLoad(modName, saved, options, {});
           if (loaded) return true;
         } catch {
-          await this.forget(options.cache.subject, options.cache.key);
+          await this.forget(cache.subject, cache.key);
         }
       }
     }
@@ -163,16 +162,17 @@ class CredentialVault {
   private async decryptAndLoad(modName: string, password: string, options: CryptOptions, context: Omit<CryptContext, 'modName'>): Promise<boolean> {
     const decrypted = await options.decrypt(password, { modName, ...context });
     const result: CryptResult = decrypted && typeof decrypted === 'object' && 'data' in decrypted ? (decrypted as CryptResult) : { data: decrypted };
+    const cache = options.cache?.subject && options.cache.key ? options.cache : undefined;
     if (!result.data) throw new Error('解密结果为空');
     if (result.auth && typeof result.auth === 'object') {
       const auth = result.auth;
       if (context.credential) {
         const verifiedPassword = await this.unlock(modName, auth, context.credential);
         if (verifiedPassword !== password) throw new Error(this.core.t('credential.auth.error.mismatch'));
-        if (options.cache?.subject && options.cache?.key) {
-          await this.storePassword(options.cache.subject, options.cache.key, {
-            subject: options.cache.subject,
-            key: options.cache.key,
+        if (cache) {
+          await this.storePassword(cache.subject, cache.key, {
+            subject: cache.subject,
+            key: cache.key,
             password,
             createdAt: Date.now()
           });
@@ -187,10 +187,10 @@ class CredentialVault {
       }
     } else if (result.auth === false) {
       throw new Error(this.core.t('credential.auth.error.mismatch'));
-    } else if (options.cache?.subject && options.cache?.key) {
-      await this.storePassword(options.cache.subject, options.cache.key, {
-        subject: options.cache.subject,
-        key: options.cache.key,
+    } else if (cache) {
+      await this.storePassword(cache.subject, cache.key, {
+        subject: cache.subject,
+        key: cache.key,
         password,
         createdAt: Date.now()
       });
@@ -203,10 +203,8 @@ class CredentialVault {
 
   private async storePassword(subject: string, key: string, value: StoredCredential): Promise<void> {
     const encrypted = await this.encryptRecord({ ...value, subject, key });
-    await this.core.idb.withTransaction(
-      CredentialVault.STORE,
-      'readwrite',
-      async (tx: any) => await tx.objectStore(CredentialVault.STORE).put({ bucket: 'license', id: `${subject}:${key}`, ...encrypted, updatedAt: Date.now() })
+    await this.core.idb.withTransaction(CredentialVault.STORE, 'readwrite', (tx: any) =>
+      tx.objectStore(CredentialVault.STORE).put({ bucket: 'license', id: `${subject}:${key}`, ...encrypted, updatedAt: Date.now() })
     );
   }
 
@@ -226,10 +224,10 @@ class CredentialVault {
       const Swal = window.modSweetAlert2Mod;
       this.ensurePromptStyle();
       let credentialDraft = '';
-      const label = prompt?.label || `${prompt?.name || modName} - ${this.core.t('credential.auth.label')}`;
+      const label = prompt.label || `${prompt.name || modName} - ${this.core.t('credential.auth.label')}`;
       while (true) {
-        const title = prompt?.title || this.core.t('credential.auth.title');
-        const hint = errorText || prompt?.hint || this.core.t('credential.auth.hint');
+        const title = prompt.title || this.core.t('credential.auth.title');
+        const hint = errorText || prompt.hint || this.core.t('credential.auth.hint');
         const html = `
           <div class="maplebirch-auth-header">${escapeHtmlText(String(title))}</div>
           <div class="maplebirch-auth-body">
@@ -241,7 +239,7 @@ class CredentialVault {
           html,
           input: 'password',
           inputValue: credentialDraft,
-          inputPlaceholder: prompt?.placeholder || this.core.t('credential.auth.placeholder'),
+          inputPlaceholder: prompt.placeholder || this.core.t('credential.auth.placeholder'),
           showCancelButton: false,
           showCloseButton: true,
           allowOutsideClick: false,
@@ -344,25 +342,23 @@ class CredentialVault {
   }
 
   private async forget(subject: string, key: string): Promise<void> {
-    await this.core.idb.withTransaction(CredentialVault.STORE, 'readwrite', async (tx: any) => await tx.objectStore(CredentialVault.STORE).delete(['license', `${subject}:${key}`]));
+    await this.core.idb.withTransaction(CredentialVault.STORE, 'readwrite', (tx: any) => tx.objectStore(CredentialVault.STORE).delete(['license', `${subject}:${key}`]));
   }
 
   private async ensureStorageKey(): Promise<CryptoKey> {
-    const record = await this.core.idb.withTransaction(CredentialVault.STORE, 'readonly', async (tx: any) => {
-      return await tx.objectStore(CredentialVault.STORE).get(['meta', 'cryptoKey']);
-    });
+    const record = await this.core.idb.withTransaction(CredentialVault.STORE, 'readonly', (tx: any) => tx.objectStore(CredentialVault.STORE).get(['meta', 'cryptoKey']));
 
     if (record?.cryptoKey) return record.cryptoKey as CryptoKey;
     const cryptoKey = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
 
-    await this.core.idb.withTransaction(CredentialVault.STORE, 'readwrite', async (tx: any) => {
-      await tx.objectStore(CredentialVault.STORE).put({
+    await this.core.idb.withTransaction(CredentialVault.STORE, 'readwrite', (tx: any) =>
+      tx.objectStore(CredentialVault.STORE).put({
         bucket: 'meta',
         id: 'cryptoKey',
         cryptoKey,
         updatedAt: Date.now()
-      });
-    });
+      })
+    );
 
     return cryptoKey;
   }

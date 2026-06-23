@@ -6,7 +6,7 @@ import type DynamicManager from '../Dynamic';
 import patchDateTime from './DateTime';
 import patchTime, { bindTimeHandlers, vanillaTime } from './Time';
 
-type TimeEventType = 'onSec' | 'onMin' | 'onHour' | 'onDay' | 'onWeek' | 'onMonth' | 'onYear' | 'onBefore' | 'onThread' | 'onAfter' | 'onTimeTravel';
+export type TimeEventType = 'onSec' | 'onMin' | 'onHour' | 'onDay' | 'onWeek' | 'onMonth' | 'onYear' | 'onBefore' | 'onThread' | 'onAfter' | 'onTimeTravel';
 
 type TimeUnit = 'sec' | 'min' | 'hour' | 'day' | 'week' | 'month' | 'year';
 
@@ -203,7 +203,7 @@ export class TimeManager {
     patchTime(TimeObject);
   }
 
-  public register(type: string, eventId: string, options: TimeEventOptions): boolean {
+  public register(type: TimeEventType, eventId: string, options: TimeEventOptions): boolean {
     if (!this.timeEvents[type]) {
       this.log(`未知的时间事件类型: ${type}`, 'ERROR');
       return false;

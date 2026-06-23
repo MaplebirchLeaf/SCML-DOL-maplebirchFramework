@@ -72,7 +72,7 @@ class LanguageManager {
       let failed = false;
       let count = 0;
       for (const format of formats) {
-        const path = `translations/${language.toLowerCase()}.${format}`;
+        const path = `translations/${language.toUpperCase()}.${format}`;
         const file = this.getModFile(modName, path, true);
         if (!file) continue;
         found = true;
@@ -188,7 +188,7 @@ class LanguageManager {
     for (const language of LanguageManager.DEFAULT_LANGS) {
       const content = Translations[language];
       if (!content) continue;
-      const path = `translations/${language.toLowerCase()}.yaml`;
+      const path = `translations/${language.toUpperCase()}.yaml`;
       const translations = this.parseTranslations(content, path);
       for await (const progress of this.writeTranslations('maplebirch', language, translations)) if (progress.progress >= 100) continue;
     }

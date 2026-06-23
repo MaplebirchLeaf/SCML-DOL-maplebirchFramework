@@ -39,7 +39,7 @@ class StateEvent {
 
   public constructor(
     public readonly id: string,
-    public readonly type: string,
+    public readonly type: 'gate' | 'append',
     options: StateEventOptions = {}
   ) {
     this.output = options.output;
@@ -143,7 +143,7 @@ export class StateManager {
     return outputs.join('');
   }
 
-  public register(type: string, eventId: string, options: StateEventOptions): boolean {
+  public register(type: 'gate' | 'append', eventId: string, options: StateEventOptions): boolean {
     if (!(type in this.stateEvents)) {
       this.log(`未知的状态事件类型: ${type}`, 'ERROR');
       return false;
@@ -157,7 +157,7 @@ export class StateManager {
     return true;
   }
 
-  public unregister(type: string, eventId: string): boolean {
+  public unregister(type: 'gate' | 'append', eventId: string): boolean {
     if (!this.stateEvents[type]) {
       this.log(`事件类型不存在: ${type}`, 'WARN');
       return false;
