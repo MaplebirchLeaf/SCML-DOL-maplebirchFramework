@@ -1,5 +1,6 @@
 // ./src/modules/Character.ts
 
+import { MacroDefinition } from 'twine-sugarcube';
 import maplebirch, { MaplebirchCore, createlog } from '../core';
 import { loadImage } from '../utils';
 import AddonPlugin from './AddonPlugin';
@@ -44,16 +45,6 @@ interface HairGradientPreprocessOptions {
   [key: string]: any;
 }
 
-interface LayerConfig {
-  masksrcfn?: (options: any) => any;
-  srcfn?: (options: any) => string;
-  showfn?: (options: any) => boolean;
-  zfn?: (options: any) => number;
-  filtersfn?: (options: any) => string[];
-  animation?: string;
-  [key: string]: any;
-}
-
 type FaceStyleNameFn = (options: FaceStyleOptions) => string | string[];
 type FaceStyleName = string | string[];
 
@@ -70,6 +61,10 @@ interface ProcessEntry {
 interface LayerEntry {
   target: ModelTarget<CanvasModelOptions>;
   layers: CanvasLayerMap;
+}
+
+interface LayerUseOptions {
+  pet?: boolean;
 }
 
 const faceImagePaths = new Set<string>();
@@ -363,18 +358,23 @@ class Character {
     const layerEntries = this.layers;
     const runProcess = this.process.bind(this);
     const pet = this.pet;
-    const targetMatched = (target: ModelTarget<CanvasModelOptions>, modelName: string, options?: CanvasModelOptions) =>
-      typeof target === 'function' ? target(modelName, options) : Array.isArray(target) ? target.includes(modelName) : target === modelName;
+    const patchFlag = Symbol('maplebirchProcessPatched');
+    const modelLayers = (modelName: string, model?: CanvasModel | CanvasModelOptions) =>
+      layerEntries
+        .filter(({ target }) => (typeof target === 'function' ? target(modelName, model) : Array.isArray(target) ? target.includes(modelName) : target === modelName))
+        .map(({ layers }) => layers);
     const patchLayers = (options?: CanvasModelOptions) => {
       if (!options?.layers) return options;
-      const modelName = options.name || '';
-      const modelLayers = layerEntries.filter(({ target }) => targetMatched(target, modelName, options)).map(({ layers }) => layers);
-      if (!modelLayers.length) return options;
+      const matchedLayers = modelLayers(options.name || '', options);
+      if (!matchedLayers.length) return options;
       let patchedLayers = options.layers.clone();
-      for (const layers of modelLayers) patchedLayers = patchedLayers.mergefn((_key: any, value: any, depth: number) => depth <= 3 && value != null, layers);
+      for (const layers of matchedLayers) patchedLayers = patchedLayers.mergefn((_key: any, value: any, depth: number) => depth <= 3 && value != null, layers);
       return { ...options, layers: patchedLayers };
     };
     const patchProcess = (model: CanvasModel) => {
+      const patched = model as CanvasModel & { [patchFlag]?: true };
+      if (patched[patchFlag]) return;
+      patched[patchFlag] = true;
       const vanillaPre = model.preprocess;
       const vanillaPost = model.postprocess;
       model.preprocess = (processOptions: CanvasModelOptionsData) => {
@@ -386,24 +386,46 @@ class Character {
         runProcess('post', processOptions, model);
       };
     };
+    const patchCachedLayers = (model: CanvasModel) => {
+      const missing: CanvasLayerMap = {};
+      for (const entry of modelLayers(model.name, model)) for (const [name, layer] of Object.entries(entry)) if (!model.layers?.[name]) missing[name] = layer;
+      if (!Object.keys(missing).length) return;
+      const initialized = new BaseCanvasModel({
+        name: model.name,
+        width: model.width,
+        height: model.height,
+        frames: model.frames,
+        scale: model.scale,
+        layers: missing
+      } as CanvasModelOptions);
+      Object.assign(model.layers, initialized.layers);
+      model.layerList = Object.values(model.layers);
+    };
+    const patchModel = (model: CanvasModel) => {
+      if (model.name === pet.modelName) return model;
+      patchProcess(model);
+      patchCachedLayers(model);
+      return model;
+    };
     return class PatchedCanvasModel extends BaseCanvasModel {
+      static create(id: string, slot?: string) {
+        return patchModel(BaseCanvasModel.create(id, slot));
+      }
       constructor(...args: any[]) {
-        let [options] = args as [CanvasModelOptions?];
+        const [options] = args as [CanvasModelOptions?];
         const modelName = options?.name || '';
+        const patchedOptions = modelName !== pet.modelName ? patchLayers(options) : options;
         if (modelName === 'main') pet.capture(options);
-        if (modelName !== pet.modelName) {
-          options = patchLayers(options);
-          args[0] = options;
-        }
+        args[0] = patchedOptions;
         super(...args);
-        if (modelName !== pet.modelName) patchProcess(this);
+        patchModel(this);
       }
     } as T;
   }
 
   public use(type: ProcessType, handler: ProcessHandler, target?: ModelTarget<CanvasModel>): this;
-  public use(layers: CanvasLayerMap, target?: ModelTarget<CanvasModelOptions>): this;
-  public use(...args: [ProcessType, ProcessHandler, ModelTarget<CanvasModel>?] | [CanvasLayerMap, ModelTarget<CanvasModelOptions>?]): this {
+  public use(layers: CanvasLayerMap, target?: ModelTarget<CanvasModelOptions>, options?: LayerUseOptions): this;
+  public use(...args: [ProcessType, ProcessHandler, ModelTarget<CanvasModel>?] | [CanvasLayerMap, ModelTarget<CanvasModelOptions>?, LayerUseOptions?]): this {
     if (typeof args[0] === 'string') {
       const type = args[0];
       const handler = args[1];
@@ -413,7 +435,9 @@ class Character {
     }
     const layers = args[0];
     const target = args[1] ?? 'main';
+    const options = args[2];
     this.layers.push({ target, layers });
+    if (options?.pet) this.pet.use(layers);
     return this;
   }
 
@@ -531,7 +555,16 @@ class Character {
   }
 
   public preInit() {
-    this.core.on(':passagedisplay', () => void this.pet.sync());
+    const { core, pet } = this;
+    core.once(':storyready', () => {
+      const macro = core.SugarCube.Macro.get('updatesidebarimg') as MacroDefinition | undefined;
+      if (!macro) return;
+
+      core.tool.macro.define('updatesidebarimg', function (this: any) {
+        macro.handler.call(this);
+        void pet.sync();
+      });
+    });
     this.use('pre', preprocess, 'main');
     this.use(layers, 'main');
   }

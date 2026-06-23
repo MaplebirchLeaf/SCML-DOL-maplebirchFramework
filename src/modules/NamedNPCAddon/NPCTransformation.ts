@@ -26,6 +26,8 @@ function stateLevel(build: number, levels: number[]) {
   return level;
 }
 
+const defaultLevels = [5, 10, 15, 20, 25, 30];
+
 class NPCTransformation {
   private readonly configs = new Map<string, Required<Pick<NPCTransformationConfig, 'levels'>> & NPCTransformationConfig>();
 
@@ -36,7 +38,7 @@ class NPCTransformation {
     if (!name) return this;
     this.configs.set(name, {
       ...config,
-      levels: config.levels?.length ? config.levels : [5, 20, 40, 60, 80, 100]
+      levels: config.levels?.length ? config.levels : defaultLevels
     });
     if (config.layers) this.manager.core.char.use(config.layers, 'main');
     return this;
@@ -47,13 +49,17 @@ class NPCTransformation {
     V.maplebirch.npc ??= {};
     const npc = (V.maplebirch.npc[key(npcName)] ??= {});
     if (!npc.transformation || typeof npc.transformation !== 'object') npc.transformation = {};
-    if (type) {
-      const config = this.configs.get(type);
-      const current = npc.transformation[type] ?? {};
-      const build = Math.clamp(Math.round(Number(current.build) || 0), 0, config?.levels.at(-1) ?? 100);
-      npc.transformation[type] = {
+    const types = type ? [type] : Object.keys(npc.transformation);
+    for (const name of types) {
+      const config = this.configs.get(name);
+      const levels = config?.levels ?? defaultLevels;
+      const current = npc.transformation[name];
+      const source = current && typeof current === 'object' ? current : {};
+      const build = Math.clamp(Math.round(Number(source.build) || 0), 0, levels.at(-1) ?? 100);
+      const savedLevel = Number(source.level);
+      npc.transformation[name] = {
         build,
-        level: Math.clamp(Math.round(Number(current.level) || stateLevel(build, config?.levels ?? [])), 0, config?.levels.length ?? 6)
+        level: Math.clamp(Number.isFinite(savedLevel) ? Math.round(savedLevel) : stateLevel(build, levels), 0, levels.length)
       };
     }
     return npc.transformation;
@@ -109,7 +115,9 @@ class NPCTransformation {
   public applySidebar(nnpc: Record<string, any>): void {
     for (const [type, state] of Object.entries(this.ensure(nnpc.name))) {
       const config = this.configs.get(type);
-      if (config && state.level > 0) config.sidebar?.(nnpc, state, nnpc.name);
+      if (!config || state.level <= 0) continue;
+      nnpc.show_tf = true;
+      config.sidebar?.(nnpc, state, nnpc.name);
     }
   }
 

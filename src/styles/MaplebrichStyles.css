@@ -1,7 +1,6 @@
-.button.saveMenuButton.deleteButton,
-.button.saveMenuButton.saves-clear {
-  white-space: nowrap !important;
-  word-break: keep-all !important;
+button.saveMenuButton.deleteButton,
+button.saveMenuButton.saves-clear {
+  min-width: fit-content;
 }
 
 /* Framework GUI */

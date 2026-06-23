@@ -1,6 +1,7 @@
 // ./src/SFcompat.ts
 
 import maplebirch from './core';
+import { TimeEventType } from './modules/TimeStateWeather/TimeEvents';
 
 interface CompatTimeData {
   prevDate?: DateTime;
@@ -58,7 +59,7 @@ class SFcompat {
     private registered = false;
 
     public constructor(
-      private readonly type: string,
+      private readonly type: TimeEventType,
       private readonly eventId: string
     ) {}
 

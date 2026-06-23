@@ -2,79 +2,23 @@
 
 <<widget 'maplebirchTransformationMirror'>>
   <<set $_modTransforms to Object.keys(V.maplebirch?.transformation || {}).filter(name => V.maplebirch.transformation[name].level > 0)>>
-  <<for $_modName range $_modTransforms>>
-    <<set $_config to maplebirch.char.transformation.config.get($_modName)>>
-    <<set $_parts to Object.keys($transformationParts[$_modName] || {}).filter(part => $transformationParts[$_modName][part] !== 'disabled')>>
+  <<for $_modTransformation range $_modTransforms>>
+    <<set $_config to maplebirch.char.transformation.config.get($_modTransformation)>>
+    <<set $_parts to Object.keys($transformationParts[$_modTransformation] || {}).filter(part => $transformationParts[$_modTransformation][part] !== 'disabled')>>
     <div class='settingsToggleItemWide'>
-      <<if $_config.icon>><<icon $_config.icon>><</if>>
-      <span class='gold bold'><<lanSwitch 'Mods: ' '模组：'>><<= maplebirch.t($_modName)>></span>
-      <<for $_partName range $_parts>><<maplebirchTransformationPartSelect $_modName $_partName>><</for>>
+      <<if $_config.icon>><<iconUi $_config.icon>><</if>>
+      <span class='gold bold'><<lanSwitch 'Mods: ' '模组：'>><<= maplebirch.t($_modTransformation).convert('title')>></span>
+      <<for $_partName range $_parts>><<maplebirchTransformationPartSelect $_modTransformation $_partName>><</for>>
     </div>
   <</for>>
-  <<set $_modPartActive to part => $_modTransforms.some(tf => V.transformationParts[tf]?.[part] && V.transformationParts[tf][part] !== 'disabled')>>
-  <<set $_basePartInactive to (part, tfs) => tfs.every(tf => T[tf]?.[part] === 'disabled')>>
-  <<set $_layerAdjustable to {
-    horns: $_modPartActive('horns') && $_basePartInactive('horns', ['demon', 'cow']),
-    tail : $_modPartActive('tail')  && $_basePartInactive('tail' , ['demon', 'cat', 'cow', 'wolf', 'bird', 'fox']),
-    wings: $_modPartActive('wings') && $_basePartInactive('wings', ['angel', 'fallen', 'demon', 'bird'])
-  }>>
-  <<if $_layerAdjustable.horns || $_layerAdjustable.tail || $_layerAdjustable.wings>>
-    <div class='settingsToggleItemWide no-numberify'>
-      <span class='gold bold'><<lanSwitch 'Layer Adjustments: ' '图层调整：'>></span>
-      <br>
-
-      <div class='no-numberify'>
-        <<if $_layerAdjustable.horns>>
-          <<set $_hornsText to $hornslayer is 'front' ? 'Prioritise headwear over horns' : 'Prioritise horns over headwear'>>
-          <<set $_hornsValue to $hornslayer is 'front' ? 'back' : 'front'>>
-          <<lanLink $_hornsText>>
-            <<run State.setVar('$hornslayer', $_hornsValue)>>
-            <<run Engine.show()>>
-            <<updatesidebarimg true>>
-          <</lanLink>>
-          <br>
-        <</if>>
-
-        <<if $_layerAdjustable.tail>>
-          <<set $_tailText to $taillayer is 'front' ? 'Push tail back' : 'Move tail forward'>>
-          <<set $_tailValue to $taillayer is 'front' ? 'back' : 'front'>>
-          <<lanLink $_tailText>>
-            <<run State.setVar('$taillayer', $_tailValue)>>
-            <<run Engine.show()>>
-            <<updatesidebarimg true>>
-          <</lanLink>>
-          <br>
-        <</if>>
-
-        <<if $_layerAdjustable.wings>>
-          <<set $_wingsText to $wingslayer is 'front' ? 'Push wings behind' : 'Move wings forward'>>
-          <<set $_wingsValue to $wingslayer is 'front' ? 'back' : 'front'>>
-          <<lanLink $_wingsText>>
-            <<run State.setVar('$wingslayer', $_wingsValue)>>
-            <<run Engine.show()>>
-            <<updatesidebarimg true>>
-          <</lanLink>>
-          <br>
-        <</if>>
-      </div>
-    </div>
-
-    <<script>>
-      jQuery('.passage')
-        .off('change.maplebirchTransformationMirror', 'select.macro-lanListbox')
-        .on('change.maplebirchTransformationMirror', 'select.macro-lanListbox', function () {
-          maplebirch.SugarCube.Wikifier.wikifyEval('<<updatesidebarimg true>>');
-        });
-    <</script>>
-  <</if>>
 <</widget>>
 
 <<widget 'maplebirchTransformationPartSelect'>>
-  <<set $_modName to _args[0]>>
+  <<set $_modTransformation to _args[0]>>
   <<set $_partName to _args[1]>>
-  <<set $_varPath to '$transformationParts.' + $_modName + '.' + $_partName>>
+  <<set $_varPath to '$transformationParts.' + $_modTransformation + '.' + $_partName>>
   <div class='tf-part-item'>
-    <<= maplebirch.t(String($_partName))>>：
+    <<= maplebirch.t(String($_partName)).convert('title')>>：
     <<lanListbox $_varPath autoselect>>
       <<option 'hidden' 'hidden'>>
       <<option 'default' 'default'>>

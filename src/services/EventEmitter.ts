@@ -82,12 +82,14 @@ class EventEmitter {
       return true;
     }
     let fired = false;
-    const onceWrapper: EventCallback = async (...args) => {
+    const onceWrapper: EventCallback = (...args) => {
       if (fired) return;
       fired = true;
       this.off(eventName, onceWrapper);
       try {
-        return await callback(...args);
+        const result = callback(...args);
+        if (result && typeof result.catch === 'function') return result.catch((error: any) => this.core.logger.log(`${eventName}事件once回调错误: ${error.message}`, 'ERROR'));
+        return result;
       } catch (error: any) {
         this.core.logger.log(`${eventName}事件once回调错误: ${error?.message || error}`, 'ERROR');
       }
@@ -102,7 +104,8 @@ class EventEmitter {
       const snapshot = [...listeners];
       for (let i = 0; i < snapshot.length; i++) {
         try {
-          await snapshot[i].callback(...args);
+          const result = snapshot[i].callback(...args);
+          if (result && typeof result.then === 'function') await result;
         } catch (error: any) {
           this.core.logger.log(`${eventName}事件处理错误: ${error?.message || error}`, 'ERROR');
         }
@@ -115,7 +118,8 @@ class EventEmitter {
       const snapshot = [...callbacks];
       for (let i = 0; i < snapshot.length; i++) {
         try {
-          await snapshot[i](...args);
+          const result = snapshot[i](...args);
+          if (result && typeof result.then === 'function') await result;
         } catch (error: any) {
           this.core.logger.log(`${eventName}事件after回调错误: ${error?.message || error}`, 'ERROR');
         }

@@ -31,23 +31,23 @@
   <<maplebirchTimeTravel>>
 </div>
 <div class='settingsGrid'>
-  <<set $_modNames to Object.keys(V.maplebirch?.transformation || {})>>
+  <<set $_modTransformations to Object.keys(V.maplebirch?.transformation || {})>>
   <div class='settingsHeader options'><<lanSwitch 'Mods Transformation' '模组转化'>></div>
-  <<if $_modNames.length>>
+  <<if $_modTransformations.length>>
     <div class='settingsToggleItem'>
       <span class='gold'><<lanSwitch 'Transformation Type' '转化种类'>></span><br>
-      <<for $_modName range $_modNames>>
-        <<capture $_modName>>
-          <<set $_config to maplebirch.char.transformation.config.get($_modName)>>
-          <<if $_config?.icon>><<icon $_config.icon>><</if>>
-          <<= maplebirch.t($_modName)>>：
+      <<for _modTransformation range $_modTransformations>>
+        <<capture _modTransformation>>
+          <<set $_config to maplebirch.char.transformation.config.get(_modTransformation)>>
+          <<if $_config?.icon>><<iconUi $_config.icon>><</if>>
+          <<= maplebirch.t(_modTransformation)>>：
           <<lanLink 'set' 'capitalize'>>
-            <<run maplebirch.char.transformation.setTransform($_modName)>>
+            <<run maplebirch.char.transformation.setTransform(_modTransformation)>>
             <<updatesidebarimg>>
           <</lanLink>>
           |
           <<lanLink 'clear' 'capitalize'>>
-            <<run maplebirch.char.transformation.setTransform($_modName, 0)>>
+            <<run maplebirch.char.transformation.setTransform(_modTransformation, 0)>>
             <<updatesidebarimg>>
           <</lanLink>>
         <</capture>>
@@ -56,15 +56,15 @@
     </div>
     <div class='settingsToggleItem'>
       <span class='gold'><<lanSwitch 'Transformation Points' '转化点数'>></span><br>
-      <<for $_modName range $_modNames>>
-        <<capture $_modName>>
-          <<set $_config to maplebirch.char.transformation.config.get($_modName)>>
-          <<set $_title to $_config?.icon ? `<<icon '${$_config.icon}'>> ${maplebirch.t($_modName)}` : maplebirch.t($_modName)>>
-          <<set $_value to V.maplebirch.transformation[$_modName].build ?? 0>>
+      <<for _modTransformation range $_modTransformations>>
+        <<capture _modTransformation>>
+          <<set $_config to maplebirch.char.transformation.config.get(_modTransformation)>>
+          <<set $_title to $_config?.icon ? `<<iconUi '${$_config.icon}'>> ${maplebirch.t(_modTransformation)}` : maplebirch.t(_modTransformation)>>
+          <<set $_value to V.maplebirch.transformation[_modTransformation].build ?? 0>>
           <<numberStepper $_title $_value {
             callback: (value) => {
-              V.maplebirch.transformation[$_modName].build = value;
-              maplebirch.char.transformation.updateTransform($_modName);
+              V.maplebirch.transformation[_modTransformation].build = value;
+              maplebirch.char.transformation.updateTransform(_modTransformation);
               Wikifier.wikifyEval('<<updatesidebarimg>>');
             },
             max: $_config?.build || 100,
