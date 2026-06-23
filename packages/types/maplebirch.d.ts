@@ -1309,10 +1309,9 @@ declare class CloudSaveService {
     private compress;
     private decompress;
     private deriveKey;
-    private isServer;
-    private currentConfig;
-    private endpointUrl;
-    private activePassphrase;
+    private get current();
+    private get endpoint();
+    private get passphrase();
 }
 
 type LanguageCode = (typeof Languages)[number];
@@ -1448,6 +1447,7 @@ declare class GUIControl {
     private whenCreate;
 }
 
+type TimeEventType = 'onSec' | 'onMin' | 'onHour' | 'onDay' | 'onWeek' | 'onMonth' | 'onYear' | 'onBefore' | 'onThread' | 'onAfter' | 'onTimeTravel';
 type TimeUnit = 'sec' | 'min' | 'hour' | 'day' | 'week' | 'month' | 'year';
 interface DateLike {
     hour: number;
@@ -1555,7 +1555,7 @@ declare class TimeManager {
     init(): void;
     patchDateTime(DateTimeClass: typeof DateTime): typeof DateTime;
     patchTime(TimeObject: typeof Time): void;
-    register(type: string, eventId: string, options: TimeEventOptions): boolean;
+    register(type: TimeEventType, eventId: string, options: TimeEventOptions): boolean;
     unregister(type: string, eventId: string): boolean;
     timeTravel(options?: TimeTravelOptions): boolean;
     updateTimeLanguage(choice?: 'JournalTime'): string | boolean;
@@ -1588,8 +1588,8 @@ declare class StateManager {
     trigger(type: 'gate' | 'append'): string;
     private processGateEvents;
     private processAppendEvents;
-    register(type: string, eventId: string, options: StateEventOptions): boolean;
-    unregister(type: string, eventId: string): boolean;
+    register(type: 'gate' | 'append', eventId: string, options: StateEventOptions): boolean;
+    unregister(type: 'gate' | 'append', eventId: string): boolean;
     init(): void;
 }
 
@@ -1656,12 +1656,12 @@ declare class DynamicManager {
     readonly Weather: WeatherManager;
     readonly log: ReturnType<typeof createlog>;
     constructor(core: MaplebirchCore);
-    regTimeEvent(type: string, eventId: string, options: TimeEventOptions): boolean;
-    delTimeEvent(type: string, eventId: string): boolean;
+    regTimeEvent(type: TimeEventType, eventId: string, options: TimeEventOptions): boolean;
+    delTimeEvent(type: TimeEventType, eventId: string): boolean;
     timeTravel(options?: TimeTravelOptions): boolean;
     get TimeEvents(): any;
-    regStateEvent(type: string, eventId: string, options: StateEventOptions): boolean;
-    delStateEvent(type: string, eventId: string): boolean;
+    regStateEvent(type: 'gate' | 'append', eventId: string, options: StateEventOptions): boolean;
+    delStateEvent(type: 'gate' | 'append', eventId: string): boolean;
     trigger(type: 'gate' | 'append'): string;
     get StateEvents(): any;
     regWeatherEvent(eventId: string, options: WeatherEventOptions): boolean;

@@ -145,7 +145,7 @@ class Transformation {
 
     if (options.pre) this.manager.use('pre', options.pre, 'main');
     if (options.post) this.manager.use('post', options.post, 'main');
-    if (options.layers) this.manager.use(options.layers, 'main');
+    if (options.layers) this.manager.use(options.layers, 'main', { pet: true });
 
     if (options.translations) {
       const translations = options.translations instanceof Map ? options.translations.entries() : Object.entries(options.translations);

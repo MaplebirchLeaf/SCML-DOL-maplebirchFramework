@@ -41,97 +41,35 @@ const DEFAULT_OFFSET = {
   bottom: 32
 };
 
-// 从原版 main 派生 pet 模型时，只保留角色本体相关层。
-const petLayers = {
-  exact: new Set([
-    'base',
-    'basehead',
-    'breasts',
-    'belly',
-    'bellyLeft',
-    'bellyRight',
-    'leftarm',
-    'rightarm',
-    'freckles',
-    'ears',
-    'eyes',
-    'sclera',
-    'left_iris',
-    'right_iris',
-    'eyelids',
-    'lashes',
-    'brows',
-    'mouth',
-    'blush',
-    'tears',
-    'toast',
-    'scars',
-    'hair_sides',
-    'hair_fringe',
-    'hair_extra',
-    'pbhair',
-    'pbhair_strip',
-    'pbhair_balls',
-    'penis',
-    'genitals',
-    'buttplug',
-    'vines'
-  ]),
+const csv = (value: string): string[] =>
+  value
+    .split(',')
+    .map(item => item.trim())
+    .filter(Boolean);
 
-  prefixes: [
-    'makeup',
-    'nipples',
-    'breasts',
-    'tummy',
-    'penis',
-    'clit',
-    'ear_slime',
-    'wolf',
-    'cat',
-    'cow',
-    'bird',
-    'fox',
-    'angel',
-    'fallen',
-    'demon',
-    'writing',
-    'drip',
-    'cum',
-    'upper',
-    'over_upper',
-    'lower',
-    'over_lower',
-    'under_lower',
-    'under_upper',
-    'hands',
-    'handheld',
-    'head',
-    'over_head',
-    'face',
-    'neck',
-    'legs',
-    'feet'
-  ]
+const petLayers = {
+  exact: csv(`
+    base, basehead, breasts, belly, bellyLeft, bellyRight, leftarm, rightarm,
+    freckles, ears, eyes, sclera, left_iris, right_iris, eyelids, lashes, brows, mouth, blush, tears, toast, scars,
+    hair_sides, hair_fringe, hair_extra, pbhair, pbhair_strip, pbhair_balls,
+    penis, genitals, buttplug, vines
+  `),
+  prefixes: csv(`
+    makeup, nipples, breasts, tummy, penis, clit, ear_slime,
+    wolf, cat, cow, bird, fox, angel, fallen, demon,
+    writing, drip, cum,
+    upper, over_upper, lower, over_lower, under_lower, under_upper,
+    hands, handheld, head, over_head, face, neck, legs, feet
+  `)
 };
 
-// pet 不需要雨、水、火、花瓣等环境效果。
-const ignoredOptions = [
-  'precipitation',
-  'precipitation_back',
-  'precipitation_front',
-  'temperature',
-  'cold_breath',
-  'water',
-  'water_back',
-  'water_front',
-  'water_breath',
-  'fire',
-  'fireFront',
-  'fire_back',
-  'fire_front',
-  'petals'
-];
+const ignoredOptions = csv(`
+  precipitation, precipitation_back, precipitation_front, temperature, cold_breath,
+  water, water_back, water_front, water_breath,
+  fire, fireFront, fire_back, fire_front, petals
+`);
 
+const isPetLayer = (name: string): boolean => petLayers.exact.includes(name) || petLayers.prefixes.some(prefix => name === prefix || name.startsWith(`${prefix}_`));
 class Pet {
   public readonly modelName = PET.model;
   private canvas?: HTMLCanvasElement;
@@ -139,6 +77,7 @@ class Pet {
   private container?: HTMLElement;
 
   private options: Required<PetOptions> = { ...DEFAULT_OPTIONS };
+  private readonly layers: CanvasLayerMap[] = [];
 
   private cleanupDrag?: () => void;
   private syncing = false;
@@ -172,13 +111,17 @@ class Pet {
     return true;
   }
 
+  public use(layers: CanvasLayerMap): this {
+    this.layers.push(layers);
+    return this;
+  }
+
   public capture(mainModel?: CanvasModelOptions): void {
     const models = Renderer.CanvasModels as Record<string, CanvasModelOptions | undefined>;
     if (!mainModel?.layers || models[PET.model]) return;
 
-    const layers = Object.fromEntries(
-      Object.entries(mainModel.layers).filter(([name]) => petLayers.exact.has(name) || petLayers.prefixes.some(prefix => name === prefix || name.startsWith(`${prefix}_`)))
-    ) as CanvasLayerMap;
+    const layers = Object.fromEntries(Object.entries(mainModel.layers).filter(([name]) => isPetLayer(name))) as CanvasLayerMap;
+    for (const petLayerMap of this.layers) Object.assign(layers, petLayerMap);
 
     models[PET.model] = {
       ...mainModel,
@@ -206,7 +149,7 @@ class Pet {
       if (!models[PET.model]) this.capture(models.main);
 
       if (!models[PET.model]) {
-        this.manager.log('pet 模型尚未准备完成。', 'WARN');
+        this.manager.log('pet model is not ready.', 'WARN');
         return false;
       }
 

@@ -1,5 +1,6 @@
 // ./src/modules/Character.ts
 
+import { MacroDefinition } from 'twine-sugarcube';
 import maplebirch, { MaplebirchCore, createlog } from '../core';
 import { loadImage } from '../utils';
 import AddonPlugin from './AddonPlugin';
@@ -60,6 +61,10 @@ interface ProcessEntry {
 interface LayerEntry {
   target: ModelTarget<CanvasModelOptions>;
   layers: CanvasLayerMap;
+}
+
+interface LayerUseOptions {
+  pet?: boolean;
 }
 
 const faceImagePaths = new Set<string>();
@@ -409,8 +414,9 @@ class Character {
       constructor(...args: any[]) {
         const [options] = args as [CanvasModelOptions?];
         const modelName = options?.name || '';
+        const patchedOptions = modelName !== pet.modelName ? patchLayers(options) : options;
         if (modelName === 'main') pet.capture(options);
-        if (modelName !== pet.modelName) args[0] = patchLayers(options);
+        args[0] = patchedOptions;
         super(...args);
         patchModel(this);
       }
@@ -418,8 +424,8 @@ class Character {
   }
 
   public use(type: ProcessType, handler: ProcessHandler, target?: ModelTarget<CanvasModel>): this;
-  public use(layers: CanvasLayerMap, target?: ModelTarget<CanvasModelOptions>): this;
-  public use(...args: [ProcessType, ProcessHandler, ModelTarget<CanvasModel>?] | [CanvasLayerMap, ModelTarget<CanvasModelOptions>?]): this {
+  public use(layers: CanvasLayerMap, target?: ModelTarget<CanvasModelOptions>, options?: LayerUseOptions): this;
+  public use(...args: [ProcessType, ProcessHandler, ModelTarget<CanvasModel>?] | [CanvasLayerMap, ModelTarget<CanvasModelOptions>?, LayerUseOptions?]): this {
     if (typeof args[0] === 'string') {
       const type = args[0];
       const handler = args[1];
@@ -429,7 +435,9 @@ class Character {
     }
     const layers = args[0];
     const target = args[1] ?? 'main';
+    const options = args[2];
     this.layers.push({ target, layers });
+    if (options?.pet) this.pet.use(layers);
     return this;
   }
 
@@ -547,7 +555,16 @@ class Character {
   }
 
   public preInit() {
-    this.core.on(':passagedisplay', () => void this.pet.sync());
+    const { core, pet } = this;
+    core.once(':storyready', () => {
+      const macro = core.SugarCube.Macro.get('updatesidebarimg') as MacroDefinition | undefined;
+      if (!macro) return;
+
+      core.tool.macro.define('updatesidebarimg', function (this: any) {
+        macro.handler.call(this);
+        void pet.sync();
+      });
+    });
     this.use('pre', preprocess, 'main');
     this.use(layers, 'main');
   }

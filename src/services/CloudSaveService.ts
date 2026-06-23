@@ -104,9 +104,9 @@ class CloudSaveService {
   }
 
   public async deleteAccount(password: string): Promise<boolean> {
-    if (this.currentConfig().mode !== 'server') throw new Error('Only the server backend can delete an account.');
+    if (this.current.mode !== 'server') throw new Error('Only the server backend can delete an account.');
     await this.server('/auth/account', { method: 'DELETE', body: JSON.stringify({ password }) });
-    this.config = { endpoint: this.endpointUrl() };
+    this.config = { endpoint: this.endpoint };
     return true;
   }
 
@@ -137,25 +137,26 @@ class CloudSaveService {
 
   public async upload(slot: CloudSaveSlot): Promise<CloudSaveRemoteItem> {
     const item = await this.packSlot(slot);
-    if (this.isServer()) await this.server(`/saves/${slot}`, { method: 'PUT', body: JSON.stringify(item) });
+    if (this.current.mode === 'server') await this.server(`/saves/${slot}`, { method: 'PUT', body: JSON.stringify(item) });
     else await this.webdavPutSlot(item);
     return { slot: item.slot, updatedAt: item.updatedAt };
   }
 
   public async download(slot: CloudSaveSlot, targetSlot = slot): Promise<boolean> {
-    const item = this.isServer()
-      ? await this.server<CloudSaveRemoteItem>(`/saves/${slot}`)
-      : await this.webdavRequest<CloudSaveRemoteItem>(this.webdavPath('slots', `${slot}.json`), { method: 'GET' }, true);
+    const item =
+      this.current.mode === 'server'
+        ? await this.server<CloudSaveRemoteItem>(`/saves/${slot}`)
+        : await this.webdavRequest<CloudSaveRemoteItem>(this.webdavPath('slots', `${slot}.json`), { method: 'GET' }, true);
     return this.unpackSlot(item, targetSlot);
   }
 
   public async listRemote(): Promise<CloudSaveRemoteItem[]> {
-    if (this.isServer()) return this.server<CloudSaveRemoteItem[]>('/saves');
+    if (this.current.mode === 'server') return this.server<CloudSaveRemoteItem[]>('/saves');
     return (await this.readManifest()).saves.sort((a, b) => a.slot - b.slot);
   }
 
   public async deleteRemote(slot: CloudSaveSlot): Promise<boolean> {
-    if (this.isServer()) {
+    if (this.current.mode === 'server') {
       await this.server(`/saves/${slot}`, { method: 'DELETE' });
       return true;
     }
@@ -211,13 +212,14 @@ class CloudSaveService {
 
   public async uploadCode(code = this.exportCode()): Promise<CloudSaveRemoteCode> {
     const item = await this.packCode(code);
-    if (this.isServer()) await this.server('/save-code', { method: 'PUT', body: JSON.stringify(item) });
+    if (this.current.mode === 'server') await this.server('/save-code', { method: 'PUT', body: JSON.stringify(item) });
     else await this.webdavPutCode(item);
     return { updatedAt: item.updatedAt };
   }
 
   public async downloadCode(): Promise<string> {
-    const item = this.isServer() ? await this.server<CloudSaveRemoteCode>('/save-code') : await this.webdavRequest<CloudSaveRemoteCode>(this.webdavPath('save-code.json'), { method: 'GET' }, true);
+    const item =
+      this.current.mode === 'server' ? await this.server<CloudSaveRemoteCode>('/save-code') : await this.webdavRequest<CloudSaveRemoteCode>(this.webdavPath('save-code.json'), { method: 'GET' }, true);
     return this.unpackCode(item);
   }
 
@@ -248,12 +250,12 @@ class CloudSaveService {
   }
 
   private async runPanelAction(panel: HTMLElement, action: PanelAction, slot: CloudSaveSlot): Promise<void> {
-    const password = this.currentConfig().password || '';
+    const password = this.current.password || '';
     switch (action) {
       case 'connectRemote':
-        return this.panelDone(panel, this.core.t('cloud.save.status.connect'), async () => await this.connect(this.currentConfig().username || '', password));
+        return this.panelDone(panel, this.core.t('cloud.save.status.connect'), async () => await this.connect(this.current.username || '', password));
       case 'registerServer':
-        return this.panelDone(panel, this.core.t('cloud.save.status.registered'), async () => await this.register(this.currentConfig().username || '', password));
+        return this.panelDone(panel, this.core.t('cloud.save.status.registered'), async () => await this.register(this.current.username || '', password));
       case 'deleteServerAccount':
         await this.deleteAccount(password);
         this.setField(panel, 'password', '');
@@ -387,14 +389,14 @@ class CloudSaveService {
 
   private async connect(username: string, password: string): Promise<void> {
     if (await this.isServerEndpoint()) return void (await this.login(username, password));
-    this.configure({ ...this.currentConfig(), username, password, passphrase: password });
+    this.configure({ ...this.current, username, password, passphrase: password });
     await this.ensureWebdav();
-    this.configure({ ...this.currentConfig(), mode: 'webdav' });
+    this.configure({ ...this.current, mode: 'webdav' });
   }
 
   private async isServerEndpoint(): Promise<boolean> {
     try {
-      const response = await fetch(`${this.endpointUrl()}/health`);
+      const response = await fetch(`${this.endpoint}/health`);
       if (!response.ok) return false;
       if ((response.headers.get('content-type') || '').includes('application/json')) return true;
       return /ok|healthy|cloud/i.test(await response.text());
@@ -405,7 +407,7 @@ class CloudSaveService {
 
   private async server<T = any>(path: string, init: RequestInit = {}): Promise<T> {
     const config = this.config;
-    const response = await fetch(`${this.endpointUrl()}${path}`, {
+    const response = await fetch(`${this.endpoint}${path}`, {
       ...init,
       headers: {
         'Content-Type': 'application/json',
@@ -421,7 +423,7 @@ class CloudSaveService {
 
   private setServerAuth(response: CloudSaveAuthResponse, passphrase: string): void {
     this.config = {
-      ...this.currentConfig(),
+      ...this.current,
       mode: 'server',
       userId: String(response.userId),
       passphrase,
@@ -471,7 +473,7 @@ class CloudSaveService {
   }
 
   private async ensureWebdav(): Promise<void> {
-    const config = this.currentConfig();
+    const config = this.current;
     if (!config.endpoint) throw new Error('Cloud save endpoint is not configured.');
     if (!config.username || !config.password) throw new Error(this.core.t('cloud.save.error.webdav.credentials'));
     const response = await this.webdavFetch(this.webdavPath('slots'), { method: 'MKCOL' });
@@ -494,8 +496,8 @@ class CloudSaveService {
   }
 
   private webdavFetch(path: string, init: RequestInit): Promise<Response> {
-    const { username = '', password = '' } = this.currentConfig();
-    return fetch(`${this.endpointUrl()}/${path}`, {
+    const { username = '', password = '' } = this.current;
+    return fetch(`${this.endpoint}/${path}`, {
       ...init,
       headers: {
         Authorization: `Basic ${basicAuth(username, password)}`,
@@ -512,13 +514,13 @@ class CloudSaveService {
     return {
       slot,
       updatedAt: Date.now(),
-      payload: await this.encrypt(await this.exportSlot(slot), this.activePassphrase())
+      payload: await this.encrypt(await this.exportSlot(slot), this.passphrase)
     };
   }
 
   private async unpackSlot(item: CloudSaveRemoteItem | null, targetSlot: CloudSaveSlot): Promise<boolean> {
     if (!item?.payload) throw new Error(`Remote save slot ${targetSlot} not found.`);
-    return this.importSlot(await this.decrypt<CloudSaveRecord>(item.payload, this.activePassphrase()), targetSlot);
+    return this.importSlot(await this.decrypt<CloudSaveRecord>(item.payload, this.passphrase), targetSlot);
   }
 
   private async packCode(code: string): Promise<CloudSaveRemoteCode> {
@@ -530,14 +532,14 @@ class CloudSaveService {
           exportedAt: Date.now(),
           gameId: this.core.SugarCube?.Story?.domId
         } satisfies CloudSaveCodeRecord,
-        this.activePassphrase()
+        this.passphrase
       )
     };
   }
 
   private async unpackCode(item: CloudSaveRemoteCode | null): Promise<string> {
     if (!item?.payload) throw new Error(this.core.t('cloud.save.error.code.notFound'));
-    const record = await this.decrypt<CloudSaveCodeRecord>(item.payload, this.activePassphrase());
+    const record = await this.decrypt<CloudSaveCodeRecord>(item.payload, this.passphrase);
     if (!record.code) throw new Error(this.core.t('cloud.save.error.code.empty'));
     return record.code;
   }
@@ -599,23 +601,19 @@ class CloudSaveService {
     return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: toArrayBuffer(salt), iterations: 150000, hash: 'SHA-256' }, keyMaterial, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
   }
 
-  private isServer(): boolean {
-    return this.currentConfig().mode === 'server';
-  }
-
-  private currentConfig(): CloudSaveConfig {
+  private get current(): CloudSaveConfig {
     if (!this.config) throw new Error('Cloud save is not configured.');
     return this.config;
   }
 
-  private endpointUrl(): string {
-    const endpoint = this.config?.endpoint;
+  private get endpoint(): string {
+    const endpoint = this.current.endpoint;
     if (!endpoint) throw new Error('Cloud save endpoint is not configured.');
     return endpoint;
   }
 
-  private activePassphrase(): string {
-    const passphrase = this.currentConfig().passphrase;
+  private get passphrase(): string {
+    const passphrase = this.current.passphrase;
     if (!passphrase) throw new Error('Cloud save passphrase is not configured.');
     return passphrase;
   }
