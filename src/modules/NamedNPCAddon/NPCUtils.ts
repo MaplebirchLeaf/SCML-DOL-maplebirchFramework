@@ -16,9 +16,6 @@ function npcSeenProperty(npcName: string) {
   const npcNameNoSpace = name.replace(/\s+/g, '');
   const SeenName = npcNameNoSpace + 'Seen';
   const FirstSeenName = npcNameNoSpace + 'FirstSeen';
-  if (!V.maplebirch.npc[name]) V.maplebirch.npc[name] = {};
-  V[SeenName] ??= [];
-  V[FirstSeenName] ??= '';
   Object.defineProperty(V.maplebirch.npc[name], 'Seen', {
     get: () => V[SeenName],
     set: val => (V[SeenName] = val),

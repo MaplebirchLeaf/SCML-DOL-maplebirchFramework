@@ -118,6 +118,7 @@
 'pirate': pirate
 'priestess': priestess
 'priest': priest
+'horror': horror
 
 'reset defaults': reset defaults
 'save current settings': save current settings
