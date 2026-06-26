@@ -2537,12 +2537,14 @@ declare class Pet {
     private model?;
     private container?;
     private options;
+    private readonly layers;
     private cleanupDrag?;
     private syncing;
     private rendering;
     private syncFrame;
     constructor(manager: Character);
     sync(): boolean;
+    use(layers: CanvasLayerMap): this;
     capture(mainModel?: CanvasModelOptions): void;
     render(target: PetTarget, options?: PetOptions): boolean;
     unmount(): void;
@@ -2635,6 +2637,9 @@ type FaceStyleName = string | string[];
 type ProcessType = 'pre' | 'post';
 type ModelTarget<TModel = CanvasModel | CanvasModelOptions> = string | string[] | ((modelName: string, model?: TModel) => boolean);
 type ProcessHandler = (options: any, model?: CanvasModel) => void;
+interface LayerUseOptions {
+    pet?: boolean;
+}
 declare function faceStyleSrcFn(name: FaceStyleNameFn | FaceStyleName): (layerOptions: FaceStyleOptions) => string;
 declare function mask(x?: number, rotation?: number, swap?: boolean, width?: number, height?: number): string;
 declare class Character {
@@ -2654,7 +2659,7 @@ declare class Character {
     modifyCanvasModel(manager: AddonPlugin): void;
     patchCanvasModel<T extends CanvasModelConstructor>(BaseCanvasModel: T): T;
     use(type: ProcessType, handler: ProcessHandler, target?: ModelTarget<CanvasModel>): this;
-    use(layers: CanvasLayerMap, target?: ModelTarget<CanvasModelOptions>): this;
+    use(layers: CanvasLayerMap, target?: ModelTarget<CanvasModelOptions>, options?: LayerUseOptions): this;
     process(type: ProcessType, options: CanvasModelOptionsData, model?: CanvasModel): void;
     modifyFaceStyle(manager: AddonPlugin): void;
     faceStyleImagePaths(): Promise<void>;
@@ -2896,6 +2901,7 @@ interface VanillaPregnancyHooks {
 
 declare class NPCPregnancy {
     readonly manager: NPCManager;
+    readonly disabled = true;
     readonly vanillaTypes: Set<string>;
     readonly types: Set<string>;
     readonly infertile: string[];
@@ -2904,7 +2910,6 @@ declare class NPCPregnancy {
     readonly randomAlwaysKeep: string[];
     readonly vanilla: VanillaPregnancyHooks;
     readonly generators: Map<string, PregnancyGenerator>;
-    private readonly patch;
     private readonly configs;
     private readonly npcConfigs;
     private readonly births;
@@ -3381,7 +3386,7 @@ declare class AddonPlugin {
     canLoadThisMod(bootJson: ModBootJson, zip: JSZipLikeReadOnlyInterface): Promise<boolean>;
     afterInjectEarlyLoad(): Promise<void>;
     ModLoaderLoadEnd(): Promise<void>;
-    afterEarlyLoad(): Promise<any>;
+    afterEarlyLoad(): Promise<void>;
     registerMod(addonName: string, modInfo: ModInfo, modZip: ModZipReader): Promise<void>;
     afterRegisterMod2Addon(): Promise<void>;
     beforePatchModToGame(): Promise<void>;
