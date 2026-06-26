@@ -101,7 +101,19 @@ class AddonPlugin {
     await this.core.trigger(':modLoaderEnd');
   }
 
-  public async afterEarlyLoad(): Promise<any> {}
+  public async afterEarlyLoad(): Promise<void> {
+    // GameOriginalImagePack has finished loading; an absent bundled image is a normal fallback case.
+    const imagePack = window.modGameOriginalImagePack;
+    if (!imagePack) return;
+    const hasImage = (src: string) => imagePack.selfIgnoreImagePath.has(src) || imagePack.selfImg.has(src);
+    const checkImageExist = imagePack.checkImageExist.bind(imagePack);
+    const imageGetter = imagePack.imageGetter.bind(imagePack);
+    const imgLoaderHooker = imagePack.imgLoaderHooker.bind(imagePack);
+
+    imagePack.checkImageExist = src => (hasImage(src) ? checkImageExist(src) : false);
+    imagePack.imageGetter = async src => (hasImage(src) ? imageGetter(src) : undefined);
+    imagePack.imgLoaderHooker = async (src, ...args) => (hasImage(src) ? imgLoaderHooker(src, ...args) : false);
+  }
 
   public async registerMod(addonName: string, modInfo: ModInfo, modZip: ModZipReader): Promise<void> {
     this.info.set(modInfo.name, { addonName, mod: modInfo, modZip });

@@ -555,7 +555,7 @@ class NPCManager {
     'Black Wolf': [() => V.syndromewolves === 1, () => hasSexStat('deviancy', 3)],
     'Great Hawk': [() => V.syndromebird === 1],
     Alex        : [() => V.farm_stage >= 7, () => V.alex_countdown === undefined],
-    Gwylan      : [() => V.gwylanSeen.includes('partners') || V.gwylanSeen.includes('romance')]
+    Gwylan      : [() => V.gwylanSeen?.includes('partners') || V.gwylanSeen?.includes('romance')]
   };
 
   public readonly NamedNPC: typeof NamedNPC = NamedNPC;
@@ -691,6 +691,7 @@ class NPCManager {
     this.Clothes.init(this);
     setupNPCData(this, 'init');
     this.Pregnancy.savedPregnancy();
+    if (!Array.isArray(setup.loveInterestNpc)) setup.loveInterestNpc = [];
     isPossibleLoveInterest = (name: string) => isPossible(this, name);
   }
 
