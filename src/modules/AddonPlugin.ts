@@ -59,6 +59,7 @@ class AddonPlugin {
     npc: false,
     script: false
   };
+  private moduleFilesExecuted = false;
   public jsFiles: FileItem[] = [];
   public moduleFiles: FileItem[] = [];
 
@@ -87,6 +88,7 @@ class AddonPlugin {
     if (!this.disabledMods.includes('Simple Frameworks')) await this.core.disabled('Simple Frameworks');
     await this.scriptFiles();
     await this.executeScripts(this.moduleFiles, 'Module');
+    this.moduleFilesExecuted = true;
     this.log('所有模块注册完成，开始预初始化', 'DEBUG');
     await this.core.trigger(':indexedDB');
     await this.core.idb.init();
@@ -124,6 +126,18 @@ class AddonPlugin {
       const value = config.params[type];
       if (value == null) continue;
       this.queue[type].push({ modName: modInfo.name, modZip, config: value });
+    }
+    if (this.moduleFilesExecuted && Array.isArray(config.params.module)) {
+      const moduleStart = this.moduleFiles.length;
+      await this.loadFiles(modInfo.name, modZip, config.params.module, 'Module');
+      const modules = this.moduleFiles.slice(moduleStart);
+      if (modules.length > 0) await this.executeScripts(modules, 'Module');
+    }
+    if (this.moduleFilesExecuted && Array.isArray(config.params.script)) {
+      const scriptStart = this.jsFiles.length;
+      await this.loadFiles(modInfo.name, modZip, config.params.script, 'Script');
+      const scripts = this.jsFiles.slice(scriptStart);
+      if (this.processed.script && scripts.length > 0) await this.executeScripts(scripts, 'Script');
     }
   }
 

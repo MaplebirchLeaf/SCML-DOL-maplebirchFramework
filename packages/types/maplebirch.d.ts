@@ -3321,6 +3321,7 @@ interface CryptOptions {
         subject: string;
         key: string;
     };
+    password?: string;
     prompt?: AuthConfig['prompt'] & {
         name?: string;
     };
@@ -3379,6 +3380,7 @@ declare class AddonPlugin {
     readonly supportedConfigs: ConfigType[];
     queue: Record<ConfigType, Task[]>;
     processed: Record<ConfigType | 'script', boolean>;
+    private moduleFilesExecuted;
     jsFiles: FileItem[];
     moduleFiles: FileItem[];
     constructor(core: MaplebirchCore);

@@ -82,8 +82,7 @@ class GUIControl {
         const modName = script.match(/^\[([^\]]+)\]:/)?.[1] || '';
         return !!modName && modNames.has(modName);
       };
-      const addon = this.core.get('addon');
-      const scripts: string[] = Array.from(new Set<string>(((addon?.jsFiles || []) as any[]).map((entry: any) => `[${entry.modName}]:${entry.filePath}`).filter(script_valid)));
+      const scripts: string[] = Array.from(new Set<string>(((this.core.addon?.jsFiles || []) as any[]).map((entry: any) => `[${entry.modName}]:${entry.filePath}`).filter(script_valid)));
       const disabledScriptSet = new Set<string>((Script?.value?.disabled || []).filter(script_valid));
       this.enabledModules = modules.filter(m => !disabledModuleNames.has(m.name));
       this.disabledModules = modules.filter(m => disabledModuleNames.has(m.name));
@@ -208,13 +207,12 @@ class GUIControl {
   }
 
   public get moduleList(): string {
-    const addon = this.core.get('addon');
     const result: string[] = [];
     Object.entries(this.core.dependencyGraph).forEach(([name, info]: [string, any]) => {
       const type = (info.protected ? 'protected' : info.exposed ? 'exposed' : info.mounted ? 'mounted' : 'module') as ModuleType;
       result.push(`${this.typeLabel(type)} ${name} [${info.source || info.state}]`);
     });
-    addon?.jsFiles?.forEach((entry: any) => result.push(`[Script] ${entry.filePath} [${entry.modName}]`));
+    this.core.addon?.jsFiles?.forEach((entry: any) => result.push(`[Script] ${entry.filePath} [${entry.modName}]`));
     return result.length > 0 ? result.join('\n') : '';
   }
 

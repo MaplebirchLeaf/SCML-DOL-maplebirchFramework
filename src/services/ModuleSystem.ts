@@ -81,6 +81,12 @@ class ModuleSystem {
     if (state === ModuleState.REGISTERED && !exposed) this.handleEarlyMount(name, module, directDependencies);
 
     this.processWaitingQueue(name);
+    if (state === ModuleState.REGISTERED && this.initPhase.preInitCompleted) {
+      queueMicrotask(async () => {
+        if (!this.preInitialized.has(name)) await this.moduleInit(name, true);
+        if (this.initPhase.mainInitCompleted) await this.moduleInit(name, false);
+      });
+    }
     this.core.logger.log(
       `${exposed ? '注册暴露模块' : '注册模块'}: ${name}${directDependencies.length ? `, 依赖: [${directDependencies.join(', ')}]` : ' (无依赖)'}${source ? ` (来源: ${source})` : ''}`,
       'DEBUG'

@@ -46,6 +46,7 @@ export interface CryptOptions {
     subject: string;
     key: string;
   };
+  password?: string;
   prompt?: AuthConfig['prompt'] & {
     name?: string;
   };
@@ -130,6 +131,7 @@ class CredentialVault {
         }
       }
     }
+    if (options.password && (await this.decryptAndLoad(modName, options.password, options, {}))) return true;
     let errorText = '';
     while (true) {
       const credential = await this.promptCredential(modName, options.prompt, errorText);
