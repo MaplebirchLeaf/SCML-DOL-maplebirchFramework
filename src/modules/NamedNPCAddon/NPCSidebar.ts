@@ -167,7 +167,7 @@ function setupBasicData(options: NPCSidebarOptions) {
   nnpc.show = !!npcsidebar.show;
   nnpc.model = !!npcsidebar.model && setup.NPCNameList.includes(nnpc.name);
 
-  nnpc.position = npcsidebar.position === 'front' ? 300 : -100;
+  nnpc.position = npcsidebar.position === 'front' ? 300 : -300;
   nnpc.dxfn = npcsidebar.dxfn ?? -48;
   nnpc.dyfn = npcsidebar.dyfn ?? -8;
   nnpc.tan = npcsidebar.tan ?? 0;
@@ -350,7 +350,7 @@ function setupMaskData(nnpc: Record<string, any>) {
   if (clothes.upper.mask_img === 1 && clothes.upper.name === 'cocoon') nnpc.head_mask.push('img/clothes/upper/cocoon/mask.png');
 
   if (clothes.over_head.mask_img === 1 && !(nnpc.hood_down && clothes.over_head.hood && clothes.over_head.outfitSecondary !== undefined)) {
-    nnpc.head_mask.push(`img/clothes/over_head/${clothes.over_head.variable}/mask.png`);
+    nnpc.head_mask.push(`img/clothes/over-head/${clothes.over_head.variable}/mask.png`);
   }
 
   if (clothes.head.mask_img === 1 && !(nnpc.hood_down && clothes.head.hood && clothes.head.outfitSecondary !== undefined)) {

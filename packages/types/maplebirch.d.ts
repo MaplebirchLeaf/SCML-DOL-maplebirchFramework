@@ -2506,7 +2506,6 @@ declare class Variables {
             display: {};
         };
         relationcount: number;
-        npcschedules: boolean;
     };
     version: string;
     readonly tool: MaplebirchCore['tool'];

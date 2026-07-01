@@ -121,7 +121,7 @@
       <span class='gold'><<lanSwitch 'Skin Shade: ' '肤色明暗：'>></span><<set _npcsidebarSkinShade to 'light'>>
       <<radiobuttonsfrom '_npcsidebarSkinShade' 'light[Light,明亮]|medium[Medium,适中]|dark[Dark,暗沉]|gyaru[Gyaru,辣妹]'>><<set $options.maplebirch.npcsidebar.skin_type to _npcsidebarSkinTone + _npcsidebarSkinShade>><</radiobuttonsfrom>>
       <span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Skin Tone: The underlying tone of the skin. Cool, Warm, Golden, Olive, or Neutral. Skin Shade: The lightness or darkness of the skin surface. Gyaru is a tanned style.' '皮肤色调：皮肤的底层色调。冷色、暖色、金色、橄榄色或中性。肤色明暗：皮肤表面的明暗程度。辣妹为美黑风格。'>></span>">(?)</span><br>
-      <<numberStepper '<<lanSwitch "Tan" "日晒">>' $options.maplebirch.npcsidebar.tan {max: 100, callback: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }}>>
+      <<numberStepper '<<lanSwitch "Tan" "日晒">>' $options.maplebirch.npcsidebar.tan {max: 100, callback: value => { V.options.maplebirch.npcsidebar.tan = value; Wikifier.wikifyEval('<<updatesidebarimg>>'); }}>>
     </div>
 
     <div class='settingsToggleItemWide'>

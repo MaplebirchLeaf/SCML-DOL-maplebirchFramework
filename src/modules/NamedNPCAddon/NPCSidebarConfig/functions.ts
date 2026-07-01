@@ -15,7 +15,14 @@ type Part = 'face' | 'neck' | 'upper' | 'lower' | 'legs' | 'feet' | 'hands';
 type ClothesType = 'main' | 'acc' | 'detail';
 type Side = 'left' | 'right';
 
-const normaliseFileName: ((slot: string) => string) | undefined = typeof (globalThis as any).normaliseFileName === 'function' ? (globalThis as any).normaliseFileName : undefined;
+function normaliseFileName(text: string): string {
+  return text
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/([A-Z])/g, '-$1')
+    .replace(/[\s\-_]+/g, '-')
+    .toLowerCase();
+}
 
 function lookupColour(dict: { [x: string]: any }, key: string, prefilterName?: string) {
   const record = dict[key];
@@ -25,9 +32,8 @@ function lookupColour(dict: { [x: string]: any }, key: string, prefilterName?: s
   return filter;
 }
 
-function gray_suffix(path: string, filter: { blendMode: string; blend: any } | null | undefined) {
-  if (!filter || filter.blendMode !== 'hard-light' || !filter.blend) return path;
-  return path.replace('.png', '-gray.png');
+function gray_suffix(path: string, _filter?: { blendMode: string; blend: any } | null) {
+  return path;
 }
 
 function layerFilters(slot: string, type: ClothesType, clothes: any) {
@@ -405,7 +411,7 @@ function clothes_hand(side: Side, type: ClothesType, overrides: any = {}) {
       const nnpc = options.maplebirch.nnpc;
       const hands = nnpc.clothes.hands;
       const suffix = handSuffix(options, side);
-      const folder = normaliseFileName?.('hands') ?? 'hands';
+      const folder = normaliseFileName('hands');
       if (type === 'detail') {
         const pattern = hands.pattern ? `-${hands.pattern.replace(/ /g, '-')}` : '';
         return `img/clothes/${folder}/${hands.variable}/${suffix}${pattern}.png`;
@@ -506,4 +512,18 @@ function clothes_handheld(type: ClothesType, overrides: any = {}) {
   });
 }
 
-export { lookupColour, gray_suffix, nnpc_sidepart, clothes_basic, clothes_layer, clothes_breasts, clothes_arm, clothes_arm_acc, clothes_back, clothes_back_acc, clothes_hand, clothes_handheld };
+export {
+  lookupColour,
+  gray_suffix,
+  normaliseFileName,
+  nnpc_sidepart,
+  clothes_basic,
+  clothes_layer,
+  clothes_breasts,
+  clothes_arm,
+  clothes_arm_acc,
+  clothes_back,
+  clothes_back_acc,
+  clothes_hand,
+  clothes_handheld
+};

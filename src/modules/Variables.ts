@@ -66,13 +66,12 @@ class Variables {
 				facevariant: 'default',
 				freckles : false,
 				ears     : 'back',
-				mask     : 0,
+				mask     : 30,
         rotation : 0,
 				nnpc     : false,
 				display  : {}
 			},
-			relationcount: 4,
-			npcschedules : false,
+			relationcount: 4
 		};
 	}
 

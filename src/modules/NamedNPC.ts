@@ -689,7 +689,7 @@ class NPCManager {
     if (!['Start', 'Downgrade Waiting Room'].includes(this.core.passage?.title)) this.injectModNPCs();
     this.Schedule.init(this);
     this.Clothes.init(this);
-    setupNPCData(this, 'init');
+    setupNPCData(this);
     this.Pregnancy.savedPregnancy();
     if (!Array.isArray(setup.loveInterestNpc)) setup.loveInterestNpc = [];
     isPossibleLoveInterest = (name: string) => isPossible(this, name);
@@ -697,13 +697,13 @@ class NPCManager {
 
   public loadInit() {
     this.injectModNPCs();
-    setupNPCData(this, 'init');
+    setupNPCData(this);
     this.Pregnancy.savedPregnancy();
   }
 
   public postInit() {
     this.NamedNPC.setup(this);
-    setupNPCData(this, 'postInit');
+    setupNPCData(this);
   }
 }
 

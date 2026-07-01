@@ -1,7 +1,7 @@
 // ./src/modules/NamedNPCAddon/NPCSidebarConfig/lower_layers.ts
 
 import maplebirch from '../../../core';
-import { gray_suffix, clothes_layer, clothes_breasts, clothes_back, clothes_back_acc } from './functions';
+import { gray_suffix, clothes_layer, clothes_breasts, clothes_back, clothes_back_acc, normaliseFileName } from './functions';
 
 type NPCSidebarOptions = {
   filters?: Record<string, any>;
@@ -11,8 +11,6 @@ type NPCSidebarOptions = {
   };
   [key: string]: any;
 };
-
-const normaliseFileName: ((slot: string) => string) | undefined = typeof (globalThis as any).normaliseFileName === 'function' ? (globalThis as any).normaliseFileName : undefined;
 
 const lower_layers = {
   nnpc_over_lower_main: clothes_layer('over_lower', 'main'),
@@ -43,7 +41,7 @@ const lower_layers = {
       const nnpc = options.maplebirch.nnpc;
       const clothes = nnpc.clothes;
       const lower = clothes.lower;
-      const folder = normaliseFileName?.('lower') ?? 'lower';
+      const folder = normaliseFileName('lower');
       const secondary = clothes.upper.name === 'school blouse' && lower.name.includes('pinafore') ? '-under' : '';
       const integrity = lower.accessory_integrity_img ? `-${lower.integrity}` : secondary;
       const pattern = lower.pattern && lower.pattern_layer === 'secondary' ? `-${lower.pattern.replace(/ /g, '-')}` : '';
@@ -84,7 +82,7 @@ const lower_layers = {
 
     srcfn(options: NPCSidebarOptions) {
       const lower = options.maplebirch.nnpc.clothes.lower;
-      const folder = normaliseFileName?.('lower') ?? 'lower';
+      const folder = normaliseFileName('lower');
       return gray_suffix(`img/clothes/${folder}/${lower.variable}/penis.png`, options.filters?.nnpc_lower);
     },
 
@@ -117,7 +115,7 @@ const lower_layers = {
 
     srcfn(options: NPCSidebarOptions) {
       const lower = options.maplebirch.nnpc.clothes.lower;
-      const folder = normaliseFileName?.('lower') ?? 'lower';
+      const folder = normaliseFileName('lower');
       return gray_suffix(`img/clothes/${folder}/${lower.variable}/acc-penis.png`, options.filters?.nnpc_lower_acc);
     },
 
@@ -173,7 +171,7 @@ const lower_layers = {
 
     srcfn(options: NPCSidebarOptions) {
       const underLower = options.maplebirch.nnpc.clothes.under_lower;
-      const folder = normaliseFileName?.('under_lower') ?? 'under_lower';
+      const folder = normaliseFileName('under_lower');
       return gray_suffix(`img/clothes/${folder}/${underLower.variable}/penis.png`, options.filters?.nnpc_under_lower);
     },
 
@@ -206,7 +204,7 @@ const lower_layers = {
 
     srcfn(options: NPCSidebarOptions) {
       const underLower = options.maplebirch.nnpc.clothes.under_lower;
-      const folder = normaliseFileName?.('under_lower') ?? 'under_lower';
+      const folder = normaliseFileName('under_lower');
       return gray_suffix(`img/clothes/${folder}/${underLower.variable}/acc-penis.png`, options.filters?.nnpc_under_lower_acc);
     },
 

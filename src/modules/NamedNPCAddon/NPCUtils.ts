@@ -60,7 +60,7 @@ function outfitProperties(npcName: string) {
   });
 }
 
-function setupNPCData(manager: NPCManager, phase = 'init') {
+function setupNPCData(manager: NPCManager) {
   if (!V.maplebirch || typeof V.maplebirch !== 'object') V.maplebirch = {};
   if (!V.maplebirch.npc || typeof V.maplebirch.npc !== 'object') V.maplebirch.npc = {};
   const NPCNameList = manager.NamedNPC.get(manager);
@@ -76,27 +76,21 @@ function setupNPCData(manager: NPCManager, phase = 'init') {
     V.maplebirch.npc[name].tucked ??= [false, false];
     manager.Transformation.ensure(npcName);
     NPCFluids.ensure(npcName);
-    if (!Object.prototype.hasOwnProperty.call(V.maplebirch.npc[name], 'clothes')) {
-      Object.defineProperty(V.maplebirch.npc[name], 'clothes', {
-        get: () => manager.Clothes.worn(npcName),
-        set: () => maplebirch.npc.log(`警告：禁止直接设置 NPC ${npcName} 的服装，请通过服装系统管理`),
-        configurable: true,
-        enumerable: true
-      });
-    }
-    if (!Object.prototype.hasOwnProperty.call(V.maplebirch.npc[name], 'location')) {
-      Object.defineProperty(V.maplebirch.npc[name], 'location', {
-        get: () => manager.Schedule.location[npcName],
-        set: () => maplebirch.npc.log(`警告：禁止直接设置 NPC ${npcName} 的位置，请通过日程系统管理`),
-        configurable: true,
-        enumerable: true
-      });
-    }
-    if (phase === 'postInit') {
-      bodyDataProperties(npcName);
-      outfitProperties(npcName);
-      npcSeenProperty(npcName);
-    }
+    Object.defineProperty(V.maplebirch.npc[name], 'clothes', {
+      get: () => manager.Clothes.worn(npcName),
+      set: () => maplebirch.npc.log(`警告：禁止直接设置 NPC ${npcName} 的服装，请通过服装系统管理`),
+      configurable: true,
+      enumerable: true
+    });
+    Object.defineProperty(V.maplebirch.npc[name], 'location', {
+      get: () => manager.Schedule.location[npcName],
+      set: () => maplebirch.npc.log(`警告：禁止直接设置 NPC ${npcName} 的位置，请通过日程系统管理`),
+      configurable: true,
+      enumerable: true
+    });
+    bodyDataProperties(npcName);
+    outfitProperties(npcName);
+    npcSeenProperty(npcName);
   });
 }
 
