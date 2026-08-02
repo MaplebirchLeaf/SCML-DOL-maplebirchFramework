@@ -23,12 +23,11 @@ import {
   type SpermData,
   type SpermEntry
 } from './NPCPregnancyConfig';
-import type { VanillaPregnancyHooks } from './NPCPregnancyPatch';
+import NPCPregnancyPatch, { type VanillaPregnancyHooks } from './NPCPregnancyPatch';
 
 export type { PregnancyAddConfig, PregnancyChildConfig, PregnancyGenerator, PregnancyNpcConfig, SpermEntry } from './NPCPregnancyConfig';
 
 class NPCPregnancy {
-  public readonly disabled = true; // 封印框架怀孕系统
   public readonly vanillaTypes = new Set(VANILLA_TYPES);
   public readonly types = new Set(this.vanillaTypes);
   public readonly infertile = ['Bailey', 'Leighton'];
@@ -49,7 +48,12 @@ class NPCPregnancy {
   private readonly childActivities = new Map<string, PregnancyChildActivityResolver>();
   private readonly texts = new Map<string, PregnancyTextConfig | PregnancyTextResolver>();
 
-  public constructor(public readonly manager: NPCManager) {}
+  public constructor(public readonly manager: NPCManager) {
+    for (const [type, config] of Object.entries(DEFAULT_TYPE_CONFIGS)) this.add(type, config);
+    for (const [npcName, config] of Object.entries(DEFAULT_NPC_CONFIGS)) this.addNpc(npcName, config);
+    const patch = new NPCPregnancyPatch(this);
+    this.manager.core.once(':storyready', () => patch.inject());
+  }
 
   public definePregnancyProperty(npc: PregnancyNPC) {
     npc.pregnancy ??= {};
@@ -112,7 +116,6 @@ class NPCPregnancy {
   }
 
   public add(type: string, config?: PregnancyGenerator | PregnancyAddConfig) {
-    if (this.disabled) return;
     const key = type.trim();
     if (!key) return;
     this.types.add(key);
@@ -125,7 +128,6 @@ class NPCPregnancy {
   }
 
   public addNpc(npcName: string, typeOrConfig: string | PregnancyNpcConfig, config: PregnancyNpcConfig = {}) {
-    if (this.disabled) return;
     const key = npcName.trim();
     if (!key) return;
     const data = typeof typeOrConfig === 'string' ? { ...config, type: typeOrConfig } : typeOrConfig;
@@ -137,7 +139,6 @@ class NPCPregnancy {
   }
 
   public addChild(type: string, config: PregnancyChildConfig) {
-    if (this.disabled) return;
     const key = type.trim();
     if (!key || !config || typeof config !== 'object') return;
     this.addChildConfig(key, config);
@@ -179,7 +180,6 @@ class NPCPregnancy {
   }
 
   public NPCPregnancy(npc: PregnancyNPC) {
-    if (this.disabled) return;
     const data = npc.pregnancy;
     if (data?.enabled !== true) return;
     this.avoidance(npc);
@@ -195,7 +195,6 @@ class NPCPregnancy {
   }
 
   public savedPregnancy() {
-    if (this.disabled) return setup.pregnancy ?? null;
     const names = this.manager.NamedNPC.get(this.manager);
 
     for (const npcName of names) {
@@ -221,7 +220,6 @@ class NPCPregnancy {
   }
 
   public playerPregnancyAttempt(baseMulti = 1, genital = 'vagina') {
-    if (this.disabled) return false;
     const pregnancy = V?.sexStats?.[genital]?.pregnancy;
     if (!pregnancy || pregnancy.fetus?.length || Number.isNaN(baseMulti) || baseMulti < 1 || V.settings?.pregnancyType !== 'realistic') return false;
     const [trackedNPCs, spermArray] = this.spermObjectToArray(V.sexStats[genital].sperm, true);
@@ -235,7 +233,6 @@ class NPCPregnancy {
   }
 
   public namedNpcPregnancy(mother: string, father: string, fatherSpecies: string, fatherKnown = false, trackedNPCs?: SpermEntry[], awareOf = false) {
-    if (this.disabled) return false;
     const namedNPC = C.npc[mother];
     if (!namedNPC || V.settings?.npcPregnancyEnabled === false) return false;
 
@@ -309,14 +306,12 @@ class NPCPregnancy {
   }
 
   public cycle(days = 1) {
-    if (this.disabled) return;
     // time.js 的每日 npcPregnancyCycle() 调用点会被替换到这里；作弊 timeTravel 不自动补算。
     const count = Math.max(0, Math.floor(Number(days) || 0));
     for (let i = 0; i < count; i++) this.cycleDay();
   }
 
   public endNpcPregnancy(npcName: string, birthLocation?: string, location?: string, context?: any) {
-    if (this.disabled) return false;
     const npc = C.npc[npcName];
     const pregnancy = npc?.pregnancy as PregnancyData | undefined;
     if (!npc || npc.vagina === 'none' || pregnancy?.enabled === undefined || !pregnancy.fetus?.length) return false;

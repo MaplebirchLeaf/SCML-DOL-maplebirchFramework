@@ -2900,7 +2900,6 @@ interface VanillaPregnancyHooks {
 
 declare class NPCPregnancy {
     readonly manager: NPCManager;
-    readonly disabled = true;
     readonly vanillaTypes: Set<string>;
     readonly types: Set<string>;
     readonly infertile: string[];

@@ -13,6 +13,10 @@ type NPCSidebarOptions = {
   [key: string]: any;
 };
 
+function kaiju_mask(options: NPCSidebarOptions): string | undefined {
+  if (options.maplebirch.nnpc.clothes?.over_upper?.name === 'kaiju costume') return 'img/clothes/over-upper/kaiju/mask.png';
+}
+
 const base_layers = {
   nnpc_body: {
     masksrcfn(options: NPCSidebarOptions) {
@@ -435,7 +439,7 @@ const base_layers = {
 
   nnpc_hair_sides: {
     masksrcfn(options: NPCSidebarOptions) {
-      return options.maplebirch.nnpc.head_mask;
+      return kaiju_mask(options) || options.maplebirch.nnpc.head_mask;
     },
     srcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
@@ -462,6 +466,8 @@ const base_layers = {
   nnpc_hair_fringe: {
     masksrcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;
+      const costumeMask = kaiju_mask(options);
+      if (costumeMask) return costumeMask;
 
       if (Array.isArray(nnpc.head_mask) && nnpc.head_mask.length) return nnpc.head_mask;
 
@@ -492,7 +498,7 @@ const base_layers = {
 
   nnpc_hair_extra: {
     masksrcfn(options: NPCSidebarOptions) {
-      return options.maplebirch.nnpc.head_mask;
+      return kaiju_mask(options) || options.maplebirch.nnpc.head_mask;
     },
     srcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch.nnpc;

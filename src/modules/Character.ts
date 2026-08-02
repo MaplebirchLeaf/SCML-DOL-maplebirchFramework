@@ -197,15 +197,19 @@ function preprocess(options: HairGradientPreprocessOptions) {
   gradients('hair_fringe_colour_style', 'hair_fringe_colour_gradient', 'fringe', 'hair_fringe_type', 'hair_fringe_length', 'hair_fringe');
 }
 
+function kaiju_mask(options: HairGradientPreprocessOptions): string | undefined {
+  if (options.worn?.over_upper?.setup?.name === 'kaiju costume') return 'img/clothes/over-upper/kaiju/mask.png';
+}
+
 const layers: CanvasLayerMap = {
   hair_sides: {
     masksrcfn(options: HairGradientPreprocessOptions) {
-      return options.headMask?.length ? options.headMask : options.maplebirch?.char?.mask_src;
+      return kaiju_mask(options) || (options.headMask?.length ? options.headMask : options.maplebirch?.char?.mask_src);
     }
   },
   hair_sides_close_up: {
     masksrcfn(options: HairGradientPreprocessOptions) {
-      return options.maplebirch?.char?.mask_src_close_up;
+      return kaiju_mask(options) || options.maplebirch?.char?.mask_src_close_up;
     },
     srcfn(options: HairGradientPreprocessOptions) {
       return `img/hair/sides/${options.hair_sides_type}/${options.hair_sides_length}.png`;
@@ -223,12 +227,12 @@ const layers: CanvasLayerMap = {
   },
   hair_fringe: {
     masksrcfn(options: HairGradientPreprocessOptions) {
-      return options.headMask?.length ? options.headMask : options.fringe_mask_src || options.maplebirch?.char?.mask_src;
+      return kaiju_mask(options) || (options.headMask?.length ? options.headMask : options.fringe_mask_src || options.maplebirch?.char?.mask_src);
     }
   },
   hair_fringe_close_up: {
     masksrcfn(options: HairGradientPreprocessOptions) {
-      return options.maplebirch?.char?.mask_src_close_up;
+      return kaiju_mask(options) || options.maplebirch?.char?.mask_src_close_up;
     },
     srcfn(options: HairGradientPreprocessOptions) {
       return `img/hair/fringe/${options.hair_fringe_type}/${options.hair_fringe_length}.png`;
