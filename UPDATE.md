@@ -1,3 +1,9 @@
+##### (v.4.1.2更新日志):
+
+- 移除 **faceStyle 面部功能**（面部图层、脸型/仪态选项及相关替换）与 **NPC 怀孕扩展**（NPC 怀孕模块、每日怀孕周期补丁）；definePregnancyProperty 保留并移入 NPCUtils.ts，原版怀孕周期恢复。
+- 框架版本更新为 **4.1.2**，声明兼容游戏版本升级至 **0.5.11.9**。
+- **NPC 侧边栏** 肖像图层键 nnpc 更名为 nnpc_sidebar（自定义肖像图 img/ui/nnpc/<名字>/<选中项>.png 的显示与层级逻辑不变）。
+
 ##### (v.4.1.14更新日志):
 
 - 兼容原版 **0.5.11.x** 的怪兽服遮罩路径，使 PC 与 NPC 侧边栏的侧发、刘海和长发背层在穿着 `kaiju costume` 时正确使用 `img/clothes/over-upper/kaiju/mask.png`。

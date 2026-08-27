@@ -143,7 +143,6 @@ class AddonPlugin {
 
   public async afterRegisterMod2Addon(): Promise<void> {
     await this.executeScripts(this.jsFiles, 'Script');
-    await this.core.char.faceStyleImagePaths();
     this.processed.script = true;
   }
 
@@ -238,7 +237,6 @@ class AddonPlugin {
     try { AddonPlugin.modifyOptionsDateFormat(this);               } catch { this.log('modifyOptionsDateFormat 出错', 'ERROR'); }
     try { this.core.dynamic.Weather.modifyWeatherJavaScript(this); } catch { this.log('modifyWeatherJavaScript 出错', 'ERROR'); }
     try { this.core.char.modifyCanvasModel(this);                  } catch { this.log('modifyCanvasModel 出错', 'ERROR');       }
-    try { this.core.char.modifyFaceStyle(this);                    } catch { this.log('modifyFaceStyle 出错', 'ERROR');         }
     try { this.core.char.transformation.modifyEffect(this);        } catch { this.log('modifyEffect 出错', 'ERROR');            }
   }
 

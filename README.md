@@ -240,7 +240,6 @@ npm install -D @scml-maplebirch/types
   - [NPC 服装][NamedNPCClothes]
   - [NPC 侧边栏][NamedNPCSidebar]
   - [NPC 转化][NamedNPCTransformation]
-  - [NPC 怀孕][NamedNPCPregnancy]
 - [战斗管理][Combat]
   - [战斗按钮][CombatActions]
 - [云存档服务][CloudServices]
@@ -352,7 +351,6 @@ npm install -D @scml-maplebirch/types
 [NamedNPCClothes]: docs/CN/NamedNPC/NamedNPCClothes.md
 [NamedNPCSidebar]: docs/CN/NamedNPC/NamedNPCSidebar.md
 [NamedNPCTransformation]: docs/CN/NamedNPC/NamedNPCTransformation.md
-[NamedNPCPregnancy]: docs/CN/NamedNPC/NamedNPCPregnancy.md
 [Combat]: docs/CN/Combat/
 [CombatActions]: docs/CN/Combat/Actions.md
 [CloudServices]: cloud-services/README.md

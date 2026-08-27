@@ -434,7 +434,7 @@ const layers = {
     }
   }),
 
-  nnpc: {
+  nnpc_sidebar: {
     srcfn(options: NPCSidebarOptions) {
       const nnpc = options.maplebirch!.nnpc!;
       const selected = V.options.maplebirch.npcsidebar.display[nnpc.name];

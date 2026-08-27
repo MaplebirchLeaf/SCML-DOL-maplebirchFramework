@@ -309,7 +309,6 @@ class Internals {
     $(document).on('change', 'select[name="lanListbox-optionsmaplebirchnpcsidebarnnpc"]', refreshOptions);
     $(document).on('change', 'select[name="lanListbox-optionsmaplebirchcharactercharartselect"]', refreshOptions);
     $(document).on('change', 'select[name="lanListbox-optionsmaplebirchcharactercloseupselect"]', refreshOptions);
-    $(document).on('change', 'select[name="lanListbox-optionsmaplebirchnpcsidebarfacevariant"]', updateSidebar);
     $(document).on('change', 'input[name*="optionsmaplebirchcharacterpet"]', updatePet);
   }
 

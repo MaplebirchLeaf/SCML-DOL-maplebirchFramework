@@ -6,6 +6,72 @@ import NPCFluids from './NPCFluids';
 
 const body = ['penis', 'vagina', 'virginity', 'hair_side_type', 'hair_fringe_type', 'hair_position', 'hairlength', 'eyeColour', 'hairColour', 'penissize', 'breastsize', 'ballssize'];
 
+// 原版怀孕种族 / 不孕 NPC / 强制可怀孕 NPC（从已删除的 NPC 怀孕模块迁移而来）
+const PREGNANCY_TYPES = new Set(['human', 'wolf', 'wolfboy', 'wolfgirl', 'hawk', 'harpy']);
+const PREGNANCY_INFERTILE_NPCS = ['Bailey', 'Leighton'];
+const PREGNANCY_FORCED_NPCS = ['Black Wolf', 'Great Hawk', 'Alex'];
+
+interface PregnancyPropertyNPC {
+  nam: string;
+  type?: string;
+  pregnancy?: Record<string, any> | null;
+}
+
+function definePregnancyProperty(manager: NPCManager, npc: PregnancyPropertyNPC) {
+  npc.pregnancy ??= {};
+
+  let data = npc.pregnancy;
+  let ready = false;
+
+  Object.defineProperty(npc, 'pregnancy', {
+    get: () => {
+      if (ready) return data;
+      ready = true;
+
+      const type = typeof data?.type === 'string' && data.type.trim() ? data.type.trim() : manager.Transformation.pregnancyType(npc.nam) || npc.type || '';
+      const explicit = data.enabled === true;
+      const infertile = PREGNANCY_INFERTILE_NPCS.includes(npc.nam);
+      const forced = PREGNANCY_FORCED_NPCS.includes(npc.nam);
+      const incomplete = V.settings.incompletePregnancyEnabled;
+      const ignored = setup.pregnancy?.ignoresIncompleteCheck?.includes(npc.nam);
+
+      if ((explicit || (data.enabled == null && !infertile && PREGNANCY_TYPES.has(type) && ((incomplete && !ignored) || forced))) && !Array.isArray(data.fetus)) {
+        const cycleDaysTotal = data.cycleDaysTotal ?? Math.random(24, 32);
+        data = {
+          ...data,
+          fetus: [],
+          givenBirth: 0,
+          totalBirthEvents: 0,
+          timer: null,
+          timerEnd: null,
+          waterBreaking: null,
+          npcAwareOf: null,
+          pcAwareOf: null,
+          type: data.type ?? type,
+          enabled: true,
+          cycleDaysTotal,
+          cycleDay: Math.random(1, cycleDaysTotal),
+          cycleDangerousDay: 10,
+          sperm: [],
+          potentialFathers: [],
+          nonCycleRng: [Math.random(3), Math.random(3)],
+          pills: null
+        };
+      } else if (!explicit && (infertile || (!forced && !incomplete))) {
+        data = {};
+      }
+
+      return data;
+    },
+    set: value => {
+      data = value ?? {};
+      ready = true;
+    },
+    configurable: true,
+    enumerable: true
+  });
+}
+
 function isPossible(manager: NPCManager, name: string) {
   const conditions = manager.romanceConditions[name];
   return Array.isArray(conditions) ? conditions.every(condition => condition()) : false;
@@ -94,4 +160,4 @@ function setupNPCData(manager: NPCManager) {
   });
 }
 
-export { isPossible, setupNPCData };
+export { definePregnancyProperty, isPossible, setupNPCData };

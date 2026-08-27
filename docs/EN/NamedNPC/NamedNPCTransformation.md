@@ -37,7 +37,7 @@ maplebirch.npc.Transformation.set('Robin', 'plant', 3);
 maplebirch.npc.Transformation.clear('Robin', 'plant');
 ```
 
-State is stored under `V.maplebirch.npc[name].transformation`. `type` is the gameplay identity returned by `maplebirch.npc.Transformation.type(name)`. `pregnancy` is only a string used by `NPCPregnancy` when it needs a pregnancy type; it does not add pregnancy rendering.
+State is stored under `V.maplebirch.npc[name].transformation`. `type` is the gameplay identity returned by `maplebirch.npc.Transformation.type(name)`.
 
 ## Use Vanilla Transformation Layers
 

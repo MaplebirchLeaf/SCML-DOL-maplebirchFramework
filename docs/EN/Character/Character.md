@@ -89,26 +89,6 @@ The second handler argument is the active `CanvasModel` instance. Ignore it when
 | `filtersfn(options)` | Filters         |
 | `animation`          | Animation key   |
 
-## Face Style Images
-
-See [FaceStyle](./FaceStyle.md) for face image layout and `base-head.png` rules.
-
-Recommended structure:
-
-```text
-img/face/
-  cat/
-    default/
-      eyes.png
-      mouth-happy.png
-```
-
-Use helper:
-
-```javascript
-const eyesSrc = maplebirch.char.faceStyleSrcFn('eyes');
-```
-
 ## Notes
 
 - Omit `target` to patch only `main`.

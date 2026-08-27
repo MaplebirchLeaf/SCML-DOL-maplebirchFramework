@@ -6,9 +6,6 @@ import { replace } from '../AddonPluginProcess';
 export function patchTimeAsset(content: string): string {
   let result = content;
   if (!result.includes('maplebirch.dynamic.Time.patchTime(Time)')) result = replace(result, [[/(\nwindow\.Time = Time;)/, `\nmaplebirch.dynamic.Time.patchTime(Time);$1`]], 'Time asset patch');
-  if (!result.includes('maplebirch.npc.Pregnancy.cycle()')) {
-    result = replace(result, [[/(\n\s*)npcPregnancyCycle\(\);/, '$1maplebirch.npc.Pregnancy.cycle();']], 'NPC pregnancy cycle patch');
-  }
   return result;
 }
 

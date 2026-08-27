@@ -37,7 +37,7 @@ maplebirch.npc.Transformation.set('Robin', 'plant', 3);
 maplebirch.npc.Transformation.clear('Robin', 'plant');
 ```
 
-状态保存在 `V.maplebirch.npc[name].transformation`。`type` 是 `maplebirch.npc.Transformation.type(name)` 返回的玩法身份。`pregnancy` 只给 `NPCPregnancy` 查询怀孕类型，不会添加怀孕图层。
+状态保存在 `V.maplebirch.npc[name].transformation`。`type` 是 `maplebirch.npc.Transformation.type(name)` 返回的玩法身份。
 
 ## 使用原版转化图层
 

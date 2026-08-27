@@ -5,10 +5,9 @@ import type { Translation } from '../services/LanguageManager';
 import NPCSchedules, { ScheduleConfig, ScheduleBuilder } from './NamedNPCAddon/NPCSchedules';
 import NPCClothes, { ClothesConfig } from './NamedNPCAddon/NPCClothes';
 import NPCSidebar from './NamedNPCAddon/NPCSidebar';
-import NPCPregnancy, { type PregnancyAddConfig, type PregnancyGenerator } from './NamedNPCAddon/NPCPregnancy';
 import NPCFluids from './NamedNPCAddon/NPCFluids';
 import NPCTransformation from './NamedNPCAddon/NPCTransformation';
-import { setupNPCData, isPossible } from './NamedNPCAddon/NPCUtils';
+import { definePregnancyProperty, setupNPCData, isPossible } from './NamedNPCAddon/NPCUtils';
 
 type LanguageCode = 'CN' | 'EN';
 type PronounCode = 'm' | 'f' | 'i' | 'n' | 't';
@@ -195,7 +194,7 @@ export const NamedNPC = (core => {
       this.bodyPartdescription();
       this.pregnancy = data.pregnancy ?? null;
       this.pregnancyAvoidance = data.pregnancyAvoidance;
-      manager.Pregnancy.definePregnancyProperty(this);
+      definePregnancyProperty(manager, this);
       this.skincolour = data.skincolour ?? 0;
       this.init = data.init ?? 0;
       this.intro = data.intro ?? 0;
@@ -532,7 +531,6 @@ class NPCManager {
   public readonly data: Map<string, any> = new Map();
   public NPCNameList: string[] = [];
 
-  public readonly Pregnancy: NPCPregnancy;
   public readonly Transformation: NPCTransformation;
 
   // prettier-ignore
@@ -567,7 +565,6 @@ class NPCManager {
   public constructor(readonly core: MaplebirchCore) {
     this.log = createlog('npc');
     this.Transformation = Object.seal(new NPCTransformation(this));
-    this.Pregnancy = new NPCPregnancy(this);
     this.core.on(
       ':language',
       () => {
@@ -583,10 +580,6 @@ class NPCManager {
 
   public add(npcData: NPCData, config: NPCConfig = {}, translationsData?: TranslationInput) {
     return this.NamedNPC.add(this, npcData, config, translationsData);
-  }
-
-  public addPregnancy(type: string, config?: PregnancyGenerator | PregnancyAddConfig) {
-    return this.Pregnancy.add(type, config);
   }
 
   public addSchedule(npcName: string, config: ScheduleConfig | ScheduleBuilder) {
@@ -690,7 +683,6 @@ class NPCManager {
     this.Schedule.init(this);
     this.Clothes.init(this);
     setupNPCData(this);
-    this.Pregnancy.savedPregnancy();
     if (!Array.isArray(setup.loveInterestNpc)) setup.loveInterestNpc = [];
     isPossibleLoveInterest = (name: string) => isPossible(this, name);
   }
@@ -698,7 +690,6 @@ class NPCManager {
   public loadInit() {
     this.injectModNPCs();
     setupNPCData(this);
-    this.Pregnancy.savedPregnancy();
   }
 
   public postInit() {
