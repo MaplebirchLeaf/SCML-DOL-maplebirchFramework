@@ -17,6 +17,18 @@ Place images under:
 img/ui/nnpc/[npc_name]/[image_name].[png|jpg|gif]
 ```
 
+**DOLP deep folder layout is also supported:**
+
+```text
+img/ui/nnpc/[npc_name]/[gender]/[skin_tone]/[image_name].[png|jpg|gif]
+```
+
+- `[gender]`: `male` / `female`, resolved dynamically from the NPC's current gender (`male` for male, `female` otherwise)
+- `[skin_tone]`: `dark` / `pale`, mapped dynamically from the sidebar's skin shade setting (`skin_type`): `dark` when it contains `dark`, `pale` otherwise
+- Folder names accept `black_wolf` (snake_case), `black-wolf` (kebab-case) and `black wolf` (space), normalized to the NPC name automatically
+
+Both layouts are recognized while scanning the `img/ui/nnpc` folder. At render time the deep path matching the NPC's current gender and skin tone is preferred, falling back to any registered path of the same image name — so extra DOLP folders like `fools` or `monster` still work.
+
 Example:
 
 ```text

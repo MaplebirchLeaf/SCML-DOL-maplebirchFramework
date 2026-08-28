@@ -23,6 +23,18 @@ NPC 侧边栏系统允许模组制作者为自定义 NPC 添加侧边栏显示�
 img/ui/nnpc/[npc_name]/[image_name].[png|jpg|gif]
 ```
 
+**兼容 DOLP（DOL+）深层目录结构**：
+
+```
+img/ui/nnpc/[npc_name]/[gender]/[skin_tone]/[image_name].[png|jpg|gif]
+```
+
+- `[gender]`: `male` / `female`，按 NPC 当前性别动态解析（男性为 `male`，其余为 `female`）
+- `[skin_tone]`: `dark` / `pale`，按侧边栏设置中的皮肤明暗（`skin_type`）动态映射（含 `dark` 时为 `dark`，其余为 `pale`）
+- 目录名兼容 `black_wolf`（snake_case）、`black-wolf`（kebab-case）、`black wolf`（空格）三种形式，自动归一化为 NPC 名称
+
+框架扫描 `img/ui/nnpc` 文件夹时会同时识别上述两种结构；渲染时优先匹配当前 NPC 性别与肤色的深层路径，缺失时自动回退到同名图片的其它可用路径（DOLP 素材中 `fools`、`monster` 等额外目录里的同名图片也能通过回退机制选用）。
+
 ---
 
 ### 动态模型体液显示

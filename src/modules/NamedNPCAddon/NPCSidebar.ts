@@ -31,7 +31,6 @@ type ClothesSlot = 'head' | 'face' | 'neck' | 'upper' | 'lower' | 'feet' | 'legs
 
 const display = new Map<string, Set<string>>();
 const imageFormats = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp']);
-// 已注册的肖像图完整路径：扁平 img/ui/nnpc/<npc>/<img>.png 或 DOL+ 深层 img/ui/nnpc/<npc>/<gender>/<skinTone>/<img>.png
 const portraitPaths = new Map<string, Set<string>>();
 
 // prettier-ignore
@@ -49,30 +48,27 @@ function loadFromMod(modZip: ModZipReader, npcNames: string[]) {
 
   const paths: string[] = [];
   const root = 'img/ui/nnpc/';
+  const portrait_npc_name = (folder: string): string => String(folder).replace(/[_-]/g, ' ').convert('title');
 
   for (const name of npcNames ?? []) {
-    const npcName = portraitNpcName(name);
+    const npcName = portrait_npc_name(name);
     if (!display.has(npcName)) display.set(npcName, new Set());
   }
 
   for (const filePath in modZip.zip.files) {
     if (!filePath.startsWith(root)) continue;
 
-    // 兼容两种目录结构:
-    //   扁平: img/ui/nnpc/<npc>/<img>.png
-    //   DOL+ 深层: img/ui/nnpc/<npc>/<gender>/<skinTone>/<img>.png
     const parts = filePath.slice(root.length).split('/').filter(Boolean);
     if (parts.length < 2) continue;
 
+    const npcName = portrait_npc_name(parts[0]);
     const fileName = parts[parts.length - 1];
     const [imgName, ext] = fileName.split('.');
-    if (!imgName || !ext || !imageFormats.has(ext.toLowerCase())) continue;
 
-    const npcName = portraitNpcName(parts[0]);
+    if (!imgName || !ext || !imageFormats.has(ext.toLowerCase())) continue;
     if (!display.has(npcName)) display.set(npcName, new Set());
 
     display.get(npcName)!.add(imgName);
-
     if (!portraitPaths.has(npcName)) portraitPaths.set(npcName, new Set());
     portraitPaths.get(npcName)!.add(filePath);
     paths.push(filePath);
@@ -81,39 +77,26 @@ function loadFromMod(modZip: ModZipReader, npcNames: string[]) {
   return paths;
 }
 
-// DOL+ 等模组使用 snake_case 目录名（如 black_wolf），统一转为框架的 Title Case 名称
-function portraitNpcName(folder: string): string {
-  return String(folder).replace(/_/g, ' ').convert('title');
-}
+function resolve(nnpc: Record<string, any>, selected: string): string {
+  const portrait_npc_name = (folder: string): string => String(folder).replace(/[_-]/g, ' ').convert('title');
+  const portrait_gender = (npc: Record<string, any>): string => (C.npc?.[npc.name]?.gender === 'm' ? 'male' : 'female');
+  const portrait_skin_tone = (npc: Record<string, any>): string => (npc.skin_type?.includes('dark') ? 'dark' : 'pale');
 
-// DOL+ 深层结构的性别目录：女(f)→female，其余(m/h/n)→male
-function portraitGender(nnpc: Record<string, any>): string {
-  return C.npc?.[nnpc.name]?.gender === 'f' ? 'female' : 'male';
-}
-
-// DOL+ 深层结构的肤色目录：dark/fools/pale，按框架 skin_type 近似映射
-function portraitSkinTone(nnpc: Record<string, any>): string {
-  const skinType = String(nnpc.skin_type ?? '');
-  if (skinType.includes('fools')) return 'fools';
-  if (skinType === 'dark' || skinType === 'gyaru') return 'dark';
-  return 'pale';
-}
-
-// 解析肖像图路径：优先使用已注册的精确路径（扁平或 DOL+ 深层），缺失时回退到同名图片的任意已注册路径
-function resolvePortrait(nnpc: Record<string, any>, selected: string): string {
-  const name = String(nnpc.name ?? '').toLowerCase();
+  const name = portrait_npc_name(nnpc.name).toLowerCase();
   const flat = `img/ui/nnpc/${name}/${selected}.png`;
-  const registered = portraitPaths.get(nnpc.name);
-  if (!registered?.size) return flat;
+  const src = portraitPaths.get(nnpc.name);
+  if (!src?.size) return flat;
 
-  const deep = `img/ui/nnpc/${name.replace(/\s+/g, '_')}/${portraitGender(nnpc)}/${portraitSkinTone(nnpc)}/${selected}.png`;
-  if (registered.has(deep)) return deep;
-  if (registered.has(flat)) return flat;
+  const gender = portrait_gender(nnpc);
+  const tone = portrait_skin_tone(nnpc);
+  for (const dir of [name.replace(/\s+/g, '_'), name.replace(/\s+/g, '-'), name]) {
+    const deep = `img/ui/nnpc/${dir}/${gender}/${tone}/${selected}.png`;
+    if (src.has(deep)) return deep;
+  }
+  if (src.has(flat)) return flat;
 
-  // 深层结构中存在同名图片但当前性别/肤色组合缺失时，优先同性别，其次任意已注册路径
-  const candidates = [...registered].filter(path => path.endsWith(`/${selected}.png`));
+  const candidates = [...src].filter(path => path.endsWith(`/${selected}.png`));
   if (candidates.length === 0) return flat;
-  const gender = portraitGender(nnpc);
   return candidates.find(path => path.includes(`/${gender}/`)) ?? candidates[0];
 }
 
@@ -494,7 +477,7 @@ const layers = {
       const artKey = maplebirch.npc.Clothes.art?.get?.(nnpc.name)?.key;
       if (!selected) return '';
       if (selected === 'none' || selected === artKey) return '';
-      return resolvePortrait(nnpc, selected);
+      return resolve(nnpc, selected);
     },
 
     showfn(options: NPCSidebarOptions) {
@@ -533,15 +516,6 @@ const NPCSidebar = (() => {
         for (const npcName of manager.NPCNameList) {
           if (!display.has(npcName)) display.set(npcName, new Set());
           V.options.maplebirch.npcsidebar.display[npcName] ??= 'none';
-        }
-        // 兼容 DOL+ 等不声明框架配置的模组：自动扫描所有已装模组中的 img/ui/nnpc 肖像图（扁平或深层结构）
-        for (const modName of maplebirch.modUtils.getModListNameNoAlias()) {
-          try {
-            const modZip = maplebirch.modUtils.getModZip(modName);
-            if (modZip) loadFromMod(modZip, []);
-          } catch {
-            // 单个模组扫描失败不影响其余模组
-          }
         }
       });
       manager.core.char.use('pre', preprocess, 'main');
