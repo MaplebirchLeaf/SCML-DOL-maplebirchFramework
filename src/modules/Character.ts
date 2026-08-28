@@ -2,10 +2,17 @@
 
 import { MacroDefinition } from 'twine-sugarcube';
 import maplebirch, { MaplebirchCore, createlog } from '../core';
+import { loadImage } from '../utils';
 import AddonPlugin from './AddonPlugin';
 import type { Replacement } from './AddonPluginProcess';
 import Pet from './CharacterAddon/Pet';
 import Transformation from './CharacterAddon/Transformation';
+
+interface FaceStyleOptions {
+  facestyle: string;
+  facevariant: string;
+  [key: string]: any;
+}
 
 interface HairGradientOptions {
   style: string;
@@ -56,6 +63,7 @@ interface LayerEntry {
 interface LayerUseOptions {
   pet?: boolean;
 }
+const faceImagePaths = new Set<string>();
 
 const maskCache = new Map<string, string>();
 
@@ -140,6 +148,10 @@ function hairColourGradient(part: string, gradient: HairGradientOptions, hairTyp
 }
 
 function preprocess(options: HairGradientPreprocessOptions) {
+  const styles = Object.values(setup.faceStyleOptions ?? {});
+  if (!options.facestyle || !styles.includes(options.facestyle)) options.facestyle = 'default';
+  const variants = Object.values(setup.faceVariantOptions?.[options.facestyle] ?? {});
+  if (!options.facevariant || !variants.includes(options.facevariant)) options.facevariant = 'default';
   (options.maplebirch ??= {}).char ??= {};
   const characterOptions = V.options?.maplebirch?.character ?? {};
   options.maplebirch.char.mask_src = mask(characterOptions.mask ?? 0, characterOptions.rotation ?? 0);
@@ -208,12 +220,13 @@ const layers: CanvasLayerMap = {
       return options.hair_fringe_colour_style === 'gradient' ? ['hair_fringe_close_up'] : ['hair_fringe'];
     },
     animation: 'idle'
-  },
+  }
 };
 
 class Character {
   public readonly log: ReturnType<typeof createlog>;
   public readonly mask = mask;
+  public readonly faceStyleMap: Map<string, string[]> = new Map();
   private readonly handlers: ProcessEntry[] = [];
   private readonly layers: LayerEntry[] = [];
   public readonly pet: Pet;
@@ -223,10 +236,88 @@ class Character {
     this.log = createlog('char');
     this.pet = new Pet(this);
     this.transformation = new Transformation(this);
+    this.core.on(':language', () => this._faceStyleSetupOption(), 'face style setup options');
+    this.core.tool.onInit(() => this._faceStyleSetupOption());
   }
 
   public get ZIndices() {
     return ZIndices;
+  }
+
+  public modifyFaceStyle(manager: AddonPlugin): void {
+    const oldSCdata = manager.SC2DataManager.getSC2DataInfoAfterPatch();
+    const SCdata = oldSCdata.cloneSC2DataInfo();
+    const passageData = SCdata.passageDataItems.map;
+    for (const file of ['Cheats', 'clothesTestingImageGenerate', 'Widgets Mirror', 'Widgets Settings']) {
+      const modify = passageData.get(file);
+      if (!modify?.content) continue;
+      const replacements: Replacement[] = [[/setup\.faceStyleOptions\.length gt/g, 'Object.keys(setup.faceStyleOptions).length gte']];
+      if (file === 'Widgets Mirror') replacements.push([/(Object\.keys\(setup\.faceVariantOptions\[\$facestyle\]\)\.length\s+)gt\b/g, '$1gte']);
+      modify.content = manager.replace(modify.content, replacements, 'FaceStyle');
+      passageData.set(file, modify);
+    }
+    SCdata.passageDataItems.back2Array();
+    manager.modUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
+  }
+
+  public faceStyleImagePaths(files: Record<string, unknown>): void {
+    const add = (style: string, variant?: string) => {
+      const variants = this.faceStyleMap.get(style) ?? [];
+      if (variant && !variants.includes(variant)) variants.push(variant);
+      this.faceStyleMap.set(style, variants);
+    };
+
+    for (const filePath of Object.keys(files)) {
+      const faceIndex = filePath.indexOf('img/face/');
+      if (faceIndex < 0) continue;
+      const imagePath = filePath.slice(faceIndex).replace(/\\/g, '/');
+      faceImagePaths.add(imagePath);
+      const [style, variant, file] = imagePath.slice('img/face/'.length).split('/');
+      if (!style || !variant || style === 'masks') continue;
+      add(style);
+      if (file && (style !== 'default' || !['aloof', 'catty', 'default', 'foxy', 'gloomy', 'sweet'].includes(variant))) add(style, variant);
+    }
+  }
+
+  private _faceStyleSetupOption() {
+    const add = (style: string, variant?: string) => {
+      const variants = this.faceStyleMap.get(style) ?? [];
+      if (variant && !variants.includes(variant)) variants.push(variant);
+      this.faceStyleMap.set(style, variants);
+    };
+
+    for (const style of Object.values(setup.faceStyleOptions ?? {})) if (typeof style === 'string') add(style);
+
+    for (const [style, variants] of Object.entries(setup.faceVariantOptions ?? {})) {
+      add(style);
+      for (const variant of Object.values(variants as Record<string, string>)) if (typeof variant === 'string') add(style, variant);
+    }
+
+    const styleOptions: Record<string, string> = {};
+    const variantOptions: Record<string, Record<string, string>> = {};
+
+    const label = (key: string, fallback = key) => {
+      try {
+        return this.core.auto(key) || fallback;
+      } catch {
+        this.log(`缺少语言文本: ${key}`, 'WARN');
+        return fallback;
+      }
+    };
+
+    for (const [style, variants] of this.faceStyleMap) {
+      const styleKey = style === 'default' ? 'traditional' : style;
+      styleOptions[label(styleKey).convert('title')] = style;
+      if (!variants.length) continue;
+      variantOptions[style] = {};
+      for (const variant of variants) {
+        const variantKey = variant === 'default' ? 'gentle' : variant;
+        variantOptions[style][label(variantKey).convert('title')] = variant;
+      }
+    }
+
+    setup.faceStyleOptions = styleOptions;
+    setup.faceVariantOptions = variantOptions;
   }
 
   public modifyCanvasModel(manager: AddonPlugin): void {
@@ -349,12 +440,12 @@ class Character {
     core.once(':storyready', () => {
       const macro = core.SugarCube.Macro.get('updatesidebarimg') as MacroDefinition | undefined;
       if (!macro) return;
-
       core.tool.macro.define('updatesidebarimg', function (this: any) {
         macro.handler.call(this);
         void pet.sync();
       });
     });
+    core.on(':passageend', () => void pet.sync());
     this.use('pre', preprocess, 'main');
     this.use(layers, 'main');
   }

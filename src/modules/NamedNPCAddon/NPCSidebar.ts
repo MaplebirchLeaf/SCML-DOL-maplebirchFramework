@@ -43,12 +43,15 @@ const hairLengthList = ['short', 'shoulder', 'chest', 'navel', 'thighs', 'feet']
 const upperCombatSlots: ClothesSlot[] = ['over_upper', 'upper', 'under_upper'];
 const lowerCombatSlots: ClothesSlot[] = ['over_lower', 'lower', 'under_lower'];
 
+const portrait_npc_name = (name: string): string => String(name).replace(/[_-]/g, ' ').convert('title');
+const portrait_gender = (npc: Record<string, any>): string => (C.npc?.[npc.name]?.gender === 'm' ? 'male' : 'female');
+const portrait_skin_tone = (npc: Record<string, any>): string => (npc.skin_type?.includes('dark') ? 'dark' : 'pale');
+
 function loadFromMod(modZip: ModZipReader, npcNames: string[]) {
   if (!modZip) return [];
 
   const paths: string[] = [];
   const root = 'img/ui/nnpc/';
-  const portrait_npc_name = (folder: string): string => String(folder).replace(/[_-]/g, ' ').convert('title');
 
   for (const name of npcNames ?? []) {
     const npcName = portrait_npc_name(name);
@@ -62,14 +65,17 @@ function loadFromMod(modZip: ModZipReader, npcNames: string[]) {
     if (parts.length < 2) continue;
 
     const npcName = portrait_npc_name(parts[0]);
-    const fileName = parts[parts.length - 1];
-    const [imgName, ext] = fileName.split('.');
+    const fileName = parts.at(-1)!;
+    const dot = fileName.lastIndexOf('.');
 
-    if (!imgName || !ext || !imageFormats.has(ext.toLowerCase())) continue;
+    if (dot <= 0) continue;
+    const imgName = fileName.slice(0, dot);
+    const ext = fileName.slice(dot + 1).toLowerCase();
+    if (!imageFormats.has(ext)) continue;
     if (!display.has(npcName)) display.set(npcName, new Set());
+    if (!portraitPaths.has(npcName)) portraitPaths.set(npcName, new Set());
 
     display.get(npcName)!.add(imgName);
-    if (!portraitPaths.has(npcName)) portraitPaths.set(npcName, new Set());
     portraitPaths.get(npcName)!.add(filePath);
     paths.push(filePath);
   }
@@ -77,11 +83,25 @@ function loadFromMod(modZip: ModZipReader, npcNames: string[]) {
   return paths;
 }
 
-function resolve(nnpc: Record<string, any>, selected: string): string {
-  const portrait_npc_name = (folder: string): string => String(folder).replace(/[_-]/g, ' ').convert('title');
-  const portrait_gender = (npc: Record<string, any>): string => (C.npc?.[npc.name]?.gender === 'm' ? 'male' : 'female');
-  const portrait_skin_tone = (npc: Record<string, any>): string => (npc.skin_type?.includes('dark') ? 'dark' : 'pale');
+function loadAllImages(manager: NPCManager) {
+  for (const name of manager.NPCNameList) {
+    const npcName = portrait_npc_name(name);
+    if (!display.has(npcName)) display.set(npcName, new Set());
+  }
+  const paths: string[] = [];
+  for (const modName of manager.core.modUtils.getModListNameNoAlias()) {
+    if (modName === 'ModI18N') continue;
+    try {
+      const modZip = manager.core.modUtils.getModZip(modName);
+      if (modZip) paths.push(...loadFromMod(modZip, []));
+    } catch {
+      continue;
+    }
+  }
+  return paths;
+}
 
+function resolve(nnpc: Record<string, any>, selected: string): string {
   const name = portrait_npc_name(nnpc.name).toLowerCase();
   const flat = `img/ui/nnpc/${name}/${selected}.png`;
   const src = portraitPaths.get(nnpc.name);
@@ -513,6 +533,7 @@ const NPCSidebar = (() => {
 
     public static init(manager: NPCManager) {
       manager.core.once(':storyready', () => {
+        loadAllImages(manager);
         for (const npcName of manager.NPCNameList) {
           if (!display.has(npcName)) display.set(npcName, new Set());
           V.options.maplebirch.npcsidebar.display[npcName] ??= 'none';

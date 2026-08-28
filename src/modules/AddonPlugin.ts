@@ -169,7 +169,18 @@ class AddonPlugin {
     this.core.tool.zone.patchModToGame(this, 'after');
   }
 
-  public async afterPreload(): Promise<any> {}
+  public async afterPreload(): Promise<any> {
+    for (const modName of this.core.modUtils.getModListNameNoAlias()) {
+      if (modName === 'ModI18N') continue;
+      try {
+        const files = this.core.modUtils.getModZip(modName)?.zip?.files;
+        if (!files) continue;
+        this.core.char.faceStyleImagePaths(files);
+      } catch {
+        continue;
+      }
+    }
+  }
 
   public async whenSC2StoryReady(): Promise<any> {
     await this.core.trigger(':storyready');
@@ -237,6 +248,7 @@ class AddonPlugin {
     try { AddonPlugin.modifyOptionsDateFormat(this);               } catch { this.log('modifyOptionsDateFormat 出错', 'ERROR'); }
     try { this.core.dynamic.Weather.modifyWeatherJavaScript(this); } catch { this.log('modifyWeatherJavaScript 出错', 'ERROR'); }
     try { this.core.char.modifyCanvasModel(this);                  } catch { this.log('modifyCanvasModel 出错', 'ERROR');       }
+    try { this.core.char.modifyFaceStyle(this);                    } catch { this.log('modifyFaceStyle 出错', 'ERROR');         }
     try { this.core.char.transformation.modifyEffect(this);        } catch { this.log('modifyEffect 出错', 'ERROR');            }
   }
 

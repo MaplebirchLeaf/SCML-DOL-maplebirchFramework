@@ -89,6 +89,22 @@ The second handler argument is the active `CanvasModel` instance. Ignore it when
 | `filtersfn(options)` | Filters         |
 | `animation`          | Animation key   |
 
+## Face Style Images
+
+See [FaceStyle](./FaceStyle.md) for face image layout and `base-head.png` rules. The framework scans every installed mod zip and adds discovered styles and variants to `setup.faceStyleOptions` / `setup.faceVariantOptions`, used by the vanilla mirror and the NPC sidebar Face Style / Face Demeanour options.
+
+Recommended structure:
+
+```text
+img/face/
+  cat/
+    default/
+      eyes.png
+      mouth-happy.png
+```
+
+NPC sidebar face layers render via `img/face/<facestyle>/<facevariant>/<layer>.png` (or `img/face/<facestyle>/<layer>.png`).
+
 ## Notes
 
 - Omit `target` to patch only `main`.

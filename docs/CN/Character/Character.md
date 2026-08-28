@@ -140,6 +140,28 @@ maplebirch.char.use('post', options => {
 
 ---
 
+## 面部样式图片
+
+框架会扫描所有已装模组 zip 中的 `img/face/` 目录，把发现的风格和变体加入 `setup.faceStyleOptions` / `setup.faceVariantOptions`，供原版镜子与 NPC 侧边栏的 Face Style / Face Demeanour 选项使用。
+
+推荐目录：
+
+```text
+img/face/
+  cat/
+    default/
+      eyes.png
+      mouth-happy.png
+    sweet/
+      eyes.png
+```
+
+NPC 侧边栏的脸部图层按 `img/face/<facestyle>/<facevariant>/<图层名>.png`（或 `img/face/<facestyle>/<图层名>.png`）渲染。
+
+面部风格资源和 `base-head.png` 头部底图规则见 [FaceStyle](./FaceStyle.md)。
+
+---
+
 ## 遮罩辅助
 
 `maplebirch.char.mask()` 用于生成头发渐变遮罩，支持位置和旋转。

@@ -2637,6 +2637,7 @@ declare class Character {
     readonly core: MaplebirchCore;
     readonly log: ReturnType<typeof createlog>;
     readonly mask: typeof mask;
+    readonly faceStyleMap: Map<string, string[]>;
     private readonly handlers;
     private readonly layers;
     readonly pet: Pet;
@@ -2645,6 +2646,9 @@ declare class Character {
     get ZIndices(): {
         [key: string]: number;
     };
+    modifyFaceStyle(manager: AddonPlugin): void;
+    faceStyleImagePaths(files: Record<string, unknown>): void;
+    private _faceStyleSetupOption;
     modifyCanvasModel(manager: AddonPlugin): void;
     patchCanvasModel<T extends CanvasModelConstructor>(BaseCanvasModel: T): T;
     use(type: ProcessType, handler: ProcessHandler, target?: ModelTarget<CanvasModel>): this;

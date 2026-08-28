@@ -1,9 +1,13 @@
+##### (v.4.2.1更新日志):
+
+- **NPC 侧边栏** 新增 **DOL+ 素材路径兼容**：全文件扫描所有已装模组的 `img/ui/nnpc`（兼容 DOL+ 深层结构 `img/ui/nnpc/<npc>/<gender>/<skinTone>/<图片>.png` 与 snake_case/kebab-case/空格目录名），图形选择下拉可直接选用 DOL+ 肖像图，路径按 NPC 性别与肤色自动匹配。
+- **faceStyle 面部功能回归**：恢复面部图片系统——模组加载后全文件扫描所有已装模组的 `img/face`，生成 `setup.faceStyleOptions`/`faceVariantOptions` 风格与变体选项（含原版 Widgets Mirror 兼容补丁）；NPC 侧边栏 Face Style/Face Demeanour 选项与脸部图层恢复正常，并修复两个下拉绑定同一变量的历史问题。
+
 ##### (v.4.2.0更新日志):
 
 - 移除 **faceStyle 面部功能**（面部图层、脸型/仪态选项及相关替换）与 **NPC 怀孕扩展**（NPC 怀孕模块、每日怀孕周期补丁）；definePregnancyProperty 保留并移入 NPCUtils.ts，原版怀孕周期恢复。
 - 框架版本更新为 **4.2.0**，声明兼容游戏版本升级至 **0.5.11.9**。
 - **NPC 侧边栏** 肖像图层键 nnpc 更名为 nnpc_sidebar（自定义肖像图 img/ui/nnpc/<名字>/<选中项>.png 的显示与层级逻辑不变）。
-- **NPC 侧边栏** 新增 **DOL+ 素材路径兼容**：自动扫描所有已装模组的 `img/ui/nnpc`（兼容 DOL+ 深层结构 `img/ui/nnpc/<npc>/<gender>/<skinTone>/<图片>.png` 与 snake_case 目录名），图形选择下拉可直接选用 DOL+ 肖像图，路径按 NPC 性别与肤色自动匹配。
 
 ##### (v.4.1.14更新日志):
 
