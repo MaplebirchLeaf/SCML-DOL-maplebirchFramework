@@ -268,9 +268,10 @@ class Character {
     };
 
     for (const filePath of Object.keys(files)) {
-      const faceIndex = filePath.indexOf('img/face/');
+      const normalized = filePath.replace(/\\/g, '/');
+      const faceIndex = normalized.indexOf('img/face/');
       if (faceIndex < 0) continue;
-      const imagePath = filePath.slice(faceIndex).replace(/\\/g, '/');
+      const imagePath = normalized.slice(faceIndex);
       faceImagePaths.add(imagePath);
       const [style, variant, file] = imagePath.slice('img/face/'.length).split('/');
       if (!style || !variant || style === 'masks') continue;

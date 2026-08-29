@@ -58,9 +58,12 @@ function loadFromMod(modZip: ModZipReader, npcNames: string[]) {
     if (!display.has(npcName)) display.set(npcName, new Set());
   }
 
-  for (const filePath in modZip.zip.files) {
-    if (!filePath.startsWith(root)) continue;
+  for (const path in modZip.zip.files) {
+    const normalized = path.replace(/\\/g, '/');
+    const match = normalized.match(/(?:^|\/)(img\/ui\/nnpc\/.*)$/);
+    if (!match) continue;
 
+    const filePath = match[1];
     const parts = filePath.slice(root.length).split('/').filter(Boolean);
     if (parts.length < 2) continue;
 

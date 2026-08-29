@@ -1,3 +1,7 @@
+##### (v.4.2.2更新日志):
+
+- `img/ui/nnpc` 与 `img/face`新增未知父目录兼容读取。
+
 ##### (v.4.2.1更新日志):
 
 - **NPC 侧边栏** 新增 **DOL+ 素材路径兼容**：全文件扫描所有已装模组的 `img/ui/nnpc`（兼容 DOL+ 深层结构 `img/ui/nnpc/<npc>/<gender>/<skinTone>/<图片>.png` 与 snake_case/kebab-case/空格目录名），图形选择下拉可直接选用 DOL+ 肖像图，路径按 NPC 性别与肤色自动匹配。
