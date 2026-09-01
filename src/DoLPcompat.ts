@@ -291,7 +291,7 @@ class DoLPcompat {
     return level >= 1 ? (change * (level + 50)) / 50 : change;
   }
 
-  public static syncCompositeTransformations(): void {
+  public static compositeTransformations(): void {
     if (DoLPcompat.active('seraphim', 'wings')) {
       V.harpy = Math.max(V.harpy, 6);
       V.birdbuild = Math.max(V.birdbuild, 100);

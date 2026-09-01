@@ -229,6 +229,8 @@ class Transformation {
       });
     }
 
+    if (this.isDoLP) DoLPcompat.extendValidState(valid);
+
     if (V.maplebirch?.transformation) {
       Object.keys(V.maplebirch.transformation).forEach(name => {
         if (!valid.names.has(name)) delete V.maplebirch.transformation[name];
@@ -259,6 +261,8 @@ class Transformation {
 
   public _transform(name: string, change: number): void {
     if (!change) return;
+
+    if (this.isDoLP) change = DoLPcompat.transformChange(change);
 
     const updater = this.buildUpdaters[name];
     if (updater) {
@@ -385,6 +389,8 @@ class Transformation {
         if (conditions.every(condition => condition())) this._transform(_animal, -1);
       });
     }
+
+    if (this.isDoLP) DoLPcompat.compositeTransformations();
 
     if (V.wolfgirl >= 6) this.wikifier('def', 5);
 
