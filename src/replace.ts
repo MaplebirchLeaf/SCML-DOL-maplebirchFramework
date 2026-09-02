@@ -108,7 +108,7 @@ const widgetPassage = {
     { src: '<br>\n<</widget>>', applybefore: '<br><hr>\n\t<<maplebirchJournal>>\n' },
   ],
   'Widgets Mirror': [
-    { srcmatch: /(?:<<\/if>>\r?\n\t\t|\r?\n\t)<<if !\[/, to: '<</if>>\n\t\t<<maplebirchTransformationMirror>>\n\t\t<<if ![' },
+    { srcmatch: /<<\/if>>(?:\r?\n\t\t|\r?\n\t\r?\n\t)<<if !\[/, to: '<</if>>\n\t\t<<maplebirchTransformationMirror>>\n\t\t<<if ![' },
     { src: '<<tficon $_icon>>', to: '<<= maplebirch.char.transformation.icon>>' },
   ],
   'Widgets NPCs': [
