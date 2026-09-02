@@ -53,10 +53,12 @@ export interface FoodstuffConfig {
 
 export const foodstuffData: Record<string, FoodstuffConfig> = {};
 
+import { clone } from '../../../utils';
+
 class Foodstuff {
   public static add(key: string, config: FoodstuffConfig): void {
     if (!key || !config) return;
-    foodstuffData[key] = config.clone();
+    foodstuffData[key] = clone(config);
   }
 
   public static apply(): void {
@@ -69,7 +71,7 @@ class Foodstuff {
   }
 
   private static set(key: string, config: FoodstuffConfig): void {
-    const item = config.clone();
+    const item = clone(config);
     const name = item.name ?? key.replace(/_/g, ' ');
     if (item.index === undefined) item.index = Foodstuff.nextIndex();
     setup.foodstuff[key] = {

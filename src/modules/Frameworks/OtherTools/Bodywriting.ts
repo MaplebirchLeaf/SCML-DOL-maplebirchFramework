@@ -22,12 +22,14 @@ export interface BodywritingData {
 
 export const bodywritingData: Record<string, BodywritingData> = {};
 
+import { clone } from '../../../utils';
+
 class Bodywriting {
   public static add(key: string, config: BodywritingConfig): void {
     if (!key || !config) return;
     bodywritingData[key] = {
       operation: 'add',
-      config: config.clone()
+      config: clone(config)
     };
   }
 

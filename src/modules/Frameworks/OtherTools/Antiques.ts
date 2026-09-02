@@ -13,16 +13,18 @@ export interface AntiqueConfig {
 
 export const antiquesData: Record<string, AntiqueConfig> = {};
 
+import { clone } from '../../../utils';
+
 class Antiques {
   public static add(key: string, config: AntiqueConfig): void {
     if (!key || !config) return;
-    antiquesData[key] = config.clone();
+    antiquesData[key] = clone(config);
   }
 
   public static inject(data: Record<string, AntiqueConfig>): Record<string, AntiqueConfig> {
     if (!data) return data;
     for (const [key, config] of Object.entries(antiquesData)) {
-      data[key] = config.clone();
+      data[key] = clone(config);
       Antiques.ensureState(key);
     }
     return data;

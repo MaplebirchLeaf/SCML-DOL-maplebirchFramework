@@ -8,6 +8,7 @@ import NPCSidebar from './NamedNPCAddon/NPCSidebar';
 import NPCFluids from './NamedNPCAddon/NPCFluids';
 import NPCTransformation from './NamedNPCAddon/NPCTransformation';
 import { definePregnancyProperty, setupNPCData, isPossible } from './NamedNPCAddon/NPCUtils';
+import { clone, merge } from '../utils';
 
 type LanguageCode = 'CN' | 'EN';
 type PronounCode = 'm' | 'f' | 'i' | 'n' | 't';
@@ -314,7 +315,7 @@ export const NamedNPC = (core => {
       return false;
     }
     const npcName = npcData.nam;
-    let npcConfig = config.clone();
+    let npcConfig = clone(config);
     if (manager.data.has(npcName)) {
       manager.log(`NPC ${npcName} 已存在于mod数据中`, 'ERROR');
       return false;
@@ -348,7 +349,7 @@ export const NamedNPC = (core => {
   }
 
   function clearInvalidNPC(manager: NPCManager) {
-    manager.log('开始解析NPC...', 'DEBUG', V.NPCName.clone(), setup.NPCNameList.clone());
+    manager.log('开始解析NPC...', 'DEBUG', clone(V.NPCName), clone(setup.NPCNameList));
     if (!Array.isArray(V.NPCName)) {
       V.NPCName = [];
       updateNPCNameList(manager);
@@ -591,8 +592,8 @@ class NPCManager {
     for (const statName in statsObject) {
       if (Object.prototype.hasOwnProperty.call(statsObject, statName)) {
         const statConfig = statsObject[statName];
-        const clonedConfig = statConfig.clone();
-        this.customStats[statName] = this.customStats[statName] ? this.customStats[statName].merge(clonedConfig) : clonedConfig;
+        const clonedConfig = clone(statConfig);
+        this.customStats[statName] = this.customStats[statName] ? merge(this.customStats[statName], clonedConfig) : clonedConfig;
       }
     }
   }
@@ -610,14 +611,14 @@ class NPCManager {
 
   public vanillaNPCConfig(npcConfig: NPCConfig) {
     if (!npcConfig || typeof npcConfig !== 'object') return {};
-    const Config = npcConfig.clone();
+    const Config = clone(npcConfig);
     for (const [npcName, npcEntry] of this.data) {
       const modConfig = npcEntry.Config;
       if (modConfig && Object.keys(modConfig).length > 0) {
-        const configClone = modConfig.clone();
+        const configClone = clone(modConfig);
         ['loveAlias', 'loveInterest', 'romance'].forEach(key => delete configClone[key]);
         if (Config[npcName]) {
-          Config[npcName] = Config[npcName].merge(configClone);
+          Config[npcName] = merge(Config[npcName], configClone);
           this.log(`合并NPC配置: ${npcName}`, 'DEBUG');
         } else {
           Config[npcName] = configClone;
@@ -634,11 +635,11 @@ class NPCManager {
     if (!statDefaults || typeof statDefaults !== 'object') return statDefaults || {};
     for (const statName in this.customStats) {
       if (Object.prototype.hasOwnProperty.call(this.customStats, statName)) {
-        const customConfig = this.customStats[statName].clone();
+        const customConfig = clone(this.customStats[statName]);
         const position = customConfig.position;
         delete customConfig.position;
         if (statDefaults[statName]) {
-          statDefaults[statName] = statDefaults[statName].merge(customConfig);
+          statDefaults[statName] = merge(statDefaults[statName], customConfig);
         } else {
           statDefaults[statName] = customConfig;
         }

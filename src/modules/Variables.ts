@@ -3,6 +3,7 @@
 import { version } from '../constants';
 import maplebirch, { MaplebirchCore, createlog } from '../core';
 import migration from './Frameworks/migration';
+import { clone } from '../utils';
 
 const defaults = {
   player: {
@@ -13,7 +14,7 @@ const defaults = {
 };
 
 function dataUpdate(migration: migration): void {
-  migration.add('*', version, (data, utils) => utils.fill(data, defaults.clone()));
+  migration.add('*', version, (data, utils) => utils.fill(data, clone(defaults)));
 }
 
 interface Color {
@@ -51,8 +52,8 @@ class Variables {
 				mask     : 0,
         rotation : 0,
 				pet      : { enabled: false, mask: 25, rotation: 0, scale: 1 },
-				charArt  : { type: 'fringe' as const, select: 'low-ombre', value: hairgradients().clone() },
-				closeUp  : { type: 'fringe' as const, select: 'low-ombre', value: hairgradients().clone() },
+				charArt  : { type: 'fringe' as const, select: 'low-ombre', value: clone(hairgradients()) },
+				closeUp  : { type: 'fringe' as const, select: 'low-ombre', value: clone(hairgradients()) },
 			},
 			npcsidebar: {
 				show     : false,
@@ -108,7 +109,7 @@ class Variables {
 
       if (action === 'reset') {
         localStorage.removeItem(Variables.OPTIONS_STORAGE_KEY);
-        V.options.maplebirch = Variables.options.clone();
+        V.options.maplebirch = clone(Variables.options);
         return null;
       }
 
@@ -138,7 +139,7 @@ class Variables {
   public Init(): void {
     try {
       V.maplebirch ??= {};
-      if (this.tool.core.passage?.title === 'Start2') V.maplebirch = { ...defaults, version: this.version }.clone();
+      if (this.tool.core.passage?.title === 'Start2') V.maplebirch = clone({ ...defaults, version: this.version });
     } catch (e: any) {
       this.log(`出现错误：${e?.message || e}`, 'ERROR');
     } finally {

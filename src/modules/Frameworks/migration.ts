@@ -1,6 +1,7 @@
 // ./src/modules/Frameworks/migration.ts
 
 import { createlog } from '../../core';
+import { coverfn as coverFn, mergefn as mergeFn } from '../../utils';
 
 interface Step {
   from: string;
@@ -61,8 +62,8 @@ class migration {
       fill: (target: Record<string, any>, defaults: Record<string, any>, mode: 'merge' | 'cover' = 'merge') => {
         try {
           const filter = (key: string, _value: any, _depth: number, targetValue: any) => key !== 'version' && targetValue === undefined;
-          if (mode === 'cover') target.coverfn(filter, defaults);
-          else target.mergefn(filter, defaults);
+          if (mode === 'cover') coverFn(target, filter, defaults);
+          else mergeFn(target, filter, defaults);
         } catch (error: any) {
           this.log(`属性填充失败: ${error?.message || error}`, 'ERROR');
         }

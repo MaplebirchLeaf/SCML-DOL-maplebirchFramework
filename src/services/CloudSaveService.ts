@@ -2,7 +2,7 @@
 
 import { type MaplebirchCore } from '../core';
 import { gunzipSync, gzipSync } from 'fflate';
-import { base64ToBytes, basicAuth, bytesToBase64, bytesToJson, joinEncodedPath, jsonToBytes, textToBytes, toArrayBuffer } from '../utils';
+import { base64ToBytes, basicAuth, bytesToBase64, bytesToJson, clone, joinEncodedPath, jsonToBytes, textToBytes, toArrayBuffer } from '../utils';
 
 type CloudSaveSlot = number;
 type CloudSaveBackend = 'server' | 'webdav';
@@ -545,7 +545,7 @@ class CloudSaveService {
   }
 
   private normalizeSave(save: any): any {
-    const state = save.clone();
+    const state = clone(save);
     if (!state.history && state.delta) {
       const deltaDecode = this.core.SugarCube?.State?.deltaDecode;
       if (typeof deltaDecode !== 'function') throw new Error('SugarCube.State.deltaDecode is not available.');

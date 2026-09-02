@@ -1692,17 +1692,6 @@ declare global {
         appendfn<T extends object = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T;
         coverfn<T extends object = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T;
     }
-    interface Object {
-        clone(deep?: boolean, proto?: boolean): any;
-        equal(value: any): boolean;
-        merge(...sources: any[]): any;
-        append(...sources: any[]): any;
-        cover(...sources: any[]): any;
-        mergefn(filterFn: MergeFilterFn | null, ...sources: any[]): any;
-        appendfn(filterFn: MergeFilterFn | null, ...sources: any[]): any;
-        coverfn(filterFn: MergeFilterFn | null, ...sources: any[]): any;
-        contains(value: unknown, mode?: ContainsMode, opt?: ContainsOptions): boolean;
-    }
     interface Array<T> {
         contains(value: unknown, mode?: ContainsMode, opt?: ContainsOptions): boolean;
         random(): T | undefined;
@@ -3060,6 +3049,7 @@ declare class MaplebirchCore {
         protected: readonly ["addon", "dynamic", "tool", "audio", "var", "char", "npc", "combat", "internals"];
     };
     readonly meta: typeof MaplebirchCore.meta;
+    readonly utils: PublicUtils;
     modList: string[];
     readonly manager: {
         modSC2DataManager: SC2DataManager;

@@ -71,6 +71,7 @@ class MaplebirchCore {
   };
 
   public readonly meta: typeof MaplebirchCore.meta;
+  public readonly utils = utils.publicUtils;
   public modList: string[];
   public readonly manager: { modSC2DataManager: SC2DataManager; modLoaderGui: Gui };
   public passage: any;

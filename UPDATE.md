@@ -1,3 +1,8 @@
+##### (v.4.2.6更新日志):
+
+- **移除 Object.prototype 扩展**（issue #10）：不再向普通对象实例注册 `clone`/`equal`/`merge`/`append`/`cover`/`mergefn`/`appendfn`/`coverfn`/`contains`，避免与 DoL 原版及模组数据字段（如 `hypnosis_traits.cover`）冲突导致数值运算报错。
+- 提供正式的 **`maplebirch.utils`** 工具函数命名空间作为推荐 API；保留 `Object.merge`/`append`/`cover` 与 `Array` 静态方法、数组/字符串实例方法及 `Math` 扩展。
+
 ##### (v.4.2.5更新日志):
 
 - 修复 Widgets Mirror 转化条目在部分原版版本下的插入位置匹配问题。

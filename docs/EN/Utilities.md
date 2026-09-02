@@ -14,14 +14,15 @@ The framework installs prototype/static helpers during initialization, and also 
 
 ## Preferred Style
 
-Use prototype methods when operating on an existing value:
+Use `maplebirch.utils` functions when operating on an existing value; array and string instance methods (`contains`/`convert`, etc.) are still available:
 
 ```javascript
-const copy = source.clone();
-const same = oldData.equal(newData);
+const copy = maplebirch.utils.clone(source);
+const same = maplebirch.utils.equal(oldData, newData);
 const ok = tags.contains('beast');
 const key = 'My Text'.convert('snake');
 ```
+
 
 Use static methods when creating a new object or array:
 
@@ -38,13 +39,15 @@ const value = Math.clamp(input, 0, 100);
 
 ## Prototype vs Static Methods
 
-Prototype merge methods mutate the receiver:
+The framework no longer registers instance methods such as `clone`/`equal`/`merge`/`append`/`cover` on `Object.prototype`; plain object instances no longer have them (`obj.cover === undefined`). Object merging now uses `maplebirch.utils` functions, whose first argument is the target object (modified and returned):
 
 ```javascript
-target.merge(source);
-target.append(source);
-target.cover(source);
+maplebirch.utils.merge(target, source);
+maplebirch.utils.append(target, source);
+maplebirch.utils.cover(target, source);
 ```
+
+The array instance methods `contains`/`random`/`either` and the string instance methods `contains`/`convert` are still available.
 
 Static methods create a new object or array:
 
@@ -57,37 +60,39 @@ Prefer `Object.merge()`, `Object.append()`, `Object.cover()`, `Array.merge()`, `
 
 ## Common Methods
 
-| Method                                  | Description                             |
-| :-------------------------------------- | :-------------------------------------- |
-| `value.clone(deep, proto)`              | Clone a value                           |
-| `value.equal(other)`                    | Deep equality check                     |
-| `target.merge(...sources)`              | Recursive merge; arrays merge by index  |
-| `target.append(...sources)`             | Recursive merge; arrays append          |
-| `target.cover(...sources)`              | Recursive merge; arrays replace         |
-| `target.mergefn(fn, ...sources)`        | Filtered `merge`                        |
-| `target.appendfn(fn, ...sources)`       | Filtered `append`                       |
-| `target.coverfn(fn, ...sources)`        | Filtered `cover`                        |
-| `Object.merge(...sources)`              | Create a new object and merge           |
-| `Object.append(...sources)`             | Create a new object and append          |
-| `Object.cover(...sources)`              | Create a new object and cover           |
-| `Array.merge(...sources)`               | Create a new array and merge            |
-| `Array.append(...sources)`              | Create a new array and append           |
-| `Array.cover(...sources)`               | Create a new array and cover            |
-| `value.contains(value, mode, opt)`      | Containment check                       |
-| `array.random()`                        | Pick a random array item                |
-| `array.either(weights, allowNull)`      | Pick a random item, optionally weighted |
-| `string.convert(mode, opt)`             | Convert string case                     |
-| `Math.random(max)`                      | Integer from `0` to `max`               |
-| `Math.random(min, max, float)`          | Random number between `min` and `max`   |
-| `Math.clamp(value, min, max, fallback)` | Clamp a number                          |
-| `loadImage(src)`                        | Check or load an image resource         |
+| Method                                        | Description                              |
+| :-------------------------------------------- | :--------------------------------------- |
+| `maplebirch.utils.clone(source, deep, proto)` | Clone a value                          |
+| `maplebirch.utils.equal(a, b)`              | Deep equality check                      |
+| `maplebirch.utils.merge(target, ...sources)` | Recursive merge; arrays merge by index |
+| `maplebirch.utils.append(target, ...sources)` | Recursive merge; arrays append        |
+| `maplebirch.utils.cover(target, ...sources)` | Recursive merge; arrays replace        |
+| `maplebirch.utils.mergefn(target, fn, ...sources)` | Filtered `merge`                |
+| `maplebirch.utils.appendfn(target, fn, ...sources)` | Filtered `append`              |
+| `maplebirch.utils.coverfn(target, fn, ...sources)` | Filtered `cover`                |
+| `Object.merge(...sources)`                   | Create a new object and merge (static)   |
+| `Object.append(...sources)`                  | Create a new object and append (static)  |
+| `Object.cover(...sources)`                   | Create a new object and cover (static)   |
+| `Array.merge(...sources)`                    | Create a new array and merge (static)    |
+| `Array.append(...sources)`                   | Create a new array and append (static)   |
+| `Array.cover(...sources)`                    | Create a new array and cover (static)    |
+| `array.contains(value, mode, opt)`           | Containment check (array instance)       |
+| `array.random()`                             | Pick a random array item (array instance) |
+| `array.either(weights, allowNull)`           | Pick a random item, optionally weighted (array instance) |
+| `string.convert(mode, opt)`                  | Convert string case (string instance)    |
+| `Math.random(max)`                           | Integer from `0` to `max`            |
+| `Math.random(min, max, float)`               | Random number between `min` and `max` |
+| `Math.clamp(value, min, max, fallback)`      | Clamp a number                           |
+| `loadImage(src)`                             | Check or load an image resource          |
+
+In the table, `Object.*`/`Array.*` are static methods and `array.*`/`string.*` are array/string instance methods; all remain available. `maplebirch.utils.*` are functional calls. To check whether a plain object contains a value, collect `Object.values(obj)` first and then use the array `contains`.
 
 ## clone
 
 ```javascript
-const deepCopy = source.clone();
-const shallowCopy = source.clone(false);
-const plainCopy = source.clone(true, false);
+const deepCopy = maplebirch.utils.clone(source);
+const shallowCopy = maplebirch.utils.clone(source, false);
+const plainCopy = maplebirch.utils.clone(source, true, false);
 ```
 
 Arguments:
@@ -104,19 +109,19 @@ Supports plain objects, arrays, `Date`, `RegExp`, `Map`, `Set`, `ArrayBuffer`, `
 ## equal
 
 ```javascript
-const same = dataA.equal(dataB);
+const same = maplebirch.utils.equal(dataA, dataB);
 ```
 
 `equal()` performs deep comparison, which is useful for objects, arrays, and nested structures.
 
 ## merge / append / cover
 
-These methods recursively merge objects. Their main difference is array handling.
+These functions recursively merge objects. Their main difference is array handling.
 
 ```javascript
-({ list: [1, 2] }).merge({ list: [3] }); // { list: [3, 2] }
-({ list: [1, 2] }).append({ list: [3] }); // { list: [1, 2, 3] }
-({ list: [1, 2] }).cover({ list: [3] }); // { list: [3] }
+maplebirch.utils.merge({ list: [1, 2] }, { list: [3] }); // { list: [3, 2] }
+maplebirch.utils.append({ list: [1, 2] }, { list: [3] }); // { list: [1, 2, 3] }
+maplebirch.utils.cover({ list: [1, 2] }, { list: [3] }); // { list: [3] }
 ```
 
 Objects are merged recursively:
@@ -137,7 +142,7 @@ const options = Object.merge(defaults, modDefaults, playerOptions);
 Filtered variants call a filter before each field is merged.
 
 ```javascript
-target.mergefn((key, value, depth, targetValue) => targetValue === undefined, source);
+maplebirch.utils.mergefn(target, (key, value, depth, targetValue) => targetValue === undefined, source);
 ```
 
 Filter arguments:
@@ -152,9 +157,9 @@ Filter arguments:
 Examples:
 
 ```javascript
-target.mergefn((_key, _value, _depth, targetValue) => targetValue === undefined, source);
-target.mergefn((_key, _value, depth) => depth <= 2, source);
-target.mergefn((_key, value) => value != null, source);
+maplebirch.utils.mergefn(target, (_key, _value, _depth, targetValue) => targetValue === undefined, source);
+maplebirch.utils.mergefn(target, (_key, _value, depth) => depth <= 2, source);
+maplebirch.utils.mergefn(target, (_key, value) => value != null, source);
 ```
 
 ## contains
@@ -168,12 +173,12 @@ Arrays:
 [1, 2, 3].contains([4, 5], 'none'); // true
 ```
 
-Objects, `Set`, and `Map` check their values:
+Objects, `Set`, and `Map` have no `contains` instance method. Collect their values into an array first, then call the array `contains`:
 
 ```javascript
-({ a: 1, b: 2 }).contains(2); // true
-new Set(['a', 'b']).contains('a'); // true
-new Map([['key', 'value']]).contains('value'); // true
+Object.values({ a: 1, b: 2 }).contains(2); // true
+[...new Set(['a', 'b'])].contains('a'); // true
+[...new Map([['key', 'value']]).values()].contains('value'); // true
 ```
 
 Strings:
@@ -400,7 +405,7 @@ Common methods:
 
 ## Global Functions
 
-Common helpers are also available globally:
+Common helpers are also available globally (equivalent to the `maplebirch.utils` functions):
 
 ```javascript
 clone(source);
@@ -416,4 +421,4 @@ clamp(value, 0, 100);
 loadImage(src);
 ```
 
-New code should prefer prototype/static style because it makes the operated value clearer.
+New code should prefer `maplebirch.utils` functions or static methods because they make it clearer which value is being operated on.

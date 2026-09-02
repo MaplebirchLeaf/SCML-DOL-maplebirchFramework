@@ -31,18 +31,6 @@ declare global {
     coverfn<T extends object = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T;
   }
 
-  interface Object {
-    clone(deep?: boolean, proto?: boolean): any;
-    equal(value: any): boolean;
-    merge(...sources: any[]): any;
-    append(...sources: any[]): any;
-    cover(...sources: any[]): any;
-    mergefn(filterFn: MergeFilterFn | null, ...sources: any[]): any;
-    appendfn(filterFn: MergeFilterFn | null, ...sources: any[]): any;
-    coverfn(filterFn: MergeFilterFn | null, ...sources: any[]): any;
-    contains(value: unknown, mode?: ContainsMode, opt?: ContainsOptions): boolean;
-  }
-
   interface Array<T> {
     contains(value: unknown, mode?: ContainsMode, opt?: ContainsOptions): boolean;
     random(): T | undefined;
@@ -451,16 +439,7 @@ const mergeFnMethods = [
 ] as const;
 
 function prototypeUtils(): void {
-  definePrototype(Object.prototype, 'clone', function (this: any, deep = true, proto = true) {
-    return clone(this.valueOf(), deep, proto);
-  });
-  definePrototype(Object.prototype, 'equal', function (this: any, value: any) {
-    return equal(this.valueOf(), value);
-  });
   for (const [name, fn] of mergeMethods) {
-    definePrototype(Object.prototype, name, function (this: any, ...sources: any[]) {
-      return fn(this.valueOf(), ...sources);
-    });
     definePrototype(Object, name, function (...sources: any[]) {
       return fn({}, ...sources);
     });
@@ -469,9 +448,6 @@ function prototypeUtils(): void {
     });
   }
   for (const [name, fn] of mergeFnMethods) {
-    definePrototype(Object.prototype, name, function (this: any, filterFn: MergeFilterFn | null, ...sources: any[]) {
-      return fn(this.valueOf(), filterFn, ...sources);
-    });
     definePrototype(Object, name, function (filterFn: MergeFilterFn | null, ...sources: any[]) {
       return fn({}, filterFn, ...sources);
     });
@@ -479,14 +455,6 @@ function prototypeUtils(): void {
       return fn([], filterFn, ...sources);
     });
   }
-  definePrototype(Object.prototype, 'contains', function (this: any, value: unknown, mode: ContainsMode = 'any', opt: ContainsOptions = {}) {
-    const source = this.valueOf();
-    if (Array.isArray(source)) return contains(source, value, mode, opt);
-    if (source instanceof Set) return contains([...source], value, mode, opt);
-    if (source instanceof Map) return contains([...source.values()], value, mode, opt);
-    if (source && typeof source === 'object') return contains(Object.values(source), value, mode, opt);
-    return false;
-  });
   definePrototype(Array.prototype, 'contains', function (this: unknown[], value: unknown, mode: ContainsMode = 'any', opt: ContainsOptions = {}) {
     return contains(this, value, mode, opt);
   });

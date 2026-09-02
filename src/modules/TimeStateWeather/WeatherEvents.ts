@@ -1,6 +1,7 @@
 // .src/modules/TimeStateWeather/WeatherEvents.ts
 
 import maplebirch from '../../core';
+import { append, cover, merge } from '../../utils';
 import type AddonPlugin from '../AddonPlugin';
 import type { Replacement } from '../AddonPluginProcess';
 import type DynamicManager from '../Dynamic';
@@ -47,9 +48,9 @@ interface ModificationConfig {
 }
 
 function applyPatch(target: any, patch: any, mode: ModificationConfig['mode']) {
-  if (mode === 'concat') return target.append(patch);
-  if (mode === 'replace') return target.cover(patch);
-  return target.merge(patch);
+  if (mode === 'concat') return append(target, patch);
+  if (mode === 'replace') return cover(target, patch);
+  return merge(target, patch);
 }
 
 class WeatherEvent {

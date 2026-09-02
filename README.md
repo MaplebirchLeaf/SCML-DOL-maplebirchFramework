@@ -49,7 +49,7 @@
 - 添加命名 NPC、NPC 状态、NPC 日程、NPC 服装、NPC 侧边栏、NPC 转化与 NPC 怀孕扩展。
 - 添加角色侧边栏图层、面部样式、转化内容。
 - 向战斗界面添加自定义动作按钮。
-- 使用 `source.clone()`、`Object.merge()`、`list.contains()`、`list.either()`、`Math.clamp()` 等常用工具函数。
+- 使用 `maplebirch.utils.clone(source)`、`Object.merge()`、`list.contains()`、`list.either()`、`Math.clamp()` 等常用工具函数。
 
 如果你正在制作的是内容型模组，可以优先阅读 `NPC 管理`、`动态事件`、`区域管理` 和 `语言管理`。如果你正在制作 UI 或工具型模组，可以优先阅读 `boot.json 配置`、`SugarCube 宏`、`文本工具` 和 `工具函数`。如果你的模组涉及角色外观或战斗行为，则建议从 `角色管理`、`转化管理` 和 `战斗按钮` 开始。
 

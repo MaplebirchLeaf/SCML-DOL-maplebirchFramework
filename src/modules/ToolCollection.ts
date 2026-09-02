@@ -1,7 +1,6 @@
 // ./src/modules/ToolCollection.ts
 
 import maplebirch, { MaplebirchCore, createlog } from '../core';
-import * as utils from '../utils';
 import Console from './Frameworks/ConsoleCheat';
 import migration from './Frameworks/migration';
 import randSystem from './Frameworks/RandSystem';
@@ -46,10 +45,6 @@ class ToolCollection {
       this.patch.applyLocation();
       this.patch.applyBodywriting();
     });
-  }
-
-  public get utils(): typeof utils {
-    return utils;
   }
 }
 

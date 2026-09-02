@@ -25,6 +25,8 @@ export interface LocationUpdate {
 
 export const locationData: Record<string, LocationUpdate> = {};
 
+import { clone, mergefn as mergeFn } from '../../../utils';
+
 const mergeLocationLayer = (key: string, _value: any, depth: number) => depth !== 1 || key === 'folder' || key === 'base' || key === 'emissive' || key === 'reflective' || key === 'layerTop';
 
 class Location {
@@ -39,7 +41,7 @@ class Location {
     const update = locationData[locationId];
     if (overwrite) {
       update.overwrite = true;
-      update.config = config.clone();
+      update.config = clone(config);
       update.customMapping = config.customMapping || null;
       return true;
     }
@@ -48,7 +50,7 @@ class Location {
       update.config[layer][element] = Object.merge(update.config[layer][element] || {}, config);
       return true;
     }
-    update.config.mergefn(mergeLocationLayer, config);
+    update.config = mergeFn(update.config, mergeLocationLayer, config);
     if (config.customMapping) update.customMapping = config.customMapping;
     return true;
   }
@@ -67,7 +69,7 @@ class Location {
           layerTop: update.config.layerTop || current.layerTop
         };
       } else {
-        setup.LocationImages[locationId] = current.mergefn(mergeLocationLayer, update.config);
+        setup.LocationImages[locationId] = mergeFn(current, mergeLocationLayer, update.config);
       }
       if (update.customMapping) setup.Locations[locationId] = update.customMapping;
       delete locationData[locationId];

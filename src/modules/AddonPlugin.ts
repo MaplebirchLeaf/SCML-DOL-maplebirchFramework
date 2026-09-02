@@ -10,6 +10,7 @@ import type { ModUtils } from '@scml/types/sugarcube-2-ModLoader/Utils';
 import type { CryptOptions } from '../services/CredentialVault';
 import MaplebrichStyles from '@/styles/MaplebrichStyles.css';
 import maplebirch, { type MaplebirchCore, createlog } from '../core';
+import { clone } from '../utils';
 import AddonPluginProcess, { type Task, type LanguageConfig, type AudioConfig, type FrameworkConfig, type Replacement, replace, defineTwineAsset } from './AddonPluginProcess';
 import { patchTimeConstantsAsset, patchDateTimeAsset } from './TimeStateWeather/DateTime';
 import { patchTimeAsset } from './TimeStateWeather/Time';
@@ -344,11 +345,11 @@ class AddonPlugin {
 
     const use = <T>(variables: any, fn: () => T): T => {
       const runtime = State.variables;
-      const backup = runtime.clone();
-      replace(runtime, variables.clone());
+      const backup = clone(runtime);
+      replace(runtime, clone(variables));
       try {
         const result = fn();
-        replace(variables, runtime.clone());
+        replace(variables, clone(runtime));
         return result;
       } finally {
         replace(runtime, backup);

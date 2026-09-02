@@ -14,14 +14,15 @@
 
 ## 推荐写法
 
-对已有值操作时，使用原型方法：
+对已有值操作时，优先使用 `maplebirch.utils` 函数式工具；数组与字符串的实例方法（`contains`/`convert` 等）仍然保留：
 
 ```javascript
-const copy = source.clone();
-const same = oldData.equal(newData);
+const copy = maplebirch.utils.clone(source);
+const same = maplebirch.utils.equal(oldData, newData);
 const ok = tags.contains('beast');
 const key = 'My Text'.convert('snake');
 ```
+
 
 创建新对象或新数组时，使用静态方法：
 
@@ -38,13 +39,15 @@ const value = Math.clamp(input, 0, 100);
 
 ## 原型方法与静态方法
 
-原型方法会修改调用者本身：
+框架不再向 `Object.prototype` 注册 `clone`/`equal`/`merge`/`append`/`cover` 等实例方法，普通对象实例上这些方法均为 `undefined`（如 `obj.cover === undefined`）。对象合并改用 `maplebirch.utils` 函数式调用，第一个参数是目标对象，函数会修改并返回它：
 
 ```javascript
-target.merge(source);
-target.append(source);
-target.cover(source);
+maplebirch.utils.merge(target, source);
+maplebirch.utils.append(target, source);
+maplebirch.utils.cover(target, source);
 ```
+
+数组的 `contains`/`random`/`either` 与字符串的 `contains`/`convert` 实例方法仍然保留。
 
 静态方法会创建一个新的对象或数组：
 
@@ -57,37 +60,39 @@ const list = Array.append(base, extra);
 
 ## 常用方法总览
 
-| 方法                                    | 说明                           |
-| :-------------------------------------- | :----------------------------- |
-| `value.clone(deep, proto)`              | 克隆值                         |
-| `value.equal(other)`                    | 深度比较                       |
-| `target.merge(...sources)`              | 递归合并，数组按下标合并       |
-| `target.append(...sources)`             | 递归合并，数组追加             |
-| `target.cover(...sources)`              | 递归合并，数组替换             |
-| `target.mergefn(fn, ...sources)`        | 带过滤函数的 `merge`           |
-| `target.appendfn(fn, ...sources)`       | 带过滤函数的 `append`          |
-| `target.coverfn(fn, ...sources)`        | 带过滤函数的 `cover`           |
-| `Object.merge(...sources)`              | 创建新对象并 merge             |
-| `Object.append(...sources)`             | 创建新对象并 append            |
-| `Object.cover(...sources)`              | 创建新对象并 cover             |
-| `Array.merge(...sources)`               | 创建新数组并 merge             |
-| `Array.append(...sources)`              | 创建新数组并 append            |
-| `Array.cover(...sources)`               | 创建新数组并 cover             |
-| `value.contains(value, mode, opt)`      | 判断包含关系                   |
-| `array.random()`                        | 从数组随机取一个元素           |
-| `array.either(weights, allowNull)`      | 从数组随机取一个元素，可带权重 |
-| `string.convert(mode, opt)`             | 字符串格式转换                 |
-| `Math.random(max)`                      | `0` 到 `max` 的整数            |
-| `Math.random(min, max, float)`          | `min` 到 `max` 的随机数        |
-| `Math.clamp(value, min, max, fallback)` | 限制数值范围                   |
-| `loadImage(src)`                        | 检查或加载图片资源             |
+| 方法                                              | 说明                                   |
+| :------------------------------------------------ | :------------------------------------- |
+| `maplebirch.utils.clone(source, deep, proto)`   | 克隆值                                 |
+| `maplebirch.utils.equal(a, b)`                  | 深度比较                               |
+| `maplebirch.utils.merge(target, ...sources)`    | 递归合并，数组按下标合并               |
+| `maplebirch.utils.append(target, ...sources)`   | 递归合并，数组追加                     |
+| `maplebirch.utils.cover(target, ...sources)`    | 递归合并，数组替换                     |
+| `maplebirch.utils.mergefn(target, fn, ...sources)` | 带过滤函数的 `merge`               |
+| `maplebirch.utils.appendfn(target, fn, ...sources)` | 带过滤函数的 `append`             |
+| `maplebirch.utils.coverfn(target, fn, ...sources)` | 带过滤函数的 `cover`               |
+| `Object.merge(...sources)`                      | 创建新对象并 merge（静态方法）         |
+| `Object.append(...sources)`                     | 创建新对象并 append（静态方法）        |
+| `Object.cover(...sources)`                      | 创建新对象并 cover（静态方法）         |
+| `Array.merge(...sources)`                       | 创建新数组并 merge（静态方法）         |
+| `Array.append(...sources)`                      | 创建新数组并 append（静态方法）        |
+| `Array.cover(...sources)`                       | 创建新数组并 cover（静态方法）         |
+| `array.contains(value, mode, opt)`              | 判断数组是否包含（数组实例方法）       |
+| `array.random()`                                | 从数组随机取一个元素（数组实例方法）   |
+| `array.either(weights, allowNull)`              | 从数组随机取一个元素，可带权重（数组实例方法） |
+| `string.convert(mode, opt)`                     | 字符串格式转换（字符串实例方法）       |
+| `Math.random(max)`                              | `0` 到 `max` 的整数                |
+| `Math.random(min, max, float)`                  | `min` 到 `max` 的随机数            |
+| `Math.clamp(value, min, max, fallback)`         | 限制数值范围                           |
+| `loadImage(src)`                                | 检查或加载图片资源                     |
+
+表中 `Object.*`/`Array.*` 是静态方法，`array.*`/`string.*` 是数组/字符串实例方法，均仍可用；`maplebirch.utils.*` 是函数式调用。要判断普通对象是否包含某值，先取 `Object.values(obj)` 再用数组 `contains`。
 
 ## clone
 
 ```javascript
-const deepCopy = source.clone();
-const shallowCopy = source.clone(false);
-const plainCopy = source.clone(true, false);
+const deepCopy = maplebirch.utils.clone(source);
+const shallowCopy = maplebirch.utils.clone(source, false);
+const plainCopy = maplebirch.utils.clone(source, true, false);
 ```
 
 参数：
@@ -104,19 +109,19 @@ const plainCopy = source.clone(true, false);
 ## equal
 
 ```javascript
-const same = dataA.equal(dataB);
+const same = maplebirch.utils.equal(dataA, dataB);
 ```
 
 `equal()` 使用深度比较，适合比较对象、数组、嵌套结构。它比 `===` 更适合判断配置内容是否一致。
 
 ## merge / append / cover
 
-这三个方法都会递归合并对象，区别主要在数组处理方式。
+这三个函数都会递归合并对象，区别主要在数组处理方式。
 
 ```javascript
-({ list: [1, 2] }).merge({ list: [3] }); // { list: [3, 2] }
-({ list: [1, 2] }).append({ list: [3] }); // { list: [1, 2, 3] }
-({ list: [1, 2] }).cover({ list: [3] }); // { list: [3] }
+maplebirch.utils.merge({ list: [1, 2] }, { list: [3] }); // { list: [3, 2] }
+maplebirch.utils.append({ list: [1, 2] }, { list: [3] }); // { list: [1, 2, 3] }
+maplebirch.utils.cover({ list: [1, 2] }, { list: [3] }); // { list: [3] }
 ```
 
 对象会递归合并：
@@ -137,7 +142,7 @@ const options = Object.merge(defaults, modDefaults, playerOptions);
 过滤版本会在每个字段合并前调用过滤函数。
 
 ```javascript
-target.mergefn((key, value, depth, targetValue) => targetValue === undefined, source);
+maplebirch.utils.mergefn(target, (key, value, depth, targetValue) => targetValue === undefined, source);
 ```
 
 过滤函数参数：
@@ -153,13 +158,13 @@ target.mergefn((key, value, depth, targetValue) => targetValue === undefined, so
 
 ```javascript
 // 只写入目标中没有的字段
-target.mergefn((_key, _value, _depth, targetValue) => targetValue === undefined, source);
+maplebirch.utils.mergefn(target, (_key, _value, _depth, targetValue) => targetValue === undefined, source);
 
 // 只合并前两层
-target.mergefn((_key, _value, depth) => depth <= 2, source);
+maplebirch.utils.mergefn(target, (_key, _value, depth) => depth <= 2, source);
 
 // 跳过 null / undefined
-target.mergefn((_key, value) => value != null, source);
+maplebirch.utils.mergefn(target, (_key, value) => value != null, source);
 ```
 
 ## contains
@@ -173,12 +178,12 @@ target.mergefn((_key, value) => value != null, source);
 [1, 2, 3].contains([4, 5], 'none'); // true
 ```
 
-对象、`Set`、`Map` 会检查它们的值：
+检查对象、`Set`、`Map` 的值时，先取出值数组，再调用数组实例方法 `contains`（普通对象、`Set`、`Map` 上没有 `contains` 实例方法）：
 
 ```javascript
-({ a: 1, b: 2 }).contains(2); // true
-new Set(['a', 'b']).contains('a'); // true
-new Map([['key', 'value']]).contains('value'); // true
+Object.values({ a: 1, b: 2 }).contains(2); // true
+[...new Set(['a', 'b'])].contains('a'); // true
+[...new Map([['key', 'value']]).values()].contains('value'); // true
 ```
 
 字符串：
@@ -407,7 +412,7 @@ const result = new SelectCase().case('wolf', '狼').caseIn(['cat', 'dog'], '动�
 
 ## 全局函数
 
-常用工具也会挂到全局，适合旧脚本或简单场景：
+常用工具也会挂到全局（与 `maplebirch.utils` 同名函数等价），适合旧脚本或简单场景：
 
 ```javascript
 clone(source);
@@ -423,4 +428,4 @@ clamp(value, 0, 100);
 loadImage(src);
 ```
 
-新代码更推荐原型/静态写法，因为阅读时更容易看出“谁是被操作的数据”。
+新代码更推荐 `maplebirch.utils` 函数式写法或静态方法，因为阅读时更容易看出“谁是被操作的数据”。

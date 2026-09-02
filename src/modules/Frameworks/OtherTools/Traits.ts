@@ -1,6 +1,7 @@
 // .src/modules/Frameworks/OtherTools/Traits.ts
 
 import maplebirch from '../../../core';
+import { clone } from '../../../utils';
 
 export interface TraitCategory {
   title: string;
@@ -64,7 +65,7 @@ class Traits {
   }
 
   public static inject(data: TraitCategory[]): TraitCategory[] {
-    const result = data.clone();
+    const result = clone(data);
     const titleMap: Record<string, number> = {};
     result.forEach((category: TraitCategory, index: number) => {
       const title = maplebirch.auto(category.title);

@@ -2,17 +2,11 @@
 
 import { MacroDefinition } from 'twine-sugarcube';
 import maplebirch, { MaplebirchCore, createlog } from '../core';
-import { loadImage } from '../utils';
+import { clone, loadImage, mergefn as mergeFn } from '../utils';
 import AddonPlugin from './AddonPlugin';
 import type { Replacement } from './AddonPluginProcess';
 import Pet from './CharacterAddon/Pet';
 import Transformation from './CharacterAddon/Transformation';
-
-interface FaceStyleOptions {
-  facestyle: string;
-  facevariant: string;
-  [key: string]: any;
-}
 
 interface HairGradientOptions {
   style: string;
@@ -117,7 +111,7 @@ function hairColourGradient(part: string, gradient: HairGradientOptions, hairTyp
   const filterPrototype = filterPrototypeLibrary[hairType] || filterPrototypeLibrary.all;
   if (!filterPrototype) return Renderer.emptyLayerFilter();
   const storedPositions = V.options?.maplebirch?.character?.[type]?.value?.[part]?.[gradient.style];
-  const blend = filterPrototype.clone();
+  const blend = clone(filterPrototype);
   if (storedPositions && storedPositions.length === blend.colors.length) for (let i = 0; i < blend.colors.length; i++) blend.colors[i][0] = Math.clamp(storedPositions[i], 0, 1);
   const filter = {
     blend,
@@ -343,8 +337,8 @@ class Character {
       if (!options?.layers) return options;
       const matchedLayers = modelLayers(options.name || '', options);
       if (!matchedLayers.length) return options;
-      let patchedLayers = options.layers.clone();
-      for (const layers of matchedLayers) patchedLayers = patchedLayers.mergefn((_key: any, value: any, depth: number) => depth <= 3 && value != null, layers);
+      let patchedLayers = clone(options.layers);
+      for (const layers of matchedLayers) patchedLayers = mergeFn(patchedLayers, (_key: any, value: any, depth: number) => depth <= 3 && value != null, layers);
       return { ...options, layers: patchedLayers };
     };
     const patchProcess = (model: CanvasModel) => {
