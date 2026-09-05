@@ -1154,6 +1154,172 @@ declare global {
   }
 }
 
+type ContainsMode = 'all' | 'any' | 'none';
+type ContainsOptions = {
+    case?: boolean;
+    compare?: (item: unknown, value: unknown) => boolean;
+    deep?: boolean;
+};
+type CloneOptions = {
+    deep?: boolean;
+    proto?: boolean;
+};
+type MergeMode = 'replace' | 'concat' | 'merge';
+type MergeFilterFn = (key: string, value: any, depth: number, targetValue: any) => boolean;
+type ConvertMode$1 = 'lower' | 'upper' | 'capitalize' | 'title' | 'camel' | 'pascal' | 'snake' | 'kebab' | 'constant';
+declare global {
+    interface ObjectConstructor {
+        merge<T extends object = any>(...sources: any[]): T;
+        append<T extends object = any>(...sources: any[]): T;
+        cover<T extends object = any>(...sources: any[]): T;
+        mergefn<T extends object = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T;
+        appendfn<T extends object = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T;
+        coverfn<T extends object = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T;
+    }
+    interface Array<T> {
+        contains(value: unknown, mode?: ContainsMode, opt?: ContainsOptions): boolean;
+        random(): T | undefined;
+        either(weights?: number[], allowNull?: boolean): T | null | undefined;
+    }
+    interface ArrayConstructor {
+        merge<T = any>(...sources: any[]): T[];
+        append<T = any>(...sources: any[]): T[];
+        cover<T = any>(...sources: any[]): T[];
+        mergefn<T = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T[];
+        appendfn<T = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T[];
+        coverfn<T = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T[];
+    }
+    interface ReadonlyArray<T> {
+        contains(value: unknown, mode?: ContainsMode, opt?: ContainsOptions): boolean;
+        random(): T | undefined;
+        either(weights?: number[], allowNull?: boolean): T | null | undefined;
+    }
+    interface String {
+        contains(value: string, opt?: {
+            case?: boolean;
+        }): boolean;
+        convert(mode?: ConvertMode$1, opt?: {
+            delimiter?: string;
+            acronym?: boolean;
+        }): string;
+    }
+    interface Math {
+        random(): number;
+        random(max: number): number;
+        random(min: number, max: number, float?: boolean): number;
+        clamp(value: any, min: number, max: number, fallback?: number): number;
+    }
+}
+declare function clone(source: any, deep?: boolean, proto?: boolean, map?: WeakMap<object, any>): any;
+declare function equal(a: any, b: any): boolean;
+declare function clamp(value: any, min: number, max: number, fallback?: number): number;
+declare function merge(target: any, ...sources: any[]): any;
+declare function append(target: any, ...sources: any[]): any;
+declare function cover(target: any, ...sources: any[]): any;
+declare function mergeFn(target: any, filterFn: MergeFilterFn | null, ...sources: any[]): any;
+declare function appendFn(target: any, filterFn: MergeFilterFn | null, ...sources: any[]): any;
+declare function coverFn(target: any, filterFn: MergeFilterFn | null, ...sources: any[]): any;
+declare function contains(arr: unknown[], value: unknown, mode?: ContainsMode, opt?: ContainsOptions): boolean;
+declare function random(min?: number, max?: number, float?: boolean): number;
+declare function either(items: any[], weights?: number[] | null, allowNull?: boolean): any;
+declare class SelectCase {
+    private cases;
+    private defaultResult;
+    private valueType;
+    private allowMixedTypes;
+    case(cond: string | number, result: any): this;
+    case(cond: (input: any, meta?: any) => boolean, result: any): this;
+    casePredicate(fn: (input: any, meta?: any) => boolean, result: any): this;
+    caseRange(min: number, max: number, result: any): this;
+    caseIn(values: any[], result: any): this;
+    caseIncludes(subs: string | string[], result: any): this;
+    caseRegex(regex: RegExp, result: any): this;
+    caseCompare(op: '<' | '<=' | '>' | '>=', val: number, result: any): this;
+    else(result: any): this;
+    match(input: any, meta?: any): any;
+    private validateType;
+}
+declare function convert(str: string, mode?: ConvertMode$1, opt?: {
+    delimiter?: string;
+    acronym?: boolean;
+}): string;
+declare function prototypeUtils(): void;
+declare function loadImage(src: string): string | boolean | Promise<string | boolean>;
+declare function widgets(content: string): string;
+declare function widgets(...contents: string[]): string[];
+declare function textToBytes(value: string): Uint8Array;
+declare function bytesToText(bytes: Uint8Array | ArrayBuffer): string;
+declare function jsonToBytes(value: unknown): Uint8Array;
+declare function bytesToJson<T = any>(bytes: Uint8Array | ArrayBuffer): T;
+declare function toArrayBuffer(bytes: Uint8Array): ArrayBuffer;
+declare function normalizeBase64(value: string): string;
+declare function bytesToBase64(bytes: Uint8Array): string;
+declare function base64ToBytes(base64: string): Uint8Array;
+declare function base64ToArrayBuffer(base64: string): ArrayBuffer;
+declare function basicAuth(username: string, password: string): string;
+declare function trimSlashes(value: string): string;
+declare function joinPath(...parts: string[]): string;
+declare function joinEncodedPath(...parts: string[]): string;
+declare function escapeHtmlText(value: string): string;
+declare const publicUtils: Readonly<{
+    clone: typeof clone;
+    equal: typeof equal;
+    merge: typeof merge;
+    append: typeof append;
+    cover: typeof cover;
+    mergefn: typeof mergeFn;
+    appendfn: typeof appendFn;
+    coverfn: typeof coverFn;
+    contains: typeof contains;
+    random: typeof random;
+    either: typeof either;
+    SelectCase: typeof SelectCase;
+    convert: typeof convert;
+    clamp: typeof clamp;
+    loadImage: typeof loadImage;
+}>;
+type PublicUtils = typeof publicUtils;
+
+type utils_CloneOptions = CloneOptions;
+type utils_ContainsMode = ContainsMode;
+type utils_ContainsOptions = ContainsOptions;
+type utils_MergeFilterFn = MergeFilterFn;
+type utils_MergeMode = MergeMode;
+type utils_PublicUtils = PublicUtils;
+type utils_SelectCase = SelectCase;
+declare const utils_SelectCase: typeof SelectCase;
+declare const utils_append: typeof append;
+declare const utils_base64ToArrayBuffer: typeof base64ToArrayBuffer;
+declare const utils_base64ToBytes: typeof base64ToBytes;
+declare const utils_basicAuth: typeof basicAuth;
+declare const utils_bytesToBase64: typeof bytesToBase64;
+declare const utils_bytesToJson: typeof bytesToJson;
+declare const utils_bytesToText: typeof bytesToText;
+declare const utils_clamp: typeof clamp;
+declare const utils_clone: typeof clone;
+declare const utils_contains: typeof contains;
+declare const utils_convert: typeof convert;
+declare const utils_cover: typeof cover;
+declare const utils_either: typeof either;
+declare const utils_equal: typeof equal;
+declare const utils_escapeHtmlText: typeof escapeHtmlText;
+declare const utils_joinEncodedPath: typeof joinEncodedPath;
+declare const utils_joinPath: typeof joinPath;
+declare const utils_jsonToBytes: typeof jsonToBytes;
+declare const utils_loadImage: typeof loadImage;
+declare const utils_merge: typeof merge;
+declare const utils_normalizeBase64: typeof normalizeBase64;
+declare const utils_prototypeUtils: typeof prototypeUtils;
+declare const utils_publicUtils: typeof publicUtils;
+declare const utils_random: typeof random;
+declare const utils_textToBytes: typeof textToBytes;
+declare const utils_toArrayBuffer: typeof toArrayBuffer;
+declare const utils_trimSlashes: typeof trimSlashes;
+declare const utils_widgets: typeof widgets;
+declare namespace utils {
+  export { type utils_CloneOptions as CloneOptions, type utils_ContainsMode as ContainsMode, type utils_ContainsOptions as ContainsOptions, type ConvertMode$1 as ConvertMode, type utils_MergeFilterFn as MergeFilterFn, type utils_MergeMode as MergeMode, type utils_PublicUtils as PublicUtils, utils_SelectCase as SelectCase, utils_append as append, appendFn as appendfn, utils_base64ToArrayBuffer as base64ToArrayBuffer, utils_base64ToBytes as base64ToBytes, utils_basicAuth as basicAuth, utils_bytesToBase64 as bytesToBase64, utils_bytesToJson as bytesToJson, utils_bytesToText as bytesToText, utils_clamp as clamp, utils_clone as clone, utils_contains as contains, utils_convert as convert, utils_cover as cover, coverFn as coverfn, utils_either as either, utils_equal as equal, utils_escapeHtmlText as escapeHtmlText, utils_joinEncodedPath as joinEncodedPath, utils_joinPath as joinPath, utils_jsonToBytes as jsonToBytes, utils_loadImage as loadImage, utils_merge as merge, mergeFn as mergefn, utils_normalizeBase64 as normalizeBase64, utils_prototypeUtils as prototypeUtils, utils_publicUtils as publicUtils, utils_random as random, utils_textToBytes as textToBytes, utils_toArrayBuffer as toArrayBuffer, utils_trimSlashes as trimSlashes, utils_widgets as widgets };
+}
+
 declare class Logger {
     readonly core: MaplebirchCore;
     private static readonly LogConfig;
@@ -1670,172 +1836,6 @@ declare class DynamicManager {
     Init(): void;
 }
 
-type ContainsMode = 'all' | 'any' | 'none';
-type ContainsOptions = {
-    case?: boolean;
-    compare?: (item: unknown, value: unknown) => boolean;
-    deep?: boolean;
-};
-type CloneOptions = {
-    deep?: boolean;
-    proto?: boolean;
-};
-type MergeMode = 'replace' | 'concat' | 'merge';
-type MergeFilterFn = (key: string, value: any, depth: number, targetValue: any) => boolean;
-type ConvertMode$1 = 'lower' | 'upper' | 'capitalize' | 'title' | 'camel' | 'pascal' | 'snake' | 'kebab' | 'constant';
-declare global {
-    interface ObjectConstructor {
-        merge<T extends object = any>(...sources: any[]): T;
-        append<T extends object = any>(...sources: any[]): T;
-        cover<T extends object = any>(...sources: any[]): T;
-        mergefn<T extends object = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T;
-        appendfn<T extends object = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T;
-        coverfn<T extends object = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T;
-    }
-    interface Array<T> {
-        contains(value: unknown, mode?: ContainsMode, opt?: ContainsOptions): boolean;
-        random(): T | undefined;
-        either(weights?: number[], allowNull?: boolean): T | null | undefined;
-    }
-    interface ArrayConstructor {
-        merge<T = any>(...sources: any[]): T[];
-        append<T = any>(...sources: any[]): T[];
-        cover<T = any>(...sources: any[]): T[];
-        mergefn<T = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T[];
-        appendfn<T = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T[];
-        coverfn<T = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T[];
-    }
-    interface ReadonlyArray<T> {
-        contains(value: unknown, mode?: ContainsMode, opt?: ContainsOptions): boolean;
-        random(): T | undefined;
-        either(weights?: number[], allowNull?: boolean): T | null | undefined;
-    }
-    interface String {
-        contains(value: string, opt?: {
-            case?: boolean;
-        }): boolean;
-        convert(mode?: ConvertMode$1, opt?: {
-            delimiter?: string;
-            acronym?: boolean;
-        }): string;
-    }
-    interface Math {
-        random(): number;
-        random(max: number): number;
-        random(min: number, max: number, float?: boolean): number;
-        clamp(value: any, min: number, max: number, fallback?: number): number;
-    }
-}
-declare function clone(source: any, deep?: boolean, proto?: boolean, map?: WeakMap<object, any>): any;
-declare function equal(a: any, b: any): boolean;
-declare function clamp(value: any, min: number, max: number, fallback?: number): number;
-declare function merge(target: any, ...sources: any[]): any;
-declare function append(target: any, ...sources: any[]): any;
-declare function cover(target: any, ...sources: any[]): any;
-declare function mergeFn(target: any, filterFn: MergeFilterFn | null, ...sources: any[]): any;
-declare function appendFn(target: any, filterFn: MergeFilterFn | null, ...sources: any[]): any;
-declare function coverFn(target: any, filterFn: MergeFilterFn | null, ...sources: any[]): any;
-declare function contains(arr: unknown[], value: unknown, mode?: ContainsMode, opt?: ContainsOptions): boolean;
-declare function random(min?: number, max?: number, float?: boolean): number;
-declare function either(items: any[], weights?: number[] | null, allowNull?: boolean): any;
-declare class SelectCase {
-    private cases;
-    private defaultResult;
-    private valueType;
-    private allowMixedTypes;
-    case(cond: string | number, result: any): this;
-    case(cond: (input: any, meta?: any) => boolean, result: any): this;
-    casePredicate(fn: (input: any, meta?: any) => boolean, result: any): this;
-    caseRange(min: number, max: number, result: any): this;
-    caseIn(values: any[], result: any): this;
-    caseIncludes(subs: string | string[], result: any): this;
-    caseRegex(regex: RegExp, result: any): this;
-    caseCompare(op: '<' | '<=' | '>' | '>=', val: number, result: any): this;
-    else(result: any): this;
-    match(input: any, meta?: any): any;
-    private validateType;
-}
-declare function convert(str: string, mode?: ConvertMode$1, opt?: {
-    delimiter?: string;
-    acronym?: boolean;
-}): string;
-declare function prototypeUtils(): void;
-declare function loadImage(src: string): string | boolean | Promise<string | boolean>;
-declare function widgets(content: string): string;
-declare function widgets(...contents: string[]): string[];
-declare function textToBytes(value: string): Uint8Array;
-declare function bytesToText(bytes: Uint8Array | ArrayBuffer): string;
-declare function jsonToBytes(value: unknown): Uint8Array;
-declare function bytesToJson<T = any>(bytes: Uint8Array | ArrayBuffer): T;
-declare function toArrayBuffer(bytes: Uint8Array): ArrayBuffer;
-declare function normalizeBase64(value: string): string;
-declare function bytesToBase64(bytes: Uint8Array): string;
-declare function base64ToBytes(base64: string): Uint8Array;
-declare function base64ToArrayBuffer(base64: string): ArrayBuffer;
-declare function basicAuth(username: string, password: string): string;
-declare function trimSlashes(value: string): string;
-declare function joinPath(...parts: string[]): string;
-declare function joinEncodedPath(...parts: string[]): string;
-declare function escapeHtmlText(value: string): string;
-declare const publicUtils: Readonly<{
-    clone: typeof clone;
-    equal: typeof equal;
-    merge: typeof merge;
-    append: typeof append;
-    cover: typeof cover;
-    mergefn: typeof mergeFn;
-    appendfn: typeof appendFn;
-    coverfn: typeof coverFn;
-    contains: typeof contains;
-    random: typeof random;
-    either: typeof either;
-    SelectCase: typeof SelectCase;
-    convert: typeof convert;
-    clamp: typeof clamp;
-    loadImage: typeof loadImage;
-}>;
-type PublicUtils = typeof publicUtils;
-
-type utils_CloneOptions = CloneOptions;
-type utils_ContainsMode = ContainsMode;
-type utils_ContainsOptions = ContainsOptions;
-type utils_MergeFilterFn = MergeFilterFn;
-type utils_MergeMode = MergeMode;
-type utils_PublicUtils = PublicUtils;
-type utils_SelectCase = SelectCase;
-declare const utils_SelectCase: typeof SelectCase;
-declare const utils_append: typeof append;
-declare const utils_base64ToArrayBuffer: typeof base64ToArrayBuffer;
-declare const utils_base64ToBytes: typeof base64ToBytes;
-declare const utils_basicAuth: typeof basicAuth;
-declare const utils_bytesToBase64: typeof bytesToBase64;
-declare const utils_bytesToJson: typeof bytesToJson;
-declare const utils_bytesToText: typeof bytesToText;
-declare const utils_clamp: typeof clamp;
-declare const utils_clone: typeof clone;
-declare const utils_contains: typeof contains;
-declare const utils_convert: typeof convert;
-declare const utils_cover: typeof cover;
-declare const utils_either: typeof either;
-declare const utils_equal: typeof equal;
-declare const utils_escapeHtmlText: typeof escapeHtmlText;
-declare const utils_joinEncodedPath: typeof joinEncodedPath;
-declare const utils_joinPath: typeof joinPath;
-declare const utils_jsonToBytes: typeof jsonToBytes;
-declare const utils_loadImage: typeof loadImage;
-declare const utils_merge: typeof merge;
-declare const utils_normalizeBase64: typeof normalizeBase64;
-declare const utils_prototypeUtils: typeof prototypeUtils;
-declare const utils_publicUtils: typeof publicUtils;
-declare const utils_random: typeof random;
-declare const utils_textToBytes: typeof textToBytes;
-declare const utils_toArrayBuffer: typeof toArrayBuffer;
-declare const utils_trimSlashes: typeof trimSlashes;
-declare const utils_widgets: typeof widgets;
-declare namespace utils {
-  export { type utils_CloneOptions as CloneOptions, type utils_ContainsMode as ContainsMode, type utils_ContainsOptions as ContainsOptions, type ConvertMode$1 as ConvertMode, type utils_MergeFilterFn as MergeFilterFn, type utils_MergeMode as MergeMode, type utils_PublicUtils as PublicUtils, utils_SelectCase as SelectCase, utils_append as append, appendFn as appendfn, utils_base64ToArrayBuffer as base64ToArrayBuffer, utils_base64ToBytes as base64ToBytes, utils_basicAuth as basicAuth, utils_bytesToBase64 as bytesToBase64, utils_bytesToJson as bytesToJson, utils_bytesToText as bytesToText, utils_clamp as clamp, utils_clone as clone, utils_contains as contains, utils_convert as convert, utils_cover as cover, coverFn as coverfn, utils_either as either, utils_equal as equal, utils_escapeHtmlText as escapeHtmlText, utils_joinEncodedPath as joinEncodedPath, utils_joinPath as joinPath, utils_jsonToBytes as jsonToBytes, utils_loadImage as loadImage, utils_merge as merge, mergeFn as mergefn, utils_normalizeBase64 as normalizeBase64, utils_prototypeUtils as prototypeUtils, utils_publicUtils as publicUtils, utils_random as random, utils_textToBytes as textToBytes, utils_toArrayBuffer as toArrayBuffer, utils_trimSlashes as trimSlashes, utils_widgets as widgets };
-}
-
 declare class TimeTravelCheat {
     private readonly core;
     private readonly ids;
@@ -2294,7 +2294,6 @@ declare class ToolCollection {
     onInit(...widgets: InitFunction[]): void;
     addTo(zone: string, ...widgets: (string | Function | ZoneWidgetConfig | [number, string | ZoneWidgetConfig])[]): void;
     preInit(): void;
-    get utils(): typeof utils;
 }
 
 type AudioFormat = 'mp3' | 'wav' | 'ogg' | 'm4a' | 'flac' | 'webm';
@@ -2637,7 +2636,7 @@ declare class Character {
     };
     modifyFaceStyle(manager: AddonPlugin): void;
     faceStyleImagePaths(files: Record<string, unknown>): void;
-    private _faceStyleSetupOption;
+    private faceStyleSetupOption;
     modifyCanvasModel(manager: AddonPlugin): void;
     patchCanvasModel<T extends CanvasModelConstructor>(BaseCanvasModel: T): T;
     use(type: ProcessType, handler: ProcessHandler, target?: ModelTarget<CanvasModel>): this;
@@ -3049,7 +3048,23 @@ declare class MaplebirchCore {
         protected: readonly ["addon", "dynamic", "tool", "audio", "var", "char", "npc", "combat", "internals"];
     };
     readonly meta: typeof MaplebirchCore.meta;
-    readonly utils: PublicUtils;
+    readonly utils: Readonly<{
+        clone: typeof clone;
+        equal: typeof equal;
+        merge: typeof merge;
+        append: typeof append;
+        cover: typeof cover;
+        mergefn: typeof mergeFn;
+        appendfn: typeof appendFn;
+        coverfn: typeof coverFn;
+        contains: typeof contains;
+        random: typeof random;
+        either: typeof either;
+        SelectCase: typeof SelectCase;
+        convert: typeof convert;
+        clamp: typeof clamp;
+        loadImage: typeof loadImage;
+    }>;
     modList: string[];
     readonly manager: {
         modSC2DataManager: SC2DataManager;

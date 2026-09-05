@@ -230,8 +230,6 @@ class Character {
     this.log = createlog('char');
     this.pet = new Pet(this);
     this.transformation = new Transformation(this);
-    this.core.on(':language', () => this._faceStyleSetupOption(), 'face style setup options');
-    this.core.tool.onInit(() => this._faceStyleSetupOption());
   }
 
   public get ZIndices() {
@@ -274,7 +272,7 @@ class Character {
     }
   }
 
-  private _faceStyleSetupOption() {
+  private faceStyleSetupOption() {
     const add = (style: string, variant?: string) => {
       const variants = this.faceStyleMap.get(style) ?? [];
       if (variant && !variants.includes(variant)) variants.push(variant);
@@ -303,7 +301,6 @@ class Character {
     for (const [style, variants] of this.faceStyleMap) {
       const styleKey = style === 'default' ? 'traditional' : style;
       styleOptions[label(styleKey).convert('title')] = style;
-      if (!variants.length) continue;
       variantOptions[style] = {};
       for (const variant of variants) {
         const variantKey = variant === 'default' ? 'gentle' : variant;
@@ -432,7 +429,9 @@ class Character {
 
   public preInit() {
     const { core, pet } = this;
+    core.on(':language', () => this.faceStyleSetupOption(), 'face style setup options');
     core.once(':storyready', () => {
+      this.faceStyleSetupOption();
       const macro = core.SugarCube.Macro.get('updatesidebarimg') as MacroDefinition | undefined;
       if (!macro) return;
       core.tool.macro.define('updatesidebarimg', function (this: any) {
