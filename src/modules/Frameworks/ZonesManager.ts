@@ -242,7 +242,7 @@ export class zonesManager {
     if ('position' in widget) return this.render(widget.widget, title);
     if (widget.type === 'function') {
       if (widget.func) this.functions.set(widget.widget, widget.func);
-      return `<<run maplebirch.tool.zone.call(${JSON.stringify(widget.widget)})>>`;
+      return `<<= maplebirch.tool.zone.call(${JSON.stringify(widget.widget)})>>`;
     }
     if (!this.shouldRender(widget, title)) return '';
     return widget.widget ? `<<${widget.widget}>>` : '';

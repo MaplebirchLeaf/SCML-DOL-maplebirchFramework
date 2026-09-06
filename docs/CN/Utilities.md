@@ -333,7 +333,6 @@ if (result) {
 
 ```javascript
 const bytes = textToBytes('hello');
-const text = bytesToText(bytes);
 
 const jsonBytes = jsonToBytes({ ok: true });
 const data = bytesToJson(jsonBytes);
@@ -346,20 +345,16 @@ const buffer = base64ToArrayBuffer(base64);
 | 函数                          | 说明                                     |
 | :---------------------------- | :--------------------------------------- |
 | `textToBytes(text)`           | 字符串转 `Uint8Array`                    |
-| `bytesToText(bytes)`          | `Uint8Array` / `ArrayBuffer` 转字符串    |
 | `jsonToBytes(value)`          | JSON 数据转字节                          |
 | `bytesToJson(bytes)`          | 字节转 JSON 数据                         |
 | `toArrayBuffer(bytes)`        | 从 `Uint8Array` 截取准确的 `ArrayBuffer` |
 | `bytesToBase64(bytes)`        | 字节转 Base64                            |
 | `base64ToBytes(base64)`       | Base64 转字节                            |
 | `base64ToArrayBuffer(base64)` | Base64 转 `ArrayBuffer`                  |
-| `normalizeBase64(base64)`     | 修正 URL-safe Base64 和补齐 `=`          |
 
 ## 路径与文本工具
 
 ```javascript
-trimSlashes('/a/b/'); // a/b
-joinPath('/cloud/', '/slot/', '1'); // cloud/slot/1
 joinEncodedPath('user name', 'slot 1'); // user%20name/slot%201
 escapeHtmlText('<b>text</b>'); // &lt;b&gt;text&lt;/b&gt;
 ```
@@ -367,8 +362,6 @@ escapeHtmlText('<b>text</b>'); // &lt;b&gt;text&lt;/b&gt;
 | 函数                            | 说明                               |
 | :------------------------------ | :--------------------------------- |
 | `basicAuth(username, password)` | 生成 Basic Auth 的 Base64 凭据部分 |
-| `trimSlashes(value)`            | 去掉路径两端斜杠                   |
-| `joinPath(...parts)`            | 拼接普通路径                       |
 | `joinEncodedPath(...parts)`     | 拼接并编码路径                     |
 | `escapeHtmlText(value)`         | 转义 HTML 文本                     |
 

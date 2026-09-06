@@ -417,7 +417,7 @@ class Character {
       })
       .map(({ handler }) => handler);
     if (handlers.length === 0) return;
-    this.core.var.optionsCheck();
+    this.core.var.check();
     for (const handler of handlers) {
       try {
         handler(options, model);

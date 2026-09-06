@@ -1,3 +1,12 @@
+##### (v.4.2.8更新日志):
+
+- **utils 工具库模块化**：将单体 `src/utils.ts` 拆分为 `src/utils/` 下按用途划分的 10 个模块（`object`/`array`/`string`/`binary`/`path`/`selector`/`image`/`prototype`/`shared`/`index`），删除旧单体文件，由 `src/utils/index.ts` 统一导出，全部调用方自动切换到新模块。
+- 精简 utils 导出面：只保留实际被引用的函数与类型；移除无人使用的类型/函数导出（如 `CloneOptions`、`joinPath` 等），`TextEncoder`/`TextDecoder`、`bytesToText`、`normalizeBase64`、`trimSlashes` 等仅内部使用的实现不再对外暴露。
+- 消除函数冗余：`clamp`、`widgets` 等改为单一定义多处复用；`Object`/`Array`/`String`/`Math` 原型扩展与全局类型声明集中到 `src/utils/prototype.ts`，运行时 API（`maplebirch.utils`、全局函数、原型/静态方法）保持不变。
+- **框架选项注册**：`Variables` 支持 `define()` 注册模块默认选项，选项统一并入 `V.options.maplebirch`，合并前先克隆默认值避免污染，并提供独立的 Options 管理。
+- **翻译文本反查优化**：`LanguageManager` 移除 `findLoadedText`/`findTextInDB` 的逐条扫描，改为预加载与写入翻译时同步维护文本反查索引，`auto()` 直接查缓存定位翻译键。
+- 函数型 Zone 条目渲染由 `<<run>>` 改为 `<<=>>` 直接输出调用结果；模块管理界面调整禁用/启用按钮的排列顺序。
+
 ##### (v.4.2.7更新日志):
 
 - 调整 **faceStyle 面部选项初始化时机**：`setup.faceStyleOptions`/`faceVariantOptions` 改为在故事就绪（storyready）时生成，确保已扫描的 `img/face` 风格与变体正确生效，并同步更新类型声明。

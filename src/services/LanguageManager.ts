@@ -163,12 +163,8 @@ class LanguageManager {
 
   public auto(text: string): string {
     if (!text) return text;
-    const cachedKey = this.textCache.get(text);
-    if (cachedKey) return this.t(cachedKey);
-    const result = this.findLoadedText(text);
-    if (result) return result;
-    void this.findTextInDB(text);
-    return text;
+    const key = this.textCache.get(text);
+    return key ? this.t(key) : text;
   }
 
   public async preload(): Promise<void> {
@@ -176,7 +172,10 @@ class LanguageManager {
     await this.loadBundledTranslations();
     try {
       const records = await this.core.idb.withTransaction([this.STORE], 'readonly', async (tx: any) => await tx.objectStore(this.STORE).index('bucket').getAll('translation'));
-      for (const record of records as TranslationRecord[]) this.translations.set(record.translationKey, record.translations);
+      for (const record of records as TranslationRecord[]) {
+        this.translations.set(record.translationKey, record.translations);
+        for (const value of Object.values(record.translations)) if (typeof value === 'string') this.textCache.set(value, record.translationKey);
+      }
       this.preloaded = true;
       this.core.logger.log(`预加载完成: ${records.length} 条`, 'DEBUG');
     } catch (error: any) {
@@ -248,7 +247,7 @@ class LanguageManager {
       ...this.translations.get(translationKey),
       ...normalized
     });
-    this.textCache.clear();
+    for (const value of Object.values(normalized)) if (typeof value === 'string') this.textCache.set(value, translationKey);
     return true;
   }
 
@@ -452,45 +451,6 @@ class LanguageManager {
     } catch (error: any) {
       this.core.logger.log(`加载翻译失败: ${translationKey} - ${error.message}`, 'DEBUG');
       return false;
-    }
-  }
-
-  private findLoadedText(text: string): string | null {
-    for (const [translationKey, translations] of this.translations) {
-      if (translations[this.language] === text) {
-        this.textCache.set(text, translationKey);
-        return text;
-      }
-      for (const value of Object.values(translations)) {
-        if (value !== text) continue;
-        this.textCache.set(text, translationKey);
-        return this.t(translationKey);
-      }
-    }
-    return null;
-  }
-
-  private async findTextInDB(text: string): Promise<string | null> {
-    try {
-      const records = await this.core.idb.withTransaction([this.STORE], 'readonly', async (tx: any) => await tx.objectStore(this.STORE).index('bucket').getAll('translation'));
-      for (const record of records as TranslationRecord[]) {
-        const translations = record.translations;
-        if (translations[this.language] === text) {
-          this.translations.set(record.translationKey, translations);
-          this.textCache.set(text, record.translationKey);
-          return record.translationKey;
-        }
-        for (const value of Object.values(translations)) {
-          if (value !== text) continue;
-          this.translations.set(record.translationKey, translations);
-          this.textCache.set(text, record.translationKey);
-          return record.translationKey;
-        }
-      }
-      return null;
-    } catch (error: any) {
-      this.core.logger.log(`反查翻译失败: ${text} - ${error.message}`, 'DEBUG');
-      return null;
     }
   }
 

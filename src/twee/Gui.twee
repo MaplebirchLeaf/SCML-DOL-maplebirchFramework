@@ -23,8 +23,8 @@
 						{{typeLabel(module.type)}} {{module.name}} [{{module.source || module.type}}]
 					</div>
 				</div>
-				<input type='button' value='{{t($ctrl.data.text.DisableModule)}}' ng-click="toggleModule('disable')" class='theme-button' />
 				<input type='button' value='{{t($ctrl.data.text.EnableModule)}}' ng-click="toggleModule('enable')" class='theme-button' />
+				<input type='button' value='{{t($ctrl.data.text.DisableModule)}}' ng-click="toggleModule('disable')" class='theme-button' />
 				<div class='module-list-disabled'>
 					<div ng-repeat='module in $ctrl.data.disabledModules track by $index' ng-click="selectModule($index, 'disabled')" ng-class="{'selected': selectedDisabledModule === $index}">
 						{{typeLabel(module.type)}} {{module.name}} [{{module.source || module.type}}]

@@ -1154,19 +1154,67 @@ declare global {
   }
 }
 
+type MergeFilterFn = (key: string, value: any, depth: number, targetValue: any) => boolean;
+declare function clone(source: any, deep?: boolean, proto?: boolean, map?: WeakMap<object, any>): any;
+declare function equal(a: any, b: any): boolean;
+declare function merge(target: any, ...sources: any[]): any;
+declare function append(target: any, ...sources: any[]): any;
+declare function cover(target: any, ...sources: any[]): any;
+declare function mergeFn(target: any, filterFn: MergeFilterFn | null, ...sources: any[]): any;
+declare function appendFn(target: any, filterFn: MergeFilterFn | null, ...sources: any[]): any;
+declare function coverFn(target: any, filterFn: MergeFilterFn | null, ...sources: any[]): any;
+
 type ContainsMode = 'all' | 'any' | 'none';
 type ContainsOptions = {
     case?: boolean;
     compare?: (item: unknown, value: unknown) => boolean;
     deep?: boolean;
 };
-type CloneOptions = {
-    deep?: boolean;
-    proto?: boolean;
-};
-type MergeMode = 'replace' | 'concat' | 'merge';
-type MergeFilterFn = (key: string, value: any, depth: number, targetValue: any) => boolean;
+declare function contains(array: readonly unknown[], value: unknown, mode?: ContainsMode, options?: ContainsOptions): boolean;
+declare function randomNumber(min?: number, max?: number, float?: boolean): number;
+declare function randomPick<T>(items: readonly T[], weights?: readonly number[] | null, allowNull?: boolean): T | null | undefined;
+declare function clamp(value: any, min: number, max: number, fallback?: number): number;
+
 type ConvertMode$1 = 'lower' | 'upper' | 'capitalize' | 'title' | 'camel' | 'pascal' | 'snake' | 'kebab' | 'constant';
+declare function convert(value: string, mode?: ConvertMode$1, options?: {
+    delimiter?: string;
+    acronym?: boolean;
+}): string;
+declare function escapeHtmlText(value: string): string;
+declare function widgets(content: string): string;
+declare function widgets(...contents: string[]): string[];
+
+declare function textToBytes(value: string): Uint8Array;
+declare function jsonToBytes(value: unknown): Uint8Array;
+declare function bytesToJson<T = any>(bytes: Uint8Array | ArrayBuffer): T;
+declare function toArrayBuffer(bytes: Uint8Array): ArrayBuffer;
+declare function bytesToBase64(bytes: Uint8Array): string;
+declare function base64ToBytes(value: string): Uint8Array;
+declare function base64ToArrayBuffer(value: string): ArrayBuffer;
+declare function basicAuth(username: string, password: string): string;
+
+declare function joinEncodedPath(...parts: string[]): string;
+
+declare class SelectCase {
+    private cases;
+    private defaultResult;
+    private valueType;
+    private allowMixedTypes;
+    case(condition: string | number, result: any): this;
+    case(condition: (input: any, meta?: any) => boolean, result: any): this;
+    casePredicate(fn: (input: any, meta?: any) => boolean, result: any): this;
+    caseRange(min: number, max: number, result: any): this;
+    caseIn(values: any[], result: any): this;
+    caseIncludes(values: string | string[], result: any): this;
+    caseRegex(regex: RegExp, result: any): this;
+    caseCompare(operator: '<' | '<=' | '>' | '>=', value: number, result: any): this;
+    else(result: any): this;
+    match(input: any, meta?: any): any;
+    private validateType;
+}
+
+declare function loadImage(src: string): string | boolean | Promise<string | boolean>;
+
 declare global {
     interface ObjectConstructor {
         merge<T extends object = any>(...sources: any[]): T;
@@ -1177,7 +1225,7 @@ declare global {
         coverfn<T extends object = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T;
     }
     interface Array<T> {
-        contains(value: unknown, mode?: ContainsMode, opt?: ContainsOptions): boolean;
+        contains(value: unknown, mode?: ContainsMode, options?: ContainsOptions): boolean;
         random(): T | undefined;
         either(weights?: number[], allowNull?: boolean): T | null | undefined;
     }
@@ -1190,15 +1238,15 @@ declare global {
         coverfn<T = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T[];
     }
     interface ReadonlyArray<T> {
-        contains(value: unknown, mode?: ContainsMode, opt?: ContainsOptions): boolean;
+        contains(value: unknown, mode?: ContainsMode, options?: ContainsOptions): boolean;
         random(): T | undefined;
         either(weights?: number[], allowNull?: boolean): T | null | undefined;
     }
     interface String {
-        contains(value: string, opt?: {
+        contains(value: string, options?: {
             case?: boolean;
         }): boolean;
-        convert(mode?: ConvertMode$1, opt?: {
+        convert(mode?: ConvertMode$1, options?: {
             delimiter?: string;
             acronym?: boolean;
         }): string;
@@ -1210,57 +1258,8 @@ declare global {
         clamp(value: any, min: number, max: number, fallback?: number): number;
     }
 }
-declare function clone(source: any, deep?: boolean, proto?: boolean, map?: WeakMap<object, any>): any;
-declare function equal(a: any, b: any): boolean;
-declare function clamp(value: any, min: number, max: number, fallback?: number): number;
-declare function merge(target: any, ...sources: any[]): any;
-declare function append(target: any, ...sources: any[]): any;
-declare function cover(target: any, ...sources: any[]): any;
-declare function mergeFn(target: any, filterFn: MergeFilterFn | null, ...sources: any[]): any;
-declare function appendFn(target: any, filterFn: MergeFilterFn | null, ...sources: any[]): any;
-declare function coverFn(target: any, filterFn: MergeFilterFn | null, ...sources: any[]): any;
-declare function contains(arr: unknown[], value: unknown, mode?: ContainsMode, opt?: ContainsOptions): boolean;
-declare function random(min?: number, max?: number, float?: boolean): number;
-declare function either(items: any[], weights?: number[] | null, allowNull?: boolean): any;
-declare class SelectCase {
-    private cases;
-    private defaultResult;
-    private valueType;
-    private allowMixedTypes;
-    case(cond: string | number, result: any): this;
-    case(cond: (input: any, meta?: any) => boolean, result: any): this;
-    casePredicate(fn: (input: any, meta?: any) => boolean, result: any): this;
-    caseRange(min: number, max: number, result: any): this;
-    caseIn(values: any[], result: any): this;
-    caseIncludes(subs: string | string[], result: any): this;
-    caseRegex(regex: RegExp, result: any): this;
-    caseCompare(op: '<' | '<=' | '>' | '>=', val: number, result: any): this;
-    else(result: any): this;
-    match(input: any, meta?: any): any;
-    private validateType;
-}
-declare function convert(str: string, mode?: ConvertMode$1, opt?: {
-    delimiter?: string;
-    acronym?: boolean;
-}): string;
 declare function prototypeUtils(): void;
-declare function loadImage(src: string): string | boolean | Promise<string | boolean>;
-declare function widgets(content: string): string;
-declare function widgets(...contents: string[]): string[];
-declare function textToBytes(value: string): Uint8Array;
-declare function bytesToText(bytes: Uint8Array | ArrayBuffer): string;
-declare function jsonToBytes(value: unknown): Uint8Array;
-declare function bytesToJson<T = any>(bytes: Uint8Array | ArrayBuffer): T;
-declare function toArrayBuffer(bytes: Uint8Array): ArrayBuffer;
-declare function normalizeBase64(value: string): string;
-declare function bytesToBase64(bytes: Uint8Array): string;
-declare function base64ToBytes(base64: string): Uint8Array;
-declare function base64ToArrayBuffer(base64: string): ArrayBuffer;
-declare function basicAuth(username: string, password: string): string;
-declare function trimSlashes(value: string): string;
-declare function joinPath(...parts: string[]): string;
-declare function joinEncodedPath(...parts: string[]): string;
-declare function escapeHtmlText(value: string): string;
+
 declare const publicUtils: Readonly<{
     clone: typeof clone;
     equal: typeof equal;
@@ -1271,53 +1270,40 @@ declare const publicUtils: Readonly<{
     appendfn: typeof appendFn;
     coverfn: typeof coverFn;
     contains: typeof contains;
-    random: typeof random;
-    either: typeof either;
+    random: typeof randomNumber;
+    either: typeof randomPick;
     SelectCase: typeof SelectCase;
     convert: typeof convert;
     clamp: typeof clamp;
     loadImage: typeof loadImage;
 }>;
-type PublicUtils = typeof publicUtils;
 
-type utils_CloneOptions = CloneOptions;
-type utils_ContainsMode = ContainsMode;
-type utils_ContainsOptions = ContainsOptions;
-type utils_MergeFilterFn = MergeFilterFn;
-type utils_MergeMode = MergeMode;
-type utils_PublicUtils = PublicUtils;
-type utils_SelectCase = SelectCase;
-declare const utils_SelectCase: typeof SelectCase;
-declare const utils_append: typeof append;
-declare const utils_base64ToArrayBuffer: typeof base64ToArrayBuffer;
-declare const utils_base64ToBytes: typeof base64ToBytes;
-declare const utils_basicAuth: typeof basicAuth;
-declare const utils_bytesToBase64: typeof bytesToBase64;
-declare const utils_bytesToJson: typeof bytesToJson;
-declare const utils_bytesToText: typeof bytesToText;
-declare const utils_clamp: typeof clamp;
-declare const utils_clone: typeof clone;
-declare const utils_contains: typeof contains;
-declare const utils_convert: typeof convert;
-declare const utils_cover: typeof cover;
-declare const utils_either: typeof either;
-declare const utils_equal: typeof equal;
-declare const utils_escapeHtmlText: typeof escapeHtmlText;
-declare const utils_joinEncodedPath: typeof joinEncodedPath;
-declare const utils_joinPath: typeof joinPath;
-declare const utils_jsonToBytes: typeof jsonToBytes;
-declare const utils_loadImage: typeof loadImage;
-declare const utils_merge: typeof merge;
-declare const utils_normalizeBase64: typeof normalizeBase64;
-declare const utils_prototypeUtils: typeof prototypeUtils;
-declare const utils_publicUtils: typeof publicUtils;
-declare const utils_random: typeof random;
-declare const utils_textToBytes: typeof textToBytes;
-declare const utils_toArrayBuffer: typeof toArrayBuffer;
-declare const utils_trimSlashes: typeof trimSlashes;
-declare const utils_widgets: typeof widgets;
-declare namespace utils {
-  export { type utils_CloneOptions as CloneOptions, type utils_ContainsMode as ContainsMode, type utils_ContainsOptions as ContainsOptions, type ConvertMode$1 as ConvertMode, type utils_MergeFilterFn as MergeFilterFn, type utils_MergeMode as MergeMode, type utils_PublicUtils as PublicUtils, utils_SelectCase as SelectCase, utils_append as append, appendFn as appendfn, utils_base64ToArrayBuffer as base64ToArrayBuffer, utils_base64ToBytes as base64ToBytes, utils_basicAuth as basicAuth, utils_bytesToBase64 as bytesToBase64, utils_bytesToJson as bytesToJson, utils_bytesToText as bytesToText, utils_clamp as clamp, utils_clone as clone, utils_contains as contains, utils_convert as convert, utils_cover as cover, coverFn as coverfn, utils_either as either, utils_equal as equal, utils_escapeHtmlText as escapeHtmlText, utils_joinEncodedPath as joinEncodedPath, utils_joinPath as joinPath, utils_jsonToBytes as jsonToBytes, utils_loadImage as loadImage, utils_merge as merge, mergeFn as mergefn, utils_normalizeBase64 as normalizeBase64, utils_prototypeUtils as prototypeUtils, utils_publicUtils as publicUtils, utils_random as random, utils_textToBytes as textToBytes, utils_toArrayBuffer as toArrayBuffer, utils_trimSlashes as trimSlashes, utils_widgets as widgets };
+type index_SelectCase = SelectCase;
+declare const index_SelectCase: typeof SelectCase;
+declare const index_append: typeof append;
+declare const index_base64ToArrayBuffer: typeof base64ToArrayBuffer;
+declare const index_base64ToBytes: typeof base64ToBytes;
+declare const index_basicAuth: typeof basicAuth;
+declare const index_bytesToBase64: typeof bytesToBase64;
+declare const index_bytesToJson: typeof bytesToJson;
+declare const index_clamp: typeof clamp;
+declare const index_clone: typeof clone;
+declare const index_contains: typeof contains;
+declare const index_convert: typeof convert;
+declare const index_cover: typeof cover;
+declare const index_equal: typeof equal;
+declare const index_escapeHtmlText: typeof escapeHtmlText;
+declare const index_joinEncodedPath: typeof joinEncodedPath;
+declare const index_jsonToBytes: typeof jsonToBytes;
+declare const index_loadImage: typeof loadImage;
+declare const index_merge: typeof merge;
+declare const index_prototypeUtils: typeof prototypeUtils;
+declare const index_publicUtils: typeof publicUtils;
+declare const index_textToBytes: typeof textToBytes;
+declare const index_toArrayBuffer: typeof toArrayBuffer;
+declare const index_widgets: typeof widgets;
+declare namespace index {
+  export { index_SelectCase as SelectCase, index_append as append, appendFn as appendfn, index_base64ToArrayBuffer as base64ToArrayBuffer, index_base64ToBytes as base64ToBytes, index_basicAuth as basicAuth, index_bytesToBase64 as bytesToBase64, index_bytesToJson as bytesToJson, index_clamp as clamp, index_clone as clone, index_contains as contains, index_convert as convert, index_cover as cover, coverFn as coverfn, randomPick as either, index_equal as equal, index_escapeHtmlText as escapeHtmlText, index_joinEncodedPath as joinEncodedPath, index_jsonToBytes as jsonToBytes, index_loadImage as loadImage, index_merge as merge, mergeFn as mergefn, index_prototypeUtils as prototypeUtils, index_publicUtils as publicUtils, randomNumber as random, index_textToBytes as textToBytes, index_toArrayBuffer as toArrayBuffer, index_widgets as widgets };
 }
 
 declare class Logger {
@@ -1523,8 +1509,6 @@ declare class LanguageManager {
     private writeFileRecord;
     private loadFileTranslations;
     private loadTranslation;
-    private findLoadedText;
-    private findTextInDB;
     private parseTranslations;
     private computeHash;
     private getModFile;
@@ -2448,62 +2432,23 @@ declare class AudioManager {
     private emit;
 }
 
-interface HairGradientsReturn {
-    fringe: Record<string, string[]>;
-    sides: Record<string, string[]>;
+declare class Options {
+    define(...args: any[]): any;
 }
 declare class Variables {
     readonly core: MaplebirchCore;
     private static readonly OPTIONS_STORAGE_KEY;
-    static get options(): {
-        character: {
-            mask: number;
-            rotation: number;
-            pet: {
-                enabled: boolean;
-                mask: number;
-                rotation: number;
-                scale: number;
-            };
-            charArt: {
-                type: "fringe";
-                select: string;
-                value: any;
-            };
-            closeUp: {
-                type: "fringe";
-                select: string;
-                value: any;
-            };
-        };
-        npcsidebar: {
-            show: boolean;
-            model: boolean;
-            position: "back";
-            dxfn: number;
-            dyfn: number;
-            skin_type: string;
-            tan: number;
-            facestyle: string;
-            facevariant: string;
-            freckles: boolean;
-            ears: string;
-            mask: number;
-            rotation: number;
-            nnpc: boolean;
-            display: {};
-        };
-        relationcount: number;
-    };
+    private static moduleOptions;
+    static add<T extends object>(key: string, options: T): void;
+    static get options(): Record<string, any>;
     version: string;
     readonly tool: MaplebirchCore['tool'];
     readonly log: ReturnType<typeof createlog>;
     readonly migration: migration;
-    hairgradients: () => HairGradientsReturn;
+    readonly options: Options;
     constructor(core: MaplebirchCore);
-    private mapProcessing;
     optionsStorage(action: 'save' | 'restore' | 'reset' | 'load'): any | null;
-    optionsCheck(): void;
+    check(): void;
     Init(): void;
     loadInit(): void;
     postInit(): void;
@@ -3058,8 +3003,8 @@ declare class MaplebirchCore {
         appendfn: typeof appendFn;
         coverfn: typeof coverFn;
         contains: typeof contains;
-        random: typeof random;
-        either: typeof either;
+        random: typeof randomNumber;
+        either: typeof randomPick;
         SelectCase: typeof SelectCase;
         convert: typeof convert;
         clamp: typeof clamp;
@@ -3247,4 +3192,4 @@ declare class AddonPlugin {
     private saveHandle;
 }
 
-export { type Extensions, MaplebirchCore, maplebirch as default, utils };
+export { type Extensions, MaplebirchCore, maplebirch as default, index as utils };

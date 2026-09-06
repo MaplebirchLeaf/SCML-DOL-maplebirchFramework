@@ -17,6 +17,29 @@ function dataUpdate(migration: migration): void {
   migration.add('*', version, (data, utils) => utils.fill(data, clone(defaults)));
 }
 
+type OptionsData = Record<string, any>;
+
+class Options {
+  public define(...args: any[]) {
+    const options = ((V.options ??= {}).maplebirch ??= {}) as OptionsData;
+    const defaults = args.pop();
+    if (defaults == null) return;
+
+    if (typeof defaults !== 'object') {
+      options[args[0]] = defaults;
+      return defaults;
+    }
+
+    if (args.length) {
+      for (const key of args) if (key in defaults) options[key] = Object.merge(defaults[key], options[key] ?? {});
+      return options;
+    }
+
+    Object.assign(options, defaults);
+    return options;
+  }
+}
+
 interface Color {
   [0]: string;
   [key: number]: any;
@@ -44,60 +67,62 @@ function hairgradients(): HairGradientsReturn {
 
 class Variables {
   private static readonly OPTIONS_STORAGE_KEY = 'maplebirchFrameworkOptions';
+  private static moduleOptions: OptionsData = {};
+
+  public static add<T extends object>(key: string, options: T) {
+    this.moduleOptions[key] = {
+      ...this.moduleOptions[key],
+      ...options
+    };
+  }
 
   // prettier-ignore
-  public static get options() {
-		return {
-			character: {
-				mask     : 0,
+  public static get options(): Record<string, any> {
+    return {
+      character: {
+        mask     : 0,
         rotation : 0,
-				pet      : { enabled: false, mask: 25, rotation: 0, scale: 1 },
-				charArt  : { type: 'fringe' as const, select: 'low-ombre', value: clone(hairgradients()) },
-				closeUp  : { type: 'fringe' as const, select: 'low-ombre', value: clone(hairgradients()) },
-			},
-			npcsidebar: {
-				show     : false,
-				model    : false,
-				position : 'back' as const,
-				dxfn     : -48,
-				dyfn     : -8,
-				skin_type: 'light',
-				tan      : 0,
-				facestyle: 'default',
-				facevariant: 'default',
-				freckles : false,
-				ears     : 'back',
-				mask     : 30,
-        rotation : 0,
-				nnpc     : false,
-				display  : {}
-			},
-			relationcount: 4
-		};
-	}
+        pet      : { enabled: false, mask: 25, rotation: 0, scale: 1 },
+        charArt  : { type: 'fringe' as const, select: 'low-ombre', value: clone(hairgradients()) },
+        closeUp  : { type: 'fringe' as const, select: 'low-ombre', value: clone(hairgradients()) },
+      },
+      npcsidebar: {
+        show       : false,
+        model      : false,
+        position   : 'back' as const,
+        dxfn       : -48,
+        dyfn       : -8,
+        skin_type  : 'light',
+        tan        : 0,
+        facestyle  : 'default',
+        facevariant: 'default',
+        freckles   : false,
+        ears       : 'back',
+        mask       : 30,
+        rotation   : 0,
+        nnpc       : false,
+        display    : {}
+      },
+      relationcount: 4,
+
+      ...clone(this.moduleOptions)
+    };
+  }
 
   public version: string;
   public readonly tool: MaplebirchCore['tool'];
   public readonly log: ReturnType<typeof createlog>;
   public readonly migration: migration;
-  public hairgradients: () => HairGradientsReturn;
-
-  public constructor(readonly core: MaplebirchCore) {
+  public readonly options: Options;
+  constructor(readonly core: MaplebirchCore) {
     this.version = version;
     this.tool = this.core.tool;
     this.log = createlog('var');
     this.migration = new this.tool.migration();
-    this.hairgradients = hairgradients;
+    this.options = new Options();
     dataUpdate(this.migration);
-    this.core.once(':passageend', () => this.optionsCheck());
-    this.core.on(':rest-options', () => this.optionsCheck());
-  }
-
-  private mapProcessing() {
-    Object.defineProperty(V.maplebirch.player, 'clothing', {
-      get: () => V.worn,
-      set: () => maplebirch.log('V.maplebirch.player.clothing 是 V.worn 的只读镜像。请直接修改 V.worn', 'WARN')
-    });
+    this.core.once(':passageend', () => this.check());
+    this.core.on(':rest-options', () => this.check());
   }
 
   public optionsStorage(action: 'save' | 'restore' | 'reset' | 'load'): any | null {
@@ -120,7 +145,7 @@ class Variables {
 
       if (action === 'restore' && saved) {
         V.options.maplebirch = saved;
-        this.optionsCheck();
+        this.check();
       }
 
       return saved;
@@ -130,10 +155,10 @@ class Variables {
     }
   }
 
-  public optionsCheck() {
+  public check() {
     V.options ??= {};
     const current = this.core.lodash.isPlainObject(V.options.maplebirch) ? V.options.maplebirch : this.optionsStorage('load');
-    V.options.maplebirch = Object.merge(Variables.options, current ?? {});
+    V.options.maplebirch = Object.merge(clone(Variables.options), current ?? {});
   }
 
   public Init(): void {
@@ -151,7 +176,7 @@ class Variables {
   public loadInit() {
     try {
       V.maplebirch ??= {};
-      this.optionsCheck();
+      this.check();
       this.migration.run(V.maplebirch, this.version);
       $.wiki('<<maplebirchState>>');
     } catch (e: any) {
@@ -161,7 +186,6 @@ class Variables {
 
   public postInit() {
     if (V.maplebirch?.version !== this.version) this.migration.run(V.maplebirch, this.version);
-    this.mapProcessing();
   }
 }
 

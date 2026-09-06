@@ -326,7 +326,6 @@ These helpers are useful for cloud saves, import/export, compression, and networ
 
 ```javascript
 const bytes = textToBytes('hello');
-const text = bytesToText(bytes);
 
 const jsonBytes = jsonToBytes({ ok: true });
 const data = bytesToJson(jsonBytes);
@@ -339,20 +338,16 @@ const buffer = base64ToArrayBuffer(base64);
 | Function                      | Description                                    |
 | :---------------------------- | :--------------------------------------------- |
 | `textToBytes(text)`           | Convert string to `Uint8Array`                 |
-| `bytesToText(bytes)`          | Convert `Uint8Array` / `ArrayBuffer` to string |
 | `jsonToBytes(value)`          | Convert JSON data to bytes                     |
 | `bytesToJson(bytes)`          | Convert bytes to JSON data                     |
 | `toArrayBuffer(bytes)`        | Slice an exact `ArrayBuffer` from `Uint8Array` |
 | `bytesToBase64(bytes)`        | Convert bytes to Base64                        |
 | `base64ToBytes(base64)`       | Convert Base64 to bytes                        |
 | `base64ToArrayBuffer(base64)` | Convert Base64 to `ArrayBuffer`                |
-| `normalizeBase64(base64)`     | Normalize URL-safe Base64 and padding          |
 
 ## Path and Text Helpers
 
 ```javascript
-trimSlashes('/a/b/'); // a/b
-joinPath('/cloud/', '/slot/', '1'); // cloud/slot/1
 joinEncodedPath('user name', 'slot 1'); // user%20name/slot%201
 escapeHtmlText('<b>text</b>'); // &lt;b&gt;text&lt;/b&gt;
 ```
@@ -360,8 +355,6 @@ escapeHtmlText('<b>text</b>'); // &lt;b&gt;text&lt;/b&gt;
 | Function                        | Description                                        |
 | :------------------------------ | :------------------------------------------------- |
 | `basicAuth(username, password)` | Generate the Base64 credential part for Basic Auth |
-| `trimSlashes(value)`            | Remove leading and trailing path slashes           |
-| `joinPath(...parts)`            | Join plain path parts                              |
 | `joinEncodedPath(...parts)`     | Join and encode path parts                         |
 | `escapeHtmlText(value)`         | Escape HTML text                                   |
 
