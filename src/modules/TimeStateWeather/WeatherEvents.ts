@@ -3,7 +3,7 @@
 import maplebirch from '../../core';
 import { append, cover, merge } from '../../utils';
 import type AddonPlugin from '../AddonPlugin';
-import type { Replacement } from '../AddonPluginProcess';
+import type { Replacement } from '../../utils/twine';
 import type DynamicManager from '../Dynamic';
 
 export interface WeatherEventOptions {

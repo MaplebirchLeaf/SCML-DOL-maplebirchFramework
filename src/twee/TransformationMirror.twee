@@ -16,12 +16,15 @@
 <<widget 'maplebirchTransformationPartSelect'>>
   <<set $_modTransformation to _args[0]>>
   <<set $_partName to _args[1]>>
+  <<set $_config to maplebirch.char.transformation.config.get($_modTransformation)>>
+  <<set $_partConfig to $_config.parts.find(part => part.name === $_partName)>>
+  <<set $_defaultValue to $_partConfig?.default || 'default'>>
   <<set $_varPath to '$transformationParts.' + $_modTransformation + '.' + $_partName>>
   <div class='tf-part-item'>
     <<= maplebirch.t(String($_partName)).convert('title')>>：
-    <<lanListbox $_varPath autoselect>>
+    <<lanListbox $_varPath autoselect class:macro-listbox>>
       <<option 'hidden' 'hidden'>>
-      <<option 'default' 'default'>>
+      <<option 'default' $_defaultValue>>
     <</lanListbox>>
   </div>
 <</widget>>

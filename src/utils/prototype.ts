@@ -24,7 +24,6 @@ declare global {
 
   interface Array<T> {
     contains(value: unknown, mode?: ContainsMode, options?: ContainsOptions): boolean;
-    random(): T | undefined;
     either(weights?: number[], allowNull?: boolean): T | null | undefined;
   }
 
@@ -32,14 +31,10 @@ declare global {
     merge<T = any>(...sources: any[]): T[];
     append<T = any>(...sources: any[]): T[];
     cover<T = any>(...sources: any[]): T[];
-    mergefn<T = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T[];
-    appendfn<T = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T[];
-    coverfn<T = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T[];
   }
 
   interface ReadonlyArray<T> {
     contains(value: unknown, mode?: ContainsMode, options?: ContainsOptions): boolean;
-    random(): T | undefined;
     either(weights?: number[], allowNull?: boolean): T | null | undefined;
   }
 
@@ -98,18 +93,10 @@ export function prototypeUtils(): void {
     definePrototype(Object, name, function (filterFn: any, ...sources: any[]) {
       return fn({}, filterFn, ...sources);
     });
-
-    definePrototype(Array, name, function (filterFn: any, ...sources: any[]) {
-      return fn([], filterFn, ...sources);
-    });
   }
 
   definePrototype(Array.prototype, 'contains', function (this: unknown[], value: unknown, mode: ContainsMode = 'any', options: ContainsOptions = {}) {
     return contains(this, value, mode, options);
-  });
-
-  definePrototype(Array.prototype, 'random', function (this: unknown[]) {
-    return randomPick(this);
   });
 
   definePrototype(Array.prototype, 'either', function (this: unknown[], weights?: number[], allowNull = false) {

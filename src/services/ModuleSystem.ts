@@ -3,20 +3,45 @@
 import { ModuleState } from '../constants';
 import type { MaplebirchCore } from '../core';
 
+interface Module {
+  dependencies?: string[];
+  exposed?: boolean;
+  preInit?(): void | Promise<void>;
+  Init?(): void;
+  loadInit?(): void;
+  postInit?(): void;
+  [key: string]: unknown;
+}
+
 interface ModuleRegistry {
-  modules: Map<string, any>;
+  modules: Map<string, Module>;
   states: Map<string, string | number>;
   sources: Map<string, string>;
   dependencies: Map<string, Set<string>>;
   dependents: Map<string, Set<string>>;
-  allDependencies: Map<string, Set<string>>;
-  waitingQueue: Map<string, Set<string>>;
 }
 
-interface InitPhase {
-  preInitCompleted: boolean;
-  mainInitCompleted: boolean;
+interface DependencyInfo {
+  protected: boolean;
+  mounted: boolean;
+  early: boolean;
+  exposed: boolean;
+  lifecycle: boolean;
+  dependencies: string[];
+  dependents: string[];
+  allDependencies: string[];
+  state: string;
+  source: string;
 }
+
+interface ModuleSettings {
+  value?: {
+    disabled?: Array<{ name: string }>;
+  };
+}
+
+type DependencyGraph = Record<string, DependencyInfo>;
+type RuntimePhase = 'Init' | 'loadInit' | 'postInit';
 
 class ModuleSystem {
   public readonly registry: ModuleRegistry = {
@@ -24,365 +49,347 @@ class ModuleSystem {
     states: new Map(),
     sources: new Map(),
     dependencies: new Map(),
-    dependents: new Map(),
-    allDependencies: new Map(),
-    waitingQueue: new Map()
+    dependents: new Map()
   };
 
-  public readonly initPhase: InitPhase = {
+  public readonly initPhase = {
     preInitCompleted: false,
     mainInitCompleted: false
   };
 
-  private sourceStack: string[] = [];
-  private preInitialized = new Set<string>();
-  private waiters = new Map<string, Array<() => void>>();
+  private readonly sourceStack: string[] = [];
+  private readonly preInitialized = new Set<string>();
+
   private disabledNames: Set<string> | null = null;
-  private circularCache = new Map<string, boolean>();
+  private preInitTask: Promise<void> | null = null;
+  private late: Promise<void> = Promise.resolve();
 
   public constructor(readonly core: MaplebirchCore) {}
 
-  public async withSource<T>(source: string, callback: () => T | Promise<T>): Promise<T> {
+  public async with<T>(source: string, callback: () => T | Promise<T>): Promise<T> {
     this.sourceStack.push(source);
     try {
       return await callback();
     } finally {
       this.sourceStack.pop();
+      if (this.initPhase.preInitCompleted) await this.late;
     }
   }
 
-  public register(name: string, module: any, dependencies: string[] = []): boolean {
+  public register(name: string, module: Module, dependencies: string[] = []): boolean {
     if (this.registry.modules.has(name)) {
       this.core.logger.log(`模块 ${name} 已注册`, 'WARN');
       return false;
     }
 
-    const source = this.sourceStack[this.sourceStack.length - 1] || '';
-    const directDependencies = [...new Set([...(module.dependencies || []), ...(dependencies || [])])];
-    const allDependencies = this.collectAllDependencies(directDependencies);
-    const exposed = module?.exposed === true;
-    const lifecycle = ['preInit', 'Init', 'loadInit', 'postInit'].some(method => typeof module?.[method] === 'function');
-    const state = exposed && !lifecycle ? ModuleState.EXPOSED : ModuleState.REGISTERED;
+    const core = this.core as MaplebirchCore & Record<string, unknown>;
+    const source = this.sourceStack.at(-1) ?? '';
+    const deps = [...new Set([...(module.dependencies ?? []), ...dependencies])];
 
-    if (this.circularDependency(name, allDependencies)) {
+    if (this.circular(name, deps)) {
       this.core.logger.log(`模块 ${name} 注册失败: 存在循环依赖`, 'ERROR');
       return false;
     }
 
+    const exposed = module.exposed === true;
+    const lifecycle = this.lifecycle(module);
+
     if (exposed) {
-      if ((this.core as any)[name] != null) {
+      if (core[name] != null) {
         this.core.logger.log(`暴露模块 ${name} 挂载失败: 名称冲突`, 'WARN');
         return false;
       }
-      (this.core as any)[name] = module;
+      core[name] = module;
     }
 
-    this.storeModule(name, module, directDependencies, allDependencies, source, state);
-    if (state === ModuleState.REGISTERED && !exposed) this.handleEarlyMount(name, module, directDependencies);
+    const state = exposed && !lifecycle ? ModuleState.EXPOSED : ModuleState.REGISTERED;
 
-    this.processWaitingQueue(name);
-    if (state === ModuleState.REGISTERED && this.initPhase.preInitCompleted) {
-      queueMicrotask(async () => {
-        if (!this.preInitialized.has(name)) await this.moduleInit(name, true);
-        if (this.initPhase.mainInitCompleted) await this.moduleInit(name, false);
-      });
+    this.registry.modules.set(name, module);
+    this.registry.states.set(name, state);
+    this.registry.sources.set(name, source);
+    this.registry.dependencies.set(name, new Set(deps));
+    this.registry.dependents.set(name, this.registry.dependents.get(name) ?? new Set());
+
+    for (const dep of deps) {
+      const dependents = this.registry.dependents.get(dep) ?? new Set<string>();
+      dependents.add(name);
+      this.registry.dependents.set(dep, dependents);
     }
-    this.core.logger.log(
-      `${exposed ? '注册暴露模块' : '注册模块'}: ${name}${directDependencies.length ? `, 依赖: [${directDependencies.join(', ')}]` : ' (无依赖)'}${source ? ` (来源: ${source})` : ''}`,
-      'DEBUG'
-    );
-    if (allDependencies.size > directDependencies.length) this.core.logger.log(`传递依赖: [${[...allDependencies].join(', ')}]`, 'DEBUG');
+
+    this.flushEarly();
+    if (this.initPhase.preInitCompleted) this.late = this.late.then(() => this.pre()).catch(error => this.core.logger.log(`late module 预初始化失败: ${this.error(error)}`, 'ERROR'));
+    this.core.logger.log(`${exposed ? '注册暴露模块' : '注册模块'}: ${name}` + (deps.length ? `, 依赖: [${deps.join(', ')}]` : ' (无依赖)') + (source ? ` (来源: ${source})` : ''), 'DEBUG');
+
     return true;
   }
 
-  public get dependencyGraph() {
-    const graph: any = {};
+  public get dependencyGraph(): DependencyGraph {
+    const graph: DependencyGraph = {};
     const core = this.core.meta.core as readonly string[];
     const early = this.core.meta.early as readonly string[];
     const protectedModules = this.core.meta.protected as readonly string[];
-    this.registry.modules.forEach((_, name) => {
+
+    for (const [name, module] of this.registry.modules) {
       const state = this.registry.states.get(name);
+
       graph[name] = {
         protected: protectedModules.includes(name),
         mounted: core.includes(name),
         early: early.includes(name),
-        exposed: this.registry.modules.get(name)?.exposed === true,
-        lifecycle: ['preInit', 'Init', 'loadInit', 'postInit'].some(method => typeof this.registry.modules.get(name)?.[method] === 'function'),
-        dependencies: Array.from(this.registry.dependencies.get(name) || []),
-        dependents: Array.from(this.registry.dependents.get(name) || []),
-        state: typeof state === 'number' ? ModuleState[state] || `UNKNOWN(${state})` : state || `UNKNOWN(${state})`,
-        allDependencies: Array.from(this.registry.allDependencies.get(name) || []),
-        source: this.registry.sources.get(name) || ''
+        exposed: module.exposed === true,
+        lifecycle: this.lifecycle(module),
+        dependencies: [...(this.registry.dependencies.get(name) ?? [])],
+        dependents: [...(this.registry.dependents.get(name) ?? [])],
+        allDependencies: [...this.collect(name)],
+        state: typeof state === 'number' ? String(ModuleState[state] ?? `UNKNOWN(${state})`) : (state ?? 'UNKNOWN'),
+        source: this.registry.sources.get(name) ?? ''
       };
-    });
+    }
+
     return graph;
   }
 
-  public async init(phase: 'pre' | 'init' | 'load' | 'post'): Promise<void> {
-    if (phase === 'pre') {
-      if (this.initPhase.preInitCompleted) return;
-      for (const name of this.TopologicalOrder()) await this.moduleInit(name, true);
-      this.initPhase.preInitCompleted = true;
-      this.core.logger.log('预初始化完成', 'DEBUG');
+  public run(phase: 'pre'): Promise<void>;
+  public run(phase: 'init' | 'load' | 'post'): void;
+  public run(phase: 'pre' | 'init' | 'load' | 'post'): Promise<void> | void {
+    if (phase === 'pre') return this.preInit();
+
+    if (!this.initPhase.preInitCompleted) {
+      this.core.logger.log(`模块 ${phase} 阶段执行失败: preInit 尚未完成`, 'ERROR');
       return;
     }
 
     if (phase === 'init') {
-      if (!this.initPhase.preInitCompleted) await this.init('pre');
+      this.init();
+
       if (!this.initPhase.mainInitCompleted) {
-        for (const name of this.TopologicalOrder()) await this.moduleInit(name, false);
         this.initPhase.mainInitCompleted = true;
         this.core.logger.log('主初始化完成', 'DEBUG');
       }
+
+      this.phase('postInit', '后初始化');
+      return;
     }
 
     if (!this.initPhase.mainInitCompleted) return;
-    if (phase === 'load') void this.phaseInit('loadInit', '存档初始化');
-    void this.phaseInit('postInit', '后初始化');
-  }
 
-  private async moduleDisabled(name: string): Promise<boolean> {
-    if ((this.core.meta.protected as readonly string[]).includes(name)) return false;
-    if (!this.disabledNames) {
-      try {
-        const Modules = await this.core.idb.withTransaction(['settings'], 'readonly', async (tx: any) => await tx.objectStore('settings').get('Modules'));
-        this.disabledNames = new Set((Modules?.value?.disabled || []).map((m: any) => m.name));
-      } catch {
-        this.disabledNames = new Set();
-      }
-    }
-    return this.disabledNames.has(name);
-  }
-
-  private handleEarlyMount(name: string, module: any, dependencies: string[]): void {
-    const early = this.core.meta.early as readonly string[];
-    if (!early.includes(name)) return;
-    const earlyMount = new Set(early);
-    const unmetDeps = dependencies.filter(dep => earlyMount.has(dep) && !(this.core as any)[dep]);
-    if (unmetDeps.length === 0) {
-      (this.core as any)[name] = module;
-      this.core.logger.log(`[${name}] 模块已在注册时挂载 (earlyMount)`, 'DEBUG');
+    if (phase === 'load') {
+      this.phase('loadInit', '存档初始化');
+      this.phase('postInit', '后初始化');
       return;
     }
-    this.core.logger.log(`[${name}] 模块等待依赖挂载: [${unmetDeps.join(', ')}]`, 'DEBUG');
-    this.scheduleEarlyMountCheck(name, module, unmetDeps);
+
+    this.phase('postInit', '后初始化');
   }
 
-  private scheduleEarlyMountCheck(name: string, module: any, unmetDeps: string[]): void {
-    const maxRetries = 10;
-    const retryDelay = 5;
-    const retry = (count = 0): void => {
-      if ((this.core as any)[name] === module) return;
-      const stillUnmet = unmetDeps.filter(dep => !(this.core as any)[dep]);
-      if (stillUnmet.length === 0) {
-        (this.core as any)[name] = module;
-        this.core.logger.log(`[${name}] 模块已在依赖满足后挂载 (earlyMount)`, 'DEBUG');
-        return;
+  private async preInit(): Promise<void> {
+    if (this.initPhase.preInitCompleted) return;
+    if (this.preInitTask) return this.preInitTask;
+
+    const task = (async () => {
+      if (!this.disabledNames) {
+        try {
+          const record = (await this.core.idb.withTransaction(['settings'], 'readonly', tx => tx.objectStore('settings').get('Modules'))) as ModuleSettings | undefined;
+          this.disabledNames = new Set(record?.value?.disabled?.map(module => module.name) ?? []);
+        } catch {
+          this.disabledNames = new Set();
+        }
       }
-      if (count >= maxRetries) return;
-      setTimeout(() => retry(count + 1), retryDelay);
-    };
-    retry();
+
+      await this.pre();
+      this.initPhase.preInitCompleted = true;
+      this.core.logger.log('预初始化完成', 'DEBUG');
+    })();
+
+    this.preInitTask = task;
+
+    try {
+      await task;
+    } finally {
+      if (this.preInitTask === task) this.preInitTask = null;
+    }
   }
 
-  private collectAllDependencies(directDependencies: string[]): Set<string> {
-    const allDependencies = new Set<string>();
-    const visited = new Set<string>();
-    const collect = (depName: string) => {
-      if (visited.has(depName)) return;
-      visited.add(depName);
-      allDependencies.add(depName);
-      this.registry.dependencies.get(depName)?.forEach(collect);
-    };
-    directDependencies.forEach(collect);
-    return allDependencies;
+  private async pre(): Promise<void> {
+    const core = this.core as MaplebirchCore & Record<string, unknown>;
+    const protectedModules = this.core.meta.protected as readonly string[];
+    const coreModules = this.core.meta.core as readonly string[];
+    const earlyModules = this.core.meta.early as readonly string[];
+
+    let progressed = true;
+
+    while (progressed) {
+      progressed = false;
+
+      for (const name of this.topologicalOrder()) {
+        if (this.registry.states.get(name) !== ModuleState.REGISTERED || this.preInitialized.has(name)) continue;
+
+        const module = this.registry.modules.get(name);
+        if (!module) continue;
+
+        if (!protectedModules.includes(name) && this.disabledNames?.has(name)) {
+          if (module.exposed === true && core[name] === module) delete core[name];
+          this.registry.states.set(name, ModuleState.DISABLED);
+          this.core.logger.log(`模块 ${name} 被禁用，跳过初始化`, 'DEBUG');
+          progressed = true;
+          continue;
+        }
+
+        if (!this.ready(name, true)) continue;
+
+        try {
+          await module.preInit?.call(module);
+          if (coreModules.includes(name) && !earlyModules.includes(name)) core[name] = module;
+          this.preInitialized.add(name);
+        } catch (error) {
+          this.registry.states.set(name, ModuleState.ERROR);
+          this.core.logger.log(`[${name}] preInit 执行失败: ${this.error(error)}`, 'ERROR');
+        }
+
+        progressed = true;
+      }
+    }
   }
 
-  private storeModule(name: string, module: any, directDependencies: string[], allDependencies: Set<string>, source: string, state: string | number): void {
-    this.registry.modules.set(name, module);
-    this.registry.states.set(name, state);
-    this.registry.sources.set(name, source);
-    this.registry.dependencies.set(name, new Set(directDependencies));
-    this.registry.allDependencies.set(name, allDependencies);
-    if (!this.registry.dependents.has(name)) this.registry.dependents.set(name, new Set());
-    directDependencies.forEach(dep => {
-      if (!this.registry.dependents.has(dep)) this.registry.dependents.set(dep, new Set());
-      this.registry.dependents.get(dep)!.add(name);
-    });
-    this.circularCache.clear();
+  private init(): void {
+    for (const name of this.topologicalOrder()) {
+      if (this.registry.states.get(name) !== ModuleState.REGISTERED) continue;
+      if (!this.preInitialized.has(name) || !this.ready(name, false)) continue;
+
+      const module = this.registry.modules.get(name);
+      if (!module) continue;
+
+      try {
+        this.callHook(name, module, 'Init');
+        this.registry.states.set(name, ModuleState.MOUNTED);
+      } catch (error) {
+        this.registry.states.set(name, ModuleState.ERROR);
+        this.core.logger.log(`[${name}] Init 执行失败: ${this.error(error)}`, 'ERROR');
+      }
+    }
   }
 
-  private processWaitingQueue(name: string): void {
-    const waitingModules = this.registry.waitingQueue.get(name);
-    if (!waitingModules) return;
-    const pendingModules = [...waitingModules].filter(moduleName => this.registry.states.get(moduleName) === ModuleState.REGISTERED);
-    if (pendingModules.length > 0) queueMicrotask(() => pendingModules.forEach(moduleName => void this.moduleInit(moduleName)));
-    this.registry.waitingQueue.delete(name);
+  private phase(phase: 'loadInit' | 'postInit', label: string): void {
+    for (const name of this.topologicalOrder()) {
+      if (this.registry.states.get(name) !== ModuleState.MOUNTED) continue;
+      const module = this.registry.modules.get(name);
+      if (!module) continue;
+      try {
+        this.callHook(name, module, phase);
+      } catch (error) {
+        this.core.logger.log(`[${name}] ${label}失败: ${this.error(error)}`, 'ERROR');
+      }
+    }
+    this.core.logger.log(`${label}完成`, 'DEBUG');
   }
 
-  private waitForModule(moduleName: string): Promise<void> {
-    const state = this.registry.states.get(moduleName);
-    if (state === ModuleState.EXPOSED || state === ModuleState.MOUNTED || state === ModuleState.ERROR || state === ModuleState.DISABLED || this.preInitialized.has(moduleName))
-      return Promise.resolve();
-    return new Promise(resolve => {
-      const resolvers = this.waiters.get(moduleName) || [];
-      if (resolvers.length === 0) this.waiters.set(moduleName, resolvers);
-      resolvers.push(resolve);
-    });
+  private callHook(name: string, module: Module, phase: RuntimePhase): void {
+    const hook = module[phase];
+    if (typeof hook !== 'function') return;
+    const result: unknown = hook.call(module);
+    if (!this.promiseLike(result)) return;
+    void Promise.resolve(result).catch(error => this.core.logger.log(`[${name}] ${phase} 异步任务失败: ${this.error(error)}`, 'ERROR'));
+    throw new Error(`${phase} 必须同步执行，不能返回 Promise`);
   }
 
-  private resolveWaiters(moduleName: string): void {
-    const resolvers = this.waiters.get(moduleName);
-    if (!resolvers || resolvers.length === 0) return;
-    resolvers.forEach(resolve => resolve());
-    this.waiters.delete(moduleName);
-  }
-
-  private async checkDependencies(moduleName: string, isPreInit = false): Promise<boolean> {
-    const allDependencies = this.registry.allDependencies.get(moduleName);
-    if (!allDependencies || allDependencies.size === 0) return true;
-    for (const dep of allDependencies) {
-      if (!this.registry.modules.has(dep)) {
-        this.addToWaitingQueue(dep, moduleName);
+  private ready(name: string, preInit: boolean): boolean {
+    for (const dep of this.registry.dependencies.get(name) ?? []) {
+      if (!this.registry.modules.has(dep)) return false;
+      const state = this.registry.states.get(dep);
+      if (state === ModuleState.EXPOSED) continue;
+      if (state === ModuleState.ERROR || state === ModuleState.DISABLED) return false;
+      if (preInit) {
+        if (!this.preInitialized.has(dep)) return false;
+      } else if (state !== ModuleState.MOUNTED) {
         return false;
       }
-      const depState = this.registry.states.get(dep);
-      if (depState === ModuleState.EXPOSED) continue;
-      if (depState === ModuleState.DISABLED || depState === ModuleState.ERROR) return false;
-      if (isPreInit) {
-        if (!this.preInitialized.has(dep)) await this.waitForModule(dep);
-        continue;
-      }
-      if (depState === ModuleState.MOUNTED) continue;
-      await this.waitForModule(dep);
-      const currentState = this.registry.states.get(dep);
-      if (currentState === ModuleState.ERROR || currentState === ModuleState.DISABLED) return false;
     }
     return true;
   }
 
-  private addToWaitingQueue(dependency: string, moduleName: string): void {
-    const queue = this.registry.waitingQueue.get(dependency) || new Set();
-    if (queue.size === 0) this.registry.waitingQueue.set(dependency, queue);
-    queue.add(moduleName);
-  }
+  private flushEarly(): void {
+    const core = this.core as MaplebirchCore & Record<string, unknown>;
+    const early = new Set(this.core.meta.early as readonly string[]);
+    let progressed = true;
+    while (progressed) {
+      progressed = false;
 
-  private async moduleInit(moduleName: string, isPreInit = false): Promise<boolean> {
-    const module = this.registry.modules.get(moduleName);
-    if (!module) return false;
-    const state = this.registry.states.get(moduleName);
-    if (state === ModuleState.EXPOSED) return true;
-    if (state === ModuleState.DISABLED) return false;
-    if (state === ModuleState.MOUNTED || state === ModuleState.ERROR) return state === ModuleState.MOUNTED;
-    if (await this.moduleDisabled(moduleName)) {
-      this.core.logger.log(`模块 ${moduleName} 被禁用，跳过初始化`, 'DEBUG');
-      if (module?.exposed === true && (this.core as any)[moduleName] === module) delete (this.core as any)[moduleName];
-      this.registry.states.set(moduleName, ModuleState.DISABLED);
-      this.resolveWaiters(moduleName);
-      return false;
-    }
-    if (!(await this.checkDependencies(moduleName, isPreInit))) return false;
-    try {
-      await this.moduleHook(module, isPreInit ? 'preInit' : 'Init', moduleName);
-      if (isPreInit) {
-        this.handlePreInitComplete(moduleName, module);
-      } else {
-        this.registry.states.set(moduleName, ModuleState.MOUNTED);
-      }
-      this.resolveWaiters(moduleName);
-      return true;
-    } catch {
-      this.registry.states.set(moduleName, ModuleState.ERROR);
-      this.resolveWaiters(moduleName);
-      return false;
-    }
-  }
-
-  private async moduleHook(module: any, methodName: string, moduleName: string): Promise<void> {
-    const initMethod = module[methodName];
-    if (typeof initMethod !== 'function') return;
-    try {
-      const result = initMethod.call(module);
-      if (result && typeof result.then === 'function') await result;
-    } catch (error: any) {
-      this.core.logger.log(`[${moduleName}] ${methodName} 执行失败: ${error.message}`, 'ERROR');
-      throw error;
-    }
-  }
-
-  private handlePreInitComplete(moduleName: string, module: any): void {
-    const core = this.core.meta.core as readonly string[];
-    const early = this.core.meta.early as readonly string[];
-    if (core.includes(moduleName) && !early.includes(moduleName)) (this.core as any)[moduleName] = module;
-    this.preInitialized.add(moduleName);
-  }
-
-  private phaseInit(phase: string, logName: string): void {
-    for (const name of this.TopologicalOrder()) {
-      const module = this.registry.modules.get(name);
-      if (this.registry.states.get(name) !== ModuleState.MOUNTED) continue;
-      const phaseMethod = module[phase];
-      if (typeof phaseMethod !== 'function') continue;
-      try {
-        phaseMethod.call(module);
-      } catch (error: any) {
-        this.core.logger.log(`[${name}] ${logName}失败: ${error.message}`, 'ERROR');
+      for (const name of early) {
+        const module = this.registry.modules.get(name);
+        if (!module || core[name] === module) continue;
+        const waiting = [...(this.registry.dependencies.get(name) ?? [])].some(dep => early.has(dep) && core[dep] == null);
+        if (waiting || core[name] != null) continue;
+        core[name] = module;
+        progressed = true;
+        this.core.logger.log(`[${name}] 模块已提前挂载 (earlyMount)`, 'DEBUG');
       }
     }
-    this.core.logger.log(`${logName}完成`, 'DEBUG');
   }
 
-  private TopologicalOrder(): string[] {
+  private topologicalOrder(): string[] {
     const inDegree = new Map<string, number>();
     const queue: string[] = [];
     const result: string[] = [];
-    this.registry.modules.forEach((_, name) => {
-      const deps = this.registry.dependencies.get(name);
-      const validDeps = deps ? [...deps].filter(dep => this.registry.states.get(dep) !== ModuleState.EXPOSED) : [];
-      inDegree.set(name, validDeps.length);
-      if (validDeps.length === 0) queue.push(name);
-    });
-
-    for (let idx = 0; idx < queue.length; idx++) {
-      const current = queue[idx];
-      result.push(current);
-      const dependents = this.registry.dependents.get(current);
-      if (!dependents) continue;
-      dependents.forEach(dependent => {
-        const newDegree = inDegree.get(dependent)! - 1;
-        inDegree.set(dependent, newDegree);
-        if (newDegree === 0) queue.push(dependent);
-      });
+    for (const name of this.registry.modules.keys()) {
+      const deps = [...(this.registry.dependencies.get(name) ?? [])].filter(dep => this.registry.states.get(dep) !== ModuleState.EXPOSED);
+      inDegree.set(name, deps.length);
+      if (!deps.length) queue.push(name);
     }
+
+    for (let i = 0; i < queue.length; i++) {
+      const name = queue[i];
+      result.push(name);
+      for (const dependent of this.registry.dependents.get(name) ?? []) {
+        const degree = (inDegree.get(dependent) ?? 0) - 1;
+        inDegree.set(dependent, degree);
+        if (!degree) queue.push(dependent);
+      }
+    }
+
     return result;
   }
 
-  private circularDependency(moduleName: string, allDependencies: Set<string>): boolean {
-    if (this.circularCache.has(moduleName)) return this.circularCache.get(moduleName)!;
-    const hasCircular = this.detectCircularDependency(moduleName, [...allDependencies]);
-    this.circularCache.set(moduleName, hasCircular);
-    return hasCircular;
+  private collect(name: string): Set<string> {
+    const result = new Set<string>();
+
+    const collect = (current: string): void => {
+      for (const dep of this.registry.dependencies.get(current) ?? []) {
+        if (result.has(dep)) continue;
+        result.add(dep);
+        collect(dep);
+      }
+    };
+
+    collect(name);
+    return result;
   }
 
-  private detectCircularDependency(startName: string, dependencies: string[]): boolean {
-    const graph = new Map<string, string[]>();
-    this.registry.modules.forEach((_, name) => graph.set(name, [...(this.registry.dependencies.get(name) || [])]));
-    if (!graph.has(startName)) graph.set(startName, dependencies);
+  private circular(name: string, dependencies: string[]): boolean {
     const visited = new Set<string>();
-    const recursionStack = new Set<string>();
-    const hasCycle = (node: string): boolean => {
-      if (recursionStack.has(node)) return true;
-      if (visited.has(node)) return false;
-      visited.add(node);
-      recursionStack.add(node);
-      const neighbors = graph.get(node) || [];
-      if (neighbors.some(neighbor => hasCycle(neighbor))) return true;
-      recursionStack.delete(node);
+    const active = new Set<string>();
+    const visit = (current: string): boolean => {
+      if (active.has(current)) return true;
+      if (visited.has(current)) return false;
+      active.add(current);
+      const deps = current === name ? dependencies : [...(this.registry.dependencies.get(current) ?? [])];
+      for (const dep of deps) if (visit(dep)) return true;
+      active.delete(current);
+      visited.add(current);
       return false;
     };
-    const result = hasCycle(startName);
-    if (result) this.core.logger.log(`循环依赖检测到: ${startName}`, 'ERROR');
-    return result;
+    return visit(name);
+  }
+
+  private lifecycle(module: Module): boolean {
+    return !!(module.preInit || module.Init || module.loadInit || module.postInit);
+  }
+
+  private promiseLike(value: unknown): value is PromiseLike<unknown> {
+    return value != null && typeof (value as PromiseLike<unknown>).then === 'function';
+  }
+
+  private error(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
   }
 }
 

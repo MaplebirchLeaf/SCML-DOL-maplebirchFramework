@@ -11,23 +11,20 @@ import type { CryptOptions } from '../services/CredentialVault';
 import MaplebrichStyles from '@/styles/MaplebrichStyles.css';
 import maplebirch, { type MaplebirchCore, createlog } from '../core';
 import { clone } from '../utils';
-import AddonPluginProcess, { type Task, type LanguageConfig, type AudioConfig, type FrameworkConfig, type Replacement, replace, defineTwineAsset } from './AddonPluginProcess';
+import { defineTwineAsset, replace, type Replacement } from '../utils/twine';
 import { patchTimeConstantsAsset, patchDateTimeAsset } from './TimeStateWeather/DateTime';
 import { patchTimeAsset } from './TimeStateWeather/Time';
 
-type ConfigType = 'language' | 'audio' | 'framework' | 'npc';
 type FileType = 'Module' | 'Script';
 
+interface AddonParams {
+  module?: unknown;
+  script?: unknown;
+  [name: string]: unknown;
+}
+
 interface AddonPluginConfig {
-  params?: {
-    language?: LanguageConfig;
-    audio?: AudioConfig;
-    framework?: FrameworkConfig | FrameworkConfig[];
-    npc?: any;
-    module?: string[];
-    script?: string[];
-    [key: string]: any;
-  };
+  params?: AddonParams;
 }
 
 interface FileItem {
@@ -36,33 +33,33 @@ interface FileItem {
   content: string;
 }
 
+export interface BootTask<T = unknown> {
+  modName: string;
+  modInfo: ModInfo;
+  modZip: ModZipReader;
+  config: T;
+}
+
+export type BootHandler<T = unknown> = (task: BootTask<T>) => void | Promise<void>;
+
 class AddonPlugin {
-  public onStart: boolean = false;
-  private onSaveLoadTracer: boolean = false;
-  private readonly disabledMods: Array<string> = [];
-  private readonly blockedPassages = new Set<string>(['Start', 'Downgrade Waiting Room']);
+  public onStart = false;
   public readonly replace = replace;
   public readonly SC2DataManager: SC2DataManager;
   public readonly modUtils: ModUtils;
   public readonly info = new Map<string, { addonName: string; mod: ModInfo; modZip: ModZipReader }>();
   public readonly log: ReturnType<typeof createlog> = createlog('addon');
-  public readonly supportedConfigs: ConfigType[] = ['language', 'audio', 'framework', 'npc'];
-  public queue: Record<ConfigType, Task[]> = {
-    language: [],
-    audio: [],
-    framework: [],
-    npc: []
-  };
-  public processed: Record<ConfigType | 'script', boolean> = {
-    language: false,
-    audio: false,
-    framework: false,
-    npc: false,
-    script: false
-  };
+  public readonly jsFiles: FileItem[] = [];
+  public readonly moduleFiles: FileItem[] = [];
+  private readonly disabledMods = new Set<string>();
+  private readonly blockedPassages = new Set(['Start', 'Downgrade Waiting Room']);
+  private readonly bootHooks = new Map<string, BootHandler>();
+  private readonly bootQueue = new Map<string, BootTask[]>();
+
+  private onSaveLoadTracer = false;
   private moduleFilesExecuted = false;
-  public jsFiles: FileItem[] = [];
-  public moduleFiles: FileItem[] = [];
+  private scriptFilesExecuted = false;
+  private bootReady = false;
 
   public constructor(readonly core: MaplebirchCore) {
     this.SC2DataManager = this.core.manager.modSC2DataManager;
@@ -70,23 +67,34 @@ class AddonPlugin {
     this.log('框架开始初始化流程', 'DEBUG');
     this.modUtils.getAddonPluginManager().registerAddonPlugin('maplebirch', 'maplebirchAddon', this);
     this.SC2DataManager.getModLoadController().addLifeTimeCircleHook('maplebirchFramework', this);
-    const modName = this.modUtils.getNowRunningModName()!;
-    const modInfo = this.modUtils.getMod(modName) as ModInfo;
-    if (!modName || !modInfo) return;
+    const modName = this.modUtils.getNowRunningModName();
+    if (!modName) return;
+    const modInfo = this.modUtils.getMod(modName) as ModInfo | undefined;
+    if (!modInfo) return;
     modInfo.modRef = this;
     this.log('框架初始化流程结束', 'DEBUG');
   }
 
-  public async canLoadThisMod(bootJson: ModBootJson, zip: JSZipLikeReadOnlyInterface): Promise<boolean> {
+  public hook<T>(name: string, handler: BootHandler<T>): boolean {
+    if (this.bootHooks.has(name)) {
+      this.log(`Boot 配置处理器已注册: ${name}`, 'WARN');
+      return false;
+    }
+    this.bootHooks.set(name, handler as BootHandler);
+    if (this.bootReady) void this.flush(name);
+    return true;
+  }
+
+  public async canLoadThisMod(bootJson: ModBootJson, _zip: JSZipLikeReadOnlyInterface): Promise<boolean> {
     if (bootJson.name === 'Simple Frameworks') {
-      this.disabledMods.push('Simple Frameworks');
+      this.disabledMods.add('Simple Frameworks');
       return false;
     }
     return true;
   }
 
   public async afterInjectEarlyLoad(): Promise<void> {
-    if (!this.disabledMods.includes('Simple Frameworks')) await this.core.disabled('Simple Frameworks');
+    if (!this.disabledMods.has('Simple Frameworks')) await this.core.disabled('Simple Frameworks');
     await this.scriptFiles();
     await this.executeScripts(this.moduleFiles, 'Module');
     this.moduleFilesExecuted = true;
@@ -96,7 +104,7 @@ class AddonPlugin {
     await this.core.logger.fromIDB();
     await this.core.trigger(':idbReady');
     await this.core.lang.preload();
-    await this.core.modules.init('pre');
+    await this.core.modules.run('pre');
   }
 
   public async ModLoaderLoadEnd(): Promise<void> {
@@ -105,14 +113,12 @@ class AddonPlugin {
   }
 
   public async afterEarlyLoad(): Promise<void> {
-    // GameOriginalImagePack has finished loading; an absent bundled image is a normal fallback case.
     const imagePack = window.modGameOriginalImagePack;
     if (!imagePack) return;
     const hasImage = (src: string) => imagePack.selfIgnoreImagePath.has(src) || imagePack.selfImg.has(src);
     const checkImageExist = imagePack.checkImageExist.bind(imagePack);
     const imageGetter = imagePack.imageGetter.bind(imagePack);
     const imgLoaderHooker = imagePack.imgLoaderHooker.bind(imagePack);
-
     imagePack.checkImageExist = src => (hasImage(src) ? checkImageExist(src) : false);
     imagePack.imageGetter = async src => (hasImage(src) ? imageGetter(src) : undefined);
     imagePack.imgLoaderHooker = async (src, ...args) => (hasImage(src) ? imgLoaderHooker(src, ...args) : false);
@@ -120,41 +126,49 @@ class AddonPlugin {
 
   public async registerMod(addonName: string, modInfo: ModInfo, modZip: ModZipReader): Promise<void> {
     this.info.set(modInfo.name, { addonName, mod: modInfo, modZip });
-    const config = modInfo.bootJson?.addonPlugin?.find(plugin => plugin.modName === 'maplebirch' && plugin.addonName === 'maplebirchAddon') as AddonPluginConfig | undefined;
-    if (!config?.params) return;
-    if (Object.keys(config.params).length > 0 && !this.core.modList.includes(modInfo.name)) this.core.modList.push(modInfo.name);
-    for (const type of this.supportedConfigs) {
-      const value = config.params[type];
-      if (value == null) continue;
-      this.queue[type].push({ modName: modInfo.name, modZip, config: value });
+    const params = this.config(modInfo)?.params;
+    if (!params) return;
+    if (Object.keys(params).length && !this.core.modList.includes(modInfo.name)) this.core.modList.push(modInfo.name);
+    for (const [name, config] of Object.entries(params)) {
+      if (name === 'module' || name === 'script' || config == null) continue;
+      const task: BootTask = { modName: modInfo.name, modInfo, modZip, config };
+      if (this.bootReady) {
+        await this.run(name, task);
+      } else {
+        this.queue(name, task);
+      }
     }
-    if (this.moduleFilesExecuted && Array.isArray(config.params.module)) {
-      const moduleStart = this.moduleFiles.length;
-      await this.loadFiles(modInfo.name, modZip, config.params.module, 'Module');
-      const modules = this.moduleFiles.slice(moduleStart);
-      if (modules.length > 0) await this.executeScripts(modules, 'Module');
+
+    if (this.moduleFilesExecuted && Array.isArray(params.module)) {
+      const start = this.moduleFiles.length;
+      await this.loadFiles(modInfo.name, modZip, params.module, 'Module');
+      const modules = this.moduleFiles.slice(start);
+      if (modules.length) await this.executeScripts(modules, 'Module');
     }
-    if (this.moduleFilesExecuted && Array.isArray(config.params.script)) {
-      const scriptStart = this.jsFiles.length;
-      await this.loadFiles(modInfo.name, modZip, config.params.script, 'Script');
-      const scripts = this.jsFiles.slice(scriptStart);
-      if (this.processed.script && scripts.length > 0) await this.executeScripts(scripts, 'Script');
+
+    if (this.moduleFilesExecuted && Array.isArray(params.script)) {
+      const start = this.jsFiles.length;
+      await this.loadFiles(modInfo.name, modZip, params.script, 'Script');
+      if (this.scriptFilesExecuted) {
+        const scripts = this.jsFiles.slice(start);
+        if (scripts.length) await this.executeScripts(scripts, 'Script');
+      }
     }
   }
 
   public async afterRegisterMod2Addon(): Promise<void> {
     await this.executeScripts(this.jsFiles, 'Script');
-    this.processed.script = true;
+    this.scriptFilesExecuted = true;
   }
 
   public async beforePatchModToGame(): Promise<void> {
     this.dataReplace();
-    await this.processInit();
+    await this.process();
     await this.core.trigger(':import');
     this.core.tool.zone.patchModToGame(this, 'before');
   }
 
-  public async PatchModToGame_start(): Promise<any> {
+  public async PatchModToGame_start(): Promise<void> {
     defineTwineAsset('script', 'game\\00-framework-tools\\10-time\\00-time-constants.js', patchTimeConstantsAsset, 'patch');
     defineTwineAsset('script', 'game\\00-framework-tools\\10-time\\datetime.js', patchDateTimeAsset, 'patch');
     defineTwineAsset('script', 'game\\03-JavaScript\\time.js', patchTimeAsset, 'patch');
@@ -170,7 +184,7 @@ class AddonPlugin {
     this.core.tool.zone.patchModToGame(this, 'after');
   }
 
-  public async afterPreload(): Promise<any> {
+  public async afterPreload(): Promise<void> {
     for (const modName of this.core.modUtils.getModListNameNoAlias()) {
       if (modName === 'ModI18N') continue;
       try {
@@ -183,7 +197,7 @@ class AddonPlugin {
     }
   }
 
-  public async whenSC2StoryReady(): Promise<any> {
+  public async whenSC2StoryReady(): Promise<void> {
     await this.core.trigger(':storyready');
     if (this.onSaveLoadTracer) return;
     this.onSaveLoadTracer = true;
@@ -191,19 +205,19 @@ class AddonPlugin {
     this.core.SugarCube.Save.onLoad.add((saveObj: any) => {
       const save = this.saveHandle(saveObj);
       void this.core.trigger(':onLoad', save);
-      save.use(save.V, () => void this.core.modules.init('load'));
+      save.use(save.V, () => this.core.modules.run('load'));
       if (!this.core.passage || this.blockedPassages.has(this.core.passage.title)) this.onStart = true;
     });
   }
 
-  public async whenSC2PassageInit(passage: Passage): Promise<any> {
+  public async whenSC2PassageInit(passage: Passage): Promise<void> {
     this.core.passage = passage;
     await this.core.trigger(':passageinit', passage);
   }
 
-  public async whenSC2PassageStart(passage: Passage, content: HTMLDivElement): Promise<any> {
+  public async whenSC2PassageStart(passage: Passage, content: HTMLDivElement): Promise<void> {
     if (!this.core.passage || this.blockedPassages.has(this.core.passage.title)) return;
-    await this.core.modules.init('init');
+    this.core.modules.run('init');
     await this.core.trigger(':passagestart', passage, content);
     if (this.onStart) {
       this.core.SugarCube.Engine.show(this.core.SugarCube.State.passage);
@@ -211,51 +225,55 @@ class AddonPlugin {
     }
   }
 
-  public async whenSC2PassageRender(passage: Passage, content: HTMLDivElement): Promise<any> {
+  public async whenSC2PassageRender(passage: Passage, content: HTMLDivElement): Promise<void> {
     await this.core.trigger(':passagerender', passage, content);
   }
 
-  public async whenSC2PassageDisplay(passage: Passage, content: HTMLDivElement): Promise<any> {
+  public async whenSC2PassageDisplay(passage: Passage, content: HTMLDivElement): Promise<void> {
     await this.core.trigger(':passagedisplay', passage, content);
   }
 
-  public async whenSC2PassageEnd(passage: Passage, content: HTMLDivElement): Promise<any> {
+  public async whenSC2PassageEnd(passage: Passage, content: HTMLDivElement): Promise<void> {
     await this.core.trigger(':passageend', passage, content);
   }
 
-  public async loadCrypt(options: CryptOptions): Promise<boolean> {
-    return await this.core.credential.loadCrypt(options);
+  public loadCrypt(options: CryptOptions): Promise<boolean> {
+    return this.core.credential.loadCrypt(options);
   }
 
   private async scriptFiles(): Promise<void> {
-    const modNames = this.modUtils.getModListNameNoAlias();
-    if (!Array.isArray(modNames) || modNames.length === 0) return;
-    for (const modName of modNames) {
+    for (const modName of this.modUtils.getModListNameNoAlias()) {
       try {
-        const mod = this.modUtils.getMod(modName) as ModInfo;
+        const mod = this.modUtils.getMod(modName) as ModInfo | undefined;
         const modZip = this.modUtils.getModZip(modName);
-        const config = mod?.bootJson?.addonPlugin?.find(plugin => plugin.modName === 'maplebirch' && plugin.addonName === 'maplebirchAddon') as AddonPluginConfig | undefined;
-        if (!config?.params || !modZip) continue;
-        if (Array.isArray(config.params.module)) await this.loadFiles(modName, modZip, config.params.module, 'Module');
-        if (Array.isArray(config.params.script)) await this.loadFiles(modName, modZip, config.params.script, 'Script');
-      } catch (error: any) {
-        this.log(`加载模组脚本失败: ${modName} - ${error?.message || error}`, 'ERROR');
+        if (!mod || !modZip) continue;
+        const params = this.config(mod)?.params;
+        if (!params) continue;
+        if (Array.isArray(params.module)) await this.loadFiles(modName, modZip, params.module, 'Module');
+        if (Array.isArray(params.script)) await this.loadFiles(modName, modZip, params.script, 'Script');
+      } catch (error) {
+        this.log(`加载模组脚本失败: ${modName} - ${this.error(error)}`, 'ERROR');
       }
     }
   }
 
   // prettier-ignore
   private dataReplace(): void {
-    try { AddonPlugin.modifyOptionsDateFormat(this);               } catch { this.log('modifyOptionsDateFormat 出错', 'ERROR'); }
+    try { this.modifyOptionsDateFormat();                          } catch { this.log('modifyOptionsDateFormat 出错', 'ERROR'); }
     try { this.core.dynamic.Weather.modifyWeatherJavaScript(this); } catch { this.log('modifyWeatherJavaScript 出错', 'ERROR'); }
     try { this.core.char.modifyCanvasModel(this);                  } catch { this.log('modifyCanvasModel 出错', 'ERROR');       }
     try { this.core.char.modifyFaceStyle(this);                    } catch { this.log('modifyFaceStyle 出错', 'ERROR');         }
     try { this.core.char.transformation.modifyEffect(this);        } catch { this.log('modifyEffect 出错', 'ERROR');            }
   }
 
-  private async loadFiles(modName: string, modZip: ModZipReader, files: string[], type: FileType): Promise<void> {
+  private async loadFiles(modName: string, modZip: ModZipReader, files: unknown[], type: FileType): Promise<void> {
     const target = type === 'Module' ? this.moduleFiles : this.jsFiles;
-    for (const filePath of files) {
+    for (const value of files) {
+      if (typeof value !== 'string') {
+        this.log(`${type} 文件路径无效: ${String(value)} (来自 ${modName})`, 'WARN');
+        continue;
+      }
+      const filePath = value;
       try {
         const key = `[${modName}]:${filePath}`;
         if (target.some(file => `[${file.modName}]:${file.filePath}` === key)) continue;
@@ -265,80 +283,116 @@ class AddonPlugin {
           continue;
         }
         target.push({ modName, filePath, content: await file.async('string') });
-      } catch (error: any) {
-        this.log(`加载 ${type} 文件失败: ${filePath} (来自 ${modName}): ${error?.message || error}`, 'ERROR');
+      } catch (error) {
+        this.log(`加载 ${type} 文件失败: ${filePath} (来自 ${modName}): ${this.error(error)}`, 'ERROR');
       }
     }
   }
 
   private async executeScripts(files: FileItem[], type: FileType = 'Script'): Promise<void> {
-    if (files.length === 0) return;
-    const disabled = type === 'Script' ? new Set(this.core.gui.disabledScripts) : new Set<string>();
+    if (!files.length) return;
+    const disabled = type === 'Script' ? new Set(this.core.gui.disabledScripts) : null;
     for (const file of files) {
-      const scriptKey = `[${file.modName}]:${file.filePath}`;
-      if (type === 'Script' && disabled.has(scriptKey)) {
+      const key = `[${file.modName}]:${file.filePath}`;
+      if (disabled?.has(key)) {
         file.content = '';
         continue;
       }
       const execute = async () => {
         const func = new Function(file.content);
-        const result = func();
-        if (result && typeof result.then === 'function') await result;
+        const result: unknown = func();
+        if (result != null && typeof (result as PromiseLike<unknown>).then === 'function') await result;
       };
       try {
-        if (type === 'Script') {
+        if (type === 'Module') {
+          await this.core.modules.with(file.modName, execute);
+        } else {
           await execute();
-          continue;
         }
-        await this.core.modules.withSource(file.modName, execute);
-      } catch (error: any) {
-        this.log(`执行 ${type} 文件失败: ${file.filePath} (来自 ${file.modName}): ${error?.message || error}`, 'ERROR');
+      } catch (error) {
+        this.log(`执行 ${type} 文件失败: ${file.filePath} (来自 ${file.modName}): ${this.error(error)}`, 'ERROR');
       } finally {
         file.content = '';
       }
     }
   }
 
-  // prettier-ignore
-  private async processInit(): Promise<void> {
-    try { await AddonPluginProcess.Language(this); }  catch (error: any) { this.log(`语言处理过程失败: ${error?.message || error}`, 'ERROR'); }
-    try { await AddonPluginProcess.Audio(this); }     catch (error: any) { this.log(`音频处理过程失败: ${error?.message || error}`, 'ERROR'); }
-    try { await AddonPluginProcess.Framework(this); } catch (error: any) { this.log(`框架处理过程失败: ${error?.message || error}`, 'ERROR'); }
-    try { await AddonPluginProcess.NPC(this); }       catch (error: any) { this.log(`NPC处理过程失败: ${error?.message || error}`, 'ERROR'); }
+  private async process(): Promise<void> {
+    this.bootReady = true;
+    for (const name of this.bootQueue.keys()) {
+      if (!this.bootHooks.has(name)) {
+        this.log(`Boot 配置等待处理器: ${name}`, 'DEBUG');
+        continue;
+      }
+      await this.flush(name);
+    }
   }
 
-  private static modifyOptionsDateFormat(manager: AddonPlugin): void {
-    const oldSCdata = manager.SC2DataManager.getSC2DataInfoAfterPatch();
+  private queue(name: string, task: BootTask): void {
+    const tasks = this.bootQueue.get(name);
+    if (tasks) {
+      tasks.push(task);
+    } else {
+      this.bootQueue.set(name, [task]);
+    }
+  }
+
+  private async flush(name: string): Promise<void> {
+    const handler = this.bootHooks.get(name);
+    const tasks = this.bootQueue.get(name);
+    if (!handler || !tasks?.length) return;
+    this.bootQueue.delete(name);
+    for (const task of tasks) await this.run(name, task, handler);
+  }
+
+  private async run(name: string, task: BootTask, handler = this.bootHooks.get(name)): Promise<void> {
+    if (!handler) {
+      this.queue(name, task);
+      return;
+    }
+    try {
+      await handler(task);
+    } catch (error) {
+      this.log(`${task.modName} 的 ${name} 配置处理失败: ${this.error(error)}`, 'ERROR');
+    }
+  }
+
+  private config(modInfo: ModInfo): AddonPluginConfig | undefined {
+    return modInfo.bootJson?.addonPlugin?.find(plugin => plugin.modName === 'maplebirch' && plugin.addonName === 'maplebirchAddon') as AddonPluginConfig | undefined;
+  }
+
+  private modifyOptionsDateFormat(): void {
+    const oldSCdata = this.SC2DataManager.getSC2DataInfoAfterPatch();
     const SCdata = oldSCdata.cloneSC2DataInfo();
     const passageData = SCdata.passageDataItems.map;
     const passageTitle = 'Options Overlay';
     const passage = passageData.get(passageTitle)!;
+    const hasI18N = this.modUtils.getModListNameNoAlias().includes('ModI18N');
     const replacements: Replacement[] = [
       [
         /<label\s+class="en-GB">\s*<<radiobutton\s*"\$options\.dateFormat"\s*"en-GB"\s*autocheck\s*>>\s*([^<]+)<\/label>/,
-        `<label class="en-GB"><<radiobutton "$options.dateFormat" "en-GB" autocheck>> ${manager.modUtils.getModListNameNoAlias().includes('ModI18N') ? '英(日/月/年)' : 'GB(dd/mm/yyyy)'}</label>`
+        `<label class="en-GB"><<radiobutton "$options.dateFormat" "en-GB" autocheck>> ${hasI18N ? '英(日/月/年)' : 'GB(dd/mm/yyyy)'}</label>`
       ],
       [
         /<label\s+class="en-US">\s*<<radiobutton\s*"\$options\.dateFormat"\s*"en-US"\s*autocheck\s*>>\s*([^<]+)<\/label>/,
-        `<label class="en-US"><<radiobutton "$options.dateFormat" "en-US" autocheck>> ${manager.modUtils.getModListNameNoAlias().includes('ModI18N') ? '美(月/日/年)' : 'US(mm/dd/yyyy)'}</label>`
+        `<label class="en-US"><<radiobutton "$options.dateFormat" "en-US" autocheck>> ${hasI18N ? '美(月/日/年)' : 'US(mm/dd/yyyy)'}</label>`
       ],
       [
         /<label\s+class="zh-CN">\s*<<radiobutton\s*"\$options\.dateFormat"\s*"zh-CN"\s*autocheck\s*>>\s*([^<]+)<\/label>/,
-        `<label class="zh-CN"><<radiobutton "$options.dateFormat" "zh-CN" autocheck>> ${manager.modUtils.getModListNameNoAlias().includes('ModI18N') ? '中(年/月/日)' : 'CN(yyyy/mm/dd)'}</label>`
+        `<label class="zh-CN"><<radiobutton "$options.dateFormat" "zh-CN" autocheck>> ${hasI18N ? '中(年/月/日)' : 'CN(yyyy/mm/dd)'}</label>`
       ]
     ];
-    passage.content = replace(passage.content, replacements, 'Options Overlay dateFormat');
+    passage.content = this.replace(passage.content, replacements, 'Options Overlay dateFormat');
     passageData.set(passageTitle, passage);
     SCdata.passageDataItems.back2Array();
-    manager.modUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
+    this.modUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
   }
 
   private saveHandle(saveObj: any, details?: any) {
     const State = this.core.SugarCube.State;
     const history: any[] = Array.isArray(saveObj?.state?.history) ? saveObj.state.history : [];
-
-    const replace = (target: any, source: any) => {
-      Object.keys(target).forEach(key => delete target[key]);
+    const replaceObject = (target: any, source: any) => {
+      for (const key of Object.keys(target)) delete target[key];
       Object.assign(target, source);
       return target;
     };
@@ -346,13 +400,13 @@ class AddonPlugin {
     const use = <T>(variables: any, fn: () => T): T => {
       const runtime = State.variables;
       const backup = clone(runtime);
-      replace(runtime, clone(variables));
+      replaceObject(runtime, clone(variables));
       try {
         const result = fn();
-        replace(variables, clone(runtime));
+        replaceObject(variables, clone(runtime));
         return result;
       } finally {
-        replace(runtime, backup);
+        replaceObject(runtime, backup);
       }
     };
 
@@ -365,6 +419,10 @@ class AddonPlugin {
       },
       use
     };
+  }
+
+  private error(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
   }
 }
 

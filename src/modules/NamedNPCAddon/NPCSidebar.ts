@@ -18,6 +18,46 @@ import transformation_layers, { transformationDefaults } from './NPCSidebarConfi
 import NPCFluids from './NPCFluids';
 import type NPCManager from '../NamedNPC';
 
+export interface NPCSidebarBootConfig {
+  clothes?: string[];
+  image?: string[];
+  config?: string[];
+}
+
+async function images(manager: NPCManager, modName: string, modZip: ModZipReader, paths: string[]): Promise<void> {
+  const imagePaths: string[] = [];
+  for (const path of paths) {
+    if (!modZip.zip.file(path)) {
+      manager.log(`图片未找到: ${path} (模组: ${modName})`, 'WARN');
+      continue;
+    }
+    imagePaths.push(path);
+  }
+  if (!imagePaths.length) return;
+  const modInfo = modZip.modInfo;
+  if (!modInfo) return;
+  const plugins = modInfo.bootJson?.addonPlugin;
+  if (!plugins) return;
+  let plugin = plugins.find(item => item.modName === 'BeautySelectorAddon' && item.addonName === 'BeautySelectorAddon');
+  if (!plugin) {
+    plugin = { modName: 'BeautySelectorAddon', addonName: 'BeautySelectorAddon', modVersion: '^2.0.0', params: {} };
+    plugins.push(plugin);
+  }
+  const params = plugin.params && typeof plugin.params === 'object' && !Array.isArray(plugin.params) ? (plugin.params as Record<string, unknown>) : {};
+  params.type = `npc-sidebar:${modName}`;
+  params.imgFileList = imagePaths;
+  plugin.params = params;
+  await window.addonBeautySelectorAddon.registerMod('BeautySelectorAddon', modInfo, modZip);
+}
+
+async function config(manager: NPCManager, modName: string, modZip: ModZipReader, config: NPCSidebarBootConfig): Promise<void> {
+  if (Array.isArray(config.clothes)) for (const filePath of config.clothes) await manager.Clothes.loadWardrobe(modName, filePath);
+  const imagePaths: string[] = [];
+  if (Array.isArray(config.image)) imagePaths.push(...loadFromMod(modZip, config.image));
+  if (Array.isArray(config.config)) imagePaths.push(...(await manager.Clothes.importArt(modName, modZip, config.config)));
+  if (imagePaths.length) await images(manager, modName, modZip, imagePaths);
+}
+
 type NPCSidebarOptions = {
   filters?: Record<string, any>;
   maplebirch?: {
@@ -521,6 +561,8 @@ const NPCSidebar = (() => {
     public static get display() {
       return display;
     }
+
+    public static config = config;
 
     public static loadFromMod = loadFromMod;
 

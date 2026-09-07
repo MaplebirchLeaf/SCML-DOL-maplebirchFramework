@@ -14,6 +14,7 @@ const PlayState = {
 } as const;
 
 type PlayStateType = (typeof PlayState)[keyof typeof PlayState];
+type AudioConfig = string[];
 
 const SUPPORTED_FORMATS = ['mp3', 'wav', 'ogg', 'm4a', 'flac', 'webm'] as const;
 type AudioFormat = (typeof SUPPORTED_FORMATS)[number];
@@ -97,6 +98,15 @@ class AudioManager {
     this.core.howler.Howler.volume(this.volume);
     this.core.once(':indexedDB', () => this.initDB());
     this.core.on(':audio', eventData => this.dispatch(eventData), 'audio manager');
+    this.core.addon.hook<AudioConfig>('audio', async ({ modName, config }) => {
+      for (const Folder of config) {
+        const folder = Folder.trim()
+          .replace(/\\/g, '/')
+          .replace(/^\/+|\/+$/g, '');
+        if (!folder) continue;
+        await this.import(modName, folder);
+      }
+    });
   }
 
   private initDB(): void {

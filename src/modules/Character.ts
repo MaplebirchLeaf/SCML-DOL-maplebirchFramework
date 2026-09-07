@@ -2,9 +2,9 @@
 
 import { MacroDefinition } from 'twine-sugarcube';
 import maplebirch, { MaplebirchCore, createlog } from '../core';
-import { clone, loadImage, mergefn as mergeFn } from '../utils';
+import { clone, mergefn as mergeFn } from '../utils';
 import AddonPlugin from './AddonPlugin';
-import type { Replacement } from './AddonPluginProcess';
+import type { Replacement } from '../utils/twine';
 import Pet from './CharacterAddon/Pet';
 import Transformation from './CharacterAddon/Transformation';
 

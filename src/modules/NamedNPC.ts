@@ -4,7 +4,8 @@ import maplebirch, { MaplebirchCore, createlog } from '../core';
 import type { Translation } from '../services/LanguageManager';
 import NPCSchedules, { ScheduleConfig, ScheduleBuilder } from './NamedNPCAddon/NPCSchedules';
 import NPCClothes, { ClothesConfig } from './NamedNPCAddon/NPCClothes';
-import NPCSidebar from './NamedNPCAddon/NPCSidebar';
+import type { BootTask } from './AddonPlugin';
+import NPCSidebar, { type NPCSidebarBootConfig } from './NamedNPCAddon/NPCSidebar';
 import NPCFluids from './NamedNPCAddon/NPCFluids';
 import NPCTransformation from './NamedNPCAddon/NPCTransformation';
 import { definePregnancyProperty, setupNPCData, isPossible } from './NamedNPCAddon/NPCUtils';
@@ -13,6 +14,13 @@ import { clone, merge } from '../utils';
 type LanguageCode = 'CN' | 'EN';
 type PronounCode = 'm' | 'f' | 'i' | 'n' | 't';
 type TranslationInput = Map<string, Translation> | Record<string, Translation>;
+type NPCBootEntry = [NPCData, NPCConfig?, TranslationInput?];
+
+interface NPCBootConfig {
+  NamedNPC?: NPCBootEntry[];
+  Stats?: Record<string, unknown>;
+  Sidebar?: NPCSidebarBootConfig;
+}
 
 const vanillaList = new Set(
   'Avery|Bailey|Briar|Charlie|Darryl|Doren|Eden|Gwylan|Harper|Jordan|Kylar|Landry|Leighton|Mason|Morgan|River|Robin|Sam|Sirris|Whitney|Winter|Black Wolf|Niki|Quinn|Remy|Alex|Great Hawk|Wren|Sydney|Ivory Wraith|Zephyr'.split(
@@ -566,14 +574,15 @@ class NPCManager {
   public constructor(readonly core: MaplebirchCore) {
     this.log = createlog('npc');
     this.Transformation = Object.seal(new NPCTransformation(this));
+    this.core.addon.hook<NPCBootConfig>('npc', task => this.config(task));
     this.core.on(
       ':language',
       () => {
         if (!Array.isArray(V.NPCName)) return;
-        V.NPCName.forEach((npc: any) => {
+        for (const npc of V.NPCName) {
           if (typeof npc.setPronouns === 'function') npc.setPronouns();
           if (typeof npc.bodyPartdescription === 'function') npc.bodyPartdescription();
-        });
+        }
       },
       'Named NPC Desc'
     );
@@ -673,6 +682,19 @@ class NPCManager {
 
   public vanillaInject(npcName: string, npcno: number) {
     void this.core.trigger(':npcInject', npcName, npcno);
+  }
+
+  private async config({ modName, modZip, config }: BootTask<NPCBootConfig>): Promise<void> {
+    if (Array.isArray(config.NamedNPC)) {
+      for (const entry of config.NamedNPC) {
+        if (!Array.isArray(entry)) continue;
+        const [data, options, translations] = entry;
+        if (!data) continue;
+        this.add(data, options ?? {}, translations);
+      }
+    }
+    if (config.Stats) this.addStats(config.Stats);
+    if (config.Sidebar) await this.Sidebar.config(this, modName, modZip, config.Sidebar);
   }
 
   public preInit() {

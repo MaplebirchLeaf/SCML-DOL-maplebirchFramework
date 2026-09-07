@@ -47,7 +47,7 @@ maplebirch.utils.append(target, source);
 maplebirch.utils.cover(target, source);
 ```
 
-The array instance methods `contains`/`random`/`either` and the string instance methods `contains`/`convert` are still available.
+The array instance methods `contains`/`either` and the string instance methods `contains`/`convert` are still available.
 
 Static methods create a new object or array:
 
@@ -77,7 +77,6 @@ Prefer `Object.merge()`, `Object.append()`, `Object.cover()`, `Array.merge()`, `
 | `Array.append(...sources)`                   | Create a new array and append (static)   |
 | `Array.cover(...sources)`                    | Create a new array and cover (static)    |
 | `array.contains(value, mode, opt)`           | Containment check (array instance)       |
-| `array.random()`                             | Pick a random array item (array instance) |
 | `array.either(weights, allowNull)`           | Pick a random item, optionally weighted (array instance) |
 | `string.convert(mode, opt)`                  | Convert string case (string instance)    |
 | `Math.random(max)`                           | Integer from `0` to `max`            |
@@ -224,12 +223,6 @@ With arguments, framework overloads apply:
 Math.random(10); // Integer from 0 to 10
 Math.random(5, 10); // Integer from 5 to 10
 Math.random(5, 10, true); // Float from 5 to 10
-```
-
-Array random:
-
-```javascript
-['a', 'b', 'c'].random();
 ```
 
 Weighted choice:

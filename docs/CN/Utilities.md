@@ -47,7 +47,7 @@ maplebirch.utils.append(target, source);
 maplebirch.utils.cover(target, source);
 ```
 
-数组的 `contains`/`random`/`either` 与字符串的 `contains`/`convert` 实例方法仍然保留。
+数组的 `contains`/`either` 与字符串的 `contains`/`convert` 实例方法仍然保留。
 
 静态方法会创建一个新的对象或数组：
 
@@ -77,7 +77,6 @@ const list = Array.append(base, extra);
 | `Array.append(...sources)`                      | 创建新数组并 append（静态方法）        |
 | `Array.cover(...sources)`                       | 创建新数组并 cover（静态方法）         |
 | `array.contains(value, mode, opt)`              | 判断数组是否包含（数组实例方法）       |
-| `array.random()`                                | 从数组随机取一个元素（数组实例方法）   |
 | `array.either(weights, allowNull)`              | 从数组随机取一个元素，可带权重（数组实例方法） |
 | `string.convert(mode, opt)`                     | 字符串格式转换（字符串实例方法）       |
 | `Math.random(max)`                              | `0` 到 `max` 的整数                |
@@ -231,12 +230,6 @@ Math.random(); // 0 到 1 的浮点数
 Math.random(10); // 0 到 10 的整数
 Math.random(5, 10); // 5 到 10 的整数
 Math.random(5, 10, true); // 5 到 10 的浮点数
-```
-
-数组随机：
-
-```javascript
-['a', 'b', 'c'].random();
 ```
 
 按权重选择：

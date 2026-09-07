@@ -1,7 +1,7 @@
 // .src/modules/TimeStateWeather/DateTime.ts
 
 import { TimeConstants } from '../../constants';
-import { replace } from '../AddonPluginProcess';
+import { replace } from '../../utils/twine';
 
 export function patchTimeConstantsAsset(content: string): string {
   const patch = `const TimeConstants = maplebirch.dynamic.Time.TimeConstants;\nwindow.TimeConstants = TimeConstants;`;

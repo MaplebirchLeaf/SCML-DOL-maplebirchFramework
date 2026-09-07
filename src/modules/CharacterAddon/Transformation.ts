@@ -3,9 +3,8 @@
 import maplebirch, { createlog } from '../../core';
 import { Translation } from '../../services/LanguageManager';
 import type AddonPlugin from '../AddonPlugin';
-import type { Replacement } from '../AddonPluginProcess';
+import type { Replacement } from '../../utils/twine';
 import type Character from '../Character';
-import type { ModelTarget } from '../Character';
 import {
   AnimalMacros,
   AnimalTransforms,
@@ -543,6 +542,15 @@ class Transformation {
     data.level = newLevel;
     data.build = newBuild;
     this._updateParts(name, oldLevel, newLevel);
+  }
+
+  public part(partName: string): boolean {
+    const transformations = V.transformationParts ?? {};
+    return Object.entries(transformations).some(([name, parts]) => {
+      if (name === 'traits' || !parts) return false;
+      const value = (parts as Record<string, unknown>)[partName];
+      return value !== undefined && value !== 'disabled';
+    });
   }
 }
 

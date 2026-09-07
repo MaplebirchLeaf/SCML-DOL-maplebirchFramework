@@ -109,6 +109,7 @@ const widgetPassage = {
   ],
   'Widgets Mirror': [
     { srcmatch: /<<\/if>>(?:\r?\n\t\t|\r?\n\t\r?\n\t)<<if !\[/, to: '<</if>>\n\t\t<<maplebirchTransformationMirror>>\n\t\t<<if ![' },
+    { srcmatch: /!\[[^\]]+\]\.every\(\s*transform\s*=>\s*T\[transform\]\.(horns|tail|wings|ears)\s+is\s+"disabled"\s*\)/g, to: "maplebirch.char.transformation.part('$1')" },
     { src: '<<tficon $_icon>>', to: '<<= maplebirch.char.transformation.icon>>' },
   ],
   'Widgets NPCs': [

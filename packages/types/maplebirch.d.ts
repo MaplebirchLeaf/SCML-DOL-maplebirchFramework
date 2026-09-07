@@ -4,6 +4,7 @@ import { Gui } from '@scml/types/Mod_LoaderGui/Gui';
 import jsyaml from 'js-yaml';
 import { Howl, Howler } from 'howler';
 import * as marked from 'marked';
+import { IDBPTransaction } from 'idb';
 import { Passage } from '@scml/types/sugarcube-2-ModLoader/SugarCube2';
 import { ModInfo, ModBootJson } from '@scml/types/sugarcube-2-ModLoader/ModLoader';
 import { JSZipLikeReadOnlyInterface } from '@scml/types/sugarcube-2-ModLoader/JSZipLikeReadOnlyInterface';
@@ -1226,20 +1227,15 @@ declare global {
     }
     interface Array<T> {
         contains(value: unknown, mode?: ContainsMode, options?: ContainsOptions): boolean;
-        random(): T | undefined;
         either(weights?: number[], allowNull?: boolean): T | null | undefined;
     }
     interface ArrayConstructor {
         merge<T = any>(...sources: any[]): T[];
         append<T = any>(...sources: any[]): T[];
         cover<T = any>(...sources: any[]): T[];
-        mergefn<T = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T[];
-        appendfn<T = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T[];
-        coverfn<T = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T[];
     }
     interface ReadonlyArray<T> {
         contains(value: unknown, mode?: ContainsMode, options?: ContainsOptions): boolean;
-        random(): T | undefined;
         either(weights?: number[], allowNull?: boolean): T | null | undefined;
     }
     interface String {
@@ -1308,17 +1304,17 @@ declare namespace index {
 
 declare class Logger {
     readonly core: MaplebirchCore;
-    private static readonly LogConfig;
-    private static readonly LogLevel;
+    private static readonly LEVELS;
+    private static readonly CONFIG;
     private level;
     constructor(core: MaplebirchCore);
     fromIDB(): Promise<void>;
-    log(message: string, levelName?: string | number, ...objects: any[]): void;
+    log(message: string, levelName?: string | number, ...objects: unknown[]): void;
     set LevelName(levelName: string);
     get LevelName(): string;
 }
 
-type EventCallback = (...args: any[]) => any;
+type EventCallback = (...args: any[]) => unknown;
 declare class EventEmitter {
     readonly core: MaplebirchCore;
     private readonly events;
@@ -1332,29 +1328,30 @@ declare class EventEmitter {
     trigger(eventName: string, ...args: any[]): Promise<void>;
     after(eventName: string, callback: EventCallback): void;
     private callSticky;
+    private error;
 }
 
+interface StoreIndex {
+    name: string;
+    keyPath: string | string[];
+    options?: IDBIndexParameters;
+}
+type Transaction<Mode extends IDBTransactionMode = IDBTransactionMode> = IDBPTransaction<unknown, string[], Mode>;
 declare class IndexedDBService {
     readonly core: MaplebirchCore;
-    static DATABASE_NAME: string;
-    static DATABASE_VERSION: number;
+    static readonly DATABASE_NAME = "maplebirch";
+    static readonly DATABASE_VERSION: number;
     private db;
-    private ready;
     private opening;
-    private stores;
+    private readonly stores;
     constructor(core: MaplebirchCore);
-    register(name: string, options?: IDBObjectStoreParameters, indexes?: Array<{
-        name: string;
-        keyPath: string | string[];
-        options?: IDBIndexParameters;
-    }>): void;
+    register(name: string, options?: IDBObjectStoreParameters, indexes?: StoreIndex[]): void;
     init(): Promise<void>;
-    private reopenDatabase;
-    private openDatabase;
-    private createStores;
-    withTransaction<T>(storeNames: string | string[], mode: IDBTransactionMode, callback: (tx: any) => T | Promise<T>): Promise<T>;
+    private open;
+    withTransaction<T, Mode extends IDBTransactionMode>(storeNames: string | string[], mode: Mode, callback: (tx: Transaction<Mode>) => T | Promise<T>): Promise<T>;
     clearStore(storeName: string): Promise<void>;
     deleteDatabase(): Promise<boolean>;
+    private error;
 }
 
 type CloudSaveSlot = number;
@@ -1485,9 +1482,8 @@ declare class LanguageManager {
     static readonly BATCH_SIZE = 500;
     language: LanguageCode;
     private readonly STORE;
-    private translations;
-    private textCache;
-    private fileHashes;
+    private readonly translations;
+    private readonly cache;
     private preloaded;
     constructor(core: MaplebirchCore);
     private initDB;
@@ -1496,14 +1492,13 @@ declare class LanguageManager {
     importFile(modName: string, language: LanguageCode, path: string): AsyncGenerator<ImportProgress>;
     t(translationKey: string, space?: boolean): string;
     auto(text: string): string;
-    preload(): Promise<void>;
-    private loadBundledTranslations;
-    clearStorage(): Promise<void>;
     has(translationKey: string): boolean;
     set(translationKey: string, translations: Record<string, unknown>): boolean;
+    preload(): Promise<void>;
+    clearStorage(): Promise<void>;
+    private loadBundledTranslations;
     private writeTranslations;
     private writeBatch;
-    private writeBatchRaw;
     private removeOldTranslations;
     private readFileRecord;
     private writeFileRecord;
@@ -1512,53 +1507,70 @@ declare class LanguageManager {
     private parseTranslations;
     private computeHash;
     private getModFile;
-    private setFileHash;
+    private rebuild;
+    private error;
 }
 
+interface Module {
+    dependencies?: string[];
+    exposed?: boolean;
+    preInit?(): void | Promise<void>;
+    Init?(): void;
+    loadInit?(): void;
+    postInit?(): void;
+    [key: string]: unknown;
+}
 interface ModuleRegistry {
-    modules: Map<string, any>;
+    modules: Map<string, Module>;
     states: Map<string, string | number>;
     sources: Map<string, string>;
     dependencies: Map<string, Set<string>>;
     dependents: Map<string, Set<string>>;
-    allDependencies: Map<string, Set<string>>;
-    waitingQueue: Map<string, Set<string>>;
 }
-interface InitPhase {
-    preInitCompleted: boolean;
-    mainInitCompleted: boolean;
+interface DependencyInfo {
+    protected: boolean;
+    mounted: boolean;
+    early: boolean;
+    exposed: boolean;
+    lifecycle: boolean;
+    dependencies: string[];
+    dependents: string[];
+    allDependencies: string[];
+    state: string;
+    source: string;
 }
+type DependencyGraph = Record<string, DependencyInfo>;
 declare class ModuleSystem {
     readonly core: MaplebirchCore;
     readonly registry: ModuleRegistry;
-    readonly initPhase: InitPhase;
-    private sourceStack;
-    private preInitialized;
-    private waiters;
+    readonly initPhase: {
+        preInitCompleted: boolean;
+        mainInitCompleted: boolean;
+    };
+    private readonly sourceStack;
+    private readonly preInitialized;
     private disabledNames;
-    private circularCache;
+    private preInitTask;
+    private late;
     constructor(core: MaplebirchCore);
-    withSource<T>(source: string, callback: () => T | Promise<T>): Promise<T>;
-    register(name: string, module: any, dependencies?: string[]): boolean;
-    get dependencyGraph(): any;
-    init(phase: 'pre' | 'init' | 'load' | 'post'): Promise<void>;
-    private moduleDisabled;
-    private handleEarlyMount;
-    private scheduleEarlyMountCheck;
-    private collectAllDependencies;
-    private storeModule;
-    private processWaitingQueue;
-    private waitForModule;
-    private resolveWaiters;
-    private checkDependencies;
-    private addToWaitingQueue;
-    private moduleInit;
-    private moduleHook;
-    private handlePreInitComplete;
-    private phaseInit;
-    private TopologicalOrder;
-    private circularDependency;
-    private detectCircularDependency;
+    with<T>(source: string, callback: () => T | Promise<T>): Promise<T>;
+    register(name: string, module: Module, dependencies?: string[]): boolean;
+    get dependencyGraph(): DependencyGraph;
+    run(phase: 'pre'): Promise<void>;
+    run(phase: 'init' | 'load' | 'post'): void;
+    private preInit;
+    private pre;
+    private init;
+    private phase;
+    private callHook;
+    private ready;
+    private flushEarly;
+    private topologicalOrder;
+    private collect;
+    private circular;
+    private lifecycle;
+    private promiseLike;
+    private error;
 }
 
 type ModuleType = 'protected' | 'mounted' | 'exposed' | 'module';
@@ -2278,6 +2290,11 @@ declare class ToolCollection {
     onInit(...widgets: InitFunction[]): void;
     addTo(zone: string, ...widgets: (string | Function | ZoneWidgetConfig | [number, string | ZoneWidgetConfig])[]): void;
     preInit(): void;
+    private config;
+    private loadConfig;
+    private addTrait;
+    private addKeyedConfig;
+    private error;
 }
 
 type AudioFormat = 'mp3' | 'wav' | 'ogg' | 'm4a' | 'flac' | 'webm';
@@ -2557,6 +2574,7 @@ declare class Transformation {
     }): boolean;
     get icon(): string;
     setTransform(name: string, level: number | null): void;
+    part(partName: string): boolean;
 }
 
 type ProcessType = 'pre' | 'post';
@@ -2716,10 +2734,17 @@ declare const NPCClothes: {
     readonly profiles: Record<string, NPCSidebarWardrobeProfile>;
 };
 
+interface NPCSidebarBootConfig {
+    clothes?: string[];
+    image?: string[];
+    config?: string[];
+}
+declare function config(manager: NPCManager, modName: string, modZip: ModZipReader, config: NPCSidebarBootConfig): Promise<void>;
 declare function loadFromMod(modZip: ModZipReader, npcNames: string[]): string[];
 declare const NPCSidebar: {
     new (): {};
     get display(): Map<string, Set<string>>;
+    config: typeof config;
     loadFromMod: typeof loadFromMod;
     hair_type(type: "sides" | "fringe"): Record<string, string>;
     init(manager: NPCManager): void;
@@ -2913,6 +2938,7 @@ declare class NPCManager {
     };
     vanillaInit(npcName: string): void;
     vanillaInject(npcName: string, npcno: number): void;
+    private config;
     preInit(): void;
     Init(): void;
     loadInit(): void;
@@ -3130,26 +3156,24 @@ declare class CredentialVault {
     private decryptRecord;
 }
 
-interface Task<T = any> {
-    modName: string;
-    config: T;
-    modZip?: ModZipReader;
-}
 type Replacement = [RegExp, string];
 declare function replace(content: string, replacements: Replacement[], label?: string): string;
 
-type ConfigType = 'language' | 'audio' | 'framework' | 'npc';
 interface FileItem {
     modName: string;
     filePath: string;
     content: string;
 }
+interface BootTask<T = unknown> {
+    modName: string;
+    modInfo: ModInfo;
+    modZip: ModZipReader;
+    config: T;
+}
+type BootHandler<T = unknown> = (task: BootTask<T>) => void | Promise<void>;
 declare class AddonPlugin {
     readonly core: MaplebirchCore;
     onStart: boolean;
-    private onSaveLoadTracer;
-    private readonly disabledMods;
-    private readonly blockedPassages;
     readonly replace: typeof replace;
     readonly SC2DataManager: SC2DataManager;
     readonly modUtils: ModUtils;
@@ -3159,37 +3183,47 @@ declare class AddonPlugin {
         modZip: ModZipReader;
     }>;
     readonly log: ReturnType<typeof createlog>;
-    readonly supportedConfigs: ConfigType[];
-    queue: Record<ConfigType, Task[]>;
-    processed: Record<ConfigType | 'script', boolean>;
+    readonly jsFiles: FileItem[];
+    readonly moduleFiles: FileItem[];
+    private readonly disabledMods;
+    private readonly blockedPassages;
+    private readonly bootHooks;
+    private readonly bootQueue;
+    private onSaveLoadTracer;
     private moduleFilesExecuted;
-    jsFiles: FileItem[];
-    moduleFiles: FileItem[];
+    private scriptFilesExecuted;
+    private bootReady;
     constructor(core: MaplebirchCore);
-    canLoadThisMod(bootJson: ModBootJson, zip: JSZipLikeReadOnlyInterface): Promise<boolean>;
+    hook<T>(name: string, handler: BootHandler<T>): boolean;
+    canLoadThisMod(bootJson: ModBootJson, _zip: JSZipLikeReadOnlyInterface): Promise<boolean>;
     afterInjectEarlyLoad(): Promise<void>;
     ModLoaderLoadEnd(): Promise<void>;
     afterEarlyLoad(): Promise<void>;
     registerMod(addonName: string, modInfo: ModInfo, modZip: ModZipReader): Promise<void>;
     afterRegisterMod2Addon(): Promise<void>;
     beforePatchModToGame(): Promise<void>;
-    PatchModToGame_start(): Promise<any>;
+    PatchModToGame_start(): Promise<void>;
     afterPatchModToGame(): Promise<void>;
-    afterPreload(): Promise<any>;
-    whenSC2StoryReady(): Promise<any>;
-    whenSC2PassageInit(passage: Passage): Promise<any>;
-    whenSC2PassageStart(passage: Passage, content: HTMLDivElement): Promise<any>;
-    whenSC2PassageRender(passage: Passage, content: HTMLDivElement): Promise<any>;
-    whenSC2PassageDisplay(passage: Passage, content: HTMLDivElement): Promise<any>;
-    whenSC2PassageEnd(passage: Passage, content: HTMLDivElement): Promise<any>;
+    afterPreload(): Promise<void>;
+    whenSC2StoryReady(): Promise<void>;
+    whenSC2PassageInit(passage: Passage): Promise<void>;
+    whenSC2PassageStart(passage: Passage, content: HTMLDivElement): Promise<void>;
+    whenSC2PassageRender(passage: Passage, content: HTMLDivElement): Promise<void>;
+    whenSC2PassageDisplay(passage: Passage, content: HTMLDivElement): Promise<void>;
+    whenSC2PassageEnd(passage: Passage, content: HTMLDivElement): Promise<void>;
     loadCrypt(options: CryptOptions): Promise<boolean>;
     private scriptFiles;
     private dataReplace;
     private loadFiles;
     private executeScripts;
-    private processInit;
-    private static modifyOptionsDateFormat;
+    private process;
+    private queue;
+    private flush;
+    private run;
+    private config;
+    private modifyOptionsDateFormat;
     private saveHandle;
+    private error;
 }
 
 export { type Extensions, MaplebirchCore, maplebirch as default, index as utils };

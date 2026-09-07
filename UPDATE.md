@@ -1,3 +1,13 @@
+##### (v.4.2.9更新日志):
+
+- **启动配置处理改为 hook 注册制**：删除 `AddonPluginProcess`，`AddonPlugin` 提供 `hook()` 注册与按批次的统一分发；`language`/`audio`/`framework`/`npc` 等 boot 配置由各模块自行注册处理（LanguageManager/Audio/ToolCollection 等），框架核心不再集中式调度各类型处理流程。
+- twee 文本与资源处理工具从 AddonPluginProcess 迁出，集中到新模块 `src/utils/twine.ts`（`replace`/`defineTwineAsset`/`Replacement`）。
+- **ModuleSystem 重写**：模块接口类型化（`dependencies`/`exposed`/生命周期钩子显式声明）；生命周期改为 `run('pre'|'init'|'load'|'post')`——`pre` 阶段异步并仅在 ModLoader 准备阶段执行，`init`/`load`/`post` 在 SugarCube 同步周期内同步推进；补充后注册模块的补齐（flush）处理并保留依赖拓扑与循环检测。
+- **服务层类型化与精简**：`LanguageManager` 重构（`language` 配置支持数组或对象写法、导入批处理与缓存整理）；`EventEmitter` 事件表化、回调类型收敛；`Logger`/`IndexedDBService` 类型化瘦身。
+- `TransformationMirror` 部件默认值改为读取转化配置；`joinEncodedPath` 内部实现简化。
+- **精简原型扩展**：移除数组实例方法 `random` 与 `Array` 静态方法 `mergefn`/`appendfn`/`coverfn`，缩小全局副作用；保留 `Array` 的 `contains`/`either`、`merge`/`append`/`cover`、`Object` 全套静态方法、字符串 `contains`/`convert` 与 `Math.random`/`clamp` 扩展及 `maplebirch.utils` 全部工具函数，并同步清理类型声明。
+- 重新生成 `@scml-maplebirch/types` 类型声明，同步更新中英文工具函数文档。
+
 ##### (v.4.2.8更新日志):
 
 - **utils 工具库模块化**：将单体 `src/utils.ts` 拆分为 `src/utils/` 下按用途划分的 10 个模块（`object`/`array`/`string`/`binary`/`path`/`selector`/`image`/`prototype`/`shared`/`index`），删除旧单体文件，由 `src/utils/index.ts` 统一导出，全部调用方自动切换到新模块。

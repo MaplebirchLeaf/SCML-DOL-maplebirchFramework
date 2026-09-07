@@ -1,7 +1,7 @@
 // .src/modules/TimeStateWeather/Time.ts
 
 import { TimeConstants } from '../../constants';
-import { replace } from '../AddonPluginProcess';
+import { replace } from '../../utils/twine';
 
 export function patchTimeAsset(content: string): string {
   let result = content;
