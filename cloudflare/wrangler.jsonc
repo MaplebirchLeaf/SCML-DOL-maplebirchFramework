@@ -1,11 +1,14 @@
 {
   "name": "maplebirch-cloud-save",
   "main": "worker.ts",
-  "compatibility_date": "2026-09-09",
+  "compatibility_date": "2026-09-08",
   "r2_buckets": [
     {
       "binding": "SAVE_BUCKET",
       "bucket_name": "maplebirch-save"
     }
-  ]
+  ],
+  "secrets": {
+    "required": ["MAPLEBIRCH_TOKEN"]
+  }
 }
