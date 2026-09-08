@@ -23,7 +23,6 @@ const ok = tags.contains('beast');
 const key = 'My Text'.convert('snake');
 ```
 
-
 Use static methods when creating a new object or array:
 
 ```javascript
@@ -60,29 +59,29 @@ Prefer `Object.merge()`, `Object.append()`, `Object.cover()`, `Array.merge()`, `
 
 ## Common Methods
 
-| Method                                        | Description                              |
-| :-------------------------------------------- | :--------------------------------------- |
-| `maplebirch.utils.clone(source, deep, proto)` | Clone a value                          |
-| `maplebirch.utils.equal(a, b)`              | Deep equality check                      |
-| `maplebirch.utils.merge(target, ...sources)` | Recursive merge; arrays merge by index |
-| `maplebirch.utils.append(target, ...sources)` | Recursive merge; arrays append        |
-| `maplebirch.utils.cover(target, ...sources)` | Recursive merge; arrays replace        |
-| `maplebirch.utils.mergefn(target, fn, ...sources)` | Filtered `merge`                |
-| `maplebirch.utils.appendfn(target, fn, ...sources)` | Filtered `append`              |
-| `maplebirch.utils.coverfn(target, fn, ...sources)` | Filtered `cover`                |
-| `Object.merge(...sources)`                   | Create a new object and merge (static)   |
-| `Object.append(...sources)`                  | Create a new object and append (static)  |
-| `Object.cover(...sources)`                   | Create a new object and cover (static)   |
-| `Array.merge(...sources)`                    | Create a new array and merge (static)    |
-| `Array.append(...sources)`                   | Create a new array and append (static)   |
-| `Array.cover(...sources)`                    | Create a new array and cover (static)    |
-| `array.contains(value, mode, opt)`           | Containment check (array instance)       |
-| `array.either(weights, allowNull)`           | Pick a random item, optionally weighted (array instance) |
-| `string.convert(mode, opt)`                  | Convert string case (string instance)    |
-| `Math.random(max)`                           | Integer from `0` to `max`            |
-| `Math.random(min, max, float)`               | Random number between `min` and `max` |
-| `Math.clamp(value, min, max, fallback)`      | Clamp a number                           |
-| `loadImage(src)`                             | Check or load an image resource          |
+| Method                                              | Description                                              |
+| :-------------------------------------------------- | :------------------------------------------------------- |
+| `maplebirch.utils.clone(source, deep, proto)`       | Clone a value                                            |
+| `maplebirch.utils.equal(a, b)`                      | Deep equality check                                      |
+| `maplebirch.utils.merge(target, ...sources)`        | Recursive merge; arrays merge by index                   |
+| `maplebirch.utils.append(target, ...sources)`       | Recursive merge; arrays append                           |
+| `maplebirch.utils.cover(target, ...sources)`        | Recursive merge; arrays replace                          |
+| `maplebirch.utils.mergefn(target, fn, ...sources)`  | Filtered `merge`                                         |
+| `maplebirch.utils.appendfn(target, fn, ...sources)` | Filtered `append`                                        |
+| `maplebirch.utils.coverfn(target, fn, ...sources)`  | Filtered `cover`                                         |
+| `Object.merge(...sources)`                          | Create a new object and merge (static)                   |
+| `Object.append(...sources)`                         | Create a new object and append (static)                  |
+| `Object.cover(...sources)`                          | Create a new object and cover (static)                   |
+| `Array.merge(...sources)`                           | Create a new array and merge (static)                    |
+| `Array.append(...sources)`                          | Create a new array and append (static)                   |
+| `Array.cover(...sources)`                           | Create a new array and cover (static)                    |
+| `array.contains(value, mode, opt)`                  | Containment check (array instance)                       |
+| `array.either(weights, allowNull)`                  | Pick a random item, optionally weighted (array instance) |
+| `string.convert(mode, opt)`                         | Convert string case (string instance)                    |
+| `Math.random(max)`                                  | Integer from `0` to `max`                                |
+| `Math.random(min, max, float)`                      | Random number between `min` and `max`                    |
+| `Math.clamp(value, min, max, fallback)`             | Clamp a number                                           |
+| `loadImage(src)`                                    | Check or load an image resource                          |
 
 In the table, `Object.*`/`Array.*` are static methods and `array.*`/`string.*` are array/string instance methods; all remain available. `maplebirch.utils.*` are functional calls. To check whether a plain object contains a value, collect `Object.values(obj)` first and then use the array `contains`.
 

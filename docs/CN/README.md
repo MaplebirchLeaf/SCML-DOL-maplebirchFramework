@@ -45,6 +45,8 @@
 
 - [战斗行动](Combat/Actions.md)
 
-## 云存档
+## 框架服务
 
-- [云存档服务](../../cloud-services/README.md)
+- [模组加密](Encryption.md)
+- [云存档](CloudSave.md)
+

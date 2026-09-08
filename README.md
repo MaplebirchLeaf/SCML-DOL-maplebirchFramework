@@ -242,7 +242,6 @@ npm install -D @scml-maplebirch/types
   - [NPC 转化][NamedNPCTransformation]
 - [战斗管理][Combat]
   - [战斗按钮][CombatActions]
-- [云存档服务][CloudServices]
 
 ## boot.json 配置
 
@@ -353,4 +352,3 @@ npm install -D @scml-maplebirch/types
 [NamedNPCTransformation]: docs/CN/NamedNPC/NamedNPCTransformation.md
 [Combat]: docs/CN/Combat/
 [CombatActions]: docs/CN/Combat/Actions.md
-[CloudServices]: cloud-services/README.md

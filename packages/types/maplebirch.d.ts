@@ -1127,16 +1127,10 @@ declare class IndexedDBService {
 //#endregion
 //#region src/services/CloudSaveService.d.ts
 type CloudSaveSlot = number;
-type CloudSaveBackend = 'server' | 'webdav';
-type PanelAction = 'connectRemote' | 'registerServer' | 'deleteServerAccount' | 'uploadSlot' | 'downloadSlot' | 'refreshRemoteList' | 'deleteRemoteSlot' | 'exportCurrentCode' | 'exportSlotCode' | 'uploadCode' | 'downloadCode' | 'importCode';
+type PanelAction = 'connectRemote' | 'uploadSlot' | 'downloadSlot' | 'refreshRemoteList' | 'deleteRemoteSlot' | 'exportCurrentCode' | 'exportSlotCode' | 'uploadCode' | 'downloadCode' | 'importCode';
 interface CloudSaveConfig {
-  mode?: CloudSaveBackend;
   endpoint: string;
-  username?: string;
-  password?: string;
-  userId?: string;
-  passphrase?: string;
-  token?: string;
+  token: string;
 }
 interface CloudSaveRecord {
   slot: CloudSaveSlot;
@@ -1145,27 +1139,19 @@ interface CloudSaveRecord {
   exportedAt: number;
   gameId?: string;
 }
-interface CloudSaveEncryptedPayload {
-  version: 1;
-  compression?: 'gzip';
-  salt: string;
-  iv: string;
-  data: string;
+interface CloudSaveCodeRecord {
+  code: string;
+  exportedAt: number;
+  gameId?: string;
 }
 interface CloudSaveRemoteItem {
   slot: CloudSaveSlot;
   updatedAt: number;
-  payload?: CloudSaveEncryptedPayload;
+  payload?: CloudSaveRecord;
 }
 interface CloudSaveRemoteCode {
   updatedAt: number;
-  payload?: CloudSaveEncryptedPayload;
-}
-interface CloudSaveAuthResponse {
-  userId: number;
-  username: string;
-  token: string;
-  expiresAt: number;
+  payload?: CloudSaveCodeRecord;
 }
 declare class CloudSaveService {
   readonly core: MaplebirchCore;
@@ -1173,66 +1159,55 @@ declare class CloudSaveService {
   private config;
   constructor(core: MaplebirchCore);
   configure(config: CloudSaveConfig): this;
-  register(username: string, password: string, passphrase?: string): Promise<CloudSaveAuthResponse>;
-  login(username: string, password: string, passphrase?: string): Promise<CloudSaveAuthResponse>;
-  deleteAccount(password: string): Promise<boolean>;
-  /** 从原版 indexedDB 导出本地槽位。 */
+  /** 验证 Worker 与 Token 是否可用。 */
+  connect(): Promise<void>;
+  /** 从 DoL 原生 IndexedDB 读取本地存档。 */
   exportSlot(slot: CloudSaveSlot): Promise<CloudSaveRecord>;
-  /** 把云端记录写回原版 indexedDB。 */
+  /** 将云端存档写回 DoL 原生 IndexedDB。 */
   importSlot(record: CloudSaveRecord, targetSlot?: CloudSaveSlot): Promise<boolean>;
+  /** 上传本地存档。 */
   upload(slot: CloudSaveSlot): Promise<CloudSaveRemoteItem>;
-  download(slot: CloudSaveSlot, targetSlot?: number): Promise<boolean>;
+  /** 下载云端存档。 */
+  download(slot: CloudSaveSlot, targetSlot?: CloudSaveSlot): Promise<boolean>;
+  /** 获取远端存档列表。 */
   listRemote(): Promise<CloudSaveRemoteItem[]>;
-  deleteRemote(slot: CloudSaveSlot): Promise<boolean>;
+  /** 删除远端存档。 */
+  deleteRemote(slot: CloudSaveSlot): Promise<void>;
   /** 导出当前 SugarCube 存档码。 */
   exportCode(): string;
-  /** 把本地槽位转成可复制的 SugarCube 存档码。 */
+  /** 将指定本地槽位转换为 SugarCube 存档码。 */
   exportSlotCode(slot: CloudSaveSlot): Promise<string>;
+  /** 导入 SugarCube 存档码。 */
   importCode(code: string): boolean;
+  /** 上传 SugarCube 存档码。 */
   uploadCode(code?: string): Promise<CloudSaveRemoteCode>;
+  /** 下载 SugarCube 存档码。 */
   downloadCode(): Promise<string>;
+  /** 初始化云存档面板。 */
   mountPanel(): void;
+  /** Twee 面板动作入口。 */
   panelAction(action: PanelAction, slot?: CloudSaveSlot): Promise<void>;
   private runPanelAction;
-  private panelDone;
+  private done;
+  private refreshPanel;
+  private remoteRow;
   private readPanel;
-  private panel;
+  private loadPanelConfig;
+  private savePanelConfig;
+  /** Worker 请求统一入口。 */
+  private request;
+  /** SugarCube delta 存档还原为完整 history。 */
+  private normalizeSave;
   private field;
   private setField;
   private panelSlot;
-  private loadPanelConfig;
-  private savePanelConfig;
-  private refreshPanel;
-  private remoteRow;
   private status;
-  private errorMessage;
-  private auth;
-  private connect;
-  private isServerEndpoint;
-  private server;
-  private setServerAuth;
-  private webdavPutSlot;
-  private webdavPutCode;
-  private readManifest;
-  private updateManifest;
-  private emptyManifest;
-  private ensureWebdav;
-  private webdavRequest;
-  private webdavFetch;
-  private webdavPath;
-  private packSlot;
-  private unpackSlot;
-  private packCode;
-  private unpackCode;
-  private normalizeSave;
-  private encrypt;
-  private decrypt;
-  private compress;
-  private decompress;
-  private deriveKey;
+  private error;
+  private get saveDB();
+  private get panel();
   private get current();
   private get endpoint();
-  private get passphrase();
+  private get token();
 }
 //#endregion
 //#region src/services/LanguageManager.d.ts
@@ -2252,7 +2227,7 @@ declare class Variables {
   readonly core: MaplebirchCore;
   private static readonly OPTIONS_STORAGE_KEY;
   private static moduleOptions;
-  static add<T extends object>(key: string, options: T): void;
+  static add(key: string, value: any): void;
   static get options(): Record<string, any>;
   version: string;
   readonly tool: MaplebirchCore['tool'];
@@ -2900,6 +2875,7 @@ declare var maplebirch: Instance;
 declare function createlog(prefix: string): (message: string, level?: string, ...objects: any[]) => void;
 //#endregion
 //#region src/services/CredentialVault.d.ts
+type CredentialPeriod = 'day' | 'month';
 interface AuthConfig {
   key: string;
   subject?: string;
@@ -2912,6 +2888,7 @@ interface AuthConfig {
     hint?: string;
   };
   date?: {
+    period?: CredentialPeriod;
     timezone?: string;
     graceDays?: number;
   };
@@ -2950,17 +2927,21 @@ declare class CredentialVault {
   private static readonly STORE;
   private static readonly TOKEN_PREFIX;
   private dialogQueue;
+  private storageKey;
   constructor(core: MaplebirchCore);
-  private readPassword;
-  private unlock;
   loadCrypt(options: CryptOptions): Promise<boolean>;
+  private loadCredential;
   private decryptAndLoad;
-  private storePassword;
+  private decodeCredential;
+  private verify;
+  private credentialDate;
+  private readStored;
+  private storeStored;
+  private forget;
   private ensurePromptStyle;
   private promptCredential;
-  private verify;
-  private forget;
   private ensureStorageKey;
+  private loadStorageKey;
   private encryptRecord;
   private decryptRecord;
 }

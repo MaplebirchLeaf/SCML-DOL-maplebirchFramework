@@ -23,7 +23,6 @@ const ok = tags.contains('beast');
 const key = 'My Text'.convert('snake');
 ```
 
-
 创建新对象或新数组时，使用静态方法：
 
 ```javascript
@@ -60,29 +59,29 @@ const list = Array.append(base, extra);
 
 ## 常用方法总览
 
-| 方法                                              | 说明                                   |
-| :------------------------------------------------ | :------------------------------------- |
-| `maplebirch.utils.clone(source, deep, proto)`   | 克隆值                                 |
-| `maplebirch.utils.equal(a, b)`                  | 深度比较                               |
-| `maplebirch.utils.merge(target, ...sources)`    | 递归合并，数组按下标合并               |
-| `maplebirch.utils.append(target, ...sources)`   | 递归合并，数组追加                     |
-| `maplebirch.utils.cover(target, ...sources)`    | 递归合并，数组替换                     |
-| `maplebirch.utils.mergefn(target, fn, ...sources)` | 带过滤函数的 `merge`               |
-| `maplebirch.utils.appendfn(target, fn, ...sources)` | 带过滤函数的 `append`             |
-| `maplebirch.utils.coverfn(target, fn, ...sources)` | 带过滤函数的 `cover`               |
-| `Object.merge(...sources)`                      | 创建新对象并 merge（静态方法）         |
-| `Object.append(...sources)`                     | 创建新对象并 append（静态方法）        |
-| `Object.cover(...sources)`                      | 创建新对象并 cover（静态方法）         |
-| `Array.merge(...sources)`                       | 创建新数组并 merge（静态方法）         |
-| `Array.append(...sources)`                      | 创建新数组并 append（静态方法）        |
-| `Array.cover(...sources)`                       | 创建新数组并 cover（静态方法）         |
-| `array.contains(value, mode, opt)`              | 判断数组是否包含（数组实例方法）       |
-| `array.either(weights, allowNull)`              | 从数组随机取一个元素，可带权重（数组实例方法） |
-| `string.convert(mode, opt)`                     | 字符串格式转换（字符串实例方法）       |
-| `Math.random(max)`                              | `0` 到 `max` 的整数                |
-| `Math.random(min, max, float)`                  | `min` 到 `max` 的随机数            |
-| `Math.clamp(value, min, max, fallback)`         | 限制数值范围                           |
-| `loadImage(src)`                                | 检查或加载图片资源                     |
+| 方法                                                | 说明                                           |
+| :-------------------------------------------------- | :--------------------------------------------- |
+| `maplebirch.utils.clone(source, deep, proto)`       | 克隆值                                         |
+| `maplebirch.utils.equal(a, b)`                      | 深度比较                                       |
+| `maplebirch.utils.merge(target, ...sources)`        | 递归合并，数组按下标合并                       |
+| `maplebirch.utils.append(target, ...sources)`       | 递归合并，数组追加                             |
+| `maplebirch.utils.cover(target, ...sources)`        | 递归合并，数组替换                             |
+| `maplebirch.utils.mergefn(target, fn, ...sources)`  | 带过滤函数的 `merge`                           |
+| `maplebirch.utils.appendfn(target, fn, ...sources)` | 带过滤函数的 `append`                          |
+| `maplebirch.utils.coverfn(target, fn, ...sources)`  | 带过滤函数的 `cover`                           |
+| `Object.merge(...sources)`                          | 创建新对象并 merge（静态方法）                 |
+| `Object.append(...sources)`                         | 创建新对象并 append（静态方法）                |
+| `Object.cover(...sources)`                          | 创建新对象并 cover（静态方法）                 |
+| `Array.merge(...sources)`                           | 创建新数组并 merge（静态方法）                 |
+| `Array.append(...sources)`                          | 创建新数组并 append（静态方法）                |
+| `Array.cover(...sources)`                           | 创建新数组并 cover（静态方法）                 |
+| `array.contains(value, mode, opt)`                  | 判断数组是否包含（数组实例方法）               |
+| `array.either(weights, allowNull)`                  | 从数组随机取一个元素，可带权重（数组实例方法） |
+| `string.convert(mode, opt)`                         | 字符串格式转换（字符串实例方法）               |
+| `Math.random(max)`                                  | `0` 到 `max` 的整数                            |
+| `Math.random(min, max, float)`                      | `min` 到 `max` 的随机数                        |
+| `Math.clamp(value, min, max, fallback)`             | 限制数值范围                                   |
+| `loadImage(src)`                                    | 检查或加载图片资源                             |
 
 表中 `Object.*`/`Array.*` 是静态方法，`array.*`/`string.*` 是数组/字符串实例方法，均仍可用；`maplebirch.utils.*` 是函数式调用。要判断普通对象是否包含某值，先取 `Object.values(obj)` 再用数组 `contains`。
 

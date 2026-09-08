@@ -24,18 +24,40 @@ class Options {
     const options = ((V.options ??= {}).maplebirch ??= {}) as OptionsData;
     const defaults = args.pop();
     if (defaults == null) return;
-
     if (typeof defaults !== 'object') {
-      options[args[0]] = defaults;
-      return defaults;
+      const key = args[0];
+      Variables.add(key, defaults);
+      options[key] ??= clone(defaults);
+      return options[key];
     }
 
     if (args.length) {
-      for (const key of args) if (key in defaults) options[key] = Object.merge(defaults[key], options[key] ?? {});
+      for (const key of args) {
+        if (key in defaults) {
+          const value = defaults[key];
+          Variables.add(key, value);
+          if (maplebirch.lodash.isPlainObject(value) && maplebirch.lodash.isPlainObject(options[key])) {
+            options[key] = Object.merge(clone(value), options[key]);
+          } else {
+            options[key] ??= clone(value);
+          }
+          continue;
+        }
+        Variables.add(key, defaults);
+        options[key] = Object.merge(clone(defaults), options[key] ?? {});
+      }
       return options;
     }
 
-    Object.assign(options, defaults);
+    for (const [key, value] of Object.entries(defaults)) {
+      Variables.add(key, value);
+      if (maplebirch.lodash.isPlainObject(value) && maplebirch.lodash.isPlainObject(options[key])) {
+        options[key] = Object.merge(clone(value), options[key]);
+      } else {
+        options[key] ??= clone(value);
+      }
+    }
+
     return options;
   }
 }
@@ -69,11 +91,13 @@ class Variables {
   private static readonly OPTIONS_STORAGE_KEY = 'maplebirchFrameworkOptions';
   private static moduleOptions: OptionsData = {};
 
-  public static add<T extends object>(key: string, options: T) {
-    this.moduleOptions[key] = {
-      ...this.moduleOptions[key],
-      ...options
-    };
+  public static add(key: string, value: any): void {
+    const current = this.moduleOptions[key];
+    if (maplebirch.lodash.isPlainObject(value) && maplebirch.lodash.isPlainObject(current)) {
+      this.moduleOptions[key] = Object.merge(clone(value), current);
+      return;
+    }
+    this.moduleOptions[key] = clone(value);
   }
 
   // prettier-ignore

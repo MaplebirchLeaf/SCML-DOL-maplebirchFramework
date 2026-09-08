@@ -44,9 +44,10 @@ This directory contains English documentation for mod authors using **`maplebirc
 - [NPC Sidebar](NamedNPC/NamedNPCSidebar.md)
 - [Combat Actions](Combat/Actions.md)
 
-## Cloud Save
+## Framework Services
 
-- [Cloud Save Services](../../cloud-services/README.md)
+- [Mod Encryption](Encryption.md)
+- [Cloud Save](CloudSave.md)
 
 ## Translation Status
 

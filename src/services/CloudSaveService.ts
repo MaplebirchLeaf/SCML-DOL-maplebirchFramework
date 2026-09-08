@@ -1,33 +1,15 @@
 // ./src/services/CloudSaveService.ts
 
-import { type MaplebirchCore } from '../core';
-import { gunzipSync, gzipSync } from 'fflate';
-import { base64ToBytes, basicAuth, bytesToBase64, bytesToJson, clone, joinEncodedPath, jsonToBytes, textToBytes, toArrayBuffer } from '../utils';
+import type { MaplebirchCore } from '../core';
+import { clone } from '../utils';
 
 type CloudSaveSlot = number;
-type CloudSaveBackend = 'server' | 'webdav';
-type PanelAction =
-  | 'connectRemote'
-  | 'registerServer'
-  | 'deleteServerAccount'
-  | 'uploadSlot'
-  | 'downloadSlot'
-  | 'refreshRemoteList'
-  | 'deleteRemoteSlot'
-  | 'exportCurrentCode'
-  | 'exportSlotCode'
-  | 'uploadCode'
-  | 'downloadCode'
-  | 'importCode';
+
+type PanelAction = 'connectRemote' | 'uploadSlot' | 'downloadSlot' | 'refreshRemoteList' | 'deleteRemoteSlot' | 'exportCurrentCode' | 'exportSlotCode' | 'uploadCode' | 'downloadCode' | 'importCode';
 
 interface CloudSaveConfig {
-  mode?: CloudSaveBackend;
   endpoint: string;
-  username?: string;
-  password?: string;
-  userId?: string;
-  passphrase?: string;
-  token?: string;
+  token: string;
 }
 
 interface CloudSaveRecord {
@@ -44,37 +26,21 @@ interface CloudSaveCodeRecord {
   gameId?: string;
 }
 
-interface CloudSaveEncryptedPayload {
-  version: 1;
-  compression?: 'gzip';
-  salt: string;
-  iv: string;
-  data: string;
-}
-
 interface CloudSaveRemoteItem {
   slot: CloudSaveSlot;
   updatedAt: number;
-  payload?: CloudSaveEncryptedPayload;
+  payload?: CloudSaveRecord;
 }
 
 interface CloudSaveRemoteCode {
   updatedAt: number;
-  payload?: CloudSaveEncryptedPayload;
+  payload?: CloudSaveCodeRecord;
 }
 
-interface CloudSaveManifest {
-  version: 1;
-  updatedAt: number;
-  saves: CloudSaveRemoteItem[];
-  codeUpdatedAt?: number;
-}
-
-interface CloudSaveAuthResponse {
-  userId: number;
-  username: string;
-  token: string;
-  expiresAt: number;
+interface DoLSaveDatabase {
+  getItem(slot: CloudSaveSlot): Promise<{ data?: any } | null | undefined>;
+  getSaveDetails(): Promise<Array<{ slot: CloudSaveSlot; data?: any }> | null | undefined>;
+  setItem(slot: CloudSaveSlot, save: any, details?: any): Promise<boolean | void>;
 }
 
 class CloudSaveService {
@@ -85,264 +51,233 @@ class CloudSaveService {
 
   public configure(config: CloudSaveConfig): this {
     this.config = {
-      ...config,
-      endpoint: config.endpoint.replace(/\/+$/, '')
+      endpoint: config.endpoint.trim().replace(/\/+$/, ''),
+      token: config.token.trim()
     };
     return this;
   }
 
-  public async register(username: string, password: string, passphrase = password): Promise<CloudSaveAuthResponse> {
-    const response = await this.auth('/auth/register', username, password);
-    this.setServerAuth(response, passphrase);
-    return response;
+  /** 验证 Worker 与 Token 是否可用。 */
+  public async connect(): Promise<void> {
+    await this.listRemote();
   }
 
-  public async login(username: string, password: string, passphrase = password): Promise<CloudSaveAuthResponse> {
-    const response = await this.auth('/auth/login', username, password);
-    this.setServerAuth(response, passphrase);
-    return response;
-  }
-
-  public async deleteAccount(password: string): Promise<boolean> {
-    if (this.current.mode !== 'server') throw new Error('Only the server backend can delete an account.');
-    await this.server('/auth/account', { method: 'DELETE', body: JSON.stringify({ password }) });
-    this.config = { endpoint: this.endpoint };
-    return true;
-  }
-
-  /** 从原版 indexedDB 导出本地槽位。 */
+  /** 从 DoL 原生 IndexedDB 读取本地存档。 */
   public async exportSlot(slot: CloudSaveSlot): Promise<CloudSaveRecord> {
-    const idb = (window as any).idb;
-    const [item, detailsList] = await Promise.all([idb.getItem(slot), idb.getSaveDetails()]);
+    const [item, details] = await Promise.all([this.saveDB.getItem(slot), this.saveDB.getSaveDetails()]);
     if (!item?.data) throw new Error(`Local save slot ${slot} not found.`);
     return {
       slot,
-      details: detailsList?.find((entry: any) => entry.slot === slot)?.data ?? null,
+      details: details?.find(item => item.slot === slot)?.data ?? null,
       save: item.data,
       exportedAt: Date.now(),
       gameId: this.core.SugarCube?.Story?.domId
     };
   }
 
-  /** 把云端记录写回原版 indexedDB。 */
+  /** 将云端存档写回 DoL 原生 IndexedDB。 */
   public async importSlot(record: CloudSaveRecord, targetSlot: CloudSaveSlot = record.slot): Promise<boolean> {
     if (!record?.save) throw new Error('Invalid cloud save record.');
-    const result = await (window as any).idb.setItem(targetSlot, this.normalizeSave(record.save), {
+    const result = await this.saveDB.setItem(targetSlot, this.normalizeSave(record.save), {
       ...record.details,
       date: Date.now()
     });
-    await (window as any).idb.getSaveDetails?.();
+    await this.saveDB.getSaveDetails();
     return result !== false;
   }
 
+  /** 上传本地存档。 */
   public async upload(slot: CloudSaveSlot): Promise<CloudSaveRemoteItem> {
-    const item = await this.packSlot(slot);
-    if (this.current.mode === 'server') await this.server(`/saves/${slot}`, { method: 'PUT', body: JSON.stringify(item) });
-    else await this.webdavPutSlot(item);
-    return { slot: item.slot, updatedAt: item.updatedAt };
-  }
+    const item: CloudSaveRemoteItem = {
+      slot,
+      updatedAt: Date.now(),
+      payload: await this.exportSlot(slot)
+    };
 
-  public async download(slot: CloudSaveSlot, targetSlot = slot): Promise<boolean> {
-    const item =
-      this.current.mode === 'server'
-        ? await this.server<CloudSaveRemoteItem>(`/saves/${slot}`)
-        : await this.webdavRequest<CloudSaveRemoteItem>(this.webdavPath('slots', `${slot}.json`), { method: 'GET' }, true);
-    return this.unpackSlot(item, targetSlot);
-  }
-
-  public async listRemote(): Promise<CloudSaveRemoteItem[]> {
-    if (this.current.mode === 'server') return this.server<CloudSaveRemoteItem[]>('/saves');
-    return (await this.readManifest()).saves.sort((a, b) => a.slot - b.slot);
-  }
-
-  public async deleteRemote(slot: CloudSaveSlot): Promise<boolean> {
-    if (this.current.mode === 'server') {
-      await this.server(`/saves/${slot}`, { method: 'DELETE' });
-      return true;
-    }
-    await this.webdavRequest(this.webdavPath('slots', `${slot}.json`), { method: 'DELETE' }, true);
-    await this.updateManifest(manifest => {
-      manifest.saves = manifest.saves.filter(item => item.slot !== slot);
+    await this.request(`/saves/${slot}`, {
+      method: 'PUT',
+      body: JSON.stringify(item)
     });
-    return true;
+
+    return {
+      slot,
+      updatedAt: item.updatedAt
+    };
+  }
+
+  /** 下载云端存档。 */
+  public async download(slot: CloudSaveSlot, targetSlot: CloudSaveSlot = slot): Promise<boolean> {
+    const item = await this.request<CloudSaveRemoteItem>(`/saves/${slot}`, undefined, true);
+    if (!item?.payload) throw new Error(`Remote save slot ${slot} not found.`);
+    return this.importSlot(item.payload, targetSlot);
+  }
+
+  /** 获取远端存档列表。 */
+  public async listRemote(): Promise<CloudSaveRemoteItem[]> {
+    return (await this.request<CloudSaveRemoteItem[]>('/saves')) ?? [];
+  }
+
+  /** 删除远端存档。 */
+  public async deleteRemote(slot: CloudSaveSlot): Promise<void> {
+    await this.request(`/saves/${slot}`, {
+      method: 'DELETE'
+    });
   }
 
   /** 导出当前 SugarCube 存档码。 */
   public exportCode(): string {
-    const save = this.core.SugarCube.Save;
+    const save = this.core.SugarCube?.Save;
     if (typeof save?.serialize !== 'function') throw new Error('SugarCube.Save.serialize is not available.');
     const dolSave = (window as any).DoLSave;
-    const wasCompressed = dolSave?.isCompressionEnabled?.() === true;
-    if (wasCompressed) dolSave.disableCompression?.();
+    const compressed = dolSave?.isCompressionEnabled?.() === true;
+    if (compressed) dolSave.disableCompression?.();
     try {
       return save.serialize();
     } finally {
-      if (wasCompressed) dolSave.enableCompression?.();
+      if (compressed) dolSave.enableCompression?.();
     }
   }
 
-  /** 把本地槽位转成可复制的 SugarCube 存档码。 */
+  /** 将指定本地槽位转换为 SugarCube 存档码。 */
   public async exportSlotCode(slot: CloudSaveSlot): Promise<string> {
     const record = await this.exportSlot(slot);
     const lz = (window as any).LZString;
     const story = this.core.SugarCube?.Story;
     const config = this.core.SugarCube?.Config ?? (window as any).Config;
     if (!lz?.compressToBase64 || !story?.domId || !config?.saves?.id) throw new Error(this.core.t('cloud.save.error.code.tools'));
-
     const state = this.normalizeSave(record.save);
-    const saveObj: any = {
+    const save: any = {
       id: config.saves.id,
       state,
       idx: record.details?.idx ?? this.core.SugarCube.State.qc
     };
-    if (record.details?.metadata) saveObj.metadata = record.details.metadata;
-    if (config.saves.version) saveObj.version = config.saves.version;
-    saveObj.state.delta = this.core.SugarCube.State.deltaEncode(saveObj.state.history);
-    delete saveObj.state.history;
-
-    const data = lz.compressToBase64(JSON.stringify(saveObj));
-    return data + lz.compressToBase64(JSON.stringify({ [story.domId]: data.length }));
+    if (record.details?.metadata) save.metadata = record.details.metadata;
+    if (config.saves.version) save.version = config.saves.version;
+    save.state.delta = this.core.SugarCube.State.deltaEncode(save.state.history);
+    delete save.state.history;
+    const data = lz.compressToBase64(JSON.stringify(save));
+    return (
+      data +
+      lz.compressToBase64(
+        JSON.stringify({
+          [story.domId]: data.length
+        })
+      )
+    );
   }
 
+  /** 导入 SugarCube 存档码。 */
   public importCode(code: string): boolean {
     const save = this.core.SugarCube?.Save;
     if (typeof save?.deserialize !== 'function') throw new Error('SugarCube.Save.deserialize is not available.');
     return save.deserialize(code) !== null;
   }
 
+  /** 上传 SugarCube 存档码。 */
   public async uploadCode(code = this.exportCode()): Promise<CloudSaveRemoteCode> {
-    const item = await this.packCode(code);
-    if (this.current.mode === 'server') await this.server('/save-code', { method: 'PUT', body: JSON.stringify(item) });
-    else await this.webdavPutCode(item);
-    return { updatedAt: item.updatedAt };
-  }
+    const item: CloudSaveRemoteCode = {
+      updatedAt: Date.now(),
+      payload: {
+        code,
+        exportedAt: Date.now(),
+        gameId: this.core.SugarCube?.Story?.domId
+      }
+    };
 
-  public async downloadCode(): Promise<string> {
-    const item =
-      this.current.mode === 'server' ? await this.server<CloudSaveRemoteCode>('/save-code') : await this.webdavRequest<CloudSaveRemoteCode>(this.webdavPath('save-code.json'), { method: 'GET' }, true);
-    return this.unpackCode(item);
-  }
+    await this.request('/save-code', {
+      method: 'PUT',
+      body: JSON.stringify(item)
+    });
 
-  public mountPanel(): void {
-    const panel = this.panel();
-    if (!panel) return;
-    const saved = this.loadPanelConfig();
-    const current = this.config;
-    this.setField(panel, 'endpoint', current?.endpoint || saved.endpoint || '');
-    this.setField(panel, 'username', current?.username || saved.username || '');
-    this.setField(panel, 'password', current?.password || '');
-    if (!current && saved.endpoint) this.configure({ endpoint: saved.endpoint, username: saved.username });
-    if (this.config?.mode) void this.refreshPanel(panel).then(() => this.status(panel, this.core.t('cloud.save.status.connect'), true));
-  }
-
-  public async panelAction(action: PanelAction, slot?: CloudSaveSlot): Promise<void> {
-    const panel = this.panel();
-    if (!panel) return;
-    this.status(panel, this.core.t('cloud.save.status.working'));
-    try {
-      const form = this.readPanel(panel);
-      this.configure({ ...this.config, ...form });
-      this.savePanelConfig(panel);
-      await this.runPanelAction(panel, action, slot ?? this.panelSlot(panel));
-    } catch (error: any) {
-      this.status(panel, this.errorMessage(error), false);
-    }
-  }
-
-  private async runPanelAction(panel: HTMLElement, action: PanelAction, slot: CloudSaveSlot): Promise<void> {
-    const password = this.current.password || '';
-    switch (action) {
-      case 'connectRemote':
-        return this.panelDone(panel, this.core.t('cloud.save.status.connect'), async () => await this.connect(this.current.username || '', password));
-      case 'registerServer':
-        return this.panelDone(panel, this.core.t('cloud.save.status.registered'), async () => await this.register(this.current.username || '', password));
-      case 'deleteServerAccount':
-        await this.deleteAccount(password);
-        this.setField(panel, 'password', '');
-        return this.status(panel, this.core.t('cloud.save.status.account.delete'), true);
-      case 'uploadSlot':
-        return this.panelDone(panel, this.core.t('cloud.save.status.upload'), async () => await this.upload(slot));
-      case 'downloadSlot':
-        return this.panelDone(panel, this.core.t('cloud.save.status.download'), async () => {
-          if (!(await this.download(slot))) throw new Error(this.core.t('cloud.save.error.download'));
-        });
-      case 'deleteRemoteSlot':
-        return this.panelDone(panel, this.core.t('cloud.save.status.delete'), async () => await this.deleteRemote(slot));
-      case 'refreshRemoteList':
-        return this.panelDone(panel, this.core.t('cloud.save.status.refresh'));
-      case 'exportCurrentCode':
-        this.setField(panel, 'code', this.exportCode());
-        return this.status(panel, this.core.t('cloud.save.status.code.generate'), true);
-      case 'exportSlotCode':
-        this.setField(panel, 'code', await this.exportSlotCode(slot));
-        return this.status(panel, this.core.t('cloud.save.status.slot.code.generate'), true);
-      case 'uploadCode':
-        await this.uploadCode(this.field(panel, 'code') || this.exportCode());
-        return this.status(panel, this.core.t('cloud.save.status.code.upload'), true);
-      case 'downloadCode':
-        this.setField(panel, 'code', await this.downloadCode());
-        return this.status(panel, this.core.t('cloud.save.status.code.download'), true);
-      case 'importCode':
-        if (!this.importCode(this.field(panel, 'code'))) throw new Error(this.core.t('cloud.save.error.code.invalid'));
-        return this.status(panel, this.core.t('cloud.save.status.code.load'), true);
-    }
-  }
-
-  private async panelDone(panel: HTMLElement, message: string, action?: () => Promise<unknown>): Promise<void> {
-    if (action) await action();
-    await this.refreshPanel(panel);
-    this.status(panel, message, true);
-  }
-
-  private readPanel(panel: HTMLElement): CloudSaveConfig {
-    const password = this.field(panel, 'password') || this.config?.password || '';
     return {
-      endpoint: this.field(panel, 'endpoint'),
-      username: this.field(panel, 'username'),
-      password,
-      passphrase: password || this.config?.passphrase
+      updatedAt: item.updatedAt
     };
   }
 
-  private panel(): HTMLElement | null {
-    return document.querySelector<HTMLElement>('#maplebirch-cloud-save');
+  /** 下载 SugarCube 存档码。 */
+  public async downloadCode(): Promise<string> {
+    const item = await this.request<CloudSaveRemoteCode>('/save-code', undefined, true);
+    if (!item?.payload) throw new Error(this.core.t('cloud.save.error.code.notFound'));
+    if (!item.payload.code) throw new Error(this.core.t('cloud.save.error.code.empty'));
+    return item.payload.code;
   }
 
-  private field(panel: HTMLElement, name: string): string {
-    return panel.querySelector<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(`[data-cloud-save-field="${name}"]`)?.value.trim() ?? '';
+  /** 初始化云存档面板。 */
+  public mountPanel(): void {
+    const panel = this.panel;
+    if (!panel) return;
+    const saved = this.loadPanelConfig();
+    this.setField(panel, 'endpoint', this.config?.endpoint ?? saved.endpoint);
+    this.setField(panel, 'token', this.config?.token ?? '');
+    if (!this.config?.endpoint || !this.config.token) return;
+    void this.refreshPanel(panel)
+      .then(() => this.status(panel, 'cloud.save.status.connect', true))
+      .catch(error => this.status(panel, this.error(error)));
   }
 
-  private setField(panel: HTMLElement, name: string, value: string): void {
-    const input = panel.querySelector<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(`[data-cloud-save-field="${name}"]`);
-    if (input) input.value = value;
-  }
-
-  private panelSlot(panel: HTMLElement): CloudSaveSlot {
-    const slot = Number(this.field(panel, 'slot'));
-    if (!Number.isInteger(slot) || slot < 0 || slot > 10) throw new Error(this.core.t('cloud.save.error.slot.range'));
-    return slot;
-  }
-
-  private loadPanelConfig(): { endpoint: string; username: string } {
+  /** Twee 面板动作入口。 */
+  public async panelAction(action: PanelAction, slot?: CloudSaveSlot): Promise<void> {
+    const panel = this.panel;
+    if (!panel) return;
+    this.status(panel, 'cloud.save.status.working');
     try {
-      const data = JSON.parse(localStorage.getItem(CloudSaveService.PANEL_STORAGE_KEY) || '{}');
-      return {
-        endpoint: typeof data.endpoint === 'string' ? data.endpoint : '',
-        username: typeof data.username === 'string' ? data.username : ''
-      };
-    } catch {
-      return { endpoint: '', username: '' };
+      this.configure(this.readPanel(panel));
+      this.savePanelConfig();
+      await this.runPanelAction(panel, action, slot);
+    } catch (error) {
+      this.status(panel, this.error(error));
     }
   }
 
-  private savePanelConfig(panel: HTMLElement): void {
-    localStorage.setItem(
-      CloudSaveService.PANEL_STORAGE_KEY,
-      JSON.stringify({
-        endpoint: this.field(panel, 'endpoint'),
-        username: this.field(panel, 'username')
-      })
-    );
+  private async runPanelAction(panel: HTMLElement, action: PanelAction, slot?: CloudSaveSlot): Promise<void> {
+    switch (action) {
+      case 'connectRemote':
+        await this.connect();
+        return this.done(panel, 'cloud.save.status.connect');
+
+      case 'uploadSlot':
+        await this.upload(slot ?? this.panelSlot(panel));
+        return this.done(panel, 'cloud.save.status.upload');
+
+      case 'downloadSlot':
+        await this.download(slot ?? this.panelSlot(panel));
+        return this.done(panel, 'cloud.save.status.download');
+
+      case 'deleteRemoteSlot':
+        await this.deleteRemote(slot ?? this.panelSlot(panel));
+        return this.done(panel, 'cloud.save.status.delete');
+
+      case 'refreshRemoteList':
+        return this.done(panel, 'cloud.save.status.refresh');
+
+      case 'exportCurrentCode':
+        this.setField(panel, 'code', this.exportCode());
+        return this.status(panel, 'cloud.save.status.code.generate', true);
+
+      case 'exportSlotCode':
+        this.setField(panel, 'code', await this.exportSlotCode(slot ?? this.panelSlot(panel)));
+
+        return this.status(panel, 'cloud.save.status.slot.code.generate', true);
+
+      case 'uploadCode':
+        await this.uploadCode(this.field(panel, 'code').trim() || this.exportCode());
+
+        return this.status(panel, 'cloud.save.status.code.upload', true);
+
+      case 'downloadCode':
+        this.setField(panel, 'code', await this.downloadCode());
+
+        return this.status(panel, 'cloud.save.status.code.download', true);
+
+      case 'importCode':
+        if (!this.importCode(this.field(panel, 'code').trim())) throw new Error(this.core.t('cloud.save.error.code.invalid'));
+        return this.status(panel, 'cloud.save.status.code.load', true);
+    }
+  }
+
+  private async done(panel: HTMLElement, key: string): Promise<void> {
+    await this.refreshPanel(panel);
+    this.status(panel, key, true);
   }
 
   private async refreshPanel(panel: HTMLElement): Promise<void> {
@@ -362,243 +297,118 @@ class CloudSaveService {
     row.innerHTML = `
       <span>${item.slot}</span>
       <span>${new Date(item.updatedAt).toLocaleString()}</span>
-      <button type="button" class="saveMenuButton" data-cloud-save-download-slot="${item.slot}">${this.core.t('cloud.save.action.download')}</button>
-      <button type="button" class="deleteButton right saveMenuButton" data-cloud-save-delete-slot="${item.slot}">${this.core.t('cloud.save.action.delete')}</button>`;
-    row.querySelector<HTMLButtonElement>('[data-cloud-save-download-slot]')?.addEventListener('click', () => this.panelAction('downloadSlot', item.slot));
-    row.querySelector<HTMLButtonElement>('[data-cloud-save-delete-slot]')?.addEventListener('click', () => this.panelAction('deleteRemoteSlot', item.slot));
+      <button
+        type="button"
+        class="saveMenuButton"
+        data-cloud-save-download-slot="${item.slot}"
+      >${this.core.t('cloud.save.action.download')}</button>
+      <button
+        type="button"
+        class="deleteButton right saveMenuButton"
+        data-cloud-save-delete-slot="${item.slot}"
+      >${this.core.t('cloud.save.action.delete')}</button>
+    `;
+    row.querySelector('[data-cloud-save-download-slot]')?.addEventListener('click', () => void this.panelAction('downloadSlot', item.slot));
+    row.querySelector('[data-cloud-save-delete-slot]')?.addEventListener('click', () => void this.panelAction('deleteRemoteSlot', item.slot));
     return row;
   }
 
-  private status(panel: HTMLElement, message: string, success = false): void {
-    const status = panel.querySelector<HTMLElement>('[data-cloud-save-status]');
-    if (!status) return;
-    status.textContent = message;
-    status.classList.toggle('success', success);
-    status.classList.toggle('error', !success);
-    status.classList.add('visible');
+  private readPanel(panel: HTMLElement): CloudSaveConfig {
+    return {
+      endpoint: this.field(panel, 'endpoint').trim(),
+      token: this.field(panel, 'token').trim()
+    };
   }
 
-  private errorMessage(error: any): string {
-    if (error?.name === 'OperationError') return this.core.t('cloud.save.error.decrypt');
-    return error?.message || String(error);
-  }
-
-  private async auth(path: '/auth/register' | '/auth/login', username: string, password: string): Promise<CloudSaveAuthResponse> {
-    return this.server<CloudSaveAuthResponse>(path, { method: 'POST', body: JSON.stringify({ username, password }) });
-  }
-
-  private async connect(username: string, password: string): Promise<void> {
-    if (await this.isServerEndpoint()) return void (await this.login(username, password));
-    this.configure({ ...this.current, username, password, passphrase: password });
-    await this.ensureWebdav();
-    this.configure({ ...this.current, mode: 'webdav' });
-  }
-
-  private async isServerEndpoint(): Promise<boolean> {
+  private loadPanelConfig(): {
+    endpoint: string;
+  } {
     try {
-      const response = await fetch(`${this.endpoint}/health`);
-      if (!response.ok) return false;
-      if ((response.headers.get('content-type') || '').includes('application/json')) return true;
-      return /ok|healthy|cloud/i.test(await response.text());
+      const data = JSON.parse(localStorage.getItem(CloudSaveService.PANEL_STORAGE_KEY) ?? '{}');
+      return { endpoint: typeof data.endpoint === 'string' ? data.endpoint : '' };
     } catch {
-      return false;
+      return { endpoint: '' };
     }
   }
 
-  private async server<T = any>(path: string, init: RequestInit = {}): Promise<T> {
-    const config = this.config;
+  private savePanelConfig(): void {
+    localStorage.setItem(
+      CloudSaveService.PANEL_STORAGE_KEY,
+      JSON.stringify({
+        endpoint: this.endpoint
+      })
+    );
+  }
+
+  /** Worker 请求统一入口。 */
+  private async request<T = unknown>(path: string, init: RequestInit = {}, allowNotFound = false): Promise<T | null> {
+    const headers = new Headers(init.headers);
+    headers.set('Authorization', `Bearer ${this.token}`);
+    if (init.body != null) headers.set('Content-Type', 'application/json');
     const response = await fetch(`${this.endpoint}${path}`, {
       ...init,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(config?.userId ? { 'X-Cloud-Save-User': config.userId } : {}),
-        ...(config?.token ? { Authorization: `Bearer ${config.token}` } : {}),
-        ...init.headers
-      }
-    });
-    if (!response.ok) throw new Error(`Cloud save request failed: ${response.status} ${await response.text()}`);
-    if (response.status === 204) return null as T;
-    return (await response.json()) as T;
-  }
-
-  private setServerAuth(response: CloudSaveAuthResponse, passphrase: string): void {
-    this.config = {
-      ...this.current,
-      mode: 'server',
-      userId: String(response.userId),
-      passphrase,
-      token: response.token
-    };
-  }
-
-  private async webdavPutSlot(item: CloudSaveRemoteItem): Promise<void> {
-    await this.ensureWebdav();
-    await this.webdavRequest(this.webdavPath('slots', `${item.slot}.json`), { method: 'PUT', body: JSON.stringify(item) });
-    await this.updateManifest(manifest => {
-      manifest.saves = [...manifest.saves.filter(save => save.slot !== item.slot), { slot: item.slot, updatedAt: item.updatedAt }].sort((a, b) => a.slot - b.slot);
-    });
-  }
-
-  private async webdavPutCode(item: CloudSaveRemoteCode): Promise<void> {
-    await this.ensureWebdav();
-    await this.webdavRequest(this.webdavPath('save-code.json'), { method: 'PUT', body: JSON.stringify(item) });
-    await this.updateManifest(manifest => {
-      manifest.codeUpdatedAt = item.updatedAt;
-    });
-  }
-
-  private async readManifest(): Promise<CloudSaveManifest> {
-    await this.ensureWebdav();
-    const manifest = await this.webdavRequest<CloudSaveManifest>(this.webdavPath('manifest.json'), { method: 'GET' }, true);
-    if (!manifest) return this.emptyManifest();
-    return {
-      version: 1,
-      updatedAt: Number(manifest.updatedAt) || Date.now(),
-      saves: Array.isArray(manifest.saves) ? manifest.saves.filter(item => Number.isInteger(item.slot) && typeof item.updatedAt === 'number') : [],
-      codeUpdatedAt: typeof manifest.codeUpdatedAt === 'number' ? manifest.codeUpdatedAt : undefined
-    };
-  }
-
-  private async updateManifest(change: (manifest: CloudSaveManifest) => void): Promise<void> {
-    const manifest = await this.readManifest();
-    change(manifest);
-    await this.webdavRequest(this.webdavPath('manifest.json'), {
-      method: 'PUT',
-      body: JSON.stringify({ ...manifest, updatedAt: Date.now() })
-    });
-  }
-
-  private emptyManifest(): CloudSaveManifest {
-    return { version: 1, updatedAt: Date.now(), saves: [] };
-  }
-
-  private async ensureWebdav(): Promise<void> {
-    const config = this.current;
-    if (!config.endpoint) throw new Error('Cloud save endpoint is not configured.');
-    if (!config.username || !config.password) throw new Error(this.core.t('cloud.save.error.webdav.credentials'));
-    const response = await this.webdavFetch(this.webdavPath('slots'), { method: 'MKCOL' });
-    if (![200, 201, 204, 405].includes(response.status)) throw new Error(`WebDAV MKCOL failed: ${response.status} ${await response.text()}`);
-  }
-
-  private async webdavRequest<T = any>(path: string, init: RequestInit = {}, allowNotFound = false): Promise<T | null> {
-    const response = await this.webdavFetch(path, {
-      ...init,
-      headers: {
-        ...(init.body ? { 'Content-Type': 'application/json' } : {}),
-        ...init.headers
-      }
+      headers
     });
     if (allowNotFound && response.status === 404) return null;
-    if (!response.ok) throw new Error(`WebDAV request failed: ${response.status} ${await response.text()}`);
+    if (!response.ok) {
+      const message = await response.text();
+      if (response.status === 401) throw new Error('Cloud save authorization failed.');
+      throw new Error(`Cloud save request failed: ${response.status}${message ? ` ${message}` : ''}`);
+    }
     if (response.status === 204) return null;
     const text = await response.text();
     return text ? (JSON.parse(text) as T) : null;
   }
 
-  private webdavFetch(path: string, init: RequestInit): Promise<Response> {
-    const { username = '', password = '' } = this.current;
-    return fetch(`${this.endpoint}/${path}`, {
-      ...init,
-      headers: {
-        Authorization: `Basic ${basicAuth(username, password)}`,
-        ...init.headers
-      }
-    });
-  }
-
-  private webdavPath(...parts: string[]): string {
-    return joinEncodedPath(...parts);
-  }
-
-  private async packSlot(slot: CloudSaveSlot): Promise<CloudSaveRemoteItem> {
-    return {
-      slot,
-      updatedAt: Date.now(),
-      payload: await this.encrypt(await this.exportSlot(slot), this.passphrase)
-    };
-  }
-
-  private async unpackSlot(item: CloudSaveRemoteItem | null, targetSlot: CloudSaveSlot): Promise<boolean> {
-    if (!item?.payload) throw new Error(`Remote save slot ${targetSlot} not found.`);
-    return this.importSlot(await this.decrypt<CloudSaveRecord>(item.payload, this.passphrase), targetSlot);
-  }
-
-  private async packCode(code: string): Promise<CloudSaveRemoteCode> {
-    return {
-      updatedAt: Date.now(),
-      payload: await this.encrypt(
-        {
-          code,
-          exportedAt: Date.now(),
-          gameId: this.core.SugarCube?.Story?.domId
-        } satisfies CloudSaveCodeRecord,
-        this.passphrase
-      )
-    };
-  }
-
-  private async unpackCode(item: CloudSaveRemoteCode | null): Promise<string> {
-    if (!item?.payload) throw new Error(this.core.t('cloud.save.error.code.notFound'));
-    const record = await this.decrypt<CloudSaveCodeRecord>(item.payload, this.passphrase);
-    if (!record.code) throw new Error(this.core.t('cloud.save.error.code.empty'));
-    return record.code;
-  }
-
+  /** SugarCube delta 存档还原为完整 history。 */
   private normalizeSave(save: any): any {
     const state = clone(save);
     if (!state.history && state.delta) {
-      const deltaDecode = this.core.SugarCube?.State?.deltaDecode;
-      if (typeof deltaDecode !== 'function') throw new Error('SugarCube.State.deltaDecode is not available.');
-      state.history = deltaDecode(state.delta);
+      const decode = this.core.SugarCube?.State?.deltaDecode;
+      if (typeof decode !== 'function') throw new Error('SugarCube.State.deltaDecode is not available.');
+      state.history = decode(state.delta);
       delete state.delta;
     }
     if (!state.history) throw new Error('Cloud save data does not contain a valid SugarCube history.');
     return state;
   }
 
-  private async encrypt(data: unknown, passphrase: string): Promise<CloudSaveEncryptedPayload> {
-    const salt = crypto.getRandomValues(new Uint8Array(16));
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const encoded = await this.compress(jsonToBytes(data));
-    const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await this.deriveKey(passphrase, salt), toArrayBuffer(encoded));
-    return {
-      version: 1,
-      compression: encoded.compressed ? 'gzip' : undefined,
-      salt: bytesToBase64(salt),
-      iv: bytesToBase64(iv),
-      data: bytesToBase64(new Uint8Array(encrypted))
-    };
+  private field(panel: HTMLElement, name: string): string {
+    return panel.querySelector<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(`[data-cloud-save-field="${name}"]`)?.value ?? '';
   }
 
-  private async decrypt<T>(payload: CloudSaveEncryptedPayload, passphrase: string): Promise<T> {
-    if (payload.version !== 1) throw new Error(`Unsupported cloud save payload version: ${payload.version}`);
-    const salt = base64ToBytes(payload.salt);
-    const iv = base64ToBytes(payload.iv);
-    const encrypted = base64ToBytes(payload.data);
-    const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: toArrayBuffer(iv) }, await this.deriveKey(passphrase, salt), toArrayBuffer(encrypted));
-    const bytes = payload.compression === 'gzip' ? await this.decompress(new Uint8Array(decrypted)) : new Uint8Array(decrypted);
-    return bytesToJson<T>(bytes);
+  private setField(panel: HTMLElement, name: string, value: string): void {
+    const field = panel.querySelector<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(`[data-cloud-save-field="${name}"]`);
+    if (field) field.value = value;
   }
 
-  private async compress(bytes: Uint8Array): Promise<Uint8Array & { compressed?: boolean }> {
-    const compressed = gzipSync(bytes, { level: 9, mem: 9 }) as Uint8Array & { compressed?: boolean };
-    compressed.compressed = compressed.byteLength < bytes.byteLength;
-    return compressed.compressed ? compressed : bytes;
+  private panelSlot(panel: HTMLElement): CloudSaveSlot {
+    const slot = Number(this.field(panel, 'slot'));
+    if (!Number.isInteger(slot) || slot < 0 || slot > 10) throw new Error(this.core.t('cloud.save.error.slot.range'));
+    return slot;
   }
 
-  private async decompress(bytes: Uint8Array): Promise<Uint8Array> {
-    try {
-      return gunzipSync(bytes);
-    } catch {
-      if (typeof DecompressionStream !== 'function') throw new Error(this.core.t('cloud.save.error.decompress'));
-      const stream = new Blob([toArrayBuffer(bytes)]).stream().pipeThrough(new DecompressionStream('gzip'));
-      return new Uint8Array(await new Response(stream).arrayBuffer());
-    }
+  private status(panel: HTMLElement, message: string, success = false): void {
+    const status = panel.querySelector<HTMLElement>('[data-cloud-save-status]');
+    if (!status) return;
+    status.textContent = message.startsWith('cloud.') ? this.core.t(message) : message;
+    status.classList.toggle('success', success);
+    status.classList.toggle('error', !success);
+    status.classList.add('visible');
   }
 
-  private async deriveKey(passphrase: string, salt: Uint8Array): Promise<CryptoKey> {
-    const keyMaterial = await crypto.subtle.importKey('raw', toArrayBuffer(textToBytes(passphrase)), 'PBKDF2', false, ['deriveKey']);
-    return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: toArrayBuffer(salt), iterations: 150000, hash: 'SHA-256' }, keyMaterial, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+  private error(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+  }
+
+  private get saveDB(): DoLSaveDatabase {
+    const db = (window as any).idb;
+    if (!db || typeof db.getItem !== 'function' || typeof db.getSaveDetails !== 'function' || typeof db.setItem !== 'function') throw new Error('DoL IndexedDB is not available.');
+    return db;
+  }
+
+  private get panel(): HTMLElement | null {
+    return document.querySelector('#maplebirch-cloud-save');
   }
 
   private get current(): CloudSaveConfig {
@@ -607,17 +417,16 @@ class CloudSaveService {
   }
 
   private get endpoint(): string {
-    const endpoint = this.current.endpoint;
-    if (!endpoint) throw new Error('Cloud save endpoint is not configured.');
-    return endpoint;
+    if (!this.current.endpoint) throw new Error('Cloud save endpoint is not configured.');
+    return this.current.endpoint;
   }
 
-  private get passphrase(): string {
-    const passphrase = this.current.passphrase;
-    if (!passphrase) throw new Error('Cloud save passphrase is not configured.');
-    return passphrase;
+  private get token(): string {
+    if (!this.current.token) throw new Error('Cloud save token is not configured.');
+    return this.current.token;
   }
 }
 
 export default CloudSaveService;
-export type { CloudSaveAuthResponse, CloudSaveConfig, CloudSaveRecord, CloudSaveRemoteItem };
+
+export type { CloudSaveConfig, CloudSaveRecord, CloudSaveRemoteItem, CloudSaveRemoteCode };
