@@ -88,11 +88,10 @@ class Transformation {
   public constructor(private manager: Character) {
     this.log = manager.log;
     manager.core.once(':sugarcube', () => {
-      this.isDoLP = String(maplebirch.gameVersion ?? '').includes('DoLP');
-      if (this.isDoLP) {
-        Object.cover(this.decayConditions, DoLPcompat.DecayConditions);
-        Object.cover(this.suppressConditions, DoLPcompat.SuppressConditions);
-        Object.cover(this.buildUpdaters, DoLPcompat.BuildUpdaters);
+      if (DoLPcompat.isDoLP) {
+        Object.cover(this.decayConditions, DoLPcompat.Transformations.DecayConditions);
+        Object.cover(this.suppressConditions, DoLPcompat.Transformations.SuppressConditions);
+        Object.cover(this.buildUpdaters, DoLPcompat.Transformations.BuildUpdaters);
       }
     });
     manager.core.once(':storyready', () => {
@@ -105,15 +104,15 @@ class Transformation {
   private isDoLP = false;
 
   private get animalTransforms() {
-    return this.isDoLP ? [...AnimalTransforms, ...DoLPcompat.AnimalTransforms] : AnimalTransforms;
+    return this.isDoLP ? [...AnimalTransforms, ...DoLPcompat.Transformations.AnimalTransforms] : AnimalTransforms;
   }
 
   private get animalMacros(): NativeMacroMap {
-    return this.isDoLP ? (Object.cover({}, AnimalMacros, DoLPcompat.AnimalMacros) as NativeMacroMap) : AnimalMacros;
+    return this.isDoLP ? (Object.cover({}, AnimalMacros, DoLPcompat.Transformations.AnimalMacros) as NativeMacroMap) : AnimalMacros;
   }
 
   private get historyTransforms() {
-    return this.isDoLP ? [...HistoryTransforms, ...DoLPcompat.HistoryTransforms] : HistoryTransforms;
+    return this.isDoLP ? [...HistoryTransforms, ...DoLPcompat.Transformations.HistoryTransforms] : HistoryTransforms;
   }
 
   public wikifier(widget: string, ...args: any[]): any {
@@ -195,7 +194,7 @@ class Transformation {
     }
 
     const transformations = [...base, ...injected.filter(tf => !baseNames.has(tf.name))];
-    setup.transformations = this.isDoLP ? DoLPcompat.mergeTransformations(transformations) : transformations;
+    setup.transformations = this.isDoLP ? DoLPcompat.Transformations.merge(transformations) : transformations;
 
     const collectNames = (list?: Part[]): string[] => {
       if (!Array.isArray(list)) return [];
@@ -228,7 +227,7 @@ class Transformation {
       });
     }
 
-    if (this.isDoLP) DoLPcompat.extendValidState(valid);
+    if (this.isDoLP) DoLPcompat.Transformations.extend(valid);
 
     if (V.maplebirch?.transformation) {
       Object.keys(V.maplebirch.transformation).forEach(name => {
@@ -261,7 +260,7 @@ class Transformation {
   public _transform(name: string, change: number): void {
     if (!change) return;
 
-    if (this.isDoLP) change = DoLPcompat.transformChange(change);
+    if (this.isDoLP) change = DoLPcompat.Transformations.change(change);
 
     const updater = this.buildUpdaters[name];
     if (updater) {
@@ -389,7 +388,7 @@ class Transformation {
       });
     }
 
-    if (this.isDoLP) DoLPcompat.compositeTransformations();
+    if (this.isDoLP) DoLPcompat.Transformations.composite();
 
     if (V.wolfgirl >= 6) this.wikifier('def', 5);
 

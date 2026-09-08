@@ -13,11 +13,11 @@ type NPCSidebarOptions = {
 
 const legs_layers = {
   nnpc_legs_main: clothes_layer('legs', 'main', {
-    masksrcfn(options: NPCSidebarOptions) {
+    masksrcfn: (options: NPCSidebarOptions) => {
       return options.maplebirch.nnpc.legs_mask;
     },
 
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const normal = (nnpc.clothes.under_lower.set === nnpc.clothes.under_upper.set || nnpc.clothes.under_lower.high_img === 1) && nnpc.clothes.legs.high_img !== 1 && nnpc.show && nnpc.model;
       if (normal) return maplebirch.char.ZIndices.legs + nnpc.position;
@@ -26,11 +26,11 @@ const legs_layers = {
   }),
 
   nnpc_legs_acc: clothes_layer('legs', 'acc', {
-    masksrcfn(options: NPCSidebarOptions) {
+    masksrcfn: (options: NPCSidebarOptions) => {
       return options.maplebirch.nnpc.legs_mask;
     },
 
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const normal = (nnpc.clothes.under_lower.set === nnpc.clothes.under_upper.set || nnpc.clothes.under_lower.high_img === 1) && nnpc.show && nnpc.model;
       if (normal) return maplebirch.char.ZIndices.legs + nnpc.position;

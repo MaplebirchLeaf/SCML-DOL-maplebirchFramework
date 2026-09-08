@@ -24,24 +24,24 @@ function faceUncovered(nnpc: Record<string, any>) {
 
 function cumLayer(file: string, prop: string, z: (nnpc: Record<string, any>) => number, show?: (nnpc: Record<string, any>) => boolean) {
   return {
-    masksrcfn(options: NPCSidebarOptions) {
+    masksrcfn: (options: NPCSidebarOptions) => {
       return options.maplebirch.nnpc.close_up_mask;
     },
-    srcfn(options: NPCSidebarOptions) {
+    srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       return nnpc[prop] ? `img/body/cum/${file}-${nnpc[prop]}.png` : '';
     },
-    showfn(options: NPCSidebarOptions) {
+    showfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       return nnpc.show && nnpc.model && !!nnpc[prop] && (show ? show(nnpc) : true);
     },
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       return z(options.maplebirch.nnpc);
     },
-    dxfn(options: NPCSidebarOptions) {
+    dxfn: (options: NPCSidebarOptions) => {
       return options.maplebirch.nnpc.dxfn;
     },
-    dyfn(options: NPCSidebarOptions) {
+    dyfn: (options: NPCSidebarOptions) => {
       return options.maplebirch.nnpc.dyfn;
     },
     animation: 'idle'
@@ -51,7 +51,7 @@ function cumLayer(file: string, prop: string, z: (nnpc: Record<string, any>) => 
 function dripLayer(file: string, prop: string, animation: string, z: (nnpc: Record<string, any>) => number) {
   return {
     ...cumLayer(file, prop, z),
-    animationfn(options: NPCSidebarOptions) {
+    animationfn: (options: NPCSidebarOptions) => {
       const value = options.maplebirch.nnpc[prop];
       return value ? `${animation}${titleCase(value)}` : '';
     }
@@ -63,7 +63,7 @@ const fluids_layers = {
   nnpc_drip_anal: dripLayer('anal', 'drip_anal', 'AnalCumDrip', nnpc => maplebirch.char.ZIndices.tears + nnpc.position),
   nnpc_drip_mouth: {
     ...dripLayer('mouth', 'drip_mouth', 'MouthCumDrip', nnpc => maplebirch.char.ZIndices.semen_cough + nnpc.position),
-    showfn(options: NPCSidebarOptions) {
+    showfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       return nnpc.show && nnpc.model && !!nnpc.drip_mouth && faceUncovered(nnpc);
     }

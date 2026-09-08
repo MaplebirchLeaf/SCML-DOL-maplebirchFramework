@@ -1,5 +1,6 @@
 // ./src/DoLPcompat.ts
 
+import maplebirch from './core';
 import type { BuildUpdater, DecayCondition, NativeHistoryEntry, NativeMacroMap, NativeTransformState, SuppressCondition } from './modules/CharacterAddon/TransformationConfig';
 
 interface TransformationPart {
@@ -23,7 +24,7 @@ interface TransformationPatch {
   traits?: TransformationPart[];
 }
 
-class DoLPcompat {
+class Transformations {
   private static active(name: string, part: string): boolean {
     const value = V.transformationParts?.[name]?.[part];
     return value !== undefined && value !== 'disabled' && value !== 'hidden';
@@ -36,7 +37,7 @@ class DoLPcompat {
       () => V.worn.neck.name !== 'spiked collar',
       () => V.worn.neck.name !== 'spiked collar with leash',
       () => playerNormalPregnancyType() !== 'wolf',
-      () => !DoLPcompat.active('okami', 'misc')
+      () => !DoLPcompat.Transformations.active('okami', 'misc')
     ],
     cat: [
       () => V.catbuild >= 1,
@@ -49,14 +50,14 @@ class DoLPcompat {
       () => V.worn.head.name !== 'feathered hair clip',
       () => V.worn.neck.name !== 'feather necklace',
       () => playerNormalPregnancyType() !== 'hawk',
-      () => !DoLPcompat.active('seraphim', 'wings')
+      () => !DoLPcompat.Transformations.active('seraphim', 'wings')
     ],
     fox: [
       () => V.foxbuild >= 1,
       () => V.worn.head.name !== 'spirit mask',
       () => V.worn.neck.name !== 'jasper pendant',
       () => playerNormalPregnancyType() !== 'fox',
-      () => !DoLPcompat.active('kitsune', 'tail')
+      () => !DoLPcompat.Transformations.active('kitsune', 'tail')
     ],
     waterdragon: [
       () => V.waterdragonbuild >= 1,
@@ -228,8 +229,8 @@ class DoLPcompat {
 
     {
       name: 'okami',
-      get level() { return DoLPcompat.active('okami', 'misc') ? 1 : 0; },
-      get build() { return DoLPcompat.active('okami', 'misc') ? 100 : 0; },
+      get level() { return DoLPcompat.Transformations.active('okami', 'misc') ? 1 : 0; },
+      get build() { return DoLPcompat.Transformations.active('okami', 'misc') ? 100 : 0; },
       type: 'specialTransform',
       parts: [
         { name: 'ears', tfRequired: 1 },
@@ -242,8 +243,8 @@ class DoLPcompat {
 
     {
       name: 'seraphim',
-      get level() { return DoLPcompat.active('seraphim', 'wings') ? 1 : 0; },
-      get build() { return DoLPcompat.active('seraphim', 'wings') ? 100 : 0; },
+      get level() { return DoLPcompat.Transformations.active('seraphim', 'wings') ? 1 : 0; },
+      get build() { return DoLPcompat.Transformations.active('seraphim', 'wings') ? 100 : 0; },
       type: 'specialTransform',
       parts: [
         { name: 'wings', tfRequired: 1 },
@@ -255,8 +256,8 @@ class DoLPcompat {
 
     {
       name: 'kitsune',
-      get level() { return DoLPcompat.active('kitsune', 'tail') ? 1 : 0; },
-      get build() { return DoLPcompat.active('kitsune', 'tail') ? 100 : 0; },
+      get level() { return DoLPcompat.Transformations.active('kitsune', 'tail') ? 1 : 0; },
+      get build() { return DoLPcompat.Transformations.active('kitsune', 'tail') ? 100 : 0; },
       type: 'specialTransform',
       parts: [
         { name: 'ears', tfRequired: 1 },
@@ -284,30 +285,29 @@ class DoLPcompat {
     'activeTF'
   ];
 
-  public static transformChange(change: number): number {
+  public static change(change: number): number {
     if (change < 1) return change;
-
     const level = Number(V.featsBoosts?.upgrades?.adaptiveGenes ?? 0);
     return level >= 1 ? (change * (level + 50)) / 50 : change;
   }
 
-  public static compositeTransformations(): void {
-    if (DoLPcompat.active('seraphim', 'wings')) {
+  public static composite(): void {
+    if (DoLPcompat.Transformations.active('seraphim', 'wings')) {
       V.harpy = Math.max(V.harpy, 6);
       V.birdbuild = Math.max(V.birdbuild, 100);
-      DoLPcompat.forceAngel();
+      DoLPcompat.Transformations.forceAngel();
     }
 
-    if (DoLPcompat.active('kitsune', 'tail')) {
+    if (DoLPcompat.Transformations.active('kitsune', 'tail')) {
       V.fox = Math.max(V.fox, 6);
       V.foxbuild = Math.max(V.foxbuild, 100);
-      DoLPcompat.forceAngel();
+      DoLPcompat.Transformations.forceAngel();
     }
 
-    if (DoLPcompat.active('okami', 'misc')) {
+    if (DoLPcompat.Transformations.active('okami', 'misc')) {
       V.wolfgirl = Math.max(V.wolfgirl, 6);
       V.wolfbuild = Math.max(V.wolfbuild, 100);
-      DoLPcompat.forceAngel();
+      DoLPcompat.Transformations.forceAngel();
     }
   }
 
@@ -317,12 +317,12 @@ class DoLPcompat {
     V.specialTransform = 1;
   }
 
-  public static extendValidState(valid: { names: Set<string>; traits: Set<string> }): void {
-    for (const tf of DoLPcompat.Transformations) valid.names.add(tf.name);
-    for (const trait of DoLPcompat.PreservedTraits) valid.traits.add(trait);
+  public static extend(valid: { names: Set<string>; traits: Set<string> }): void {
+    for (const tf of DoLPcompat.Transformations.Transformations) valid.names.add(tf.name);
+    for (const trait of DoLPcompat.Transformations.PreservedTraits) valid.traits.add(trait);
   }
 
-  public static mergeTransformations<
+  public static merge<
     T extends {
       name?: string;
       parts?: TransformationPart[];
@@ -332,36 +332,49 @@ class DoLPcompat {
     const result = base.map(tf => {
       if (!tf.name) return tf;
 
-      const patch = DoLPcompat.TransformationPatches[tf.name];
+      const patch = DoLPcompat.Transformations.TransformationPatches[tf.name];
       if (!patch) return tf;
 
       return {
         ...tf,
-        parts: DoLPcompat.mergeParts(tf.parts, patch.parts),
-        traits: DoLPcompat.mergeParts(tf.traits, patch.traits)
+        parts: DoLPcompat.Transformations.mergeParts(tf.parts, patch.parts),
+        traits: DoLPcompat.Transformations.mergeParts(tf.traits, patch.traits)
       } as T;
     });
 
     const names = new Set(result.map(tf => tf.name).filter(Boolean));
-
-    return [...result, ...DoLPcompat.Transformations.filter(tf => !names.has(tf.name))];
+    return [...result, ...DoLPcompat.Transformations.Transformations.filter(tf => !names.has(tf.name))];
   }
 
   private static mergeParts(base: TransformationPart[] = [], extra: TransformationPart[] = []): TransformationPart[] {
     const result = [...base];
-
     for (const part of extra) {
       const index = result.findIndex(item => item.name === part.name);
-
       if (index === -1) {
         result.push(part);
       } else {
         result[index] = { ...result[index], ...part };
       }
     }
-
     return result;
   }
+}
+
+class DoLPcompat {
+  public static get isDoLP() {
+    return String(maplebirch.gameVersion ?? '').includes('DoLP');
+  }
+
+  public static readonly Transformations = Transformations;
+
+  public static nnpc = {
+    showfn: (options: Record<string, any>) => {
+      const nnpc = options.maplebirch!.nnpc!;
+      if (nnpc.show) return false;
+      if (T.effects === true) return true;
+      return options.show_nnpc === true;
+    }
+  };
 }
 
 export default DoLPcompat;

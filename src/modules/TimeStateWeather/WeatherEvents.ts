@@ -1,17 +1,15 @@
-// .src/modules/TimeStateWeather/WeatherEvents.ts
+// ./src/modules/TimeStateWeather/WeatherEvents.ts
 
-import maplebirch from '../../core';
 import { append, cover, merge } from '../../utils';
 import type AddonPlugin from '../AddonPlugin';
 import type { Replacement } from '../../utils/twine';
 import type DynamicManager from '../Dynamic';
+import Event, { type EventOptions } from './Event';
 
-export interface WeatherEventOptions {
+export interface WeatherEventOptions extends EventOptions {
   condition?: () => boolean;
   onEnter?: () => void;
   onExit?: () => void;
-  once?: boolean;
-  priority?: number;
   [key: string]: any;
 }
 
@@ -53,34 +51,23 @@ function applyPatch(target: any, patch: any, mode: ModificationConfig['mode']) {
   return merge(target, patch);
 }
 
-class WeatherEvent {
+class WeatherEvent extends Event {
+  protected override readonly eventName = 'WeatherEvent';
   private condition?: () => boolean;
   private onEnter?: () => void;
   private onExit?: () => void;
   private fields: Record<string, any>;
-  public readonly once: boolean;
-  public readonly priority: number;
-
-  public constructor(
-    public readonly id: string,
-    options: WeatherEventOptions = {}
-  ) {
+  public constructor(id: string, options: WeatherEventOptions = {}) {
+    super(id, options);
     this.condition = options.condition;
     this.onEnter = options.onEnter;
     this.onExit = options.onExit;
-    this.once = !!options.once;
-    this.priority = options.priority || 0;
     this.fields = {};
     for (const [key, value] of Object.entries(options)) if (!['condition', 'onEnter', 'onExit', 'once', 'priority'].includes(key)) this.fields[key] = value;
   }
 
   public tryMatch(): boolean {
-    try {
-      return (!this.condition || !!this.condition()) && this.matchFields();
-    } catch (e: any) {
-      maplebirch.log(`[WeatherEvent:${this.id}] condition error:`, 'ERROR', e);
-      return false;
-    }
+    return this.evaluate('condition', () => (!this.condition || !!this.condition()) && this.matchFields());
   }
 
   private matchFields(): boolean {
@@ -126,21 +113,11 @@ class WeatherEvent {
   }
 
   public executeEnter(): void {
-    if (!this.onEnter) return;
-    try {
-      this.onEnter();
-    } catch (e: any) {
-      maplebirch.log(`[WeatherEvent:${this.id}] onEnter error:`, 'ERROR', e);
-    }
+    this.invoke('onEnter', this.onEnter);
   }
 
   public executeExit(): void {
-    if (!this.onExit) return;
-    try {
-      this.onExit();
-    } catch (e: any) {
-      maplebirch.log(`[WeatherEvent:${this.id}] onExit error:`, 'ERROR', e);
-    }
+    this.invoke('onExit', this.onExit);
   }
 }
 

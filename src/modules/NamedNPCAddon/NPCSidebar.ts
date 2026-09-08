@@ -17,6 +17,7 @@ import feet_layers from './NPCSidebarConfig/feet_layers';
 import transformation_layers, { transformationDefaults } from './NPCSidebarConfig/transformation_layers';
 import NPCFluids from './NPCFluids';
 import type NPCManager from '../NamedNPC';
+import DoLPcompat from '../../DoLPcompat';
 
 export interface NPCSidebarBootConfig {
   clothes?: string[];
@@ -510,13 +511,13 @@ const layers = {
   ...feet_layers,
   ...transformation_layers,
   nnpc_genitals: clothes_layer('genitals', 'main', {
-    srcfn(options: NPCSidebarOptions) {
+    srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch!.nnpc!;
       const genitals = nnpc.clothes.genitals;
       return `img/clothes/genitals/${genitals.variable}/${genitals.integrity}.png`;
     },
 
-    showfn(options: NPCSidebarOptions) {
+    showfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch!.nnpc!;
       const clothes = nnpc.clothes;
       if (!nnpc.show || !nnpc.model) return false;
@@ -527,14 +528,14 @@ const layers = {
       return true;
     },
 
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch!.nnpc!;
       return (nnpc.crotch_exposed ? maplebirch.char.ZIndices.penis_chastity + 0.1 : maplebirch.char.ZIndices.penisunderclothes + 0.1) + nnpc.position;
     }
   }),
 
-  nnpc: {
-    srcfn(options: NPCSidebarOptions) {
+  nnpc_sidebar: {
+    srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch!.nnpc!;
       const selected = V.options.maplebirch.npcsidebar.display[nnpc.name];
       const artKey = maplebirch.npc.Clothes.art?.get?.(nnpc.name)?.key;
@@ -543,12 +544,12 @@ const layers = {
       return resolve(nnpc, selected);
     },
 
-    showfn(options: NPCSidebarOptions) {
+    showfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch!.nnpc!;
       return !!nnpc.show && !nnpc.model && !!nnpc.name && setup.NPCNameList.includes(nnpc.name);
     },
 
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       return options.maplebirch!.nnpc!.position;
     },
 
@@ -578,6 +579,7 @@ const NPCSidebar = (() => {
 
     public static init(manager: NPCManager) {
       manager.core.once(':storyready', () => {
+        if (DoLPcompat.isDoLP) manager.core.char.use({ nnpc: DoLPcompat.nnpc }, 'main');
         loadAllImages(manager);
         for (const npcName of manager.NPCNameList) {
           if (!display.has(npcName)) display.set(npcName, new Set());

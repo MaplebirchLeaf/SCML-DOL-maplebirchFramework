@@ -13,7 +13,7 @@ type NPCSidebarOptions = {
 
 const feet_layers = {
   nnpc_feet_main: clothes_layer('feet', 'main', {
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const tucked = nnpc.lower_tucked && !nnpc.clothes.lower.notuck && !nnpc.clothes.feet.notuck;
       if (tucked) return maplebirch.char.ZIndices.lower_tucked_feet + nnpc.position;
@@ -22,7 +22,7 @@ const feet_layers = {
   }),
 
   nnpc_feet_acc: clothes_layer('feet', 'acc', {
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const tucked = nnpc.lower_tucked && !nnpc.clothes.lower.notuck && !nnpc.clothes.feet.notuck;
       if (tucked) return maplebirch.char.ZIndices.lower_tucked_feet + nnpc.position;

@@ -18,7 +18,7 @@ const head_layers = {
   nnpc_over_head_back_acc: clothes_back_acc('over_head'),
 
   nnpc_head_main: clothes_layer('head', 'main', {
-    srcfn(options: NPCSidebarOptions) {
+    srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const head = nnpc.clothes.head;
       const integrity = head.accessory_integrity_img ? nnpc.clothes.upper.integrity : head.integrity;
@@ -26,14 +26,14 @@ const head_layers = {
       return gray_suffix(`img/clothes/head/${head.variable}/${integrity}${pattern}.png`, options.filters?.nnpc_head);
     },
 
-    showfn(options: NPCSidebarOptions) {
+    showfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       return nnpc.clothes.head.index > 0 && nnpc.clothes.head.mainImage !== 0 && !nnpc.hide_all && nnpc.show && nnpc.model;
     }
   }),
 
   nnpc_head_acc: clothes_layer('head', 'acc', {
-    srcfn(options: NPCSidebarOptions) {
+    srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const head = nnpc.clothes.head;
       const integrity = head.accessory_integrity_img ? `-${nnpc.clothes.upper.integrity}` : '';
@@ -41,7 +41,7 @@ const head_layers = {
       return gray_suffix(`img/clothes/head/${head.variable}/acc${integrity}${pattern}.png`, options.filters?.nnpc_head_acc);
     },
 
-    showfn(options: NPCSidebarOptions) {
+    showfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const head = nnpc.clothes.head;
       return head.index > 0 && head.accImage !== 0 && head.accessory === 1 && !nnpc.hide_head_acc && !nnpc.hide_all && nnpc.show && nnpc.model;
@@ -49,14 +49,14 @@ const head_layers = {
   }),
 
   nnpc_head_detail: clothes_layer('head', 'detail', {
-    srcfn(options: NPCSidebarOptions) {
+    srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const head = nnpc.clothes.head;
       const pattern = head.pattern ? head.pattern.replace(/ /g, '-') : '';
       return `img/clothes/head/${head.variable}/${pattern}.png`;
     },
 
-    showfn(options: NPCSidebarOptions) {
+    showfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const head = nnpc.clothes.head;
       return head.index > 0 && head.mainImage !== 0 && head.pattern_layer === 'tertiary' && !!head.pattern && !nnpc.hide_all && nnpc.show && nnpc.model;

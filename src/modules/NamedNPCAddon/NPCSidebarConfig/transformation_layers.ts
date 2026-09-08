@@ -25,11 +25,11 @@ function basic(overrides: Record<string, any> = {}) {
 function part(type: string, folder: string, name: string, overrides: Record<string, any> = {}) {
   return basic({
     filters: ['nnpc_hair'],
-    srcfn(options: NPCSidebarOptions) {
+    srcfn: (options: NPCSidebarOptions) => {
       const value = nnpc(options)[`${type}_${name}_type`];
       return `img/transformations/${type}/${folder}/${folder === name ? value : `${name}-${value}`}.png`;
     },
-    showfn(options: NPCSidebarOptions) {
+    showfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
       return !!data.show_tf && !!data.model && !data.hide_all && enabled(data[`${type}_${name}_type`]);
     },
@@ -41,21 +41,21 @@ function part(type: string, folder: string, name: string, overrides: Record<stri
 function wings(side: 'left' | 'right', type: string, hair: boolean) {
   return basic({
     filters: hair ? ['nnpc_hair'] : [],
-    srcfn(options: NPCSidebarOptions) {
+    srcfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
       const state = data[`${type}_wing_${side}`];
       return `img/transformations/${type}/wings-${state}/${data[`${type}_wings_type`]}${state === 'cover' ? `-${side}` : ''}.png`;
     },
-    showfn(options: NPCSidebarOptions) {
+    showfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
       return !!data.show_tf && !!data.model && !data.hide_all && enabled(data[`${type}_wings_type`]);
     },
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
       const layer = data[`${type}_wing_${side}`] === 'cover' ? 'tailPenisCover' : data[`${type}_wings_layer`] === 'back' ? 'over_head_back' : 'backhair';
       return z(layer) + data.position;
     },
-    masksrcfn(options: NPCSidebarOptions) {
+    masksrcfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
       return data[`${type}_wing_${side}`] === 'cover' ? data.close_up_mask : [data.close_up_mask, `img/face/masks/${side}.png`];
     }
@@ -65,19 +65,19 @@ function wings(side: 'left' | 'right', type: string, hair: boolean) {
 function halo(side: 'back' | 'front', type: string) {
   return basic({
     filters: ['nnpc_hair'],
-    srcfn(options: NPCSidebarOptions) {
+    srcfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
       return `img/transformations/${type}/halo/${data[`${type}_halo_type`]}-${side}.png`;
     },
-    showfn(options: NPCSidebarOptions) {
+    showfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
       return !!data.show_tf && !!data.model && !data.hide_all && enabled(data[`${type}_halo_type`]);
     },
-    dyfn(options: NPCSidebarOptions) {
+    dyfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
       return data.dyfn + (data.angel_halo_lower && enabled(data.angel_halo_type) ? 15 : 0);
     },
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
       const lowered = data.angel_halo_lower && enabled(data.angel_halo_type);
       return z(side === 'back' ? (lowered ? 'head_back' : 'over_head_back') : lowered ? 'over_head' : 'old_over_upper') + data.position;
@@ -88,12 +88,12 @@ function halo(side: 'back' | 'front', type: string) {
 function tail(type: string, hair: boolean, overrides: Record<string, any> = {}) {
   return part(type, 'tail', 'tail', {
     filters: hair ? ['nnpc_hair'] : [],
-    srcfn(options: NPCSidebarOptions) {
+    srcfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
       const state = type === 'demon' ? data.demon_tail_state : 'idle';
       return `img/transformations/${type}/tail-${state}/${data[`${type}_tail_type`]}.png`;
     },
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
       const layer = type === 'demon' && ['cover', 'flaunt'].includes(data.demon_tail_state) ? 'tailPenisCover' : data[`${type}_tail_layer`] === 'back' ? 'tail' : 'back_lower';
       return z(layer) + data.position;
@@ -114,11 +114,11 @@ function ears(type: string, hair: boolean, overrides: Record<string, any> = {}) 
 function horns(type: string, offset = 0) {
   return part(type, 'horns', 'horns', {
     filters: ['nnpc_hair'],
-    masksrcfn(options: NPCSidebarOptions) {
+    masksrcfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
       return data[`${type}_horns_layer`] === 'front' ? data.close_up_mask : data.head_mask;
     },
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
       return z(data[`${type}_horns_layer`] === 'front' ? 'over_head' : 'horns') + offset + data.position;
     }
@@ -203,7 +203,7 @@ const transformation_layers = {
   nnpc_bird_tail: tail('bird', true),
   nnpc_bird_eyes: part('bird', 'eyes', 'eyes', {
     zfn: (options: NPCSidebarOptions) => z('irisacc') + nnpc(options).position,
-    masksrcfn(options: NPCSidebarOptions) {
+    masksrcfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
       return [data.close_up_mask, { path: `img/face/${data.facestyle}/${data.facevariant}/iris.png`, convert: true }];
     }
@@ -229,11 +229,11 @@ const transformation_layers = {
   nnpc_demon_wings: basic({
     filters: ['nnpc_hair'],
     srcfn: (options: NPCSidebarOptions) => `img/transformations/demon/wings-${nnpc(options).demon_wings_state}/${nnpc(options).demon_wings_type}.png`,
-    showfn(options: NPCSidebarOptions) {
+    showfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
       return !!data.show_tf && !!data.model && !data.hide_all && enabled(data.demon_wings_type) && !enabled(data.bird_wings_type);
     },
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
       const layer = ['cover', 'flaunt'].includes(data.demon_wings_state) ? 'tailPenisCover' : data.demon_wings_layer === 'back' ? 'head_back' : 'backhair';
       return z(layer) + data.position;

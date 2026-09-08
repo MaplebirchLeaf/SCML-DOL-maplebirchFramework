@@ -28,6 +28,18 @@ import type Character from './modules/Character';
 import type NPCManager from './modules/NamedNPC';
 import type CombatManager from './modules/Combat';
 
+interface Meta {
+  name: 'maplebirch Frameworks';
+  author: string;
+  version: string;
+  modifiedby: string;
+  updateDate: string;
+  Languages: typeof Languages;
+  early: readonly string[];
+  core: readonly string[];
+  protected: readonly string[];
+}
+
 const renderer = new marked.Renderer();
 
 renderer.link = function ({ href, title, tokens }: marked.Tokens.Link) {
@@ -58,16 +70,26 @@ interface Extensions {}
 type Instance = MaplebirchCore & Extensions;
 
 class MaplebirchCore {
-  public static meta = {
-    name: 'maplebirch Frameworks' as const,
-    author: author,
-    version: version,
+  public static meta: {
+    name: 'maplebirch Frameworks';
+    author: string;
+    version: string;
+    modifiedby: string;
+    updateDate: string;
+    Languages: typeof Languages;
+    early: readonly string[];
+    core: readonly string[];
+    protected: readonly string[];
+  } = {
+    name: 'maplebirch Frameworks',
+    author,
+    version,
     modifiedby: lastModifiedBy,
     updateDate: lastUpdate,
-    Languages: Languages,
-    early: ['addon', 'dynamic', 'tool', 'char', 'npc'] as const,
-    core: ['addon', 'dynamic', 'tool', 'audio', 'var', 'char', 'npc', 'combat'] as const,
-    protected: ['addon', 'dynamic', 'tool', 'audio', 'var', 'char', 'npc', 'combat', 'internals'] as const
+    Languages,
+    early: ['addon', 'dynamic', 'tool', 'char', 'npc'],
+    core: ['addon', 'dynamic', 'tool', 'audio', 'var', 'char', 'npc', 'combat'],
+    protected: ['addon', 'dynamic', 'tool', 'audio', 'var', 'char', 'npc', 'combat', 'internals']
   };
 
   public readonly meta: typeof MaplebirchCore.meta;

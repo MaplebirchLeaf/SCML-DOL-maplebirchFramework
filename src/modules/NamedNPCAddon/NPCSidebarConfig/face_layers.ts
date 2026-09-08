@@ -13,7 +13,7 @@ type NPCSidebarOptions = {
 
 const face_layers = {
   nnpc_face_main: clothes_layer('face', 'main', {
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       if (nnpc.clothes.face.type.includes('glasses')) return maplebirch.char.ZIndices.over_head + nnpc.position;
       return maplebirch.char.ZIndices.facewear + nnpc.position;
@@ -21,7 +21,7 @@ const face_layers = {
   }),
 
   nnpc_face_acc: clothes_layer('face', 'acc', {
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       if (nnpc.clothes.face.type.includes('glasses')) return maplebirch.char.ZIndices.over_head + nnpc.position;
       return maplebirch.char.ZIndices.facewear + nnpc.position;

@@ -47,7 +47,7 @@ function layerFilters(slot: string, type: ClothesType, clothes: any) {
 
 function nnpc_sidepart(part: Part) {
   return {
-    srcfn(options: NPCSidebarOptions) {
+    srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const selected = V.options.maplebirch.npcsidebar.display?.[nnpc.name];
       const npcLayers = maplebirch.npc.Clothes.art.get(nnpc.name);
@@ -55,14 +55,14 @@ function nnpc_sidepart(part: Part) {
       if (selected === npcLayers.key && npcLayers[part]) return npcLayers[part].img;
     },
 
-    showfn(options: NPCSidebarOptions) {
+    showfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       if (!nnpc.show || nnpc.model) return false;
       const npcLayers = maplebirch.npc.Clothes.art.get(nnpc.name);
       return npcLayers?.[part] != null;
     },
 
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const npcLayers = maplebirch.npc.Clothes.art.get(nnpc.name);
       if (npcLayers?.[part]?.zIndex != null) return npcLayers[part].zIndex;
@@ -73,19 +73,19 @@ function nnpc_sidepart(part: Part) {
 
 function clothes_basic(slot: string, overrides: any = {}) {
   return {
-    masksrcfn(options: NPCSidebarOptions) {
+    masksrcfn: (options: NPCSidebarOptions) => {
       return options.maplebirch.nnpc.close_up_mask;
     },
 
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       return maplebirch.char.ZIndices[slot] + options.maplebirch.nnpc.position;
     },
 
-    dxfn(options: NPCSidebarOptions) {
+    dxfn: (options: NPCSidebarOptions) => {
       return options.maplebirch.nnpc.dxfn;
     },
 
-    dyfn(options: NPCSidebarOptions) {
+    dyfn: (options: NPCSidebarOptions) => {
       return options.maplebirch.nnpc.dyfn;
     },
 
@@ -97,7 +97,7 @@ function clothes_basic(slot: string, overrides: any = {}) {
 
 function clothes_layer(slot: string, type: ClothesType, overrides: any = {}) {
   return clothes_basic(slot, {
-    srcfn(options: NPCSidebarOptions) {
+    srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const clothes = nnpc.clothes[slot];
       const folder = typeof normaliseFileName === 'function' ? normaliseFileName(slot) : slot;
@@ -125,7 +125,7 @@ function clothes_layer(slot: string, type: ClothesType, overrides: any = {}) {
       return gray_suffix(path, options.filters?.[filters[0]]);
     },
 
-    showfn(options: NPCSidebarOptions) {
+    showfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const clothes = nnpc.clothes[slot];
       if (!nnpc.show || !nnpc.model || nnpc.hide_all || clothes.index <= 0) return false;
@@ -135,7 +135,7 @@ function clothes_layer(slot: string, type: ClothesType, overrides: any = {}) {
       return false;
     },
 
-    filtersfn(options: NPCSidebarOptions) {
+    filtersfn: (options: NPCSidebarOptions) => {
       const clothes = options.maplebirch.nnpc.clothes[slot];
       return layerFilters(slot, type, clothes);
     },
@@ -146,7 +146,7 @@ function clothes_layer(slot: string, type: ClothesType, overrides: any = {}) {
 
 function clothes_breasts(slot: string, type: ClothesType, overrides: any = {}) {
   return clothes_layer(slot, type, {
-    masksrcfn(options: NPCSidebarOptions) {
+    masksrcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const clothes = nnpc.clothes[slot];
       const folder = typeof normaliseFileName === 'function' ? normaliseFileName(slot) : slot;
@@ -154,7 +154,7 @@ function clothes_breasts(slot: string, type: ClothesType, overrides: any = {}) {
       return nnpc.close_up_mask;
     },
 
-    srcfn(options: NPCSidebarOptions) {
+    srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const clothes = nnpc.clothes[slot];
       const folder = typeof normaliseFileName === 'function' ? normaliseFileName(slot) : slot;
@@ -187,7 +187,7 @@ function clothes_breasts(slot: string, type: ClothesType, overrides: any = {}) {
       return gray_suffix(path, options.filters?.[filters[0]]);
     },
 
-    showfn(options: NPCSidebarOptions) {
+    showfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const clothes = nnpc.clothes[slot];
       if (!nnpc.show || !nnpc.model || nnpc.hide_all || clothes.index <= 0) return false;
@@ -240,7 +240,7 @@ function armState(options: NPCSidebarOptions, side: Side) {
 
 function clothes_arm(slot: string, side: Side, overrides: any = {}) {
   return clothes_basic(slot, {
-    srcfn(options: NPCSidebarOptions) {
+    srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const clothes = nnpc.clothes[slot];
       const folder = typeof normaliseFileName === 'function' ? normaliseFileName(slot) : slot;
@@ -254,19 +254,19 @@ function clothes_arm(slot: string, side: Side, overrides: any = {}) {
       return gray_suffix(path, options.filters?.[filter]);
     },
 
-    showfn(options: NPCSidebarOptions) {
+    showfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const clothes = nnpc.clothes[slot];
       return clothes.index > 0 && clothes.sleeve_img === 1 && nnpc[`arm_${side}`] !== 'none' && nnpc.show && nnpc.model && !nnpc.hide_all;
     },
 
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const cover = nnpc[`arm_${side}`] === 'cover' || nnpc[`arm_${side}`] === 'hold';
       return (cover ? maplebirch.char.ZIndices[`${slot}_arms_cover`] : maplebirch.char.ZIndices[`${slot}_arms`]) + nnpc.position;
     },
 
-    filtersfn(options: NPCSidebarOptions) {
+    filtersfn: (options: NPCSidebarOptions) => {
       const clothes = options.maplebirch.nnpc.clothes[slot];
       return sleeveFilter(slot, clothes.sleeve_colour, clothes);
     },
@@ -277,7 +277,7 @@ function clothes_arm(slot: string, side: Side, overrides: any = {}) {
 
 function clothes_arm_acc(slot: string, side: Side, overrides: any = {}) {
   return clothes_basic(slot, {
-    srcfn(options: NPCSidebarOptions) {
+    srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const clothes = nnpc.clothes[slot];
       const folder = typeof normaliseFileName === 'function' ? normaliseFileName(slot) : slot;
@@ -288,17 +288,17 @@ function clothes_arm_acc(slot: string, side: Side, overrides: any = {}) {
       return gray_suffix(path, options.filters?.[filter]);
     },
 
-    showfn(options: NPCSidebarOptions) {
+    showfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const clothes = nnpc.clothes[slot];
       return clothes.index > 0 && clothes.sleeve_img === 1 && clothes.sleeve_acc_img === 1 && nnpc[`arm_${side}`] !== 'none' && nnpc.show && nnpc.model && !nnpc.hide_all;
     },
 
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       return maplebirch.char.ZIndices[`${slot}_arms`] + options.maplebirch.nnpc.position;
     },
 
-    filtersfn(options: NPCSidebarOptions) {
+    filtersfn: (options: NPCSidebarOptions) => {
       const clothes = options.maplebirch.nnpc.clothes[slot];
       return sleeveFilter(slot, clothes.accessory_colour_sidebar, clothes);
     },
@@ -324,7 +324,7 @@ function backFilter(slot: string, colour: string | undefined) {
 
 function clothes_back(slot: string, overrides: any = {}) {
   return clothes_basic(slot, {
-    srcfn(options: NPCSidebarOptions) {
+    srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const clothes = nnpc.clothes[slot];
       const folder = typeof normaliseFileName === 'function' ? normaliseFileName(slot) : slot;
@@ -337,7 +337,7 @@ function clothes_back(slot: string, overrides: any = {}) {
       return gray_suffix(path, options.filters?.[filter]);
     },
 
-    showfn(options: NPCSidebarOptions) {
+    showfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const clothes = nnpc.clothes[slot];
       if (!nnpc.show || !nnpc.model || nnpc.hide_all || clothes.index <= 0) return false;
@@ -346,11 +346,11 @@ function clothes_back(slot: string, overrides: any = {}) {
       return clothes.back_img === 1 && !down;
     },
 
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       return maplebirch.char.ZIndices.over_head_back + options.maplebirch.nnpc.position;
     },
 
-    filtersfn(options: NPCSidebarOptions) {
+    filtersfn: (options: NPCSidebarOptions) => {
       const clothes = options.maplebirch.nnpc.clothes[slot];
       return backFilter(slot, clothes.back_img_colour);
     },
@@ -361,7 +361,7 @@ function clothes_back(slot: string, overrides: any = {}) {
 
 function clothes_back_acc(slot: string, overrides: any = {}) {
   return clothes_basic(slot, {
-    srcfn(options: NPCSidebarOptions) {
+    srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const clothes = nnpc.clothes[slot];
       const folder = typeof normaliseFileName === 'function' ? normaliseFileName(slot) : slot;
@@ -374,7 +374,7 @@ function clothes_back_acc(slot: string, overrides: any = {}) {
       return gray_suffix(path, options.filters?.[filter]);
     },
 
-    showfn(options: NPCSidebarOptions) {
+    showfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const clothes = nnpc.clothes[slot];
       if (!nnpc.show || !nnpc.model || nnpc.hide_all || clothes.index <= 0) return false;
@@ -383,11 +383,11 @@ function clothes_back_acc(slot: string, overrides: any = {}) {
       return clothes.back_img_acc === 1 && !down;
     },
 
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       return maplebirch.char.ZIndices.head_back + options.maplebirch.nnpc.position;
     },
 
-    filtersfn(options: NPCSidebarOptions) {
+    filtersfn: (options: NPCSidebarOptions) => {
       const clothes = options.maplebirch.nnpc.clothes[slot];
       return backFilter(slot, clothes.back_img_acc_colour);
     },
@@ -408,7 +408,7 @@ function handSuffix(options: NPCSidebarOptions, side: Side) {
 
 function clothes_hand(side: Side, type: ClothesType, overrides: any = {}) {
   return clothes_basic('hands', {
-    srcfn(options: NPCSidebarOptions) {
+    srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const hands = nnpc.clothes.hands;
       const suffix = handSuffix(options, side);
@@ -429,7 +429,7 @@ function clothes_hand(side: Side, type: ClothesType, overrides: any = {}) {
       return gray_suffix(path, options.filters?.[filter]);
     },
 
-    showfn(options: NPCSidebarOptions) {
+    showfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const hands = nnpc.clothes.hands;
       const arm = nnpc[`arm_${side}`];
@@ -441,18 +441,18 @@ function clothes_hand(side: Side, type: ClothesType, overrides: any = {}) {
       return false;
     },
 
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const arm = nnpc[`arm_${side}`];
       const cover = arm === 'cover' || (side === 'right' && arm === 'hold');
       return cover ? maplebirch.char.ZIndices.hands + nnpc.position : nnpc.zarms + 0.2;
     },
 
-    dxfn(options: NPCSidebarOptions) {
+    dxfn: (options: NPCSidebarOptions) => {
       return options.maplebirch.nnpc.dxfn;
     },
 
-    dyfn(options: NPCSidebarOptions) {
+    dyfn: (options: NPCSidebarOptions) => {
       return options.maplebirch.nnpc.dyfn;
     },
 
@@ -466,7 +466,7 @@ function clothes_hand(side: Side, type: ClothesType, overrides: any = {}) {
 
 function clothes_handheld(type: ClothesType, overrides: any = {}) {
   return clothes_layer('handheld', type, {
-    srcfn(options: NPCSidebarOptions) {
+    srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const handheld = nnpc.clothes.handheld;
       const directory = handheld.type.includes('prop') ? 'props' : 'handheld';
@@ -491,7 +491,7 @@ function clothes_handheld(type: ClothesType, overrides: any = {}) {
       return gray_suffix(path, options.filters?.[filter]);
     },
 
-    showfn(options: NPCSidebarOptions) {
+    showfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const handheld = nnpc.clothes.handheld;
       if (!nnpc.show || !nnpc.model || nnpc.hide_all || handheld.index <= 0) return false;
@@ -503,7 +503,7 @@ function clothes_handheld(type: ClothesType, overrides: any = {}) {
       return false;
     },
 
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const handheld = nnpc.clothes.handheld;
       return nnpc.handheld_overhead || handheld.type.includes('prop') ? maplebirch.char.ZIndices.old_over_upper + nnpc.position : maplebirch.char.ZIndices.handheld + nnpc.position;

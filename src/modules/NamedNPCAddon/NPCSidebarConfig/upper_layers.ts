@@ -20,11 +20,11 @@ const upper_layers = {
   nnpc_over_upper_rightarm: clothes_arm('over_upper', 'right'),
 
   nnpc_upper_main: clothes_layer('upper', 'main', {
-    masksrcfn(options: NPCSidebarOptions) {
+    masksrcfn: (options: NPCSidebarOptions) => {
       return options.maplebirch.nnpc.upper_mask;
     },
 
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       if (nnpc.clothes.upper.name === 'cocoon') return maplebirch.char.ZIndices.over_head + nnpc.position;
       return nnpc.zupper;
@@ -32,65 +32,65 @@ const upper_layers = {
   }),
 
   nnpc_upper_acc: clothes_layer('upper', 'acc', {
-    masksrcfn(options: NPCSidebarOptions) {
+    masksrcfn: (options: NPCSidebarOptions) => {
       return options.maplebirch.nnpc.upper_mask;
     },
 
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       return options.maplebirch.nnpc.zupper;
     }
   }),
 
   nnpc_upper_detail: clothes_layer('upper', 'detail', {
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       return options.maplebirch.nnpc.zupper;
     }
   }),
 
   nnpc_upper_breasts: clothes_breasts('upper', 'main', {
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       return options.maplebirch.nnpc.zupper;
     }
   }),
 
   nnpc_upper_breasts_acc: clothes_breasts('upper', 'acc', {
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       return options.maplebirch.nnpc.zupper;
     }
   }),
 
   nnpc_upper_breasts_detail: clothes_breasts('upper', 'detail', {
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       return options.maplebirch.nnpc.zupper;
     }
   }),
 
   nnpc_upper_leftarm: clothes_arm('upper', 'left', {
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       return options.maplebirch.nnpc.zupperleft;
     }
   }),
 
   nnpc_upper_rightarm: clothes_arm('upper', 'right', {
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       return options.maplebirch.nnpc.zupperright;
     }
   }),
 
   nnpc_upper_leftarm_acc: clothes_arm_acc('upper', 'left', {
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       return options.maplebirch.nnpc.zupperleft;
     }
   }),
 
   nnpc_upper_rightarm_acc: clothes_arm_acc('upper', 'right', {
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       return options.maplebirch.nnpc.zupperright;
     }
   }),
 
   nnpc_upper_back: clothes_back('upper', {
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       return maplebirch.char.ZIndices.back_lower + options.maplebirch.nnpc.position;
     }
   }),
@@ -101,7 +101,7 @@ const upper_layers = {
   nnpc_under_upper_breasts_acc: clothes_breasts('under_upper', 'acc'),
 
   nnpc_under_upper_breasts_detail: clothes_breasts('under_upper', 'detail', {
-    zfn(options: NPCSidebarOptions) {
+    zfn: (options: NPCSidebarOptions) => {
       return maplebirch.char.ZIndices.under_upper + options.maplebirch.nnpc.position;
     }
   }),

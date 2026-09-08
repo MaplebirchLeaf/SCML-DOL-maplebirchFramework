@@ -1,14 +1,13 @@
-// .src/modules/TimeStateWeather/StateEvents.ts
+// ./src/modules/TimeStateWeather/StateEvents.ts
 
 import maplebirch from '../../core';
 import type DynamicManager from '../Dynamic';
+import Event, { type EventOptions } from './Event';
 
-export interface StateEventOptions {
+export interface StateEventOptions extends EventOptions {
   output?: string;
   action?: () => void;
   cond?: () => boolean;
-  priority?: number;
-  once?: boolean;
   forceExit?: boolean | (() => boolean);
   extra?: {
     passage?: string[];
@@ -28,27 +27,25 @@ interface StateEventResult {
   remove: boolean;
 }
 
-class StateEvent {
+class StateEvent extends Event {
+  protected override readonly eventName = 'StateEvent';
   public output?: string;
   private action?: () => void;
   private cond: () => boolean;
-  private once: boolean;
   private forceExit: () => boolean;
   private extra: ExtraOptions;
-  public readonly priority: number;
 
   public constructor(
-    public readonly id: string,
+    id: string,
     public readonly type: 'gate' | 'append',
     options: StateEventOptions = {}
   ) {
+    super(id, options);
     this.output = options.output;
     this.action = options.action;
-    this.cond = options.cond || (() => true);
-    this.priority = options.priority || 0;
-    this.once = !!options.once;
+    this.cond = options.cond ?? (() => true);
     this.forceExit = typeof options.forceExit === 'function' ? options.forceExit : () => !!options.forceExit;
-    this.extra = options.extra || {};
+    this.extra = options.extra ?? {};
   }
 
   private checkPassage(passageName?: string): boolean {
@@ -71,29 +68,15 @@ class StateEvent {
   }
 
   private match(): boolean {
-    try {
-      return !!this.cond();
-    } catch (e: any) {
-      maplebirch.log(`[StateEvent:${this.id}] cond error:`, 'ERROR', e);
-      return false;
-    }
+    return this.evaluate('cond', this.cond);
   }
 
   private runAction(): void {
-    try {
-      this.action?.();
-    } catch (e: any) {
-      maplebirch.log(`[StateEvent:${this.id}] action error:`, 'ERROR', e);
-    }
+    this.invoke('action', this.action);
   }
 
   public shouldForceExit(): boolean {
-    try {
-      return !!this.forceExit();
-    } catch (e: any) {
-      maplebirch.log(`[StateEvent:${this.id}] forceExit error:`, 'ERROR', e);
-      return false;
-    }
+    return this.evaluate('forceExit', this.forceExit);
   }
 }
 

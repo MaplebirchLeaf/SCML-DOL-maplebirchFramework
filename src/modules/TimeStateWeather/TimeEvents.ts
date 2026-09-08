@@ -1,8 +1,8 @@
-// .src/modules/TimeStateWeather/TimeEvents.ts
+// ./src/modules/TimeStateWeather/TimeEvents.ts
 
 import { TimeConstants } from '../../constants';
-import maplebirch from '../../core';
 import type DynamicManager from '../Dynamic';
+import Event, { type EventOptions } from './Event';
 import patchDateTime from './DateTime';
 import patchTime, { bindTimeHandlers, vanillaTime } from './Time';
 
@@ -29,8 +29,21 @@ export interface TimeData {
   prevDate?: DateLike;
   currentDate?: DateLike;
   changes?: Record<TimeUnit, number>;
-  triggeredByAccumulator?: { unit: TimeUnit; target: number; count: number };
-  exactPoints?: { hour: boolean; day: boolean; week: boolean; month: boolean; year: boolean };
+
+  triggeredByAccumulator?: {
+    unit: TimeUnit;
+    target: number;
+    count: number;
+  };
+
+  exactPoints?: {
+    hour: boolean;
+    day: boolean;
+    week: boolean;
+    month: boolean;
+    year: boolean;
+  };
+
   passed?: number;
   sec?: number;
   min?: number;
@@ -49,11 +62,9 @@ export interface TimeData {
   isLeap?: boolean;
 }
 
-export interface TimeEventOptions {
+export interface TimeEventOptions extends EventOptions {
   action?: (data: TimeData) => void;
   cond?: (data: TimeData) => boolean;
-  priority?: number;
-  once?: boolean;
   accumulate?: AccumulateConfig;
   exact?: boolean;
 }
@@ -74,28 +85,26 @@ export interface TimeTravelOptions {
   addSeconds?: number;
 }
 
-class TimeEvent {
+class TimeEvent extends Event {
+  protected override readonly eventName = 'TimeEvent';
   private action?: (data: TimeData) => void;
   private cond: (data: TimeData) => boolean;
-  private once: boolean;
   private exact: boolean;
   private accumulate?: AccumulateConfig;
   private accumulated = 0;
   private target = 1;
-  public readonly priority: number;
 
   public constructor(
-    readonly id: string,
-    readonly type: TimeEventType,
+    id: string,
+    public readonly type: TimeEventType,
     options: TimeEventOptions = {}
   ) {
+    super(id, options);
     this.action = options.action;
-    this.cond = options.cond || (() => true);
-    this.priority = options.priority ?? 0;
-    this.once = !!options.once;
+    this.cond = options.cond ?? (() => true);
     this.exact = !!options.exact;
     this.accumulate = options.accumulate;
-    if (this.accumulate) this.target = Math.max(1, Math.floor(this.accumulate.target || 1));
+    if (this.accumulate) this.target = Math.max(1, Math.floor(this.accumulate.target ?? 1));
   }
 
   public tryRun(data: TimeData): boolean {
@@ -106,7 +115,7 @@ class TimeEvent {
 
   private runAccumulated(data: TimeData): boolean {
     const accumulate = this.accumulate!;
-    const delta = data.changes?.[accumulate.unit] || 0;
+    const delta = data.changes?.[accumulate.unit] ?? 0;
     if (delta <= 0) return false;
     this.accumulated += delta;
     if (this.accumulated < this.target) return false;
@@ -129,20 +138,11 @@ class TimeEvent {
   }
 
   private match(data: TimeData): boolean {
-    try {
-      return !!this.cond(data);
-    } catch (e) {
-      maplebirch.log(`[TimeEvent:${this.id}] cond error:`, 'ERROR', e);
-      return false;
-    }
+    return this.evaluate('cond', this.cond, data);
   }
 
   private runAction(data: TimeData): void {
-    try {
-      this.action?.(data);
-    } catch (e) {
-      maplebirch.log(`[TimeEvent:${this.id}] action error:`, 'ERROR', e);
-    }
+    this.invoke('action', this.action, data);
   }
 
   private isExactPoint(data: TimeData): boolean {
@@ -160,7 +160,7 @@ class TimeEvent {
         return !!data.exactPoints?.year;
       case 'onSec':
       case 'onMin':
-        return (data.diffSeconds || 0) !== 0;
+        return (data.diffSeconds ?? 0) !== 0;
       default:
         return true;
     }

@@ -30,7 +30,7 @@ class EventEmitter {
     [':passagedisplay' , []], // 段落显示
     [':passageend'     , []], // 段落结束
     [':sugarcube'      , []], // 获取SugarCube
-    [':modLoaderEnd'   , []], // 模组加载器结束 
+    [':modLoaderEnd'   , []], // 模组加载器结束
   ]);
 
   private readonly afters = new Map<string, EventCallback[]>();
@@ -49,7 +49,12 @@ class EventEmitter {
       this.core.logger.log(`回调函数已注册: ${eventName} (跳过重复)`, 'DEBUG');
       return false;
     }
-    listeners.push({ callback, description });
+
+    listeners.push({
+      callback,
+      description
+    });
+
     this.core.logger.log(`注册事件监听器: ${eventName}` + (description ? ` (描述: ${description})` : '') + ` (当前: ${listeners.length})`, 'DEBUG');
     this.callSticky(eventName, callback);
     return true;
@@ -149,7 +154,7 @@ class EventEmitter {
   }
 
   private error(error: unknown): string {
-    return this.error(error);
+    return error instanceof Error ? error.message : String(error);
   }
 }
 

@@ -33,9 +33,7 @@ class TimeTravelCheat {
   private bind(root: HTMLElement): void {
     const current = new window.DateTime(Time.date);
     this.setFields(root, current);
-
     root.querySelector<HTMLButtonElement>('.maplebirch-time-travel-confirm')?.addEventListener('click', () => this.travel(root));
-
     root.querySelectorAll<HTMLInputElement>('[data-time-travel-field]').forEach(input => input.addEventListener('change', () => this.syncDayLimit(root)));
     this.syncDayLimit(root);
   }

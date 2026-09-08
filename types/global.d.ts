@@ -91,6 +91,7 @@ declare global {
   let isPossibleLoveInterest: (name: string) => boolean;
   let combatListColor: (name: any, value: any, type?: any) => any;
   const combatActionColours: CombatActionColours;
+  function gwylanSchedule(): string;
   interface CombatActionColours {
     [category: string]: { [attitude: string]: string[] };
   }
