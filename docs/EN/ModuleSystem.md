@@ -68,12 +68,16 @@ maplebirch.myApi.hello();
 
 Pure exposed modules without lifecycle methods are mounted as API modules and are not shown as disableable modules in the GUI. If an exposed module also defines lifecycle methods such as `Init`, it still mounts to `maplebirch[name]`, runs through the normal initialization flow, and can be disabled unless it is protected. Registration fails if the target name is already occupied.
 
+Pure exposed modules still follow dependency disabling: disabling a prerequisite also disables its dependent API modules and removes their `maplebirch[name]` properties.
+
 ## Reading Modules
 
 ```javascript
 const npcModule = maplebirch.get('npc');
 const graph = maplebirch.dependencyGraph;
 ```
+
+`get()` returns `undefined` for disabled modules. Registration metadata remains available for the dependency graph and settings UI.
 
 `dependencyGraph` contains dependency and status information for each registered module.
 
@@ -150,7 +154,11 @@ maplebirch.register('myModule', new MyModule(), ['npc']);
 - A module initializes after all dependencies are satisfied.
 - Transitive dependencies are collected automatically.
 - Pure `EXPOSED` dependencies are treated as satisfied. Exposed modules with lifecycle methods follow the normal dependency flow.
-- If a dependency becomes `ERROR` or `DISABLED`, dependent modules will not continue initialization.
+- Disabling a module also disables its transitive dependents. If B depends on A and C depends on B, disabling A puts all three in `DISABLED`: lifecycle hooks do not run, queries return `undefined`, and exposed properties are removed.
+- Saved disable settings apply on reload independently of initialization order, including modules with missing dependencies. Modules registered later follow the same settings.
+- If a dependency becomes `ERROR`, dependent modules will not continue initialization.
 - Circular dependencies are detected during registration.
 
 Use mod-prefixed names to avoid collisions with framework modules or other mods.
+
+Late modules receive `preInit()`. If a `preInit()` hook registers children through `modules.with()`, the outer scheduler prepares those children after the parent hook returns, avoiding a wait on the parent itself.

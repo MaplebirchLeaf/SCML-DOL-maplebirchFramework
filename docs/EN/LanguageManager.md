@@ -39,6 +39,12 @@ Custom files:
 }
 ```
 
+Use mod-prefixed keys to avoid unintended conflicts. For each language, the current manager records the order in which mods first import that language; later sources have priority for shared keys. Importing the same source and language again updates its content without changing its priority, including cache hits. Each language has its own order, determined again by its imports after reload. Languages not yet reimported keep their existing cached translations.
+
+Each import replaces the source snapshot for that mod and language. Removing a key or importing an empty object `{}` removes that source's translation. The highest-priority remaining source supplies the fallback, while other languages and unrelated mod entries remain intact.
+
+Existing databases are upgraded during normal imports without clearing storage. Older records retained only the winning text, so previously overwritten sources become available for fallback after their files are imported again.
+
 ## t()
 
 ```javascript

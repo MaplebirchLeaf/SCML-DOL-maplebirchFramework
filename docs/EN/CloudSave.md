@@ -16,18 +16,25 @@ Uploaded records contain `slot`/`details`/`save`/`exportedAt`/`gameId` and are *
 The `cloudflare/` directory at the repo root ships a deployable Worker (`worker.ts` + `wrangler.jsonc`):
 
 1. Install and log in to wrangler:
+
    ```bash
    bunx wrangler login
    ```
+
 2. Inside `cloudflare/`, create the R2 bucket (`wrangler.jsonc` already declares the `SAVE_BUCKET` binding → bucket name `maplebirch-save`; edit if needed):
+
    ```bash
    bunx wrangler r2 bucket create maplebirch-save
    ```
+
 3. Set the access token (required secret `MAPLEBIRCH_TOKEN`; use a long random string):
+
    ```bash
    bunx wrangler secret put MAPLEBIRCH_TOKEN
    ```
+
 4. Deploy:
+
    ```bash
    bunx wrangler deploy
    ```
@@ -38,12 +45,12 @@ After deployment, `https://<worker-name>.<your-subdomain>.workers.dev/health` sh
 
 All endpoints except `/health` require the `Authorization: Bearer <MAPLEBIRCH_TOKEN>` header:
 
-| Endpoint | Methods | Description |
-| :--- | :--- | :--- |
-| `/health` | GET | Health check |
-| `/saves` | GET | List remote slots |
+| Endpoint       | Methods            | Description                       |
+| :------------- | :----------------- | :-------------------------------- |
+| `/health`      | GET                | Health check                      |
+| `/saves`       | GET                | List remote slots                 |
 | `/saves/:slot` | PUT / GET / DELETE | Upload / download / delete a slot |
-| `/save-code` | GET / PUT | Read / write the export code |
+| `/save-code`   | GET / PUT          | Read / write the export code      |
 
 ## Using it in-game
 
@@ -58,4 +65,4 @@ All endpoints except `/health` require the `Authorization: Bearer <MAPLEBIRCH_TO
 ## Notes
 
 - Deleting a remote slot **cannot be undone**.
-- The token applies for the current session (fill in / connect each time you open the panel). Keep it safe — anyone who has it can read and write your cloud saves.
+- The framework remembers only the Worker URL, not the token. Enter it and reconnect after a page reload or game restart. Keep it safe — anyone who has it can read and write your cloud saves.

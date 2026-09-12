@@ -63,6 +63,9 @@ jobs:
       - name: Build types package
         run: bun run types
 
+      - name: Verify framework and generated types
+        run: bun run verify
+
       - name: Verify types package version
         run: |
           PKG_VERSION=$(node -p "require('./packages/types/package.json').version")

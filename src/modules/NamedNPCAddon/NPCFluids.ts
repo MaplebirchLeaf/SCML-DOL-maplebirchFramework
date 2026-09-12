@@ -95,4 +95,4 @@ class NPCFluids {
   }
 }
 
-export default Object.seal(new NPCFluids());
+export default NPCFluids;

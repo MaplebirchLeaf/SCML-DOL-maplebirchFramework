@@ -15,7 +15,6 @@ import handheld_layers from './NPCSidebarConfig/handheld_layers';
 import legs_layers from './NPCSidebarConfig/legs_layers';
 import feet_layers from './NPCSidebarConfig/feet_layers';
 import transformation_layers, { transformationDefaults } from './NPCSidebarConfig/transformation_layers';
-import NPCFluids from './NPCFluids';
 import type NPCManager from '../NamedNPC';
 import DoLPcompat from '../../DoLPcompat';
 
@@ -52,10 +51,10 @@ async function images(manager: NPCManager, modName: string, modZip: ModZipReader
 }
 
 async function config(manager: NPCManager, modName: string, modZip: ModZipReader, config: NPCSidebarBootConfig): Promise<void> {
-  if (Array.isArray(config.clothes)) for (const filePath of config.clothes) await manager.Clothes.loadWardrobe(modName, filePath);
+  if (Array.isArray(config.clothes)) for (const filePath of config.clothes) await manager.Clothes.wardrobe.load(modName, filePath);
   const imagePaths: string[] = [];
   if (Array.isArray(config.image)) imagePaths.push(...loadFromMod(modZip, config.image));
-  if (Array.isArray(config.config)) imagePaths.push(...(await manager.Clothes.importArt(modName, modZip, config.config)));
+  if (Array.isArray(config.config)) imagePaths.push(...(await manager.Clothes.art.import(modName, modZip, config.config)));
   if (imagePaths.length) await images(manager, modName, modZip, imagePaths);
 }
 
@@ -82,7 +81,7 @@ const clothesSlots: ClothesSlot[] = [
 
 const hairLengthList = ['short', 'shoulder', 'chest', 'navel', 'thighs', 'feet'] as const;
 const upperCombatSlots: ClothesSlot[] = ['over_upper', 'upper', 'under_upper'];
-const lowerCombatSlots: ClothesSlot[] = ['over_lower', 'lower', 'under_lower'];
+const lowerCombatSlots: ClothesSlot[] = ['over_lower', 'lower', 'under_lower', 'legs', 'feet'];
 
 const portrait_npc_name = (name: string): string => String(name).replace(/[_-]/g, ' ').convert('title');
 const portrait_gender = (npc: Record<string, any>): string => (C.npc?.[npc.name]?.gender === 'm' ? 'male' : 'female');
@@ -252,7 +251,7 @@ function applyCombatClothesState(nnpc: Record<string, any>) {
   const npc = combatNpc(nnpc.name);
   if (!npc) return;
   if (npc.chest != null && npc.chest !== 'clothed') upperCombatSlots.forEach(slot => (nnpc.clothes[slot] = nakedClothes(slot)));
-  if (npc.penis != null && npc.vagina != null && npc.penis !== 'clothed' && npc.vagina !== 'clothed') lowerCombatSlots.forEach(slot => (nnpc.clothes[slot] = nakedClothes(slot)));
+  if ((npc.penis != null && npc.penis !== 'clothed') || (npc.vagina != null && npc.vagina !== 'clothed')) lowerCombatSlots.forEach(slot => (nnpc.clothes[slot] = nakedClothes(slot)));
 }
 
 function setupBasicData(options: NPCSidebarOptions) {
@@ -493,7 +492,7 @@ function preprocess(options: NPCSidebarOptions) {
   maplebirch.npc.Transformation.applySidebar(nnpc);
   setupClothesData(options, nnpc, npcData);
   setupBodyData(options, nnpc, npcData);
-  NPCFluids.apply(nnpc, npcData);
+  maplebirch.npc.fluids.apply(nnpc, npcData);
   setupMaskData(nnpc);
 }
 
@@ -538,9 +537,7 @@ const layers = {
     srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch!.nnpc!;
       const selected = V.options.maplebirch.npcsidebar.display[nnpc.name];
-      const artKey = maplebirch.npc.Clothes.art?.get?.(nnpc.name)?.key;
-      if (!selected) return '';
-      if (selected === 'none' || selected === artKey) return '';
+      if (!selected || selected === 'none' || maplebirch.npc.Clothes.art.has(nnpc.name, selected)) return '';
       return resolve(nnpc, selected);
     },
 
@@ -589,7 +586,7 @@ const NPCSidebar = (() => {
       manager.core.char.use('pre', preprocess, 'main');
       manager.core.char.use(layers, 'main');
       manager.core.dynamic.regTimeEvent('onHour', 'maplebirch.npc.fluids.decay', {
-        action: data => NPCFluids.decay(data.triggeredByAccumulator?.count ?? 1),
+        action: data => manager.fluids.decay(data.triggeredByAccumulator?.count ?? 1),
         accumulate: { unit: 'hour', target: 1 },
         priority: -10
       });

@@ -141,9 +141,9 @@ function setupNPCData(manager: NPCManager) {
     V.maplebirch.npc[name].outfits ??= [];
     V.maplebirch.npc[name].tucked ??= [false, false];
     manager.Transformation.ensure(npcName);
-    NPCFluids.ensure(npcName);
+    manager.fluids.ensure(npcName);
     Object.defineProperty(V.maplebirch.npc[name], 'clothes', {
-      get: () => manager.Clothes.worn(npcName),
+      get: () => manager.Clothes.wardrobe.worn(npcName),
       set: () => maplebirch.npc.log(`警告：禁止直接设置 NPC ${npcName} 的服装，请通过服装系统管理`),
       configurable: true,
       enumerable: true

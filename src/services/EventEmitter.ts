@@ -87,7 +87,10 @@ class EventEmitter {
       return true;
     }
 
+    let consumed = false;
     const wrapper: EventCallback = (...args) => {
+      if (consumed) return;
+      consumed = true;
       this.off(eventName, wrapper);
       try {
         const result = callback(...args);

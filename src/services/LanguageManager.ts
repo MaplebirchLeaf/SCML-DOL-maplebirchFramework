@@ -6,12 +6,18 @@ import type { MaplebirchCore } from '../core';
 export type Translation = Record<string, string>;
 type LanguageConfig = string[] | Partial<Record<string, string | { file: string }>>;
 
+interface SourceTranslation {
+  text: string;
+  order: number;
+}
+
 interface TranslationRecord {
   bucket: 'translation';
   id: string;
   translationKey: string;
   translations: Translation;
   sources: Partial<Record<LanguageCode, string>>;
+  contributions?: Partial<Record<LanguageCode, Record<string, SourceTranslation>>>;
   updatedAt: number;
 }
 
@@ -50,6 +56,7 @@ class LanguageManager {
   private readonly STORE = 'language';
   private readonly translations = new Map<string, Translation>();
   private readonly cache = new Map<string, string>();
+  private readonly sourceOrders = new Map<LanguageCode, Map<string, number>>();
   private preloaded = false;
 
   public constructor(readonly core: MaplebirchCore) {
@@ -255,6 +262,7 @@ class LanguageManager {
       await this.core.idb.clearStore(this.STORE);
       this.translations.clear();
       this.cache.clear();
+      this.sourceOrders.clear();
       this.preloaded = false;
       this.core.logger.log('语言数据库已清空', 'DEBUG');
     } catch (error) {
@@ -283,28 +291,14 @@ class LanguageManager {
   }> {
     const keys = Object.keys(translations);
     const total = keys.length;
-
-    if (!total) {
-      yield {
-        progress: 100,
-        current: 0,
-        total: 0
-      };
-      return;
+    let sourceOrder = this.sourceOrders.get(language);
+    if (!sourceOrder) {
+      sourceOrder = new Map<string, number>();
+      this.sourceOrders.set(language, sourceOrder);
     }
-
+    if (!sourceOrder.has(modName)) sourceOrder.set(modName, sourceOrder.size);
     const hash = await this.computeHash(translations);
     const fileRecord = await this.readFileRecord(modName, language);
-    if (hash === fileRecord?.hash) {
-      await this.loadFileTranslations(fileRecord.keys);
-      this.core.logger.log(`翻译未变更: ${modName}/${language}`, 'DEBUG');
-      yield {
-        progress: 100,
-        current: 0,
-        total: 0
-      };
-      return;
-    }
 
     const newKeys = new Set(keys);
     const removedKeys = new Set((fileRecord?.keys ?? []).filter(key => !newKeys.has(key)));
@@ -316,8 +310,8 @@ class LanguageManager {
         translationKey,
         text: translations[translationKey]
       }));
-      await this.writeBatch(modName, language, batch);
-      for (const entry of batch) this.translations.set(entry.translationKey, { ...this.translations.get(entry.translationKey), [language]: entry.text });
+      const records = await this.writeBatch(modName, language, batch);
+      for (const record of records) this.syncTranslation(record, language);
       current += batch.length;
       yield {
         progress: Math.min(100, Math.floor((current / total) * 100)),
@@ -325,66 +319,104 @@ class LanguageManager {
         total
       };
     }
-    await this.writeFileRecord(modName, language, hash, keys);
+    if (hash !== fileRecord?.hash) await this.writeFileRecord(modName, language, hash, keys);
     this.rebuild();
+    if (!total) yield { progress: 100, current: 0, total: 0 };
     this.core.logger.log(`加载翻译: ${modName}/${language} (${total} 项)`, 'DEBUG');
   }
 
-  private async writeBatch(modName: string, language: LanguageCode, entries: BatchEntry[]): Promise<void> {
-    const updatedAt = Date.now();
-    await this.core.idb.withTransaction(this.STORE, 'readwrite', async tx => {
+  private async writeBatch(modName: string, language: LanguageCode, entries: BatchEntry[]): Promise<TranslationRecord[]> {
+    return this.core.idb.withTransaction(this.STORE, 'readwrite', async tx => {
       const store = tx.objectStore(this.STORE);
       const records = (await Promise.all(entries.map(entry => store.get(['translation', entry.translationKey])))) as Array<TranslationRecord | undefined>;
+      const merged: TranslationRecord[] = [];
       for (let i = 0; i < entries.length; i++) {
         const entry = entries[i];
-        const existing = records[i];
-        const record: TranslationRecord = {
+        const record: TranslationRecord = records[i] ?? {
           bucket: 'translation',
           id: entry.translationKey,
           translationKey: entry.translationKey,
-          translations: {
-            ...existing?.translations,
-            [language]: entry.text
-          },
-          sources: {
-            ...existing?.sources,
-            [language]: modName
-          },
-          updatedAt
+          translations: {},
+          sources: {},
+          updatedAt: 0
         };
-        await store.put(record);
+        if (this.updateSource(record, modName, language, entry.text)) {
+          record.updatedAt = Date.now();
+          await store.put(record);
+        }
+        merged.push(record);
       }
+      return merged;
     });
   }
 
   private async removeOldTranslations(modName: string, language: LanguageCode, translationKeys: Set<string>): Promise<void> {
     if (!translationKeys.size) return;
-    const removed: string[] = [];
+    const merged: TranslationRecord[] = [];
     await this.core.idb.withTransaction(this.STORE, 'readwrite', async tx => {
       const store = tx.objectStore(this.STORE);
       for (const translationKey of translationKeys) {
         const record = (await store.get(['translation', translationKey])) as TranslationRecord | undefined;
         if (!record) continue;
-        if (record.sources[language] !== modName) continue;
-        delete record.translations[language];
-        delete record.sources[language];
-        if (Object.keys(record.translations).length) {
-          await store.put(record);
-        } else {
-          await store.delete(['translation', translationKey]);
+        if (this.updateSource(record, modName, language)) {
+          if (Object.keys(record.translations).length) {
+            record.updatedAt = Date.now();
+            await store.put(record);
+          } else {
+            await store.delete(['translation', translationKey]);
+          }
         }
-        removed.push(translationKey);
+        merged.push(record);
       }
     });
 
-    for (const translationKey of removed) {
-      const translations = this.translations.get(translationKey);
-      if (!translations) continue;
-      delete translations[language];
-      if (!Object.keys(translations).length) this.translations.delete(translationKey);
-    }
+    for (const record of merged) this.syncTranslation(record, language);
     this.rebuild();
-    this.core.logger.log(`清理旧翻译: ${modName}/${language} ${removed.length} 个`, 'DEBUG');
+    this.core.logger.log(`清理旧翻译: ${modName}/${language} ${merged.length} 个`, 'DEBUG');
+  }
+
+  private updateSource(record: TranslationRecord, modName: string, language: LanguageCode, text?: string): boolean {
+    const sourceOrder = this.sourceOrders.get(language)!;
+    let contributions = { ...record.contributions?.[language] };
+    let changed = false;
+    const owner = record.sources[language];
+    if (owner && !Object.hasOwn(contributions, owner) && record.translations[language] !== undefined) {
+      contributions = { ...contributions, [owner]: { text: record.translations[language], order: sourceOrder.get(owner) ?? -1 } };
+      changed = true;
+    }
+    if (text === undefined) {
+      changed ||= Object.hasOwn(contributions, modName);
+      delete contributions[modName];
+    } else {
+      const order = sourceOrder.get(modName)!;
+      changed ||= contributions[modName]?.text !== text || contributions[modName]?.order !== order;
+      contributions = { ...contributions, [modName]: { text, order } };
+    }
+    let winner: [string, SourceTranslation] | undefined;
+    for (const entry of Object.entries(contributions)) {
+      const order = sourceOrder.get(entry[0]) ?? entry[1].order;
+      if (!winner || order >= (sourceOrder.get(winner[0]) ?? winner[1].order)) winner = entry;
+    }
+    changed ||= record.sources[language] !== winner?.[0] || record.translations[language] !== winner?.[1].text;
+    record.contributions ??= {};
+    if (winner) {
+      record.contributions[language] = contributions;
+      record.sources[language] = winner[0];
+      record.translations[language] = winner[1].text;
+    } else {
+      delete record.contributions[language];
+      delete record.sources[language];
+      delete record.translations[language];
+    }
+    return changed;
+  }
+
+  private syncTranslation(record: TranslationRecord, language: LanguageCode): void {
+    const translations = { ...record.translations, ...this.translations.get(record.translationKey) };
+    if (Object.hasOwn(record.translations, language)) translations[language] = record.translations[language];
+    else delete translations[language];
+    if (Object.keys(translations).length) this.translations.set(record.translationKey, translations);
+    else this.translations.delete(record.translationKey);
   }
 
   private async readFileRecord(modName: string, language: LanguageCode): Promise<FileRecord | null> {
@@ -403,19 +435,6 @@ class LanguageManager {
     };
 
     await this.core.idb.withTransaction(this.STORE, 'readwrite', tx => tx.objectStore(this.STORE).put(record));
-  }
-
-  private async loadFileTranslations(keys: string[]): Promise<void> {
-    if (!keys.length) return;
-    const records = await this.core.idb.withTransaction(this.STORE, 'readonly', tx => {
-      const store = tx.objectStore(this.STORE);
-      return Promise.all(keys.map(key => store.get(['translation', key])));
-    });
-    for (const record of records as Array<TranslationRecord | undefined>) {
-      if (!record) continue;
-      this.translations.set(record.translationKey, record.translations);
-    }
-    this.rebuild();
   }
 
   private async loadTranslation(translationKey: string): Promise<boolean> {

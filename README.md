@@ -11,7 +11,7 @@
 [![Stars](https://img.shields.io/github/stars/MaplebirchLeaf/SCML-DOL-maplebirchFramework?label=stars)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/stargazers)
 [![Issues](https://img.shields.io/github/issues-raw/MaplebirchLeaf/SCML-DOL-maplebirchFramework?label=issues)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/issues)
 
-**`maplebirchFramework`** 是基于 **_SugarCube2 ModLoader_** 为 **_Degrees of Lewdity_** 制作的模组开发框架。它主要为其它模组提供更方便的脚本加载、语言与音频导入、区域注入、NPC 注册、战斗按钮、角色图层、转化、动态事件和常用工具函数。
+**`maplebirchFramework`** 是基于 **_SugarCube2 ModLoader_** 为 **_Degrees of Lewdity_** 制作的模组开发框架。它主要为其它模组提供更方便的脚本加载、语言与音频导入、区域注入、NPC 注册、战斗按钮、角色图层、转化、动态事件和常用工具函数，并提供模组加密授权与自托管云存档服务。
 
 框架的使用重点是“让模组作者少直接改原版内容，多通过稳定接口追加内容”。如果你的模组需要向游戏界面插入新内容、为 NPC 增加数据、注册动态事件，或把多语言、音频、脚本资源整理成统一加载流程，本框架可以作为基础依赖使用。
 
@@ -22,7 +22,9 @@
 - [基本介绍](#基本介绍)
 - [安装与依赖](#安装与依赖)
 - [脚本加载](#脚本加载)
-- [模组加密](#模组加密)
+- [框架服务](#框架服务)
+  - [模组加密](#模组加密)
+  - [云存档](#云存档)
 - [推荐写法](#推荐写法)
 - [类型包](#类型包)
 - [模块与功能](#模块与功能)
@@ -49,6 +51,8 @@
 - 添加命名 NPC、NPC 状态、NPC 日程、NPC 服装、NPC 侧边栏、NPC 转化与 NPC 怀孕扩展。
 - 添加角色侧边栏图层、面部样式、转化内容。
 - 向战斗界面添加自定义动作按钮。
+- 为依赖框架的模组提供加密壳授权、凭证校验与本地安全记忆。
+- 通过自建 Cloudflare Worker 与私有 R2 桶同步本地槽位和存档导出码。
 - 使用 `maplebirch.utils.clone(source)`、`Object.merge()`、`list.contains()`、`list.either()`、`Math.clamp()` 等常用工具函数。
 
 如果你正在制作的是内容型模组，可以优先阅读 `NPC 管理`、`动态事件`、`区域管理` 和 `语言管理`。如果你正在制作 UI 或工具型模组，可以优先阅读 `boot.json 配置`、`SugarCube 宏`、`文本工具` 和 `工具函数`。如果你的模组涉及角色外观或战斗行为，则建议从 `角色管理`、`转化管理` 和 `战斗按钮` 开始。
@@ -102,7 +106,11 @@
 }
 ```
 
-## 模组加密
+## 框架服务
+
+除模组开发接口外，框架还提供两项面向作者与玩家的可选服务。它们解决的问题不同：**模组加密**保护依赖框架发布的模组内容，**云存档**把玩家本地存档同步到玩家自己部署的云端。
+
+### 模组加密
 
 框架本体不加密。依赖框架的其它模组如果需要加密，请使用配套工具生成加密壳 `.modpack`。加密壳会在 `earlyload` 阶段向框架请求凭证验证，验证通过后解密真实模组，并交给 ModLoader 懒加载。
 
@@ -120,6 +128,14 @@
 ```
 
 可选字段包括 `subject`、`name`、`prompt` 和 `date`。完整说明见配套工具仓库 README。
+
+完整的玩家流程、作者配置与有效期规则见 [模组加密文档](docs/CN/Encryption.md)。
+
+### 云存档
+
+云存档可把 DoL 的本地 IndexedDB 槽位和存档导出码同步到**玩家自己部署**的 Cloudflare Worker + R2。游戏设置中会增加「云存档」标签页，填写 Worker 地址与 `MAPLEBIRCH_TOKEN` 后即可上传、下载或删除远端槽位。
+
+框架不提供公共存档服务器，也不会把访问令牌持久化。上传内容是明文 JSON；请使用 HTTPS、足够随机的令牌，并保持 R2 桶私有。远端部署步骤、接口与游戏内操作见 [云存档文档](docs/CN/CloudSave.md)。
 
 ## 推荐写法
 
@@ -216,6 +232,9 @@ npm install -D @scml-maplebirch/types
 - [语言管理][LanguageManager]
 - [SugarCube 宏][SugarCubeMacro]
 - [音频管理][Audio]
+- [框架服务](docs/CN/README.md#框架服务)
+  - [模组加密](docs/CN/Encryption.md)
+  - [云存档](docs/CN/CloudSave.md)
 - [动态事件][Dynamic]
   - [状态事件][StateEvents]
   - [时间事件][TimeEvents]

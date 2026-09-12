@@ -53,13 +53,12 @@ export async function createZip(rootDir: string): Promise<Buffer> {
   const zip = new AdmZip();
   const additionFiles: string[] = [];
 
-  for (const file of ['inject_early.js', 'maplebirch.d.ts']) {
-    try {
-      const buf = await readFile(path.join(distDir, file));
-      zip.addFile(`dist/${file}`, buf);
-    } catch {
-      console.warn(`警告: 找不到文件 ${file}，跳过`);
-    }
+  zip.addFile('dist/inject_early.js', await readFile(path.join(distDir, 'inject_early.js')));
+
+  try {
+    zip.addFile('dist/maplebirch.d.ts', await readFile(path.join(distDir, 'maplebirch.d.ts')));
+  } catch {
+    console.warn('警告: 找不到文件 maplebirch.d.ts，跳过');
   }
 
   const readmePath = path.join(rootDir, 'README.md');

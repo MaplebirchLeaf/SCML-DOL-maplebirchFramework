@@ -47,7 +47,8 @@ interface AudioRecord {
 }
 
 interface CacheEntry {
-  howl: any;
+  howl: AudioBufferPlayer;
+  format: AudioFormat;
 }
 
 interface AudioProgress {
@@ -76,9 +77,11 @@ class AudioManager {
   private readonly playlists = new Map<string, Playlist>();
   private readonly eventListeners = new Map<string, Set<AudioEventHandler>>();
   private readonly cache = new Map<string, Map<string, CacheEntry>>();
+  private readonly pendingLoads = new Map<string, Promise<CacheEntry>>();
 
   private activePlaylist: Playlist | null = null;
   private currentTrack: Track | null = null;
+  private loadingTrack: Track | null = null;
   private currentHowl: any = null;
   private state: PlayStateType = PlayState.IDLE;
   private volume = 1;
@@ -146,10 +149,13 @@ class AudioManager {
     try {
       this.stopCurrent(false);
       this.state = PlayState.LOADING;
+      this.loadingTrack = track;
       this.emit('loading', track);
       const { howl } = await this.load(track);
       if (requestId !== this.playRequestId) return false;
+      if (this.cache.get(track.modName)?.get(track.audioName)?.howl !== howl) throw new Error(`音频加载已取消: ${track.modName}/${track.audioName}`);
       this.currentTrack = track;
+      this.loadingTrack = null;
       this.currentHowl = howl;
       howl.volume(this.outputVolume);
       howl.play();
@@ -161,6 +167,7 @@ class AudioManager {
       if (requestId === this.playRequestId) {
         this.state = PlayState.IDLE;
         this.currentTrack = null;
+        this.loadingTrack = null;
         this.currentHowl = null;
         this.stopProgressTimer();
         this.emit('error', error, track);
@@ -190,6 +197,7 @@ class AudioManager {
 
   public stop(): boolean {
     this.playRequestId++;
+    this.loadingTrack = null;
     return this.stopCurrent(true);
   }
 
@@ -363,6 +371,7 @@ class AudioManager {
 
   public clearCache(): void {
     this.stop();
+    this.pendingLoads.clear();
     for (const modCache of this.cache.values()) for (const entry of modCache.values()) this.release(entry);
     this.cache.clear();
     this.cacheCount = 0;
@@ -565,23 +574,40 @@ class AudioManager {
   }
 
   private async load(track: Track): Promise<CacheEntry> {
-    const cached = this.cache.get(track.modName)?.get(track.audioName);
-    if (cached) {
-      cached.howl.volume(this.outputVolume);
-      return cached;
+    let entry = this.cache.get(track.modName)?.get(track.audioName);
+    if (!entry) {
+      const key = JSON.stringify([track.modName, track.audioName]);
+      let pending = this.pendingLoads.get(key);
+      if (!pending) {
+        const task: Promise<CacheEntry> = Promise.resolve().then(async () => {
+          const record = await this.core.idb.withTransaction([this.STORE], 'readonly', async (tx: any) => await tx.objectStore(this.STORE).get([track.modName, track.audioName]));
+          if (this.pendingLoads.get(key) !== task) throw new Error(`音频加载已取消: ${track.modName}/${track.audioName}`);
+          if (!record) throw new Error(`音频不存在: ${track.modName}/${track.audioName}`);
+          const { arrayBuffer, format } = (record as AudioRecord).value;
+          const context = this.core.howler.Howler.ctx as AudioContext | undefined;
+          if (!context) throw new Error('WebAudio context is not available');
+          const buffer = await context.decodeAudioData(arrayBuffer.slice(0));
+          // A cleared or replaced task must not recreate an unloaded cache entry.
+          if (this.pendingLoads.get(key) !== task) throw new Error(`音频加载已取消: ${track.modName}/${track.audioName}`);
+          const loaded: CacheEntry = {
+            howl: new AudioBufferPlayer(context, buffer, this.outputVolume, () => this.handleTrackEnd(track)),
+            format
+          };
+          this.cacheAudio(track.modName, track.audioName, loaded);
+          return loaded;
+        });
+        this.pendingLoads.set(key, task);
+        pending = task;
+      }
+      try {
+        entry = await pending;
+      } finally {
+        if (this.pendingLoads.get(key) === pending) this.pendingLoads.delete(key);
+      }
     }
-    const record = await this.core.idb.withTransaction([this.STORE], 'readonly', async (tx: any) => await tx.objectStore(this.STORE).get([track.modName, track.audioName]));
-    if (!record) throw new Error(`音频不存在: ${track.modName}/${track.audioName}`);
-    const audioRecord = record as AudioRecord;
-    const { arrayBuffer, format } = audioRecord.value;
-    track.format = format;
-    const context = this.core.howler.Howler.ctx as AudioContext | undefined;
-    if (!context) throw new Error('WebAudio context is not available');
-    const buffer = await context.decodeAudioData(arrayBuffer.slice(0));
-    track.duration = buffer.duration;
-    const howl = new AudioBufferPlayer(context, buffer, this.outputVolume, () => this.handleTrackEnd(track));
-    const entry = { howl };
-    this.cacheAudio(track.modName, track.audioName, entry);
+    track.format = entry.format;
+    track.duration = entry.howl.duration();
+    entry.howl.volume(this.outputVolume);
     return entry;
   }
 
@@ -634,9 +660,11 @@ class AudioManager {
   }
 
   private unloadCache(modName: string, audioName: string): void {
+    this.pendingLoads.delete(JSON.stringify([modName, audioName]));
     const modCache = this.cache.get(modName);
     const entry = modCache?.get(audioName);
     if (!modCache || !entry) return;
+    if (this.currentHowl === entry.howl) this.stop();
     this.release(entry);
     modCache.delete(audioName);
     this.cacheCount--;
@@ -649,7 +677,8 @@ class AudioManager {
       for (const [modName, modCache] of this.cache) {
         for (const [audioName, entry] of modCache) {
           const isCurrent = this.currentTrack?.modName === modName && this.currentTrack.audioName === audioName;
-          if (isCurrent) continue;
+          const isLoading = this.loadingTrack?.modName === modName && this.loadingTrack.audioName === audioName;
+          if (isCurrent || isLoading) continue;
           this.release(entry);
           modCache.delete(audioName);
           this.cacheCount--;

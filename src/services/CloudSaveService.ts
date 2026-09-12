@@ -240,7 +240,7 @@ class CloudSaveService {
         return this.done(panel, 'cloud.save.status.upload');
 
       case 'downloadSlot':
-        await this.download(slot ?? this.panelSlot(panel));
+        if (!(await this.download(slot ?? this.panelSlot(panel)))) throw new Error(this.core.t('cloud.save.error.download'));
         return this.done(panel, 'cloud.save.status.download');
 
       case 'deleteRemoteSlot':

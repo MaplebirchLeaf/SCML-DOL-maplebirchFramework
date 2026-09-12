@@ -149,6 +149,8 @@ class Variables {
     this.core.on(':rest-options', () => this.check());
   }
 
+  public hairgradients = hairgradients;
+
   public optionsStorage(action: 'save' | 'restore' | 'reset' | 'load'): any | null {
     try {
       if (action === 'save') {

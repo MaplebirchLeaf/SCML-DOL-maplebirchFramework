@@ -119,6 +119,9 @@ jobs:
       - name: Build and Package
         run: bun run build:all
 
+      - name: Verify framework and generated types
+        run: bun run verify
+
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
         with:

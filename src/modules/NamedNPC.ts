@@ -3,7 +3,8 @@
 import maplebirch, { MaplebirchCore, createlog } from '../core';
 import type { Translation } from '../services/LanguageManager';
 import NPCSchedules, { ScheduleConfig, ScheduleBuilder } from './NamedNPCAddon/NPCSchedules';
-import NPCClothes, { ClothesConfig } from './NamedNPCAddon/NPCClothes';
+import NPCClothes from './NamedNPCAddon/NPCClothes';
+import type { OutfitSetConfig } from './NamedNPCAddon/NPCClothes/NPCOutfitSets';
 import type { BootTask } from './AddonPlugin';
 import NPCSidebar, { type NPCSidebarBootConfig } from './NamedNPCAddon/NPCSidebar';
 import NPCFluids from './NamedNPCAddon/NPCFluids';
@@ -427,7 +428,7 @@ export const NamedNPC = (core => {
     const npcNameText =
       typeof setup.NPCNameList_cn_name === 'string'
         ? setup.NPCNameList_cn_name
-        : 'Avery,艾弗里|Bailey,贝利|Briar,布莱尔|Charlie,查里|Darryl,达里尔|Doren,多伦|Eden,伊甸|Gwylan,格威岚|Harper,哈珀|Jordan,约旦|Kylar,凯拉尔|Landry,兰德里|Leighton,礼顿|Mason,梅森|Morgan,摩根|River,瑞沃|Robin,罗宾|Sam,萨姆|Sirris,西里斯|Whitney,惠特尼|Winter,温特|Black Wolf,黑狼|Niki,尼奇|Quinn,奎恩|Remy,雷米|Alex,艾利克斯|Great Hawk,巨鹰|Wren,伦恩|Sydney,悉尼|Ivory Wraith,象牙怨灵|Zephyr,泽菲尔|Nona,诺娜|Lake couple,湖边情侣|the witch,巫女|Taylor,泰勒|Casey,凯西|Sterling,斯特林|Cass,卡斯';
+        : 'Avery,艾弗里|Bailey,贝利|Briar,布莱尔|Charlie,查里|Darryl,达里尔|Doren,多伦|Eden,伊甸|Gwylan,格威岚|Harper,哈珀|Jordan,约旦|Kylar,凯拉尔|Landry,兰德里|Leighton,礼顿|Mason,梅森|Morgan,摩根|River,瑞沃|Robin,罗宾|Sam,萨姆|Sirris,西里斯|Whitney,惠特尼|Winter,温特|Black Wolf,黑狼|Niki,尼奇|Quinn,奎恩|Remy,雷米|Alex,艾利克斯|Great Hawk,巨鹰|Wren,伦恩|Sydney,悉尼|Ivory Wraith,象牙怨灵|Zephyr,泽菲尔|Night Monster,夜魔|Nona,诺娜|Lake couple,湖边情侣|the witch,巫女|Taylor,泰勒|Casey,凯西|Sterling,斯特林|Cass,卡斯';
     npcNameText.split('|').forEach(pair => {
       const [enName, cnName] = pair.split(',').map(name => name?.trim());
       if (enName && cnName) core.lang.set(enName, { EN: enName, CN: cnName });
@@ -567,12 +568,13 @@ class NPCManager {
 
   public readonly NamedNPC: typeof NamedNPC = NamedNPC;
   public readonly Schedule: typeof NPCSchedules = NPCSchedules;
-  public readonly Clothes: typeof NPCClothes = NPCClothes;
+  public readonly Clothes: NPCClothes;
   public readonly Sidebar: typeof NPCSidebar = NPCSidebar;
-  public readonly fluids: typeof NPCFluids = NPCFluids;
+  public readonly fluids: NPCFluids = Object.seal(new NPCFluids());
 
   public constructor(readonly core: MaplebirchCore) {
     this.log = createlog('npc');
+    this.Clothes = Object.seal(new NPCClothes(this));
     this.Transformation = Object.seal(new NPCTransformation(this));
     this.core.addon.hook<NPCBootConfig>('npc', task => this.config(task));
     this.core.on(
@@ -607,8 +609,8 @@ class NPCManager {
     }
   }
 
-  public addClothes(...configs: ClothesConfig[]) {
-    return this.Clothes.addOutfitSet(...configs);
+  public addClothes(...configs: OutfitSetConfig[]) {
+    return this.Clothes.outfitSets.add(...configs);
   }
 
   public injectModNPCs() {
@@ -704,7 +706,7 @@ class NPCManager {
   public Init(): void {
     if (!['Start', 'Downgrade Waiting Room'].includes(this.core.passage?.title)) this.injectModNPCs();
     this.Schedule.init(this);
-    this.Clothes.init(this);
+    this.Clothes.init();
     setupNPCData(this);
     if (!Array.isArray(setup.loveInterestNpc)) setup.loveInterestNpc = [];
     isPossibleLoveInterest = (name: string) => isPossible(this, name);

@@ -11,15 +11,18 @@
     "prep": "bun run scripts/prep.ts",
     "build": "bun run rspack -- build --mode=production",
     "build:dev": "bun run rspack -- build --mode=development",
-    "types": "rolldown -c && bun run scripts/types.ts",
+    "types": "rolldown -c && bun run scripts/types.ts && oxfmt packages/types",
     "types:pack": "bun run types && npm pack ./packages/types --dry-run",
-    "types:publish": "bun run types && npm publish ./packages/types --access public",
+    "types:publish": "bun run types && bun run verify && npm publish ./packages/types --access public",
     "package": "bun run scripts/package.ts",
     "package:zip": "bun run scripts/package.ts --zip-only",
     "package:modpack": "bun run scripts/package.ts --modpack-only",
     "build:all": "bun run prep && bun run build && bun run types && bun run package",
     "bump": "bumpp --no-push",
     "release": "bumpp --push --tag maplebirch-release-v%s",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.worker.json",
+    "verify": "bun run test && bun run typecheck && bun run check",
     "check": "oxlint && oxfmt --check",
     "fix": "oxlint --fix && oxfmt"
   },
@@ -55,7 +58,7 @@
   },
   "packageManager": "bun@1.4.2",
   "lastModifiedBy": "楓樺葉",
-  "lastUpdate": "2026.09.09",
+  "lastUpdate": "2026.09.11",
   "scml": {
     "nickName": {
       "en": "Maplebirch Frameworks",
@@ -95,7 +98,7 @@
       },
       {
         "modName": "GameVersion",
-        "version": ">=0.5.11.9"
+        "version": ">=0.5.12.11"
       }
     ]
   }

@@ -45,27 +45,29 @@ function layerFilters(slot: string, type: ClothesType, clothes: any) {
   return [];
 }
 
+function selected_art(nnpc: Record<string, any>) {
+  const selected = V.options.maplebirch.npcsidebar.display?.[nnpc.name];
+  if (!selected || selected === 'none') return;
+  return maplebirch.npc.Clothes.art.get(nnpc.name, selected);
+}
+
 function nnpc_sidepart(part: Part) {
   return {
     srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
-      const selected = V.options.maplebirch.npcsidebar.display?.[nnpc.name];
-      const npcLayers = maplebirch.npc.Clothes.art.get(nnpc.name);
-      if (!selected || !npcLayers) return;
-      if (selected === npcLayers.key && npcLayers[part]) return npcLayers[part].img;
+      return selected_art(nnpc)?.parts[part]?.img;
     },
 
     showfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       if (!nnpc.show || nnpc.model) return false;
-      const npcLayers = maplebirch.npc.Clothes.art.get(nnpc.name);
-      return npcLayers?.[part] != null;
+      return selected_art(nnpc)?.parts[part] != null;
     },
 
     zfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
-      const npcLayers = maplebirch.npc.Clothes.art.get(nnpc.name);
-      if (npcLayers?.[part]?.zIndex != null) return npcLayers[part].zIndex;
+      const zIndex = selected_art(nnpc)?.parts[part]?.zIndex;
+      if (zIndex != null) return zIndex;
       return maplebirch.char.ZIndices[part] + nnpc.position;
     }
   };
@@ -398,12 +400,10 @@ function clothes_back_acc(slot: string, overrides: any = {}) {
 
 function handSuffix(options: NPCSidebarOptions, side: Side) {
   const nnpc = options.maplebirch.nnpc;
-  const arm = nnpc[`arm_${side}`];
-  if (side === 'left') return arm === 'cover' ? 'left-cover' : 'left';
-  if (arm === 'cover') return 'right-cover';
+  if (side === 'left') return `left-${nnpc.arm_left}`;
   if (nnpc.handheld_position === 'hold') return 'right-hold';
   if (nnpc.handheld_position === 'right_cover') return 'right-cover';
-  return 'right';
+  return `right-${nnpc.arm_right}`;
 }
 
 function clothes_hand(side: Side, type: ClothesType, overrides: any = {}) {
@@ -517,6 +517,7 @@ export {
   lookupColour,
   gray_suffix,
   normaliseFileName,
+  selected_art,
   nnpc_sidepart,
   clothes_basic,
   clothes_layer,

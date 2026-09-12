@@ -220,7 +220,7 @@ class MaplebirchCore {
   }
 
   public get(name: string): any {
-    return this.modules.registry.modules.get(name);
+    return this.modules.get(name);
   }
 
   public get dependencyGraph(): any {

@@ -11,7 +11,7 @@
 [![Stars](https://img.shields.io/github/stars/MaplebirchLeaf/SCML-DOL-maplebirchFramework?label=stars)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/stargazers)
 [![Issues](https://img.shields.io/github/issues-raw/MaplebirchLeaf/SCML-DOL-maplebirchFramework?label=issues)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/issues)
 
-**`maplebirchFramework`** is a **_SugarCube2 ModLoader_** framework for **_Degrees of Lewdity_** mods. It provides helper APIs for script loading, language and audio import, UI zone injection, NPC registration, combat actions, character layers, transformations, dynamic events, and general utility functions.
+**`maplebirchFramework`** is a **_SugarCube2 ModLoader_** framework for **_Degrees of Lewdity_** mods. It provides helper APIs for script loading, language and audio import, UI zone injection, NPC registration, combat actions, character layers, transformations, dynamic events, and general utility functions, plus mod-encryption authorization and self-hosted cloud saves.
 
 The framework is designed around additive mod development: instead of directly replacing large parts of vanilla passages or widgets, a mod can register content through stable framework APIs and let the framework merge it at the appropriate loading stage.
 
@@ -22,7 +22,9 @@ The framework is designed around additive mod development: instead of directly r
 - [Overview](#overview)
 - [Installation](#installation)
 - [Script Loading](#script-loading)
-- [Mod Encryption](#mod-encryption)
+- [Framework Services](#framework-services)
+  - [Mod Encryption](#mod-encryption)
+  - [Cloud Save](#cloud-save)
 - [Recommended Structure](#recommended-structure)
 - [Type Package](#type-package)
 - [Documentation](#documentation)
@@ -41,6 +43,8 @@ Use this framework when your mod needs to:
 - Add named NPCs, NPC stats, schedules, clothes, sidebar displays, NPC transformations, and NPC pregnancy extensions.
 - Add character layers, face styles, and transformations.
 - Add custom combat actions.
+- Protect framework-dependent mods with encrypted shells, credential verification, and secure local credential storage.
+- Sync local save slots and export codes through a self-hosted Cloudflare Worker and private R2 bucket.
 - Use shared helpers such as `source.clone()`, `Object.merge()`, `list.contains()`, `list.either()`, and `Math.clamp()`.
 
 English documentation is organized under **[docs/EN](docs/EN/README.md)** and mirrors the Chinese documentation structure.
@@ -79,7 +83,11 @@ Use **`maplebirchAddon`** to load JavaScript files that depend on the framework:
 
 Most mod logic should use **`script`**. Use **`module`** only when you intentionally need an earlier module-extension stage.
 
-## Mod Encryption
+## Framework Services
+
+The framework also offers two optional services for authors and players. They solve separate problems: **Mod Encryption** protects distributed mod content, while **Cloud Save** syncs a player's local saves to infrastructure they control.
+
+### Mod Encryption
 
 The framework itself is not encrypted. Other mods that depend on the framework can use the companion author tools to build an encrypted shell **`.modpack`**. The shell asks the framework to verify a credential during **`earlyload`**, decrypts the real mod, then injects it through ModLoader lazy loading.
 
@@ -97,6 +105,14 @@ The generated `.modpack` only exposes a shell `boot.json`, an earlyload decrypto
 ```
 
 Optional fields include `subject`, `name`, `prompt`, and `date`. See the companion author tools README for the full configuration.
+
+See [Mod Encryption](docs/EN/Encryption.md) for the complete player flow, author configuration, and validity rules.
+
+### Cloud Save
+
+Cloud Save syncs DoL's local IndexedDB slots and save export codes to a **player-owned** Cloudflare Worker + R2 deployment. The in-game settings gain a **Cloud Save** tab; enter the Worker URL and matching `MAPLEBIRCH_TOKEN` to upload, download, or delete remote slots.
+
+The framework does not provide a public save server and does not persist the access token. Uploaded records are plain JSON, so use HTTPS, a strong random token, and a private R2 bucket. See [Cloud Save](docs/EN/CloudSave.md) for deployment, endpoint, and in-game instructions.
 
 ## Recommended Structure
 
@@ -170,6 +186,8 @@ Start here:
 - [SugarCube macros](docs/EN/SugarCubeMacro.md)
 - [Audio manager](docs/EN/Audio.md)
 - [Module system](docs/EN/ModuleSystem.md)
+- [Mod encryption](docs/EN/Encryption.md)
+- [Cloud save](docs/EN/CloudSave.md)
 
 Feature areas:
 
@@ -193,9 +211,7 @@ Feature areas:
 - [NPC clothes](docs/EN/NamedNPC/NamedNPCClothes.md)
 - [NPC sidebar](docs/EN/NamedNPC/NamedNPCSidebar.md)
 - [NPC transformation](docs/EN/NamedNPC/NamedNPCTransformation.md)
-- [NPC pregnancy](docs/EN/NamedNPC/NamedNPCPregnancy.md)
 - [Combat actions](docs/EN/Combat/Actions.md)
-- [Cloud save services](cloud-services/README.md)
 
 Complete Chinese docs:
 

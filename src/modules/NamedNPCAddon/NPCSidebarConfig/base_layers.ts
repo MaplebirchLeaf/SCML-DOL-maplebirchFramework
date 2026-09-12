@@ -2,7 +2,7 @@
 
 import maplebirch from '../../../core';
 import { loadImage } from '../../../utils';
-import { nnpc_sidepart } from './functions';
+import { nnpc_sidepart, selected_art } from './functions';
 
 type NPCSidebarOptions = {
   filters?: Record<string, any>;
@@ -27,9 +27,10 @@ const base_layers = {
       const nnpc = options.maplebirch.nnpc;
       if (nnpc.model) return 'img/body/base-classic.png';
       const selected = V.options.maplebirch.npcsidebar.display[nnpc.name];
-      const art = maplebirch.npc.Clothes.art.get(nnpc.name);
-      if (!selected) return;
-      if (selected === art?.key) return art.body;
+      if (!selected || selected === 'none') return;
+      const art = maplebirch.npc.Clothes.art.get(nnpc.name, selected);
+      if (!art) return;
+      return art.body;
     },
     showfn: (options: NPCSidebarOptions) => {
       return options.maplebirch.nnpc.show;
@@ -60,18 +61,17 @@ const base_layers = {
         const path = `img/face/${nnpc.facestyle}/base-head.png`;
         return loadImage(path) === false ? 'img/body/base-head.png' : path;
       }
-      const selected = V.options.maplebirch.npcsidebar.display[nnpc.name];
-      const art = maplebirch.npc.Clothes.art.get(nnpc.name);
-      if (!selected) return;
-      if (selected === art?.key) return art.head?.img;
+      return selected_art(nnpc)?.parts.head?.img;
     },
     showfn: (options: NPCSidebarOptions) => {
       return options.maplebirch.nnpc.show;
     },
     zfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
-      const art = maplebirch.npc.Clothes.art.get(nnpc.name);
-      if (!nnpc.model && typeof art?.head?.zIndex === 'number') return art.head.zIndex;
+      if (!nnpc.model) {
+        const zIndex = selected_art(nnpc)?.parts.head?.zIndex;
+        if (typeof zIndex === 'number') return zIndex;
+      }
       return (nnpc.model ? maplebirch.char.ZIndices.basehead : maplebirch.char.ZIndices.head) + nnpc.position;
     },
     dxfn: (options: NPCSidebarOptions) => {

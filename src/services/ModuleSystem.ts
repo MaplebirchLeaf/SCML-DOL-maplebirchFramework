@@ -63,8 +63,22 @@ class ModuleSystem {
   private disabledNames: Set<string> | null = null;
   private preInitTask: Promise<void> | null = null;
   private late: Promise<void> = Promise.resolve();
+  private preRunning = false;
+  private preQueued = false;
 
   public constructor(readonly core: MaplebirchCore) {}
+
+  public static traverse(roots: Iterable<string>, links: ReadonlyMap<string, Iterable<string>>, excluded: ReadonlySet<string> = new Set()): Set<string> {
+    const visited = new Set<string>();
+    const queue = [...roots];
+    for (let index = 0; index < queue.length; index++) {
+      const name = queue[index];
+      if (visited.has(name) || excluded.has(name)) continue;
+      visited.add(name);
+      for (const next of links.get(name) ?? []) if (!visited.has(next)) queue.push(next);
+    }
+    return visited;
+  }
 
   public async with<T>(source: string, callback: () => T | Promise<T>): Promise<T> {
     this.sourceStack.push(source);
@@ -72,7 +86,10 @@ class ModuleSystem {
       return await callback();
     } finally {
       this.sourceStack.pop();
-      if (this.initPhase.preInitCompleted) await this.late;
+      if (this.initPhase.preInitCompleted && !this.preRunning && !this.sourceStack.length) {
+        this.queuePre();
+        await this.late;
+      }
     }
   }
 
@@ -116,11 +133,17 @@ class ModuleSystem {
       this.registry.dependents.set(dep, dependents);
     }
 
+    this.disable();
     this.flushEarly();
-    if (this.initPhase.preInitCompleted) this.late = this.late.then(() => this.pre()).catch(error => this.core.logger.log(`late module 预初始化失败: ${this.error(error)}`, 'ERROR'));
+    if (this.initPhase.preInitCompleted && !this.sourceStack.length) this.queuePre();
     this.core.logger.log(`${exposed ? '注册暴露模块' : '注册模块'}: ${name}` + (deps.length ? `, 依赖: [${deps.join(', ')}]` : ' (无依赖)') + (source ? ` (来源: ${source})` : ''), 'DEBUG');
 
     return true;
+  }
+
+  public get(name: string): Module | undefined {
+    if (this.registry.states.get(name) === ModuleState.DISABLED) return undefined;
+    return this.registry.modules.get(name);
   }
 
   public get dependencyGraph(): DependencyGraph {
@@ -196,6 +219,7 @@ class ModuleSystem {
         }
       }
 
+      this.disable();
       await this.pre();
       this.initPhase.preInitCompleted = true;
       this.core.logger.log('预初始化完成', 'DEBUG');
@@ -210,44 +234,64 @@ class ModuleSystem {
     }
   }
 
+  private queuePre(): void {
+    if (this.preRunning || this.preQueued) return;
+    this.preQueued = true;
+    this.late = this.late
+      .then(async () => {
+        this.preQueued = false;
+        await this.pre();
+      })
+      .catch(error => this.core.logger.log(`late module 预初始化失败: ${this.error(error)}`, 'ERROR'));
+  }
+
+  private disable(): void {
+    if (!this.disabledNames) return;
+    const core = this.core as MaplebirchCore & Record<string, unknown>;
+    const disabled = ModuleSystem.traverse(this.disabledNames, this.registry.dependents, new Set(this.core.meta.protected));
+    for (const name of disabled) {
+      const module = this.registry.modules.get(name);
+      if (!module || this.registry.states.get(name) === ModuleState.DISABLED) continue;
+      this.registry.states.set(name, ModuleState.DISABLED);
+      this.preInitialized.delete(name);
+      if (core[name] === module) delete core[name];
+      this.core.logger.log(`模块 ${name} 被禁用，跳过初始化`, 'DEBUG');
+    }
+  }
+
   private async pre(): Promise<void> {
     const core = this.core as MaplebirchCore & Record<string, unknown>;
-    const protectedModules = this.core.meta.protected as readonly string[];
     const coreModules = this.core.meta.core as readonly string[];
     const earlyModules = this.core.meta.early as readonly string[];
 
-    let progressed = true;
+    this.preRunning = true;
+    try {
+      let progressed = true;
+      while (progressed) {
+        progressed = false;
 
-    while (progressed) {
-      progressed = false;
+        for (const name of this.topologicalOrder()) {
+          if (this.registry.states.get(name) !== ModuleState.REGISTERED || this.preInitialized.has(name)) continue;
 
-      for (const name of this.topologicalOrder()) {
-        if (this.registry.states.get(name) !== ModuleState.REGISTERED || this.preInitialized.has(name)) continue;
+          const module = this.registry.modules.get(name);
+          if (!module) continue;
 
-        const module = this.registry.modules.get(name);
-        if (!module) continue;
+          if (!this.ready(name, true)) continue;
 
-        if (!protectedModules.includes(name) && this.disabledNames?.has(name)) {
-          if (module.exposed === true && core[name] === module) delete core[name];
-          this.registry.states.set(name, ModuleState.DISABLED);
-          this.core.logger.log(`模块 ${name} 被禁用，跳过初始化`, 'DEBUG');
+          try {
+            await module.preInit?.call(module);
+            if (coreModules.includes(name) && !earlyModules.includes(name)) core[name] = module;
+            this.preInitialized.add(name);
+          } catch (error) {
+            this.registry.states.set(name, ModuleState.ERROR);
+            this.core.logger.log(`[${name}] preInit 执行失败: ${this.error(error)}`, 'ERROR');
+          }
+
           progressed = true;
-          continue;
         }
-
-        if (!this.ready(name, true)) continue;
-
-        try {
-          await module.preInit?.call(module);
-          if (coreModules.includes(name) && !earlyModules.includes(name)) core[name] = module;
-          this.preInitialized.add(name);
-        } catch (error) {
-          this.registry.states.set(name, ModuleState.ERROR);
-          this.core.logger.log(`[${name}] preInit 执行失败: ${this.error(error)}`, 'ERROR');
-        }
-
-        progressed = true;
       }
+    } finally {
+      this.preRunning = false;
     }
   }
 
@@ -316,7 +360,7 @@ class ModuleSystem {
 
       for (const name of early) {
         const module = this.registry.modules.get(name);
-        if (!module || core[name] === module) continue;
+        if (!module || core[name] === module || this.registry.states.get(name) === ModuleState.DISABLED) continue;
         const waiting = [...(this.registry.dependencies.get(name) ?? [])].some(dep => early.has(dep) && core[dep] == null);
         if (waiting || core[name] != null) continue;
         core[name] = module;
@@ -339,6 +383,7 @@ class ModuleSystem {
     for (let i = 0; i < queue.length; i++) {
       const name = queue[i];
       result.push(name);
+      if (this.registry.states.get(name) === ModuleState.EXPOSED) continue;
       for (const dependent of this.registry.dependents.get(name) ?? []) {
         const degree = (inDegree.get(dependent) ?? 0) - 1;
         inDegree.set(dependent, degree);

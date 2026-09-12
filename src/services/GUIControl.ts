@@ -5,6 +5,7 @@ import maplebirch, { type MaplebirchCore } from '../core';
 import Gui from '@/twee/Gui.twee';
 import { widgets } from '../utils';
 import { Config } from './../constants';
+import ModuleSystem from './ModuleSystem';
 
 type ModuleType = 'protected' | 'mounted' | 'exposed' | 'module';
 
@@ -77,7 +78,11 @@ class GUIControl {
       const Modules = (await store.get('Modules')) as SettingRecord<ModulesStore> | undefined;
       const Script = (await store.get('Script')) as SettingRecord<ScriptStore> | undefined;
       const modules = this.currentModules(modNames);
-      const disabledModuleNames = new Set((Modules?.value?.disabled || []).map(m => m.name));
+      const disabledModuleNames = ModuleSystem.traverse(
+        (Modules?.value?.disabled || []).map(m => m.name),
+        this.moduleLinks(modules, 'disable'),
+        new Set(modules.filter(m => m.protected).map(m => m.name))
+      );
       const script_valid = (script: string) => {
         const modName = script.match(/^\[([^\]]+)\]:/)?.[1] || '';
         return !!modName && modNames.has(modName);
@@ -98,18 +103,21 @@ class GUIControl {
   }
 
   private currentModules(modNames: Set<string>): ModuleInfo[] {
-    const graph = this.core.dependencyGraph;
+    const graph: ModuleSystem['dependencyGraph'] = this.core.dependencyGraph;
+    const links = new Map(Object.entries(graph).map(([name, info]) => [name, info.dependencies]));
+    const protectedNames = new Set(
+      Object.entries(graph)
+        .filter(([, info]) => info.protected)
+        .map(([name]) => name)
+    );
     return Object.entries(graph)
-      .map(([name, info]: [string, any]) => ({
+      .map(([name, info]) => ({
         name,
         type: (info.protected ? 'protected' : info.exposed ? 'exposed' : info.mounted ? 'mounted' : 'module') as ModuleType,
         source: info.source || '',
         protected: info.protected === true,
         lifecycle: info.lifecycle === true,
-        dependencies: (info.allDependencies || []).filter((dep: string) => {
-          const target = graph[dep];
-          return target && !target.protected;
-        })
+        dependencies: [...ModuleSystem.traverse(info.dependencies, links, protectedNames)]
       }))
       .filter(mod => !mod.source || modNames.has(mod.source));
   }
@@ -177,33 +185,24 @@ class GUIControl {
   }
 
   public cascadeModules(action: 'enable' | 'disable', moduleName: string, modules: ModulesSettings): string[] {
-    const result = new Set([moduleName]);
-    if (action === 'enable') {
-      const disabled = new Set(modules.disabled.map(m => m.name));
-      const addDeps = (name: string) => {
-        const module = modules.disabled.find(m => m.name === name) || modules.enabled.find(m => m.name === name);
-        if (!module) return;
-        for (const dep of module.dependencies || []) {
-          if (!disabled.has(dep)) continue;
-          result.add(dep);
-          addDeps(dep);
-        }
-      };
-      addDeps(moduleName);
-      return Array.from(result);
-    }
+    const allModules = [...modules.enabled, ...modules.disabled];
+    const protectedNames = new Set(allModules.filter(module => module.protected).map(module => module.name));
+    const candidateNames = new Set((action === 'enable' ? modules.disabled : modules.enabled).map(module => module.name));
+    const affectedNames = ModuleSystem.traverse([moduleName], this.moduleLinks(allModules, action), protectedNames);
+    return [...affectedNames].filter(name => candidateNames.has(name));
+  }
 
-    const enabled = new Set(modules.enabled.map(m => m.name));
-    const addDependents = (name: string) => {
-      for (const mod of modules.enabled) {
-        if (!(mod.dependencies || []).includes(name) || !enabled.has(mod.name) || mod.protected || (mod.type === 'exposed' && !mod.lifecycle)) continue;
-        result.add(mod.name);
-        addDependents(mod.name);
+  private moduleLinks(modules: ModuleInfo[], action: 'enable' | 'disable'): Map<string, Set<string>> {
+    const links = new Map<string, Set<string>>();
+    for (const module of modules) {
+      for (const dependency of module.dependencies) {
+        const from = action === 'enable' ? module.name : dependency;
+        const to = action === 'enable' ? dependency : module.name;
+        if (!links.has(from)) links.set(from, new Set());
+        links.get(from)!.add(to);
       }
-    };
-
-    addDependents(moduleName);
-    return Array.from(result);
+    }
+    return links;
   }
 
   public get moduleList(): string {

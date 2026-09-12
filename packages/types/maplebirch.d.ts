@@ -1,41 +1,41 @@
-import { Passage } from "@scml/types/sugarcube-2-ModLoader/SugarCube2";
-import { ModBootJson, ModInfo } from "@scml/types/sugarcube-2-ModLoader/ModLoader";
-import { JSZipLikeReadOnlyInterface } from "@scml/types/sugarcube-2-ModLoader/JSZipLikeReadOnlyInterface";
-import { ModZipReader } from "@scml/types/sugarcube-2-ModLoader/ModZipReader";
-import { SC2DataManager } from "@scml/types/sugarcube-2-ModLoader/SC2DataManager";
-import { ModUtils } from "@scml/types/sugarcube-2-ModLoader/Utils";
-import { BrowserAPI } from "@scml/sc2-verlnir/src/browser";
-import { ConfigAPI } from "@scml/sc2-verlnir/src/config";
-import { DebugBarAPI } from "@scml/sc2-verlnir/src/debugbar";
-import { DialogAPI } from "@scml/sc2-verlnir/src/dialog";
-import { EngineAPI } from "@scml/sc2-verlnir/src/engine";
-import { FullscreenAPI } from "@scml/sc2-verlnir/src/fullscreen";
-import { HasAPI } from "@scml/sc2-verlnir/src/has";
-import { IdbAPI } from "@scml/sc2-verlnir/src/idb";
-import { L10nAPI } from "@scml/sc2-verlnir/src/l10n";
-import { LinksAPI } from "@scml/sc2-verlnir/src/links";
-import { LoadScreenAPI } from "@scml/sc2-verlnir/src/loadscreen";
-import { MacroAPI } from "@scml/sc2-verlnir/src/macro";
-import { PassageConstructor } from "@scml/sc2-verlnir/src/passage";
-import { SaveAPI } from "@scml/sc2-verlnir/src/save";
-import { ScriptingAPI } from "@scml/sc2-verlnir/src/scripting";
-import { SettingAPI } from "@scml/sc2-verlnir/src/setting";
-import { SimpleAudioAPI } from "@scml/sc2-verlnir/src/simpleaudio";
-import { SimpleStoreAPI, SimpleStoreInstanceAPI } from "@scml/sc2-verlnir/src/simplestore";
-import { StateAPI } from "@scml/sc2-verlnir/src/state";
-import { StoryAPI } from "@scml/sc2-verlnir/src/story";
-import { TemplateAPI } from "@scml/sc2-verlnir/src/template";
-import { UIAPI } from "@scml/sc2-verlnir/src/ui";
-import { UIBarAPI } from "@scml/sc2-verlnir/src/uibar";
-import { UtilAPI } from "@scml/sc2-verlnir/src/util";
-import { VersionInfo } from "@scml/sc2-verlnir/src/version";
-import { VisibilityAPI } from "@scml/sc2-verlnir/src/visibility";
-import { WikifierAPI } from "@scml/sc2-verlnir/src/wikifier";
-import { Gui } from "@scml/types/Mod_LoaderGui/Gui";
-import jsyaml from "js-yaml";
-import { Howl, Howler } from "howler";
-import * as marked from "marked";
-import { MacroContext } from "twine-sugarcube";
+import { Passage } from '@scml/types/sugarcube-2-ModLoader/SugarCube2';
+import { ModBootJson, ModInfo } from '@scml/types/sugarcube-2-ModLoader/ModLoader';
+import { JSZipLikeReadOnlyInterface } from '@scml/types/sugarcube-2-ModLoader/JSZipLikeReadOnlyInterface';
+import { ModZipReader } from '@scml/types/sugarcube-2-ModLoader/ModZipReader';
+import { SC2DataManager } from '@scml/types/sugarcube-2-ModLoader/SC2DataManager';
+import { ModUtils } from '@scml/types/sugarcube-2-ModLoader/Utils';
+import { BrowserAPI } from '@scml/sc2-verlnir/src/browser';
+import { ConfigAPI } from '@scml/sc2-verlnir/src/config';
+import { DebugBarAPI } from '@scml/sc2-verlnir/src/debugbar';
+import { DialogAPI } from '@scml/sc2-verlnir/src/dialog';
+import { EngineAPI } from '@scml/sc2-verlnir/src/engine';
+import { FullscreenAPI } from '@scml/sc2-verlnir/src/fullscreen';
+import { HasAPI } from '@scml/sc2-verlnir/src/has';
+import { IdbAPI } from '@scml/sc2-verlnir/src/idb';
+import { L10nAPI } from '@scml/sc2-verlnir/src/l10n';
+import { LinksAPI } from '@scml/sc2-verlnir/src/links';
+import { LoadScreenAPI } from '@scml/sc2-verlnir/src/loadscreen';
+import { MacroAPI } from '@scml/sc2-verlnir/src/macro';
+import { PassageConstructor } from '@scml/sc2-verlnir/src/passage';
+import { SaveAPI } from '@scml/sc2-verlnir/src/save';
+import { ScriptingAPI } from '@scml/sc2-verlnir/src/scripting';
+import { SettingAPI } from '@scml/sc2-verlnir/src/setting';
+import { SimpleAudioAPI } from '@scml/sc2-verlnir/src/simpleaudio';
+import { SimpleStoreAPI, SimpleStoreInstanceAPI } from '@scml/sc2-verlnir/src/simplestore';
+import { StateAPI } from '@scml/sc2-verlnir/src/state';
+import { StoryAPI } from '@scml/sc2-verlnir/src/story';
+import { TemplateAPI } from '@scml/sc2-verlnir/src/template';
+import { UIAPI } from '@scml/sc2-verlnir/src/ui';
+import { UIBarAPI } from '@scml/sc2-verlnir/src/uibar';
+import { UtilAPI } from '@scml/sc2-verlnir/src/util';
+import { VersionInfo } from '@scml/sc2-verlnir/src/version';
+import { VisibilityAPI } from '@scml/sc2-verlnir/src/visibility';
+import { WikifierAPI } from '@scml/sc2-verlnir/src/wikifier';
+import { Gui } from '@scml/types/Mod_LoaderGui/Gui';
+import jsyaml from 'js-yaml';
+import { Howl, Howler } from 'howler';
+import * as marked from 'marked';
+import { MacroContext } from 'twine-sugarcube';
 //#endregion
 //#region types/twine-sugarcube.d.ts
 declare module 'twine-sugarcube/userdata' {
@@ -51,9 +51,13 @@ declare module 'twine-sugarcube/userdata' {
 }
 declare module 'twine-sugarcube' {
   export interface WikifierAPI {
-    wikifyEval(text: string, passageObj?: {
-      title: string;
-    }, passageTitle?: string): DocumentFragment;
+    wikifyEval(
+      text: string,
+      passageObj?: {
+        title: string;
+      },
+      passageTitle?: string
+    ): DocumentFragment;
   }
   export interface MacroDefinition {
     isAsync?: boolean;
@@ -68,9 +72,13 @@ interface DolSaveAPI extends SaveAPI {
   deserialize(saveStr: string): any;
 }
 type WikifierAPI$1 = WikifierAPI & {
-  wikifyEval(text: string, passageObj?: {
-    title: string;
-  }, passageTitle?: string): DocumentFragment;
+  wikifyEval(
+    text: string,
+    passageObj?: {
+      title: string;
+    },
+    passageTitle?: string
+  ): DocumentFragment;
 };
 interface SugarCubeUtilAPI extends UtilAPI {
   [key: string]: any;
@@ -394,10 +402,14 @@ declare function clamp(value: any, min: number, max: number, fallback?: number):
 //#endregion
 //#region src/utils/string.d.ts
 type ConvertMode$1 = 'lower' | 'upper' | 'capitalize' | 'title' | 'camel' | 'pascal' | 'snake' | 'kebab' | 'constant';
-declare function convert(value: string, mode?: ConvertMode$1, options?: {
-  delimiter?: string;
-  acronym?: boolean;
-}): string;
+declare function convert(
+  value: string,
+  mode?: ConvertMode$1,
+  options?: {
+    delimiter?: string;
+    acronym?: boolean;
+  }
+): string;
 declare function escapeHtmlText(value: string): string;
 declare function widgets(content: string): string;
 declare function widgets(...contents: string[]): string[];
@@ -461,13 +473,19 @@ declare global {
     either(weights?: number[], allowNull?: boolean): T | null | undefined;
   }
   interface String {
-    contains(value: string, options?: {
-      case?: boolean;
-    }): boolean;
-    convert(mode?: ConvertMode$1, options?: {
-      delimiter?: string;
-      acronym?: boolean;
-    }): string;
+    contains(
+      value: string,
+      options?: {
+        case?: boolean;
+      }
+    ): boolean;
+    convert(
+      mode?: ConvertMode$1,
+      options?: {
+        delimiter?: string;
+        acronym?: boolean;
+      }
+    ): string;
   }
   interface Math {
     random(): number;
@@ -478,7 +496,36 @@ declare global {
 }
 declare function prototypeUtils(): void;
 declare namespace index_d_exports {
-  export { SelectCase, append, appendFn as appendfn, base64ToArrayBuffer, base64ToBytes, basicAuth, bytesToBase64, bytesToJson, clamp, clone, contains, convert, cover, coverFn as coverfn, randomPick as either, equal, escapeHtmlText, joinEncodedPath, jsonToBytes, loadImage, merge, mergeFn as mergefn, prototypeUtils, publicUtils, randomNumber as random, textToBytes, toArrayBuffer, widgets };
+  export {
+    SelectCase,
+    append,
+    appendFn as appendfn,
+    base64ToArrayBuffer,
+    base64ToBytes,
+    basicAuth,
+    bytesToBase64,
+    bytesToJson,
+    clamp,
+    clone,
+    contains,
+    convert,
+    cover,
+    coverFn as coverfn,
+    randomPick as either,
+    equal,
+    escapeHtmlText,
+    joinEncodedPath,
+    jsonToBytes,
+    loadImage,
+    merge,
+    mergeFn as mergefn,
+    prototypeUtils,
+    publicUtils,
+    randomNumber as random,
+    textToBytes,
+    toArrayBuffer,
+    widgets
+  };
 }
 declare const publicUtils: Readonly<{
   clone: typeof clone;
@@ -530,8 +577,8 @@ declare class EventEmitter {
 }
 //#endregion
 //#region node_modules/idb/build/entry.d.ts
-type KeyToKeyNoIndex<T> = { [K in keyof T]: string extends K ? never : number extends K ? never : K; };
-type ValuesOf<T> = T extends { [K in keyof T]: infer U; } ? U : never;
+type KeyToKeyNoIndex<T> = { [K in keyof T]: string extends K ? never : number extends K ? never : K };
+type ValuesOf<T> = T extends { [K in keyof T]: infer U } ? U : never;
 type KnownKeys<T> = ValuesOf<KeyToKeyNoIndex<T>>;
 type Omit$1<T, K> = Pick<T, Exclude<keyof T, K>>;
 interface DBSchema {
@@ -579,13 +626,26 @@ type IndexNames<DBTypes extends DBSchema | unknown, StoreName extends StoreNames
  * @template StoreName Names of the object stores to get the types of.
  * @template IndexName Names of the indexes to get the types of.
  */
-type IndexKey<DBTypes extends DBSchema | unknown, StoreName extends StoreNames<DBTypes>, IndexName extends IndexNames<DBTypes, StoreName>> = DBTypes extends DBSchema ? IndexName extends keyof DBTypes[StoreName]['indexes'] ? DBTypes[StoreName]['indexes'][IndexName] : IDBValidKey : IDBValidKey;
-type CursorSource<DBTypes extends DBSchema | unknown, TxStores extends ArrayLike<StoreNames<DBTypes>>, StoreName extends StoreNames<DBTypes>, IndexName extends IndexNames<DBTypes, StoreName> | unknown, Mode extends IDBTransactionMode = 'readonly'> = IndexName extends IndexNames<DBTypes, StoreName> ? IDBPIndex<DBTypes, TxStores, StoreName, IndexName, Mode> : IDBPObjectStore<DBTypes, TxStores, StoreName, Mode>;
-type CursorKey<DBTypes extends DBSchema | unknown, StoreName extends StoreNames<DBTypes>, IndexName extends IndexNames<DBTypes, StoreName> | unknown> = IndexName extends IndexNames<DBTypes, StoreName> ? IndexKey<DBTypes, StoreName, IndexName> : StoreKey<DBTypes, StoreName>;
+type IndexKey<DBTypes extends DBSchema | unknown, StoreName extends StoreNames<DBTypes>, IndexName extends IndexNames<DBTypes, StoreName>> = DBTypes extends DBSchema
+  ? IndexName extends keyof DBTypes[StoreName]['indexes']
+    ? DBTypes[StoreName]['indexes'][IndexName]
+    : IDBValidKey
+  : IDBValidKey;
+type CursorSource<
+  DBTypes extends DBSchema | unknown,
+  TxStores extends ArrayLike<StoreNames<DBTypes>>,
+  StoreName extends StoreNames<DBTypes>,
+  IndexName extends IndexNames<DBTypes, StoreName> | unknown,
+  Mode extends IDBTransactionMode = 'readonly'
+> = IndexName extends IndexNames<DBTypes, StoreName> ? IDBPIndex<DBTypes, TxStores, StoreName, IndexName, Mode> : IDBPObjectStore<DBTypes, TxStores, StoreName, Mode>;
+type CursorKey<DBTypes extends DBSchema | unknown, StoreName extends StoreNames<DBTypes>, IndexName extends IndexNames<DBTypes, StoreName> | unknown> =
+  IndexName extends IndexNames<DBTypes, StoreName> ? IndexKey<DBTypes, StoreName, IndexName> : StoreKey<DBTypes, StoreName>;
 type IDBPDatabaseExtends = Omit$1<IDBDatabase, 'createObjectStore' | 'deleteObjectStore' | 'transaction' | 'objectStoreNames'>;
 type DOMStringListSymbolIteratorType = DOMStringList extends {
   [Symbol.iterator](): infer R;
-} ? R : IterableIterator<string>;
+}
+  ? R
+  : IterableIterator<string>;
 /**
  * A variation of DOMStringList with precise string types
  */
@@ -635,7 +695,11 @@ interface IDBPDatabase<DBTypes extends DBSchema | unknown = unknown> extends IDB
    * @param options
    */
   transaction<Name extends StoreNames<DBTypes>, Mode extends IDBTransactionMode = 'readonly'>(storeNames: Name, mode?: Mode, options?: IDBTransactionOptions): IDBPTransaction<DBTypes, [Name], Mode>;
-  transaction<Names extends ArrayLike<StoreNames<DBTypes>>, Mode extends IDBTransactionMode = 'readonly'>(storeNames: Names, mode?: Mode, options?: IDBTransactionOptions): IDBPTransaction<DBTypes, Names, Mode>;
+  transaction<Names extends ArrayLike<StoreNames<DBTypes>>, Mode extends IDBTransactionMode = 'readonly'>(
+    storeNames: Names,
+    mode?: Mode,
+    options?: IDBTransactionOptions
+  ): IDBPTransaction<DBTypes, Names, Mode>;
   /**
    * Add a value to a store.
    *
@@ -678,7 +742,11 @@ interface IDBPDatabase<DBTypes extends DBSchema | unknown = unknown> extends IDB
    * @param indexName Name of the index within the store.
    * @param key
    */
-  countFromIndex<Name extends StoreNames<DBTypes>, IndexName extends IndexNames<DBTypes, Name>>(storeName: Name, indexName: IndexName, key?: IndexKey<DBTypes, Name, IndexName> | IDBKeyRange | null): Promise<number>;
+  countFromIndex<Name extends StoreNames<DBTypes>, IndexName extends IndexNames<DBTypes, Name>>(
+    storeName: Name,
+    indexName: IndexName,
+    key?: IndexKey<DBTypes, Name, IndexName> | IDBKeyRange | null
+  ): Promise<number>;
   /**
    * Deletes records in a store matching the given query.
    *
@@ -713,7 +781,11 @@ interface IDBPDatabase<DBTypes extends DBSchema | unknown = unknown> extends IDB
    * @param indexName Name of the index within the store.
    * @param query
    */
-  getFromIndex<Name extends StoreNames<DBTypes>, IndexName extends IndexNames<DBTypes, Name>>(storeName: Name, indexName: IndexName, query: IndexKey<DBTypes, Name, IndexName> | IDBKeyRange): Promise<StoreValue<DBTypes, Name> | undefined>;
+  getFromIndex<Name extends StoreNames<DBTypes>, IndexName extends IndexNames<DBTypes, Name>>(
+    storeName: Name,
+    indexName: IndexName,
+    query: IndexKey<DBTypes, Name, IndexName> | IDBKeyRange
+  ): Promise<StoreValue<DBTypes, Name> | undefined>;
   /**
    * Retrieves all values in a store that match the query.
    *
@@ -736,7 +808,12 @@ interface IDBPDatabase<DBTypes extends DBSchema | unknown = unknown> extends IDB
    * @param query
    * @param count Maximum number of values to return.
    */
-  getAllFromIndex<Name extends StoreNames<DBTypes>, IndexName extends IndexNames<DBTypes, Name>>(storeName: Name, indexName: IndexName, query?: IndexKey<DBTypes, Name, IndexName> | IDBKeyRange | null, count?: number): Promise<StoreValue<DBTypes, Name>[]>;
+  getAllFromIndex<Name extends StoreNames<DBTypes>, IndexName extends IndexNames<DBTypes, Name>>(
+    storeName: Name,
+    indexName: IndexName,
+    query?: IndexKey<DBTypes, Name, IndexName> | IDBKeyRange | null,
+    count?: number
+  ): Promise<StoreValue<DBTypes, Name>[]>;
   /**
    * Retrieves the keys of records in a store matching the query.
    *
@@ -759,7 +836,12 @@ interface IDBPDatabase<DBTypes extends DBSchema | unknown = unknown> extends IDB
    * @param query
    * @param count Maximum number of keys to return.
    */
-  getAllKeysFromIndex<Name extends StoreNames<DBTypes>, IndexName extends IndexNames<DBTypes, Name>>(storeName: Name, indexName: IndexName, query?: IndexKey<DBTypes, Name, IndexName> | IDBKeyRange | null, count?: number): Promise<StoreKey<DBTypes, Name>[]>;
+  getAllKeysFromIndex<Name extends StoreNames<DBTypes>, IndexName extends IndexNames<DBTypes, Name>>(
+    storeName: Name,
+    indexName: IndexName,
+    query?: IndexKey<DBTypes, Name, IndexName> | IDBKeyRange | null,
+    count?: number
+  ): Promise<StoreKey<DBTypes, Name>[]>;
   /**
    * Retrieves the key of the first record in a store that matches the query.
    *
@@ -784,7 +866,11 @@ interface IDBPDatabase<DBTypes extends DBSchema | unknown = unknown> extends IDB
    * @param indexName Name of the index within the store.
    * @param query
    */
-  getKeyFromIndex<Name extends StoreNames<DBTypes>, IndexName extends IndexNames<DBTypes, Name>>(storeName: Name, indexName: IndexName, query: IndexKey<DBTypes, Name, IndexName> | IDBKeyRange): Promise<StoreKey<DBTypes, Name> | undefined>;
+  getKeyFromIndex<Name extends StoreNames<DBTypes>, IndexName extends IndexNames<DBTypes, Name>>(
+    storeName: Name,
+    indexName: IndexName,
+    query: IndexKey<DBTypes, Name, IndexName> | IDBKeyRange
+  ): Promise<StoreKey<DBTypes, Name> | undefined>;
   /**
    * Put an item in the database.
    *
@@ -800,7 +886,11 @@ interface IDBPDatabase<DBTypes extends DBSchema | unknown = unknown> extends IDB
   put<Name extends StoreNames<DBTypes>>(storeName: Name, value: StoreValue<DBTypes, Name>, key?: StoreKey<DBTypes, Name> | IDBKeyRange): Promise<StoreKey<DBTypes, Name>>;
 }
 type IDBPTransactionExtends = Omit$1<IDBTransaction, 'db' | 'objectStore' | 'objectStoreNames'>;
-interface IDBPTransaction<DBTypes extends DBSchema | unknown = unknown, TxStores extends ArrayLike<StoreNames<DBTypes>> = ArrayLike<StoreNames<DBTypes>>, Mode extends IDBTransactionMode = 'readonly'> extends IDBPTransactionExtends {
+interface IDBPTransaction<
+  DBTypes extends DBSchema | unknown = unknown,
+  TxStores extends ArrayLike<StoreNames<DBTypes>> = ArrayLike<StoreNames<DBTypes>>,
+  Mode extends IDBTransactionMode = 'readonly'
+> extends IDBPTransactionExtends {
   /**
    * The transaction's mode.
    */
@@ -826,8 +916,16 @@ interface IDBPTransaction<DBTypes extends DBSchema | unknown = unknown, TxStores
    */
   objectStore<StoreName extends TxStores[number]>(name: StoreName): IDBPObjectStore<DBTypes, TxStores, StoreName, Mode>;
 }
-type IDBPObjectStoreExtends = Omit$1<IDBObjectStore, 'transaction' | 'add' | 'clear' | 'count' | 'createIndex' | 'delete' | 'get' | 'getAll' | 'getAllKeys' | 'getKey' | 'index' | 'openCursor' | 'openKeyCursor' | 'put' | 'indexNames'>;
-interface IDBPObjectStore<DBTypes extends DBSchema | unknown = unknown, TxStores extends ArrayLike<StoreNames<DBTypes>> = ArrayLike<StoreNames<DBTypes>>, StoreName extends StoreNames<DBTypes> = StoreNames<DBTypes>, Mode extends IDBTransactionMode = 'readonly'> extends IDBPObjectStoreExtends {
+type IDBPObjectStoreExtends = Omit$1<
+  IDBObjectStore,
+  'transaction' | 'add' | 'clear' | 'count' | 'createIndex' | 'delete' | 'get' | 'getAll' | 'getAllKeys' | 'getKey' | 'index' | 'openCursor' | 'openKeyCursor' | 'put' | 'indexNames'
+>;
+interface IDBPObjectStore<
+  DBTypes extends DBSchema | unknown = unknown,
+  TxStores extends ArrayLike<StoreNames<DBTypes>> = ArrayLike<StoreNames<DBTypes>>,
+  StoreName extends StoreNames<DBTypes> = StoreNames<DBTypes>,
+  Mode extends IDBTransactionMode = 'readonly'
+> extends IDBPObjectStoreExtends {
   /**
    * The names of indexes in the store.
    */
@@ -855,7 +953,9 @@ interface IDBPObjectStore<DBTypes extends DBSchema | unknown = unknown, TxStores
    *
    * Throws an "InvalidStateError" DOMException if not called within an upgrade transaction.
    */
-  createIndex: Mode extends 'versionchange' ? <IndexName extends IndexNames<DBTypes, StoreName>>(name: IndexName, keyPath: string | string[], options?: IDBIndexParameters) => IDBPIndex<DBTypes, TxStores, StoreName, IndexName, Mode> : undefined;
+  createIndex: Mode extends 'versionchange'
+    ? <IndexName extends IndexNames<DBTypes, StoreName>>(name: IndexName, keyPath: string | string[], options?: IDBIndexParameters) => IDBPIndex<DBTypes, TxStores, StoreName, IndexName, Mode>
+    : undefined;
   /**
    * Deletes records in store matching the given query.
    */
@@ -924,10 +1024,19 @@ interface IDBPObjectStore<DBTypes extends DBSchema | unknown = unknown, TxStores
    * @param query If null, all records match.
    * @param direction
    */
-  iterate(query?: StoreKey<DBTypes, StoreName> | IDBKeyRange | null, direction?: IDBCursorDirection): AsyncIterableIterator<IDBPCursorWithValueIteratorValue<DBTypes, TxStores, StoreName, unknown, Mode>>;
+  iterate(
+    query?: StoreKey<DBTypes, StoreName> | IDBKeyRange | null,
+    direction?: IDBCursorDirection
+  ): AsyncIterableIterator<IDBPCursorWithValueIteratorValue<DBTypes, TxStores, StoreName, unknown, Mode>>;
 }
 type IDBPIndexExtends = Omit$1<IDBIndex, 'objectStore' | 'count' | 'get' | 'getAll' | 'getAllKeys' | 'getKey' | 'openCursor' | 'openKeyCursor'>;
-interface IDBPIndex<DBTypes extends DBSchema | unknown = unknown, TxStores extends ArrayLike<StoreNames<DBTypes>> = ArrayLike<StoreNames<DBTypes>>, StoreName extends StoreNames<DBTypes> = StoreNames<DBTypes>, IndexName extends IndexNames<DBTypes, StoreName> = IndexNames<DBTypes, StoreName>, Mode extends IDBTransactionMode = 'readonly'> extends IDBPIndexExtends {
+interface IDBPIndex<
+  DBTypes extends DBSchema | unknown = unknown,
+  TxStores extends ArrayLike<StoreNames<DBTypes>> = ArrayLike<StoreNames<DBTypes>>,
+  StoreName extends StoreNames<DBTypes> = StoreNames<DBTypes>,
+  IndexName extends IndexNames<DBTypes, StoreName> = IndexNames<DBTypes, StoreName>,
+  Mode extends IDBTransactionMode = 'readonly'
+> extends IDBPIndexExtends {
   /**
    * The IDBObjectStore the index belongs to.
    */
@@ -992,10 +1101,19 @@ interface IDBPIndex<DBTypes extends DBSchema | unknown = unknown, TxStores exten
    * @param query If null, all records match.
    * @param direction
    */
-  iterate(query?: IndexKey<DBTypes, StoreName, IndexName> | IDBKeyRange | null, direction?: IDBCursorDirection): AsyncIterableIterator<IDBPCursorWithValueIteratorValue<DBTypes, TxStores, StoreName, IndexName, Mode>>;
+  iterate(
+    query?: IndexKey<DBTypes, StoreName, IndexName> | IDBKeyRange | null,
+    direction?: IDBCursorDirection
+  ): AsyncIterableIterator<IDBPCursorWithValueIteratorValue<DBTypes, TxStores, StoreName, IndexName, Mode>>;
 }
 type IDBPCursorExtends = Omit$1<IDBCursor, 'key' | 'primaryKey' | 'source' | 'advance' | 'continue' | 'continuePrimaryKey' | 'delete' | 'update'>;
-interface IDBPCursor<DBTypes extends DBSchema | unknown = unknown, TxStores extends ArrayLike<StoreNames<DBTypes>> = ArrayLike<StoreNames<DBTypes>>, StoreName extends StoreNames<DBTypes> = StoreNames<DBTypes>, IndexName extends IndexNames<DBTypes, StoreName> | unknown = unknown, Mode extends IDBTransactionMode = 'readonly'> extends IDBPCursorExtends {
+interface IDBPCursor<
+  DBTypes extends DBSchema | unknown = unknown,
+  TxStores extends ArrayLike<StoreNames<DBTypes>> = ArrayLike<StoreNames<DBTypes>>,
+  StoreName extends StoreNames<DBTypes> = StoreNames<DBTypes>,
+  IndexName extends IndexNames<DBTypes, StoreName> | unknown = unknown,
+  Mode extends IDBTransactionMode = 'readonly'
+> extends IDBPCursorExtends {
   /**
    * The key of the current index or object store item.
    */
@@ -1046,8 +1164,20 @@ interface IDBPCursor<DBTypes extends DBSchema | unknown = unknown, TxStores exte
    */
   [Symbol.asyncIterator](): AsyncIterableIterator<IDBPCursorIteratorValue<DBTypes, TxStores, StoreName, IndexName, Mode>>;
 }
-type IDBPCursorIteratorValueExtends<DBTypes extends DBSchema | unknown = unknown, TxStores extends ArrayLike<StoreNames<DBTypes>> = ArrayLike<StoreNames<DBTypes>>, StoreName extends StoreNames<DBTypes> = StoreNames<DBTypes>, IndexName extends IndexNames<DBTypes, StoreName> | unknown = unknown, Mode extends IDBTransactionMode = 'readonly'> = Omit$1<IDBPCursor<DBTypes, TxStores, StoreName, IndexName, Mode>, 'advance' | 'continue' | 'continuePrimaryKey'>;
-interface IDBPCursorIteratorValue<DBTypes extends DBSchema | unknown = unknown, TxStores extends ArrayLike<StoreNames<DBTypes>> = ArrayLike<StoreNames<DBTypes>>, StoreName extends StoreNames<DBTypes> = StoreNames<DBTypes>, IndexName extends IndexNames<DBTypes, StoreName> | unknown = unknown, Mode extends IDBTransactionMode = 'readonly'> extends IDBPCursorIteratorValueExtends<DBTypes, TxStores, StoreName, IndexName, Mode> {
+type IDBPCursorIteratorValueExtends<
+  DBTypes extends DBSchema | unknown = unknown,
+  TxStores extends ArrayLike<StoreNames<DBTypes>> = ArrayLike<StoreNames<DBTypes>>,
+  StoreName extends StoreNames<DBTypes> = StoreNames<DBTypes>,
+  IndexName extends IndexNames<DBTypes, StoreName> | unknown = unknown,
+  Mode extends IDBTransactionMode = 'readonly'
+> = Omit$1<IDBPCursor<DBTypes, TxStores, StoreName, IndexName, Mode>, 'advance' | 'continue' | 'continuePrimaryKey'>;
+interface IDBPCursorIteratorValue<
+  DBTypes extends DBSchema | unknown = unknown,
+  TxStores extends ArrayLike<StoreNames<DBTypes>> = ArrayLike<StoreNames<DBTypes>>,
+  StoreName extends StoreNames<DBTypes> = StoreNames<DBTypes>,
+  IndexName extends IndexNames<DBTypes, StoreName> | unknown = unknown,
+  Mode extends IDBTransactionMode = 'readonly'
+> extends IDBPCursorIteratorValueExtends<DBTypes, TxStores, StoreName, IndexName, Mode> {
   /**
    * Advances the cursor a given number of records.
    */
@@ -1068,7 +1198,13 @@ interface IDBPCursorIteratorValue<DBTypes extends DBSchema | unknown = unknown, 
    */
   continuePrimaryKey<T>(this: T, key: CursorKey<DBTypes, StoreName, IndexName>, primaryKey: StoreKey<DBTypes, StoreName>): void;
 }
-interface IDBPCursorWithValue<DBTypes extends DBSchema | unknown = unknown, TxStores extends ArrayLike<StoreNames<DBTypes>> = ArrayLike<StoreNames<DBTypes>>, StoreName extends StoreNames<DBTypes> = StoreNames<DBTypes>, IndexName extends IndexNames<DBTypes, StoreName> | unknown = unknown, Mode extends IDBTransactionMode = 'readonly'> extends IDBPCursor<DBTypes, TxStores, StoreName, IndexName, Mode> {
+interface IDBPCursorWithValue<
+  DBTypes extends DBSchema | unknown = unknown,
+  TxStores extends ArrayLike<StoreNames<DBTypes>> = ArrayLike<StoreNames<DBTypes>>,
+  StoreName extends StoreNames<DBTypes> = StoreNames<DBTypes>,
+  IndexName extends IndexNames<DBTypes, StoreName> | unknown = unknown,
+  Mode extends IDBTransactionMode = 'readonly'
+> extends IDBPCursor<DBTypes, TxStores, StoreName, IndexName, Mode> {
   /**
    * The value of the current item.
    */
@@ -1078,8 +1214,20 @@ interface IDBPCursorWithValue<DBTypes extends DBSchema | unknown = unknown, TxSt
    */
   [Symbol.asyncIterator](): AsyncIterableIterator<IDBPCursorWithValueIteratorValue<DBTypes, TxStores, StoreName, IndexName, Mode>>;
 }
-type IDBPCursorWithValueIteratorValueExtends<DBTypes extends DBSchema | unknown = unknown, TxStores extends ArrayLike<StoreNames<DBTypes>> = ArrayLike<StoreNames<DBTypes>>, StoreName extends StoreNames<DBTypes> = StoreNames<DBTypes>, IndexName extends IndexNames<DBTypes, StoreName> | unknown = unknown, Mode extends IDBTransactionMode = 'readonly'> = Omit$1<IDBPCursorWithValue<DBTypes, TxStores, StoreName, IndexName, Mode>, 'advance' | 'continue' | 'continuePrimaryKey'>;
-interface IDBPCursorWithValueIteratorValue<DBTypes extends DBSchema | unknown = unknown, TxStores extends ArrayLike<StoreNames<DBTypes>> = ArrayLike<StoreNames<DBTypes>>, StoreName extends StoreNames<DBTypes> = StoreNames<DBTypes>, IndexName extends IndexNames<DBTypes, StoreName> | unknown = unknown, Mode extends IDBTransactionMode = 'readonly'> extends IDBPCursorWithValueIteratorValueExtends<DBTypes, TxStores, StoreName, IndexName, Mode> {
+type IDBPCursorWithValueIteratorValueExtends<
+  DBTypes extends DBSchema | unknown = unknown,
+  TxStores extends ArrayLike<StoreNames<DBTypes>> = ArrayLike<StoreNames<DBTypes>>,
+  StoreName extends StoreNames<DBTypes> = StoreNames<DBTypes>,
+  IndexName extends IndexNames<DBTypes, StoreName> | unknown = unknown,
+  Mode extends IDBTransactionMode = 'readonly'
+> = Omit$1<IDBPCursorWithValue<DBTypes, TxStores, StoreName, IndexName, Mode>, 'advance' | 'continue' | 'continuePrimaryKey'>;
+interface IDBPCursorWithValueIteratorValue<
+  DBTypes extends DBSchema | unknown = unknown,
+  TxStores extends ArrayLike<StoreNames<DBTypes>> = ArrayLike<StoreNames<DBTypes>>,
+  StoreName extends StoreNames<DBTypes> = StoreNames<DBTypes>,
+  IndexName extends IndexNames<DBTypes, StoreName> | unknown = unknown,
+  Mode extends IDBTransactionMode = 'readonly'
+> extends IDBPCursorWithValueIteratorValueExtends<DBTypes, TxStores, StoreName, IndexName, Mode> {
   /**
    * Advances the cursor a given number of records.
    */
@@ -1110,7 +1258,7 @@ interface StoreIndex {
 type Transaction<Mode extends IDBTransactionMode = IDBTransactionMode> = IDBPTransaction<unknown, string[], Mode>;
 declare class IndexedDBService {
   readonly core: MaplebirchCore;
-  static readonly DATABASE_NAME = "maplebirch";
+  static readonly DATABASE_NAME = 'maplebirch';
   static readonly DATABASE_VERSION: number;
   private db;
   private opening;
@@ -1229,6 +1377,7 @@ declare class LanguageManager {
   private readonly STORE;
   private readonly translations;
   private readonly cache;
+  private readonly sourceOrders;
   private preloaded;
   constructor(core: MaplebirchCore);
   private initDB;
@@ -1245,9 +1394,10 @@ declare class LanguageManager {
   private writeTranslations;
   private writeBatch;
   private removeOldTranslations;
+  private updateSource;
+  private syncTranslation;
   private readFileRecord;
   private writeFileRecord;
-  private loadFileTranslations;
   private loadTranslation;
   private parseTranslations;
   private computeHash;
@@ -1298,13 +1448,19 @@ declare class ModuleSystem {
   private disabledNames;
   private preInitTask;
   private late;
+  private preRunning;
+  private preQueued;
   constructor(core: MaplebirchCore);
+  static traverse(roots: Iterable<string>, links: ReadonlyMap<string, Iterable<string>>, excluded?: ReadonlySet<string>): Set<string>;
   with<T>(source: string, callback: () => T | Promise<T>): Promise<T>;
   register(name: string, module: Module, dependencies?: string[]): boolean;
+  get(name: string): Module | undefined;
   get dependencyGraph(): DependencyGraph;
   run(phase: 'pre'): Promise<void>;
   run(phase: 'init' | 'load' | 'post'): void;
   private preInit;
+  private queuePre;
+  private disable;
   private pre;
   private init;
   private phase;
@@ -1352,6 +1508,7 @@ declare class GUIControl {
   saveModules(enabled: ModuleInfo[], disabled: ModuleInfo[]): Promise<void>;
   saveScripts(enabled: string[], disabled: string[]): Promise<void>;
   cascadeModules(action: 'enable' | 'disable', moduleName: string, modules: ModulesSettings): string[];
+  private moduleLinks;
   get moduleList(): string;
   private whenCreate;
 }
@@ -1717,10 +1874,13 @@ interface MacroContext$1 extends Omit<MacroContext, 'createShadowWrapper' | 'err
   error(msg: string): any;
   createShadowWrapper(callback: Function, doneCallback?: Function, startCallback?: Function): (...args: any[]) => void;
   passageObj?: any;
-  lanListboxCache?: Record<string, {
-    options: ListboxOption[];
-    selectedIdx: number;
-  }>;
+  lanListboxCache?: Record<
+    string,
+    {
+      options: ListboxOption[];
+      selectedIdx: number;
+    }
+  >;
 }
 interface ListboxOption {
   label: string;
@@ -1780,9 +1940,7 @@ declare class htmlTools {
   clear(): void;
   renderFragment(keys: string | string[], context?: Record<string, any>): DocumentFragment;
   render(macro: any, keys: string | string[]): void;
-  makeTextOutput(options?: {
-    CSV?: boolean;
-  }): MacroFunction;
+  makeTextOutput(options?: { CSV?: boolean }): MacroFunction;
 }
 //#endregion
 //#region src/modules/Frameworks/ZonesManager.d.ts
@@ -1807,12 +1965,14 @@ interface PatchSet {
   applybefore?: string;
 }
 type ZoneItem = string | ZoneWidgetConfig | CustomLinkZoneItem;
-type InitObject = {
-  init: Function;
-} | {
-  name: string;
-  func: Function;
-};
+type InitObject =
+  | {
+      init: Function;
+    }
+  | {
+      name: string;
+      func: Function;
+    };
 type InitFunction = string | Function | InitObject;
 declare class zonesManager {
   readonly log: ReturnType<typeof createlog>;
@@ -2039,7 +2199,7 @@ declare class Patch {
   addAntiques: AddAntiques;
   injectAntiques: InjectAntiques;
 }
-declare const _default$1: Patch;
+declare const _default: Patch;
 //#endregion
 //#region src/modules/ToolCollection.d.ts
 declare class ToolCollection {
@@ -2051,7 +2211,7 @@ declare class ToolCollection {
   readonly text: htmlTools;
   readonly zone: zonesManager;
   readonly link: typeof applyLinkZone;
-  readonly patch: typeof _default$1;
+  readonly patch: typeof _default;
   readonly createlog: typeof createlog;
   constructor(core: MaplebirchCore);
   onInit(...widgets: InitFunction[]): void;
@@ -2147,8 +2307,10 @@ declare class AudioManager {
   private readonly playlists;
   private readonly eventListeners;
   private readonly cache;
+  private readonly pendingLoads;
   private activePlaylist;
   private currentTrack;
+  private loadingTrack;
   private currentHowl;
   private state;
   private volume;
@@ -2223,6 +2385,11 @@ declare class AudioManager {
 declare class Options {
   define(...args: any[]): any;
 }
+interface HairGradientsReturn {
+  fringe: Record<string, string[]>;
+  sides: Record<string, string[]>;
+}
+declare function hairgradients(): HairGradientsReturn;
 declare class Variables {
   readonly core: MaplebirchCore;
   private static readonly OPTIONS_STORAGE_KEY;
@@ -2235,6 +2402,7 @@ declare class Variables {
   readonly migration: migration;
   readonly options: Options;
   constructor(core: MaplebirchCore);
+  hairgradients: typeof hairgradients;
   optionsStorage(action: 'save' | 'restore' | 'reset' | 'load'): any | null;
   check(): void;
   Init(): void;
@@ -2293,10 +2461,13 @@ interface Part {
   [key: string]: any;
 }
 type TransformHook = (options: any, model?: CanvasModel) => void;
-type TransformMessage = Record<string, {
-  up: string[];
-  down: string[];
-}>;
+type TransformMessage = Record<
+  string,
+  {
+    up: string[];
+    down: string[];
+  }
+>;
 type TranslationInput$1 = Record<string, Translation> | Map<string, Translation>;
 interface EntryOptions {
   build?: number;
@@ -2342,10 +2513,13 @@ declare class Transformation {
   _transformationAlteration(): void;
   _transformationStateUpdate(): void;
   private handleHiddenTransformParts;
-  message(key: string, tools: {
-    element: (tag: string, text: any, className?: string) => void;
-    wikifier: (macro: string, param: string) => void;
-  }): boolean;
+  message(
+    key: string,
+    tools: {
+      element: (tag: string, text: any, className?: string) => void;
+      wikifier: (macro: string, param: string) => void;
+    }
+  ): boolean;
   get icon(): string;
   setTransform(name: string, level: number | null): void;
   part(partName: string): boolean;
@@ -2463,8 +2637,14 @@ declare const NPCSchedules: typeof Schedule & {
   readonly location: Record<string, string>;
 };
 //#endregion
-//#region src/modules/NamedNPCAddon/NPCClothes.d.ts
-type Condition = boolean | string | (() => boolean) | Condition[];
+//#region src/modules/NamedNPCAddon/NPCClothes/NPCOutfitSets.d.ts
+interface OutfitPartConfig {
+  name: string;
+  integrity_max?: number;
+  word?: string;
+  action?: string;
+  readonly desc?: string;
+}
 interface OutfitSetConfig {
   name: string;
   type?: string;
@@ -2474,42 +2654,90 @@ interface OutfitSetConfig {
   lower: string | OutfitPartConfig;
   desc?: string;
 }
-type ClothesConfig = OutfitSetConfig;
-interface OutfitPartConfig {
+interface OutfitSet {
   name: string;
-  integrity_max?: number;
-  word?: string;
-  action?: string;
-  readonly desc?: string;
+  type: string;
+  gender: string;
+  outfit: number;
+  clothes: {
+    upper: Required<OutfitPartConfig>;
+    lower: Required<OutfitPartConfig>;
+  };
+  desc: string;
 }
-interface WardrobeItem {
-  [key: string]: any;
+declare class NPCOutfitSets {
+  private readonly manager;
+  constructor(manager: NPCManager);
+  init(): void;
+  add(...configs: OutfitSetConfig[]): void;
+  get data(): OutfitSet[];
+  private create;
+  private createPart;
 }
-interface WearRule {
+//#endregion
+//#region src/modules/NamedNPCAddon/NPCClothes/NPCSidebarArt.d.ts
+interface ResolvedArtLayer {
+  zIndex: number | string;
+  img: string;
+}
+type ArtPart = 'head' | 'face' | 'neck' | 'upper' | 'lower' | 'legs' | 'feet' | 'hands';
+interface ResolvedArt {
   key: string;
-  cond?: Condition;
+  body: string;
+  parts: Partial<Record<ArtPart, ResolvedArtLayer>>;
 }
-declare class NPCSidebarWardrobeProfile {
-  name: string;
-  outfits: string[];
+declare class NPCSidebarArt {
+  private readonly manager;
+  private readonly configs;
+  constructor(manager: NPCManager);
+  import(modName: string, modZip: ModZipReader, filePaths: string | string[]): Promise<string[]>;
+  has(npcName: string, key: string): boolean;
+  keys(npcName: string): string[];
+  get(npcName: string, key: string): ResolvedArt | undefined;
+  get layers(): Map<string, Map<string, ResolvedArt>>;
+  private setConfig;
+  private resolve;
+}
+//#endregion
+//#region src/modules/NamedNPCAddon/NPCClothes/Condition.d.ts
+type Condition = boolean | string | (() => boolean) | Condition[];
+//#endregion
+//#region src/modules/NamedNPCAddon/NPCClothes/NPCSidebarWardrobe.d.ts
+interface WardrobeItem {
+  [part: string]: any;
+}
+interface WardrobeContext {
+  npcName: string;
+  location: string;
+  key: string;
+}
+type WardrobeModifier = (clothes: WardrobeItem, context: WardrobeContext) => void;
+declare class NPCSidebarWardrobe {
+  private readonly manager;
+  private readonly templates;
+  private readonly profiles;
+  constructor(manager: NPCManager);
+  init(): void;
+  load(modName: string, filePath: string): Promise<void>;
+  wear(npcName: string, location: string, key: string, cond?: Condition): void;
+  modify(npcName: string, modifier: WardrobeModifier): void;
+  worn(npcName: string): WardrobeItem;
+  private add;
+  private resolve;
+  private select;
+  private find;
+  private profile;
   private location;
-  private global;
-  constructor(name: string, outfits?: string[], location?: Record<string, WearRule[]>, global?: WearRule[]);
-  wear(location: string, key: string, cond?: Condition): this;
-  get worn(): WardrobeItem;
 }
-declare const NPCClothes: {
-  init: (manager: NPCManager) => void;
-  addOutfitSet: (...configs: OutfitSetConfig[]) => void;
-  importArt: (modName: string, modZip: ModZipReader, filePaths: string | string[]) => Promise<string[]>;
-  loadWardrobe: (modName: string, filePath: string) => Promise<void>;
-  wear: (npcName: string, location: string, key: string, cond?: Condition) => NPCSidebarWardrobeProfile;
-  worn: (npcName: string) => WardrobeItem;
-  readonly outfitSets: any;
-  readonly art: Map<string, any>;
-  readonly wardrobe: Record<string, WardrobeItem>;
-  readonly profiles: Record<string, NPCSidebarWardrobeProfile>;
-};
+//#endregion
+//#region src/modules/NamedNPCAddon/NPCClothes.d.ts
+declare class NPCClothes {
+  readonly outfitSets: NPCOutfitSets;
+  readonly art: NPCSidebarArt;
+  readonly wardrobe: NPCSidebarWardrobe;
+  constructor(manager: NPCManager);
+  init(): void;
+}
 //#endregion
 //#region src/modules/NamedNPCAddon/NPCSidebar.d.ts
 interface NPCSidebarBootConfig {
@@ -2542,7 +2770,6 @@ declare class NPCFluids {
   decay(value?: number): void;
   apply(nnpc: Record<string, any>, npcData: any): void;
 }
-declare const _default: NPCFluids;
 //#endregion
 //#region src/modules/NamedNPCAddon/NPCTransformation.d.ts
 interface NPCTransformationState {
@@ -2629,7 +2856,10 @@ interface NPCConfig {
   [key: string]: any;
 }
 declare const NamedNPC: {
-  new (manager: NPCManager, data: NPCData): {
+  new (
+    manager: NPCManager,
+    data: NPCData
+  ): {
     nam: string;
     gender: 'm' | 'f' | 'h' | 'n' | 'none';
     title: string;
@@ -2700,21 +2930,17 @@ declare class NPCManager {
   };
   readonly NamedNPC: typeof NamedNPC;
   readonly Schedule: typeof NPCSchedules;
-  readonly Clothes: typeof NPCClothes;
+  readonly Clothes: NPCClothes;
   readonly Sidebar: typeof NPCSidebar;
-  readonly fluids: typeof _default;
+  readonly fluids: NPCFluids;
   constructor(core: MaplebirchCore);
   add(npcData: NPCData, config?: NPCConfig, translationsData?: TranslationInput): boolean;
   addSchedule(npcName: string, config: ScheduleConfig | ScheduleBuilder): Schedule;
-  addStats(statsObject: {
-    [x: string]: any;
-  }): void;
-  addClothes(...configs: ClothesConfig[]): void;
+  addStats(statsObject: { [x: string]: any }): void;
+  addClothes(...configs: OutfitSetConfig[]): void;
   injectModNPCs(): void;
   vanillaNPCConfig(npcConfig: NPCConfig): any;
-  applyStatDefaults(statDefaults: {
-    [x: string]: any;
-  }): {
+  applyStatDefaults(statDefaults: { [x: string]: any }): {
     [x: string]: any;
   };
   vanillaInit(npcName: string): void;
@@ -2969,11 +3195,14 @@ declare class AddonPlugin {
   readonly replace: typeof replace;
   readonly SC2DataManager: SC2DataManager;
   readonly modUtils: ModUtils;
-  readonly info: Map<string, {
-    addonName: string;
-    mod: ModInfo;
-    modZip: ModZipReader;
-  }>;
+  readonly info: Map<
+    string,
+    {
+      addonName: string;
+      mod: ModInfo;
+      modZip: ModZipReader;
+    }
+  >;
   readonly log: ReturnType<typeof createlog>;
   readonly jsFiles: FileItem[];
   readonly moduleFiles: FileItem[];

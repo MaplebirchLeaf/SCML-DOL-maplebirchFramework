@@ -16,18 +16,25 @@
 仓库根 `cloudflare/` 目录已提供可部署的 Worker（`worker.ts` + `wrangler.jsonc`）：
 
 1. 安装并登录 wrangler：
+
    ```bash
    bunx wrangler login
    ```
+
 2. 在 `cloudflare/` 目录创建 R2 桶（`wrangler.jsonc` 已声明绑定 `SAVE_BUCKET` → 桶名 `maplebirch-save`，可按需修改）：
+
    ```bash
    bunx wrangler r2 bucket create maplebirch-save
    ```
+
 3. 设置访问令牌（必填 secret `MAPLEBIRCH_TOKEN`，请使用足够长的随机串）：
+
    ```bash
    bunx wrangler secret put MAPLEBIRCH_TOKEN
    ```
+
 4. 部署：
+
    ```bash
    bunx wrangler deploy
    ```
@@ -38,12 +45,12 @@
 
 除 `/health` 外均要求请求头 `Authorization: Bearer <MAPLEBIRCH_TOKEN>`：
 
-| 端点 | 方法 | 说明 |
-| :--- | :--- | :--- |
-| `/health` | GET | 健康检查 |
-| `/saves` | GET | 远端槽位列表 |
+| 端点           | 方法               | 说明                       |
+| :------------- | :----------------- | :------------------------- |
+| `/health`      | GET                | 健康检查                   |
+| `/saves`       | GET                | 远端槽位列表               |
 | `/saves/:slot` | PUT / GET / DELETE | 上传 / 下载 / 删除指定槽位 |
-| `/save-code` | GET / PUT | 读取 / 写入导出码 |
+| `/save-code`   | GET / PUT          | 读取 / 写入导出码          |
 
 ## 游戏内使用
 
@@ -58,4 +65,4 @@
 ## 注意事项
 
 - 删除远端槽位**不可恢复**。
-- 令牌只在本会话生效（每次打开面板填写/连接）；请妥善保管，泄漏等于任何人可读写你的云端存档。
+- 框架只记住 Worker 地址，不持久化令牌；页面刷新或重新启动游戏后需要重新填写并连接。请妥善保管令牌，泄漏等于任何人可读写你的云端存档。
