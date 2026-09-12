@@ -1,10 +1,11 @@
-##### (v.4.3.0更新日志):
+##### (v.4.3.1更新日志):
 
 - **类型声明构建迁移到 rolldown**：`tsup` → `rolldown`（`rolldown-plugin-dts`/tsgo），TypeScript 升级到 7；`types` 脚本改为 `rolldown -c`；移除不再使用的 `vite`/`wrangler`/`@vitejs/plugin-vue`/`tsup` 开发依赖，`@cloudflare/workers-types` 升级。
 - **云端服务端移出仓库**：删除仓库内 `cloud-services/`（go-sql-server / admin-ui / cloudflare-webdav-worker）与 `scripts/cloudR2.ts` 及相关 npm scripts；云存档服务端改为独立维护，仓库根 `cloudflare/` 仅保留精简版 R2 Worker 示例（`worker.ts` + `wrangler.jsonc`）。
 - **时间/状态/天气事件统一基类**：新增共享 `Event` 抽象基类（`id`/`priority`/`once`/`eventName`），`StateEvents`/`TimeEvents`/`WeatherEvents` 注册表迁移到统一实现，去除重复的优先级/一次性逻辑。
 - NPC 侧边栏图层配置整理：图层模块回调统一为箭头函数写法并清理冗余；补充 `gwylanSchedule` 等全局类型声明。
-- 重新生成 `@scml-maplebirch/types` 类型声明；README 与文档索引同步移除指向已删除 cloud-services 目录的失效链接。
+- 类型声明包迁移为 `@scml-dol-maplebirch/types`，完善 README、发布校验与 GitHub Actions；文档索引同步移除指向已删除 cloud-services 目录的失效链接。
+- **测试与发布可靠性完善**：补齐工具、服务、音频、打包与类型声明回归测试，加入 Bun 覆盖率门槛；修复测试间共享 `window` mock 相互覆盖导致 GitHub Actions 偶发读取不到 `modUtils.getMod` 的问题。
 
 ##### (v.4.2.9更新日志):
 

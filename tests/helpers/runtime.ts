@@ -20,7 +20,7 @@ const testGlobal = globalThis as unknown as { window?: TestWindow };
 const testWindow = testGlobal.window ?? {};
 testWindow.modUtils = {
   ...testWindow.modUtils,
-  getMod: () => ({ version: '4.3.0' })
+  getMod: () => ({ version: '4.3.1' })
 };
 testGlobal.window = testWindow;
 Object.defineProperty(globalThis, 'navigator', { value: { language: 'en-US' }, configurable: true });
