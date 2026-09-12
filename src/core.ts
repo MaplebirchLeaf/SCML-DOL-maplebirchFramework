@@ -28,18 +28,6 @@ import type Character from './modules/Character';
 import type NPCManager from './modules/NamedNPC';
 import type CombatManager from './modules/Combat';
 
-interface Meta {
-  name: 'maplebirch Frameworks';
-  author: string;
-  version: string;
-  modifiedby: string;
-  updateDate: string;
-  Languages: typeof Languages;
-  early: readonly string[];
-  core: readonly string[];
-  protected: readonly string[];
-}
-
 const renderer = new marked.Renderer();
 
 renderer.link = function ({ href, title, tokens }: marked.Tokens.Link) {
