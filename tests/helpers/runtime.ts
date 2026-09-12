@@ -12,9 +12,17 @@ const bootstrapCore = {
   howler: { Howler: { mute: noop, volume: noop } }
 };
 
-Object.assign(globalThis, {
-  window: { modUtils: { getMod: () => ({ version: '4.3.0' }) } }
-});
+type TestWindow = {
+  modUtils?: Record<string, unknown>;
+};
+
+const testGlobal = globalThis as unknown as { window?: TestWindow };
+const testWindow = testGlobal.window ?? {};
+testWindow.modUtils = {
+  ...testWindow.modUtils,
+  getMod: () => ({ version: '4.3.0' })
+};
+testGlobal.window = testWindow;
 Object.defineProperty(globalThis, 'navigator', { value: { language: 'en-US' }, configurable: true });
 
 mock.module('../../src/core.ts', () => ({ default: bootstrapCore, MaplebirchCore: class {}, createlog: () => noop }));

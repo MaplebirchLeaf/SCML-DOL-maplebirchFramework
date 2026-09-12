@@ -54,6 +54,11 @@ const { convert, escapeHtmlText, widgets } = await import('../src/utils/string')
 
 let imageShouldLoad: boolean = true;
 let imageConstructions: number = 0;
+let imageRequestId: number = 0;
+
+function uniqueImageUrl(name: string): string {
+  return `https://example.test/${name}-${imageRequestId++}.png`;
+}
 
 class TestImage {
   public onload: (() => void) | null = null;
@@ -68,14 +73,18 @@ class TestImage {
   }
 }
 
-Object.assign(globalThis, {
-  Image: TestImage,
-  window: {
-    modUtils: {
-      getImage: async (_src: string): Promise<string> => ''
-    }
-  }
-});
+type TestWindow = {
+  modUtils?: Record<string, unknown>;
+};
+
+const testGlobal = globalThis as unknown as { Image?: typeof TestImage; window?: TestWindow };
+const testWindow = testGlobal.window ?? {};
+testWindow.modUtils = {
+  ...testWindow.modUtils,
+  getImage: async (_src: string): Promise<string> => ''
+};
+testGlobal.Image = TestImage;
+testGlobal.window = testWindow;
 
 const { loadImage } = await import('../src/utils/image');
 const { prototypeUtils } = await import('../src/utils/prototype');
@@ -298,22 +307,24 @@ describe('image utilities', () => {
     imageConstructions = 0;
     imageShouldLoad = true;
     window.modUtils.getImage = async (): Promise<string> => '';
+    const url = uniqueImageUrl('shared');
 
-    const first = loadImage('https://example.test/shared.png');
-    const second = loadImage('https://example.test/shared.png');
+    const first = loadImage(url);
+    const second = loadImage(url);
 
-    expect(await first).toBe('https://example.test/shared.png');
-    expect(await second).toBe('https://example.test/shared.png');
-    expect(loadImage('https://example.test/shared.png')).toBe('https://example.test/shared.png');
+    expect(await first).toBe(url);
+    expect(await second).toBe(url);
+    expect(loadImage(url)).toBe(url);
     expect(imageConstructions).toBe(1);
   });
 
   test('caches failed probes and handles empty or synchronous host failures', async () => {
     imageShouldLoad = false;
     window.modUtils.getImage = async (): Promise<string> => '';
+    const url = uniqueImageUrl('missing');
 
-    expect(await loadImage('https://example.test/missing.png')).toBeFalse();
-    expect(loadImage('https://example.test/missing.png')).toBeFalse();
+    expect(await loadImage(url)).toBeFalse();
+    expect(loadImage(url)).toBeFalse();
     expect(loadImage('')).toBeFalse();
 
     window.modUtils.getImage = (): Promise<string> => {
