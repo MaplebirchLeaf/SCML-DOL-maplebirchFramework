@@ -158,7 +158,7 @@ maplebirch.npc.addStats({
 If your mod uses TypeScript, or if you want editor completion for the global `maplebirch` APIs, install the framework type package:
 
 ```bash
-npm install -D @scml-maplebirch/types
+npm install -D @scml-dol-maplebirch/types
 ```
 
 Then add it to `tsconfig.json`:
@@ -166,7 +166,7 @@ Then add it to `tsconfig.json`:
 ```json
 {
   "compilerOptions": {
-    "types": ["@types/twine-sugarcube", "@scml-maplebirch/types"],
+    "types": ["@types/twine-sugarcube", "@scml-dol-maplebirch/types"],
     "skipLibCheck": true
   }
 }

@@ -199,7 +199,7 @@ setup.myMod.initCombat?.();
 如果你的模组使用 TypeScript 或希望在编辑器中获得 `maplebirch` API 补全，可以安装框架的类型声明包：
 
 ```bash
-npm install -D @scml-maplebirch/types
+npm install -D @scml-dol-maplebirch/types
 ```
 
 然后在 `tsconfig.json` 中加入：
@@ -207,7 +207,7 @@ npm install -D @scml-maplebirch/types
 ```json
 {
   "compilerOptions": {
-    "types": ["@types/twine-sugarcube", "@scml-maplebirch/types"],
+    "types": ["@types/twine-sugarcube", "@scml-dol-maplebirch/types"],
     "skipLibCheck": true
   }
 }

@@ -1,29 +1,47 @@
-# @scml-maplebirch/types
+# @scml-dol-maplebirch/types
 
-TypeScript definitions for **maplebirchFramework**.
+[![npm version](https://img.shields.io/npm/v/@scml-dol-maplebirch/types.svg)](https://www.npmjs.com/package/@scml-dol-maplebirch/types)
+[![license](https://img.shields.io/npm/l/@scml-dol-maplebirch/types.svg)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/LICENSE)
 
-This package is types-only. It does not provide runtime code. Use it as a development dependency in DoL mod projects that run with maplebirchFramework loaded by ModLoader.
+TypeScript declarations for the public APIs and globals exposed by
+[maplebirchFramework](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework).
 
-## Install
+This package contains declarations only. It improves editor completion and type checking for DoL mods,
+but does not install or load maplebirchFramework at runtime.
+
+## Installation
 
 ```bash
-npm install -D @scml-maplebirch/types
+npm install --save-dev @scml-dol-maplebirch/types
 ```
 
-## tsconfig.json
+## Configuration
+
+Add the package to the `types` list in your mod project's `tsconfig.json`:
 
 ```json
 {
   "compilerOptions": {
-    "types": ["@types/twine-sugarcube", "@scml-maplebirch/types"],
+    "types": ["@types/twine-sugarcube", "@scml-dol-maplebirch/types"],
     "skipLibCheck": true
   }
 }
 ```
 
-## Global API Example
+`skipLibCheck` is currently recommended because declarations supplied by the wider ModLoader ecosystem
+are not yet fully compatible with TypeScript 7's stricter declaration checks. Your own source files are
+still checked normally.
 
-The package declares the global `maplebirch` object, so mod scripts can use the framework APIs directly:
+If your project does not restrict `compilerOptions.types`, installing the package and importing it from
+one source file is sufficient:
+
+```ts
+import type {} from '@scml-dol-maplebirch/types';
+```
+
+## Global API
+
+The package declares the global `maplebirch` instance and the framework's public utility globals:
 
 ```ts
 maplebirch.log('module loaded', 'INFO');
@@ -33,24 +51,29 @@ maplebirch.on(':passagestart', passage => {
   maplebirch.log(`entered passage: ${passage.title}`, 'DEBUG');
 });
 
-maplebirch.dynamic.regTimeEvent('onDay', 'myMod.dailyTask', {
-  cond: () => V.myMod?.enabled === true,
-  event: () => '<<run setup.myMod.dailyTask()>>'
-});
+const copy = clone({ enabled: true });
 ```
 
-## Importing Types
+## Importing the API type
 
-Most mod scripts use the global `maplebirch` object. If you need the default type in a helper file, import it as type-only:
+Use a type-only import when a named type is more convenient than the global declaration:
 
 ```ts
-import type maplebirch from '@scml-maplebirch/types';
+import type maplebirch from '@scml-dol-maplebirch/types';
 
 type Maplebirch = typeof maplebirch;
 ```
 
-## Notes
+## Version compatibility
 
-- This package only provides TypeScript declarations.
-- It does not replace the actual maplebirchFramework mod dependency.
-- Keep the package version close to the framework version used by your mod.
+Package versions follow maplebirchFramework versions. For the most accurate declarations, use the same
+version as the framework loaded by your mod rather than relying on an unpinned latest version.
+
+## Related dependencies
+
+Declarations from SugarCube, ModLoader, and SC2 are installed transitively. You normally do not need to
+install them separately unless your project imports those packages directly.
+
+## License
+
+[MIT](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/LICENSE)

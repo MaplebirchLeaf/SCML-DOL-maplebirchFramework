@@ -61,7 +61,7 @@ jobs:
           fi
 
       - name: Build types package
-        run: bun run types
+        run: bun run types:check
 
       - name: Verify framework and generated types
         run: bun run verify
@@ -79,7 +79,7 @@ jobs:
         id: npm_version
         run: |
           VERSION="${{ steps.release.outputs.VERSION }}"
-          if npm view "@scml-maplebirch/types@$VERSION" version >/dev/null 2>&1; then
+          if npm view "@scml-dol-maplebirch/types@$VERSION" version >/dev/null 2>&1; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
@@ -91,7 +91,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
-            echo "Error: NPM_TOKEN secret is required to publish @scml-maplebirch/types."
+            echo "Error: NPM_TOKEN secret is required to publish @scml-dol-maplebirch/types."
             exit 1
           fi
 

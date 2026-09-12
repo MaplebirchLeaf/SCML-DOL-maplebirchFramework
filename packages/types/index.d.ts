@@ -4,7 +4,7 @@ type Utils = typeof types.utils.publicUtils;
 
 declare global {
   const maplebirch: typeof instance;
-  const clone: Utils['clone'];
+  function clone(...args: Parameters<Utils['clone']>): ReturnType<Utils['clone']>;
   const equal: Utils['equal'];
   const merge: Utils['merge'];
   const append: Utils['append'];
@@ -13,8 +13,8 @@ declare global {
   const appendfn: Utils['appendfn'];
   const coverfn: Utils['coverfn'];
   const contains: Utils['contains'];
-  const random: Utils['random'];
-  const either: Utils['either'];
+  function random(...args: Parameters<Utils['random']>): ReturnType<Utils['random']>;
+  function either(...args: Parameters<Utils['either']>): ReturnType<Utils['either']>;
   const SelectCase: Utils['SelectCase'];
   const convert: Utils['convert'];
   const clamp: Utils['clamp'];
