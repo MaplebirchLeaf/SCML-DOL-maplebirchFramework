@@ -44,6 +44,12 @@ describe('types package generation', () => {
     expect(await readFile(path.join(rootDir, 'packages', 'types', 'index.d.ts'), 'utf8')).toBe('export type Maintained = true;\n');
   });
 
+  test('rejects a root package without an explicit version', async () => {
+    await writeFile(path.join(rootDir, 'package.json'), '{}');
+
+    await expect(generateTypesPackage(rootDir)).rejects.toThrow('Root package.json must declare a version');
+  });
+
   test('keeps the published package and workflow on the organization scope', async () => {
     const projectRoot = path.join(import.meta.dir, '..');
     const packageJson = JSON.parse(await readFile(path.join(projectRoot, 'packages', 'types', 'package.json'), 'utf8')) as { name: string; exports?: Record<string, unknown> };

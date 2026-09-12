@@ -21,4 +21,5 @@ mock.module('../../src/core.ts', () => ({ default: bootstrapCore, MaplebirchCore
 mock.module('../../src/utils/shared.ts', () => ({ default: {} }));
 mock.module('@/assets/translations/CN.yaml', () => ({ default: '' }));
 mock.module('@/assets/translations/EN.yaml', () => ({ default: '' }));
+mock.module('@/styles/PromptStyle.css', () => ({ default: '' }));
 mock.module('@/twee/Gui.twee', () => ({ default: '' }));

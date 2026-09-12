@@ -22,6 +22,7 @@
     "bump": "bumpp --no-push",
     "release": "bumpp --push --tag maplebirch-release-v%s",
     "test": "bun test",
+    "test:coverage": "bun test --coverage",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.worker.json",
     "verify": "bun run test && bun run typecheck && bun run check",
     "check": "oxlint && oxfmt --check",

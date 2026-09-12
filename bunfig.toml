@@ -1,0 +1,4 @@
+[test]
+coverageSkipTestFiles = true
+# Bun applies thresholds to every loaded source file, not only the aggregate.
+coverageThreshold = { lines = 0.24, functions = 0.30 }
