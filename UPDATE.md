@@ -1,3 +1,8 @@
+##### (v.4.3.2更新日志):
+
+- **NPC 侧边栏双人模型**：PC 模型模式可选择同时展示最近两名 NPC；旧 NPC 相对最新 NPC 降低 300 图层，支持单独开关以及调节相对水平/垂直错位；两名 NPC 共享侧边栏设置与日晒滤镜，发色和瞳色滤镜独立。
+- **NPC 侧边栏设置优化**：完善双人模式说明，并区分模型整体偏移与旧 NPC 相对间距。
+
 ##### (v.4.3.1更新日志):
 
 - **类型声明构建迁移到 rolldown**：`tsup` → `rolldown`（`rolldown-plugin-dts`/tsgo），TypeScript 升级到 7；`types` 脚本改为 `rolldown -c`；移除不再使用的 `vite`/`wrangler`/`@vitejs/plugin-vue`/`tsup` 开发依赖，`@cloudflare/workers-types` 升级。

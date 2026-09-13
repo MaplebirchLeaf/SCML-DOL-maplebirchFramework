@@ -299,3 +299,119 @@ sugarcube-2:
       name: maplebirchTransformationPartSelect
     maplebirchTimeTravel:
       name: maplebirchTimeTravel
+    updatesidebarimg:
+      description: |-
+        Updates sidebar img
+
+        `<<updatesidebarimg clearCache?>>`
+        - **clearCache** _optional_: `string` - clear render cache
+          - Defaults to true
+      parameters:
+        - '|+ bool'
+    numberStepper:
+      description: >-
+        Adds a number stepper element
+
+
+        `<<numberStepper title initialValue setter options?>>`
+
+        - **title**: `string` - title to be displayed in the titlebox
+
+        - **initialValue**: `number` - initial value to display when the stepper
+        is rendered
+          - Clamped between `minValue` and `maxValue`
+        - **setter**: `string | function` - source of current value
+          - `string`: current value is determined by state variable (e.g., `"purity"` -> `$purity`)
+          - `function`: current value is determined by return value
+        - **options** _optional_: `object` - object containing additional
+        optional settings
+          - **max** _optional_: `number` - maximum allowed value
+            - Defaults to `100`
+          - **min** _optional_: `number` - minimum allowed value
+            - Defaults to `0`
+          - **step** _optional_: `number` - amount value changes with a single arrow and `x10` with a double arrow
+            - Defaults to `1%` of the range
+          - **percentage** _optional_: `boolean` - value is converted to a percentage
+            - Defaults to `true`
+          - **colorArr** _optional_: `Array` - custom colours to replace the default range
+          - **reverse** _optional_: `boolean` - reverse direction of color range
+            - Defaults to `false`
+          - **valueFormat** _optional_: `function` - function modifying how value is displayed
+            - `function`: fn: (value: number, percentage: number) => string
+            - Example: `(value, percentage) => "$" + value`
+          - **tooltip** _optional_: `tooltip` - tooltip object
+            - Example: `{ message: () => V.physique, delay: 200 }`
+          - **values** _optional_: `Array` - values to be used in above functions
+          - **reverseButtons** _optional_: `boolean` - reverse function of buttons
+            - Defaults to `false`
+          - **activeButtons** _optional_: `Array` - specifies active buttons
+            - Defaults to `["single", "double", "minMax"]`
+            - <`"single"|"double"|"triple"|"minMax"`>`[]`
+          - **css** _optional_: `string` - overrides the default container css
+          - **callback** _optional_: `function` - callback for whenever the value changes
+      skipArgs: true
+      tags:
+        - text
+        - links
+    iconUi:
+      description: >-
+        Prints image from UI folder, constrained to icon dimensions (30x30)
+
+
+        Most often used with sym and tf UI icons.
+
+
+        `<<iconUi imagePath ...options?>>`
+
+        - **imagePath**: `string` - path to image file including extension
+        relative to UI folder
+
+        - ...**options** _optional_: `string` - additional options to modify
+        formatting
+          - `"nowhitespace"`: no trailing whitespace for formatting
+          - `"infront"`: layer icon in front of next icon
+          - `"flip"`: flipicon
+          - `"with-text"`: use 18x18 container instead of 30x30 to prevent inline icons from changing line spacing
+      parameters:
+        - text |+ ...("nowhitespace"|"infront"|"flip"|"with-text")
+      tags:
+        - img
+    numberslider:
+      description: >-
+        Adds a number slider element
+
+
+        `<<numberslider variable defaultValue minValue maxValue stepValue
+        callbacks? autofocus?>>`
+
+        - **variable**: `string` - the name of the variable to bind the slider
+        to (e.g., `$score` or `_tempValue`)
+          - Must start with `$` or `_`.
+        - **defaultValue**: `number` - the value to initialize the variable and
+        slider with
+          - Must be between `minValue` and `maxValue`.
+        - **minValue**: `number` - the minimum allowed value for the slider
+
+        - **maxValue**: `number` - the maximum allowed value for the slider
+
+        - **stepValue**: `number` - the interval between allowed values when
+        sliding
+          - Must be greater than `0`.
+        - **callbacks** _optional_: `object` - object containing optional event
+        callbacks
+          - **onInputChange** _optional_: `function` - called periodically as the slider moves
+            - Example: `(newValue) => console.log("Slider changed:", newValue)`
+          - **value** _optional_: `function` - formats the displayed value
+            - Example: `(value) => "$" + value`
+          - **onMouseUp** _optional_: `function` - called when the slider is released
+            - Example: `(newValue) => console.log("Slider released:", newValue)`
+        - **autofocus** _optional_: `string` - automatically focuses the slider
+        on passage load
+          - Use `"autofocus"` to enable.
+      skipArgs: false
+      tags:
+        - sliders
+        - inputs
+        - macros
+    setupOptions:
+      name: setupOptions

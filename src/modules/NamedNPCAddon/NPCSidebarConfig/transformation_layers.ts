@@ -1,6 +1,7 @@
 // ./src/modules/NamedNPCAddon/NPCSidebarConfig/transformation_layers.ts
 
 import maplebirch from '../../../core';
+import { kaijuMask } from './functions';
 
 type NPCSidebarOptions = {
   maplebirch: { nnpc: Record<string, any> };
@@ -17,7 +18,7 @@ function basic(overrides: Record<string, any> = {}) {
     animation: 'idle',
     dxfn: (options: NPCSidebarOptions) => nnpc(options).dxfn,
     dyfn: (options: NPCSidebarOptions) => nnpc(options).dyfn,
-    masksrcfn: (options: NPCSidebarOptions) => nnpc(options).close_up_mask,
+    masksrcfn: (options: NPCSidebarOptions) => kaijuMask(options) || nnpc(options).close_up_mask,
     ...overrides
   };
 }
@@ -57,6 +58,8 @@ function wings(side: 'left' | 'right', type: string, hair: boolean) {
     },
     masksrcfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
+      const costume = kaijuMask(options);
+      if (costume) return costume;
       return data[`${type}_wing_${side}`] === 'cover' ? data.close_up_mask : [data.close_up_mask, `img/face/masks/${side}.png`];
     }
   });
@@ -105,8 +108,15 @@ function tail(type: string, hair: boolean, overrides: Record<string, any> = {}) 
 function ears(type: string, hair: boolean, overrides: Record<string, any> = {}) {
   return part(type, 'ears', 'ears', {
     filters: hair ? ['nnpc_hair'] : [],
-    masksrcfn: (options: NPCSidebarOptions) => nnpc(options).head_mask,
-    zfn: (options: NPCSidebarOptions) => z(nnpc(options).hide_head_acc ? 'over_head' : 'basehead') + nnpc(options).position,
+    masksrcfn: (options: NPCSidebarOptions) => {
+      const data = nnpc(options);
+      return kaijuMask(options) || (!data.hide_head_acc ? data.head_mask : undefined);
+    },
+    zfn: (options: NPCSidebarOptions) => {
+      const data = nnpc(options);
+      if (data.hide_head_acc) return z('over_head') + data.position;
+      return (data.tf_ears_layer === 'front' ? z('front_hair') + 1 : z('basehead')) + data.position;
+    },
     ...overrides
   });
 }
@@ -116,7 +126,7 @@ function horns(type: string, offset = 0) {
     filters: ['nnpc_hair'],
     masksrcfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
-      return data[`${type}_horns_layer`] === 'front' ? data.close_up_mask : data.head_mask;
+      return kaijuMask(options) || (data[`${type}_horns_layer`] === 'front' ? data.close_up_mask : data.head_mask);
     },
     zfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
@@ -127,6 +137,7 @@ function horns(type: string, offset = 0) {
 
 export const transformationDefaults = {
   show_tf: false,
+  tf_ears_layer: 'back',
   angel_wings_type: 'disabled',
   angel_wing_right: 'idle',
   angel_wing_left: 'idle',
@@ -189,11 +200,11 @@ const transformation_layers = {
   nnpc_cow_horns: horns('cow', 1),
   nnpc_cow_ear_left: ears('cow', true, {
     zfn: (options: NPCSidebarOptions) => z('horns') + nnpc(options).position,
-    masksrcfn: (options: NPCSidebarOptions) => [nnpc(options).close_up_mask, 'img/face/masks/left.png']
+    masksrcfn: (options: NPCSidebarOptions) => kaijuMask(options) || [nnpc(options).close_up_mask, 'img/face/masks/left.png']
   }),
   nnpc_cow_ear_right: ears('cow', true, {
     zfn: (options: NPCSidebarOptions) => z('ears') + 0.5 + nnpc(options).position,
-    masksrcfn: (options: NPCSidebarOptions) => [nnpc(options).close_up_mask, 'img/face/masks/right.png']
+    masksrcfn: (options: NPCSidebarOptions) => kaijuMask(options) || [nnpc(options).close_up_mask, 'img/face/masks/right.png']
   }),
   nnpc_cow_tag: ears('cow', false, { src: 'img/transformations/cow/ears/tag.png', srcfn: undefined, zfn: (options: NPCSidebarOptions) => z('facewear') + nnpc(options).position }),
   nnpc_cow_tail: tail('cow', true),
@@ -205,7 +216,7 @@ const transformation_layers = {
     zfn: (options: NPCSidebarOptions) => z('irisacc') + nnpc(options).position,
     masksrcfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
-      return [data.close_up_mask, { path: `img/face/${data.facestyle}/${data.facevariant}/iris.png`, convert: true }];
+      return kaijuMask(options) || [data.close_up_mask, { path: `img/face/${data.facestyle}/${data.facevariant}/iris.png`, convert: true }];
     }
   }),
   nnpc_bird_malar: part('bird', 'feathers', 'malar'),

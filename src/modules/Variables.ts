@@ -113,9 +113,12 @@ class Variables {
       npcsidebar: {
         show       : false,
         model      : false,
+        second_model: true,
         position   : 'back' as const,
         dxfn       : -48,
         dyfn       : -8,
+        previous_dx: -36,
+        previous_dy: -8,
         skin_type  : 'light',
         tan        : 0,
         facestyle  : 'default',

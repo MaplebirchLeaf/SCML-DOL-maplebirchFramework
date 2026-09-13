@@ -2,7 +2,7 @@
 
 import type { ModZipReader } from '@scml/types/sugarcube-2-ModLoader/ModZipReader';
 import maplebirch from '../../core';
-import { lookupColour, clothes_layer } from './NPCSidebarConfig/functions';
+import { lookupColour, clothes_layer, isAltPosition, normaliseClothingState, clothingIndex, previousFilterName } from './NPCSidebarConfig/functions';
 import base_layers from './NPCSidebarConfig/base_layers';
 import fluids_layers from './NPCSidebarConfig/fluids_layers';
 import head_layers from './NPCSidebarConfig/head_layers';
@@ -62,6 +62,7 @@ type NPCSidebarOptions = {
   filters?: Record<string, any>;
   maplebirch?: {
     nnpc?: Record<string, any>;
+    previous?: Record<string, any>;
     [key: string]: any;
   };
   [key: string]: any;
@@ -165,8 +166,7 @@ function resolve(nnpc: Record<string, any>, selected: string): string {
 
 function clothesIndex(slot: ClothesSlot, clothes: any) {
   const fn = window.clothesIndex;
-  if (typeof fn === 'function') return fn(slot, clothes);
-  return clothes?.index ?? 0;
+  return clothingIndex(slot, clothes ?? {}, typeof fn === 'function' ? (target, item) => fn(target as ClothesSlot, item) : undefined);
 }
 
 function Integrity(clothes: any, slot: ClothesSlot) {
@@ -202,17 +202,10 @@ function NPCClothes(npcData: any, options: NPCSidebarOptions) {
 
   for (const slot of clothesSlots) {
     const data = clothesData[slot] ?? {};
-    const index = data.index ?? 0;
+    const index = clothesIndex(slot, data);
     const setupData = setup.clothes[slot][index] ?? setup.clothes[slot][0] ?? { type: [] };
 
-    clothes[slot] = {
-      ...setupData,
-      ...data,
-      index,
-      setup: setupData,
-      type: data.type ?? setupData.type ?? [],
-      altdisabled: data.altdisabled ?? setupData.altdisabled ?? []
-    };
+    clothes[slot] = normaliseClothingState(setupData, data, index);
 
     clothes[slot].integrity = Integrity(clothes[slot], slot);
 
@@ -368,12 +361,15 @@ function setupClothesData(options: NPCSidebarOptions, nnpc: Record<string, any>,
     nnpc.angel_halo_lower = false;
   }
 
-  if (clothes.head.name === 'sage witch hat') nnpc.hide_head_acc = false;
+  if (clothes.head.name === 'sage witch hat') {
+    const ears = [nnpc.fox_ears_type, nnpc.wolf_ears_type, nnpc.cat_ears_type].some(value => typeof value === 'string' && !['disabled', 'hidden'].includes(value));
+    if (ears) nnpc.hide_head_acc = true;
+  }
 
-  nnpc.alt_sleeve_state = clothes.upper.variable === 'schoolcardigan' && clothes.upper.alt !== 'alt' && clothes.upper.altposition !== 'alt' ? null : true;
+  nnpc.alt_sleeve_state = clothes.upper.variable === 'schoolcardigan' && !isAltPosition(clothes.upper) ? null : true;
 
   nnpc.high_waist_suspenders =
-    clothes.neck.name === 'suspenders' && clothes.neck.altposition !== 'alt' && ['retro shorts', 'retro trousers', 'baseball shorts', 'wide leg trousers'].includes(clothes.lower.name) ? true : null;
+    clothes.neck.name === 'suspenders' && !isAltPosition(clothes.neck) && ['retro shorts', 'retro trousers', 'baseball shorts', 'wide leg trousers'].includes(clothes.lower.name) ? true : null;
 
   nnpc.hood_mask = clothes.head.mask_img === 1 && !(nnpc.hood_down && clothes.head.hood && clothes.head.outfitSecondary !== undefined) ? true : null;
 }
@@ -459,7 +455,7 @@ function setupMaskData(nnpc: Record<string, any>) {
 
   if (clothes.handheld.mask_img === 1) nnpc.head_mask.push(`img/clothes/handheld/${clothes.handheld.variable}/mask.png`);
 
-  if (['fro', 'afro pouf', 'afro puffs'].includes(nnpc.hair_sides_type) && nnpc.hair_fringe_type === 'fro') {
+  if (nnpc.hair_sides_type === 'fro' && nnpc.hair_fringe_type === 'fro') {
     nnpc.fringe_mask_src = `img/hair/fringe/${nnpc.hair_fringe_type}/mask.png`;
   } else {
     nnpc.fringe_mask_src = null;
@@ -479,8 +475,7 @@ function setupMaskData(nnpc: Record<string, any>) {
   }
 }
 
-function preprocess(options: NPCSidebarOptions) {
-  const nnpc = setupBasicData(options);
+function setupNPC(options: NPCSidebarOptions, nnpc: Record<string, any>) {
   if (!nnpc.name || !nnpc.model) return;
   const npcData = V.maplebirch.npc[nnpc.name.toLowerCase()];
   if (!npcData) {
@@ -488,6 +483,7 @@ function preprocess(options: NPCSidebarOptions) {
     return;
   }
   Object.assign(nnpc, transformationDefaults);
+  nnpc.tf_ears_layer = nnpc.ears_position ?? nnpc.tf_ears_layer;
   maplebirch.npc.Transformation.applyBody(nnpc, npcData);
   maplebirch.npc.Transformation.applySidebar(nnpc);
   setupClothesData(options, nnpc, npcData);
@@ -496,7 +492,65 @@ function preprocess(options: NPCSidebarOptions) {
   setupMaskData(nnpc);
 }
 
-const layers = {
+function preprocess(options: NPCSidebarOptions) {
+  const nnpc = setupBasicData(options);
+  const sidebar = V.options.maplebirch.npcsidebar;
+  options.maplebirch!.previous = undefined;
+  const names = Array.isArray(V.npc) ? V.npc.filter((name: unknown): name is string => typeof name === 'string' && name.length > 0) : [];
+  const name = sidebar.model && sidebar.second_model ? names.at(-2) : undefined;
+  if (name) {
+    const previous: Record<string, any> = {
+      name,
+      model: setup.NPCNameList.includes(name),
+      position: sidebar.position === 'front' ? 0 : -600,
+      dxfn: nnpc.dxfn + (sidebar.previous_dx ?? -36),
+      dyfn: nnpc.dyfn + (sidebar.previous_dy ?? -8),
+      skin_type: nnpc.skin_type,
+      hide_all: false,
+      hide_head_acc: false,
+      hide_leash: false,
+      hood_down: false,
+      show_hair: true
+    };
+    for (const key of ['show', 'tan', 'freckles', 'facestyle', 'facevariant', 'ears_position', 'close_up_mask']) {
+      Object.defineProperty(previous, key, { configurable: true, enumerable: true, get: () => nnpc[key] });
+    }
+    options.maplebirch!.previous = previous;
+    setupNPC(previousOptions(options) as NPCSidebarOptions, previous);
+  }
+  setupNPC(options, nnpc);
+}
+
+function previousOptions(options: NPCSidebarOptions) {
+  const filters = new Proxy(options.filters!, {
+    get: (target, key) => target[previousFilterName(key) as any],
+    set: (target, key, value) => {
+      target[previousFilterName(key) as any] = value;
+      return true;
+    }
+  });
+  return { ...options, filters, maplebirch: { ...options.maplebirch, nnpc: options.maplebirch!.previous } };
+}
+
+function previousLayers(layers: Record<string, any>) {
+  const remapFilters = (value: unknown) => (Array.isArray(value) ? value.map(previousFilterName) : value);
+  const result: Record<string, any> = {};
+  for (const [name, layer] of Object.entries(layers)) {
+    const copy = { ...layer };
+    if (copy.filters) copy.filters = remapFilters(copy.filters);
+    for (const [key, fn] of Object.entries(copy)) {
+      if (typeof fn !== 'function' || !key.endsWith('fn')) continue;
+      copy[key] = function (options: NPCSidebarOptions, ...args: any[]) {
+        const value = fn.call(this, previousOptions(options), ...args);
+        return key === 'filtersfn' ? remapFilters(value) : value;
+      };
+    }
+    result[`nnpc_previous_${name.replace(/^nnpc_/, '')}`] = copy;
+  }
+  return result;
+}
+
+const baseLayers = {
   ...base_layers,
   ...fluids_layers,
   ...head_layers,
@@ -552,6 +606,11 @@ const layers = {
 
     animation: 'idle'
   }
+};
+
+const layers = {
+  ...baseLayers,
+  ...previousLayers(baseLayers)
 };
 
 const NPCSidebar = (() => {

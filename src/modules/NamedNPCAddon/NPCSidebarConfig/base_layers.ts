@@ -1,8 +1,8 @@
 // ./src/modules/NamedNPCAddon/NPCSidebarConfig/base_layers.ts
 
 import maplebirch from '../../../core';
-import { loadImage } from '../../../utils';
-import { nnpc_sidepart, selected_art } from './functions';
+import { loadImage } from '../../../utils/image';
+import { kaijuMask, nnpc_sidepart, selected_art } from './functions';
 
 type NPCSidebarOptions = {
   filters?: Record<string, any>;
@@ -12,10 +12,6 @@ type NPCSidebarOptions = {
   };
   [key: string]: any;
 };
-
-function kaiju_mask(options: NPCSidebarOptions): string | undefined {
-  if (options.maplebirch.nnpc.clothes?.over_upper?.name === 'kaiju costume') return 'img/clothes/over-upper/kaiju/mask.png';
-}
 
 const base_layers = {
   nnpc_body: {
@@ -439,7 +435,7 @@ const base_layers = {
 
   nnpc_hair_sides: {
     masksrcfn: (options: NPCSidebarOptions) => {
-      return kaiju_mask(options) || options.maplebirch.nnpc.head_mask;
+      return kaijuMask(options) || options.maplebirch.nnpc.head_mask;
     },
     srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
@@ -466,7 +462,7 @@ const base_layers = {
   nnpc_hair_fringe: {
     masksrcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
-      const costumeMask = kaiju_mask(options);
+      const costumeMask = kaijuMask(options);
       if (costumeMask) return costumeMask;
 
       if (Array.isArray(nnpc.head_mask) && nnpc.head_mask.length) return nnpc.head_mask;
@@ -498,7 +494,7 @@ const base_layers = {
 
   nnpc_hair_extra: {
     masksrcfn: (options: NPCSidebarOptions) => {
-      return kaiju_mask(options) || options.maplebirch.nnpc.head_mask;
+      return kaijuMask(options) || options.maplebirch.nnpc.head_mask;
     },
     srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
@@ -507,19 +503,25 @@ const base_layers = {
         'loose',
         'curl',
         'defined curl',
+        'drill ringlets',
         'neat',
         'dreads',
         'afro pouf',
         'thick ponytail',
         'all down',
-        'half-up',
+        'half up',
         'messy ponytail',
         'ruffled',
-        'half up twintail',
+        'half up twintails',
         'princess wave',
         'space buns',
         'sleek',
-        'bedhead'
+        'bedhead',
+        'classic',
+        'cornrows',
+        'french curls',
+        'jellyfish bob',
+        'princess ponytail'
       ];
       const path = `img/hair/back/${nnpc.hair_sides_type}`;
       if (nnpc.hair_sides_length === 'feet' && [...hairs, 'straight'].includes(nnpc.hair_sides_type)) return `${path}/feet.png`;

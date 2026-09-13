@@ -38,6 +38,7 @@ const legs_layers = {
     }
   }),
 
+  nnpc_legs_detail: clothes_layer('legs', 'detail'),
   nnpc_legs_back: clothes_back('legs'),
   nnpc_legs_back_acc: clothes_back_acc('legs')
 };

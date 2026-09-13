@@ -1,6 +1,7 @@
 // ./src/modules/NamedNPCAddon/NPCSidebarConfig/fluids_layers.ts
 
 import maplebirch from '../../../core';
+import { kaijuMask } from './functions';
 
 type NPCSidebarOptions = {
   maplebirch: {
@@ -19,13 +20,13 @@ function titleCase(value: string) {
 
 function faceUncovered(nnpc: Record<string, any>) {
   const type = nnpc.clothes.face?.type ?? [];
-  return !type.includes('mask') && !type.includes('face_covering');
+  return !type.includes('face_covering');
 }
 
 function cumLayer(file: string, prop: string, z: (nnpc: Record<string, any>) => number, show?: (nnpc: Record<string, any>) => boolean) {
   return {
     masksrcfn: (options: NPCSidebarOptions) => {
-      return options.maplebirch.nnpc.close_up_mask;
+      return kaijuMask(options) || options.maplebirch.nnpc.close_up_mask;
     },
     srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
@@ -70,7 +71,7 @@ const fluids_layers = {
   },
 
   nnpc_cum_chest: cumLayer('chest', 'cum_chest', nnpc => maplebirch.char.ZIndices.tears + nnpc.position),
-  nnpc_cum_face: cumLayer('face', 'cum_face', nnpc => maplebirch.char.ZIndices.tears + nnpc.position, faceUncovered),
+  nnpc_cum_face: cumLayer('face', 'cum_face', nnpc => maplebirch.char.ZIndices.tears + nnpc.position),
   nnpc_cum_feet: cumLayer('feet', 'cum_feet', nnpc => maplebirch.char.ZIndices.feet + 0.2 + nnpc.position),
   nnpc_cum_leftarm: cumLayer(
     'left-arm',
