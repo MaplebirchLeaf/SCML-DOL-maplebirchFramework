@@ -17,7 +17,6 @@ import type { ScriptingAPI } from '@scml/sc2-verlnir/src/scripting';
 import type { SettingAPI } from '@scml/sc2-verlnir/src/setting';
 import type { SimpleAudioAPI } from '@scml/sc2-verlnir/src/simpleaudio';
 import type { SimpleStoreAPI, SimpleStoreInstanceAPI } from '@scml/sc2-verlnir/src/simplestore';
-import type { StateAPI as VerlnirStateAPI } from '@scml/sc2-verlnir/src/state';
 import type { StoryAPI } from '@scml/sc2-verlnir/src/story';
 import type { TemplateAPI } from '@scml/sc2-verlnir/src/template';
 import type { UIAPI } from '@scml/sc2-verlnir/src/ui';
@@ -52,8 +51,87 @@ declare module 'twine-sugarcube' {
   }
 }
 
-export interface DolStateAPI extends VerlnirStateAPI {
-  show(): void;
+export interface DolStateMoment {
+  readonly title: string;
+  readonly variables: Record<string, unknown>;
+}
+
+export interface DolStateMetadataAPI {
+  clear(): void;
+  delete(key: string): boolean;
+  entries(): Iterable<[string, unknown]>;
+  get(key: string): unknown;
+  has(key: string): boolean;
+  keys(): Iterable<string>;
+  set(key: string, value: unknown): void;
+  readonly size: number;
+}
+
+export interface DolStatePRNGAPI {
+  init(seed: string | number): void;
+  isEnabled(): boolean;
+  pull: number;
+  readonly seed: string | number;
+  str2int(str: string): number;
+  test(seed: string | number): boolean;
+  peek(): number;
+}
+
+export interface DolStateAPI {
+  reset(): void;
+  restore(soft?: boolean): boolean;
+  marshalForSave(): unknown;
+  unmarshalForSave(stateObj: unknown): void;
+  readonly expired: string[];
+  readonly passages: string[];
+  getSessionState(): unknown;
+  setSessionState(state: unknown): void;
+
+  readonly active: DolStateMoment;
+  readonly activeIndex: number;
+  readonly current: DolStateMoment | undefined;
+  readonly top: DolStateMoment | undefined;
+  readonly bottom: DolStateMoment | undefined;
+  readonly history: DolStateMoment[];
+  readonly passage: string;
+  readonly variables: Record<string, unknown>;
+  readonly temporary: Record<string, unknown>;
+  readonly length: number;
+  readonly size: number;
+  readonly turns: number;
+  create(): DolStateMoment;
+  goTo(index: number): void;
+  go(delta: number): void;
+  deltaEncode(moments: DolStateMoment[]): unknown;
+  deltaDecode(data: unknown): DolStateMoment[];
+
+  readonly prng: DolStatePRNGAPI;
+  clearTemporary(): void;
+  pushLocal(): void;
+  popLocal(): Record<string, unknown> | undefined;
+  peekLocal(): Record<string, unknown> | undefined;
+  readonly local: Record<string, unknown>;
+  clearLocal(): void;
+
+  getVar(path: string): unknown;
+  setVar(path: string, value: unknown): void;
+  has(offset: number): boolean;
+  hasPlayed(passage: string): boolean;
+  index(offset?: number): number;
+  isEmpty(): boolean;
+  peek(offset?: number): DolStateMoment | undefined;
+  random(): number;
+  readonly metadata: DolStateMetadataAPI;
+  readonly qc: unknown;
+  qcadd(fn: (...args: unknown[]) => void): void;
+
+  initPRNG(seed: string | number): void;
+  restart(): void;
+  backward(): void;
+  forward(): void;
+  display(...args: unknown[]): void;
+  show(...args: unknown[]): void;
+  play(...args: unknown[]): void;
 }
 
 export interface DolSaveAPI extends VerlnirSaveAPI {
