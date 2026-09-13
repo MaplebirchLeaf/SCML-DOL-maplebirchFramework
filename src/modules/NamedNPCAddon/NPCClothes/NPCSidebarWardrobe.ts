@@ -2,7 +2,7 @@
 
 import builtinWardrobe from '@/assets/npc-clothes.yaml';
 import { evaluate, type Condition } from './Condition';
-import NPCManager from '../../NamedNPC';
+import type NPCManager from '../../NamedNPC';
 
 export interface WardrobeItem {
   [part: string]: any;
@@ -16,6 +16,7 @@ interface WearRule {
 interface WardrobeProfile {
   locations: Map<string, WearRule[]>;
   global: WearRule[];
+  baseModifiers: WardrobeModifier[];
   modifiers: WardrobeModifier[];
 }
 
@@ -78,6 +79,10 @@ class NPCSidebarWardrobe {
     });
   }
 
+  public base(npcName: string, modifier: WardrobeModifier): void {
+    this.profile(npcName).baseModifiers.push(modifier);
+  }
+
   public modify(npcName: string, modifier: WardrobeModifier): void {
     this.profile(npcName).modifiers.push(modifier);
   }
@@ -86,32 +91,34 @@ class NPCSidebarWardrobe {
     const profile = this.profile(npcName);
     const location = this.manager.Schedule.location[npcName] ?? '';
     const key = this.select(profile, location);
-    const clothes = this.resolve(key);
     const context: WardrobeContext = {
       npcName,
       location,
       key
     };
-    for (const modifier of profile.modifiers) {
+    const clothes = structuredClone(this.templates.naked ?? {});
+    this.applyModifiers(profile.baseModifiers, clothes, context, '基层服装配置');
+    if (key !== 'naked') this.mergeClothes(clothes, this.templates[key] ?? {});
+    this.applyModifiers(profile.modifiers, clothes, context, '动态服装修改');
+    return clothes;
+  }
+
+  private applyModifiers(modifiers: WardrobeModifier[], clothes: WardrobeItem, context: WardrobeContext, label: string): void {
+    for (const modifier of modifiers) {
       try {
         modifier(clothes, context);
       } catch (e: any) {
-        this.manager.log(`${npcName} 动态服装修改失败: ${e.message}`, 'WARN');
+        this.manager.log(`${context.npcName} ${label}失败: ${e.message}`, 'WARN');
       }
     }
-    return clothes;
   }
 
   private add(data: Record<string, WardrobeItem>): void {
     Object.assign(this.templates, data);
   }
 
-  private resolve(key: string): WardrobeItem {
-    const naked = this.templates.naked ?? {};
-    const selected = this.templates[key] ?? {};
-    const merged: WardrobeItem = { ...naked };
-    for (const [part, value] of Object.entries(selected)) if (value != null) merged[part] = value;
-    return structuredClone(merged);
+  private mergeClothes(clothes: WardrobeItem, layer: WardrobeItem): void {
+    for (const [part, value] of Object.entries(layer)) if (value != null) clothes[part] = structuredClone(value);
   }
 
   private select(profile: WardrobeProfile, location: string): string {
@@ -132,6 +139,7 @@ class NPCSidebarWardrobe {
       profile = {
         locations: new Map(),
         global: [],
+        baseModifiers: [],
         modifiers: []
       };
       this.profiles.set(npcName, profile);

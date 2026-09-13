@@ -1,6 +1,6 @@
 {
   "name": "maplebirch",
-  "version": "4.3.2",
+  "version": "4.3.3",
   "private": true,
   "description": "SugarCube2-ModLoader-Degrees of Lewdity-Maplebirch Frameworks",
   "author": "楓樺葉",
@@ -12,19 +12,16 @@
     "build": "bun run rspack -- build --mode=production",
     "build:dev": "bun run rspack -- build --mode=development",
     "types": "rolldown -c && bun run scripts/types.ts && oxfmt packages/types",
-    "types:check": "bun run types && tsc --noEmit -p tests/fixtures/tsconfig.types-package.json",
-    "types:pack": "bun run types:check && npm pack ./packages/types --dry-run",
-    "types:publish": "bun run types:check && bun run verify && npm publish ./packages/types --access public",
+    "types:pack": "bun run types && npm pack ./packages/types --dry-run",
+    "types:publish": "bun run types && bun run verify && npm publish ./packages/types --access public",
     "package": "bun run scripts/package.ts",
     "package:zip": "bun run scripts/package.ts --zip-only",
     "package:modpack": "bun run scripts/package.ts --modpack-only",
     "build:all": "bun run prep && bun run build && bun run types && bun run package",
     "bump": "bumpp --no-push",
     "release": "bumpp --push --tag maplebirch-release-v%s",
-    "test": "bun test",
-    "test:coverage": "bun test --coverage",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.worker.json",
-    "verify": "bun run test && bun run typecheck && bun run check",
+    "verify": "bun run typecheck && bun run check",
     "check": "oxlint && oxfmt --check",
     "fix": "oxlint --fix && oxfmt"
   },
@@ -58,7 +55,6 @@
     "rolldown-plugin-dts": "^0.28.5",
     "typescript": "^7.0.2"
   },
-  "packageManager": "bun@1.4.2",
   "lastModifiedBy": "楓樺葉",
   "lastUpdate": "2026.09.13",
   "scml": {

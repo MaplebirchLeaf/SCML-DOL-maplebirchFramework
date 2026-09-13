@@ -2791,10 +2791,12 @@ declare class NPCSidebarWardrobe {
   init(): void;
   load(modName: string, filePath: string): Promise<void>;
   wear(npcName: string, location: string, key: string, cond?: Condition): void;
+  base(npcName: string, modifier: WardrobeModifier): void;
   modify(npcName: string, modifier: WardrobeModifier): void;
   worn(npcName: string): WardrobeItem;
+  private applyModifiers;
   private add;
-  private resolve;
+  private mergeClothes;
   private select;
   private find;
   private profile;

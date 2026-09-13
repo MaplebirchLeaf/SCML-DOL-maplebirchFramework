@@ -146,12 +146,12 @@ img/ui/nnpc/luna/angry.png
   # 上半身服装
   upper:
     # 当NPC穿 elven_robe 时显示
-    - { img: 'img/npc/elara/top_default.png', zIndex: 15, cond: "maplebirch.npc.Clothes.worn('Elara').upper.name === 'elven_robe'" }
+    - { img: 'img/npc/elara/top_default.png', zIndex: 15, cond: "maplebirch.npc.Clothes.wardrobe.worn('Elara').upper.name === 'elven_robe'" }
 
   # 下半身服装
   lower:
     # 当NPC穿 elven_skirt 时显示
-    - { img: 'img/npc/elara/skirt_default.png', zIndex: 10, cond: "maplebirch.npc.Clothes.worn('Elara').lower.name === 'elven_skirt'" }
+    - { img: 'img/npc/elara/skirt_default.png', zIndex: 10, cond: "maplebirch.npc.Clothes.wardrobe.worn('Elara').lower.name === 'elven_skirt'" }
 ```
 
 **说明**：
@@ -189,7 +189,7 @@ img/ui/nnpc/luna/angry.png
       {
         "img": "img/npc/elara/top_default.png",
         "zIndex": 15,
-        "cond": "maplebirch.npc.Clothes.worn('Elara').upper.name === 'elven_robe'"
+        "cond": "maplebirch.npc.Clothes.wardrobe.worn('Elara').upper.name === 'elven_robe'"
       }
     ],
 
@@ -197,7 +197,7 @@ img/ui/nnpc/luna/angry.png
       {
         "img": "img/npc/elara/skirt_default.png",
         "zIndex": 10,
-        "cond": "maplebirch.npc.Clothes.worn('Elara').lower.name === 'elven_skirt'"
+        "cond": "maplebirch.npc.Clothes.wardrobe.worn('Elara').lower.name === 'elven_skirt'"
       }
     ]
   }

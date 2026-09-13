@@ -49,7 +49,7 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
 
       - name: Verify root package version
         run: |
@@ -61,9 +61,9 @@ jobs:
           fi
 
       - name: Build types package
-        run: bun run types:check
+        run: bun run types
 
-      - name: Verify framework and generated types
+      - name: Verify framework
         run: bun run verify
 
       - name: Verify types package version

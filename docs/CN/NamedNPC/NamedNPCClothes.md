@@ -157,7 +157,8 @@ setup.npcClothesSets = [
 - **服装定义**: 定义一套完整的服装
 - **位置注册**: 在特定位置穿着特定服装
 - **条件控制**: 满足条件时才穿着
-- **层级系统**: 位置特定 > 全局默认
+- **服装选择**: 位置特定 > 全局默认
+- **合并顺序**: 裸体模板 → NPC 基础层 → 选中的地点服装 → 动态修改
 
 #### 服装定义文件 (来源于PC身上的服装数据)
 
@@ -208,24 +209,36 @@ work_uniform:
 框架内置衣柜会自动加载。通过代码加载额外衣柜文件时，需要同时传入模组名和文件路径。
 
 ```javascript
-// 1. 加载衣柜配置
-await maplebirch.npc.Clothes.loadWardrobe('myMod', 'data/wardrobe.yaml');
+const wardrobe = maplebirch.npc.Clothes.wardrobe;
 
-// 2. 为NPC注册服装
+// 1. 加载衣柜配置
+await wardrobe.load('myMod', 'data/wardrobe.yaml');
+
+// 2. 设置 NPC 的基础服装；地点服装可覆盖同名部位
+wardrobe.base('Luna', clothes => {
+  clothes.neck = { name: 'collar' };
+});
+
+// 3. 为 NPC 注册服装
 // 在学校位置总是穿校服
-maplebirch.npc.Clothes.wear('Luna', 'school', 'school_uniform');
+wardrobe.wear('Luna', 'school', 'school_uniform');
 
 // 在咖啡馆位置穿便服，但只在非工作时间
-maplebirch.npc.Clothes.wear('Luna', 'cafe', 'casual_outfit', () => V.time.hour >= 18 || V.time.hour <= 8);
+wardrobe.wear('Luna', 'cafe', 'casual_outfit', () => V.time.hour >= 18 || V.time.hour <= 8);
 
 // 在面包店工作位置穿工作服
-maplebirch.npc.Clothes.wear('Luna', 'bakery', 'work_uniform');
+wardrobe.wear('Luna', 'bakery', 'work_uniform');
 
 // 全局默认(当没有其他匹配时)
-maplebirch.npc.Clothes.wear('Luna', '*', 'casual_outfit');
+wardrobe.wear('Luna', '*', 'casual_outfit');
 
-// 3. 获取当前服装
-const currentOutfit = maplebirch.npc.Clothes.worn('Luna');
+// 4. 最终动态修改；在地点服装合并后执行
+wardrobe.modify('Luna', (clothes, context) => {
+  if (context.location === 'park' && V.weather === 'rain') clothes.head = { name: 'hood' };
+});
+
+// 5. 获取当前服装
+const currentOutfit = wardrobe.worn('Luna');
 console.log('Luna当前穿着:', currentOutfit);
 ```
 

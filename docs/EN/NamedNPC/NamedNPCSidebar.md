@@ -88,7 +88,7 @@ Register the NPC image folder in `boot.json`:
     - { img: 'img/npc/elara/face_default.png', zIndex: 10 }
     - { img: 'img/npc/elara/blush.png', zIndex: 12, cond: "C.npc.Elara.mood === 'shy'" }
   upper:
-    - { img: 'img/npc/elara/top_default.png', zIndex: 15, cond: "maplebirch.npc.Clothes.worn('Elara').upper.name === 'elven_robe'" }
+    - { img: 'img/npc/elara/top_default.png', zIndex: 15, cond: "maplebirch.npc.Clothes.wardrobe.worn('Elara').upper.name === 'elven_robe'" }
 ```
 
 `body` is the base layer. Groups such as `head`, `face`, `upper`, and `lower` are rendered as logical layer groups. `zIndex` controls stacking order, and `cond` controls whether a layer is shown.

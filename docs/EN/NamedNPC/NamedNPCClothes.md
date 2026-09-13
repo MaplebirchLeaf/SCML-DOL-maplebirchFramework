@@ -50,7 +50,7 @@ Sidebar clothes define how an NPC should look in the sidebar renderer. Config fi
     - { img: 'img/npc/luna/hair_back.png', zIndex: 5 }
     - { img: 'img/npc/luna/face_base.png', zIndex: 10 }
   upper:
-    - { img: 'img/npc/luna/top_casual.png', zIndex: 15, cond: "maplebirch.npc.Clothes.worn('Luna').upper.name === 'casual_top'" }
+    - { img: 'img/npc/luna/top_casual.png', zIndex: 15, cond: "maplebirch.npc.Clothes.wardrobe.worn('Luna').upper.name === 'casual_top'" }
 ```
 
 Load sidebar config from `boot.json`:
@@ -101,13 +101,26 @@ The built-in wardrobe is bundled with the framework and loaded automatically. Ex
 Register outfits for locations:
 
 ```javascript
-await maplebirch.npc.Clothes.loadWardrobe('myMod', 'data/npc/wardrobe.yaml');
+const wardrobe = maplebirch.npc.Clothes.wardrobe;
 
-maplebirch.npc.Clothes.wear('Luna', 'school', 'school_uniform');
-maplebirch.npc.Clothes.wear('Luna', 'cafe', 'casual_outfit', () => Time.hour >= 18 || Time.hour <= 8);
-maplebirch.npc.Clothes.wear('Luna', '*', 'casual_outfit');
+await wardrobe.load('myMod', 'data/npc/wardrobe.yaml');
 
-const outfit = maplebirch.npc.Clothes.worn('Luna');
+// Base modifiers run before the selected location outfit is merged.
+wardrobe.base('Luna', clothes => {
+  clothes.neck = { name: 'collar' };
+});
+
+wardrobe.wear('Luna', 'school', 'school_uniform');
+wardrobe.wear('Luna', 'cafe', 'casual_outfit', () => Time.hour >= 18 || Time.hour <= 8);
+wardrobe.wear('Luna', '*', 'casual_outfit');
+
+// Dynamic modifiers run after the selected location outfit is merged.
+wardrobe.modify('Luna', (clothes, context) => {
+  if (context.location === 'park' && V.weather === 'rain') clothes.head = { name: 'hood' };
+});
+
+const outfit = wardrobe.worn('Luna');
 ```
 
 Location-specific outfits are checked before the global `*` fallback.
+The final outfit is composed in this order: naked template, NPC base modifiers, selected location outfit, then dynamic modifiers.
