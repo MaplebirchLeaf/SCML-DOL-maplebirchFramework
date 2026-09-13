@@ -247,7 +247,7 @@ function applyCombatClothesState(nnpc: Record<string, any>) {
   if ((npc.penis != null && npc.penis !== 'clothed') || (npc.vagina != null && npc.vagina !== 'clothed')) lowerCombatSlots.forEach(slot => (nnpc.clothes[slot] = nakedClothes(slot)));
 }
 
-function setupBasicData(options: NPCSidebarOptions) {
+function setupBasicData(options: NPCSidebarOptions, name: string) {
   options.maplebirch ??= {};
   options.maplebirch.nnpc ??= {};
   options.filters ??= {};
@@ -255,7 +255,7 @@ function setupBasicData(options: NPCSidebarOptions) {
   const nnpc = options.maplebirch.nnpc;
   const npcsidebar = V.options.maplebirch.npcsidebar;
 
-  nnpc.name = V.npc.at(-1) ?? '';
+  nnpc.name = name;
   nnpc.show = !!npcsidebar.show;
   nnpc.model = !!npcsidebar.model && setup.NPCNameList.includes(nnpc.name);
 
@@ -493,15 +493,25 @@ function setupNPC(options: NPCSidebarOptions, nnpc: Record<string, any>) {
 }
 
 function preprocess(options: NPCSidebarOptions) {
-  const nnpc = setupBasicData(options);
   const sidebar = V.options.maplebirch.npcsidebar;
+  const nearby = Array.isArray(V.npc) ? V.npc.filter((name: unknown): name is string => typeof name === 'string' && name.length > 0 && setup.NPCNameList.includes(name)) : [];
+  const names = nearby.filter((name, index) => nearby.lastIndexOf(name) === index);
+  const primary = names.includes(sidebar.primary_npc) ? sidebar.primary_npc : (names.at(-1) ?? '');
+  const nnpc = setupBasicData(options, primary);
   options.maplebirch!.previous = undefined;
-  const names = Array.isArray(V.npc) ? V.npc.filter((name: unknown): name is string => typeof name === 'string' && name.length > 0) : [];
-  const name = sidebar.model && sidebar.second_model ? names.at(-2) : undefined;
-  if (name) {
+  const selectedSecondary = names.includes(sidebar.secondary_npc) && sidebar.secondary_npc !== primary ? sidebar.secondary_npc : undefined;
+  const secondary =
+    sidebar.model && sidebar.second_model
+      ? (selectedSecondary ??
+        names
+          .slice()
+          .reverse()
+          .find(name => name !== primary))
+      : undefined;
+  if (secondary) {
     const previous: Record<string, any> = {
-      name,
-      model: setup.NPCNameList.includes(name),
+      name: secondary,
+      model: true,
       position: sidebar.position === 'front' ? 0 : -600,
       dxfn: nnpc.dxfn + (sidebar.previous_dx ?? -36),
       dyfn: nnpc.dyfn + (sidebar.previous_dy ?? -8),

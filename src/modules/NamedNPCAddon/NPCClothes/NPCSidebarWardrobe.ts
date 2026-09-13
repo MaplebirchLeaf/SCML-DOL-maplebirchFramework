@@ -3,6 +3,7 @@
 import builtinWardrobe from '@/assets/npc-clothes.yaml';
 import { evaluate, type Condition } from './Condition';
 import type NPCManager from '../../NamedNPC';
+import { clone } from '../../../utils';
 
 export interface WardrobeItem {
   [part: string]: any;
@@ -66,17 +67,30 @@ class NPCSidebarWardrobe {
     }
   }
 
-  public wear(npcName: string, location: string, key: string, cond?: Condition): void {
-    if (!(key in this.templates)) {
+  public get(key: string): WardrobeItem | undefined {
+    const template = this.templates[key];
+    return template ? clone(template) : undefined;
+  }
+
+  public set(key: string, template: WardrobeItem): void {
+    this.templates[key] = clone(template);
+  }
+
+  public has(key: string): boolean {
+    return Object.hasOwn(this.templates, key);
+  }
+
+  public wear(npcName: string, location: string | readonly string[], key: string, cond?: Condition): void {
+    if (!this.has(key)) {
       this.manager.log(`侧边栏服装配置 ${key} 不存在`, 'WARN');
       return;
     }
     const profile = this.profile(npcName);
-    const rules = location === '*' ? profile.global : this.location(profile, location);
-    rules.push({
-      key,
-      cond
-    });
+    const locations = typeof location === 'string' ? [location] : location;
+    for (const item of locations) {
+      const rules = item === '*' ? profile.global : this.location(profile, item);
+      rules.push({ key, cond });
+    }
   }
 
   public base(npcName: string, modifier: WardrobeModifier): void {
@@ -96,7 +110,7 @@ class NPCSidebarWardrobe {
       location,
       key
     };
-    const clothes = structuredClone(this.templates.naked ?? {});
+    const clothes = clone(this.templates.naked ?? {});
     this.applyModifiers(profile.baseModifiers, clothes, context, '基层服装配置');
     if (key !== 'naked') this.mergeClothes(clothes, this.templates[key] ?? {});
     this.applyModifiers(profile.modifiers, clothes, context, '动态服装修改');
@@ -114,11 +128,11 @@ class NPCSidebarWardrobe {
   }
 
   private add(data: Record<string, WardrobeItem>): void {
-    Object.assign(this.templates, data);
+    for (const [key, template] of Object.entries(data)) this.set(key, template);
   }
 
   private mergeClothes(clothes: WardrobeItem, layer: WardrobeItem): void {
-    for (const [part, value] of Object.entries(layer)) if (value != null) clothes[part] = structuredClone(value);
+    for (const [part, value] of Object.entries(layer)) if (value != null) clothes[part] = clone(value);
   }
 
   private select(profile: WardrobeProfile, location: string): string {

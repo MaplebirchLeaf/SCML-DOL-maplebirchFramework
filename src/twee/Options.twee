@@ -99,6 +99,14 @@
 
     <div class='settingsToggleItem'><label><<checkbox '$options.maplebirch.npcsidebar.model' false true autocheck>><<lanSwitch 'PC Model Mode' 'PC模型模式'>></label><span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Uses player model assets to display nearby NPCs.' '使用玩家模型素材显示附近NPC。'>></span>">(?)</span></div>
 
+    <<set $_nearbyNPCs = Array.from(new Set(($npc ?? []).filter(name => typeof name === 'string' && setup.NPCNameList.includes(name))))>>
+    <<set $_nearbyNPCOptions = {}>>
+    <<run $_nearbyNPCs.forEach(name => $_nearbyNPCOptions[maplebirch.auto(name.convert('title'))] = name)>>
+
+    <div class='settingsToggleItem'><label><span class='gold'><<lanSwitch 'First NPC Model: ' '第一NPC模型：'>></span><<lanListbox '$options.maplebirch.npcsidebar.primary_npc' autoselect class:maplebirch-npc-model-primary>><<option `lanSwitch('Automatic', '自动')` ''>><<optionsfrom $_nearbyNPCOptions>><</lanListbox>></label></div>
+
+    <div class='settingsToggleItem'><label><span class='gold'><<lanSwitch 'Second NPC Model: ' '第二NPC模型：'>></span><<lanListbox '$options.maplebirch.npcsidebar.secondary_npc' autoselect class:maplebirch-npc-model-secondary>><<option `lanSwitch('Automatic', '自动')` ''>><<optionsfrom $_nearbyNPCOptions>><</lanListbox>></label></div>
+
     <div class='settingsToggleItem'>
       <span class='gold'><<lanSwitch 'Image Position: ' '图像位置：'>></span><<radiobuttonsfrom '$options.maplebirch.npcsidebar.position' 'front[Front,前置]|back[Back,后置]'>><<updatesidebarimg>><</radiobuttonsfrom>>
       <span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Front: Model appears in front. Back: Model appears behind.' '前置：模型显示在前面。后置：模型显示在后面。'>></span>">(?)</span><br>
@@ -125,8 +133,8 @@
     </div>
 
     <div class='settingsToggleItemWide'>
-      <label><<checkbox '$options.maplebirch.npcsidebar.second_model' false true autocheck>><<lanSwitch 'Second NPC Model' '第二NPC模型'>></label><span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Also displays the previous NPC in PC Model Mode.' 'PC模型模式下同时显示上一名NPC。'>></span>">(?)</span><br>
-      <span class='gold'><<lanSwitch 'Second Model Offset: ' '第二模型偏移：'>></span><span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Offsets the second model from the latest NPC.' '相对最新NPC偏移第二模型。'>></span>">(?)</span><br>
+      <label><<checkbox '$options.maplebirch.npcsidebar.second_model' false true autocheck>><<lanSwitch 'Second NPC Model' '第二NPC模型'>></label><span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Also displays a selected second nearby NPC in PC Model Mode.' 'PC模型模式下同时显示选中的第二名附近NPC。'>></span>">(?)</span><br>
+      <span class='gold'><<lanSwitch 'Second Model Offset: ' '第二模型偏移：'>></span><span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Offsets the second model from the first model.' '相对第一模型偏移第二模型。'>></span>">(?)</span><br>
       <div class='maplebirch-relationcount-slider'><label><<lanSwitch 'Horizontal Offset' '水平偏移'>><<numberslider '$options.maplebirch.npcsidebar.previous_dx' $options.maplebirch.npcsidebar.previous_dx -96 96 1 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => `${v}px` }>></label></div>
       <div class='maplebirch-relationcount-slider'><label><<lanSwitch 'Vertical Offset' '垂直偏移'>><<numberslider '$options.maplebirch.npcsidebar.previous_dy' $options.maplebirch.npcsidebar.previous_dy -62 46 1 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => `${v}px` }>></label></div>
     </div>

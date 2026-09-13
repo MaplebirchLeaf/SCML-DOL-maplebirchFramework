@@ -307,6 +307,18 @@ class Internals {
     };
 
     $(document).on('change', 'select[name="lanListbox-optionsmaplebirchnpcsidebarnnpc"]', refreshOptions);
+    $(document).on('change', 'select.maplebirch-npc-model-primary, select.maplebirch-npc-model-secondary', event => {
+      const select = event.currentTarget as HTMLSelectElement;
+      const sidebar = V.options.maplebirch.npcsidebar;
+      if (sidebar.primary_npc && sidebar.primary_npc === sidebar.secondary_npc) {
+        const primaryChanged = select.classList.contains('maplebirch-npc-model-primary');
+        if (primaryChanged) sidebar.secondary_npc = '';
+        else sidebar.primary_npc = '';
+        const previous = document.querySelector<HTMLSelectElement>(primaryChanged ? 'select.maplebirch-npc-model-secondary' : 'select.maplebirch-npc-model-primary');
+        if (previous) previous.selectedIndex = 0;
+      }
+      updateSidebar();
+    });
     $(document).on('change', 'select[name="lanListbox-optionsmaplebirchnpcsidebarfacestyle"]', refreshOptions);
     $(document).on('change', 'select[name="lanListbox-optionsmaplebirchnpcsidebarfacevariant"]', updateSidebar);
     $(document).on('change', 'select[name="lanListbox-optionsmaplebirchcharactercharartselect"]', refreshOptions);

@@ -2790,7 +2790,10 @@ declare class NPCSidebarWardrobe {
   constructor(manager: NPCManager);
   init(): void;
   load(modName: string, filePath: string): Promise<void>;
-  wear(npcName: string, location: string, key: string, cond?: Condition): void;
+  get(key: string): WardrobeItem | undefined;
+  set(key: string, template: WardrobeItem): void;
+  has(key: string): boolean;
+  wear(npcName: string, location: string | readonly string[], key: string, cond?: Condition): void;
   base(npcName: string, modifier: WardrobeModifier): void;
   modify(npcName: string, modifier: WardrobeModifier): void;
   worn(npcName: string): WardrobeItem;

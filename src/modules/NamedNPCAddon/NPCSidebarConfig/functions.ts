@@ -1,6 +1,7 @@
 // ./src/modules/NamedNPCAddon/NPCSidebarConfig/functions.ts
 
 import maplebirch from '../../../core';
+import { clone } from '../../../utils';
 
 type NPCSidebarOptions = {
   filters?: Record<string, any>;
@@ -68,7 +69,7 @@ function normaliseFileName(text: string): string {
 function lookupColour(dict: { [x: string]: any }, key: string, prefilterName?: string) {
   const record = dict[key];
   if (!record) return {};
-  const filter = structuredClone(record.canvasfilter);
+  const filter = clone(record.canvasfilter);
   if (prefilterName) Renderer.mergeLayerData(filter, setup.colours.sprite_prefilters[prefilterName], true);
   return filter;
 }
