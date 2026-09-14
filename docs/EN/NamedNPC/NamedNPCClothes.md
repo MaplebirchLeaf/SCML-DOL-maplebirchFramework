@@ -112,6 +112,27 @@ wardrobe.base('Luna', clothes => {
 
 wardrobe.wear('Luna', 'school', 'school_uniform');
 wardrobe.wear('Luna', 'cafe', 'casual_outfit', () => Time.hour >= 18 || Time.hour <= 8);
+wardrobe.wear('Luna', 'school', [
+  ['school_uniform', 8],
+  ['school_uniform_alt', 2]
+]);
+wardrobe.wear('Luna', 'lake', 'school_uniform', {
+  when: () => V.lunaSwimming,
+  wetness: 'soaked'
+});
+wardrobe.wear('Luna', 'park', 'casual_outfit', {
+  wetness: () => (V.weather === 'rain' ? 'wet' : 'dry')
+});
+wardrobe.wet('Luna', 'soaked', () => passage() === 'Lake Soak');
+wardrobe.layer(
+  'Luna',
+  () => (C.npc.Luna.pronoun === 'm' ? 'male_underwear' : 'female_underwear'),
+  () => C.npc.Luna.corruption < 10
+);
+wardrobe.modify('Luna', clothes => {
+  wardrobe.put(clothes, 'chastity_belt');
+  wardrobe.strip(clothes, ['upper', 'lower']);
+});
 wardrobe.wear('Luna', '*', 'casual_outfit');
 
 // Dynamic modifiers run after the selected location outfit is merged.
@@ -123,4 +144,12 @@ const outfit = wardrobe.worn('Luna');
 ```
 
 Location-specific outfits are checked before the global `*` fallback.
-The final outfit is composed in this order: naked template, NPC base modifiers, selected location outfit, then dynamic modifiers.
+The final outfit is composed in this order: naked template, NPC base modifiers, selected location outfit, dynamic modifiers, then outfit wetness.
+
+`wardrobe.wear()` changes an outfit only when a valid rule matches the current location. With no matching rule, the NPC retains the last successfully selected outfit; `naked` is used only before any rule has matched.
+
+The third argument also accepts an array of `[outfit key, weight]` entries. A weighted choice is made once when a rule becomes active, not on repeated reads or while the outfit is retained. The choice is made again after the rule stops matching and later becomes active. Missing outfit keys and non-positive or non-finite weights are ignored with a warning.
+
+NPC outfit wetness uses the semantic states `dry`, `damp`, `wet`, and `soaked`, which the framework maps internally to alpha values `1`, `0.9`, `0.7`, and `0.5`. One state applies uniformly to `upper`, `lower`, `under_upper`, and `under_lower`; glasses, jewellery, shoes, and other slots remain unchanged. Wetness belongs to a `wear` rule rather than a reusable outfit template. Omitting `wetness` preserves the dry display. `wardrobe.wet()` overrides the currently selected outfit's wetness; the last matching rule wins, and no match falls back to the `wardrobe.wear()` wetness.
+
+`wardrobe.layer()` conditionally merges a base template before the location outfit and may resolve its template key dynamically. `wardrobe.put()` merges a registered template inside a callback. `wardrobe.strip()` restores the requested slots from the `naked` template instead of leaving undefined slots that renderers cannot read. Because the location outfit is merged after base layers, swimwear and other outfits may still provide their own `under_upper` or `under_lower` items.

@@ -483,6 +483,17 @@ export const NamedNPC = (core => {
   function updateNPCCProxy(manager: NPCManager) {
     if (!C.npc || typeof C.npc !== 'object') C.npc = {};
     updateNPCNameList(manager);
+    const npcNames = new Set(manager.NPCNameList);
+    if (manager.NPCNameList.some(name => Object.getOwnPropertyDescriptor(C.npc, name)?.configurable === false)) {
+      const current = C.npc;
+      const replacement = Object.create(Object.getPrototypeOf(current));
+      for (const key of Reflect.ownKeys(current)) {
+        if (typeof key === 'string' && npcNames.has(key)) continue;
+        const descriptor = Object.getOwnPropertyDescriptor(current, key);
+        if (descriptor) Object.defineProperty(replacement, key, descriptor);
+      }
+      C.npc = replacement;
+    }
     for (const name of manager.NPCNameList) {
       if (Object.prototype.hasOwnProperty.call(C.npc, name)) continue;
       Object.defineProperty(C.npc, name, {
@@ -522,6 +533,7 @@ export const NamedNPC = (core => {
     clear  : { value: clearInvalidNPC },
     update : { value: onUpdate },
     setup  : { value: updateNPCdata },
+    proxy  : { value: updateNPCCProxy },
     convert: { value: convertNPCs }
   });
 
@@ -532,6 +544,7 @@ export const NamedNPC = (core => {
     clear  : typeof clearInvalidNPC;
     update : typeof onUpdate;
     setup  : typeof updateNPCdata;
+    proxy  : typeof updateNPCCProxy;
     convert: typeof convertNPCs;
   };
 })(maplebirch);
@@ -577,6 +590,8 @@ class NPCManager {
     this.Clothes = Object.seal(new NPCClothes(this));
     this.Transformation = Object.seal(new NPCTransformation(this));
     this.core.addon.hook<NPCBootConfig>('npc', task => this.config(task));
+    this.core.tool.onInit(() => this.NamedNPC.proxy(this));
+    this.core.on(':variable', () => this.NamedNPC.proxy(this), 'Named NPC Proxy');
     this.core.on(
       ':language',
       () => {

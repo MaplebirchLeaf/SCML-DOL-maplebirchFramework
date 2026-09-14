@@ -158,7 +158,8 @@ setup.npcClothesSets = [
 - **位置注册**: 在特定位置穿着特定服装
 - **条件控制**: 满足条件时才穿着
 - **服装选择**: 位置特定 > 全局默认
-- **合并顺序**: 裸体模板 → NPC 基础层 → 选中的地点服装 → 动态修改
+- **服装延留**: 服装持续保留，直到另一条有效穿着规则触发
+- **合并顺序**: 裸体模板 → NPC 基础层 → 选中的地点服装 → 动态修改 → 整套湿度
 
 #### 服装定义文件 (来源于PC身上的服装数据)
 
@@ -226,6 +227,39 @@ wardrobe.wear('Luna', 'school', 'school_uniform');
 // 在咖啡馆位置穿便服，但只在非工作时间
 wardrobe.wear('Luna', 'cafe', 'casual_outfit', () => V.time.hour >= 18 || V.time.hour <= 8);
 
+// 每次重新触发规则时，按权重随机选择一套服装
+wardrobe.wear('Luna', 'school', [
+  ['school_uniform', 8],
+  ['school_uniform_alt', 2]
+]);
+
+// 湿度属于本次穿着规则，而不是服装模板；整套服装统一使用字符串状态
+wardrobe.wear('Luna', 'lake', 'school_uniform', {
+  when: () => V.lunaSwimming,
+  wetness: 'soaked'
+});
+
+// 需要动态变化时返回 dry、damp、wet 或 soaked
+wardrobe.wear('Luna', 'park', 'casual_outfit', {
+  wetness: () => (V.weather === 'rain' ? 'wet' : 'dry')
+});
+
+// 场景湿度覆盖当前已经选中的整套服装；条件不成立时退回 wear 的湿度
+wardrobe.wet('Luna', 'soaked', () => passage() === 'Lake Soak');
+
+// 条件基础层，可动态决定使用哪个已注册模板
+wardrobe.layer(
+  'Luna',
+  () => (C.npc.Luna.pronoun === 'm' ? 'male_underwear' : 'female_underwear'),
+  () => C.npc.Luna.corruption < 10
+);
+
+// 在动态修改中合并模板，或将槽位恢复为裸体占位
+wardrobe.modify('Luna', clothes => {
+  wardrobe.put(clothes, 'chastity_belt');
+  wardrobe.strip(clothes, ['upper', 'lower']);
+});
+
 // 在面包店工作位置穿工作服
 wardrobe.wear('Luna', 'bakery', 'work_uniform');
 
@@ -241,6 +275,14 @@ wardrobe.modify('Luna', (clothes, context) => {
 const currentOutfit = wardrobe.worn('Luna');
 console.log('Luna当前穿着:', currentOutfit);
 ```
+
+NPC 服装湿度使用 `dry`（干燥）、`damp`（湿润）、`wet`（潮湿）、`soaked`（湿透）四种语义状态，框架内部对应透明度 `1`、`0.9`、`0.7`、`0.5`。湿度统一作用于 `upper`、`lower`、`under_upper`、`under_lower`，不会使眼镜、首饰或鞋等槽位透明。未配置 `wetness` 时保持原有干燥显示。`wardrobe.wet()` 用于覆盖当前已选服装的湿度；存在多条匹配规则时最后注册的规则优先，未命中时退回 `wardrobe.wear()` 的湿度。
+
+`wardrobe.layer()` 在地点服装之前按条件合并基础模板，适合内衣或固定配饰；模板键也可以由函数动态返回。`wardrobe.put()` 在回调中合并已注册模板。`wardrobe.strip()` 会把指定槽位恢复为 `naked` 模板中的占位数据，不会留下渲染器无法读取的空槽位。地点服装在基础层之后合并，因此泳装等模板自身的 `under_upper`、`under_lower` 不受基础内衣条件影响。
+
+`wardrobe.wear()` 只在当前位置存在有效规则时换装。当前位置没有匹配规则或规则条件不成立时，NPC 会延续上一次成功选中的服装；尚未触发过任何规则时才使用 `naked`。
+
+第三个参数也可以使用 `[服装键, 权重]` 数组。随机选择只在规则由未触发变为触发时执行一次；连续读取和服装延留期间不会重复随机，规则中断后再次触发时才会重新选择。不存在的服装键、非有限数或小于等于零的权重会被忽略并记录警告。
 
 #### 服装层级示例
 

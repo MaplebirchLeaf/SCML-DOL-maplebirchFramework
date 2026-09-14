@@ -1,33 +1,69 @@
 // ./src/modules/NamedNPCAddon/NPCClothes/NPCSidebarWardrobe.ts
 
-import builtinWardrobe from '@/assets/npc-clothes.yaml';
+import builtinWardrobe from '../../../assets/npc-clothes.yaml';
 import { evaluate, type Condition } from './Condition';
 import type NPCManager from '../../NamedNPC';
 import { clone } from '../../../utils';
 
-export interface WardrobeItem {
+interface WardrobeItem {
   [part: string]: any;
 }
 
+type WardrobeWetness = 'dry' | 'damp' | 'wet' | 'soaked';
+type WardrobeWetnessResolver = WardrobeWetness | (() => WardrobeWetness);
+
+interface WardrobeWearOptions {
+  when?: Condition;
+  wetness?: WardrobeWetnessResolver;
+}
+
+type WardrobeWeightedChoice = readonly [key: string, weight: number];
+type WardrobeChoice = string | readonly WardrobeWeightedChoice[];
+type WardrobeLayerResolver = string | (() => string);
+
 interface WearRule {
+  choice: WardrobeChoice;
+  cond?: Condition;
+  wetness?: WardrobeWetnessResolver;
+}
+
+interface CurrentWearRule {
   key: string;
+  wetness?: WardrobeWetnessResolver;
+}
+
+interface WetnessRule {
+  wetness: WardrobeWetnessResolver;
   cond?: Condition;
 }
 
 interface WardrobeProfile {
   locations: Map<string, WearRule[]>;
   global: WearRule[];
+  wetness: WetnessRule[];
   baseModifiers: WardrobeModifier[];
   modifiers: WardrobeModifier[];
+  active?: WearRule;
+  current?: CurrentWearRule;
 }
 
-export interface WardrobeContext {
+interface WardrobeContext {
   npcName: string;
   location: string;
   key: string;
+  wetness: WardrobeWetness;
 }
 
-export type WardrobeModifier = (clothes: WardrobeItem, context: WardrobeContext) => void;
+type WardrobeModifier = (clothes: WardrobeItem, context: WardrobeContext) => void;
+
+const alpha: Record<WardrobeWetness, number> = {
+  dry: 1,
+  damp: 0.9,
+  wet: 0.7,
+  soaked: 0.5
+};
+
+const slots = ['upper', 'lower', 'under_upper', 'under_lower'] as const;
 
 class NPCSidebarWardrobe {
   private readonly templates: Record<string, WardrobeItem> = {};
@@ -80,16 +116,63 @@ class NPCSidebarWardrobe {
     return Object.hasOwn(this.templates, key);
   }
 
-  public wear(npcName: string, location: string | readonly string[], key: string, cond?: Condition): void {
-    if (!this.has(key)) {
-      this.manager.log(`侧边栏服装配置 ${key} 不存在`, 'WARN');
-      return;
+  public wear(npcName: string, location: string | readonly string[], choice: WardrobeChoice, options?: Condition | WardrobeWearOptions): void {
+    if (typeof choice === 'string') {
+      if (choice !== 'naked' && !this.has(choice)) {
+        this.manager.log(`侧边栏服装配置 ${choice} 不存在`, 'WARN');
+        return;
+      }
+    } else {
+      choice = choice.filter(([key, weight]) => {
+        if (!this.has(key)) {
+          this.manager.log(`侧边栏服装配置 ${key} 不存在`, 'WARN');
+          return false;
+        }
+        if (!Number.isFinite(weight) || weight <= 0) {
+          this.manager.log(`侧边栏服装配置 ${key} 的随机权重无效`, 'WARN');
+          return false;
+        }
+        return true;
+      });
+      if (choice.length === 0) return;
     }
     const profile = this.profile(npcName);
     const locations = typeof location === 'string' ? [location] : location;
+    const rule: WearRule = options != null && typeof options === 'object' && !Array.isArray(options) ? { choice, cond: options.when, wetness: options.wetness } : { choice, cond: options };
     for (const item of locations) {
       const rules = item === '*' ? profile.global : this.location(profile, item);
-      rules.push({ key, cond });
+      rules.push(rule);
+    }
+  }
+
+  public wet(npcName: string, wetness: WardrobeWetnessResolver, cond?: Condition): void {
+    this.profile(npcName).wetness.push({ wetness, cond });
+  }
+
+  public layer(npcName: string, source: WardrobeLayerResolver, cond?: Condition): void {
+    if (typeof source === 'string' && !this.has(source)) {
+      this.manager.log(`侧边栏服装配置 ${source} 不存在`, 'WARN');
+      return;
+    }
+    this.base(npcName, clothes => {
+      if (!evaluate(this.manager.core, cond)) return;
+      this.put(clothes, typeof source === 'function' ? source() : source);
+    });
+  }
+
+  public put(clothes: WardrobeItem, key: string): void {
+    const template = this.templates[key];
+    if (!template) {
+      this.manager.log(`侧边栏服装配置 ${key} 不存在`, 'WARN');
+      return;
+    }
+    this.merge(clothes, template);
+  }
+
+  public strip(clothes: WardrobeItem, slot: string | readonly string[]): void {
+    const naked = this.templates.naked ?? {};
+    for (const key of typeof slot === 'string' ? [slot] : slot) {
+      if (naked[key] != null) clothes[key] = clone(naked[key]);
     }
   }
 
@@ -104,20 +187,28 @@ class NPCSidebarWardrobe {
   public worn(npcName: string): WardrobeItem {
     const profile = this.profile(npcName);
     const location = this.manager.Schedule.location[npcName] ?? '';
-    const key = this.select(profile, location);
+    const selected = this.select(profile, location);
+    if (selected !== profile.active) {
+      profile.active = selected;
+      if (selected) profile.current = { key: this.choose(selected.choice), wetness: selected.wetness };
+    }
+    const rule = profile.current ?? { key: 'naked' };
+    const wetness = this.resolveWet(this.findWet(profile) ?? rule.wetness);
     const context: WardrobeContext = {
       npcName,
       location,
-      key
+      key: rule.key,
+      wetness
     };
     const clothes = clone(this.templates.naked ?? {});
-    this.applyModifiers(profile.baseModifiers, clothes, context, '基层服装配置');
-    if (key !== 'naked') this.mergeClothes(clothes, this.templates[key] ?? {});
-    this.applyModifiers(profile.modifiers, clothes, context, '动态服装修改');
+    this.run(profile.baseModifiers, clothes, context, '基层服装配置');
+    if (rule.key !== 'naked') this.merge(clothes, this.templates[rule.key] ?? {});
+    this.run(profile.modifiers, clothes, context, '动态服装修改');
+    this.applyWet(clothes, wetness);
     return clothes;
   }
 
-  private applyModifiers(modifiers: WardrobeModifier[], clothes: WardrobeItem, context: WardrobeContext, label: string): void {
+  private run(modifiers: WardrobeModifier[], clothes: WardrobeItem, context: WardrobeContext, label: string): void {
     for (const modifier of modifiers) {
       try {
         modifier(clothes, context);
@@ -131,19 +222,58 @@ class NPCSidebarWardrobe {
     for (const [key, template] of Object.entries(data)) this.set(key, template);
   }
 
-  private mergeClothes(clothes: WardrobeItem, layer: WardrobeItem): void {
+  private merge(clothes: WardrobeItem, layer: WardrobeItem): void {
     for (const [part, value] of Object.entries(layer)) if (value != null) clothes[part] = clone(value);
   }
 
-  private select(profile: WardrobeProfile, location: string): string {
-    return this.find(profile.locations.get(location)) ?? this.find(profile.global) ?? 'naked';
+  private select(profile: WardrobeProfile, location: string): WearRule | undefined {
+    return this.find(profile.locations.get(location)) ?? this.find(profile.global);
   }
 
-  private find(rules?: WearRule[]): string | undefined {
+  private find(rules?: WearRule[]): WearRule | undefined {
     if (!rules) return;
     for (let i = rules.length - 1; i >= 0; i--) {
       const rule = rules[i];
-      if (evaluate(this.manager.core, rule.cond)) return rule.key;
+      if (evaluate(this.manager.core, rule.cond)) return rule;
+    }
+  }
+
+  private choose(choice: WardrobeChoice): string {
+    if (typeof choice === 'string') return choice;
+    const total = choice.reduce((sum, [, weight]) => sum + weight, 0);
+    let target = Math.random() * total;
+    for (const [key, weight] of choice) {
+      target -= weight;
+      if (target < 0) return key;
+    }
+    return choice[choice.length - 1][0];
+  }
+
+  private findWet(profile: WardrobeProfile): WardrobeWetnessResolver | undefined {
+    for (let i = profile.wetness.length - 1; i >= 0; i--) {
+      const rule = profile.wetness[i];
+      if (evaluate(this.manager.core, rule.cond)) return rule.wetness;
+    }
+  }
+
+  private resolveWet(source?: WardrobeWetnessResolver): WardrobeWetness {
+    try {
+      const wetness: unknown = typeof source === 'function' ? source() : (source ?? 'dry');
+      if (typeof wetness === 'string' && Object.hasOwn(alpha, wetness)) return wetness as WardrobeWetness;
+      this.manager.log(`无效的 NPC 服装湿度: ${String(wetness)}`, 'WARN');
+    } catch (e: any) {
+      this.manager.log(`NPC 服装湿度计算失败: ${e.message}`, 'WARN');
+    }
+    return 'dry';
+  }
+
+  private applyWet(clothes: WardrobeItem, wetness: WardrobeWetness): void {
+    if (wetness === 'dry') return;
+    const wetAlpha = alpha[wetness];
+    for (const slot of slots) {
+      const item = clothes[slot];
+      if (!item || item.index === 0 || item.type?.includes('naked')) continue;
+      item.alpha = Math.min(typeof item.alpha === 'number' ? item.alpha : 1, wetAlpha);
     }
   }
 
@@ -153,6 +283,7 @@ class NPCSidebarWardrobe {
       profile = {
         locations: new Map(),
         global: [],
+        wetness: [],
         baseModifiers: [],
         modifiers: []
       };

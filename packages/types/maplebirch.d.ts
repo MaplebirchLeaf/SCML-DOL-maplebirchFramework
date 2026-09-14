@@ -2490,15 +2490,41 @@ interface PetOptions {
   scale?: number;
 }
 type PetTarget = string | HTMLElement;
-declare class Pet {
+interface PetHost {
+  mask(x?: number, rotation?: number): string;
+}
+interface FloatingPetConfig {
+  elementId: string;
+  storageKey: string;
+  className: string;
+  fallback(size: number): {
+    left: number;
+    top: number;
+  };
+}
+declare abstract class FloatingPet {
+  protected readonly host: PetHost;
+  protected readonly petConfig: FloatingPetConfig;
+  protected canvas?: HTMLCanvasElement;
+  protected model?: CanvasModel;
+  protected container?: HTMLElement;
+  protected options: Required<PetOptions>;
+  private cleanupDrag?;
+  protected constructor(host: PetHost, petConfig: FloatingPetConfig);
+  configure(options?: PetOptions): this;
+  unmount(): void;
+  refresh(): boolean;
+  protected abstract draw(model: CanvasModel, context: CanvasRenderingContext2D): void;
+  protected mount(container: HTMLElement, model: CanvasModel, canvas: HTMLCanvasElement): void;
+  protected stopAnimation(): void;
+  private get displaySize();
+  private clearBox;
+  private enableDrag;
+}
+declare class Pet extends FloatingPet {
   private manager;
   readonly modelName: string;
-  private canvas?;
-  private model?;
-  private container?;
-  private options;
   private readonly layers;
-  private cleanupDrag?;
   private syncing;
   private rendering;
   private syncFrame;
@@ -2508,15 +2534,9 @@ declare class Pet {
   capture(mainModel?: CanvasModelOptions): void;
   render(target: PetTarget, options?: PetOptions): boolean;
   unmount(): void;
-  refresh(): boolean;
-  configure(options?: PetOptions): this;
   private cancel;
-  private get displaySize();
   private readSettings;
-  private draw;
-  private clearBox;
-  private enableDrag;
-  private stopAnimation;
+  protected draw(model: CanvasModel, context: CanvasRenderingContext2D): void;
 }
 //#endregion
 //#region src/modules/CharacterAddon/TransformationConfig.d.ts
@@ -2777,10 +2797,20 @@ type Condition = boolean | string | (() => boolean) | Condition[];
 interface WardrobeItem {
   [part: string]: any;
 }
+type WardrobeWetness = 'dry' | 'damp' | 'wet' | 'soaked';
+type WardrobeWetnessResolver = WardrobeWetness | (() => WardrobeWetness);
+interface WardrobeWearOptions {
+  when?: Condition;
+  wetness?: WardrobeWetnessResolver;
+}
+type WardrobeWeightedChoice = readonly [key: string, weight: number];
+type WardrobeChoice = string | readonly WardrobeWeightedChoice[];
+type WardrobeLayerResolver = string | (() => string);
 interface WardrobeContext {
   npcName: string;
   location: string;
   key: string;
+  wetness: WardrobeWetness;
 }
 type WardrobeModifier = (clothes: WardrobeItem, context: WardrobeContext) => void;
 declare class NPCSidebarWardrobe {
@@ -2793,15 +2823,23 @@ declare class NPCSidebarWardrobe {
   get(key: string): WardrobeItem | undefined;
   set(key: string, template: WardrobeItem): void;
   has(key: string): boolean;
-  wear(npcName: string, location: string | readonly string[], key: string, cond?: Condition): void;
+  wear(npcName: string, location: string | readonly string[], choice: WardrobeChoice, options?: Condition | WardrobeWearOptions): void;
+  wet(npcName: string, wetness: WardrobeWetnessResolver, cond?: Condition): void;
+  layer(npcName: string, source: WardrobeLayerResolver, cond?: Condition): void;
+  put(clothes: WardrobeItem, key: string): void;
+  strip(clothes: WardrobeItem, slot: string | readonly string[]): void;
   base(npcName: string, modifier: WardrobeModifier): void;
   modify(npcName: string, modifier: WardrobeModifier): void;
   worn(npcName: string): WardrobeItem;
-  private applyModifiers;
+  private run;
   private add;
-  private mergeClothes;
+  private merge;
   private select;
   private find;
+  private choose;
+  private findWet;
+  private resolveWet;
+  private applyWet;
   private profile;
   private location;
 }
@@ -2823,8 +2861,18 @@ interface NPCSidebarBootConfig {
 }
 declare function config(manager: NPCManager, modName: string, modZip: ModZipReader, config: NPCSidebarBootConfig): Promise<void>;
 declare function loadFromMod(modZip: ModZipReader, npcNames: string[]): string[];
+declare class NPCPet {
+  private readonly pets;
+  private frame;
+  private syncing;
+  sync(): boolean;
+  private render;
+  reset(): void;
+  private cancel;
+}
 declare const NPCSidebar: {
   new (): {};
+  readonly pet: NPCPet;
   get display(): Map<string, Set<string>>;
   config: typeof config;
   loadFromMod: typeof loadFromMod;
@@ -2987,6 +3035,7 @@ declare const NamedNPC: {
   clear: (manager: NPCManager) => boolean;
   update: (manager: NPCManager) => boolean;
   setup: (manager: NPCManager) => void;
+  proxy: (manager: NPCManager) => void;
   convert: (manager: NPCManager) => void;
 };
 declare class NPCManager {

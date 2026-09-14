@@ -13,7 +13,7 @@ const defaultData = {
   Init   : '<<run maplebirch.tool.zone.storyInit()>>',
   State  : '<<run maplebirch.tool.patch.applyFoodstuff()>><<run maplebirch.trigger(":variable")>>',
   Header : '',
-  Footer : '<div id="maplebirch-character-pet"></div><<maplebirchFrameworkVersions>>',
+  Footer : '<div id="maplebirch-character-pet"></div><div id="maplebirch-npc-pet-first"></div><div id="maplebirch-npc-pet-second"></div><<maplebirchFrameworkVersions>>',
   Information : '<<maplebirchFrameworkInfo>>',
   Options: widgets(Options),
   Cheats: widgets(Cheats),

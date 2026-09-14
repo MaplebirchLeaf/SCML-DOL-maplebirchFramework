@@ -1,6 +1,7 @@
 // ./src/modules/NamedNPCAddon/NPCSidebar.ts
 
 import type { ModZipReader } from '@scml/types/sugarcube-2-ModLoader/ModZipReader';
+import type { MacroDefinition } from 'twine-sugarcube';
 import maplebirch from '../../core';
 import { lookupColour, clothes_layer, isAltPosition, normaliseClothingState, clothingIndex, previousFilterName } from './NPCSidebarConfig/functions';
 import base_layers from './NPCSidebarConfig/base_layers';
@@ -17,6 +18,7 @@ import feet_layers from './NPCSidebarConfig/feet_layers';
 import transformation_layers, { transformationDefaults } from './NPCSidebarConfig/transformation_layers';
 import type NPCManager from '../NamedNPC';
 import DoLPcompat from '../../DoLPcompat';
+import { FloatingPet, type PetOptions, type PetSettings } from '../CharacterAddon/Pet';
 
 export interface NPCSidebarBootConfig {
   clothes?: string[];
@@ -87,6 +89,46 @@ const lowerCombatSlots: ClothesSlot[] = ['over_lower', 'lower', 'under_lower', '
 const portrait_npc_name = (name: string): string => String(name).replace(/[_-]/g, ' ').convert('title');
 const portrait_gender = (npc: Record<string, any>): string => (C.npc?.[npc.name]?.gender === 'm' ? 'male' : 'female');
 const portrait_skin_tone = (npc: Record<string, any>): string => (npc.skin_type?.includes('dark') ? 'dark' : 'pale');
+
+function selected(): [string, string?] {
+  const sidebar = V.options.maplebirch.npcsidebar;
+  const nearby = Array.isArray(V.npc) ? V.npc.filter((name: unknown): name is string => typeof name === 'string' && name.length > 0 && setup.NPCNameList.includes(name)) : [];
+  const names = nearby.filter((name, index) => nearby.lastIndexOf(name) === index);
+  const primary = names.includes(sidebar.primary_npc) ? sidebar.primary_npc : (names.at(-1) ?? '');
+  const selectedSecondary = names.includes(sidebar.secondary_npc) && sidebar.secondary_npc !== primary ? sidebar.secondary_npc : undefined;
+  const secondary =
+    sidebar.model && sidebar.second_model
+      ? (selectedSecondary ??
+        names
+          .slice()
+          .reverse()
+          .find(name => name !== primary))
+      : undefined;
+  return [primary, secondary];
+}
+
+function clothesChanged(rendered: Record<string, any> | undefined, current: Record<string, any>): boolean {
+  if (!rendered) return true;
+  const keys = ['name', 'variable', 'state', 'state_top', 'colour', 'colourCustom', 'accessory_colour', 'accessory_colourCustom', 'altposition', 'alpha'];
+  return clothesSlots.some(slot => {
+    const item = current[slot] ?? {};
+    if (rendered[slot]?.index !== clothesIndex(slot, item)) return true;
+    if (Object.hasOwn(item, 'integrity') && rendered[slot]?.integrity !== Integrity(item, slot)) return true;
+    return keys.some(key => Object.hasOwn(item, key) && rendered[slot]?.[key] !== item[key]);
+  });
+}
+
+function refresh(manager: NPCManager): void {
+  const model = Renderer.CanvasModelCaches?.main?.sidebar as CanvasModel | undefined;
+  if (!model?.canvas) return;
+  const rendered = [model.options?.maplebirch?.nnpc, model.options?.maplebirch?.previous] as Array<Record<string, any> | undefined>;
+  const changed = selected().some((name, index) => {
+    const npc = rendered[index];
+    if (!name) return !!npc?.name;
+    return npc?.name !== name || clothesChanged(npc.clothes, manager.Clothes.wardrobe.worn(name));
+  });
+  if (changed) model.redraw();
+}
 
 function loadFromMod(modZip: ModZipReader, npcNames: string[]) {
   if (!modZip) return [];
@@ -494,20 +536,9 @@ function setupNPC(options: NPCSidebarOptions, nnpc: Record<string, any>) {
 
 function preprocess(options: NPCSidebarOptions) {
   const sidebar = V.options.maplebirch.npcsidebar;
-  const nearby = Array.isArray(V.npc) ? V.npc.filter((name: unknown): name is string => typeof name === 'string' && name.length > 0 && setup.NPCNameList.includes(name)) : [];
-  const names = nearby.filter((name, index) => nearby.lastIndexOf(name) === index);
-  const primary = names.includes(sidebar.primary_npc) ? sidebar.primary_npc : (names.at(-1) ?? '');
+  const [primary, secondary] = selected();
   const nnpc = setupBasicData(options, primary);
   options.maplebirch!.previous = undefined;
-  const selectedSecondary = names.includes(sidebar.secondary_npc) && sidebar.secondary_npc !== primary ? sidebar.secondary_npc : undefined;
-  const secondary =
-    sidebar.model && sidebar.second_model
-      ? (selectedSecondary ??
-        names
-          .slice()
-          .reverse()
-          .find(name => name !== primary))
-      : undefined;
   if (secondary) {
     const previous: Record<string, any> = {
       name: secondary,
@@ -623,8 +654,129 @@ const layers = {
   ...previousLayers(baseLayers)
 };
 
+function petLayers(slot: 'nnpc' | 'previous'): CanvasLayerMap {
+  const previous = 'nnpc_previous_';
+  return Object.fromEntries(Object.entries(layers).filter(([name]) => (slot === 'previous' ? name.startsWith(previous) : name.startsWith('nnpc_') && !name.startsWith(previous))));
+}
+
+class NPCPetSlot extends FloatingPet {
+  private readonly modelName: string;
+  private renderOptions?: CanvasModelOptionsData;
+
+  public constructor(private readonly slot: 'nnpc' | 'previous') {
+    const second = slot === 'previous';
+    super(maplebirch.char, {
+      elementId: `maplebirch-npc-pet-${second ? 'second' : 'first'}`,
+      storageKey: `maplebirch.npc.pet.${second ? 'second' : 'first'}.position`,
+      className: 'maplebirch-npc-pet',
+      fallback: size => ({ left: 16, top: Math.max(0, window.innerHeight - size - (second ? size + 48 : 32)) })
+    });
+    this.modelName = `npc-pet-${slot}`;
+  }
+
+  public render(source: CanvasModelOptionsData, settings: PetOptions): boolean {
+    const state = source.maplebirch?.[this.slot] as Record<string, any> | undefined;
+    if (!state?.name || !state.model) {
+      this.unmount();
+      return false;
+    }
+    const container = document.getElementById(this.petConfig.elementId);
+    if (!container) return false;
+    this.configure(settings);
+    const models = Renderer.CanvasModels as Record<string, CanvasModelOptions | undefined>;
+    const main = models.main;
+    if (!main) return false;
+    models[this.modelName] = {
+      name: this.modelName,
+      width: main.width,
+      height: main.height,
+      frames: main.frames,
+      metadata: main.metadata,
+      scale: main.scale,
+      layers: {}
+    };
+    const model = Renderer.locateModel(this.modelName);
+    const context = model.createCanvas(false);
+    this.renderOptions = {
+      ...source,
+      filters: { ...source.filters },
+      maplebirch: {
+        ...source.maplebirch,
+        [this.slot]: { ...state, show: true }
+      }
+    };
+    delete this.renderOptions.generatedLayers;
+    model.reset();
+    this.draw(model, context);
+    this.mount(container, model, context.canvas);
+    return true;
+  }
+
+  protected draw(model: CanvasModel, context: CanvasRenderingContext2D): void {
+    if (!this.renderOptions) return;
+    this.stopAnimation();
+    try {
+      if (this.options.animated) model.animate(context, this.renderOptions, Renderer.defaultListener);
+      else model.render(context, this.renderOptions, Renderer.defaultListener);
+    } catch (error) {
+      if (!this.options.animated) throw error;
+      this.options.animated = false;
+      model.render(context, this.renderOptions, Renderer.defaultListener);
+    }
+  }
+}
+
+class NPCPet {
+  private readonly pets = [new NPCPetSlot('nnpc'), new NPCPetSlot('previous')];
+  private frame = 0;
+  private syncing = false;
+
+  public sync(): boolean {
+    const settings = (V.options?.maplebirch?.npcsidebar?.pet ?? {}) as PetSettings;
+    if (!settings.enabled) {
+      this.cancel();
+      this.pets.forEach(pet => pet.unmount());
+      return false;
+    }
+    this.cancel();
+    this.frame = requestAnimationFrame(() => {
+      this.frame = 0;
+      if (this.syncing) return;
+      this.syncing = true;
+      try {
+        this.render(settings);
+      } finally {
+        this.syncing = false;
+      }
+    });
+    return true;
+  }
+
+  private render(settings: PetSettings): void {
+    const source = (Renderer.CanvasModelCaches?.main?.sidebar as CanvasModel | undefined)?.options as CanvasModelOptionsData | undefined;
+    if (!source) return;
+    const options: PetOptions = { ...settings, animated: !!V.options.sidebarAnimations, floating: true };
+    this.pets[0].render(source, options);
+    if (V.options.maplebirch.npcsidebar.second_model) this.pets[1].render(source, options);
+    else this.pets[1].unmount();
+  }
+
+  public reset(): void {
+    localStorage.removeItem('maplebirch.npc.pet.first.position');
+    localStorage.removeItem('maplebirch.npc.pet.second.position');
+    this.sync();
+  }
+
+  private cancel(): void {
+    if (!this.frame) return;
+    cancelAnimationFrame(this.frame);
+    this.frame = 0;
+  }
+}
+
 const NPCSidebar = (() => {
   class NPCSidebar {
+    public static readonly pet = new NPCPet();
     public static get display() {
       return display;
     }
@@ -654,6 +806,24 @@ const NPCSidebar = (() => {
       });
       manager.core.char.use('pre', preprocess, 'main');
       manager.core.char.use(layers, 'main');
+      manager.core.char.use(petLayers('nnpc'), 'npc-pet-nnpc');
+      manager.core.char.use(petLayers('previous'), 'npc-pet-previous');
+      manager.core.once(':storyready', () => {
+        const macro = manager.core.SugarCube.Macro.get('updatesidebarimg') as MacroDefinition | undefined;
+        if (!macro) return;
+        manager.core.tool.macro.define('updatesidebarimg', function (this: any) {
+          macro.handler.call(this);
+          NPCSidebar.pet.sync();
+        });
+      });
+      manager.core.on(
+        ':passageend',
+        () => {
+          refresh(manager);
+          NPCSidebar.pet.sync();
+        },
+        'NPC sidebar state sync'
+      );
       manager.core.dynamic.regTimeEvent('onHour', 'maplebirch.npc.fluids.decay', {
         action: data => manager.fluids.decay(data.triggeredByAccumulator?.count ?? 1),
         accumulate: { unit: 'hour', target: 1 },

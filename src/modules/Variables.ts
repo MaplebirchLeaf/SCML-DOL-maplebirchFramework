@@ -129,6 +129,7 @@ class Variables {
         ears         : 'back',
         mask         : 30,
         rotation     : 0,
+        pet          : { enabled: false, mask: 25, rotation: 0, scale: 1 },
         nnpc         : false,
         display      : {}
       },

@@ -324,6 +324,7 @@ class Internals {
     $(document).on('change', 'select[name="lanListbox-optionsmaplebirchcharactercharartselect"]', refreshOptions);
     $(document).on('change', 'select[name="lanListbox-optionsmaplebirchcharactercloseupselect"]', refreshOptions);
     $(document).on('change', 'input[name*="optionsmaplebirchcharacterpet"]', updatePet);
+    $(document).on('change', 'input[name*="optionsmaplebirchnpcsidebarpet"]', updateSidebar);
   }
 
   private relationStyleEvent(): void {

@@ -253,7 +253,6 @@ function clothes_breasts(slot: string, type: ClothesType, overrides: any = {}) {
       const nnpc = options.maplebirch.nnpc;
       const clothes = nnpc.clothes[slot];
       if (!nnpc.show || !nnpc.model || nnpc.hide_all || clothes.index <= 0) return false;
-      if (clothes.mainImage === 0) return false;
       if (type === 'detail') return typeof clothes.breast_acc_img === 'object' && clothes.breast_acc_img[nnpc.breast_size] != null && !!clothes.pattern && !!clothes.breast_pattern;
       if (type === 'acc') {
         return (

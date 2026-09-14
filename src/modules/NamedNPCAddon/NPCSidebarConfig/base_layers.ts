@@ -13,6 +13,11 @@ type NPCSidebarOptions = {
   [key: string]: any;
 };
 
+function hair_mask(headMask: string[], closeUpMask: string, fallbackMask: string | undefined = closeUpMask): string | string[] | undefined {
+  const head_masks = headMask.filter(mask => mask !== closeUpMask);
+  return head_masks.length ? head_masks : fallbackMask;
+}
+
 const base_layers = {
   nnpc_body: {
     masksrcfn: (options: NPCSidebarOptions) => {
@@ -435,7 +440,8 @@ const base_layers = {
 
   nnpc_hair_sides: {
     masksrcfn: (options: NPCSidebarOptions) => {
-      return kaijuMask(options) || options.maplebirch.nnpc.head_mask;
+      const nnpc = options.maplebirch.nnpc;
+      return kaijuMask(options) || hair_mask(nnpc.head_mask, nnpc.close_up_mask);
     },
     srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
@@ -465,11 +471,7 @@ const base_layers = {
       const costumeMask = kaijuMask(options);
       if (costumeMask) return costumeMask;
 
-      if (Array.isArray(nnpc.head_mask) && nnpc.head_mask.length) return nnpc.head_mask;
-
-      if (nnpc.fringe_mask_src) return [nnpc.close_up_mask, nnpc.fringe_mask_src];
-
-      return nnpc.close_up_mask;
+      return hair_mask(nnpc.head_mask, nnpc.close_up_mask, nnpc.fringe_mask_src || nnpc.close_up_mask);
     },
     srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
@@ -494,7 +496,8 @@ const base_layers = {
 
   nnpc_hair_extra: {
     masksrcfn: (options: NPCSidebarOptions) => {
-      return kaijuMask(options) || options.maplebirch.nnpc.head_mask;
+      const nnpc = options.maplebirch.nnpc;
+      return kaijuMask(options) || hair_mask(nnpc.head_mask, nnpc.close_up_mask);
     },
     srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;

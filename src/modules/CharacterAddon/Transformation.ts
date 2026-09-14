@@ -87,14 +87,12 @@ class Transformation {
 
   public constructor(private manager: Character) {
     this.log = manager.log;
-    manager.core.once(':sugarcube', () => {
+    manager.core.once(':storyready', () => {
       if (DoLPcompat.isDoLP) {
         Object.cover(this.decayConditions, DoLPcompat.Transformations.DecayConditions);
         Object.cover(this.suppressConditions, DoLPcompat.Transformations.SuppressConditions);
         Object.cover(this.buildUpdaters, DoLPcompat.Transformations.BuildUpdaters);
       }
-    });
-    manager.core.once(':storyready', () => {
       manager.core.tool.macro.define('transform', (name: string, change: number) => this._transform(name, change));
       manager.core.tool.macro.define('transformationAlteration', () => this._transformationAlteration());
       manager.core.tool.macro.define('transformationStateUpdate', () => this._transformationStateUpdate());

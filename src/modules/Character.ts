@@ -61,6 +61,25 @@ const faceImagePaths = new Set<string>();
 
 const maskCache = new Map<string, string>();
 
+function guarded(layers: CanvasLayerMap): CanvasLayerMap {
+  return Object.fromEntries(
+    Object.entries(layers).map(([name, layer]) => {
+      if (!layer.showfn) return [name, layer];
+      const { showfn, srcfn, src } = layer;
+      return [
+        name,
+        {
+          ...layer,
+          srcfn(options: any) {
+            if (!showfn.call(this, options)) return '';
+            return srcfn ? srcfn.call(this, options) : src;
+          }
+        }
+      ];
+    })
+  );
+}
+
 function mask(x = 0, rotation = 0, swap = false, width = 256, height = 256): string {
   rotation = Math.clamp(rotation, -90, 90);
   x = Math.clamp(x, -width / 2, width / 2);
@@ -400,7 +419,7 @@ class Character {
       this.handlers.push({ type, target, handler });
       return this;
     }
-    const layers = args[0];
+    const layers = guarded(args[0]);
     const target = args[1] ?? 'main';
     const options = args[2];
     this.layers.push({ target, layers });
