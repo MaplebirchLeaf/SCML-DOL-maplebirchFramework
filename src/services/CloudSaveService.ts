@@ -10,6 +10,7 @@ type PanelAction = 'connectRemote' | 'uploadSlot' | 'downloadSlot' | 'refreshRem
 interface CloudSaveConfig {
   endpoint: string;
   token: string;
+  rememberToken?: boolean;
 }
 
 interface CloudSaveRecord {
@@ -52,7 +53,8 @@ class CloudSaveService {
   public configure(config: CloudSaveConfig): this {
     this.config = {
       endpoint: config.endpoint.trim().replace(/\/+$/, ''),
-      token: config.token.trim()
+      token: config.token.trim(),
+      rememberToken: config.rememberToken
     };
     return this;
   }
@@ -203,13 +205,32 @@ class CloudSaveService {
   }
 
   /** 初始化云存档面板。 */
-  public mountPanel(): void {
+  public mountPanel(retry = 0): void {
     const panel = this.panel;
-    if (!panel) return;
+    if (!panel) {
+      if (retry < 10) {
+        setTimeout(() => this.mountPanel(retry + 1), 50);
+      }
+      return;
+    }
     const saved = this.loadPanelConfig();
-    this.setField(panel, 'endpoint', this.config?.endpoint ?? saved.endpoint);
-    this.setField(panel, 'token', this.config?.token ?? '');
-    if (!this.config?.endpoint || !this.config.token) return;
+    const endpoint = this.config?.endpoint || saved.endpoint;
+    const token = this.config?.token || (saved.rememberToken ? saved.token : '');
+    const rememberToken = this.config?.rememberToken ?? saved.rememberToken;
+
+    this.setField(panel, 'endpoint', endpoint);
+    this.setField(panel, 'token', token);
+
+    const rememberBox = panel.querySelector<HTMLInputElement>('[data-cloud-save-field="rememberToken"]');
+    if (rememberBox) rememberBox.checked = rememberToken;
+
+    panel.querySelectorAll<HTMLInputElement>('[data-cloud-save-field]').forEach(input => {
+      input.oninput = () => this.savePanelConfig();
+      input.onchange = () => this.savePanelConfig();
+    });
+
+    if (!endpoint || !token) return;
+    this.configure({ endpoint, token, rememberToken });
     void this.refreshPanel(panel)
       .then(() => this.status(panel, 'cloud.save.status.connect', true))
       .catch(error => this.status(panel, this.error(error)));
@@ -316,28 +337,48 @@ class CloudSaveService {
   private readPanel(panel: HTMLElement): CloudSaveConfig {
     return {
       endpoint: this.field(panel, 'endpoint').trim(),
-      token: this.field(panel, 'token').trim()
+      token: this.field(panel, 'token').trim(),
+      rememberToken: panel.querySelector<HTMLInputElement>('[data-cloud-save-field="rememberToken"]')?.checked ?? false
     };
   }
 
   private loadPanelConfig(): {
     endpoint: string;
+    token: string;
+    rememberToken: boolean;
   } {
     try {
       const data = JSON.parse(localStorage.getItem(CloudSaveService.PANEL_STORAGE_KEY) ?? '{}');
-      return { endpoint: typeof data.endpoint === 'string' ? data.endpoint : '' };
+      return {
+        endpoint: typeof data.endpoint === 'string' ? data.endpoint : '',
+        token: typeof data.token === 'string' ? data.token : '',
+        rememberToken: data.rememberToken === true
+      };
     } catch {
-      return { endpoint: '' };
+      return { endpoint: '', token: '', rememberToken: false };
     }
   }
 
   private savePanelConfig(): void {
-    localStorage.setItem(
-      CloudSaveService.PANEL_STORAGE_KEY,
-      JSON.stringify({
-        endpoint: this.endpoint
-      })
-    );
+    try {
+      const panel = this.panel;
+      const endpoint = this.config?.endpoint ?? (panel ? this.field(panel, 'endpoint').trim() : '');
+      const rememberToken =
+        this.config?.rememberToken ??
+        (panel ? (panel.querySelector<HTMLInputElement>('[data-cloud-save-field="rememberToken"]')?.checked ?? false) : false);
+      const token = rememberToken ? (this.config?.token ?? (panel ? this.field(panel, 'token').trim() : '')) : '';
+
+      localStorage.setItem(
+        CloudSaveService.PANEL_STORAGE_KEY,
+        JSON.stringify({
+          endpoint,
+          token,
+          rememberToken
+        })
+      );
+    } catch {
+      // ignore
+    }
   }
 
   /** Worker 请求统一入口。 */
