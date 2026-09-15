@@ -14,7 +14,13 @@
 
     <label>
       <span class="gold"><<lanSwitch 'Access Token' '访问令牌'>></span>
-      <input type="password" data-cloud-save-field="token" autocomplete="off" placeholder="MAPLEBIRCH_TOKEN">
+      <div style="display: flex; align-items: center; gap: 8px; width: 100%;">
+        <input type="password" data-cloud-save-field="token" autocomplete="off" placeholder="MAPLEBIRCH_TOKEN" style="flex: 1; min-width: 0;">
+        <label style="display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; cursor: pointer; font-size: 0.85em; width: auto; margin: 0; user-select: none;">
+          <input type="checkbox" data-cloud-save-field="rememberToken" style="width: auto; margin: 0; cursor: pointer;">
+          <span><<lanSwitch 'Remember' '记住令牌'>></span>
+        </label>
+      </div>
     </label>
 
     <div class="maplebirch-cloud-save-actions">
@@ -92,5 +98,5 @@
   </div>
 </div>
 
-<<run maplebirch.cloudSave.mountPanel()>>
+<<run setTimeout(() => maplebirch.cloudSave.mountPanel(), 50)>>
 <</widget>>
