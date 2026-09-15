@@ -39,14 +39,14 @@
 
 **`params`** 是配置主体。常用字段如下：
 
-| 字段        | 说明                                        |
-| :---------- | :------------------------------------------ |
-| `script`    | 加载普通 JavaScript 脚本                    |
-| `module`    | 加载更早执行的模块脚本                      |
-| `language`  | 导入翻译文件                                |
-| `audio`     | 导入音频目录                                |
-| `framework` | 添加区域 widget、注册特质、纹身、食物或古董 |
-| `npc`       | 注册 NPC 相关资源                           |
+| 字段        | 说明                                                |
+| :---------- | :-------------------------------------------------- |
+| `script`    | 加载普通 JavaScript 脚本                            |
+| `module`    | 加载更早执行的模块脚本                              |
+| `language`  | 导入翻译文件                                        |
+| `audio`     | 导入音频目录                                        |
+| `framework` | 添加区域 widget，注册特质、小贴士、纹身、食物或古董 |
+| `npc`       | 注册 NPC 相关资源                                   |
 
 ---
 
@@ -251,6 +251,9 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
     "traits": "data/traits.yaml"
   },
   {
+    "tips": "data/tips.json"
+  },
+  {
     "bodywriting": "data/bodywriting.yaml"
   },
   {
@@ -264,9 +267,28 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 
 **`traits`**、**`bodywriting`**、**`foodstuff`**、**`antiques`** 都可以使用内联数组/对象或外部文件。**`bodywriting`**、**`foodstuff`**、**`antiques`** 使用数组写法时，每一项必须包含 **`key`**。
 
+`tips.json` 可以直接写字符串数组，默认加入原版始终启用的 `general` 分类：
+
+```json
+["第一条模组小贴士。", "小贴士支持原版使用的 HTML 与 SugarCube 标记。"]
+```
+
+需要跟随原版内容开关时，也可以按 `setup.tips` 的分类对象来写：
+
+```json
+{
+  "general": ["始终可能出现的小贴士。"],
+  "weather": ["启用天气内容时出现的小贴士。"],
+  "myMod": ["自定义分类也会自动加入随机池。"]
+}
+```
+
+原版分类继续遵循原版内容开关；新增分类默认始终启用，并会自动加入原版 `generateTipsList` 生成的随机池。脚本中也可以调用 `maplebirch.tool.patch.addTips('myMod', '新的小贴士')`；框架会在原版 `init_tips` 之后合并内容，并自动去除重复文本。
+
 相关文档：
 
 - [特质注册](ToolCollection/Traits.md)
+- [小贴士注册](ToolCollection/Tips.md)
 - [身体文字](ToolCollection/Bodywriting.md)
 - [食物注册](ToolCollection/Foodstuff.md)
 - [古董注册](ToolCollection/Antiques.md)

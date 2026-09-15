@@ -203,8 +203,7 @@ button.saveMenuButton.saves-clear {
   width: 5rem;
 }
 
-.maplebirch-cloud-save-auth > .maplebirch-cloud-save-actions,
-.maplebirch-cloud-save-transfer {
+.maplebirch-cloud-save-auth > .maplebirch-cloud-save-actions {
   flex-wrap: nowrap;
 }
 
@@ -217,7 +216,30 @@ button.saveMenuButton.saves-clear {
 }
 
 .maplebirch-cloud-save-transfer > .maplebirch-cloud-save-actions {
+  flex: 0 1 auto;
+  flex-wrap: nowrap;
+  min-width: 0;
   margin-left: auto;
+  justify-content: flex-end;
+}
+
+.maplebirch-cloud-save-transfer > .maplebirch-cloud-save-actions > span,
+.maplebirch-cloud-save-transfer > .maplebirch-cloud-save-actions > button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.maplebirch-cloud-save-transfer > label {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.maplebirch-cloud-save-transfer {
+  flex-wrap: nowrap;
 }
 
 .maplebirch-cloud-save-auth > .maplebirch-cloud-save-actions .saveMenuButton {
@@ -331,7 +353,30 @@ button.saveMenuButton.saves-clear {
   }
 
   .maplebirch-cloud-save-transfer > .maplebirch-cloud-save-actions {
+    flex: 0 1 auto;
+    flex-wrap: nowrap;
     width: auto;
+    min-width: 0;
+    margin-left: auto;
+    justify-content: flex-end;
+  }
+
+  .maplebirch-cloud-save-transfer {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: nowrap;
+  }
+
+  .maplebirch-cloud-save .maplebirch-cloud-save-transfer > label {
+    grid-template-columns: max-content 4rem;
+    flex: 0 0 auto;
+    width: auto;
+    max-width: 100%;
+  }
+
+  .maplebirch-cloud-save .maplebirch-cloud-save-transfer select[data-cloud-save-field='slot'] {
+    width: 100%;
+    min-width: 0;
   }
 
   .maplebirch-cloud-save label {
@@ -358,7 +403,12 @@ button.saveMenuButton.saves-clear {
     width: 100%;
   }
 
-  .maplebirch-cloud-save-transfer .saveMenuButton,
+  .maplebirch-cloud-save-transfer .saveMenuButton {
+    width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
   .maplebirch-cloud-save-row .saveMenuButton {
     width: auto;
     white-space: nowrap;

@@ -10,7 +10,7 @@ type PanelAction = 'connectRemote' | 'uploadSlot' | 'downloadSlot' | 'refreshRem
 interface CloudSaveConfig {
   endpoint: string;
   token: string;
-  rememberToken?: boolean;
+  remember?: boolean;
 }
 
 interface CloudSaveRecord {
@@ -46,7 +46,10 @@ interface DoLSaveDatabase {
 
 class CloudSaveService {
   private static readonly PANEL_STORAGE_KEY = 'maplebirch.cloudSave.panel';
+  private static readonly REQUEST_TIMEOUT = 15_000;
   private config: CloudSaveConfig | null = null;
+  private mountFrame: number | null = null;
+  private busy = false;
 
   public constructor(readonly core: MaplebirchCore) {}
 
@@ -54,7 +57,7 @@ class CloudSaveService {
     this.config = {
       endpoint: config.endpoint.trim().replace(/\/+$/, ''),
       token: config.token.trim(),
-      rememberToken: config.rememberToken
+      remember: config.remember ?? false
     };
     return this;
   }
@@ -79,7 +82,7 @@ class CloudSaveService {
 
   /** 将云端存档写回 DoL 原生 IndexedDB。 */
   public async importSlot(record: CloudSaveRecord, targetSlot: CloudSaveSlot = record.slot): Promise<boolean> {
-    if (!record?.save) throw new Error('Invalid cloud save record.');
+    this.validateRecord(record);
     const result = await this.saveDB.setItem(targetSlot, this.normalizeSave(record.save), {
       ...record.details,
       date: Date.now()
@@ -109,14 +112,27 @@ class CloudSaveService {
 
   /** 下载云端存档。 */
   public async download(slot: CloudSaveSlot, targetSlot: CloudSaveSlot = slot): Promise<boolean> {
-    const item = await this.request<CloudSaveRemoteItem>(`/saves/${slot}`, undefined, true);
-    if (!item?.payload) throw new Error(`Remote save slot ${slot} not found.`);
-    return this.importSlot(item.payload, targetSlot);
+    const response = await this.request<unknown>(`/saves/${slot}`, undefined, true);
+    if (response === null) throw new Error(`Remote save slot ${slot} not found.`);
+    if (!this.core.lodash.isPlainObject(response)) this.invalidResponse();
+    const item = response as Partial<CloudSaveRemoteItem>;
+    if (item.slot !== slot || !this.core.lodash.isFinite(item.updatedAt)) this.invalidResponse();
+    const payload = item.payload;
+    this.validateRecord(payload);
+    if (payload.slot !== item.slot) this.invalidResponse();
+    return this.importSlot(payload, targetSlot);
   }
 
   /** 获取远端存档列表。 */
   public async listRemote(): Promise<CloudSaveRemoteItem[]> {
-    return (await this.request<CloudSaveRemoteItem[]>('/saves')) ?? [];
+    const response = await this.request<unknown>('/saves');
+    if (!Array.isArray(response)) this.invalidResponse();
+    for (const value of response) {
+      if (!this.core.lodash.isPlainObject(value)) this.invalidResponse();
+      const item = value as Partial<CloudSaveRemoteItem>;
+      if (!this.isSlot(item.slot) || !this.core.lodash.isFinite(item.updatedAt)) this.invalidResponse();
+    }
+    return response as CloudSaveRemoteItem[];
   }
 
   /** 删除远端存档。 */
@@ -198,55 +214,65 @@ class CloudSaveService {
 
   /** 下载 SugarCube 存档码。 */
   public async downloadCode(): Promise<string> {
-    const item = await this.request<CloudSaveRemoteCode>('/save-code', undefined, true);
-    if (!item?.payload) throw new Error(this.core.t('cloud.save.error.code.notFound'));
-    if (!item.payload.code) throw new Error(this.core.t('cloud.save.error.code.empty'));
-    return item.payload.code;
+    const response = await this.request<unknown>('/save-code', undefined, true);
+    if (response === null) throw new Error(this.core.t('cloud.save.error.code.notFound'));
+    if (!this.core.lodash.isPlainObject(response)) this.invalidResponse();
+    const item = response as Partial<CloudSaveRemoteCode>;
+    if (!this.core.lodash.isFinite(item.updatedAt)) this.invalidResponse();
+    const payload = item.payload;
+    this.validateCodeRecord(payload);
+    if (!payload.code) throw new Error(this.core.t('cloud.save.error.code.empty'));
+    return payload.code;
   }
 
   /** 初始化云存档面板。 */
-  public mountPanel(retry = 0): void {
-    const panel = this.panel;
-    if (!panel) {
-      if (retry < 10) {
-        setTimeout(() => this.mountPanel(retry + 1), 50);
-      }
-      return;
-    }
-    const saved = this.loadPanelConfig();
-    const endpoint = this.config?.endpoint || saved.endpoint;
-    const token = this.config?.token || (saved.rememberToken ? saved.token : '');
-    const rememberToken = this.config?.rememberToken ?? saved.rememberToken;
+  public mountPanel(): void {
+    if (this.mountFrame !== null) cancelAnimationFrame(this.mountFrame);
+    this.mountFrame = requestAnimationFrame(() => {
+      this.mountFrame = null;
+      const panel = this.panel;
+      if (!panel) return;
+      const saved = this.loadPanelConfig();
+      const endpoint = this.config?.endpoint || saved.endpoint;
+      const token = this.config?.token || (saved.remember ? saved.token : '');
+      const remember = this.config?.remember ?? saved.remember;
 
-    this.setField(panel, 'endpoint', endpoint);
-    this.setField(panel, 'token', token);
+      this.setField(panel, 'endpoint', endpoint);
+      this.setField(panel, 'token', token);
 
-    const rememberBox = panel.querySelector<HTMLInputElement>('[data-cloud-save-field="rememberToken"]');
-    if (rememberBox) rememberBox.checked = rememberToken;
+      const rememberBox = panel.querySelector<HTMLInputElement>('[data-cloud-save-field="remember"]');
+      if (rememberBox) rememberBox.checked = remember;
+      panel.querySelectorAll<HTMLInputElement>('[data-cloud-save-field]').forEach(input => (input.oninput = () => this.savePanelConfig(panel)));
 
-    panel.querySelectorAll<HTMLInputElement>('[data-cloud-save-field]').forEach(input => {
-      input.oninput = () => this.savePanelConfig();
-      input.onchange = () => this.savePanelConfig();
+      if (!endpoint || !token) return;
+      this.configure({ endpoint, token, remember });
+      void this.refreshPanel(panel)
+        .then(() => this.status(panel, 'cloud.save.status.connect', true))
+        .catch(error => this.status(panel, this.error(error)));
     });
-
-    if (!endpoint || !token) return;
-    this.configure({ endpoint, token, rememberToken });
-    void this.refreshPanel(panel)
-      .then(() => this.status(panel, 'cloud.save.status.connect', true))
-      .catch(error => this.status(panel, this.error(error)));
   }
 
   /** Twee 面板动作入口。 */
   public async panelAction(action: PanelAction, slot?: CloudSaveSlot): Promise<void> {
     const panel = this.panel;
-    if (!panel) return;
-    this.status(panel, 'cloud.save.status.working');
+    if (!panel || this.busy) return;
     try {
       this.configure(this.readPanel(panel));
-      this.savePanelConfig();
-      await this.runPanelAction(panel, action, slot);
+      this.savePanelConfig(panel);
+      const slotActions: PanelAction[] = ['uploadSlot', 'downloadSlot', 'deleteRemoteSlot', 'exportSlotCode'];
+      const targetSlot = slotActions.includes(action) ? (slot ?? this.panelSlot(panel)) : slot;
+
+      this.busy = true;
+      panel.setAttribute('aria-busy', 'true');
+      panel.querySelectorAll<HTMLButtonElement>('button').forEach(button => (button.disabled = true));
+      this.status(panel, 'cloud.save.status.working');
+      await this.runPanelAction(panel, action, targetSlot);
     } catch (error) {
       this.status(panel, this.error(error));
+    } finally {
+      this.busy = false;
+      panel.setAttribute('aria-busy', 'false');
+      panel.querySelectorAll<HTMLButtonElement>('button').forEach(button => (button.disabled = false));
     }
   }
 
@@ -315,22 +341,22 @@ class CloudSaveService {
   private remoteRow(item: CloudSaveRemoteItem): HTMLElement {
     const row = document.createElement('div');
     row.className = 'maplebirch-cloud-save-row';
-    row.innerHTML = `
-      <span>${item.slot}</span>
-      <span>${new Date(item.updatedAt).toLocaleString()}</span>
-      <button
-        type="button"
-        class="saveMenuButton"
-        data-cloud-save-download-slot="${item.slot}"
-      >${this.core.t('cloud.save.action.download')}</button>
-      <button
-        type="button"
-        class="deleteButton right saveMenuButton"
-        data-cloud-save-delete-slot="${item.slot}"
-      >${this.core.t('cloud.save.action.delete')}</button>
-    `;
-    row.querySelector('[data-cloud-save-download-slot]')?.addEventListener('click', () => void this.panelAction('downloadSlot', item.slot));
-    row.querySelector('[data-cloud-save-delete-slot]')?.addEventListener('click', () => void this.panelAction('deleteRemoteSlot', item.slot));
+
+    const slot = document.createElement('span');
+    slot.textContent = String(item.slot);
+    const updated = document.createElement('span');
+    updated.textContent = new Date(item.updatedAt).toLocaleString();
+    const download = document.createElement('button');
+    download.type = 'button';
+    download.className = 'saveMenuButton';
+    download.textContent = this.core.t('cloud.save.action.download');
+    download.addEventListener('click', () => void this.panelAction('downloadSlot', item.slot));
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'deleteButton right saveMenuButton';
+    remove.textContent = this.core.t('cloud.save.action.delete');
+    remove.addEventListener('click', () => void this.panelAction('deleteRemoteSlot', item.slot));
+    row.append(slot, updated, download, remove);
     return row;
   }
 
@@ -338,42 +364,40 @@ class CloudSaveService {
     return {
       endpoint: this.field(panel, 'endpoint').trim(),
       token: this.field(panel, 'token').trim(),
-      rememberToken: panel.querySelector<HTMLInputElement>('[data-cloud-save-field="rememberToken"]')?.checked ?? false
+      remember: panel.querySelector<HTMLInputElement>('[data-cloud-save-field="remember"]')?.checked ?? false
     };
   }
 
   private loadPanelConfig(): {
     endpoint: string;
     token: string;
-    rememberToken: boolean;
+    remember: boolean;
   } {
     try {
       const data = JSON.parse(localStorage.getItem(CloudSaveService.PANEL_STORAGE_KEY) ?? '{}');
       return {
         endpoint: typeof data.endpoint === 'string' ? data.endpoint : '',
         token: typeof data.token === 'string' ? data.token : '',
-        rememberToken: data.rememberToken === true
+        remember: data.remember === true
       };
     } catch {
-      return { endpoint: '', token: '', rememberToken: false };
+      return { endpoint: '', token: '', remember: false };
     }
   }
 
-  private savePanelConfig(): void {
+  private savePanelConfig(panel = this.panel): void {
     try {
-      const panel = this.panel;
-      const endpoint = this.config?.endpoint ?? (panel ? this.field(panel, 'endpoint').trim() : '');
-      const rememberToken =
-        this.config?.rememberToken ??
-        (panel ? (panel.querySelector<HTMLInputElement>('[data-cloud-save-field="rememberToken"]')?.checked ?? false) : false);
-      const token = rememberToken ? (this.config?.token ?? (panel ? this.field(panel, 'token').trim() : '')) : '';
+      const config = panel ? this.readPanel(panel) : this.config;
+      if (!config) return;
+      this.configure(config);
+      const { endpoint, token, remember = false } = this.current;
 
       localStorage.setItem(
         CloudSaveService.PANEL_STORAGE_KEY,
         JSON.stringify({
           endpoint,
-          token,
-          rememberToken
+          token: remember ? token : '',
+          remember
         })
       );
     } catch {
@@ -386,19 +410,33 @@ class CloudSaveService {
     const headers = new Headers(init.headers);
     headers.set('Authorization', `Bearer ${this.token}`);
     if (init.body != null) headers.set('Content-Type', 'application/json');
-    const response = await fetch(`${this.endpoint}${path}`, {
-      ...init,
-      headers
-    });
-    if (allowNotFound && response.status === 404) return null;
-    if (!response.ok) {
-      const message = await response.text();
-      if (response.status === 401) throw new Error('Cloud save authorization failed.');
-      throw new Error(`Cloud save request failed: ${response.status}${message ? ` ${message}` : ''}`);
+    const endpoint = new URL(`${this.endpoint}/`);
+    if (endpoint.protocol !== 'https:' || endpoint.username || endpoint.password || endpoint.search || endpoint.hash) {
+      throw new Error(this.core.t('cloud.save.error.endpoint'));
     }
-    if (response.status === 204) return null;
-    const text = await response.text();
-    return text ? (JSON.parse(text) as T) : null;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), CloudSaveService.REQUEST_TIMEOUT);
+    try {
+      const response = await fetch(new URL(path.replace(/^\/+/, ''), endpoint), {
+        ...init,
+        headers,
+        signal: controller.signal
+      });
+      if (allowNotFound && response.status === 404) return null;
+      if (!response.ok) {
+        const message = (await response.text()).slice(0, 200);
+        if (response.status === 401) throw new Error(this.core.t('cloud.save.error.auth'));
+        throw new Error(`Cloud save request failed: ${response.status}${message ? ` ${message}` : ''}`);
+      }
+      if (response.status === 204) return null;
+      const text = await response.text();
+      return text ? (JSON.parse(text) as T) : null;
+    } catch (error) {
+      if (controller.signal.aborted) throw new Error(this.core.t('cloud.save.error.timeout'));
+      throw error;
+    } finally {
+      clearTimeout(timeout);
+    }
   }
 
   /** SugarCube delta 存档还原为完整 history。 */
@@ -412,6 +450,36 @@ class CloudSaveService {
     }
     if (!state.history) throw new Error('Cloud save data does not contain a valid SugarCube history.');
     return state;
+  }
+
+  private validateRecord(value: unknown): asserts value is CloudSaveRecord {
+    if (!this.core.lodash.isPlainObject(value)) this.invalidResponse();
+    const record = value as Partial<CloudSaveRecord>;
+    if (!this.isSlot(record.slot)) this.invalidResponse();
+    if (!this.core.lodash.isPlainObject(record.save) || !this.core.lodash.isFinite(record.exportedAt)) this.invalidResponse();
+    if (record.gameId !== undefined && typeof record.gameId !== 'string') this.invalidResponse();
+    this.validateGame(record.gameId);
+  }
+
+  private validateCodeRecord(value: unknown): asserts value is CloudSaveCodeRecord {
+    if (!this.core.lodash.isPlainObject(value)) this.invalidResponse();
+    const record = value as Partial<CloudSaveCodeRecord>;
+    if (typeof record.code !== 'string' || !this.core.lodash.isFinite(record.exportedAt)) this.invalidResponse();
+    if (record.gameId !== undefined && typeof record.gameId !== 'string') this.invalidResponse();
+    this.validateGame(record.gameId);
+  }
+
+  private isSlot(value: unknown): value is CloudSaveSlot {
+    return this.core.lodash.isInteger(value) && this.core.lodash.inRange(value as number, 0, 11);
+  }
+
+  private validateGame(gameId?: string): void {
+    const current = this.core.SugarCube?.Story?.domId;
+    if (gameId && current && gameId !== current) throw new Error(this.core.t('cloud.save.error.game'));
+  }
+
+  private invalidResponse(): never {
+    throw new Error(this.core.t('cloud.save.error.response'));
   }
 
   private field(panel: HTMLElement, name: string): string {

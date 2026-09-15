@@ -27,6 +27,7 @@ This directory contains English documentation for mod authors using **`maplebirc
 - [Data Migration](ToolCollection/migration.md)
 - [Text Builder](ToolCollection/htmlTools.md)
 - [Traits](ToolCollection/Traits.md)
+- [Tips](ToolCollection/Tips.md)
 - [Location Config](ToolCollection/Location.md)
 - [Bodywriting](ToolCollection/Bodywriting.md)
 - [Foodstuff](ToolCollection/Foodstuff.md)

@@ -245,6 +245,7 @@ npm install -D @scml-dol-maplebirch/types
   - [文本工具][HtmlTools]
   - [区域管理][Framework]
   - [特质注册][Traits]
+  - [小贴士注册][Tips]
   - [地点配置][Location]
   - [纹身注册][Bodywriting]
   - [食物注册][Foodstuff]
@@ -296,14 +297,14 @@ npm install -D @scml-dol-maplebirch/types
 ]
 ```
 
-| 参数        | 用途                                            |
-| :---------- | :---------------------------------------------- |
-| `language`  | 导入 `CN` / `EN` 翻译文件，或指定自定义语言文件 |
-| `audio`     | 导入模组内的音频目录                            |
-| `framework` | 添加区域 widget，注册特质、纹身、食物或古董     |
-| `npc`       | 注册 NPC、NPC 状态、NPC 侧边栏图片和服装资源    |
-| `module`    | 早期脚本，适合框架模块扩展                      |
-| `script`    | 常规模组脚本，推荐多数情况下使用                |
+| 参数        | 用途                                                |
+| :---------- | :-------------------------------------------------- |
+| `language`  | 导入 `CN` / `EN` 翻译文件，或指定自定义语言文件     |
+| `audio`     | 导入模组内的音频目录                                |
+| `framework` | 添加区域 widget，注册特质、小贴士、纹身、食物或古董 |
+| `npc`       | 注册 NPC、NPC 状态、NPC 侧边栏图片和服装资源        |
+| `module`    | 早期脚本，适合框架模块扩展                          |
+| `script`    | 常规模组脚本，推荐多数情况下使用                    |
 
 更完整的配置说明见 [boot.json 配置][BootJson]。
 
@@ -355,6 +356,7 @@ npm install -D @scml-dol-maplebirch/types
 [HtmlTools]: docs/CN/ToolCollection/htmlTools.md
 [Framework]: docs/CN/ToolCollection/Framework.md
 [Traits]: docs/CN/ToolCollection/Traits.md
+[Tips]: docs/CN/ToolCollection/Tips.md
 [Location]: docs/CN/ToolCollection/Location.md
 [Bodywriting]: docs/CN/ToolCollection/Bodywriting.md
 [Foodstuff]: docs/CN/ToolCollection/Foodstuff.md

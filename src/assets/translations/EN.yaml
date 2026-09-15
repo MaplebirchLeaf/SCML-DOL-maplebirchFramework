@@ -167,6 +167,11 @@
 'cloud.save.status.code.download': Save code downloaded.
 'cloud.save.status.code.load': Save code loaded.
 'cloud.save.error.download': Download failed.
+'cloud.save.error.auth': Cloud save authorization failed.
+'cloud.save.error.endpoint': Invalid cloud save address. Use an HTTPS URL.
+'cloud.save.error.timeout': Cloud save request timed out.
+'cloud.save.error.response': The cloud returned invalid save data.
+'cloud.save.error.game': This cloud save belongs to another game.
 'cloud.save.error.code.invalid': Invalid save code.
 'cloud.save.error.code.notFound': Remote save code not found.
 'cloud.save.error.code.empty': Remote save code is empty.

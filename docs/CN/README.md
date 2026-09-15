@@ -26,6 +26,7 @@
 - [迁移工具](ToolCollection/migration.md)
 - [HTML 工具](ToolCollection/htmlTools.md)
 - [特质添加](ToolCollection/Traits.md)
+- [小贴士添加](ToolCollection/Tips.md)
 - [地点配置](ToolCollection/Location.md)
 - [身体文字](ToolCollection/Bodywriting.md)
 - [食物注册](ToolCollection/Foodstuff.md)

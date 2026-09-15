@@ -199,6 +199,7 @@ Feature areas:
 - [Data migration](docs/EN/ToolCollection/migration.md)
 - [Text builder](docs/EN/ToolCollection/htmlTools.md)
 - [Traits](docs/EN/ToolCollection/Traits.md)
+- [Tips](docs/EN/ToolCollection/Tips.md)
 - [Location config](docs/EN/ToolCollection/Location.md)
 - [Bodywriting](docs/EN/ToolCollection/Bodywriting.md)
 - [Foodstuff](docs/EN/ToolCollection/Foodstuff.md)

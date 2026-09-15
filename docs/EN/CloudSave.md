@@ -66,3 +66,5 @@ All endpoints except `/health` require the `Authorization: Bearer <MAPLEBIRCH_TO
 
 - Deleting a remote slot **cannot be undone**.
 - By default, the framework persists only the Worker URL and keeps the token in memory. If "Remember access token on this device" is checked, the token is saved to the browser's local storage. Keep it safe — anyone who has it can read and write your cloud saves.
+- The game accepts HTTPS Worker addresses only. Requests time out after 15 seconds.
+- The example Worker accepts JSON request bodies up to 32 MiB and rejects malformed saves or payloads whose slot does not match the URL.

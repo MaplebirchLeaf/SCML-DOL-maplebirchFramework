@@ -1350,6 +1350,7 @@ type PanelAction = 'connectRemote' | 'uploadSlot' | 'downloadSlot' | 'refreshRem
 interface CloudSaveConfig {
   endpoint: string;
   token: string;
+  remember?: boolean;
 }
 interface CloudSaveRecord {
   slot: CloudSaveSlot;
@@ -1375,7 +1376,10 @@ interface CloudSaveRemoteCode {
 declare class CloudSaveService {
   readonly core: MaplebirchCore;
   private static readonly PANEL_STORAGE_KEY;
+  private static readonly REQUEST_TIMEOUT;
   private config;
+  private mountFrame;
+  private busy;
   constructor(core: MaplebirchCore);
   configure(config: CloudSaveConfig): this;
   /** 验证 Worker 与 Token 是否可用。 */
@@ -1417,6 +1421,11 @@ declare class CloudSaveService {
   private request;
   /** SugarCube delta 存档还原为完整 history。 */
   private normalizeSave;
+  private validateRecord;
+  private validateCodeRecord;
+  private isSlot;
+  private validateGame;
+  private invalidResponse;
   private field;
   private setField;
   private panelSlot;
@@ -2253,12 +2262,16 @@ type AddFoodstuff = (key: string, config: FoodstuffConfig) => void;
 type ApplyFoodstuff = () => void;
 type AddAntiques = (key: string, config: AntiqueConfig) => void;
 type InjectAntiques = (data: Record<string, AntiqueConfig>) => Record<string, AntiqueConfig>;
+type AddTips = (category: string, ...tips: string[]) => void;
+type ApplyTips = () => void;
+type InjectTips = (data: string[]) => string[];
 declare class Patch {
   readonly traitsData: TraitConfig[];
   readonly locationData: Record<string, LocationUpdate>;
   readonly bodywritingData: Record<string, BodywritingData>;
   readonly foodstuffData: Record<string, FoodstuffConfig>;
   readonly antiquesData: Record<string, AntiqueConfig>;
+  readonly tipsData: Record<string, string[]>;
   addTraits: AddTraits;
   injectTraits: InjectTraits;
   configureLocation: ConfigureLocation;
@@ -2269,6 +2282,9 @@ declare class Patch {
   applyFoodstuff: ApplyFoodstuff;
   addAntiques: AddAntiques;
   injectAntiques: InjectAntiques;
+  addTips: AddTips;
+  applyTips: ApplyTips;
+  injectTips: InjectTips;
 }
 declare const _default: Patch;
 //#endregion
@@ -2292,6 +2308,7 @@ declare class ToolCollection {
   private loadConfig;
   private addTrait;
   private addKeyedConfig;
+  private addTips;
   private error;
 }
 //#endregion

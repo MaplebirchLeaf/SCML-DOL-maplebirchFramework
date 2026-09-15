@@ -23,14 +23,14 @@ Put complex conditions and runtime logic in JavaScript files loaded through **`s
 
 ## params Fields
 
-| Field       | Purpose                                                     |
-| :---------- | :---------------------------------------------------------- |
-| `script`    | Load normal JavaScript files                                |
-| `module`    | Load earlier module-extension scripts                       |
-| `language`  | Import translation files                                    |
-| `audio`     | Import audio folders                                        |
-| `framework` | Add UI widgets, traits, bodywriting, foodstuff, or antiques |
-| `npc`       | Register NPC resources                                      |
+| Field       | Purpose                                                           |
+| :---------- | :---------------------------------------------------------------- |
+| `script`    | Load normal JavaScript files                                      |
+| `module`    | Load earlier module-extension scripts                             |
+| `language`  | Import translation files                                          |
+| `audio`     | Import audio folders                                              |
+| `framework` | Add UI widgets, traits, tips, bodywriting, foodstuff, or antiques |
+| `npc`       | Register NPC resources                                            |
 
 ## script
 
@@ -105,6 +105,9 @@ Register framework data:
     "traits": "data/traits.yaml"
   },
   {
+    "tips": "data/tips.json"
+  },
+  {
     "bodywriting": "data/bodywriting.yaml"
   },
   {
@@ -118,9 +121,28 @@ Register framework data:
 
 **`traits`**, **`bodywriting`**, **`foodstuff`**, and **`antiques`** accept inline arrays/objects or external **`.json`**, **`.yaml`**, and **`.yml`** files. For array forms of **`bodywriting`**, **`foodstuff`**, and **`antiques`**, each item must include **`key`**.
 
+`tips.json` may be a string array. This adds every entry to vanilla's always-enabled `general` category:
+
+```json
+["The first mod tip.", "Tips may use the same HTML and SugarCube markup as vanilla tips."]
+```
+
+To follow vanilla content settings, use an object matching the shape of `setup.tips`:
+
+```json
+{
+  "general": ["A tip that may always appear."],
+  "weather": ["A tip that appears with weather content."],
+  "myMod": ["A custom category automatically joins the random pool."]
+}
+```
+
+Vanilla categories continue to follow vanilla content settings. New categories are always enabled by default and automatically join the pool built by vanilla `generateTipsList`. Scripts may also call `maplebirch.tool.patch.addTips('myMod', 'A new tip')`. The framework merges tips after vanilla `init_tips` and ignores duplicate text.
+
 Related docs:
 
 - [Traits](ToolCollection/Traits.md)
+- [Tips](ToolCollection/Tips.md)
 - [Bodywriting](ToolCollection/Bodywriting.md)
 - [Foodstuff](ToolCollection/Foodstuff.md)
 - [Antiques](ToolCollection/Antiques.md)

@@ -1,40 +1,21 @@
 // ./cloudflare/worker.ts
-
-interface R2ObjectLike {
-  key: string;
-  uploaded?: Date;
-}
-
-interface R2ListResultLike {
-  objects: R2ObjectLike[];
-}
-
-interface R2ObjectBodyLike {
-  body: ReadableStream<Uint8Array>;
-}
-
-interface R2BucketLike {
-  list(options?: { prefix?: string }): Promise<R2ListResultLike>;
-  get(key: string): Promise<R2ObjectBodyLike | null>;
-  put(key: string, value: string | ArrayBuffer | ArrayBufferView | Blob | ReadableStream): Promise<unknown>;
-  delete(key: string): Promise<void>;
-}
+/// <reference types="@cloudflare/workers-types" />
 
 interface Env {
-  SAVE_BUCKET: R2BucketLike;
+  SAVE_BUCKET: R2Bucket;
   MAPLEBIRCH_TOKEN: string;
 }
 
-interface RemoteSaveItem {
-  slot: number;
-  updatedAt: number;
-  payload: unknown;
+class HttpError extends Error {
+  public constructor(
+    readonly status: number,
+    message: string
+  ) {
+    super(message);
+  }
 }
 
-interface RemoteSaveCode {
-  updatedAt: number;
-  payload: unknown;
-}
+const MAX_BODY_BYTES = 32 * 1024 * 1024;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -75,6 +56,10 @@ function authorized(request: Request, env: Env): boolean {
   return !!env.MAPLEBIRCH_TOKEN && token === `Bearer ${env.MAPLEBIRCH_TOKEN}`;
 }
 
+function isObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
 function slotFromPath(pathname: string): number | null {
   const match = /^\/saves\/(\d+)$/.exec(pathname);
   if (!match) return null;
@@ -83,9 +68,13 @@ function slotFromPath(pathname: string): number | null {
   return slot;
 }
 
-async function readJson<T>(request: Request): Promise<T | null> {
+async function readJson(request: Request): Promise<unknown> {
+  const declaredLength = Number(request.headers.get('Content-Length'));
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_BODY_BYTES) throw new HttpError(413, 'Payload too large.');
+  const body = await request.arrayBuffer();
+  if (body.byteLength > MAX_BODY_BYTES) throw new HttpError(413, 'Payload too large.');
   try {
-    return (await request.json()) as T;
+    return JSON.parse(new TextDecoder().decode(body));
   } catch {
     return null;
   }
@@ -96,34 +85,23 @@ async function listSaves(env: Env): Promise<Response> {
     prefix: 'slots/'
   });
 
-  const saves = result.objects
-    .map(object => {
-      const match = /^slots\/(\d+)\.json$/.exec(object.key);
-      if (!match) return null;
-      const slot = Number(match[1]);
-      if (!Number.isInteger(slot) || slot < 0 || slot > 10) return null;
-      return {
-        slot,
-        updatedAt: object.uploaded?.getTime() ?? 0
-      };
-    })
-    .filter(
-      (
-        item
-      ): item is {
-        slot: number;
-        updatedAt: number;
-      } => item !== null
-    )
-    .sort((a, b) => a.slot - b.slot);
+  const saves: Array<{ slot: number; updatedAt: number }> = [];
+  for (const object of result.objects) {
+    const match = /^slots\/(\d+)\.json$/.exec(object.key);
+    if (!match) continue;
+    const slot = Number(match[1]);
+    if (!Number.isInteger(slot) || slot < 0 || slot > 10) continue;
+    saves.push({ slot, updatedAt: object.uploaded.getTime() });
+  }
+  saves.sort((a, b) => a.slot - b.slot);
 
   return json(saves);
 }
 
-async function getSave(env: Env, slot: number): Promise<Response> {
-  const object = await env.SAVE_BUCKET.get(`slots/${slot}.json`);
-  if (!object) return text('Save not found.', 404);
-  return response(object.body as BodyInit, {
+async function getStored(bucket: R2Bucket, key: string, notFound: string): Promise<Response> {
+  const object = await bucket.get(key);
+  if (!object) return text(notFound, 404);
+  return response(object.body, {
     headers: {
       'Content-Type': 'application/json; charset=utf-8'
     }
@@ -131,12 +109,16 @@ async function getSave(env: Env, slot: number): Promise<Response> {
 }
 
 async function putSave(request: Request, env: Env, slot: number): Promise<Response> {
-  const input = await readJson<RemoteSaveItem>(request);
-  if (!input || input.payload == null) return text('Invalid save payload.', 400);
-  const item: RemoteSaveItem = {
+  const input = await readJson(request);
+  if (!isObject(input) || !isObject(input.payload)) return text('Invalid save payload.', 400);
+  const payload = input.payload;
+  if (payload.slot !== slot || !isObject(payload.save) || !Number.isFinite(payload.exportedAt) || (payload.gameId !== undefined && typeof payload.gameId !== 'string')) {
+    return text('Invalid save payload.', 400);
+  }
+  const item = {
     slot,
     updatedAt: Number(input.updatedAt) || Date.now(),
-    payload: input.payload
+    payload
   };
   await env.SAVE_BUCKET.put(`slots/${slot}.json`, JSON.stringify(item));
   return json({
@@ -152,22 +134,16 @@ async function deleteSave(env: Env, slot: number): Promise<Response> {
   });
 }
 
-async function getSaveCode(env: Env): Promise<Response> {
-  const object = await env.SAVE_BUCKET.get('save-code.json');
-  if (!object) return text('Save code not found.', 404);
-  return response(object.body as BodyInit, {
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8'
-    }
-  });
-}
-
 async function putSaveCode(request: Request, env: Env): Promise<Response> {
-  const input = await readJson<RemoteSaveCode>(request);
-  if (!input || input.payload == null) return text('Invalid save code payload.', 400);
-  const item: RemoteSaveCode = {
+  const input = await readJson(request);
+  if (!isObject(input) || !isObject(input.payload)) return text('Invalid save code payload.', 400);
+  const payload = input.payload;
+  if (typeof payload.code !== 'string' || !payload.code || !Number.isFinite(payload.exportedAt) || (payload.gameId !== undefined && typeof payload.gameId !== 'string')) {
+    return text('Invalid save code payload.', 400);
+  }
+  const item = {
     updatedAt: Number(input.updatedAt) || Date.now(),
-    payload: input.payload
+    payload
   };
   await env.SAVE_BUCKET.put('save-code.json', JSON.stringify(item));
   return json({
@@ -185,14 +161,14 @@ async function handle(request: Request, env: Env): Promise<Response> {
   if (!authorized(request, env)) return text('Unauthorized', 401);
   if (url.pathname === '/saves' && request.method === 'GET') return listSaves(env);
   if (url.pathname === '/save-code') {
-    if (request.method === 'GET') return getSaveCode(env);
+    if (request.method === 'GET') return getStored(env.SAVE_BUCKET, 'save-code.json', 'Save code not found.');
     if (request.method === 'PUT') return putSaveCode(request, env);
   }
 
   const slot = slotFromPath(url.pathname);
 
   if (slot !== null) {
-    if (request.method === 'GET') return getSave(env, slot);
+    if (request.method === 'GET') return getStored(env.SAVE_BUCKET, `slots/${slot}.json`, 'Save not found.');
     if (request.method === 'PUT') return putSave(request, env, slot);
     if (request.method === 'DELETE') return deleteSave(env, slot);
   }
@@ -205,8 +181,9 @@ export default {
     try {
       return await handle(request, env);
     } catch (error) {
+      if (error instanceof HttpError) return text(error.message, error.status);
       console.error(error);
-      return text(error instanceof Error ? error.message : String(error), 500);
+      return text('Internal server error.', 500);
     }
   }
-};
+} satisfies ExportedHandler<Env>;

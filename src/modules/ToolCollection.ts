@@ -31,12 +31,14 @@ type TraitConfigSource = TraitBootConfig[] | ConfigFileSource;
 type BodywritingConfigSource = KeyedConfig<BodywritingConfig>[] | Record<string, BodywritingConfig> | ConfigFileSource;
 type FoodstuffConfigSource = KeyedConfig<FoodstuffConfig>[] | Record<string, FoodstuffConfig> | ConfigFileSource;
 type AntiquesConfigSource = KeyedConfig<AntiqueConfig>[] | Record<string, AntiqueConfig> | ConfigFileSource;
+type TipsConfigSource = Record<string, string[]> | ConfigFileSource;
 type FrameworkWidgetConfig = string | ZoneWidgetConfig | [number, string | ZoneWidgetConfig];
 type FrameworkConfig =
   | { traits: TraitConfigSource }
   | { bodywriting: BodywritingConfigSource }
   | { foodstuff: FoodstuffConfigSource }
   | { antiques: AntiquesConfigSource }
+  | { tips: TipsConfigSource }
   | { addto: string; widget: FrameworkWidgetConfig };
 
 class ToolCollection {
@@ -74,6 +76,7 @@ class ToolCollection {
     this.onInit(() => {
       this.patch.applyLocation();
       this.patch.applyBodywriting();
+      this.patch.applyTips();
     });
   }
 
@@ -106,6 +109,12 @@ class ToolCollection {
 
       if ('antiques' in config) {
         await this.addKeyedConfig(task, 'antiques', config.antiques, this.patch.addAntiques);
+        continue;
+      }
+
+      if ('tips' in config) {
+        const data = await this.loadConfig(task, config.tips);
+        this.addTips(task.modName, data);
         continue;
       }
 
@@ -196,6 +205,23 @@ class ToolCollection {
       }
     }
     if (!added) this.core.log(`${task.modName} 的 ${label} 配置为空或无效`, 'WARN');
+  }
+
+  private addTips(modName: string, source: unknown): void {
+    let added = 0;
+    if (Array.isArray(source)) {
+      const tips = source.filter((tip): tip is string => typeof tip === 'string' && Boolean(tip.trim()));
+      this.patch.addTips('general', ...tips);
+      added += tips.length;
+    } else if (source && typeof source === 'object') {
+      for (const [category, value] of Object.entries(source)) {
+        if (!category.trim() || !Array.isArray(value)) continue;
+        const tips = value.filter((tip): tip is string => typeof tip === 'string' && Boolean(tip.trim()));
+        this.patch.addTips(category, ...tips);
+        added += tips.length;
+      }
+    }
+    if (!added) this.core.log(`${modName} 的 tips 配置为空或无效`, 'WARN');
   }
 
   private error(error: unknown): string {
