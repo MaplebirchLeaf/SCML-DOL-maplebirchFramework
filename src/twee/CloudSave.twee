@@ -17,6 +17,11 @@
       <input type="password" data-cloud-save-field="token" autocomplete="off" placeholder="MAPLEBIRCH_TOKEN">
     </label>
 
+    <label class="maplebirch-cloud-save-remember">
+      <input type="checkbox" data-cloud-save-field="rememberToken">
+      <span><<lanSwitch 'Remember access token on this device' '在此设备上记住访问令牌'>></span>
+    </label>
+
     <div class="maplebirch-cloud-save-actions">
       <<lanButton 'cloud.save.action.connect' 'title' 'class:saveMenuButton maplebirch-cloud-save-connect'>>
         <<run maplebirch.cloudSave.panelAction('connectRemote')>>
@@ -92,5 +97,5 @@
   </div>
 </div>
 
-<<run maplebirch.cloudSave.mountPanel()>>
+<<run setTimeout(() => maplebirch.cloudSave.mountPanel(), 50)>>
 <</widget>>
