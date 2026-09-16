@@ -336,6 +336,15 @@ declare global {
   type CanvasLayerMap = Record<string, LayerConfig>;
   type CanvasLayerFilter = string | Record<string, any>;
   type CanvasLayerSrc = string | string[] | undefined;
+  type CanvasLayerMask =
+    | string
+    | {
+        path: string;
+        offsetX?: number;
+        offsetY?: number;
+        convert?: boolean;
+      };
+  type CanvasLayerMaskSrc = CanvasLayerMask | CanvasLayerMask[] | undefined;
   type CanvasLayerValueFn<T = any> = (options: any) => T;
   interface CanvasModelOptionsData {
     filters?: Record<string, any>;
@@ -358,7 +367,7 @@ declare global {
     maskBlendMode?: string;
     compositeOperation?: string;
     desaturate?: boolean;
-    masksrc?: CanvasLayerSrc;
+    masksrc?: CanvasLayerMaskSrc;
     animation?: any;
     filters?: CanvasLayerFilter[];
     dx?: number;
@@ -381,7 +390,7 @@ declare global {
     maskBlendModefn?: CanvasLayerValueFn<string | undefined>;
     compositeOperationfn?: CanvasLayerValueFn<string | undefined>;
     desaturatefn?: CanvasLayerValueFn<boolean>;
-    masksrcfn?: CanvasLayerValueFn<CanvasLayerSrc>;
+    masksrcfn?: CanvasLayerValueFn<CanvasLayerMaskSrc>;
     animationfn?: CanvasLayerValueFn<any>;
     filtersfn?: CanvasLayerValueFn<CanvasLayerFilter[] | undefined>;
     dxfn?: CanvasLayerValueFn<number>;
@@ -1412,6 +1421,7 @@ declare class CloudSaveService {
   panelAction(action: PanelAction, slot?: CloudSaveSlot): Promise<void>;
   private runPanelAction;
   private done;
+  private complete;
   private refreshPanel;
   private remoteRow;
   private readPanel;
@@ -1429,6 +1439,8 @@ declare class CloudSaveService {
   private field;
   private setField;
   private panelSlot;
+  /** 动态填充本地存档槽位选项。 */
+  populateSlotOptions(panel?: HTMLElement | null): Promise<void>;
   private status;
   private error;
   private get saveDB();
@@ -2898,16 +2910,19 @@ declare const NPCSidebar: {
 };
 //#endregion
 //#region src/modules/NamedNPCAddon/NPCFluids.d.ts
-type NPCFluidPart = 'vagina' | 'anus' | 'mouth' | 'chest' | 'face' | 'feet' | 'leftarm' | 'rightarm' | 'neck' | 'thigh' | 'tummy';
-type NPCFluidData = Record<NPCFluidPart, number>;
+type NPCFluidPart = 'vagina' | 'vaginaoutside' | 'anus' | 'mouth' | 'penis' | 'chest' | 'face' | 'hair' | 'bottom' | 'feet' | 'leftarm' | 'rightarm' | 'neck' | 'thigh' | 'tummy';
+type NPCFluidType = 'goo' | 'semen';
+type NPCFluidAmount = [goo: number, semen: number];
+type NPCFluidData = Record<NPCFluidPart, NPCFluidAmount>;
 declare class NPCFluids {
   readonly parts: NPCFluidPart[];
   ensure(npcName: string): NPCFluidData;
   get(npcName: string): NPCFluidData;
-  set(npcName: string, part: NPCFluidPart, value: number): NPCFluidData;
-  add(npcName: string, part: NPCFluidPart, value?: number): NPCFluidData;
-  reduce(npcName: string, part: NPCFluidPart, value?: number): NPCFluidData;
-  clear(npcName: string, part?: NPCFluidPart): NPCFluidData;
+  combined(npcName: string, part: NPCFluidPart): number;
+  set(npcName: string, part: NPCFluidPart, value: number, type?: NPCFluidType): NPCFluidData;
+  add(npcName: string, part: NPCFluidPart, value?: number, type?: NPCFluidType): NPCFluidData;
+  reduce(npcName: string, part: NPCFluidPart, value?: number, type?: NPCFluidType): NPCFluidData;
+  clear(npcName: string, part?: NPCFluidPart, type?: NPCFluidType): NPCFluidData;
   decay(value?: number): void;
   apply(nnpc: Record<string, any>, npcData: any): void;
 }
@@ -2966,7 +2981,8 @@ interface NPCData {
   hair_side_type?: string;
   hair_fringe_type?: string;
   hair_position?: string;
-  hairlength?: number;
+  hair_sides_length?: number;
+  hair_fringe_length?: number;
   eyeColour?: string;
   hairColour?: string;
   bottomsize?: number;
@@ -3019,7 +3035,8 @@ declare const NamedNPC: {
     hair_side_type: string;
     hair_fringe_type: string;
     hair_position: string;
-    hairlength: number;
+    hair_sides_length: number;
+    hair_fringe_length: number;
     eyeColour: string;
     hairColour: string;
     pronoun: PronounCode;

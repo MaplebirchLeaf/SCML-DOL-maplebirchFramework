@@ -84,7 +84,7 @@ const clothesSlots: ClothesSlot[] = [
 
 const hairLengthList = ['short', 'shoulder', 'chest', 'navel', 'thighs', 'feet'] as const;
 const upperCombatSlots: ClothesSlot[] = ['over_upper', 'upper', 'under_upper'];
-const lowerCombatSlots: ClothesSlot[] = ['over_lower', 'lower', 'under_lower', 'legs', 'feet'];
+const lowerCombatSlots: ClothesSlot[] = ['over_lower', 'lower', 'under_lower'];
 
 const portrait_npc_name = (name: string): string => String(name).replace(/[_-]/g, ' ').convert('title');
 const portrait_gender = (npc: Record<string, any>): string => (C.npc?.[npc.name]?.gender === 'm' ? 'male' : 'female');
@@ -281,12 +281,16 @@ function nakedClothes(slot: ClothesSlot) {
   };
 }
 
+function exposed(state: unknown): boolean {
+  return state === 0 || (typeof state === 'string' && state !== '' && state !== 'clothed' && state !== 'none');
+}
+
 function applyCombatClothesState(nnpc: Record<string, any>) {
   if (V.combat !== 1) return;
   const npc = combatNpc(nnpc.name);
   if (!npc) return;
-  if (npc.chest != null && npc.chest !== 'clothed') upperCombatSlots.forEach(slot => (nnpc.clothes[slot] = nakedClothes(slot)));
-  if ((npc.penis != null && npc.penis !== 'clothed') || (npc.vagina != null && npc.vagina !== 'clothed')) lowerCombatSlots.forEach(slot => (nnpc.clothes[slot] = nakedClothes(slot)));
+  if (exposed(npc.chest)) upperCombatSlots.forEach(slot => (nnpc.clothes[slot] = nakedClothes(slot)));
+  if (exposed(npc.penis) || exposed(npc.vagina)) lowerCombatSlots.forEach(slot => (nnpc.clothes[slot] = nakedClothes(slot)));
 }
 
 function setupBasicData(options: NPCSidebarOptions, name: string) {
@@ -451,11 +455,9 @@ function setupBodyData(options: NPCSidebarOptions, nnpc: Record<string, any>, np
   nnpc.hair_sides_type = hairstyle?.alt_head_type?.includes(headType) ? hairstyle.alt : bodydata.hair_side_type;
   nnpc.hair_fringe_type = bodydata.hair_fringe_type;
   nnpc.hair_position = bodydata.hair_position;
-  nnpc.hair_length = hairLengthList[Math.trunc((bodydata.hairlength ?? 0) / 200)] ?? 'short';
-
-  nnpc.hair_sides_length = nnpc.hair_length;
+  nnpc.hair_sides_length = hairLengthList[Math.trunc((bodydata.hair_sides_length ?? 0) / 200)] ?? 'short';
   nnpc.hair_sides_position = nnpc.hair_position;
-  nnpc.hair_fringe_length = nnpc.hair_length;
+  nnpc.hair_fringe_length = hairLengthList[Math.trunc((bodydata.hair_fringe_length ?? 0) / 200)] ?? 'short';
 
   nnpc.calculate_penis_bulge = (target = nnpc) => {
     const clothes = target.clothes;

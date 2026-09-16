@@ -218,7 +218,7 @@ button.saveMenuButton.saves-clear {
 }
 
 .maplebirch-cloud-save-transfer > .maplebirch-cloud-save-actions {
-  flex: 0 1 auto;
+  flex: 1 1 0;
   flex-wrap: nowrap;
   min-width: 0;
   margin-left: auto;
@@ -230,8 +230,12 @@ button.saveMenuButton.saves-clear {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 0 1 auto;
+  flex: 1 1 0;
   min-width: 0;
+}
+
+.maplebirch-cloud-save-transfer > .maplebirch-cloud-save-actions > span > .saveMenuButton {
+  width: 100%;
 }
 
 .maplebirch-cloud-save-transfer > label {
@@ -324,6 +328,15 @@ button.saveMenuButton.saves-clear {
   white-space: nowrap;
 }
 
+.maplebirch-cloud-save-auth > .maplebirch-cloud-save-actions .saveMenuButton,
+.maplebirch-cloud-save-transfer > .maplebirch-cloud-save-actions .saveMenuButton,
+.maplebirch-cloud-save-code > .maplebirch-cloud-save-actions .saveMenuButton {
+  height: 2.4em;
+  padding: 0.3em 0.55em;
+  font-size: 0.85em;
+  box-sizing: border-box;
+}
+
 @media (max-width: 768px) {
   .maplebirch-cloud-save {
     --cloud-save-label-width: 4.5rem;
@@ -355,7 +368,7 @@ button.saveMenuButton.saves-clear {
   }
 
   .maplebirch-cloud-save-transfer > .maplebirch-cloud-save-actions {
-    flex: 0 1 auto;
+    flex: 1 1 0;
     flex-wrap: nowrap;
     width: auto;
     min-width: 0;
@@ -370,7 +383,7 @@ button.saveMenuButton.saves-clear {
   }
 
   .maplebirch-cloud-save .maplebirch-cloud-save-transfer > label {
-    grid-template-columns: max-content 4rem;
+    grid-template-columns: max-content 6rem;
     flex: 0 0 auto;
     width: auto;
     max-width: 100%;
@@ -407,8 +420,7 @@ button.saveMenuButton.saves-clear {
 
   .maplebirch-cloud-save-transfer .saveMenuButton {
     width: 100%;
-    white-space: normal;
-    overflow-wrap: anywhere;
+    white-space: nowrap;
   }
 
   .maplebirch-cloud-save-row .saveMenuButton {

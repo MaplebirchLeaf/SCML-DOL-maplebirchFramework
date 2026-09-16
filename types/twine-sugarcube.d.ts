@@ -348,6 +348,9 @@ declare global {
 
   type CanvasLayerSrc = string | string[] | undefined;
 
+  type CanvasLayerMask = string | { path: string; offsetX?: number; offsetY?: number; convert?: boolean };
+  type CanvasLayerMaskSrc = CanvasLayerMask | CanvasLayerMask[] | undefined;
+
   type CanvasLayerValueFn<T = any> = (options: any) => T;
 
   interface CanvasModelOptionsData {
@@ -373,7 +376,7 @@ declare global {
     maskBlendMode?: string;
     compositeOperation?: string;
     desaturate?: boolean;
-    masksrc?: CanvasLayerSrc;
+    masksrc?: CanvasLayerMaskSrc;
     animation?: any;
     filters?: CanvasLayerFilter[];
     dx?: number;
@@ -397,7 +400,7 @@ declare global {
     maskBlendModefn?: CanvasLayerValueFn<string | undefined>;
     compositeOperationfn?: CanvasLayerValueFn<string | undefined>;
     desaturatefn?: CanvasLayerValueFn<boolean>;
-    masksrcfn?: CanvasLayerValueFn<CanvasLayerSrc>;
+    masksrcfn?: CanvasLayerValueFn<CanvasLayerMaskSrc>;
     animationfn?: CanvasLayerValueFn<any>;
     filtersfn?: CanvasLayerValueFn<CanvasLayerFilter[] | undefined>;
     dxfn?: CanvasLayerValueFn<number>;

@@ -89,3 +89,7 @@ loveAlias: () => {
   }
 }
 ```
+
+## Hair Lengths
+
+`NPCData.hair_sides_length` and `NPCData.hair_fringe_length` are independent numeric lengths (0–1000). Both fields default independently to 200. Missing, nonnumeric or nonfinite values reset to that default during construction and variable validation; old length fields are not converted. Each NPC owns its values; changing one field does not change the other. See [NPC Sidebar](./NamedNPCSidebar.md) for the numeric-to-model-stage conversion.

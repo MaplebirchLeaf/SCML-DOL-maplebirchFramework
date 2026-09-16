@@ -254,7 +254,7 @@ class Internals {
       {
         condition: () => Weather.bloodMoon && Weather.isSnow
       },
-      { layer: 'base', element: 'bloodmoon_snow' }
+      { layer: 'base', element: 'blood_moon_snow' }
     );
 
     this.optionOverlayEvents();

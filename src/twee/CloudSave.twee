@@ -28,17 +28,15 @@
         <<run maplebirch.cloudSave.panelAction('connectRemote')>>
       <</lanButton>>
 
-      <button type="button" class="saveMenuButton" onclick="maplebirch.cloudSave.panelAction('refreshRemoteList')">
-        <<lanSwitch 'Refresh' '刷新'>>
-      </button>
+      <<lanButton 'cloud.save.action.refresh' 'title' 'class:saveMenuButton'>><<run maplebirch.cloudSave.panelAction('refreshRemoteList')>><</lanButton>>
     </div>
   </div>
 
   <div class="settingsToggleItemWide maplebirch-cloud-save-transfer">
     <label>
-      <span class="gold"><<lanSwitch 'Local Slot' '本地槽位'>></span>
+      <span class="gold"><<lanSwitch 'Slot' '槽位'>></span>
       <select data-cloud-save-field="slot">
-        <option value="1" selected><<lanSwitch 'Loading saves...' '正在读取存档...' >></option>
+        <option value="1" selected><<lanSwitch 'Loading...' '读取中…'>></option>
       </select>
     </label>
 
@@ -47,9 +45,7 @@
         <<run maplebirch.cloudSave.panelAction('uploadSlot')>>
       <</lanButton>>
 
-      <button type="button" class="saveMenuButton" onclick="maplebirch.cloudSave.panelAction('exportSlotCode')">
-        <<lanSwitch 'Export Slot Code' '导出槽位码'>>
-      </button>
+      <<lanButton 'cloud.save.action.code.export' 'title' 'class:saveMenuButton maplebirch-cloud-save-export'>><<run maplebirch.cloudSave.panelAction('exportSlotCode')>><</lanButton>>
     </div>
   </div>
 
@@ -82,7 +78,7 @@
   <div class="settingsToggleItemWide">
     <div class="maplebirch-cloud-save-status" data-cloud-save-status role="status" aria-live="polite"></div>
     <div class="maplebirch-cloud-save-list" data-cloud-save-list aria-live="polite">
-      <<= maplebirch.t('cloud.save.none.loaded')>>
+      <<= maplebirch.t('cloud.save.none')>>
     </div>
   </div>
 </div>

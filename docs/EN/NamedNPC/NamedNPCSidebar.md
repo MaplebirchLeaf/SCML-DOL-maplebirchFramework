@@ -9,6 +9,19 @@ The NPC sidebar system lets a mod show custom NPCs in the sidebar. It supports s
 | Static image  | Pre-rendered portrait images                      |
 | Dynamic model | Layered rendering based on clothes and conditions |
 
+## Dynamic Hair Lengths
+
+Each NPC stores separate numeric `hair_sides_length` (main hair) and `hair_fringe_length` (fringe) fields. Rendering converts each independently using `0 / 200 / 400 / 600 / 800 / 1000` for `short / shoulder / chest / navel / thighs / feet`; `0` is valid. Extra back hair uses only the main hair length. Both numeric fields default independently to 200; invalid types reset to the default in NPCUtils. Old fields are not converted, and edits to either length leave the other unchanged.
+
+```javascript
+Object.assign(C.npc['Ivory Wraith'], {
+  hair_side_type: 'ruffled',
+  hair_fringe_type: 'sideswept braid',
+  hair_sides_length: 800,
+  hair_fringe_length: 200
+});
+```
+
 ## Static Images
 
 Place images under:
@@ -108,14 +121,25 @@ Use static images for simple NPCs and layered config when the NPC needs clothes,
 
 ## Dynamic Model Fluids
 
-Dynamic NPC sidebar models can show the same cum and drip sprites used by the original player model. The framework stores this as sidebar display state under `V.maplebirch.npc[name].fluids`; it does not write to the original player `setup.bodyliquid` data.
+Dynamic NPC sidebar models can show the same cum and drip sprites used by the original player model. State is stored under `V.maplebirch.npc[name].fluids`, without modifying `V.player.bodyliquid`. Each body part stores a tuple `[goo, semen]`: index `0` is vaginal fluids/slime, index `1` is semen. There is no `nectar` slot.
 
 ```javascript
-maplebirch.npc.fluids.add('Robin', 'mouth', 2);
-maplebirch.npc.fluids.set('Robin', 'face', 3);
-maplebirch.npc.fluids.reduce('Robin', 'mouth');
+maplebirch.npc.fluids.add('Robin', 'mouth', 2, 'semen');
+maplebirch.npc.fluids.add('Robin', 'vagina', 1, 'goo');
+maplebirch.npc.fluids.set('Robin', 'face', 3, 'semen');
+maplebirch.npc.fluids.reduce('Robin', 'mouth', 1, 'semen');
+maplebirch.npc.fluids.combined('Robin', 'mouth'); // goo + semen, without clamping the sum
+maplebirch.npc.fluids.clear('Robin', 'vagina', 'goo');
 maplebirch.npc.fluids.clear('Robin', 'face');
 maplebirch.npc.fluids.clear('Robin');
 ```
 
-Supported parts are `vagina`, `anus`, `mouth`, `chest`, `face`, `feet`, `leftarm`, `rightarm`, `neck`, `thigh`, and `tummy`. Values are clamped from `0` to `5`. The sidebar renderer converts those values to original `drip_*` and `cum_*` model options during render.
+Supported parts match the original body-liquid slots: `vagina`, `vaginaoutside`, `anus`, `mouth`, `penis`, `chest`, `face`, `hair`, `bottom`, `feet`, `leftarm`, `rightarm`, `neck`, `thigh`, and `tummy`. Each liquid is independently clamped to `0–5`. Rendering clamps their sum to `0–5` and converts it to original `drip_*` and `cum_*` options without changing stored amounts. `penis`, `hair`, `bottom`, and `vaginaoutside` have no matching original sidebar fluid layers and store data only.
+
+`set`, `add`, and `reduce` default to `semen` when the type is omitted. `clear` clears both liquids when the type is omitted, and all parts when the part is omitted. Both amounts decay independently each hour. Legacy numeric values have no source information and migrate to `[oldValue, 0]` (`goo`); missing parts receive `[0, 0]`. Read one liquid by array index or use `combined` for the sum; a whole part is no longer a number.
+
+Callers are responsible for updating levels from story events; the framework does not detect orgasms or fluid sources. Drip masks cover the complete animation sprite sheet while preserving the original drip timing. Display levels share the original fluid sprites and do not visually distinguish semen from vaginal fluids.
+
+### Story Presence
+
+Sidebar models and settings candidates use vanilla `V.npc`, retaining known named NPCs. Models follow the current list after `<<npc "Name">>` generates an NPC or an event clears the list. Clothing schedules choose outfits without adding or removing nearby NPCs.

@@ -52,6 +52,14 @@ function cumLayer(file: string, prop: string, z: (nnpc: Record<string, any>) => 
 function dripLayer(file: string, prop: string, animation: string, z: (nnpc: Record<string, any>) => number) {
   return {
     ...cumLayer(file, prop, z),
+    masksrcfn: (options: NPCSidebarOptions) => {
+      const nnpc = options.maplebirch.nnpc;
+      const mask = kaijuMask(options) || nnpc.close_up_mask;
+      if (!mask) return undefined;
+      const spec = Renderer.Animations[`${animation}${titleCase(nnpc[prop] || '')}`];
+      const frames = spec && ('frames' in spec ? spec.frames : Math.max(...spec.keyframes.map((frame: { frame: number }) => frame.frame)) + 1);
+      return Array.from({ length: Math.ceil((frames || 2) / 2) }, (_, index) => ({ path: mask, offsetX: index * 512 }));
+    },
     animationfn: (options: NPCSidebarOptions) => {
       const value = options.maplebirch.nnpc[prop];
       return value ? `${animation}${titleCase(value)}` : '';

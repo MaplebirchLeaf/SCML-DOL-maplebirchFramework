@@ -9,7 +9,7 @@ import type { BootTask } from './AddonPlugin';
 import NPCSidebar, { type NPCSidebarBootConfig } from './NamedNPCAddon/NPCSidebar';
 import NPCFluids from './NamedNPCAddon/NPCFluids';
 import NPCTransformation from './NamedNPCAddon/NPCTransformation';
-import { definePregnancyProperty, setupNPCData, isPossible } from './NamedNPCAddon/NPCUtils';
+import { bodyDefaults, definePregnancyProperty, setupNPCData, isPossible } from './NamedNPCAddon/NPCUtils';
 import { clone, merge } from '../utils';
 
 type LanguageCode = 'CN' | 'EN';
@@ -45,7 +45,8 @@ export interface NPCData {
   hair_side_type?: string;
   hair_fringe_type?: string;
   hair_position?: string;
-  hairlength?: number;
+  hair_sides_length?: number;
+  hair_fringe_length?: number;
   eyeColour?: string;
   hairColour?: string;
   bottomsize?: number;
@@ -150,7 +151,8 @@ export const NamedNPC = (core => {
     public hair_side_type: string;
     public hair_fringe_type: string;
     public hair_position: string;
-    public hairlength: number;
+    public hair_sides_length: number;
+    public hair_fringe_length: number;
     public eyeColour: string;
     public hairColour: string;
     public pronoun: PronounCode;
@@ -194,7 +196,8 @@ export const NamedNPC = (core => {
       this.hair_side_type = data.hair_side_type ?? 'default';
       this.hair_fringe_type = data.hair_fringe_type ?? 'default';
       this.hair_position = data.hair_position ?? 'back';
-      this.hairlength = data.hairlength ?? ([0, 200, 400, 600, 800, 1000].either() as number);
+      this.hair_sides_length = typeof data.hair_sides_length === 'number' && Number.isFinite(data.hair_sides_length) ? data.hair_sides_length : bodyDefaults.hair_sides_length;
+      this.hair_fringe_length = typeof data.hair_fringe_length === 'number' && Number.isFinite(data.hair_fringe_length) ? data.hair_fringe_length : bodyDefaults.hair_fringe_length;
       this.eyeColour = data.eyeColour ?? ([...eyeColour].either() as string);
       this.hairColour = data.hairColour ?? ([...hairColour].either() as string);
       this.pronoun = data.pronoun ?? (['m', 'f', 'i', 'n', 't'].includes(this.gender) ? (this.gender as PronounCode) : (['m', 'f'].either() as PronounCode));

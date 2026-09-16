@@ -215,13 +215,13 @@ class CloudSaveService {
   /** 下载 SugarCube 存档码。 */
   public async downloadCode(): Promise<string> {
     const response = await this.request<unknown>('/save-code', undefined, true);
-    if (response === null) throw new Error(this.core.t('cloud.save.error.code.notFound'));
+    if (response === null) throw new Error(this.core.t('cloud.save.error.code.remote'));
     if (!this.core.lodash.isPlainObject(response)) this.invalidResponse();
     const item = response as Partial<CloudSaveRemoteCode>;
     if (!this.core.lodash.isFinite(item.updatedAt)) this.invalidResponse();
     const payload = item.payload;
     this.validateCodeRecord(payload);
-    if (!payload.code) throw new Error(this.core.t('cloud.save.error.code.empty'));
+    if (!payload.code) throw new Error(this.core.t('cloud.save.error.code.remote'));
     return payload.code;
   }
 
@@ -248,7 +248,7 @@ class CloudSaveService {
       if (!endpoint || !token) return;
       this.configure({ endpoint, token, remember });
       void this.refreshPanel(panel)
-        .then(() => this.status(panel, 'cloud.save.status.connect', true))
+        .then(() => this.complete(panel, 'cloud.save.action.connect'))
         .catch(error => this.status(panel, this.error(error)));
     });
   }
@@ -281,52 +281,56 @@ class CloudSaveService {
     switch (action) {
       case 'connectRemote':
         await this.connect();
-        return this.done(panel, 'cloud.save.status.connect');
+        return this.done(panel, 'cloud.save.action.connect');
 
       case 'uploadSlot':
         await this.upload(slot ?? this.panelSlot(panel));
-        return this.done(panel, 'cloud.save.status.upload');
+        return this.done(panel, 'cloud.save.action.upload');
 
       case 'downloadSlot':
         if (!(await this.download(slot ?? this.panelSlot(panel)))) throw new Error(this.core.t('cloud.save.error.download'));
-        return this.done(panel, 'cloud.save.status.download');
+        return this.done(panel, 'cloud.save.action.download');
 
       case 'deleteRemoteSlot':
         await this.deleteRemote(slot ?? this.panelSlot(panel));
-        return this.done(panel, 'cloud.save.status.delete');
+        return this.done(panel, 'cloud.save.action.delete');
 
       case 'refreshRemoteList':
-        return this.done(panel, 'cloud.save.status.refresh');
+        return this.done(panel, 'cloud.save.action.refresh');
 
       case 'exportCurrentCode':
         this.setField(panel, 'code', this.exportCode());
-        return this.status(panel, 'cloud.save.status.code.generate', true);
+        return this.complete(panel, 'cloud.save.action.code.current');
 
       case 'exportSlotCode':
         this.setField(panel, 'code', await this.exportSlotCode(slot ?? this.panelSlot(panel)));
 
-        return this.status(panel, 'cloud.save.status.slot.code.generate', true);
+        return this.complete(panel, 'cloud.save.action.code.export');
 
       case 'uploadCode':
         await this.uploadCode(this.field(panel, 'code').trim() || this.exportCode());
 
-        return this.status(panel, 'cloud.save.status.code.upload', true);
+        return this.complete(panel, 'cloud.save.action.code.upload');
 
       case 'downloadCode':
         this.setField(panel, 'code', await this.downloadCode());
 
-        return this.status(panel, 'cloud.save.status.code.download', true);
+        return this.complete(panel, 'cloud.save.action.code.download');
 
       case 'importCode':
         if (!this.importCode(this.field(panel, 'code').trim())) throw new Error(this.core.t('cloud.save.error.code.invalid'));
-        return this.status(panel, 'cloud.save.status.code.load', true);
+        return this.complete(panel, 'cloud.save.action.code.load');
     }
   }
 
-  private async done(panel: HTMLElement, key: string): Promise<void> {
+  private async done(panel: HTMLElement, action: string): Promise<void> {
     await this.refreshPanel(panel);
     void this.populateSlotOptions(panel);
-    this.status(panel, key, true);
+    this.complete(panel, action);
+  }
+
+  private complete(panel: HTMLElement, action: string): void {
+    this.status(panel, this.core.t('cloud.save.status.done').replace('{action}', this.core.t(action)), true);
   }
 
   private async refreshPanel(panel: HTMLElement): Promise<void> {
@@ -523,7 +527,6 @@ class CloudSaveService {
         }
       }
 
-      const isCN = this.core.lang.language !== 'EN';
       const formatDate = (ts?: number) => {
         if (!ts) return '';
         const d = new Date(ts);
@@ -537,14 +540,14 @@ class CloudSaveService {
       select.innerHTML = '';
 
       const groupExisting = document.createElement('optgroup');
-      groupExisting.label = isCN ? '本地已有存档' : 'Existing Saves';
+      groupExisting.label = this.core.t('cloud.save.slot.existing');
 
       if (existingSlots.has(0)) {
         const autoData = existingSlots.get(0);
         const opt = document.createElement('option');
         opt.value = '0';
         const tm = formatDate(autoData.date);
-        opt.textContent = `0 - ${isCN ? '自动存档' : 'Autosave'}${tm ? ` (${tm})` : ''}`;
+        opt.textContent = `0 - ${this.core.t('cloud.save.slot.autosave')}${tm ? ` (${tm})` : ''}`;
         groupExisting.appendChild(opt);
       }
 
@@ -560,7 +563,7 @@ class CloudSaveService {
         if (name.length > 18) name = name.slice(0, 16) + '…';
         const tm = formatDate(d.date);
         const isLatest = slot === latestSlot;
-        opt.textContent = `${slot}: ${name ? `${name} ` : ''}${tm ? `(${tm})` : ''}${isLatest ? (isCN ? ' [最新]' : ' [Latest]') : ''}`;
+        opt.textContent = `${slot}: ${name ? `${name} ` : ''}${tm ? `(${tm})` : ''}${isLatest ? ` [${this.core.t('cloud.save.slot.latest')}]` : ''}`;
         groupExisting.appendChild(opt);
       }
 
@@ -569,12 +572,12 @@ class CloudSaveService {
       }
 
       const groupAll = document.createElement('optgroup');
-      groupAll.label = isCN ? '所有槽位 (1-200)' : 'All Slots (1-200)';
+      groupAll.label = this.core.t('cloud.save.slot.available');
 
       if (!existingSlots.has(0)) {
         const opt0 = document.createElement('option');
         opt0.value = '0';
-        opt0.textContent = `0 - ${isCN ? '自动存档 (空)' : 'Autosave (Empty)'}`;
+        opt0.textContent = `0 - ${this.core.t('cloud.save.slot.autosave')} (${this.core.t('cloud.save.slot.empty')})`;
         groupAll.appendChild(opt0);
       }
 
@@ -582,13 +585,13 @@ class CloudSaveService {
         if (!existingSlots.has(i)) {
           const opt = document.createElement('option');
           opt.value = String(i);
-          opt.textContent = `${i} ${isCN ? '(空)' : '(Empty)'}`;
+          opt.textContent = String(i);
           groupAll.appendChild(opt);
         }
       }
       select.appendChild(groupAll);
 
-      const targetValue = latestSlot != null ? String(latestSlot) : (existingSlots.has(0) ? '0' : (sortedExisting[0] != null ? String(sortedExisting[0]) : '1'));
+      const targetValue = latestSlot != null ? String(latestSlot) : existingSlots.has(0) ? '0' : sortedExisting[0] != null ? String(sortedExisting[0]) : '1';
       select.value = targetValue;
     } catch (error) {
       console.error('Failed to populate slot options:', error);

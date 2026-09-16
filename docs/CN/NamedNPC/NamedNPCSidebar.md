@@ -37,19 +37,39 @@ img/ui/nnpc/[npc_name]/[gender]/[skin_tone]/[image_name].[png|jpg|gif]
 
 ---
 
-### 动态模型体液显示
+### 动态模型发型长度
 
-NPC 侧边栏动态模型可以显示原版玩家模型使用的体液与滴落图层。框架会把状态存在 `V.maplebirch.npc[name].fluids`，它只服务于 NPC 侧边栏显示，不会写入原版玩家的 `setup.bodyliquid`。
+NPC 各自保存数值字段 `hair_sides_length`（主体）与 `hair_fringe_length`（刘海）。渲染时分别按 `0 / 200 / 400 / 600 / 800 / 1000` 映射为 `short / shoulder / chest / navel / thighs / feet`，`0` 是有效长度。额外背发仅使用主体长度。两个数值各自默认 200；缺失、类型不对或非有限数值时由构造与 NPCUtils 校验恢复默认值，不转换旧字段。修改任一长度不会改变另一项。
 
 ```javascript
-maplebirch.npc.fluids.add('Robin', 'mouth', 2);
-maplebirch.npc.fluids.set('Robin', 'face', 3);
-maplebirch.npc.fluids.reduce('Robin', 'mouth');
+Object.assign(C.npc['Ivory Wraith'], {
+  hair_side_type: 'ruffled',
+  hair_fringe_type: 'sideswept braid',
+  hair_sides_length: 800,
+  hair_fringe_length: 200
+});
+```
+
+### 动态模型体液显示
+
+NPC 侧边栏动态模型可以显示原版玩家模型使用的体液与滴落图层。框架会把状态存在 `V.maplebirch.npc[name].fluids`，不改动原版 `V.player.bodyliquid`。每个部位保存二元组 `[goo, semen]`：第 `0` 项为爱液／黏液，第 `1` 项为精液，不保存 `nectar`。
+
+```javascript
+maplebirch.npc.fluids.add('Robin', 'mouth', 2, 'semen');
+maplebirch.npc.fluids.add('Robin', 'vagina', 1, 'goo');
+maplebirch.npc.fluids.set('Robin', 'face', 3, 'semen');
+maplebirch.npc.fluids.reduce('Robin', 'mouth', 1, 'semen');
+maplebirch.npc.fluids.combined('Robin', 'mouth'); // goo + semen，未限制合计值
+maplebirch.npc.fluids.clear('Robin', 'vagina', 'goo');
 maplebirch.npc.fluids.clear('Robin', 'face');
 maplebirch.npc.fluids.clear('Robin');
 ```
 
-可用部位为 `vagina`、`anus`、`mouth`、`chest`、`face`、`feet`、`leftarm`、`rightarm`、`neck`、`thigh`、`tummy`。数值会限制在 `0` 到 `5`，侧边栏渲染时再转换为原版模型认识的 `drip_*` 与 `cum_*` 参数。
+可用部位与原版身体液体槽一致：`vagina`、`vaginaoutside`、`anus`、`mouth`、`penis`、`chest`、`face`、`hair`、`bottom`、`feet`、`leftarm`、`rightarm`、`neck`、`thigh`、`tummy`。两种液体各自限制在 `0～5`；渲染时将合计限制在 `0～5`，转换为原版 `drip_*` 与 `cum_*` 参数，不改变保存值。`penis`、`hair`、`bottom`、`vaginaoutside` 没有对应的原版侧边栏体液图层，仅保存数据。
+
+`set`、`add`、`reduce` 省略类型时默认操作 `semen`。`clear` 省略类型时清除两种液体，省略部位时清除所有部位；每小时两项各自衰减。旧存档的数字值无法还原来源，自动迁入 `[旧值, 0]`（`goo`），缺少部位自动补 `[0, 0]`。读取单类数值请使用数组下标，读取合计请用 `combined`，不能再把整个部位当作数字。
+
+框架不自动判定高潮或液体来源，调用方负责按剧情更新等级。滴液遮罩会覆盖完整动画精灵图，保留原版滴落间隔；这些等级共用原版体液素材，不区分精液和爱液的外观。
 
 **路径说明**:
 
@@ -540,3 +560,7 @@ fantasyMod/
 │       └── warrior_wardrobe.yaml
 └── boot.json
 ```
+
+### 剧情出现条件
+
+侧边栏模型与设置候选列表都以原版 `V.npc` 为依据，仅保留已知命名 NPC。`<<npc "Name">>` 生成、事件结束清空名单后，模型按当前名单选择；服装日程只决定配装，不增加或移除在场人物。

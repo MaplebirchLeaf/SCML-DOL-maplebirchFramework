@@ -113,7 +113,7 @@ class Variables {
       npcsidebar: {
         show         : false,
         model        : false,
-        second_model : true,
+        second_model : false,
         primary_npc  : '',
         secondary_npc: '',
         position     : 'back' as const,

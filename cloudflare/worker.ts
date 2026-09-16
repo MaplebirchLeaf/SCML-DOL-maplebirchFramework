@@ -16,6 +16,7 @@ class HttpError extends Error {
 }
 
 const MAX_BODY_BYTES = 32 * 1024 * 1024;
+const MAX_SLOT = 200;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -64,7 +65,7 @@ function slotFromPath(pathname: string): number | null {
   const match = /^\/saves\/(\d+)$/.exec(pathname);
   if (!match) return null;
   const slot = Number(match[1]);
-  if (!Number.isInteger(slot) || slot < 0 || slot > 10) return null;
+  if (!Number.isInteger(slot) || slot < 0 || slot > MAX_SLOT) return null;
   return slot;
 }
 
@@ -90,7 +91,7 @@ async function listSaves(env: Env): Promise<Response> {
     const match = /^slots\/(\d+)\.json$/.exec(object.key);
     if (!match) continue;
     const slot = Number(match[1]);
-    if (!Number.isInteger(slot) || slot < 0 || slot > 10) continue;
+    if (!Number.isInteger(slot) || slot < 0 || slot > MAX_SLOT) continue;
     saves.push({ slot, updatedAt: object.uploaded.getTime() });
   }
   saves.sort((a, b) => a.slot - b.slot);

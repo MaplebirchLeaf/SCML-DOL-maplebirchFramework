@@ -2,11 +2,26 @@
 
 import maplebirch from '../../core';
 import type NPCManager from '../NamedNPC';
-import NPCFluids from './NPCFluids';
 
-const body = ['penis', 'vagina', 'virginity', 'hair_side_type', 'hair_fringe_type', 'hair_position', 'hairlength', 'eyeColour', 'hairColour', 'penissize', 'breastsize', 'ballssize'];
+const bodyDefaults = { hair_sides_length: 200, hair_fringe_length: 200 };
 
-// 原版怀孕种族 / 不孕 NPC / 强制可怀孕 NPC（从已删除的 NPC 怀孕模块迁移而来）
+const body = [
+  'penis',
+  'vagina',
+  'virginity',
+  'hair_side_type',
+  'hair_fringe_type',
+  'hair_position',
+  'hair_sides_length',
+  'hair_fringe_length',
+  'eyeColour',
+  'hairColour',
+  'penissize',
+  'breastsize',
+  'ballssize'
+];
+
+// 原版怀孕种族 / 不孕 NPC / 强制可怀孕 NPC
 const PREGNANCY_TYPES = new Set(['human', 'wolf', 'wolfboy', 'wolfgirl', 'hawk', 'harpy']);
 const PREGNANCY_INFERTILE_NPCS = ['Bailey', 'Leighton'];
 const PREGNANCY_FORCED_NPCS = ['Black Wolf', 'Great Hawk', 'Alex'];
@@ -136,6 +151,8 @@ function setupNPCData(manager: NPCManager) {
   });
   NPCNameList.forEach(npcName => {
     const name = npcName.toLowerCase();
+    const npc = V.NPCName?.find((data: any) => data?.nam === npcName);
+    if (npc) for (const [key, value] of Object.entries(bodyDefaults)) if (typeof npc[key] !== typeof value || !Number.isFinite(npc[key])) npc[key] = value;
     if (!V.maplebirch.npc[name]) V.maplebirch.npc[name] = {};
     V.maplebirch.npc[name].bodydata ??= {};
     V.maplebirch.npc[name].outfits ??= [];
@@ -160,4 +177,4 @@ function setupNPCData(manager: NPCManager) {
   });
 }
 
-export { definePregnancyProperty, isPossible, setupNPCData };
+export { bodyDefaults, definePregnancyProperty, isPossible, setupNPCData };
