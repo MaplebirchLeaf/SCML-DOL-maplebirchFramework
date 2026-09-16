@@ -200,7 +200,9 @@ button.saveMenuButton.saves-clear {
 }
 
 .maplebirch-cloud-save select[data-cloud-save-field='slot'] {
-  width: 5rem;
+  min-width: 14rem;
+  max-width: 22rem;
+  width: auto;
 }
 
 .maplebirch-cloud-save-auth > .maplebirch-cloud-save-actions {

@@ -59,7 +59,7 @@ All endpoints except `/health` require the `Authorization: Bearer <MAPLEBIRCH_TO
    - **Address**: your Worker URL, e.g. `https://maplebirch-cloud-save.<your-subdomain>.workers.dev`
    - **Access token**: must match `MAPLEBIRCH_TOKEN`
 3. Click **Connect** to verify (the remote list refreshes), then you can:
-   - **Slots**: pick a local slot and upload; download / delete remote slots (slot 0 is Autosave, 1–10 are manual slots)
+   - **Slots**: pick a local slot and upload; download / delete remote slots (slot 0 is Autosave, 1–200 are manual slots; automatically detects existing local saves and selects the most recent save by default)
    - **Export code**: generate an export code for the current save or a chosen slot and upload it; or download the cloud code and import it by pasting
 
 ## Notes

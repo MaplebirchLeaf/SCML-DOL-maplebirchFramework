@@ -175,7 +175,7 @@
 'cloud.save.error.code.invalid': Invalid save code.
 'cloud.save.error.code.notFound': Remote save code not found.
 'cloud.save.error.code.empty': Remote save code is empty.
-'cloud.save.error.slot.range': Slot must be between 0 and 10.
+'cloud.save.error.slot.range': Slot must be between 0 and 200.
 'cloud.save.error.webdav.credentials': Please fill in the address, account, and password.
 'cloud.save.error.decrypt': Decrypt failed. The password does not match this cloud save.
 'cloud.save.error.decompress': This browser cannot decompress cloud saves.
