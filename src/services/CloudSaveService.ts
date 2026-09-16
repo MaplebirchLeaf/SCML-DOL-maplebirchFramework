@@ -243,6 +243,7 @@ class CloudSaveService {
       const rememberBox = panel.querySelector<HTMLInputElement>('[data-cloud-save-field="remember"]');
       if (rememberBox) rememberBox.checked = remember;
       panel.querySelectorAll<HTMLInputElement>('[data-cloud-save-field]').forEach(input => (input.oninput = () => this.savePanelConfig(panel)));
+      void this.populateSlotOptions(panel);
 
       if (!endpoint || !token) return;
       this.configure({ endpoint, token, remember });
@@ -324,6 +325,7 @@ class CloudSaveService {
 
   private async done(panel: HTMLElement, key: string): Promise<void> {
     await this.refreshPanel(panel);
+    void this.populateSlotOptions(panel);
     this.status(panel, key, true);
   }
 
@@ -470,7 +472,7 @@ class CloudSaveService {
   }
 
   private isSlot(value: unknown): value is CloudSaveSlot {
-    return this.core.lodash.isInteger(value) && this.core.lodash.inRange(value as number, 0, 11);
+    return this.core.lodash.isInteger(value) && this.core.lodash.inRange(value as number, 0, 201);
   }
 
   private validateGame(gameId?: string): void {
@@ -493,8 +495,104 @@ class CloudSaveService {
 
   private panelSlot(panel: HTMLElement): CloudSaveSlot {
     const slot = Number(this.field(panel, 'slot'));
-    if (!Number.isInteger(slot) || slot < 0 || slot > 10) throw new Error(this.core.t('cloud.save.error.slot.range'));
+    if (!Number.isInteger(slot) || slot < 0 || slot > 200) throw new Error(this.core.t('cloud.save.error.slot.range'));
     return slot;
+  }
+
+  /** 动态填充本地存档槽位选项。 */
+  public async populateSlotOptions(panel = this.panel): Promise<void> {
+    if (!panel) return;
+    const select = panel.querySelector<HTMLSelectElement>('select[data-cloud-save-field="slot"]');
+    if (!select) return;
+
+    try {
+      const detailsList = await this.saveDB.getSaveDetails();
+      if (!Array.isArray(detailsList)) return;
+
+      const existingSlots = new Map<number, any>();
+      let latestSlot: number | null = null;
+      let latestDate = 0;
+
+      for (const item of detailsList) {
+        if (typeof item.slot === 'number' && item.data) {
+          existingSlots.set(item.slot, item.data);
+          if (item.slot > 0 && item.data.date && item.data.date > latestDate) {
+            latestDate = item.data.date;
+            latestSlot = item.slot;
+          }
+        }
+      }
+
+      const isCN = this.core.lang.language !== 'EN';
+      const formatDate = (ts?: number) => {
+        if (!ts) return '';
+        const d = new Date(ts);
+        const MM = String(d.getMonth() + 1).padStart(2, '0');
+        const DD = String(d.getDate()).padStart(2, '0');
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mm = String(d.getMinutes()).padStart(2, '0');
+        return `${MM}/${DD} ${hh}:${mm}`;
+      };
+
+      select.innerHTML = '';
+
+      const groupExisting = document.createElement('optgroup');
+      groupExisting.label = isCN ? '本地已有存档' : 'Existing Saves';
+
+      if (existingSlots.has(0)) {
+        const autoData = existingSlots.get(0);
+        const opt = document.createElement('option');
+        opt.value = '0';
+        const tm = formatDate(autoData.date);
+        opt.textContent = `0 - ${isCN ? '自动存档' : 'Autosave'}${tm ? ` (${tm})` : ''}`;
+        groupExisting.appendChild(opt);
+      }
+
+      const sortedExisting = Array.from(existingSlots.keys())
+        .filter(s => s > 0)
+        .sort((a, b) => a - b);
+
+      for (const slot of sortedExisting) {
+        const d = existingSlots.get(slot);
+        const opt = document.createElement('option');
+        opt.value = String(slot);
+        let name = d.metadata?.saveName || d.title || '';
+        if (name.length > 18) name = name.slice(0, 16) + '…';
+        const tm = formatDate(d.date);
+        const isLatest = slot === latestSlot;
+        opt.textContent = `${slot}: ${name ? `${name} ` : ''}${tm ? `(${tm})` : ''}${isLatest ? (isCN ? ' [最新]' : ' [Latest]') : ''}`;
+        groupExisting.appendChild(opt);
+      }
+
+      if (groupExisting.children.length > 0) {
+        select.appendChild(groupExisting);
+      }
+
+      const groupAll = document.createElement('optgroup');
+      groupAll.label = isCN ? '所有槽位 (1-200)' : 'All Slots (1-200)';
+
+      if (!existingSlots.has(0)) {
+        const opt0 = document.createElement('option');
+        opt0.value = '0';
+        opt0.textContent = `0 - ${isCN ? '自动存档 (空)' : 'Autosave (Empty)'}`;
+        groupAll.appendChild(opt0);
+      }
+
+      for (let i = 1; i <= 200; i++) {
+        if (!existingSlots.has(i)) {
+          const opt = document.createElement('option');
+          opt.value = String(i);
+          opt.textContent = `${i} ${isCN ? '(空)' : '(Empty)'}`;
+          groupAll.appendChild(opt);
+        }
+      }
+      select.appendChild(groupAll);
+
+      const targetValue = latestSlot != null ? String(latestSlot) : (existingSlots.has(0) ? '0' : (sortedExisting[0] != null ? String(sortedExisting[0]) : '1'));
+      select.value = targetValue;
+    } catch (error) {
+      console.error('Failed to populate slot options:', error);
+    }
   }
 
   private status(panel: HTMLElement, message: string, success = false): void {
