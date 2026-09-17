@@ -156,7 +156,8 @@ function setupNPCData(manager: NPCManager) {
     if (!V.maplebirch.npc[name]) V.maplebirch.npc[name] = {};
     V.maplebirch.npc[name].bodydata ??= {};
     V.maplebirch.npc[name].outfits ??= [];
-    V.maplebirch.npc[name].tucked ??= [false, false];
+    const tucked = V.maplebirch.npc[name].tucked;
+    if (!Array.isArray(tucked) || tucked.length !== 2 || typeof tucked[0] !== 'boolean' || typeof tucked[1] !== 'boolean') V.maplebirch.npc[name].tucked = [false, false];
     manager.Transformation.ensure(npcName);
     manager.fluids.ensure(npcName);
     Object.defineProperty(V.maplebirch.npc[name], 'clothes', {

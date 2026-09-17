@@ -84,7 +84,7 @@ const clothesSlots: ClothesSlot[] = [
 
 const hairLengthList = ['short', 'shoulder', 'chest', 'navel', 'thighs', 'feet'] as const;
 const upperCombatSlots: ClothesSlot[] = ['over_upper', 'upper', 'under_upper'];
-const lowerCombatSlots: ClothesSlot[] = ['over_lower', 'lower', 'under_lower'];
+const lowerCombatSlots: ClothesSlot[] = ['over_lower', 'lower', 'under_lower', 'legs'];
 
 const portrait_npc_name = (name: string): string => String(name).replace(/[_-]/g, ' ').convert('title');
 const portrait_gender = (npc: Record<string, any>): string => (C.npc?.[npc.name]?.gender === 'm' ? 'male' : 'female');
@@ -109,7 +109,7 @@ function selected(): [string, string?] {
 
 function clothesChanged(rendered: Record<string, any> | undefined, current: Record<string, any>): boolean {
   if (!rendered) return true;
-  const keys = ['name', 'variable', 'state', 'state_top', 'colour', 'colourCustom', 'accessory_colour', 'accessory_colourCustom', 'altposition', 'alpha'];
+  const keys = ['name', 'variable', 'state', 'state_top', 'colour', 'colourCustom', 'accessory_colour', 'accessory_colourCustom', 'altposition', 'pattern', 'accessory', 'altsleeve', 'alpha'];
   return clothesSlots.some(slot => {
     const item = current[slot] ?? {};
     if (rendered[slot]?.index !== clothesIndex(slot, item)) return true;
