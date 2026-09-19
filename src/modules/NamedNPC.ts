@@ -252,13 +252,13 @@ export const NamedNPC = (core => {
           break;
         case 'n':
         default:
-          this.penis = data.penis ?? 'none';
-          this.penissize = data.penissize ?? 0;
-          this.penisdesc = data.penisdesc ?? 'none';
-          this.vagina = data.vagina ?? 'none';
-          this.breastsize = data.breastsize ?? 0;
-          this.breastdesc = data.breastdesc ?? 'none';
-          this.ballssize = data.ballssize ?? 0;
+          this.penis = 'none';
+          this.penissize = 0;
+          this.penisdesc = 'none';
+          this.vagina = 'none';
+          this.breastsize = 0;
+          this.breastdesc = 'none';
+          this.ballssize = 0;
           break;
       }
       this.outfits = Array.isArray(data.outfits) ? data.outfits : [];

@@ -2889,7 +2889,7 @@ interface NPCSidebarBootConfig {
   config?: string[];
 }
 declare function config(manager: NPCManager, modName: string, modZip: ModZipReader, config: NPCSidebarBootConfig): Promise<void>;
-declare function loadFromMod(modZip: ModZipReader, npcNames: string[]): string[];
+declare function loadFromMod(modZip: ModZipReader, npc_names: string[]): string[];
 declare class NPCPet {
   private readonly pets;
   private frame;

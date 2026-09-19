@@ -101,7 +101,7 @@
 
     <div class='settingsToggleItem'><label>
       <<checkbox '$options.maplebirch.npcsidebar.pet.enabled' false true autocheck>><<lanSwitch 'NPC Pet Display' 'NPC桌宠显示'>>
-      <span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Displays the NPCSidebar model as one or two independently draggable pets.' '将NPC侧边栏的一或两个模型显示为可独立拖拽的桌宠。'>></span>">(?)</span>
+      <span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Displays nearby NPC images or PC models as independently draggable pets.' '将附近NPC的图像或PC模型显示为可独立拖拽的桌宠。'>></span>">(?)</span>
       <<lanLink 'reset' 'capitalize' 'class:teal'>>
         <<set $options.maplebirch.npcsidebar.pet.mask to 25>>
         <<set $options.maplebirch.npcsidebar.pet.rotation to 0>>
@@ -123,7 +123,7 @@
     </label></div>
 
     <div class='settingsToggleItemWide'>
-      <label><<checkbox '$options.maplebirch.npcsidebar.second_model' false true autocheck>><<lanSwitch 'Second NPC Model' '第二NPC模型'>></label><span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Also displays a selected second nearby NPC in PC Model Mode.' 'PC模型模式下同时显示选中的第二名附近NPC。'>></span>">(?)</span><br>
+      <label><<checkbox '$options.maplebirch.npcsidebar.second_model' false true autocheck>><<lanSwitch 'Second NPC Model' '第二NPC模型'>></label><span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Also displays a selected second nearby NPC in the sidebar or as a pet.' '在侧边栏或桌宠中同时显示选中的第二名附近NPC。'>></span>">(?)</span><br>
       <span class='gold'><<lanSwitch 'Second Model Offset: ' '第二模型偏移：'>></span><span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Offsets the second model from the first model.' '相对第一模型偏移第二模型。'>></span>">(?)</span><br>
       <div class='maplebirch-relationcount-slider'><label><<lanSwitch 'Horizontal Offset' '水平偏移'>><<numberslider '$options.maplebirch.npcsidebar.previous_dx' $options.maplebirch.npcsidebar.previous_dx -96 96 1 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => `${v}px` }>></label></div>
       <div class='maplebirch-relationcount-slider'><label><<lanSwitch 'Vertical Offset' '垂直偏移'>><<numberslider '$options.maplebirch.npcsidebar.previous_dy' $options.maplebirch.npcsidebar.previous_dy -62 46 1 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => `${v}px` }>></label></div>

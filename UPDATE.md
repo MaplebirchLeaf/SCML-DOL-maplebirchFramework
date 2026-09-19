@@ -7,7 +7,8 @@
 - 新增 `<<transform-hint "翻译键" "颜色类">>`，在选项旁显示转化名称；不增加进度，隐藏数值时不显示。
 - NPC 主体头发与刘海长度可独立调整，分别使用 `hair_sides_length`、`hair_fringe_length`；旧 `hairlength` 不再使用，也不会自动转换，相关模组需更新配置。
 - NPC 体液改为按部位保存 `[goo, semen]`，支持分类操作与合计读取；旧数字自动迁入 `[旧值, 0]`。直接读取部位数值的代码需改用数组下标或 `combined()`，增减接口省略类型时默认操作 `semen`；新增数据部位不附带新素材。
-- 修正 NPC 战斗脱衣判定，避免误脱袜子与鞋；修复滴液动画遮罩缺失。第二 NPC 模型默认关闭，已有设置不变。
+- 修正 NPC 战斗脱衣判定，避免误脱袜子与鞋；修复滴液遮罩在重复渲染后丢失偏移、导致动画异常间歇的问题。第二 NPC 模型默认关闭，已有设置不变。
+- NPC 桌宠支持 NPC 图像与 PC 模型两种模式。
 - 修复湖中遗迹血月积雪背景的配置错误，消除 `lake-ruin/[object Object]` 图片路径警告。
 
 感谢 [@JohnLiao501](https://github.com/JohnLiao501) 通过 [PR #13](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/pull/13) 贡献记住令牌与面板初始化修复，并通过 [PR #14](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/pull/14) 贡献存档槽位智能选择。

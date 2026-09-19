@@ -11,19 +11,19 @@ type NPCSidebarOptions = {
   [key: string]: any;
 };
 
-function titleCase(value: string) {
+function title_case(value: string) {
   return value
     .split('-')
     .map(part => part.charAt(0).toUpperCase() + part.slice(1))
     .join('');
 }
 
-function faceUncovered(nnpc: Record<string, any>) {
+function face_uncovered(nnpc: Record<string, any>) {
   const type = nnpc.clothes.face?.type ?? [];
   return !type.includes('face_covering');
 }
 
-function cumLayer(file: string, prop: string, z: (nnpc: Record<string, any>) => number, show?: (nnpc: Record<string, any>) => boolean) {
+function cum_layer(file: string, prop: string, z: (nnpc: Record<string, any>) => number, show?: (nnpc: Record<string, any>) => boolean) {
   return {
     masksrcfn: (options: NPCSidebarOptions) => {
       return kaijuMask(options) || options.maplebirch.nnpc.close_up_mask;
@@ -49,53 +49,46 @@ function cumLayer(file: string, prop: string, z: (nnpc: Record<string, any>) => 
   };
 }
 
-function dripLayer(file: string, prop: string, animation: string, z: (nnpc: Record<string, any>) => number) {
+function drip_layer(file: string, prop: string, animation: string, z: (nnpc: Record<string, any>) => number) {
   return {
-    ...cumLayer(file, prop, z),
-    masksrcfn: (options: NPCSidebarOptions) => {
-      const nnpc = options.maplebirch.nnpc;
-      const mask = kaijuMask(options) || nnpc.close_up_mask;
-      if (!mask) return undefined;
-      const spec = Renderer.Animations[`${animation}${titleCase(nnpc[prop] || '')}`];
-      const frames = spec && ('frames' in spec ? spec.frames : Math.max(...spec.keyframes.map((frame: { frame: number }) => frame.frame)) + 1);
-      return Array.from({ length: Math.ceil((frames || 2) / 2) }, (_, index) => ({ path: mask, offsetX: index * 512 }));
-    },
+    ...cum_layer(file, prop, z),
+    repeat_mask: true,
     animationfn: (options: NPCSidebarOptions) => {
       const value = options.maplebirch.nnpc[prop];
-      return value ? `${animation}${titleCase(value)}` : '';
+      return value ? `${animation}${title_case(value)}` : '';
     }
   };
 }
 
 const fluids_layers = {
-  nnpc_drip_vaginal: dripLayer('vaginal', 'drip_vaginal', 'VaginalCumDrip', nnpc => maplebirch.char.ZIndices.tears + nnpc.position),
-  nnpc_drip_anal: dripLayer('anal', 'drip_anal', 'AnalCumDrip', nnpc => maplebirch.char.ZIndices.tears + nnpc.position),
+  nnpc_drip_vaginal: drip_layer('vaginal', 'drip_vaginal', 'VaginalCumDrip', nnpc => maplebirch.char.ZIndices.tears + nnpc.position),
+  nnpc_drip_anal: drip_layer('anal', 'drip_anal', 'AnalCumDrip', nnpc => maplebirch.char.ZIndices.tears + nnpc.position),
   nnpc_drip_mouth: {
-    ...dripLayer('mouth', 'drip_mouth', 'MouthCumDrip', nnpc => maplebirch.char.ZIndices.semen_cough + nnpc.position),
+    ...drip_layer('mouth', 'drip_mouth', 'MouthCumDrip', nnpc => maplebirch.char.ZIndices.semen_cough + nnpc.position),
     showfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
-      return nnpc.show && nnpc.model && !!nnpc.drip_mouth && faceUncovered(nnpc);
+      return nnpc.show && nnpc.model && !!nnpc.drip_mouth && face_uncovered(nnpc);
     }
   },
 
-  nnpc_cum_chest: cumLayer('chest', 'cum_chest', nnpc => maplebirch.char.ZIndices.tears + nnpc.position),
-  nnpc_cum_face: cumLayer('face', 'cum_face', nnpc => maplebirch.char.ZIndices.tears + nnpc.position),
-  nnpc_cum_feet: cumLayer('feet', 'cum_feet', nnpc => maplebirch.char.ZIndices.feet + 0.2 + nnpc.position),
-  nnpc_cum_leftarm: cumLayer(
+  nnpc_cum_chest: cum_layer('chest', 'cum_chest', nnpc => maplebirch.char.ZIndices.tears + nnpc.position),
+  nnpc_cum_face: cum_layer('face', 'cum_face', nnpc => maplebirch.char.ZIndices.tears + nnpc.position),
+  nnpc_cum_feet: cum_layer('feet', 'cum_feet', nnpc => maplebirch.char.ZIndices.feet + 0.2 + nnpc.position),
+  nnpc_cum_leftarm: cum_layer(
     'left-arm',
     'cum_leftarm',
     nnpc => nnpc.zarms + 0.05,
     nnpc => nnpc.arm_left !== 'none' && nnpc.arm_left !== 'cover'
   ),
-  nnpc_cum_rightarm: cumLayer(
+  nnpc_cum_rightarm: cum_layer(
     'right-arm',
     'cum_rightarm',
     nnpc => nnpc.zarms + 0.05,
     nnpc => nnpc.arm_right !== 'none' && nnpc.arm_right !== 'cover' && nnpc.arm_right !== 'hold'
   ),
-  nnpc_cum_neck: cumLayer('neck', 'cum_neck', nnpc => maplebirch.char.ZIndices.tears + nnpc.position),
-  nnpc_cum_thigh: cumLayer('thighs', 'cum_thigh', nnpc => maplebirch.char.ZIndices.tears + nnpc.position),
-  nnpc_cum_tummy: cumLayer('tummy', 'cum_tummy', nnpc => maplebirch.char.ZIndices.tears + nnpc.position)
+  nnpc_cum_neck: cum_layer('neck', 'cum_neck', nnpc => maplebirch.char.ZIndices.tears + nnpc.position),
+  nnpc_cum_thigh: cum_layer('thighs', 'cum_thigh', nnpc => maplebirch.char.ZIndices.tears + nnpc.position),
+  nnpc_cum_tummy: cum_layer('tummy', 'cum_tummy', nnpc => maplebirch.char.ZIndices.tears + nnpc.position)
 };
 
 export default fluids_layers;

@@ -27,15 +27,15 @@ export interface NPCSidebarBootConfig {
 }
 
 async function images(manager: NPCManager, modName: string, modZip: ModZipReader, paths: string[]): Promise<void> {
-  const imagePaths: string[] = [];
+  const image_paths: string[] = [];
   for (const path of paths) {
     if (!modZip.zip.file(path)) {
       manager.log(`图片未找到: ${path} (模组: ${modName})`, 'WARN');
       continue;
     }
-    imagePaths.push(path);
+    image_paths.push(path);
   }
-  if (!imagePaths.length) return;
+  if (!image_paths.length) return;
   const modInfo = modZip.modInfo;
   if (!modInfo) return;
   const plugins = modInfo.bootJson?.addonPlugin;
@@ -47,17 +47,17 @@ async function images(manager: NPCManager, modName: string, modZip: ModZipReader
   }
   const params = plugin.params && typeof plugin.params === 'object' && !Array.isArray(plugin.params) ? (plugin.params as Record<string, unknown>) : {};
   params.type = `npc-sidebar:${modName}`;
-  params.imgFileList = imagePaths;
+  params.imgFileList = image_paths;
   plugin.params = params;
   await window.addonBeautySelectorAddon.registerMod('BeautySelectorAddon', modInfo, modZip);
 }
 
 async function config(manager: NPCManager, modName: string, modZip: ModZipReader, config: NPCSidebarBootConfig): Promise<void> {
-  if (Array.isArray(config.clothes)) for (const filePath of config.clothes) await manager.Clothes.wardrobe.load(modName, filePath);
-  const imagePaths: string[] = [];
-  if (Array.isArray(config.image)) imagePaths.push(...loadFromMod(modZip, config.image));
-  if (Array.isArray(config.config)) imagePaths.push(...(await manager.Clothes.art.import(modName, modZip, config.config)));
-  if (imagePaths.length) await images(manager, modName, modZip, imagePaths);
+  if (Array.isArray(config.clothes)) for (const file_path of config.clothes) await manager.Clothes.wardrobe.load(modName, file_path);
+  const image_paths: string[] = [];
+  if (Array.isArray(config.image)) image_paths.push(...loadFromMod(modZip, config.image));
+  if (Array.isArray(config.config)) image_paths.push(...(await manager.Clothes.art.import(modName, modZip, config.config)));
+  if (image_paths.length) await images(manager, modName, modZip, image_paths);
 }
 
 type NPCSidebarOptions = {
@@ -73,18 +73,18 @@ type NPCSidebarOptions = {
 type ClothesSlot = 'head' | 'face' | 'neck' | 'upper' | 'lower' | 'feet' | 'legs' | 'handheld' | 'genitals' | 'under_upper' | 'under_lower' | 'over_head' | 'over_upper' | 'over_lower' | 'hands';
 
 const display = new Map<string, Set<string>>();
-const imageFormats = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp']);
-const portraitPaths = new Map<string, Set<string>>();
+const image_formats = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp']);
+const portrait_paths = new Map<string, Set<string>>();
 
 // prettier-ignore
-const clothesSlots: ClothesSlot[] = [
+const clothes_slots: ClothesSlot[] = [
   'head', 'face', 'neck', 'upper', 'lower', 'feet', 'legs', 'handheld',
   'genitals', 'under_upper', 'under_lower', 'over_head', 'over_upper', 'over_lower', 'hands'
 ];
 
-const hairLengthList = ['short', 'shoulder', 'chest', 'navel', 'thighs', 'feet'] as const;
-const upperCombatSlots: ClothesSlot[] = ['over_upper', 'upper', 'under_upper'];
-const lowerCombatSlots: ClothesSlot[] = ['over_lower', 'lower', 'under_lower', 'legs'];
+const hair_length_list = ['short', 'shoulder', 'chest', 'navel', 'thighs', 'feet'] as const;
+const upper_combat_slots: ClothesSlot[] = ['over_upper', 'upper', 'under_upper'];
+const lower_combat_slots: ClothesSlot[] = ['over_lower', 'lower', 'under_lower', 'legs'];
 
 const portrait_npc_name = (name: string): string => String(name).replace(/[_-]/g, ' ').convert('title');
 const portrait_gender = (npc: Record<string, any>): string => (C.npc?.[npc.name]?.gender === 'm' ? 'male' : 'female');
@@ -95,24 +95,23 @@ function selected(): [string, string?] {
   const nearby = Array.isArray(V.npc) ? V.npc.filter((name: unknown): name is string => typeof name === 'string' && name.length > 0 && setup.NPCNameList.includes(name)) : [];
   const names = nearby.filter((name, index) => nearby.lastIndexOf(name) === index);
   const primary = names.includes(sidebar.primary_npc) ? sidebar.primary_npc : (names.at(-1) ?? '');
-  const selectedSecondary = names.includes(sidebar.secondary_npc) && sidebar.secondary_npc !== primary ? sidebar.secondary_npc : undefined;
-  const secondary =
-    sidebar.model && sidebar.second_model
-      ? (selectedSecondary ??
-        names
-          .slice()
-          .reverse()
-          .find(name => name !== primary))
-      : undefined;
+  const selected_secondary = names.includes(sidebar.secondary_npc) && sidebar.secondary_npc !== primary ? sidebar.secondary_npc : undefined;
+  const secondary = sidebar.second_model
+    ? (selected_secondary ??
+      names
+        .slice()
+        .reverse()
+        .find(name => name !== primary))
+    : undefined;
   return [primary, secondary];
 }
 
-function clothesChanged(rendered: Record<string, any> | undefined, current: Record<string, any>): boolean {
+function clothes_changed(rendered: Record<string, any> | undefined, current: Record<string, any>): boolean {
   if (!rendered) return true;
   const keys = ['name', 'variable', 'state', 'state_top', 'colour', 'colourCustom', 'accessory_colour', 'accessory_colourCustom', 'altposition', 'pattern', 'accessory', 'altsleeve', 'alpha'];
-  return clothesSlots.some(slot => {
+  return clothes_slots.some(slot => {
     const item = current[slot] ?? {};
-    if (rendered[slot]?.index !== clothesIndex(slot, item)) return true;
+    if (rendered[slot]?.index !== clothes_index(slot, item)) return true;
     if (Object.hasOwn(item, 'integrity') && rendered[slot]?.integrity !== Integrity(item, slot)) return true;
     return keys.some(key => Object.hasOwn(item, key) && rendered[slot]?.[key] !== item[key]);
   });
@@ -125,20 +124,20 @@ function refresh(manager: NPCManager): void {
   const changed = selected().some((name, index) => {
     const npc = rendered[index];
     if (!name) return !!npc?.name;
-    return npc?.name !== name || clothesChanged(npc.clothes, manager.Clothes.wardrobe.worn(name));
+    return npc?.name !== name || clothes_changed(npc.clothes, manager.Clothes.wardrobe.worn(name));
   });
   if (changed) model.redraw();
 }
 
-function loadFromMod(modZip: ModZipReader, npcNames: string[]) {
+function loadFromMod(modZip: ModZipReader, npc_names: string[]) {
   if (!modZip) return [];
 
   const paths: string[] = [];
   const root = 'img/ui/nnpc/';
 
-  for (const name of npcNames ?? []) {
-    const npcName = portrait_npc_name(name);
-    if (!display.has(npcName)) display.set(npcName, new Set());
+  for (const name of npc_names ?? []) {
+    const npc_name = portrait_npc_name(name);
+    if (!display.has(npc_name)) display.set(npc_name, new Set());
   }
 
   for (const path in modZip.zip.files) {
@@ -146,33 +145,33 @@ function loadFromMod(modZip: ModZipReader, npcNames: string[]) {
     const match = normalized.match(/(?:^|\/)(img\/ui\/nnpc\/.*)$/);
     if (!match) continue;
 
-    const filePath = match[1];
-    const parts = filePath.slice(root.length).split('/').filter(Boolean);
+    const file_path = match[1];
+    const parts = file_path.slice(root.length).split('/').filter(Boolean);
     if (parts.length < 2) continue;
 
-    const npcName = portrait_npc_name(parts[0]);
-    const fileName = parts.at(-1)!;
-    const dot = fileName.lastIndexOf('.');
+    const npc_name = portrait_npc_name(parts[0]);
+    const file_name = parts.at(-1)!;
+    const dot = file_name.lastIndexOf('.');
 
     if (dot <= 0) continue;
-    const imgName = fileName.slice(0, dot);
-    const ext = fileName.slice(dot + 1).toLowerCase();
-    if (!imageFormats.has(ext)) continue;
-    if (!display.has(npcName)) display.set(npcName, new Set());
-    if (!portraitPaths.has(npcName)) portraitPaths.set(npcName, new Set());
+    const img_name = file_name.slice(0, dot);
+    const ext = file_name.slice(dot + 1).toLowerCase();
+    if (!image_formats.has(ext)) continue;
+    if (!display.has(npc_name)) display.set(npc_name, new Set());
+    if (!portrait_paths.has(npc_name)) portrait_paths.set(npc_name, new Set());
 
-    display.get(npcName)!.add(imgName);
-    portraitPaths.get(npcName)!.add(filePath);
-    paths.push(filePath);
+    display.get(npc_name)!.add(img_name);
+    portrait_paths.get(npc_name)!.add(file_path);
+    paths.push(file_path);
   }
 
   return paths;
 }
 
-function loadAllImages(manager: NPCManager) {
+function load_all_images(manager: NPCManager) {
   for (const name of manager.NPCNameList) {
-    const npcName = portrait_npc_name(name);
-    if (!display.has(npcName)) display.set(npcName, new Set());
+    const npc_name = portrait_npc_name(name);
+    if (!display.has(npc_name)) display.set(npc_name, new Set());
   }
   const paths: string[] = [];
   for (const modName of manager.core.modUtils.getModListNameNoAlias()) {
@@ -190,7 +189,7 @@ function loadAllImages(manager: NPCManager) {
 function resolve(nnpc: Record<string, any>, selected: string): string {
   const name = portrait_npc_name(nnpc.name).toLowerCase();
   const flat = `img/ui/nnpc/${name}/${selected}.png`;
-  const src = portraitPaths.get(nnpc.name);
+  const src = portrait_paths.get(nnpc.name);
   if (!src?.size) return flat;
 
   const gender = portrait_gender(nnpc);
@@ -206,7 +205,7 @@ function resolve(nnpc: Record<string, any>, selected: string): string {
   return candidates.find(path => path.includes(`/${gender}/`)) ?? candidates[0];
 }
 
-function clothesIndex(slot: ClothesSlot, clothes: any) {
+function clothes_index(slot: ClothesSlot, clothes: any) {
   const fn = window.clothesIndex;
   return clothingIndex(slot, clothes ?? {}, typeof fn === 'function' ? (target, item) => fn(target as ClothesSlot, item) : undefined);
 }
@@ -223,8 +222,8 @@ function Integrity(clothes: any, slot: ClothesSlot) {
   return clothes.integrity ?? 'full';
 }
 
-function defaultClothes() {
-  return clothesSlots.reduce(
+function default_clothes() {
+  return clothes_slots.reduce(
     (result, slot) => {
       result[slot] = { index: 0, name: '', type: [] };
       return result;
@@ -233,25 +232,25 @@ function defaultClothes() {
   );
 }
 
-function NPCClothes(npcData: any, options: NPCSidebarOptions) {
+function npc_clothes(npcData: any, options: NPCSidebarOptions) {
   const filters = options.filters!;
-  const clothesData = {
-    ...defaultClothes(),
+  const clothes_data = {
+    ...default_clothes(),
     ...npcData?.clothes
   };
 
   const clothes = {} as Record<ClothesSlot, any>;
 
-  for (const slot of clothesSlots) {
-    const data = clothesData[slot] ?? {};
-    const index = clothesIndex(slot, data);
-    const setupData = setup.clothes[slot][index] ?? setup.clothes[slot][0] ?? { type: [] };
+  for (const slot of clothes_slots) {
+    const data = clothes_data[slot] ?? {};
+    const index = clothes_index(slot, data);
+    const setup_data = setup.clothes[slot][index] ?? setup.clothes[slot][0] ?? { type: [] };
 
-    clothes[slot] = normaliseClothingState(setupData, data, index);
+    clothes[slot] = normaliseClothingState(setup_data, data, index);
 
     clothes[slot].integrity = Integrity(clothes[slot], slot);
 
-    const prefilter = setupData.prefilter;
+    const prefilter = setup_data.prefilter;
     const colour = clothes[slot].colour ?? clothes[slot].colour_sidebar ?? 'white';
     const acc = clothes[slot].accessory_colour ?? clothes[slot].accColour ?? clothes[slot].accessory_colour_sidebar ?? 'white';
 
@@ -262,15 +261,15 @@ function NPCClothes(npcData: any, options: NPCSidebarOptions) {
   return clothes;
 }
 
-function combatNpc(name: string) {
+function combat_npc(name: string) {
   const list = Array.isArray(V.NPCList) ? V.NPCList : [];
   return list.find((npc: any) => {
-    const npcName = npc?.fullDescription ?? npc?.description ?? npc?.nam ?? npc?.name;
-    return npcName === name;
+    const npc_name = npc?.fullDescription ?? npc?.description ?? npc?.nam ?? npc?.name;
+    return npc_name === name;
   });
 }
 
-function nakedClothes(slot: ClothesSlot) {
+function naked_clothes(slot: ClothesSlot) {
   const data = setup.clothes[slot]?.[0] ?? { index: 0, name: 'naked', variable: 'naked', type: ['naked'] };
   return {
     ...data,
@@ -285,15 +284,15 @@ function exposed(state: unknown): boolean {
   return state === 0 || (typeof state === 'string' && state !== '' && state !== 'clothed' && state !== 'none');
 }
 
-function applyCombatClothesState(nnpc: Record<string, any>) {
+function apply_combat_clothes_state(nnpc: Record<string, any>) {
   if (V.combat !== 1) return;
-  const npc = combatNpc(nnpc.name);
+  const npc = combat_npc(nnpc.name);
   if (!npc) return;
-  if (exposed(npc.chest)) upperCombatSlots.forEach(slot => (nnpc.clothes[slot] = nakedClothes(slot)));
-  if (exposed(npc.penis) || exposed(npc.vagina)) lowerCombatSlots.forEach(slot => (nnpc.clothes[slot] = nakedClothes(slot)));
+  if (exposed(npc.chest)) upper_combat_slots.forEach(slot => (nnpc.clothes[slot] = naked_clothes(slot)));
+  if (exposed(npc.penis) || exposed(npc.vagina)) lower_combat_slots.forEach(slot => (nnpc.clothes[slot] = naked_clothes(slot)));
 }
 
-function setupBasicData(options: NPCSidebarOptions, name: string) {
+function setup_basic_data(options: NPCSidebarOptions, name: string) {
   options.maplebirch ??= {};
   options.maplebirch.nnpc ??= {};
   options.filters ??= {};
@@ -326,14 +325,14 @@ function setupBasicData(options: NPCSidebarOptions, name: string) {
   return nnpc;
 }
 
-function setupClothesData(options: NPCSidebarOptions, nnpc: Record<string, any>, npcData: any) {
+function setup_clothes_data(options: NPCSidebarOptions, nnpc: Record<string, any>, npcData: any) {
   options.filters!.nnpc_tan = setup.colours.getSkinFilter(nnpc.skin_type, nnpc.tan);
 
-  nnpc.clothes = NPCClothes(npcData, options);
-  applyCombatClothesState(nnpc);
+  nnpc.clothes = npc_clothes(npcData, options);
+  apply_combat_clothes_state(nnpc);
 
   const clothes = nnpc.clothes;
-  const allSlots = Array.isArray(setup.clothes_all_slots) ? setup.clothes_all_slots : clothesSlots;
+  const all_slots = Array.isArray(setup.clothes_all_slots) ? setup.clothes_all_slots : clothes_slots;
 
   nnpc.hood_down = clothes.upper.hoodposition === 'down';
   nnpc.upper_tucked = !!npcData?.tucked?.[0] && !clothes.upper.notuck && clothes.upper.outfitPrimary == null;
@@ -352,18 +351,18 @@ function setupClothesData(options: NPCSidebarOptions, nnpc: Record<string, any>,
     nnpc.crotch_exposed = false;
   }
 
-  const holdPositions = allSlots.map((slot: string) => clothes[slot]?.holdPosition);
-  const handheldPosition = clothes.handheld?.holdPosition;
+  const hold_positions = all_slots.map((slot: string) => clothes[slot]?.holdPosition);
+  const handheld_position = clothes.handheld?.holdPosition;
 
-  nnpc.arm_left = ['left_cover', 'clutch', 'cover_both'].some(pos => holdPositions.includes(pos)) ? 'cover' : holdPositions.includes('left_hold') ? 'hold' : 'idle';
+  nnpc.arm_left = ['left_cover', 'clutch', 'cover_both'].some(pos => hold_positions.includes(pos)) ? 'cover' : hold_positions.includes('left_hold') ? 'hold' : 'idle';
 
-  nnpc.arm_right = ['right_cover', 'cover_both'].some(pos => holdPositions.includes(pos))
+  nnpc.arm_right = ['right_cover', 'cover_both'].some(pos => hold_positions.includes(pos))
     ? 'cover'
-    : ['right_hold', 'clutch'].some(pos => holdPositions.includes(pos)) || (clothes.handheld.name !== 'naked' && !['left_cover', 'left_idle', 'idle_both'].includes(handheldPosition))
+    : ['right_hold', 'clutch'].some(pos => hold_positions.includes(pos)) || (clothes.handheld.name !== 'naked' && !['left_cover', 'left_idle', 'idle_both'].includes(handheld_position))
       ? 'hold'
       : 'idle';
 
-  nnpc.handheld_position = nnpc.arm_right === 'hold' ? 'hold' : handheldPosition === 'right_cover' ? 'right_cover' : null;
+  nnpc.handheld_position = nnpc.arm_right === 'hold' ? 'hold' : handheld_position === 'right_cover' ? 'right_cover' : null;
 
   if (clothes.over_upper.index) {
     nnpc.zarms = maplebirch.char.ZIndices.over_upper_arms - 0.1;
@@ -420,7 +419,7 @@ function setupClothesData(options: NPCSidebarOptions, nnpc: Record<string, any>,
   nnpc.hood_mask = clothes.head.mask_img === 1 && !(nnpc.hood_down && clothes.head.hood && clothes.head.outfitSecondary !== undefined) ? true : null;
 }
 
-function setupBodyData(options: NPCSidebarOptions, nnpc: Record<string, any>, npcData: any) {
+function setup_body_data(options: NPCSidebarOptions, nnpc: Record<string, any>, npcData: any) {
   const filters = options.filters!;
   const bodydata = nnpc.bodydata ?? npcData.bodydata ?? {};
   const clothes = nnpc.clothes;
@@ -431,13 +430,13 @@ function setupBodyData(options: NPCSidebarOptions, nnpc: Record<string, any>, np
   nnpc.breasts = !clothes.upper.type?.includes('naked') || !clothes.under_upper.type?.includes('naked') ? 'cleavage' : 'default';
   nnpc.breast_size = [0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 5, 5, 6][Math.round(bodydata.breastsize ?? 0)] ?? 0;
 
-  const hasPenis = bodydata.penis != null && bodydata.penis !== 'none';
-  const penisState = nnpc.lust >= 60 ? 'hard' : 'soft';
-  const penisVirgin = hasPenis && bodydata.virginity?.penile === true ? '-virgin-' : '-';
+  const has_penis = bodydata.penis != null && bodydata.penis !== 'none';
+  const penis_state = nnpc.lust >= 60 ? 'hard' : 'soft';
+  const penis_virgin = has_penis && bodydata.virginity?.penile === true ? '-virgin-' : '-';
 
-  nnpc.penis_size = hasPenis ? Math.clamp(Math.round(bodydata.penissize ?? 1), 1, 4) + 2 : 0;
-  nnpc.balls = hasPenis && (bodydata.ballssize ?? 0) > 0;
-  nnpc.penis = hasPenis ? `${penisState}${penisVirgin}${nnpc.penis_size}` : false;
+  nnpc.penis_size = has_penis ? Math.clamp(Math.round(bodydata.penissize ?? 1), 1, 4) + 2 : 0;
+  nnpc.balls = has_penis && (bodydata.ballssize ?? 0) > 0;
+  nnpc.penis = has_penis ? `${penis_state}${penis_virgin}${nnpc.penis_size}` : false;
   nnpc.genitals_chastity = clothes.genitals.type?.includes('chastity');
 
   nnpc.eye_colour = bodydata.eyeColour;
@@ -449,30 +448,30 @@ function setupBodyData(options: NPCSidebarOptions, nnpc: Record<string, any>, np
   filters.nnpc_hair_fringe = lookupColour(setup.colours.hair_map, nnpc.hair_colour, 'hair_fringe');
 
   const hairstyle = setup.hairstyles.sides.find((style: any) => style.variable === bodydata.hair_side_type);
-  const headIndex = clothesIndex('head', clothes.head);
-  const headType = setup.clothes.head[headIndex]?.head_type;
+  const head_index = clothes_index('head', clothes.head);
+  const head_type = setup.clothes.head[head_index]?.head_type;
 
-  nnpc.hair_sides_type = hairstyle?.alt_head_type?.includes(headType) ? hairstyle.alt : bodydata.hair_side_type;
+  nnpc.hair_sides_type = hairstyle?.alt_head_type?.includes(head_type) ? hairstyle.alt : bodydata.hair_side_type;
   nnpc.hair_fringe_type = bodydata.hair_fringe_type;
   nnpc.hair_position = bodydata.hair_position;
-  nnpc.hair_sides_length = hairLengthList[Math.trunc((bodydata.hair_sides_length ?? 0) / 200)] ?? 'short';
+  nnpc.hair_sides_length = hair_length_list[Math.trunc((bodydata.hair_sides_length ?? 0) / 200)] ?? 'short';
   nnpc.hair_sides_position = nnpc.hair_position;
-  nnpc.hair_fringe_length = hairLengthList[Math.trunc((bodydata.hair_fringe_length ?? 0) / 200)] ?? 'short';
+  nnpc.hair_fringe_length = hair_length_list[Math.trunc((bodydata.hair_fringe_length ?? 0) / 200)] ?? 'short';
 
   nnpc.calculate_penis_bulge = (target = nnpc) => {
     const clothes = target.clothes;
-    const penisSize = target.penis_size ?? 0;
+    const penis_size = target.penis_size ?? 0;
     const lust = target.lust ?? 0;
     if (clothes.under_lower?.type?.includes('strap-on')) return (clothes.under_lower.size ?? 0) * 3;
     const compressed = !!target.penis && clothes.genitals?.type?.includes('hidden');
     if (!target.penis || compressed) return 0;
-    if (clothes.genitals?.type?.includes('cage')) return Math.max(0, penisSize);
+    if (clothes.genitals?.type?.includes('cage')) return Math.max(0, penis_size);
     const erection = lust >= 80 ? 3 : lust >= 60 ? 2 : 1;
-    return Math.max(0, (penisSize - 1) * erection);
+    return Math.max(0, (penis_size - 1) * erection);
   };
 }
 
-function setupMaskData(nnpc: Record<string, any>) {
+function setup_mask_data(nnpc: Record<string, any>) {
   const clothes = nnpc.clothes;
   const close_up_mask = nnpc.close_up_mask;
 
@@ -482,9 +481,9 @@ function setupMaskData(nnpc: Record<string, any>) {
   nnpc.legs_mask = [close_up_mask];
   nnpc.feet_mask = [close_up_mask];
 
-  const hairTails = ['curly pigtails', 'fluffy ponytail', 'thick sidetail', 'thick twintails', 'ribbon tail', 'thick sidetail', 'thick ponytail', 'half-up'];
-  const thickTails = ['scorpion tails', 'thick pigtails', 'thick twintails'];
-  const furCap = ['furcap f', 'furcap m'];
+  const hair_tails = ['curly pigtails', 'fluffy ponytail', 'thick sidetail', 'thick twintails', 'ribbon tail', 'thick sidetail', 'thick ponytail', 'half-up'];
+  const thick_tails = ['scorpion tails', 'thick pigtails', 'thick twintails'];
+  const fur_cap = ['furcap f', 'furcap m'];
 
   if (clothes.upper.mask_img === 1 && clothes.upper.name === 'cocoon') nnpc.head_mask.push('img/clothes/upper/cocoon/mask.png');
 
@@ -493,7 +492,7 @@ function setupMaskData(nnpc: Record<string, any>) {
   }
 
   if (clothes.head.mask_img === 1 && !(nnpc.hood_down && clothes.head.hood && clothes.head.outfitSecondary !== undefined)) {
-    const ponytail = (clothes.head.mask_img_ponytail === 1 && hairTails.includes(nnpc.hair_sides_type)) || (thickTails.includes(nnpc.hair_sides_type) && furCap.includes(clothes.head.variable));
+    const ponytail = (clothes.head.mask_img_ponytail === 1 && hair_tails.includes(nnpc.hair_sides_type)) || (thick_tails.includes(nnpc.hair_sides_type) && fur_cap.includes(clothes.head.variable));
     nnpc.head_mask.push(`img/clothes/head/${clothes.head.variable}/${ponytail ? 'mask-ponytail' : 'mask'}.png`);
   }
 
@@ -519,7 +518,7 @@ function setupMaskData(nnpc: Record<string, any>) {
   }
 }
 
-function setupNPC(options: NPCSidebarOptions, nnpc: Record<string, any>) {
+function setup_npc(options: NPCSidebarOptions, nnpc: Record<string, any>) {
   if (!nnpc.name || !nnpc.model) return;
   const npcData = V.maplebirch.npc[nnpc.name.toLowerCase()];
   if (!npcData) {
@@ -530,21 +529,21 @@ function setupNPC(options: NPCSidebarOptions, nnpc: Record<string, any>) {
   nnpc.tf_ears_layer = nnpc.ears_position ?? nnpc.tf_ears_layer;
   maplebirch.npc.Transformation.applyBody(nnpc, npcData);
   maplebirch.npc.Transformation.applySidebar(nnpc);
-  setupClothesData(options, nnpc, npcData);
-  setupBodyData(options, nnpc, npcData);
+  setup_clothes_data(options, nnpc, npcData);
+  setup_body_data(options, nnpc, npcData);
   maplebirch.npc.fluids.apply(nnpc, npcData);
-  setupMaskData(nnpc);
+  setup_mask_data(nnpc);
 }
 
 function preprocess(options: NPCSidebarOptions) {
   const sidebar = V.options.maplebirch.npcsidebar;
   const [primary, secondary] = selected();
-  const nnpc = setupBasicData(options, primary);
+  const nnpc = setup_basic_data(options, primary);
   options.maplebirch!.previous = undefined;
   if (secondary) {
     const previous: Record<string, any> = {
       name: secondary,
-      model: true,
+      model: nnpc.model,
       position: sidebar.position === 'front' ? 0 : -600,
       dxfn: nnpc.dxfn + (sidebar.previous_dx ?? -36),
       dyfn: nnpc.dyfn + (sidebar.previous_dy ?? -8),
@@ -559,12 +558,12 @@ function preprocess(options: NPCSidebarOptions) {
       Object.defineProperty(previous, key, { configurable: true, enumerable: true, get: () => nnpc[key] });
     }
     options.maplebirch!.previous = previous;
-    setupNPC(previousOptions(options) as NPCSidebarOptions, previous);
+    setup_npc(previous_options(options) as NPCSidebarOptions, previous);
   }
-  setupNPC(options, nnpc);
+  setup_npc(options, nnpc);
 }
 
-function previousOptions(options: NPCSidebarOptions) {
+function previous_options(options: NPCSidebarOptions) {
   const filters = new Proxy(options.filters!, {
     get: (target, key) => target[previousFilterName(key) as any],
     set: (target, key, value) => {
@@ -575,17 +574,17 @@ function previousOptions(options: NPCSidebarOptions) {
   return { ...options, filters, maplebirch: { ...options.maplebirch, nnpc: options.maplebirch!.previous } };
 }
 
-function previousLayers(layers: Record<string, any>) {
-  const remapFilters = (value: unknown) => (Array.isArray(value) ? value.map(previousFilterName) : value);
+function previous_layers(layers: Record<string, any>) {
+  const remap_filters = (value: unknown) => (Array.isArray(value) ? value.map(previousFilterName) : value);
   const result: Record<string, any> = {};
   for (const [name, layer] of Object.entries(layers)) {
     const copy = { ...layer };
-    if (copy.filters) copy.filters = remapFilters(copy.filters);
+    if (copy.filters) copy.filters = remap_filters(copy.filters);
     for (const [key, fn] of Object.entries(copy)) {
       if (typeof fn !== 'function' || !key.endsWith('fn')) continue;
       copy[key] = function (options: NPCSidebarOptions, ...args: any[]) {
-        const value = fn.call(this, previousOptions(options), ...args);
-        return key === 'filtersfn' ? remapFilters(value) : value;
+        const value = fn.call(this, previous_options(options), ...args);
+        return key === 'filtersfn' ? remap_filters(value) : value;
       };
     }
     result[`nnpc_previous_${name.replace(/^nnpc_/, '')}`] = copy;
@@ -593,7 +592,7 @@ function previousLayers(layers: Record<string, any>) {
   return result;
 }
 
-const baseLayers = {
+const npc_layers = {
   ...base_layers,
   ...fluids_layers,
   ...head_layers,
@@ -652,18 +651,46 @@ const baseLayers = {
 };
 
 const layers = {
-  ...baseLayers,
-  ...previousLayers(baseLayers)
+  ...npc_layers,
+  ...previous_layers(npc_layers)
 };
 
-function petLayers(slot: 'nnpc' | 'previous'): CanvasLayerMap {
+function init_drip_mask(): void {
+  const pipeline = Renderer.RenderingPipeline;
+  if (pipeline.some((step: { name: string }) => step.name === 'npc-drip-mask')) return;
+  const index = pipeline.findIndex((step: { name: string }) => step.name === 'mask');
+  if (index < 0) return;
+  const masks = new WeakMap<object, Map<string, HTMLCanvasElement>>();
+  pipeline.splice(index, 0, {
+    name: 'npc-drip-mask',
+    condition: (layer: any) => !!layer.repeat_mask && layer.mask?.width > 0,
+    render(image: HTMLCanvasElement, layer: any, context: any) {
+      const source = layer.mask;
+      let cached = masks.get(source);
+      if (!cached) masks.set(source, (cached = new Map()));
+      const key = `${image.width}|${image.height}`;
+      let mask = cached.get(key);
+      if (!mask) {
+        const stencil = Renderer.createCanvas(image.width, image.height);
+        for (let x = 0; x < image.width; x += source.width) stencil.drawImage(source, x, 0);
+        mask = stencil.canvas;
+        if (cached.size >= 8) cached.clear();
+        cached.set(key, mask!);
+      }
+      context.layer = { ...layer, mask, maskOffsets: [] };
+      return image;
+    }
+  });
+}
+
+function pet_layers(slot: 'nnpc' | 'previous'): CanvasLayerMap {
   const previous = 'nnpc_previous_';
   return Object.fromEntries(Object.entries(layers).filter(([name]) => (slot === 'previous' ? name.startsWith(previous) : name.startsWith('nnpc_') && !name.startsWith(previous))));
 }
 
 class NPCPetSlot extends FloatingPet {
-  private readonly modelName: string;
-  private renderOptions?: CanvasModelOptionsData;
+  private readonly model_name: string;
+  private render_options?: CanvasModelOptionsData;
 
   public constructor(private readonly slot: 'nnpc' | 'previous') {
     const second = slot === 'previous';
@@ -673,12 +700,12 @@ class NPCPetSlot extends FloatingPet {
       className: 'maplebirch-npc-pet',
       fallback: size => ({ left: 16, top: Math.max(0, window.innerHeight - size - (second ? size + 48 : 32)) })
     });
-    this.modelName = `npc-pet-${slot}`;
+    this.model_name = `npc-pet-${slot}`;
   }
 
   public render(source: CanvasModelOptionsData, settings: PetOptions): boolean {
     const state = source.maplebirch?.[this.slot] as Record<string, any> | undefined;
-    if (!state?.name || !state.model) {
+    if (!state?.name) {
       this.unmount();
       return false;
     }
@@ -688,8 +715,8 @@ class NPCPetSlot extends FloatingPet {
     const models = Renderer.CanvasModels as Record<string, CanvasModelOptions | undefined>;
     const main = models.main;
     if (!main) return false;
-    models[this.modelName] = {
-      name: this.modelName,
+    models[this.model_name] = {
+      name: this.model_name,
       width: main.width,
       height: main.height,
       frames: main.frames,
@@ -697,9 +724,9 @@ class NPCPetSlot extends FloatingPet {
       scale: main.scale,
       layers: {}
     };
-    const model = Renderer.locateModel(this.modelName);
+    const model = Renderer.locateModel(this.model_name);
     const context = model.createCanvas(false);
-    this.renderOptions = {
+    this.render_options = {
       ...source,
       filters: { ...source.filters },
       maplebirch: {
@@ -707,7 +734,7 @@ class NPCPetSlot extends FloatingPet {
         [this.slot]: { ...state, show: true }
       }
     };
-    delete this.renderOptions.generatedLayers;
+    delete this.render_options.generatedLayers;
     model.reset();
     this.draw(model, context);
     this.mount(container, model, context.canvas);
@@ -715,15 +742,15 @@ class NPCPetSlot extends FloatingPet {
   }
 
   protected draw(model: CanvasModel, context: CanvasRenderingContext2D): void {
-    if (!this.renderOptions) return;
+    if (!this.render_options) return;
     this.stopAnimation();
     try {
-      if (this.options.animated) model.animate(context, this.renderOptions, Renderer.defaultListener);
-      else model.render(context, this.renderOptions, Renderer.defaultListener);
+      if (this.options.animated) model.animate(context, this.render_options, Renderer.defaultListener);
+      else model.render(context, this.render_options, Renderer.defaultListener);
     } catch (error) {
       if (!this.options.animated) throw error;
       this.options.animated = false;
-      model.render(context, this.renderOptions, Renderer.defaultListener);
+      model.render(context, this.render_options, Renderer.defaultListener);
     }
   }
 }
@@ -755,11 +782,12 @@ class NPCPet {
   }
 
   private render(settings: PetSettings): void {
-    const source = (Renderer.CanvasModelCaches?.main?.sidebar as CanvasModel | undefined)?.options as CanvasModelOptionsData | undefined;
-    if (!source) return;
+    const source = ((Renderer.CanvasModelCaches?.main?.sidebar as CanvasModel | undefined)?.options ?? Renderer.CanvasModels.main.defaultOptions()) as CanvasModelOptionsData;
+    const pet_source = { ...source, filters: { ...source.filters }, maplebirch: { ...source.maplebirch, nnpc: {} } };
+    preprocess(pet_source);
     const options: PetOptions = { ...settings, animated: !!V.options.sidebarAnimations, floating: true };
-    this.pets[0].render(source, options);
-    if (V.options.maplebirch.npcsidebar.second_model) this.pets[1].render(source, options);
+    this.pets[0].render(pet_source, options);
+    if (V.options.maplebirch.npcsidebar.second_model) this.pets[1].render(pet_source, options);
     else this.pets[1].unmount();
   }
 
@@ -799,17 +827,18 @@ const NPCSidebar = (() => {
 
     public static init(manager: NPCManager) {
       manager.core.once(':storyready', () => {
+        init_drip_mask();
         if (DoLPcompat.isDoLP) manager.core.char.use({ nnpc: DoLPcompat.nnpc }, 'main');
-        loadAllImages(manager);
-        for (const npcName of manager.NPCNameList) {
-          if (!display.has(npcName)) display.set(npcName, new Set());
-          V.options.maplebirch.npcsidebar.display[npcName] ??= 'none';
+        load_all_images(manager);
+        for (const npc_name of manager.NPCNameList) {
+          if (!display.has(npc_name)) display.set(npc_name, new Set());
+          V.options.maplebirch.npcsidebar.display[npc_name] ??= 'none';
         }
       });
       manager.core.char.use('pre', preprocess, 'main');
       manager.core.char.use(layers, 'main');
-      manager.core.char.use(petLayers('nnpc'), 'npc-pet-nnpc');
-      manager.core.char.use(petLayers('previous'), 'npc-pet-previous');
+      manager.core.char.use(pet_layers('nnpc'), 'npc-pet-nnpc');
+      manager.core.char.use(pet_layers('previous'), 'npc-pet-previous');
       manager.core.once(':storyready', () => {
         const macro = manager.core.SugarCube.Macro.get('updatesidebarimg') as MacroDefinition | undefined;
         if (!macro) return;

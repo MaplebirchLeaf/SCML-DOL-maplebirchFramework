@@ -81,7 +81,8 @@ const widgetPassage = {
     { srcmatch: /<<run delete _npcList\["(?:象牙怨灵|Ivory Wraith)"\]>>/, to: '<<run delete _npcList[maplebirch.auto("Ivory Wraith")]>>' },
     { srcmatch: /(?:<<NPC_CN_NAME \$NPCName\[_npcId\]\.nam>>——<span style="text-transform: capitalize;"><<print[\s\S]*?>><\/span>|\$NPCName\[_npcId\]\.nam the <span style="text-transform: capitalize;">\$NPCName\[_npcId\]\.title<\/span>|<<NPC_CN_NAME \$NPCName\[_npcId\]\.nam>>——<span style="text-transform: capitalize;"><<print setup\.NPC_CN_TITLE\(\$NPCName\[_npcId\]\.title\)>><\/span>)/, to: '<<= maplebirch.auto($NPCName[_npcId].nam) + (lanSwitch(" the ","——"))>><span style="text-transform: capitalize;"><<= maplebirch.auto($NPCName[_npcId].title)>></span>' },
     { srcmatchgroup: /\[(?:setup\.NPC_CN_NAME\()?_sortedNPCList\[_sortedId](?:\))?\]/g, to: '[maplebirch.auto(_sortedNPCList[_sortedId])]' },
-    { src: '\t\t\t</span>\n\t\t</div>\n\t\t<div class="settingsToggleItem">\n\t\t\t<span class="gold">', applybefore: '\t\t\t<<if $debug is 1>>| <label><<radiobutton "$NPCName[_npcId].pronoun" "n" autocheck>><<= maplebirch.lang.t("hermaphrodite")+"/"+maplebirch.lang.t("asexual")>></label><</if>>\n' },
+    { srcmatch: /<label>\s*<<radiobutton\s+"\$NPCName\[_npcId\]\.pronoun"\s+"m"\s+autocheck>>[\s\S]*?<\/label>/, applyafter: ' | <label><<radiobutton "$NPCName[_npcId].pronoun" "n" autocheck>><<= maplebirch.t("neutral").convert("title")>></label>' },
+    { srcmatch: /<<if \$debug is 1>>(\s*\|\s*<label>\s*<<radiobutton\s+"\$NPCName\[_npcId\]\.gender"\s+"h"\s+autocheck>>[\s\S]*?<\/label>)\s*<<\/if>>/, to: '$1 | <label><<radiobutton "$NPCName[_npcId].gender" "n" autocheck>><<= maplebirch.t("neither").convert("title")>></label>' },
     { src: '</span>\n\t\t\t<</if>>\n\t\t</div>', applyafter: '\n\t\t<div id="maplebirchNPCHairStyleOptions" class="settingsToggleItemWide"><<maplebirchNPCHairStyleOptions>></div>' },
   ],
   Widgets: [
