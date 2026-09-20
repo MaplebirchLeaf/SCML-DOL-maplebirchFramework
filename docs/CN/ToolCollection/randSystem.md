@@ -4,7 +4,7 @@
 
 `randSystem` 用于创建可复现的随机数生成器。它适合需要保存种子、回放随机结果、回退随机流程或调试随机事件的场景。
 
-如果只是临时取一个普通随机数，可以使用全局工具函数 `random()` 或 `either()`；如果希望 _同一个状态产生同一串结果_，使用 **`maplebirch.tool.rand.create()`**。
+如果只是临时取一个普通随机数，可以使用 [工具函数](../Utilities.md) 中的 `random()` 或 `either()`；如果希望 _同一个状态产生同一串结果_，使用 **`maplebirch.tool.rand.create()`**。
 
 ---
 
@@ -53,9 +53,13 @@ const index = rng.int(5); // 0-5
 | `rng.history`                         | 已生成结果的副本               |
 | `rng.index`                           | 当前历史指针                   |
 
+`int(max)` 和 `percent()` 每调用一次都会推进随机指针。
+
 ---
 
 ### 设置种子
+
+设置 `seed` 会清空历史并重新开始随机序列：
 
 ```javascript
 const rng = maplebirch.tool.rand.create();
@@ -118,7 +122,7 @@ const item = list[rng.int(list.length - 1)];
 
 ### 回退与恢复
 
-`back(steps)` 可以让随机指针回退；之后再次取随机数，会复用已经生成过的历史结果。
+`back(steps)` 只移动历史指针；之后再次取随机数，会复用已经生成过的历史结果。
 
 ```javascript
 const first = rng.percent();
@@ -200,12 +204,3 @@ function generateLoot(seed) {
   };
 }
 ```
-
----
-
-### 补充说明
-
-- `seed` 改变后会重新开始随机序列。
-- `int(max)` 和 `percent()` 每调用一次都会推进随机指针。
-- `back()` 与 `forward()` 只移动历史指针，不会直接产生随机值。
-- 只需要普通随机时，优先考虑 [工具函数](../Utilities.md) 中的 `random()` 和 `either()`。

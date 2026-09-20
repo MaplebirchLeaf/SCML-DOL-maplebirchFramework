@@ -19,7 +19,7 @@ type NPCBootEntry = [NPCData, NPCConfig?, TranslationInput?];
 
 interface NPCBootConfig {
   NamedNPC?: NPCBootEntry[];
-  Stats?: Record<string, unknown>;
+  Stats?: Record<string, NPCStatConfig>;
   Sidebar?: NPCSidebarBootConfig;
 }
 
@@ -73,7 +73,15 @@ export interface NPCConfig {
   special?: boolean | (() => boolean);
   loveInterest?: boolean | (() => boolean);
   romance?: (() => boolean)[];
-  [key: string]: any;
+  [key: string]: unknown;
+}
+
+export interface NPCStatConfig {
+  min?: number;
+  max?: number;
+  default?: number;
+  position?: number | 'first' | 'last' | false;
+  [key: string]: unknown;
 }
 
 export const NamedNPC = (core => {
@@ -174,7 +182,7 @@ export const NamedNPC = (core => {
     public outfits!: string[];
     public pregnancy: any;
     public pregnancyAvoidance?: number;
-    public descCache: Record<string, any> = {};
+    public descCache: Record<string, string> = {};
 
     public constructor(manager: NPCManager, data: NPCData) {
       if (!data.nam) manager.log('NamedNPC必须存在nam', 'ERROR');
@@ -334,8 +342,10 @@ export const NamedNPC = (core => {
     }
     if (!npcConfig || typeof npcConfig !== 'object') npcConfig = {};
     if (Object.keys(npcConfig).length === 0) npcConfig.love = { maxValue: 50 };
-    const newNPC = new NamedNPC(manager, npcData);
-    for (const statName in manager.customStats) if (Object.prototype.hasOwnProperty.call(manager.customStats, statName) && npcData[statName] === undefined) (newNPC as any)[statName] = 0;
+    const newNPC = new NamedNPC(manager, clone(npcData));
+    for (const [statName, config] of Object.entries(manager.customStats)) {
+      Object.defineProperty(newNPC, statName, { value: npcData[statName] ?? config.default ?? 0, writable: true, configurable: true, enumerable: true });
+    }
     if (translationsData instanceof Map) {
       for (const [key, value] of translationsData) core.lang.set(key, value);
     } else if (translationsData && typeof translationsData === 'object') {
@@ -414,7 +424,9 @@ export const NamedNPC = (core => {
         skippedCount++;
         continue;
       }
-      V.NPCName.push(npcEntry.Data);
+      const npc = clone(npcEntry.Data);
+      definePregnancyProperty(manager, npc);
+      V.NPCName.push(npc);
       savedNPCNameSet.add(npcName);
       addedCount++;
       manager.log(`注入模组NPC到内部状态: ${npcName}`, 'DEBUG');
@@ -554,19 +566,19 @@ export const NamedNPC = (core => {
 
 class NPCManager {
   public readonly log: ReturnType<typeof createlog>;
-  public readonly data: Map<string, any> = new Map();
+  public readonly data = new Map<string, { Data: InstanceType<typeof NamedNPC>; Config: NPCConfig }>();
   public NPCNameList: string[] = [];
 
   public readonly Transformation: NPCTransformation;
 
   // prettier-ignore
-  public readonly type: { [x: string]: Array<string> } = {
+  public readonly type: Record<'loveInterestNpcs' | 'importantNPCs' | 'specialNPCs', string[]> = {
     loveInterestNpcs: [],
     importantNPCs   : [],
     specialNPCs     : []
   };
 
-  public readonly customStats: { [x: string]: any } = {};
+  public readonly customStats: Record<string, NPCStatConfig> = {};
 
   // prettier-ignore
   public readonly romanceConditions: { [key: string]: (() => boolean)[] } = {
@@ -616,7 +628,7 @@ class NPCManager {
     return this.Schedule.set(npcName, config);
   }
 
-  public addStats(statsObject: { [x: string]: any }) {
+  public addStats(statsObject: Record<string, NPCStatConfig>) {
     if (!statsObject || typeof statsObject !== 'object') return;
     for (const statName in statsObject) {
       if (Object.prototype.hasOwnProperty.call(statsObject, statName)) {
@@ -638,7 +650,7 @@ class NPCManager {
     this.NamedNPC.convert(this);
   }
 
-  public vanillaNPCConfig(npcConfig: NPCConfig) {
+  public vanillaNPCConfig(npcConfig: Record<string, NPCConfig>) {
     if (!npcConfig || typeof npcConfig !== 'object') return {};
     const Config = clone(npcConfig);
     for (const [npcName, npcEntry] of this.data) {
@@ -660,7 +672,7 @@ class NPCManager {
     return (T.npcConfig = Config);
   }
 
-  public applyStatDefaults(statDefaults: { [x: string]: any }) {
+  public applyStatDefaults(statDefaults: Record<string, NPCStatConfig>) {
     if (!statDefaults || typeof statDefaults !== 'object') return statDefaults || {};
     for (const statName in this.customStats) {
       if (Object.prototype.hasOwnProperty.call(this.customStats, statName)) {
@@ -691,12 +703,12 @@ class NPCManager {
   }
 
   public vanillaInit(npcName: string) {
-    const idx = V.NPCNameList?.indexOf(npcName) ?? -1;
-    if (idx < 0 || !V.NPCName?.[idx]) {
+    const npc = V.NPCName?.find((entry: NPCData) => entry.nam === npcName);
+    if (!npc) {
       this.log(`初始化NPC自定义属性失败，未找到NPC: ${npcName}`, 'WARN');
       return;
     }
-    Object.keys(this.customStats).forEach(stat => (V.NPCName[idx][stat] = 0));
+    for (const [stat, config] of Object.entries(this.customStats)) npc[stat] ??= config.default ?? 0;
     void this.core.trigger(':npcInit', npcName);
   }
 

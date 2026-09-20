@@ -1,5 +1,6 @@
 // ./src/modules/CharacterAddon/Transformation.ts
 
+import { errorMessage } from '../../utils/error';
 import maplebirch, { createlog } from '../../core';
 import { Translation } from '../../services/LanguageManager';
 import type AddonPlugin from '../AddonPlugin';
@@ -108,7 +109,9 @@ class Transformation {
     });
   }
 
-  private isDoLP = false;
+  private get isDoLP() {
+    return DoLPcompat.isDoLP;
+  }
 
   private get animalTransforms() {
     return this.isDoLP ? [...AnimalTransforms, ...DoLPcompat.Transformations.AnimalTransforms] : AnimalTransforms;
@@ -157,8 +160,8 @@ class Transformation {
       for (const [key, value] of translations) {
         try {
           this.manager.core.lang.set(key, value);
-        } catch (error: any) {
-          this.log(`设置翻译键失败: ${key} - ${error?.message || error}`, 'ERROR');
+        } catch (error) {
+          this.log(`设置翻译键失败: ${key} - ${errorMessage(error)}`, 'ERROR');
         }
       }
     }
@@ -168,7 +171,7 @@ class Transformation {
 
   public inject(): void {
     this._update();
-    this._clear();
+    this.state();
   }
 
   private _update(): void {
@@ -202,7 +205,9 @@ class Transformation {
 
     const transformations = [...base, ...injected.filter(tf => !baseNames.has(tf.name))];
     setup.transformations = this.isDoLP ? DoLPcompat.Transformations.merge(transformations) : transformations;
+  }
 
+  public state(): void {
     const collectNames = (list?: Part[]): string[] => {
       if (!Array.isArray(list)) return [];
       return list.map(part => part?.name).filter(Boolean);
@@ -219,6 +224,7 @@ class Transformation {
         for (const traitName of collectNames(entry.traits)) if (!(traitName in V.transformationParts.traits)) V.transformationParts.traits[traitName] = 'disabled';
       }
     }
+    this._clear();
   }
 
   private _clear(): void {
@@ -492,8 +498,7 @@ class Transformation {
 
     if (!messageArray) return false;
 
-    const index = direction === 'Up' ? level - 1 : level;
-    const messageText = messageArray[index];
+    const messageText = messageArray[level - 1];
     if (!messageText) return false;
 
     tools.element('span', messageText, 'gold');
@@ -517,7 +522,7 @@ class Transformation {
     return `<<tficon '${tfName}'>>`;
   }
 
-  public setTransform(name: string, level: number | null): void {
+  public setTransform(name: string, level: number | null = null): void {
     const entry = this.config.get(name);
     if (!entry) return;
 

@@ -2,11 +2,13 @@
 
 Bodywriting registration adds new entries to vanilla `setup.bodywriting`. It is useful for story marks, tattoos, symbols, or custom body text.
 
-Use:
+## Entry Point
 
 ```javascript
 maplebirch.tool.patch.addBodywriting(key, config);
 ```
+
+Use `maplebirch.tool.patch.deleteBodywriting(key)` to remove an entry. Registered operations are applied during initialization; call `applyBodywriting()` to apply them manually. Removal also clears the index mapping.
 
 ## Minimal Example
 
@@ -20,7 +22,7 @@ maplebirch.tool.patch.addBodywriting('my_mod_mark', {
 });
 ```
 
-`key` is the unique id. Use a mod prefix to avoid collisions.
+`key` is the unique id. Use a mod prefix to avoid collisions. It is written into the configuration and the `setup.bodywriting_namebyindex` mapping. Registering the same key updates the existing entry.
 
 ## Config Fields
 
@@ -37,6 +39,8 @@ maplebirch.tool.patch.addBodywriting('my_mod_mark', {
 | `featSkip` | Skip vanilla feat checks      | `true`  |
 | `sprites`  | Sprite names for object marks | -       |
 | `index`    | Bodywriting index             | Auto    |
+
+Without an explicit `index`, a new entry uses the next value after the current maximum; an existing entry keeps its index. An explicit index owned by another entry produces an error.
 
 Gender values:
 

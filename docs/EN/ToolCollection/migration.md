@@ -1,92 +1,65 @@
 # Data Migration
 
-`migration` helps a mod update saved data when its data structure changes between versions.
+`migration` upgrades a mod's saved data. Create an instance through `maplebirch.tool.migration`, register version transitions, and run them against the saved object.
 
-Access it with:
+## Entry Point
 
 ```javascript
 const migrator = maplebirch.tool.migration.create();
-```
+// new maplebirch.tool.migration() is also supported.
 
-or:
-
-```javascript
-const migrator = new maplebirch.tool.migration();
-```
-
-Use semantic version strings such as `1.0.0`. Migration steps run in ascending version order.
-
-## Add A Migration Step
-
-```javascript
 migrator.add('1.0.0', '1.1.0', (data, utils) => {
-  utils.rename(data, 'oldField', 'newField');
+  utils.move(data, 'user.name', 'user.fullName');
+  utils.transform(data, 'user.age', value => Number(value));
+  utils.remove(data, 'user.deprecatedField');
 });
-```
 
-## Run Migrations
-
-```javascript
 const data = {
   version: '1.0.0',
-  oldField: 'value'
+  user: { name: 'Alice', age: '25', deprecatedField: true }
 };
-
 migrator.run(data, '1.1.0');
+// data: { version: '1.1.0', user: { fullName: 'Alice', age: 25 } }
 ```
 
-After running, `data.version` is updated to the target version and the registered steps are applied.
+## Versions and Execution Order
+
+Use numeric version segments such as `1.0.0`. A missing `data.version` is treated as `0.0.0`.
+
+`add(from, to, apply)` registers a synchronous transition; `from` accepts a version or `'*'`. Duplicate version pairs and steps that cannot advance the version are ignored.
+
+`run(data, targetVersion)` prefers a step starting at the current version, then falls back to a wildcard step. Within either group, it selects the highest destination that does not exceed the target. A larger step must therefore include all necessary intermediate conversions. Each successful step updates `data.version`. If no step applies, execution stops without assigning the target version.
+
+A thrown error stops execution and is wrapped with `fromVersion`, `toVersion`, and `cause`. Changes already made to the data are not automatically rolled back.
 
 ## Utility Methods
 
-| Method                                     | Description                  |
-| :----------------------------------------- | :--------------------------- |
-| `resolvePath(obj, path, createIfMissing?)` | Resolve a dotted object path |
-| `rename(data, oldPath, newPath)`           | Rename or move a value       |
-| `move(data, oldPath, newPath)`             | Alias-style move operation   |
-| `remove(data, path)`                       | Delete a value               |
-| `transform(data, path, fn)`                | Transform a value in place   |
-| `fill(target, defaults, options)`          | Fill missing default fields  |
+The callback's second argument provides the same helpers as `migrator.utils`.
 
-## Examples
+| Method                          | Description                                                                                  |
+| :------------------------------ | :------------------------------------------------------------------------------------------- |
+| `path(obj, route, create?)`     | Resolve a dotted path to `{ parent, key }` or `null`; `create` defaults to `false`           |
+| `move(data, from, to)`          | Move or rename a property; returns `true` on success                                         |
+| `remove(data, route)`           | Delete an existing property; returns `true` on success                                       |
+| `transform(data, route, fn)`    | Convert an existing value; returns `true` on success                                         |
+| `fill(target, defaults, mode?)` | Recursively fill missing defaults; `mode` is `'merge'` or `'cover'`, defaulting to `'merge'` |
+| `log(message, level, ...data)`  | Write a migration log entry                                                                  |
 
-Rename and convert fields:
+Paths traverse own properties only and reject `__proto__`, `prototype`, and `constructor`. Moving to the same path keeps the value; moving an object into its own descendant is rejected. An existing destination property is overwritten by `move()`.
+
+The input to `transform()` is `unknown`; narrow its type before using it. If the callback throws, the old value is retained, the error is logged, and the helper returns `false`.
+
+## Filling Defaults
 
 ```javascript
-migrator.add('1.0.0', '1.1.0', (data, utils) => {
-  utils.rename(data, 'user.name', 'user.fullName');
-  utils.transform(data, 'user.age', value => parseInt(value, 10));
-  utils.remove(data, 'user.deprecatedField');
+migrator.add('*', '1.2.0', (data, utils) => {
+  utils.fill(data, {
+    settings: { enabled: true, volume: 0.8 },
+    flags: {}
+  });
 });
 ```
 
-Fill defaults:
+`fill()` preserves existing scalars and arrays, descends into existing plain objects to add missing fields, and skips the root `version`. For example, `{ settings: { enabled: false } }` keeps `false` and gains `volume`.
 
-```javascript
-migrator.add('1.1.0', '1.2.0', (data, utils) => {
-  utils.fill(
-    data.settings,
-    {
-      enabled: true,
-      volume: 0.8
-    },
-    { mode: 'merge' }
-  );
-});
-```
-
-Direct custom restructuring is also allowed:
-
-```javascript
-migrator.add('2.0.0', '2.1.0', data => {
-  if (Array.isArray(data.characters)) {
-    const map = {};
-    data.characters.forEach(character => {
-      map[character.id] = character;
-    });
-    data.characters = map;
-  }
-});
-```
-
-Keep migrations small and ordered. Each step should describe one clear data version change.
+Default filling suits additive changes. Register specific transitions for renamed fields or changed types; callbacks can also narrow and edit `data` directly.

@@ -171,7 +171,7 @@
         <<if !['none'].concat(Array.from($_npcsidebarSet)).includes($options.maplebirch.npcsidebar.display[$options.maplebirch.npcsidebar.nnpc])>>
           <<set $options.maplebirch.npcsidebar.display[$options.maplebirch.npcsidebar.nnpc] = 'none'>>
         <</if>>
-        <<set $_fixedName = `$options.maplebirch.npcsidebar.display.${$options.maplebirch.npcsidebar.nnpc}`>>
+        <<set $_fixedName = '$options.maplebirch.npcsidebar.display[' + JSON.stringify($options.maplebirch.npcsidebar.nnpc) + ']'>>
         <<set $_npcsidebarDisplay = ['none'].concat(Array.from($_npcsidebarSet))>>
         <<lanSwitch 'Graphic Selection: ' '图形选择：'>><<radiobuttonsfrom $_fixedName $_npcsidebarDisplay>><</radiobuttonsfrom>>
       <</if>>

@@ -1,9 +1,11 @@
 // ./src/services/GUIControl.ts
 
+import type { IDBPObjectStore } from 'idb';
+import type { ModSubUiAngularJsModeExportInterface } from '@scml/types/Mod_SubUiAngularJs/ModSubUiAngularJsModeExportInterface';
 import type { ModSubUiAngularJsService } from '@scml/types/Mod_LoaderGui/ModSubUiAngularJsService';
 import maplebirch, { type MaplebirchCore } from '../core';
 import Gui from '@/twee/Gui.twee';
-import { widgets } from '../utils';
+import { widgets } from '../utils/string';
 import { Config } from './../constants';
 import ModuleSystem from './ModuleSystem';
 
@@ -36,7 +38,67 @@ interface ScriptStore {
   disabled: string[];
 }
 
-interface SettingRecord<T = any> {
+type ChangeValues = {
+  Language: { Language: string };
+  DEBUG: { enabled: boolean; level: string };
+  toggleModule: ModulesSettings;
+  toggleScript: { enabled: string[]; disabled: string[] };
+};
+
+type ChangeArgs = { [K in keyof ChangeValues]: [action: K, data: ChangeValues[K] & { $ctrl?: GuiData }] }[keyof ChangeValues];
+
+interface GuiData {
+  onChange(...args: ChangeArgs): Promise<void>;
+  Language: string;
+  moduleText: string;
+  enabledModules: ModuleInfo[];
+  disabledModules: ModuleInfo[];
+  enabledScripts: string[];
+  disabledScripts: string[];
+  text: {
+    Title: string[];
+    DEBUGMODE: string[];
+    DEBUGSTATUS: string[];
+    EnabledSTATUS: string[];
+    DisabledSTATUS: string[];
+    Languages: [string, string][];
+    LanguageSelection: string[];
+    EnableModule: string[];
+    DisableModule: string[];
+    EnableScript: string[];
+    DisableScript: string[];
+    ClearIndexedDB: string[];
+  };
+}
+
+interface GuiController {
+  data: GuiData;
+  translation(text: string[]): string;
+  $onInit(): void;
+}
+
+interface GuiScope {
+  $ctrl: GuiController;
+  t(text: string[]): string;
+  languages: Array<{ code: string; readonly name: string }>;
+  selectedEnabledModule: number;
+  selectedDisabledModule: number;
+  selectedEnabledScript: number;
+  selectedDisabledScript: number;
+  ClearIndexedDB(): Promise<boolean>;
+  isDEBUG(): boolean;
+  typeLabel(type: ModuleType): string;
+  changeLanguage(): void;
+  DEBUGMODE(type: string): string;
+  DEBUGSTATUS(): string;
+  EnableDisableItem(action: string): void;
+  selectModule(index: number, listType: 'enabled' | 'disabled'): void;
+  toggleModule(action: 'enable' | 'disable'): void;
+  selectScript(index: number, listType: 'enabled' | 'disabled'): void;
+  toggleScript(action: 'enable' | 'disable'): void;
+}
+
+interface SettingRecord<T = unknown> {
   key: string;
   value: T;
 }
@@ -56,7 +118,7 @@ class GUIControl {
 
   private async initSettings(): Promise<void> {
     const modNames = await this.modNames();
-    await this.core.idb.withTransaction(['settings'], 'readwrite', async (tx: any) => {
+    await this.core.idb.withTransaction(['settings'], 'readwrite', async tx => {
       const store = tx.objectStore('settings');
       if (!(await store.get('DEBUG'))) await store.put({ key: 'DEBUG', value: false });
       if (!(await store.get('Language'))) await store.put({ key: 'Language', value: navigator.language.includes('zh') ? 'CN' : 'EN' });
@@ -73,7 +135,7 @@ class GUIControl {
 
   private async loadSettings(): Promise<void> {
     const modNames = await this.modNames();
-    await this.core.idb.withTransaction(['settings'], 'readonly', async (tx: any) => {
+    await this.core.idb.withTransaction(['settings'], 'readonly', async tx => {
       const store = tx.objectStore('settings');
       const Modules = (await store.get('Modules')) as SettingRecord<ModulesStore> | undefined;
       const Script = (await store.get('Script')) as SettingRecord<ScriptStore> | undefined;
@@ -87,7 +149,7 @@ class GUIControl {
         const modName = script.match(/^\[([^\]]+)\]:/)?.[1] || '';
         return !!modName && modNames.has(modName);
       };
-      const scripts: string[] = Array.from(new Set<string>(((this.core.addon?.jsFiles || []) as any[]).map((entry: any) => `[${entry.modName}]:${entry.filePath}`).filter(script_valid)));
+      const scripts = [...new Set((this.core.addon?.jsFiles ?? []).map(entry => `[${entry.modName}]:${entry.filePath}`).filter(script_valid))];
       const disabledScriptSet = new Set<string>((Script?.value?.disabled || []).filter(script_valid));
       this.enabledModules = modules.filter(m => !disabledModuleNames.has(m.name));
       this.disabledModules = modules.filter(m => disabledModuleNames.has(m.name));
@@ -129,7 +191,7 @@ class GUIControl {
     return '[Module]';
   }
 
-  private async modulesStore(store: any, modNames: Set<string>): Promise<void> {
+  private async modulesStore(store: IDBPObjectStore<unknown, string[], 'settings', 'readwrite'>, modNames: Set<string>): Promise<void> {
     const record = (await store.get('Modules')) as SettingRecord<ModulesStore> | undefined;
     const visibleNames = new Set(this.currentModules(modNames).map(m => m.name));
     const next = new Map<string, ModuleDisabledRecord>();
@@ -140,7 +202,7 @@ class GUIControl {
     await store.put({ key: 'Modules', value: { disabled: Array.from(next.values()) } });
   }
 
-  private async scriptsStore(store: any, modNames: Set<string>): Promise<void> {
+  private async scriptsStore(store: IDBPObjectStore<unknown, string[], 'settings', 'readwrite'>, modNames: Set<string>): Promise<void> {
     const record = (await store.get('Script')) as SettingRecord<ScriptStore> | undefined;
     const disabled = new Set<string>();
     for (const script of record?.value?.disabled || []) {
@@ -153,7 +215,7 @@ class GUIControl {
   public async saveModules(enabled: ModuleInfo[], disabled: ModuleInfo[]): Promise<void> {
     const modNames = await this.modNames();
     const currentNames = new Set([...enabled, ...disabled].map(m => m.name));
-    await this.core.idb.withTransaction(['settings'], 'readwrite', async (tx: any) => {
+    await this.core.idb.withTransaction(['settings'], 'readwrite', async tx => {
       const store = tx.objectStore('settings');
       const old = (await store.get('Modules')) as SettingRecord<ModulesStore> | undefined;
       const next = new Map<string, ModuleDisabledRecord>();
@@ -167,7 +229,7 @@ class GUIControl {
   public async saveScripts(enabled: string[], disabled: string[]): Promise<void> {
     const modNames = await this.modNames();
     const currentScripts = new Set([...enabled, ...disabled]);
-    await this.core.idb.withTransaction(['settings'], 'readwrite', async (tx: any) => {
+    await this.core.idb.withTransaction(['settings'], 'readwrite', async tx => {
       const store = tx.objectStore('settings');
       const old = (await store.get('Script')) as SettingRecord<ScriptStore> | undefined;
       const next = new Set<string>();
@@ -207,16 +269,16 @@ class GUIControl {
 
   public get moduleList(): string {
     const result: string[] = [];
-    Object.entries(this.core.dependencyGraph).forEach(([name, info]: [string, any]) => {
+    Object.entries(this.core.dependencyGraph).forEach(([name, info]) => {
       const type = (info.protected ? 'protected' : info.exposed ? 'exposed' : info.mounted ? 'mounted' : 'module') as ModuleType;
       result.push(`${this.typeLabel(type)} ${name} [${info.source || info.state}]`);
     });
-    this.core.addon?.jsFiles?.forEach((entry: any) => result.push(`[Script] ${entry.filePath} [${entry.modName}]`));
+    this.core.addon?.jsFiles?.forEach(entry => result.push(`[Script] ${entry.filePath} [${entry.modName}]`));
     return result.length > 0 ? result.join('\n') : '';
   }
 
-  private async whenCreate(Ref: any): Promise<void> {
-    Ref.registryComponentModGuiConfig((ngModule: any) => {
+  private async whenCreate(Ref: ModSubUiAngularJsModeExportInterface): Promise<void> {
+    Ref.registryComponentModGuiConfig(ngModule => {
       const componentDef = {
         selector: 'maplebirch-control-component',
         componentName: 'maplebirchControlComponent',
@@ -225,15 +287,14 @@ class GUIControl {
           template: widgets(Gui),
           controller: [
             '$scope',
-            '$compile',
-            '$element',
-            function (this: ModSubUiAngularJsService['Ref'], $scope: any, _$compile: any, _$element: any) {
+            function (this: GuiController, $scope: GuiScope) {
               $scope.t = this.translation = (text: string[]) => text[maplebirch.meta.Languages.indexOf(maplebirch.Language as 'EN' | 'CN')];
-              const callOnChange = (action: any, data: any) => {
+              const callOnChange = async (...args: ChangeArgs): Promise<boolean> => {
                 try {
-                  return $scope.$ctrl.data?.onChange?.(action, data) || false;
+                  await $scope.$ctrl.data.onChange(...args);
+                  return true;
                 } catch (e) {
-                  maplebirch.log(`Error in onChange: ${action}`, 'ERROR', e);
+                  maplebirch.log(`Error in onChange: ${args[0]}`, 'ERROR', e);
                   return false;
                 }
               };
@@ -295,7 +356,7 @@ class GUIControl {
                 if (idx === -1 || !src[idx]) return;
                 const module = src[idx];
                 const modules: ModulesSettings = {
-                  enabled: $scope.$ctrl.data.enabledModules.map((m: any) => ({
+                  enabled: $scope.$ctrl.data.enabledModules.map(m => ({
                     name: m.name,
                     type: m.type,
                     source: m.source || '',
@@ -303,7 +364,7 @@ class GUIControl {
                     lifecycle: m.lifecycle === true,
                     dependencies: m.dependencies || []
                   })),
-                  disabled: $scope.$ctrl.data.disabledModules.map((m: any) => ({
+                  disabled: $scope.$ctrl.data.disabledModules.map(m => ({
                     name: m.name,
                     type: m.type,
                     source: m.source || '',
@@ -316,11 +377,11 @@ class GUIControl {
                 for (const moduleName of maplebirch.gui.cascadeModules(action, module.name, modules)) {
                   const srcArray = isEnable ? $scope.$ctrl.data.disabledModules : $scope.$ctrl.data.enabledModules;
                   const dstArray = isEnable ? $scope.$ctrl.data.enabledModules : $scope.$ctrl.data.disabledModules;
-                  const srcIdx = srcArray.findIndex((m: any) => m.name === moduleName);
+                  const srcIdx = srcArray.findIndex(m => m.name === moduleName);
                   if (srcIdx === -1) continue;
                   const mod = srcArray[srcIdx];
                   srcArray.splice(srcIdx, 1);
-                  if (!dstArray.some((m: any) => m.name === moduleName)) dstArray.push(mod);
+                  if (!dstArray.some(m => m.name === moduleName)) dstArray.push(mod);
                 }
 
                 callOnChange('toggleModule', {
@@ -374,18 +435,18 @@ class GUIControl {
       return componentDef;
     });
 
-    Ref.addComponentModGuiConfig({
+    Ref.addComponentModGuiConfig<GuiData>({
       selector: 'maplebirch-control-component',
       data: {
-        onChange: async function (action: any, data: any) {
+        onChange: async function (...[action, data]: ChangeArgs) {
           switch (action) {
             case 'Language':
               maplebirch.Language = data.Language;
-              await maplebirch.idb.withTransaction(['settings'], 'readwrite', async (tx: any) => await tx.objectStore('settings').put({ key: 'Language', value: data.Language }));
+              await maplebirch.idb.withTransaction(['settings'], 'readwrite', async tx => await tx.objectStore('settings').put({ key: 'Language', value: data.Language }));
               break;
             case 'DEBUG':
               maplebirch.LogLevel = data.level;
-              await maplebirch.idb.withTransaction(['settings'], 'readwrite', async (tx: any) => await tx.objectStore('settings').put({ key: 'DEBUG', value: data.enabled }));
+              await maplebirch.idb.withTransaction(['settings'], 'readwrite', async tx => await tx.objectStore('settings').put({ key: 'DEBUG', value: data.enabled }));
               break;
             case 'toggleModule':
               await maplebirch.gui.saveModules(data.enabled, data.disabled);

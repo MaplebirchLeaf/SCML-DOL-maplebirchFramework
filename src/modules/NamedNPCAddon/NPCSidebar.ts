@@ -189,18 +189,20 @@ function load_all_images(manager: NPCManager) {
 function resolve(nnpc: Record<string, any>, selected: string): string {
   const name = portrait_npc_name(nnpc.name).toLowerCase();
   const flat = `img/ui/nnpc/${name}/${selected}.png`;
-  const src = portrait_paths.get(nnpc.name);
+  const src = portrait_paths.get(portrait_npc_name(nnpc.name));
   if (!src?.size) return flat;
 
   const gender = portrait_gender(nnpc);
   const tone = portrait_skin_tone(nnpc);
+  const candidates = [...src].filter(path => path.slice(path.lastIndexOf('/') + 1, path.lastIndexOf('.')) === selected);
+  candidates.sort((a, b) => Number(!a.toLowerCase().endsWith('.png')) - Number(!b.toLowerCase().endsWith('.png')));
+  const find = (base: string) => candidates.find(path => path.slice(0, path.lastIndexOf('.')).toLowerCase() === base);
   for (const dir of [name.replace(/\s+/g, '_'), name.replace(/\s+/g, '-'), name]) {
-    const deep = `img/ui/nnpc/${dir}/${gender}/${tone}/${selected}.png`;
-    if (src.has(deep)) return deep;
+    const deep = find(`img/ui/nnpc/${dir}/${gender}/${tone}/${selected}`.toLowerCase());
+    if (deep) return deep;
   }
-  if (src.has(flat)) return flat;
-
-  const candidates = [...src].filter(path => path.endsWith(`/${selected}.png`));
+  const fallback = find(flat.slice(0, -4).toLowerCase());
+  if (fallback) return fallback;
   if (candidates.length === 0) return flat;
   return candidates.find(path => path.includes(`/${gender}/`)) ?? candidates[0];
 }
@@ -321,6 +323,7 @@ function setup_basic_data(options: NPCSidebarOptions, name: string) {
   nnpc.hide_leash = false;
   nnpc.hood_down = false;
   nnpc.show_hair = true;
+  nnpc.clothes = default_clothes();
 
   return nnpc;
 }
@@ -547,7 +550,7 @@ function preprocess(options: NPCSidebarOptions) {
       position: sidebar.position === 'front' ? 0 : -600,
       dxfn: nnpc.dxfn + (sidebar.previous_dx ?? -36),
       dyfn: nnpc.dyfn + (sidebar.previous_dy ?? -8),
-      skin_type: nnpc.skin_type,
+      skin_type: secondary === 'Ivory Wraith' ? 'wraith' : (sidebar.skin_type ?? 'light'),
       hide_all: false,
       hide_head_acc: false,
       hide_leash: false,
@@ -583,6 +586,7 @@ function previous_layers(layers: Record<string, any>) {
     for (const [key, fn] of Object.entries(copy)) {
       if (typeof fn !== 'function' || !key.endsWith('fn')) continue;
       copy[key] = function (options: NPCSidebarOptions, ...args: any[]) {
+        if (!options.maplebirch?.previous) return key === 'showfn' ? false : undefined;
         const value = fn.call(this, previous_options(options), ...args);
         return key === 'filtersfn' ? remap_filters(value) : value;
       };

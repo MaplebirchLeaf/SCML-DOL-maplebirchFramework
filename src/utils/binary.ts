@@ -15,12 +15,12 @@ export function jsonToBytes(value: unknown): Uint8Array {
   return textToBytes(JSON.stringify(value));
 }
 
-export function bytesToJson<T = any>(bytes: Uint8Array | ArrayBuffer): T {
+export function bytesToJson<T = unknown>(bytes: Uint8Array | ArrayBuffer): T {
   return JSON.parse(bytesToText(bytes)) as T;
 }
 
 export function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
-  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+  return Uint8Array.from(bytes).buffer;
 }
 
 function normalizeBase64(value: string): string {

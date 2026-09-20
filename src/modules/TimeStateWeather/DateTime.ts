@@ -25,24 +25,26 @@ function patchDateTime(BaseDateTime: DateTimeConstructor): DateTimeConstructor {
   };
 
   class PatchedDateTime extends BaseDateTime {
-    public constructor(year: any = 2020, month = 1, day = 1, hour = 0, minute = 0, second = 0) {
+    public constructor(year: number | DateTimeData = 2020, month = 1, day = 1, hour = 0, minute = 0, second = 0) {
       super();
       if (arguments.length === 1) {
         if (year && typeof year === 'object' && typeof year.timeStamp === 'number') {
-          this.year = year.year;
-          this.month = year.month;
-          this.day = year.day;
-          this.hour = year.hour ?? 0;
-          this.minute = year.minute ?? 0;
-          this.second = year.second ?? 0;
-          this.timeStamp = year.timeStamp;
+          this.fromTimestamp(year.timeStamp);
           return;
         }
         this.fromTimestamp(Number(year));
         return;
       }
 
-      this.toTimestamp(year, month, day, hour, minute, second);
+      this.toTimestamp(Number(year), month, day, hour, minute, second);
+    }
+
+    public static get MIN_DATE(): DateTime {
+      return Object.freeze(new PatchedDateTime(TimeConstants.MIN_DATE.timeStamp));
+    }
+
+    public static get MAX_DATE(): DateTime {
+      return Object.freeze(new PatchedDateTime(TimeConstants.MAX_DATE.timeStamp));
     }
 
     public static toSerialYear(year: number): number {
@@ -64,8 +66,22 @@ function patchDateTime(BaseDateTime: DateTimeConstructor): DateTimeConstructor {
       return serialYear % 4 === 0 && (serialYear % 100 !== 0 || serialYear % 400 === 0);
     }
 
+    public static getDaysOfMonthFromYear(year: number): readonly number[] {
+      return PatchedDateTime.isLeapYear(year) ? TimeConstants.leapYearMonths : TimeConstants.standardYearMonths;
+    }
+
+    public static getDaysOfYear(year: number): number {
+      return PatchedDateTime.isLeapYear(year) ? 366 : 365;
+    }
+
+    public isLastDayOfMonth(): boolean {
+      return this.day === PatchedDateTime.getDaysOfMonthFromYear(this.year)[this.month - 1];
+    }
+
     public toTimestamp(year: number, month: number, day: number, hour: number, minute: number, second: number): this {
-      if (!Number.isFinite(year) || Math.trunc(year) !== year) throw new Error('Invalid year: Year must be an integer.');
+      for (const [name, value] of Object.entries({ year, month, day, hour, minute, second })) {
+        if (!Number.isInteger(value)) throw new Error(`Invalid ${name}: Value must be a finite integer.`);
+      }
       if (year === 0) throw new Error('Invalid year: year 0 is not supported.');
       if (year < TimeConstants.MIN_DATE.year || year > TimeConstants.MAX_DATE.year)
         throw new Error(`Invalid year: Year must be between ${TimeConstants.MIN_DATE.year}-${TimeConstants.MAX_DATE.year}.`);
@@ -198,6 +214,28 @@ function patchDateTime(BaseDateTime: DateTimeConstructor): DateTimeConstructor {
   }
 
   Object.defineProperties(PatchedDateTime.prototype, {
+    lastDayOfMonth: {
+      get(this: DateTime) {
+        return PatchedDateTime.getDaysOfMonthFromYear(this.year)[this.month - 1];
+      },
+      configurable: true
+    },
+    yearDay: {
+      get(this: DateTime) {
+        return (
+          PatchedDateTime.getDaysOfMonthFromYear(this.year)
+            .slice(0, this.month - 1)
+            .reduce((sum, days) => sum + days, 0) + this.day
+        );
+      },
+      configurable: true
+    },
+    fractionOfYear: {
+      get(this: DateTime) {
+        return this.yearDay / PatchedDateTime.getDaysOfYear(this.year);
+      },
+      configurable: true
+    },
     midnight: {
       get(this: DateTime) {
         return new PatchedDateTime(this.timeStamp - this.hour * TimeConstants.secondsPerHour - this.minute * TimeConstants.secondsPerMinute - this.second);
@@ -214,18 +252,24 @@ function patchDateTime(BaseDateTime: DateTimeConstructor): DateTimeConstructor {
     },
     seasonFactor: {
       get(this: DateTime) {
-        const summerSolstice = new PatchedDateTime(this.year, 6, 21);
-        const winterSolstice = new PatchedDateTime(this.year, 12, 21);
-        const previousSolstice =
-          this.timeStamp < summerSolstice.timeStamp ? new PatchedDateTime(this.year, 12, 21).addYears(-1) : this.timeStamp < winterSolstice.timeStamp ? summerSolstice : winterSolstice;
-        const nextSolstice =
-          this.timeStamp < summerSolstice.timeStamp ? summerSolstice : this.timeStamp < winterSolstice.timeStamp ? winterSolstice : new PatchedDateTime(this.year, 6, 21).addYears(1);
-        const nextSolsticeFactor = nextSolstice === winterSolstice ? 1 : 0;
-        const totalSecondsBetweenSolstices = nextSolstice.timeStamp - previousSolstice.timeStamp;
-        const secondsSinceLastSolstice = this.timeStamp - previousSolstice.timeStamp;
-        const factor = secondsSinceLastSolstice / totalSecondsBetweenSolstices;
-
-        return nextSolsticeFactor === 1 ? factor : 1 - factor;
+        const solstice = (year: number, month: number) => {
+          const days =
+            PatchedDateTime.getTotalDaysSinceStart(year) +
+            PatchedDateTime.getDaysOfMonthFromYear(year)
+              .slice(0, month - 1)
+              .reduce((sum, days) => sum + days, 0) +
+            20;
+          return days * TimeConstants.secondsPerDay;
+        };
+        const summer = solstice(this.year, 6);
+        const winter = solstice(this.year, 12);
+        const beforeSummer = this.timeStamp < summer;
+        const afterWinter = this.timeStamp >= winter;
+        const serialYear = toSerialYear(this.year);
+        const previous = beforeSummer ? solstice(fromSerialYear(serialYear - 1), 12) : afterWinter ? winter : summer;
+        const next = beforeSummer ? summer : afterWinter ? solstice(fromSerialYear(serialYear + 1), 6) : winter;
+        const factor = (this.timeStamp - previous) / (next - previous);
+        return beforeSummer || afterWinter ? 1 - factor : factor;
       },
       configurable: true
     }

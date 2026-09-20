@@ -1,4 +1,6 @@
-// .src/modules/Frameworks/OtherTools/Foodstuff.ts
+// .src/modules/Frameworks/Patches/Foodstuff.ts
+
+import { isKey, isRecord } from './config';
 
 type FoodstuffSeason = 'spring' | 'summer' | 'autumn' | 'winter';
 type FoodstuffPlantingBed = 'earth' | 'water';
@@ -7,6 +9,7 @@ type FoodstuffStallSize = 'small' | 'large';
 export interface FoodstuffConfig {
   key?: string;
   index?: number;
+  is_fishing_bait?: boolean;
   name?: string;
   singular?: string;
   plural?: string;
@@ -14,24 +17,25 @@ export interface FoodstuffConfig {
   category?: string;
   kitchen_item_type_icon?: string;
   prop_folder?: string;
-  ingredient_alternatives?: Record<string, string[]>;
+  ingredient_alternatives?: Partial<Record<'normal' | 'lewd', string[]>>;
   tending?: {
     planting_bed?: FoodstuffPlantingBed;
     growth_days?: number;
+    featCost?: number;
     yield_multiplier?: number;
     has_seeds?: boolean;
     seed_name?: string;
     seasons?: FoodstuffSeason[];
     affected_by_tending_skill?: boolean;
     tags?: string[];
-    [key: string]: any;
+    [key: string]: unknown;
   };
   shop?: {
     sell_price?: number;
     available_in?: string[];
     bought_in_bulk?: number;
     stall_size?: FoodstuffStallSize;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   recipe?: {
     recipe_name?: string;
@@ -39,39 +43,51 @@ export interface FoodstuffConfig {
     cook_minutes?: number;
     servings?: number;
     ingredients?: string[];
-    ingredient_alternatives?: Record<string, string[]>;
+    ingredient_alternatives?: Partial<Record<'normal' | 'lewd', Record<string, string[]>>>;
     tags?: string[];
-    [key: string]: any;
+    [key: string]: unknown;
   };
   food?: {
     handheld_gift?: boolean;
     tags?: string[];
-    [key: string]: any;
+    [key: string]: unknown;
   };
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
-export const foodstuffData: Record<string, FoodstuffConfig> = {};
+export type FoodstuffItem = FoodstuffConfig & Required<Pick<FoodstuffConfig, 'index' | 'name' | 'singular' | 'plural' | 'icon' | 'category' | 'kitchen_item_type_icon' | 'prop_folder'>>;
 
-import { clone } from '../../../utils';
+export const foodstuffData: Record<string, FoodstuffConfig> = Object.create(null);
+
+import { clone } from '../../../utils/object';
 
 class Foodstuff {
   public static add(key: string, config: FoodstuffConfig): void {
-    if (!key || !config) return;
+    if (!isKey(key) || !isRecord(config)) return;
     foodstuffData[key] = clone(config);
   }
 
   public static apply(): void {
+    Foodstuff.applySetup();
+    Foodstuff.syncState();
+  }
+
+  public static syncState(): void {
+    for (const key of Object.keys(foodstuffData)) Foodstuff.ensureState(key);
+  }
+
+  public static applySetup(): void {
+    if (Object.keys(foodstuffData).length === 0) return;
     setup.foodstuff ??= {};
     for (const [key, config] of Object.entries(foodstuffData)) {
       Foodstuff.set(key, config);
-      delete foodstuffData[key];
     }
     Foodstuff.sort();
   }
 
   private static set(key: string, config: FoodstuffConfig): void {
-    const item = clone(config);
+    const current = setup.foodstuff[key];
+    const item: FoodstuffConfig = { ...clone(current), ...clone(config) };
     const name = item.name ?? key.replace(/_/g, ' ');
     if (item.index === undefined) item.index = Foodstuff.nextIndex();
     setup.foodstuff[key] = {
@@ -83,13 +99,9 @@ class Foodstuff {
       category: item.category ?? 'ingredient',
       kitchen_item_type_icon: item.kitchen_item_type_icon ?? 'recipe-ingredient.png',
       prop_folder: item.prop_folder ?? 'ingredient',
-      shop: {
-        sell_price: 0,
-        ...item.shop
-      },
-      ...item
+      ...item,
+      shop: { sell_price: 0, ...current?.shop, ...item.shop }
     };
-    Foodstuff.ensureState(key);
   }
 
   private static nextIndex(): number {
@@ -102,7 +114,7 @@ class Foodstuff {
   }
 
   private static sort(): void {
-    const sorted: Record<string, FoodstuffConfig> = {};
+    const sorted: Record<string, FoodstuffItem> = {};
     Object.keys(setup.foodstuff)
       .sort()
       .forEach(key => {

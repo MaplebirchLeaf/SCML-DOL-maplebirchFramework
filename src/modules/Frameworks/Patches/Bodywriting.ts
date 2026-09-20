@@ -1,4 +1,6 @@
-// .src/modules/Frameworks/OtherTools/Bodywriting.ts
+// .src/modules/Frameworks/Patches/Bodywriting.ts
+
+import { isKey, isRecord } from './config';
 
 export interface BodywritingConfig {
   writing?: string;
@@ -15,18 +17,16 @@ export interface BodywritingConfig {
   key?: string;
 }
 
-export interface BodywritingData {
-  operation: 'add' | 'del';
-  config?: BodywritingConfig;
-}
+export type BodywritingData = { operation: 'add'; config: BodywritingConfig } | { operation: 'del' };
+export type BodywritingItem = BodywritingConfig & { index: number; key: string };
 
-export const bodywritingData: Record<string, BodywritingData> = {};
+export const bodywritingData: Record<string, BodywritingData> = Object.create(null);
 
-import { clone } from '../../../utils';
+import { clone } from '../../../utils/object';
 
 class Bodywriting {
   public static add(key: string, config: BodywritingConfig): void {
-    if (!key || !config) return;
+    if (!isKey(key) || !isRecord(config)) return;
     bodywritingData[key] = {
       operation: 'add',
       config: clone(config)
@@ -34,7 +34,7 @@ class Bodywriting {
   }
 
   public static delete(key: string): void {
-    if (!key) return;
+    if (!isKey(key)) return;
     bodywritingData[key] = {
       operation: 'del'
     };
@@ -42,7 +42,7 @@ class Bodywriting {
 
   public static apply(): void {
     setup.bodywriting ??= {};
-    setup.bodywriting_namebyindex ??= {};
+    setup.bodywriting_namebyindex ??= [];
     for (const [key, data] of Object.entries(bodywritingData)) {
       if (data.operation === 'del') {
         Bodywriting.remove(key);
@@ -62,16 +62,16 @@ class Bodywriting {
   }
 
   private static set(key: string, config: BodywritingConfig): void {
-    if (config.index === undefined) {
-      let maxIndex = 0;
-      for (const item of Object.values(setup.bodywriting) as BodywritingConfig[]) {
-        const index = Number(item.index);
-        if (Number.isFinite(index) && index > maxIndex) maxIndex = index;
-      }
-      config.index = maxIndex + 1;
+    const current = setup.bodywriting[key];
+    let index = config.index ?? current?.index;
+    if (index === undefined) {
+      index = Math.max(0, ...Object.values(setup.bodywriting).map(item => Number(item.index) || 0)) + 1;
     }
+    if (!Number.isInteger(index) || index < 0) throw new Error(`Invalid bodywriting index: ${key}`);
+    const owner = setup.bodywriting_namebyindex[index];
+    if (owner !== undefined && owner !== key) throw new Error(`Bodywriting index ${index} already belongs to ${owner}`);
+    if (current && current.index !== index && setup.bodywriting_namebyindex[current.index] === key) delete setup.bodywriting_namebyindex[current.index];
     setup.bodywriting[key] = {
-      key,
       type: 'text',
       arrow: 0,
       special: 'none',
@@ -79,9 +79,12 @@ class Bodywriting {
       lewd: 0,
       degree: 0,
       featSkip: true,
-      ...config
+      ...current,
+      ...config,
+      key,
+      index
     };
-    setup.bodywriting_namebyindex[config.index] = key;
+    setup.bodywriting_namebyindex[index] = key;
   }
 }
 

@@ -1,7 +1,9 @@
 // ./src/services/CloudSaveService.ts
 
 import type { MaplebirchCore } from '../core';
-import { clone } from '../utils';
+import { errorMessage } from '../utils/error';
+import type { DolStateMoment, TwineSugarCube } from '../../types/twine-sugarcube';
+import { clone } from '../utils/object';
 
 type CloudSaveSlot = number;
 
@@ -15,8 +17,8 @@ interface CloudSaveConfig {
 
 interface CloudSaveRecord {
   slot: CloudSaveSlot;
-  details: any;
-  save: any;
+  details: SaveDetails | null;
+  save: SaveState;
   exportedAt: number;
   gameId?: string;
 }
@@ -38,10 +40,35 @@ interface CloudSaveRemoteCode {
   payload?: CloudSaveCodeRecord;
 }
 
+interface SaveDetails {
+  date?: number;
+  title?: string;
+  idx?: unknown;
+  metadata?: { saveName?: string; [key: string]: unknown };
+  [key: string]: unknown;
+}
+
+interface SaveState {
+  history?: DolStateMoment[];
+  delta?: unknown;
+  [key: string]: unknown;
+}
+
 interface DoLSaveDatabase {
-  getItem(slot: CloudSaveSlot): Promise<{ data?: any } | null | undefined>;
-  getSaveDetails(): Promise<Array<{ slot: CloudSaveSlot; data?: any }> | null | undefined>;
-  setItem(slot: CloudSaveSlot, save: any, details?: any): Promise<boolean | void>;
+  getItem(slot: CloudSaveSlot): Promise<{ data?: SaveState } | null | undefined>;
+  getSaveDetails(): Promise<Array<{ slot: CloudSaveSlot; data?: SaveDetails }> | null | undefined>;
+  setItem(slot: CloudSaveSlot, save: SaveState, details?: SaveDetails): Promise<boolean | void>;
+}
+
+interface CloudSaveHost {
+  DoLSave?: {
+    isCompressionEnabled?(): boolean;
+    disableCompression?(): void;
+    enableCompression?(): void;
+  };
+  LZString?: { compressToBase64(value: string): string };
+  Config?: TwineSugarCube['Config'];
+  idb?: DoLSaveDatabase;
 }
 
 class CloudSaveService {
@@ -69,6 +96,7 @@ class CloudSaveService {
 
   /** 从 DoL 原生 IndexedDB 读取本地存档。 */
   public async exportSlot(slot: CloudSaveSlot): Promise<CloudSaveRecord> {
+    this.validateSlot(slot);
     const [item, details] = await Promise.all([this.saveDB.getItem(slot), this.saveDB.getSaveDetails()]);
     if (!item?.data) throw new Error(`Local save slot ${slot} not found.`);
     return {
@@ -83,6 +111,7 @@ class CloudSaveService {
   /** 将云端存档写回 DoL 原生 IndexedDB。 */
   public async importSlot(record: CloudSaveRecord, targetSlot: CloudSaveSlot = record.slot): Promise<boolean> {
     this.validateRecord(record);
+    this.validateSlot(targetSlot);
     const result = await this.saveDB.setItem(targetSlot, this.normalizeSave(record.save), {
       ...record.details,
       date: Date.now()
@@ -112,6 +141,8 @@ class CloudSaveService {
 
   /** 下载云端存档。 */
   public async download(slot: CloudSaveSlot, targetSlot: CloudSaveSlot = slot): Promise<boolean> {
+    this.validateSlot(slot);
+    this.validateSlot(targetSlot);
     const response = await this.request<unknown>(`/saves/${slot}`, undefined, true);
     if (response === null) throw new Error(`Remote save slot ${slot} not found.`);
     if (!this.core.lodash.isPlainObject(response)) this.invalidResponse();
@@ -137,6 +168,7 @@ class CloudSaveService {
 
   /** 删除远端存档。 */
   public async deleteRemote(slot: CloudSaveSlot): Promise<void> {
+    this.validateSlot(slot);
     await this.request(`/saves/${slot}`, {
       method: 'DELETE'
     });
@@ -146,7 +178,7 @@ class CloudSaveService {
   public exportCode(): string {
     const save = this.core.SugarCube?.Save;
     if (typeof save?.serialize !== 'function') throw new Error('SugarCube.Save.serialize is not available.');
-    const dolSave = (window as any).DoLSave;
+    const dolSave = (window as Window & CloudSaveHost).DoLSave;
     const compressed = dolSave?.isCompressionEnabled?.() === true;
     if (compressed) dolSave.disableCompression?.();
     try {
@@ -159,20 +191,18 @@ class CloudSaveService {
   /** 将指定本地槽位转换为 SugarCube 存档码。 */
   public async exportSlotCode(slot: CloudSaveSlot): Promise<string> {
     const record = await this.exportSlot(slot);
-    const lz = (window as any).LZString;
+    const lz = (window as Window & CloudSaveHost).LZString;
     const story = this.core.SugarCube?.Story;
-    const config = this.core.SugarCube?.Config ?? (window as any).Config;
+    const config = this.core.SugarCube?.Config ?? (window as Window & CloudSaveHost).Config;
     if (!lz?.compressToBase64 || !story?.domId || !config?.saves?.id) throw new Error(this.core.t('cloud.save.error.code.tools'));
-    const state = this.normalizeSave(record.save);
-    const save: any = {
+    const { history, ...state } = this.normalizeSave(record.save);
+    const save = {
       id: config.saves.id,
-      state,
-      idx: record.details?.idx ?? this.core.SugarCube.State.qc
+      state: { ...state, delta: this.core.SugarCube.State.deltaEncode(history) },
+      idx: record.details?.idx ?? this.core.SugarCube.State.qc,
+      ...(record.details?.metadata ? { metadata: record.details.metadata } : {}),
+      ...(config.saves.version ? { version: config.saves.version } : {})
     };
-    if (record.details?.metadata) save.metadata = record.details.metadata;
-    if (config.saves.version) save.version = config.saves.version;
-    save.state.delta = this.core.SugarCube.State.deltaEncode(save.state.history);
-    delete save.state.history;
     const data = lz.compressToBase64(JSON.stringify(save));
     return (
       data +
@@ -249,7 +279,7 @@ class CloudSaveService {
       this.configure({ endpoint, token, remember });
       void this.refreshPanel(panel)
         .then(() => this.complete(panel, 'cloud.save.action.connect'))
-        .catch(error => this.status(panel, this.error(error)));
+        .catch(error => this.status(panel, errorMessage(error)));
     });
   }
 
@@ -269,7 +299,7 @@ class CloudSaveService {
       this.status(panel, 'cloud.save.status.working');
       await this.runPanelAction(panel, action, targetSlot);
     } catch (error) {
-      this.status(panel, this.error(error));
+      this.status(panel, errorMessage(error));
     } finally {
       this.busy = false;
       panel.setAttribute('aria-busy', 'false');
@@ -446,7 +476,7 @@ class CloudSaveService {
   }
 
   /** SugarCube delta 存档还原为完整 history。 */
-  private normalizeSave(save: any): any {
+  private normalizeSave(save: SaveState): SaveState & { history: DolStateMoment[] } {
     const state = clone(save);
     if (!state.history && state.delta) {
       const decode = this.core.SugarCube?.State?.deltaDecode;
@@ -454,8 +484,15 @@ class CloudSaveService {
       state.history = decode(state.delta);
       delete state.delta;
     }
-    if (!state.history) throw new Error('Cloud save data does not contain a valid SugarCube history.');
-    return state;
+    const history = state.history;
+    if (
+      !Array.isArray(history) ||
+      !history.length ||
+      history.some(moment => !this.core.lodash.isPlainObject(moment) || typeof moment.title !== 'string' || !this.core.lodash.isPlainObject(moment.variables))
+    ) {
+      throw new Error('Cloud save data does not contain a valid SugarCube history.');
+    }
+    return { ...state, history };
   }
 
   private validateRecord(value: unknown): asserts value is CloudSaveRecord {
@@ -464,6 +501,7 @@ class CloudSaveService {
     if (!this.isSlot(record.slot)) this.invalidResponse();
     if (!this.core.lodash.isPlainObject(record.save) || !this.core.lodash.isFinite(record.exportedAt)) this.invalidResponse();
     if (record.gameId !== undefined && typeof record.gameId !== 'string') this.invalidResponse();
+    if (record.details != null && !this.core.lodash.isPlainObject(record.details)) this.invalidResponse();
     this.validateGame(record.gameId);
   }
 
@@ -477,6 +515,10 @@ class CloudSaveService {
 
   private isSlot(value: unknown): value is CloudSaveSlot {
     return this.core.lodash.isInteger(value) && this.core.lodash.inRange(value as number, 0, 201);
+  }
+
+  private validateSlot(slot: CloudSaveSlot): void {
+    if (!this.isSlot(slot)) throw new Error(this.core.t('cloud.save.error.slot.range'));
   }
 
   private validateGame(gameId?: string): void {
@@ -513,7 +555,8 @@ class CloudSaveService {
       const detailsList = await this.saveDB.getSaveDetails();
       if (!Array.isArray(detailsList)) return;
 
-      const existingSlots = new Map<number, any>();
+      const selected = select.querySelector('optgroup') ? select.value : '';
+      const existingSlots = new Map<number, SaveDetails>();
       let latestSlot: number | null = null;
       let latestDate = 0;
 
@@ -543,7 +586,7 @@ class CloudSaveService {
       groupExisting.label = this.core.t('cloud.save.slot.existing');
 
       if (existingSlots.has(0)) {
-        const autoData = existingSlots.get(0);
+        const autoData = existingSlots.get(0)!;
         const opt = document.createElement('option');
         opt.value = '0';
         const tm = formatDate(autoData.date);
@@ -556,7 +599,7 @@ class CloudSaveService {
         .sort((a, b) => a - b);
 
       for (const slot of sortedExisting) {
-        const d = existingSlots.get(slot);
+        const d = existingSlots.get(slot)!;
         const opt = document.createElement('option');
         opt.value = String(slot);
         let name = d.metadata?.saveName || d.title || '';
@@ -592,7 +635,7 @@ class CloudSaveService {
       select.appendChild(groupAll);
 
       const targetValue = latestSlot != null ? String(latestSlot) : existingSlots.has(0) ? '0' : sortedExisting[0] != null ? String(sortedExisting[0]) : '1';
-      select.value = targetValue;
+      select.value = selected || targetValue;
     } catch (error) {
       console.error('Failed to populate slot options:', error);
     }
@@ -607,12 +650,8 @@ class CloudSaveService {
     status.classList.add('visible');
   }
 
-  private error(error: unknown): string {
-    return error instanceof Error ? error.message : String(error);
-  }
-
   private get saveDB(): DoLSaveDatabase {
-    const db = (window as any).idb;
+    const db = (window as Window & CloudSaveHost).idb;
     if (!db || typeof db.getItem !== 'function' || typeof db.getSaveDetails !== 'function' || typeof db.setItem !== 'function') throw new Error('DoL IndexedDB is not available.');
     return db;
   }

@@ -1,5 +1,6 @@
 // ./src/modules/Character.ts
 
+import { errorMessage } from '../utils/error';
 import { MacroDefinition } from 'twine-sugarcube';
 import maplebirch, { MaplebirchCore, createlog } from '../core';
 import { clone, mergefn as mergeFn } from '../utils';
@@ -440,8 +441,8 @@ class Character {
     for (const handler of handlers) {
       try {
         handler(options, model);
-      } catch (error: any) {
-        this.log(`${model}-${type}process 错误: ${error?.message || error}`, 'ERROR', error);
+      } catch (error) {
+        this.log(`${model}-${type}process 错误: ${errorMessage(error)}`, 'ERROR', error);
       }
     }
   }
@@ -468,7 +469,7 @@ class Character {
   }
 
   public loadInit() {
-    void this.transformation.inject();
+    this.transformation.state();
   }
 }
 

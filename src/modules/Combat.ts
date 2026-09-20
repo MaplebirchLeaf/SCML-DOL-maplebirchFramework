@@ -2,7 +2,7 @@
 
 import maplebirch, { type MaplebirchCore, createlog } from '../core';
 import type { MacroContext } from '../SugarCubeMacros';
-import CombatActions, { type ActionType, type CombatType, type OptionsTable } from './CombatAddon/CombatAction';
+import CombatActions, { type ActionType, type ActionValue, type CombatType, type OptionsTable } from './CombatAddon/CombatAction';
 
 class CombatManager {
   public readonly log: ReturnType<typeof createlog>;
@@ -13,7 +13,7 @@ class CombatManager {
 
     this.core.once(':storyready', () => {
       this.core.tool.macro.define('generateCombatAction', this._generateCombatAction());
-      this.core.tool.macro.define('combatButtonAdjustments', (name: string, extra: any) => this._combatButtonAdjustments(name, extra));
+      this.core.tool.macro.define('combatButtonAdjustments', (name: string, extra: CombatType | '' = '') => this._combatButtonAdjustments(name, extra));
     });
   }
 
@@ -77,13 +77,13 @@ class CombatManager {
     };
   }
 
-  private _combatListColor(name: string | number | false, value?: any, type: CombatType = 'Default') {
+  private _combatListColor(name: string | number | false, value?: ActionValue, type: CombatType = 'Default') {
     type = (type || 'Default') as CombatType;
     const rawAction = value ?? (name !== false ? V[name] : '');
     const action = String(rawAction || '').replace(/\d+/g, '');
     if (combatActionColours[type]) for (const color in combatActionColours[type]) if (combatActionColours[type][color].includes(action)) return color;
     try {
-      const modColor = this.CombatAction.color(action, type);
+      const modColor = this.CombatAction.color(rawAction, type);
       if (modColor) return modColor;
     } catch (e) {
       this.log('mod战斗动作颜色错误', 'ERROR', e);
@@ -91,7 +91,7 @@ class CombatManager {
     return 'white';
   }
 
-  private _combatButtonAdjustments(name: string, extra: any) {
+  private _combatButtonAdjustments(name: string, extra: CombatType | '') {
     const eventName = `change.maplebirchCombat-${name}`;
     jQuery(document)
       .off(eventName, '#listbox-' + name)
@@ -99,7 +99,7 @@ class CombatManager {
         const action = V[e.data.name];
         let difficultyMacro = `<<${e.data.name}Difficulty${e.data.extra} ${action}>>`;
         try {
-          const modDifficulty = this.CombatAction.difficulty(action, e.data.extra);
+          const modDifficulty = this.CombatAction.difficulty(action, e.data.extra || 'Default');
           if (modDifficulty) difficultyMacro = modDifficulty;
         } catch (e) {
           this.log('mod战斗动作难度提示错误', 'ERROR', e);

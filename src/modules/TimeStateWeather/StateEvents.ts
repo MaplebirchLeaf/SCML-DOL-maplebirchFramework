@@ -53,7 +53,13 @@ class StateEvent extends Event {
     const { passage, exclude, match } = this.extra;
     if (passage?.length && !passage.includes(passageName)) return false;
     if (exclude?.length && exclude.includes(passageName)) return false;
-    if (match && !match.test(passageName)) return false;
+    if (match) {
+      const previousIndex = match.lastIndex;
+      match.lastIndex = 0;
+      const matched = match.test(passageName);
+      match.lastIndex = previousIndex;
+      if (!matched) return false;
+    }
     return true;
   }
 
@@ -81,13 +87,15 @@ class StateEvent extends Event {
 }
 
 export class StateManager {
-  private readonly stateEvents: Record<string, Map<string, StateEvent>> = {};
-  private readonly log: (message: string, level?: string, ...objects: any[]) => void;
+  private readonly stateEvents = { gate: new Map<string, StateEvent>(), append: new Map<string, StateEvent>() };
+  private readonly log: DynamicManager['log'];
 
   public constructor(private readonly manager: DynamicManager) {
     this.log = manager.log;
-    const eventTypes = ['gate', 'append'];
-    eventTypes.forEach(type => (this.stateEvents[type] = new Map()));
+  }
+
+  public get events(): Readonly<Record<'gate' | 'append', ReadonlyMap<string, StateEvent>>> {
+    return this.stateEvents;
   }
 
   public trigger(type: 'gate' | 'append'): string {

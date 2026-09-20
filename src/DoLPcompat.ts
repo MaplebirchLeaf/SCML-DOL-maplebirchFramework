@@ -7,7 +7,7 @@ interface TransformationPart {
   name: string;
   tfRequired: number;
   default?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface SetupTransformation {
@@ -335,15 +335,21 @@ class Transformations {
       const patch = DoLPcompat.Transformations.TransformationPatches[tf.name];
       if (!patch) return tf;
 
-      return {
-        ...tf,
+      return DoLPcompat.Transformations.mergeProperties(tf, {
         parts: DoLPcompat.Transformations.mergeParts(tf.parts, patch.parts),
         traits: DoLPcompat.Transformations.mergeParts(tf.traits, patch.traits)
-      } as T;
+      });
     });
 
     const names = new Set(result.map(tf => tf.name).filter(Boolean));
     return [...result, ...DoLPcompat.Transformations.Transformations.filter(tf => !names.has(tf.name))];
+  }
+
+  private static mergeProperties<T extends object>(base: T, extra: object): T {
+    return Object.create(Object.getPrototypeOf(base), {
+      ...Object.getOwnPropertyDescriptors(base),
+      ...Object.getOwnPropertyDescriptors(extra)
+    }) as T;
   }
 
   private static mergeParts(base: TransformationPart[] = [], extra: TransformationPart[] = []): TransformationPart[] {
@@ -353,7 +359,7 @@ class Transformations {
       if (index === -1) {
         result.push(part);
       } else {
-        result[index] = { ...result[index], ...part };
+        result[index] = DoLPcompat.Transformations.mergeProperties(result[index], part);
       }
     }
     return result;

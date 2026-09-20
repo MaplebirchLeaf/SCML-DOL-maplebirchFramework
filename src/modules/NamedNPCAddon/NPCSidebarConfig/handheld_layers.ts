@@ -3,14 +3,7 @@
 import maplebirch from '../../../core';
 import { gray_suffix, clothes_handheld, clothes_back, clothes_back_acc } from './functions';
 
-type NPCSidebarOptions = {
-  filters?: Record<string, any>;
-  maplebirch: {
-    nnpc: Record<string, any>;
-    [key: string]: any;
-  };
-  [key: string]: any;
-};
+import type { NPCSidebarOptions } from './types';
 
 const handheld_layers = {
   nnpc_handheld_main: clothes_handheld('main', {

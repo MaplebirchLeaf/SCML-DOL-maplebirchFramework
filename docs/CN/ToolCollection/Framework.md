@@ -169,7 +169,42 @@ maplebirch.tool.onInit('MyModInitWidget');
 
 ---
 
+### 源码适配
+
+没有适用的渲染钩子、需要修改原版内部执行分支时，使用 `maplebirch.tool.zone.inject()`。普通 passage 放在 `locationPassage`，带 widget 标签的 passage 放在 `widgetPassage`。
+
+```javascript
+maplebirch.tool.zone.inject({
+  locationPassage: {
+    'MyMod Reward': [
+      {
+        src: '<<set $myMod.rewardClaimed to true>>',
+        applyafter: '<<myModRewardSettled>>',
+        expected: 1
+      }
+    ]
+  }
+});
+```
+
+这里的目标与变量属于示例 Mod；适配原版时必须替换成已经核对的真实结算位置。插入成功分支才能表示奖励已结算，不能仅根据页面已渲染判断。
+
+| 字段                         | 行为                                                |
+| ---------------------------- | --------------------------------------------------- |
+| `src`                        | 匹配字面文本，替换第一处                            |
+| `srcmatch`                   | 按正则替换；带 `g` 时处理全部匹配                   |
+| `srcmatchgroup`              | 按正则处理全部匹配，不重复扫描刚插入的内容          |
+| `to`                         | 替换文本，支持 JavaScript replace 的捕获组引用      |
+| `applybefore` / `applyafter` | 在匹配位置前/后插入字面文本                         |
+| `expected`                   | 可选的预期匹配数；不符时跳过该条补丁并记录 mismatch |
+
+每条使用一个匹配字段和一个替换操作。`matches` 是候选匹配数，`applied` 是实际替换数；例如 `src` 命中两处但只替换第一处时分别为 2 和 1。目标缺失、未匹配、数量不符等结果见 [补丁报告](../AddonPlugin.md#补丁报告)。
+
+---
+
 ### 常用区域
+
+`zone` 必须使用下表中的名称；`passage`、`exclude`、`match` 都匹配 passage 标题。`CustomLinkZone` 的位置是链接索引。
 
 | 区域               | 位置             |
 | :----------------- | :--------------- |
@@ -246,12 +281,3 @@ maplebirch.tool.addTo('StatusBar', {
   exclude: ['Start']
 });
 ```
-
----
-
-### 补充说明
-
-- `zone` 名称需要与上方区域名一致。
-- `passage`、`exclude` 和 `match` 都匹配 passage 标题。
-- `CustomLinkZone` 的位置是链接索引，不是页面行号。
-- `MobileStats` 是当前移动端状态区域名称。

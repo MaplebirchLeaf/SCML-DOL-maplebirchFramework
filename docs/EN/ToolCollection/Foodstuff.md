@@ -10,6 +10,8 @@ maplebirch.tool.patch.addFoodstuff(key, config);
 
 **`key`** is the unique foodstuff id. Use a mod prefix to avoid collisions.
 
+Register during startup so the framework can merge the configuration into `setup.foodstuff`. Starting or loading a game only fills missing inventory entries and preserves existing quantities. Call `maplebirch.tool.patch.applyFoodstuff()` to manually apply both the catalog and missing inventory entries.
+
 ## Minimal Example
 
 ```javascript

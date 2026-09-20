@@ -10,19 +10,19 @@ export function patchTimeAsset(content: string): string {
 }
 
 interface TimeHandlers {
-  pass?: (seconds: number) => any;
-  timeTravel?: (date: DateTime) => any;
+  pass?: (seconds: number) => unknown;
+  timeTravel?: (date: DateTime) => unknown;
 }
 
 export interface VanillaTimeHandlers {
   set?: (value?: number | DateTime) => void;
-  pass?: (seconds: number) => any;
+  pass?: (seconds: number) => unknown;
   setDate?: (date: DateTime) => void;
 }
 
 export const vanillaTime: VanillaTimeHandlers = {};
 
-export function bindTimeHandlers(time: any, handlers: TimeHandlers): void {
+export function bindTimeHandlers(time: TimeAPI, handlers: TimeHandlers): void {
   if (!time) return;
   Object.defineProperties(time, {
     ...(handlers.pass && {
@@ -42,7 +42,7 @@ export function bindTimeHandlers(time: any, handlers: TimeHandlers): void {
   });
 }
 
-function patchTime(time: any): void {
+function patchTime(time: TimeAPI): void {
   if (!time) return;
   vanillaTime.set ??= typeof time.set === 'function' ? time.set.bind(time) : undefined;
   vanillaTime.pass ??= typeof time.pass === 'function' ? time.pass.bind(time) : undefined;
@@ -51,7 +51,7 @@ function patchTime(time: any): void {
   let cachedAbsoluteTimestamp: number | null = null;
 
   const set = (value?: number | DateTime): void => {
-    if (value && typeof value === 'object' && typeof (value as any).timeStamp === 'number') {
+    if (value && typeof value === 'object' && typeof value.timeStamp === 'number') {
       cachedDate = new window.DateTime(value);
       cachedAbsoluteTimestamp = cachedDate.timeStamp;
       V.startDate ??= new window.DateTime(2022, 9, 4, 7).timeStamp;

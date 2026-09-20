@@ -95,7 +95,7 @@ _可通过 `maplebirch.tool.patch.addTraits()` 访问。_
 
 #### **动态值的配置**
 
-在 boot.json 中，`has`、`colour`、`text` 等属性可以是字符串形式的 JavaScript 表达式，会在运行时求值：
+在 `boot.json` 中，`has` 可以写布尔值或 JavaScript 判断表达式；`name`、`colour` 和 `text` 使用普通字符串。需要动态名称、颜色或说明时，使用脚本中的函数配置。
 
 ```json
 {
@@ -105,13 +105,13 @@ _可通过 `maplebirch.tool.patch.addTraits()` 访问。_
       "name": "wealthy",
       "colour": "yellow",
       "has": "V.gold > 10000",
-      "text": "function() { return '财富: ' + V.gold + ' 金币'; }"
+      "text": "拥有可观的财富。"
     }
   ]
 }
 ```
 
-**注意**: 字符串表达式会在游戏上下文中求值，可以访问 `V`、`Time`、`Weather` 等全局对象。
+`has` 表达式在游戏上下文中求值，可以访问 `V`、`Time`、`Weather` 等全局对象，只应填写可信代码。
 
 也可以引用 `.json`、`.yaml` 或 `.yml` 文件：
 

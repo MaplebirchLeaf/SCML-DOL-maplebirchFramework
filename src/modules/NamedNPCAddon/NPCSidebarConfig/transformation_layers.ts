@@ -3,17 +3,14 @@
 import maplebirch from '../../../core';
 import { kaijuMask } from './functions';
 
-type NPCSidebarOptions = {
-  maplebirch: { nnpc: Record<string, any> };
-  [key: string]: any;
-};
+import type { NPCSidebarOptions } from './types';
 
 const disabled = ['disabled', 'hidden'];
 const z = (name: string) => (maplebirch.char.ZIndices as Record<string, number>)[name];
 const nnpc = (options: NPCSidebarOptions) => options.maplebirch.nnpc;
 const enabled = (value: unknown) => typeof value === 'string' && !disabled.includes(value);
 
-function basic(overrides: Record<string, any> = {}) {
+function basic(overrides: LayerConfig = {}) {
   return {
     animation: 'idle',
     dxfn: (options: NPCSidebarOptions) => nnpc(options).dxfn,
@@ -23,7 +20,7 @@ function basic(overrides: Record<string, any> = {}) {
   };
 }
 
-function part(type: string, folder: string, name: string, overrides: Record<string, any> = {}) {
+function part(type: string, folder: string, name: string, overrides: LayerConfig = {}) {
   return basic({
     filters: ['nnpc_hair'],
     srcfn: (options: NPCSidebarOptions) => {
@@ -32,7 +29,7 @@ function part(type: string, folder: string, name: string, overrides: Record<stri
     },
     showfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
-      return !!data.show_tf && !!data.model && !data.hide_all && enabled(data[`${type}_${name}_type`]);
+      return !!data.show && !!data.show_tf && !!data.model && !data.hide_all && enabled(data[`${type}_${name}_type`]);
     },
     zfn: (options: NPCSidebarOptions) => z('lower') + nnpc(options).position,
     ...overrides
@@ -49,7 +46,7 @@ function wings(side: 'left' | 'right', type: string, hair: boolean) {
     },
     showfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
-      return !!data.show_tf && !!data.model && !data.hide_all && enabled(data[`${type}_wings_type`]);
+      return !!data.show && !!data.show_tf && !!data.model && !data.hide_all && enabled(data[`${type}_wings_type`]);
     },
     zfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
@@ -74,7 +71,7 @@ function halo(side: 'back' | 'front', type: string) {
     },
     showfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
-      return !!data.show_tf && !!data.model && !data.hide_all && enabled(data[`${type}_halo_type`]);
+      return !!data.show && !!data.show_tf && !!data.model && !data.hide_all && enabled(data[`${type}_halo_type`]);
     },
     dyfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
@@ -88,7 +85,7 @@ function halo(side: 'back' | 'front', type: string) {
   });
 }
 
-function tail(type: string, hair: boolean, overrides: Record<string, any> = {}) {
+function tail(type: string, hair: boolean, overrides: LayerConfig = {}) {
   return part(type, 'tail', 'tail', {
     filters: hair ? ['nnpc_hair'] : [],
     srcfn: (options: NPCSidebarOptions) => {
@@ -98,14 +95,14 @@ function tail(type: string, hair: boolean, overrides: Record<string, any> = {}) 
     },
     zfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
-      const layer = type === 'demon' && ['cover', 'flaunt'].includes(data.demon_tail_state) ? 'tailPenisCover' : data[`${type}_tail_layer`] === 'back' ? 'tail' : 'back_lower';
+      const layer = type === 'demon' && ['cover', 'flaunt'].includes(data.demon_tail_state ?? '') ? 'tailPenisCover' : data[`${type}_tail_layer`] === 'back' ? 'tail' : 'back_lower';
       return z(layer) + data.position;
     },
     ...overrides
   });
 }
 
-function ears(type: string, hair: boolean, overrides: Record<string, any> = {}) {
+function ears(type: string, hair: boolean, overrides: LayerConfig = {}) {
   return part(type, 'ears', 'ears', {
     filters: hair ? ['nnpc_hair'] : [],
     masksrcfn: (options: NPCSidebarOptions) => {
@@ -242,11 +239,11 @@ const transformation_layers = {
     srcfn: (options: NPCSidebarOptions) => `img/transformations/demon/wings-${nnpc(options).demon_wings_state}/${nnpc(options).demon_wings_type}.png`,
     showfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
-      return !!data.show_tf && !!data.model && !data.hide_all && enabled(data.demon_wings_type) && !enabled(data.bird_wings_type);
+      return !!data.show && !!data.show_tf && !!data.model && !data.hide_all && enabled(data.demon_wings_type) && !enabled(data.bird_wings_type);
     },
     zfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
-      const layer = ['cover', 'flaunt'].includes(data.demon_wings_state) ? 'tailPenisCover' : data.demon_wings_layer === 'back' ? 'head_back' : 'backhair';
+      const layer = ['cover', 'flaunt'].includes(data.demon_wings_state ?? '') ? 'tailPenisCover' : data.demon_wings_layer === 'back' ? 'head_back' : 'backhair';
       return z(layer) + data.position;
     }
   }),

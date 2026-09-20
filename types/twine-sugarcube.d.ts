@@ -6,19 +6,15 @@ import type { DialogAPI } from '@scml/sc2-verlnir/src/dialog';
 import type { EngineAPI } from '@scml/sc2-verlnir/src/engine';
 import type { FullscreenAPI } from '@scml/sc2-verlnir/src/fullscreen';
 import type { HasAPI } from '@scml/sc2-verlnir/src/has';
-import type { IdbAPI } from '@scml/sc2-verlnir/src/idb';
 import type { L10nAPI } from '@scml/sc2-verlnir/src/l10n';
-import type { LinksAPI } from '@scml/sc2-verlnir/src/links';
-import type { LoadScreenAPI } from '@scml/sc2-verlnir/src/loadscreen';
 import type { MacroAPI } from '@scml/sc2-verlnir/src/macro';
 import type { PassageAPI, PassageConstructor } from '@scml/sc2-verlnir/src/passage';
 import type { SaveAPI as VerlnirSaveAPI } from '@scml/sc2-verlnir/src/save';
 import type { ScriptingAPI } from '@scml/sc2-verlnir/src/scripting';
 import type { SettingAPI } from '@scml/sc2-verlnir/src/setting';
 import type { SimpleAudioAPI } from '@scml/sc2-verlnir/src/simpleaudio';
-import type { SimpleStoreAPI, SimpleStoreInstanceAPI } from '@scml/sc2-verlnir/src/simplestore';
+import type { SimpleStoreInstanceAPI } from '@scml/sc2-verlnir/src/simplestore';
 import type { StoryAPI } from '@scml/sc2-verlnir/src/story';
-import type { TemplateAPI } from '@scml/sc2-verlnir/src/template';
 import type { UIAPI } from '@scml/sc2-verlnir/src/ui';
 import type { UIBarAPI } from '@scml/sc2-verlnir/src/uibar';
 import type { UtilAPI } from '@scml/sc2-verlnir/src/util';
@@ -26,16 +22,36 @@ import type { VersionInfo } from '@scml/sc2-verlnir/src/version';
 import type { VisibilityAPI } from '@scml/sc2-verlnir/src/visibility';
 import type { WikifierAPI as VerlnirWikifierAPI, WikifierStaticAPI, WikifierParserAPI, WikifierHelpersAPI } from '@scml/sc2-verlnir/src/wikifier';
 
+import type { BodywritingItem } from '../src/modules/Frameworks/Patches/Bodywriting';
+import type { FoodstuffItem } from '../src/modules/Frameworks/Patches/Foodstuff';
+import type { LocationConfig } from '../src/modules/Frameworks/Patches/Location';
+import type { FishData } from '../src/modules/Frameworks/Patches/Fishing';
+import type { AntiqueConfig } from '../src/modules/Frameworks/Patches/Antiques';
+import type { TraitCategory } from '../src/modules/Frameworks/Patches/Traits';
+import type { SugarCubeStoryVariables, SugarCubeTemporaryVariables } from 'twine-sugarcube/userdata';
+
 declare module 'twine-sugarcube/userdata' {
   export interface SugarCubeSetupObject {
+    bodywriting: Record<string, BodywritingItem>;
+    bodywriting_namebyindex: (string | undefined)[];
+    foodstuff: Record<string, FoodstuffItem>;
+    LocationImages: Record<string, LocationConfig>;
+    Locations: Record<string, () => string>;
+    tips: Record<string, string[]>;
+    tipsList: string[];
+    fishing?: { lootTables: { fish: Record<string, FishData> } };
     [x: string]: any;
   }
 
   export interface SugarCubeStoryVariables {
+    foodstuff: Record<string, { amount: number; [key: string]: unknown }>;
+    museumAntiques?: { antiques: Record<string, string>; maxCount: number; [key: string]: unknown };
     [x: string]: any;
   }
 
   export interface SugarCubeTemporaryVariables {
+    traitLists: TraitCategory[];
+    museumAntiqueText: Record<string, AntiqueConfig>;
     [x: string]: any;
   }
 }
@@ -135,17 +151,15 @@ export interface DolStateAPI {
 }
 
 export interface DolSaveAPI extends VerlnirSaveAPI {
-  serialize(metadata?: any): string;
-  deserialize(saveStr: string): any;
+  serialize(metadata?: unknown): string;
+  deserialize(saveStr: string): unknown;
 }
 
 export type WikifierAPI = VerlnirWikifierAPI & {
   wikifyEval(text: string, passageObj?: { title: string }, passageTitle?: string): DocumentFragment;
 };
 
-export interface SugarCubeUtilAPI extends UtilAPI {
-  [key: string]: any;
-}
+export type SugarCubeUtilAPI = UtilAPI;
 
 export interface TwineSugarCube {
   Browser: BrowserAPI;
@@ -155,25 +169,20 @@ export interface TwineSugarCube {
   Fullscreen: FullscreenAPI;
   Has: HasAPI;
   L10n: L10nAPI;
-  Links: LinksAPI;
-  LoadScreen: LoadScreenAPI;
   Macro: MacroAPI;
   Passage: PassageConstructor;
   Save: DolSaveAPI;
   Scripting: ScriptingAPI;
   Setting: SettingAPI;
   SimpleAudio: SimpleAudioAPI;
-  SimpleStore: SimpleStoreAPI;
   State: DolStateAPI;
   Story: StoryAPI;
-  Template: TemplateAPI;
   UI: UIAPI;
   UIBar: UIBarAPI;
   DebugBar: DebugBarAPI;
   Util: SugarCubeUtilAPI;
   Visibility: VisibilityAPI;
   Wikifier: WikifierAPI;
-  idb: IdbAPI;
   session: SimpleStoreInstanceAPI | null;
   settings: Record<string, unknown>;
   setup: Record<string, unknown>;
@@ -182,9 +191,9 @@ export interface TwineSugarCube {
 }
 
 declare global {
-  const V: Record<string, any>;
+  const V: SugarCubeStoryVariables;
   const C: Record<string, any>;
-  const T: Record<string, any>;
+  const T: SugarCubeTemporaryVariables;
 
   interface DateTimeData {
     year: number;
@@ -351,6 +360,13 @@ declare global {
   type CanvasLayerMask = string | { path: string; offsetX?: number; offsetY?: number; convert?: boolean };
   type CanvasLayerMaskSrc = CanvasLayerMask | CanvasLayerMask[] | undefined;
 
+  interface CanvasLayerWorn {
+    slot: string;
+    integrity: string | number;
+    alt?: string;
+    index: number;
+  }
+
   type CanvasLayerValueFn<T = any> = (options: any) => T;
 
   interface CanvasModelOptionsData {
@@ -383,7 +399,7 @@ declare global {
     dy?: number;
     width?: number;
     height?: number;
-    worn?: string;
+    worn?: CanvasLayerWorn;
     scale?: boolean | number;
     frameDx?: number;
     frameDy?: number;
@@ -407,7 +423,7 @@ declare global {
     dyfn?: CanvasLayerValueFn<number>;
     widthfn?: CanvasLayerValueFn<number>;
     heightfn?: CanvasLayerValueFn<number>;
-    wornfn?: CanvasLayerValueFn<string | undefined>;
+    wornfn?: CanvasLayerValueFn<CanvasLayerWorn | undefined>;
     scalefn?: CanvasLayerValueFn<boolean | number | undefined>;
 
     [key: string]: any;

@@ -4,6 +4,7 @@ import { version } from '../constants';
 import maplebirch, { MaplebirchCore, createlog } from '../core';
 import migration from './Frameworks/migration';
 import { clone } from '../utils';
+import { errorMessage } from '../utils/error';
 
 const defaults = {
   player: {
@@ -181,8 +182,8 @@ class Variables {
       }
 
       return saved;
-    } catch (error: any) {
-      this.log(`框架设置存储处理失败: ${error?.message || error}`, 'WARN');
+    } catch (error) {
+      this.log(`框架设置存储处理失败: ${errorMessage(error)}`, 'WARN');
       return null;
     }
   }
@@ -197,8 +198,8 @@ class Variables {
     try {
       V.maplebirch ??= {};
       if (this.tool.core.passage?.title === 'Start2') V.maplebirch = clone({ ...defaults, version: this.version });
-    } catch (e: any) {
-      this.log(`出现错误：${e?.message || e}`, 'ERROR');
+    } catch (error) {
+      this.log(`出现错误：${errorMessage(error)}`, 'ERROR');
     } finally {
       this.migration.run(V.maplebirch, this.version);
       $.wiki('<<maplebirchState>>');
@@ -211,8 +212,8 @@ class Variables {
       this.check();
       this.migration.run(V.maplebirch, this.version);
       $.wiki('<<maplebirchState>>');
-    } catch (e: any) {
-      this.log(`读档迁移出错: ${e?.message || e}`, 'ERROR');
+    } catch (error) {
+      this.log(`读档迁移出错: ${errorMessage(error)}`, 'ERROR');
     }
   }
 

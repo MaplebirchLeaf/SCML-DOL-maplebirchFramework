@@ -1,3 +1,4 @@
+import type { LinksAPI } from '@scml/sc2-verlnir/src/links';
 import { SC2DataManager } from '@scml/types/sugarcube-2-ModLoader/SC2DataManager';
 import { GameOriginalImagePack } from '@scml/types/GameOriginalImagePackMod/GameOriginalImagePack';
 import { BeautySelectorAddon } from '@scml/types/AddonMod_BeautySelector/BeautySelectorAddon';
@@ -30,8 +31,8 @@ declare global {
 
   const lanSwitch: typeof _languageSwitch;
 
-  const Links: any;
-  const StartConfig: any;
+  const Links: LinksAPI;
+  const StartConfig: { version: string };
 
   interface ErrorsConfig {
     debug: boolean;
@@ -41,7 +42,7 @@ declare global {
 
   interface ErrorLogEntry {
     message: string;
-    copyData?: any;
+    copyData?: unknown;
   }
 
   interface ErrorsReporter {
@@ -61,8 +62,8 @@ declare global {
   interface Errors {
     config: ErrorsConfig;
     log: ErrorLogEntry[];
-    registerMessage(message: string, copyData?: any, noClone?: boolean): ErrorLogEntry;
-    report(message: string, copyData?: any, noClone?: boolean): void;
+    registerMessage(message: string, copyData?: unknown, noClone?: boolean): ErrorLogEntry;
+    report(message: string, copyData?: unknown, noClone?: boolean): void;
     Reporter: ErrorsReporter;
   }
 

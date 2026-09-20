@@ -27,7 +27,8 @@ export async function resolvePackageInfo(rootDir: string): Promise<PackageInfo> 
   if (!pkg?.name) throw new Error('package.json missing name');
   if (!pkg?.version) throw new Error('package.json missing version');
 
-  const gameVersion = pkg.scml.dependenceInfo.find((dep: { modName: string }) => dep.modName === 'GameVersion').version.match(/\d+(\.\d+)*/)?.[0];
+  const scml = pkg.scml as ScmlConfig | undefined;
+  const gameVersion = scml?.dependenceInfo?.find(dep => dep.modName === 'GameVersion')?.version.match(/\d+(\.\d+)*/)?.[0];
   if (!gameVersion) throw new Error('package.json scml.dependenceInfo missing GameVersion');
 
   return {
@@ -84,6 +85,7 @@ export async function createZip(rootDir: string): Promise<Buffer> {
   };
 
   zip.addFile('boot.json', Buffer.from(JSON.stringify(boot, null, 2)));
+  for (const entry of zip.getEntries()) entry.header.time = new Date(1980, 0, 1);
   return zip.toBuffer();
 }
 

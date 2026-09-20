@@ -37,16 +37,16 @@
 ]
 ```
 
-**`params`** 是配置主体。常用字段如下：
+所有文件路径以模组压缩包内部路径为准。**`params`** 是配置主体，常用字段如下：
 
-| 字段        | 说明                                                |
-| :---------- | :-------------------------------------------------- |
-| `script`    | 加载普通 JavaScript 脚本                            |
-| `module`    | 加载更早执行的模块脚本                              |
-| `language`  | 导入翻译文件                                        |
-| `audio`     | 导入音频目录                                        |
-| `framework` | 添加区域 widget，注册特质、小贴士、纹身、食物或古董 |
-| `npc`       | 注册 NPC 相关资源                                   |
+| 字段        | 说明                                                          |
+| :---------- | :------------------------------------------------------------ |
+| `script`    | 加载普通 JavaScript 脚本                                      |
+| `module`    | 加载更早执行的模块脚本                                        |
+| `language`  | 导入翻译文件                                                  |
+| `audio`     | 导入音频目录                                                  |
+| `framework` | 添加区域 widget，注册特质、小贴士、纹身、食物、古董或钓鱼数据 |
+| `npc`       | 注册 NPC 相关资源                                             |
 
 ---
 
@@ -261,11 +261,25 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
   },
   {
     "antiques": "data/antiques.yaml"
+  },
+  {
+    "fish": "data/fish.json",
+    "bait": "data/bait.yaml",
+    "fishingLocations": "data/fishing-locations.yaml"
   }
 ]
 ```
 
-**`traits`**、**`bodywriting`**、**`foodstuff`**、**`antiques`** 都可以使用内联数组/对象或外部文件。**`bodywriting`**、**`foodstuff`**、**`antiques`** 使用数组写法时，每一项必须包含 **`key`**。
+同一个 **`framework`** 对象可以声明多个数据字段。每个字段都支持文件路径或路径数组；多个文件按顺序读取，内容使用下表中的格式：
+
+| 字段                                                   | 内容格式                                      |
+| :----------------------------------------------------- | :-------------------------------------------- |
+| `traits`                                               | 特质配置数组                                  |
+| `tips`                                                 | 提示文本数组，或分类到文本数组的对象          |
+| `bodywriting`、`foodstuff`、`antiques`、`fish`、`bait` | 以唯一标识为键的对象，或每项包含 `key` 的数组 |
+| `fishingLocations`                                     | 钓点到鱼类权重的对象                          |
+
+这些内容也可以直接内联。按键注册的数据重复时，以后注册的配置为准；`fish`、`bait` 和 `fishingLocations` 对应原版 0.5.12.13 的钓鱼系统。
 
 `tips.json` 可以直接写字符串数组，默认加入原版始终启用的 `general` 分类：
 
@@ -285,12 +299,16 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 
 原版分类继续遵循原版内容开关；新增分类默认始终启用，并会自动加入原版 `generateTipsList` 生成的随机池。脚本中也可以调用 `maplebirch.tool.patch.addTips('myMod', '新的小贴士')`；框架会在原版 `init_tips` 之后合并内容，并自动去除重复文本。
 
+内联的 `tips` 字符串数组用于提示文本；当所有项均以 `.json`、`.yaml` 或 `.yml` 结尾时，按文件路径读取。
+
 相关文档：
 
+- [Patch 注册](ToolCollection/Patches.md)
 - [特质注册](ToolCollection/Traits.md)
 - [小贴士注册](ToolCollection/Tips.md)
 - [身体文字](ToolCollection/Bodywriting.md)
 - [食物注册](ToolCollection/Foodstuff.md)
+- [钓鱼扩展](ToolCollection/Fishing.md)
 - [古董注册](ToolCollection/Antiques.md)
 
 ---
@@ -404,14 +422,3 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
   }
 ]
 ```
-
----
-
-### 补充说明
-
-- 文件路径以模组压缩包内部路径为准。
-- `script` 文件按数组顺序执行。
-- `module` 不是普通脚本入口，不确定时使用 `script`。
-- `framework` 可以是单个对象，也可以是对象数组。
-- `npc.NamedNPC` 的每一项是 `[npcData, npcConfig, translations]`。
-- 配置能表达的内容有限，复杂逻辑应写入 JavaScript。

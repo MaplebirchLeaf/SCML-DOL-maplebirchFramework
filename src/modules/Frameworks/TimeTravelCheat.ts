@@ -1,5 +1,6 @@
 ﻿// ./src/modules/Frameworks/TimeTravelCheat.ts
 
+import { errorMessage } from '../../utils/error';
 import { TimeConstants } from '../../constants';
 import type { MaplebirchCore } from '../../core';
 
@@ -113,8 +114,8 @@ class TimeTravelCheat {
       if (date.timeStamp < TimeConstants.MIN_DATE.timeStamp || date.timeStamp > TimeConstants.MAX_DATE.timeStamp) throw new Error(lanSwitch('Target date is out of range.', '目标时间超出范围。'));
       if (!this.core.dynamic.timeTravel({ ...target, second: 0 })) throw new Error(lanSwitch('Time travel failed.', '时间跳转失败。'));
       this.core.SugarCube.State.show();
-    } catch (error: any) {
-      this.status(root, error?.message || String(error));
+    } catch (error) {
+      this.status(root, errorMessage(error));
     }
   }
 

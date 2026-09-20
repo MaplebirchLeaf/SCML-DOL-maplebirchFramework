@@ -57,6 +57,37 @@ maplebirch.tool.addTo('StatusBar', {
 });
 ```
 
+## Source Patches
+
+Use `maplebirch.tool.zone.inject()` when no render hook fits and an internal execution branch must be changed. Put ordinary passages in `locationPassage` and widget-tagged passages in `widgetPassage`.
+
+```javascript
+maplebirch.tool.zone.inject({
+  locationPassage: {
+    'MyMod Reward': [
+      {
+        src: '<<set $myMod.rewardClaimed to true>>',
+        applyafter: '<<myModRewardSettled>>',
+        expected: 1
+      }
+    ]
+  }
+});
+```
+
+This example uses Mod-owned names and state. Vanilla adapters must use a verified settlement point. Inserting into the successful branch can represent reward settlement; page rendering alone cannot.
+
+| Field                        | Behavior                                                                     |
+| ---------------------------- | ---------------------------------------------------------------------------- |
+| `src`                        | Matches literal text and replaces the first occurrence                       |
+| `srcmatch`                   | Regex replacement; `g` processes every match                                 |
+| `srcmatchgroup`              | Processes all regex matches without re-scanning newly inserted content       |
+| `to`                         | Replacement text, supporting JavaScript replace capture references           |
+| `applybefore` / `applyafter` | Inserts literal text before/after each match                                 |
+| `expected`                   | Optional expected match count; mismatch skips the patch and records mismatch |
+
+Use one matcher and one operation per entry. `matches` counts candidates; `applied` counts replacements. A literal `src` found twice but replaced once reports 2 and 1 respectively. See [patch reports](../AddonPlugin.md#patch-reports) for missing targets and other failures.
+
 ## Common Zones
 
 | Zone             | Position               |

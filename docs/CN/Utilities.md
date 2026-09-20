@@ -306,18 +306,9 @@ if (result) {
 }
 ```
 
-`loadImage()` 会优先通过 ModLoader 读取图片。如果读取失败，会尝试检查路径本身是否可用。
+`loadImage()` 复用 `maplebirch.addon.resources.load()`：优先解析 ModLoader 图片，未解析到时检查原路径。返回解析地址、`false` 或对应的 Promise；统一使用 `await` 即可。缓存保留解析地址，并合并同路径并发请求。失败时保留旧接口的侧边栏刷新行为。
 
-返回值可能是：
-
-| 返回值                       | 说明         |
-| :--------------------------- | :----------- |
-| `string`                     | 可用图片路径 |
-| `true`                       | 图片存在     |
-| `false`                      | 图片不可用   |
-| `Promise<string \| boolean>` | 异步结果     |
-
-异步场景建议始终使用 `await`。
+使用 `maplebirch.addon.resources.clear(path)` 清除缓存后重试；存在性查询、路径归一化见 [图片资源](AddonPlugin.md#图片资源)。
 
 ## 字节与 Base64 工具
 
@@ -378,22 +369,32 @@ const list = widgets(Options, Cheats);
 `SelectCase` 适合把一组条件和结果写成链式结构。
 
 ```javascript
-const result = new SelectCase().case('wolf', '狼').caseIn(['cat', 'dog'], '动物').caseRange(0, 10, '低').caseIncludes('NPC', '角色').caseRegex(/^mod:/, '模组').else('未知').match(value);
+const result = new SelectCase().case('wolf', '狼').caseIn(['cat', 'dog'], '动物').caseIncludes('NPC', '角色').caseRegex(/^mod:/, '模组').else('未知').match(value);
+```
+
+字符串和数值条件默认不能混用；需要混合判断时先使用 `casePredicate()`。数值范围要求有限且有序的边界。正则匹配不会改变传入表达式的 `lastIndex`。
+
+TypeScript 可指定输入、结果和元数据类型：
+
+```typescript
+const rating = new SelectCase<number, string>().caseRange(0, 10, 'low').else('high');
+const result: string | null = rating.match(5);
 ```
 
 常用方法：
 
-| 方法                             | 说明         |
-| :------------------------------- | :----------- |
-| `case(value, result)`            | 精确匹配     |
-| `case(fn, result)`               | 使用函数判断 |
-| `caseRange(min, max, result)`    | 数值范围     |
-| `caseIn(values, result)`         | 值在数组中   |
-| `caseIncludes(text, result)`     | 字符串包含   |
-| `caseRegex(regex, result)`       | 正则匹配     |
-| `caseCompare(op, value, result)` | 比较运算     |
-| `else(result)`                   | 默认结果     |
-| `match(value, meta)`             | 执行匹配     |
+| 方法                             | 说明                       |
+| :------------------------------- | :------------------------- |
+| `case(value, result)`            | 精确匹配                   |
+| `case(fn, result)`               | 使用函数判断               |
+| `casePredicate(fn, result)`      | 使用函数判断，允许混合条件 |
+| `caseRange(min, max, result)`    | 数值范围                   |
+| `caseIn(values, result)`         | 值在数组中                 |
+| `caseIncludes(text, result)`     | 字符串包含                 |
+| `caseRegex(regex, result)`       | 正则匹配                   |
+| `caseCompare(op, value, result)` | 比较运算                   |
+| `else(result)`                   | 默认结果                   |
+| `match(value, meta)`             | 执行匹配                   |
 
 ## 全局函数
 

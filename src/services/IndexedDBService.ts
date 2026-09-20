@@ -3,6 +3,7 @@
 import { deleteDB, openDB, type IDBPDatabase, type IDBPTransaction } from 'idb';
 import { version } from '../constants';
 import type { MaplebirchCore } from '../core';
+import { errorMessage } from '../utils/error';
 
 interface StoreIndex {
   name: string;
@@ -105,14 +106,17 @@ class IndexedDBService {
     const names = Array.isArray(storeNames) ? storeNames : [storeNames];
     for (const name of names) if (!this.db.objectStoreNames.contains(name)) throw new Error(`IDB存储不存在: ${name}`);
     const tx = this.db.transaction(names, mode);
+    const completion = tx.done;
+    void completion.catch(() => undefined);
     try {
       const result = await callback(tx);
-      await tx.done;
+      await completion;
       return result;
     } catch (error) {
       try {
         tx.abort();
       } catch {}
+      await completion.catch(() => undefined);
       throw error;
     }
   }
@@ -129,13 +133,9 @@ class IndexedDBService {
       await deleteDB(IndexedDBService.DATABASE_NAME);
       return true;
     } catch (error) {
-      this.core.logger.log(`删除数据库失败: ${this.error(error)}`, 'ERROR');
+      this.core.logger.log(`删除数据库失败: ${errorMessage(error)}`, 'ERROR');
       return false;
     }
-  }
-
-  private error(error: unknown): string {
-    return error instanceof Error ? error.message : String(error);
   }
 }
 

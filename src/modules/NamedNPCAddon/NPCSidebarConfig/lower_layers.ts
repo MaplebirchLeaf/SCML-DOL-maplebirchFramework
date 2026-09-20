@@ -3,14 +3,7 @@
 import maplebirch from '../../../core';
 import { gray_suffix, clothes_layer, clothes_breasts, clothes_back, clothes_back_acc, normaliseFileName, clothingZIndex } from './functions';
 
-type NPCSidebarOptions = {
-  filters?: Record<string, any>;
-  maplebirch: {
-    nnpc: Record<string, any>;
-    [key: string]: any;
-  };
-  [key: string]: any;
-};
+import type { NPCSidebarOptions } from './types';
 
 const lower_layers = {
   nnpc_over_lower_main: clothes_layer('over_lower', 'main'),

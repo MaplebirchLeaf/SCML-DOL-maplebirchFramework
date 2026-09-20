@@ -5,6 +5,7 @@ import { contains, randomNumber as random, randomPick as either, clamp } from '.
 import { convert, escapeHtmlText, widgets } from './string';
 import { textToBytes, jsonToBytes, bytesToJson, toArrayBuffer, bytesToBase64, base64ToBytes, base64ToArrayBuffer, basicAuth } from './binary';
 import { joinEncodedPath } from './path';
+import { errorMessage } from './error';
 import { SelectCase } from './selector';
 import { loadImage } from './image';
 import { prototypeUtils } from './prototype';
@@ -34,6 +35,7 @@ export {
   base64ToArrayBuffer,
   basicAuth,
   joinEncodedPath,
+  errorMessage,
   SelectCase,
   loadImage,
   prototypeUtils

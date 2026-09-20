@@ -1,4 +1,6 @@
-// .src/modules/Frameworks/OtherTools/Antiques.ts
+// .src/modules/Frameworks/Patches/Antiques.ts
+
+import { isKey, isRecord } from './config';
 
 export interface AntiqueConfig {
   hint: string;
@@ -11,29 +13,29 @@ export interface AntiqueConfig {
   key?: string;
 }
 
-export const antiquesData: Record<string, AntiqueConfig> = {};
+export const antiquesData: Record<string, AntiqueConfig> = Object.create(null);
 
-import { clone } from '../../../utils';
+import { clone } from '../../../utils/object';
 
 class Antiques {
   public static add(key: string, config: AntiqueConfig): void {
-    if (!key || !config) return;
+    if (!isKey(key) || !isRecord(config)) return;
     antiquesData[key] = clone(config);
   }
 
   public static inject(data: Record<string, AntiqueConfig>): Record<string, AntiqueConfig> {
-    if (!data) return data;
+    if (!isRecord(data)) return data;
     for (const [key, config] of Object.entries(antiquesData)) {
       data[key] = clone(config);
-      Antiques.ensureState(key);
     }
+    Antiques.syncState();
     return data;
   }
 
-  private static ensureState(key: string): void {
+  public static syncState(): void {
+    if (typeof V === 'undefined' || !V.museumAntiques?.antiques) return;
     const museumAntiques = V.museumAntiques;
-    if (!museumAntiques.antiques) return;
-    museumAntiques.antiques[key] ??= 'notFound';
+    for (const key of Object.keys(antiquesData)) museumAntiques.antiques[key] ??= 'notFound';
     museumAntiques.maxCount = Object.keys(museumAntiques.antiques).length;
   }
 }

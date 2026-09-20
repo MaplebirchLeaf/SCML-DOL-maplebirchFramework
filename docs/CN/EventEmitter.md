@@ -1,4 +1,4 @@
-## 事件发射器
+# 事件发射器
 
 ## 用来做什么
 
@@ -37,7 +37,7 @@ maplebirch.on(
 );
 ```
 
-`description` 可用于之后移除监听。
+`description` 可用于之后移除监听。同一个函数引用重复注册会返回 `false`。
 
 ```javascript
 maplebirch.off(':passagestart', 'myMod passage start');
@@ -80,13 +80,13 @@ await maplebirch.trigger('myMod:refresh', {
 });
 ```
 
-自定义事件建议带模组名前缀，避免和其它模组冲突。
+`trigger()` 按注册顺序执行并等待异步回调。自定义事件建议使用 `myMod:eventName` 这样的模组名前缀，避免和其它模组冲突。
 
 ---
 
 ## after
 
-`after()` 会在下一次指定事件触发后执行一次。
+`after()` 会在指定事件的监听器执行完毕后执行一次。对于 `:sugarcube`、`:idbReady`、`:storyready`、`:modLoaderEnd`、`:language`，框架会保留最近一次参数；事件已完成时，新注册的 `on()`、`once()`、`after()` 会立即收到这些参数。
 
 ```javascript
 maplebirch.after(':language', () => {
@@ -113,14 +113,20 @@ maplebirch.after(':language', () => {
 
 ---
 
-## 示例：读档后修复模组变量
+## 存档与读档
+
+`:onSave`、`:onLoad` 的回调必须同步执行，SugarCube 不会等待 Promise。框架会报告异步回调并继续执行后续同步监听器。
+
+回调收到的 `save` 包含 `saveObj`、`details`、`V` 和 `use()`。`save.V` 是待保存或待载入的变量；读档回调执行时，全局 `V` 仍是当前游戏状态。
 
 ```javascript
-maplebirch.on(':onLoad', () => {
-  V.myMod ??= {};
-  V.myMod.flags ??= {};
+maplebirch.on(':onLoad', save => {
+  save.V.myMod ??= {};
+  save.V.myMod.flags ??= {};
 });
 ```
+
+若已有初始化逻辑依赖全局 `V`，使用 `save.use(save.V, () => { /* 同步初始化 */ })` 临时切换变量。正常返回后修改写回存档，异常时不写回，当前游戏的变量始终恢复。`setup` 的静态注册仍在启动阶段完成。
 
 ---
 
@@ -131,12 +137,3 @@ maplebirch.on(':language', () => {
   $('.my-mod-title').text(maplebirch.t('myMod.title'));
 });
 ```
-
----
-
-## 补充说明
-
-- 事件名可以是框架内置事件，也可以是自定义字符串。
-- `trigger()` 会等待异步回调完成。
-- 同一个函数引用重复注册会返回 `false`。
-- 自定义事件建议使用 `myMod:eventName` 形式。

@@ -1,6 +1,7 @@
 // ./src/modules/TimeStateWeather/TimeEvents.ts
 
 import { TimeConstants } from '../../constants';
+import { errorMessage } from '../../utils/error';
 import type DynamicManager from '../Dynamic';
 import Event, { type EventOptions } from './Event';
 import patchDateTime from './DateTime';
@@ -10,15 +11,13 @@ export type TimeEventType = 'onSec' | 'onMin' | 'onHour' | 'onDay' | 'onWeek' | 
 
 type TimeUnit = 'sec' | 'min' | 'hour' | 'day' | 'week' | 'month' | 'year';
 
-interface DateLike {
-  hour: number;
-  day: number;
-  month: number;
-  year: number;
-  timeStamp: number;
-  minute?: number;
-  second?: number;
-}
+const secondsPerUnit: Partial<Record<TimeUnit, number>> = {
+  sec: 1,
+  min: TimeConstants.secondsPerMinute,
+  hour: TimeConstants.secondsPerHour,
+  day: TimeConstants.secondsPerDay,
+  week: TimeConstants.secondsPerDay * 7
+};
 
 interface AccumulateConfig {
   unit: TimeUnit;
@@ -26,8 +25,8 @@ interface AccumulateConfig {
 }
 
 export interface TimeData {
-  prevDate?: DateLike;
-  currentDate?: DateLike;
+  prevDate?: DateTime;
+  currentDate?: DateTime;
   changes?: Record<TimeUnit, number>;
 
   triggeredByAccumulator?: {
@@ -37,6 +36,7 @@ export interface TimeData {
   };
 
   exactPoints?: {
+    min: boolean;
     hour: boolean;
     day: boolean;
     week: boolean;
@@ -53,7 +53,7 @@ export interface TimeData {
   month?: number;
   year?: number;
   weekday?: [number, number];
-  detailedDiff?: any;
+  detailedDiff?: ReturnType<DateTime['compareWith']>;
   timeStamp?: number;
   prev?: DateTime;
   current?: DateTime;
@@ -107,20 +107,22 @@ class TimeEvent extends Event {
     if (this.accumulate) this.target = Math.max(1, Math.floor(this.accumulate.target ?? 1));
   }
 
-  public tryRun(data: TimeData): boolean {
-    if (this.exact && !this.isExactPoint(data)) return false;
+  public tryRun(data: TimeData, accumulatedOnly = false): boolean {
     if (this.accumulate) return this.runAccumulated(data);
+    if (accumulatedOnly || (this.exact && !this.isExactPoint(data))) return false;
     return this.execute(data);
   }
 
   private runAccumulated(data: TimeData): boolean {
     const accumulate = this.accumulate!;
-    const delta = data.changes?.[accumulate.unit] ?? 0;
-    if (delta <= 0) return false;
+    const seconds = secondsPerUnit[accumulate.unit];
+    const delta = seconds ? Math.abs(data.diffSeconds ?? (data.changes?.[accumulate.unit] ?? 0) * seconds) : (data.changes?.[accumulate.unit] ?? 0);
+    if (!Number.isFinite(delta) || delta <= 0) return false;
     this.accumulated += delta;
-    if (this.accumulated < this.target) return false;
-    const count = Math.floor(this.accumulated / this.target);
-    this.accumulated %= this.target;
+    const target = this.target * (seconds ?? 1);
+    if (this.accumulated < target || (this.exact && !this.isExactPoint(data))) return false;
+    const count = Math.floor(this.accumulated / target);
+    this.accumulated %= target;
     return this.execute({
       ...data,
       triggeredByAccumulator: {
@@ -158,8 +160,9 @@ class TimeEvent extends Event {
         return !!data.exactPoints?.month;
       case 'onYear':
         return !!data.exactPoints?.year;
-      case 'onSec':
       case 'onMin':
+        return !!data.exactPoints?.min;
+      case 'onSec':
         return (data.diffSeconds ?? 0) !== 0;
       default:
         return true;
@@ -172,7 +175,7 @@ export class TimeManager {
   private readonly timeEvents: Record<string, Map<string, TimeEvent>> = {};
   private readonly sortedEventsCache: Record<string, TimeEvent[] | null> = {};
 
-  public readonly log: (message: string, level?: string, ...objects: any[]) => void;
+  public readonly log: DynamicManager['log'];
   public readonly TimeConstants = TimeConstants;
 
   public constructor(private readonly manager: DynamicManager) {
@@ -183,6 +186,10 @@ export class TimeManager {
     }
   }
 
+  public get events(): Readonly<Record<string, ReadonlyMap<string, TimeEvent>>> {
+    return this.timeEvents;
+  }
+
   public init(): void {
     try {
       bindTimeHandlers(Time, {
@@ -190,8 +197,8 @@ export class TimeManager {
         timeTravel: (date: DateTime) => this.handleTimeTravel(date)
       });
       this.log('时间事件系统已激活', 'DEBUG');
-    } catch (e: any) {
-      this.log(`初始化时间事件系统失败: ${e.message}`, 'ERROR');
+    } catch (error) {
+      this.log(`初始化时间事件系统失败: ${errorMessage(error)}`, 'ERROR');
     }
   }
 
@@ -237,8 +244,8 @@ export class TimeManager {
     try {
       this.handleTimeTravel(this.targetDate(options));
       return true;
-    } catch (e: any) {
-      this.log(`时间跳转失败: ${e.message}`, 'ERROR');
+    } catch (error) {
+      this.log(`时间跳转失败: ${errorMessage(error)}`, 'ERROR');
       return false;
     }
   }
@@ -252,7 +259,7 @@ export class TimeManager {
     return lanSwitch(`It is ${getFormattedDate(date)}, ${year}${eraEN}.`, `今天是${eraCN}${year}年${date.month}月${date.day}日。`);
   }
 
-  private handleTimePass(seconds: number): any {
+  private handleTimePass(seconds: number): unknown {
     const pass = vanillaTime.pass;
     const setDate = vanillaTime.setDate;
     if (!pass || !setDate) return;
@@ -265,7 +272,7 @@ export class TimeManager {
       prev: prevDate,
       prevDate
     });
-    let passResult: any;
+    let passResult: unknown;
     const useVanilla = prevDate.timeStamp >= TimeConstants.MIN_DATE.timeStamp && targetDate.timeStamp >= TimeConstants.MIN_DATE.timeStamp && targetDate.timeStamp <= TimeConstants.MAX_DATE.timeStamp;
     if (useVanilla) {
       setDate(prevDate);
@@ -338,7 +345,7 @@ export class TimeManager {
     const dayCrossed = prevDate.day !== currentDate.day || prevDate.month !== currentDate.month || prevDate.year !== currentDate.year;
     const monthCrossed = prevDate.month !== currentDate.month || prevDate.year !== currentDate.year;
     const yearCrossed = prevDate.year !== currentDate.year;
-    const weekCrossed = Math.floor(prevDate.timeStamp / (TimeConstants.secondsPerDay * 7)) !== Math.floor(currentDate.timeStamp / (TimeConstants.secondsPerDay * 7));
+    const weekCrossed = Math.floor(prevDate.timeStamp / TimeConstants.secondsPerDay) - prevDate.weekDay !== Math.floor(currentDate.timeStamp / TimeConstants.secondsPerDay) - currentDate.weekDay;
     const changes: Record<TimeUnit, number> = {
       sec: absoluteSeconds,
       min: Math.floor(absoluteSeconds / TimeConstants.secondsPerMinute),
@@ -368,6 +375,7 @@ export class TimeManager {
       detailedDiff: prevDate.compareWith(currentDate),
       changes,
       exactPoints: {
+        min: prevDate.minute !== currentDate.minute || prevDate.hour !== currentDate.hour || dayCrossed,
         hour: prevDate.hour !== currentDate.hour || dayCrossed,
         day: dayCrossed,
         week: weekCrossed,
@@ -386,18 +394,18 @@ export class TimeManager {
       { type: 'onWeek' , unit: 'week' , exact: 'week' },
       { type: 'onDay'  , unit: 'day'  , exact: 'day' },
       { type: 'onHour' , unit: 'hour' , exact: 'hour' },
-      { type: 'onMin'  , unit: 'min' },
+      { type: 'onMin'  , unit: 'min'  , exact: 'min' },
       { type: 'onSec'  , unit: 'sec' }
     ];
 
     for (const item of unitEvents) {
       const hasElapsed = (eventData.changes?.[item.unit] || 0) > 0;
       const hasCrossed = item.exact ? !!eventData.exactPoints?.[item.exact] : false;
-      if (hasElapsed || hasCrossed) this.trigger(item.type, eventData);
+      this.trigger(item.type, eventData, !hasElapsed && !hasCrossed);
     }
   }
 
-  private trigger(type: TimeEventType, eventData: TimeData): void {
+  private trigger(type: TimeEventType, eventData: TimeData, accumulatedOnly = false): void {
     const eventMap = this.timeEvents[type];
     if (!eventMap) {
       this.log(`事件类型未注册: ${type}`, 'WARN');
@@ -408,9 +416,9 @@ export class TimeManager {
     const eventsToRemove: string[] = [];
     for (const event of events) {
       try {
-        if (event.tryRun(eventData)) eventsToRemove.push(event.id);
-      } catch (e: any) {
-        this.log(`事件执行错误: ${type}.${event.id} - ${e.message}`, 'ERROR');
+        if (event.tryRun(eventData, accumulatedOnly)) eventsToRemove.push(event.id);
+      } catch (error) {
+        this.log(`事件执行错误: ${type}.${event.id} - ${errorMessage(error)}`, 'ERROR');
       }
     }
     for (const eventId of eventsToRemove) {

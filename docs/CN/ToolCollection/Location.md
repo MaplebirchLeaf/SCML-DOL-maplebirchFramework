@@ -57,6 +57,8 @@ maplebirch.tool.patch.configureLocation(
 | `layerTop`      | 顶层                         |
 | `customMapping` | 自定义地点映射               |
 
+`condition` 中只做判断，避免修改游戏状态。
+
 ### options
 
 | 字段        | 说明                                                      |
@@ -68,6 +70,8 @@ maplebirch.tool.patch.configureLocation(
 ---
 
 ## 按图层添加条件
+
+同时指定 `layer` 和 `element`，可以只添加或更新图层中的一个元素：
 
 ```javascript
 maplebirch.tool.patch.configureLocation(
@@ -101,7 +105,7 @@ maplebirch.tool.patch.configureLocation(
 
 ## 合并完整配置
 
-不传 `layer` 和 `element` 时，会把 `config` 合并到该地点配置中：
+不传 `layer` 和 `element` 时，会把 `config` 合并到该地点配置中。多次配置同一地点时，默认也会合并：
 
 ```javascript
 maplebirch.tool.patch.configureLocation('old_ruins', {
@@ -156,12 +160,3 @@ maplebirch.tool.patch.configureLocation(
   }
 );
 ```
-
----
-
-## 补充说明
-
-- 多次配置同一个地点时，默认会合并配置。
-- `overwrite: true` 会替换该地点的配置，适合完全重做地点图层。
-- `layer` 和 `element` 适合只追加某个图层中的一个元素。
-- `condition` 中建议只做判断，不要修改游戏状态。

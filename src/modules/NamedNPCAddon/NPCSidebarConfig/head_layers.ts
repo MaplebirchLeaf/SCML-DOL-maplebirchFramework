@@ -2,14 +2,7 @@
 
 import { gray_suffix, clothes_layer, clothes_back, clothes_back_acc, kaijuMask, isAltPosition } from './functions';
 
-type NPCSidebarOptions = {
-  filters?: Record<string, any>;
-  maplebirch: {
-    nnpc: Record<string, any>;
-    [key: string]: any;
-  };
-  [key: string]: any;
-};
+import type { NPCSidebarOptions } from './types';
 
 function headMask(options: NPCSidebarOptions, back = false) {
   const nnpc = options.maplebirch.nnpc;
@@ -31,7 +24,7 @@ const head_layers = {
       const nnpc = options.maplebirch.nnpc;
       const head = nnpc.clothes.head;
       const integrity = head.accessory_integrity_img ? nnpc.clothes.upper.integrity : head.integrity;
-      const pattern = head.pattern && !['tertiary', 'secondary'].includes(head.pattern_layer) ? `-${head.pattern.replace(/ /g, '-')}` : '';
+      const pattern = head.pattern && !['tertiary', 'secondary'].includes(head.pattern_layer ?? '') ? `-${head.pattern.replace(/ /g, '-')}` : '';
       const alt = isAltPosition(head, 'full') ? '-alt' : '';
       return gray_suffix(`img/clothes/head/${head.variable}/${integrity}${pattern}${alt}.png`, options.filters?.nnpc_head);
     },

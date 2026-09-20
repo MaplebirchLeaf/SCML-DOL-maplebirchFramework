@@ -1,5 +1,6 @@
 // ./src/modules/Frameworks/ConsoleCheat.ts
 
+import { errorMessage } from '../../utils/error';
 import { createlog, type MaplebirchCore } from '../../core';
 import ToolCollection from '../ToolCollection';
 import TimeTravelCheat from './TimeTravelCheat';
@@ -70,8 +71,8 @@ class CheatConsole {
         message,
         globals: this.globals
       };
-    } catch (error: any) {
-      const errorText = error?.message || lanSwitch('Unknown error', '未知错误');
+    } catch (error) {
+      const errorText = errorMessage(error) || lanSwitch('Unknown error', '未知错误');
       const message = lanSwitch('Execution error → ', '执行错误 → ') + errorText;
       this.showStatus(this.jsStatus, message, false);
       return {
@@ -126,8 +127,8 @@ class CheatConsole {
           message: lanSwitch('Code executed successfully.', '代码执行成功。'),
           parsedContent: this.html(fragment)
         };
-      } catch (error: any) {
-        const errorText = error?.message || lanSwitch('Wikifier parsing error', 'Wikifier 解析错误');
+      } catch (error) {
+        const errorText = errorMessage(error) || lanSwitch('Wikifier parsing error', 'Wikifier 解析错误');
         const message = lanSwitch('Parsing error: ', '解析错误: ') + errorText;
         this.showStatus(this.twineStatus, message, false);
         this.log('Twine代码解析失败', 'ERROR', error);
@@ -137,8 +138,8 @@ class CheatConsole {
           message
         };
       }
-    } catch (error: any) {
-      const errorText = error?.message || lanSwitch('Unknown error', '未知错误');
+    } catch (error) {
+      const errorText = errorMessage(error) || lanSwitch('Unknown error', '未知错误');
       const message = lanSwitch('Execution error: ', '执行错误: ') + errorText;
       this.showStatus(this.twineStatus, message, false);
       return {

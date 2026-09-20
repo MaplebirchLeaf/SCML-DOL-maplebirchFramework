@@ -25,11 +25,13 @@
 - [随机系统](ToolCollection/randSystem.md)
 - [迁移工具](ToolCollection/migration.md)
 - [HTML 工具](ToolCollection/htmlTools.md)
+- [Patch 注册](ToolCollection/Patches.md)
 - [特质添加](ToolCollection/Traits.md)
 - [小贴士添加](ToolCollection/Tips.md)
 - [地点配置](ToolCollection/Location.md)
 - [身体文字](ToolCollection/Bodywriting.md)
 - [食物注册](ToolCollection/Foodstuff.md)
+- [钓鱼扩展](ToolCollection/Fishing.md)
 - [古董注册](ToolCollection/Antiques.md)
 
 ## 角色与 NPC
@@ -48,5 +50,6 @@
 
 ## 框架服务
 
+- [ModLoader 接入](AddonPlugin.md)
 - [模组加密](Encryption.md)
 - [云存档](CloudSave.md)

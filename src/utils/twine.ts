@@ -1,6 +1,7 @@
 // ./src/utils/twine.ts
 
 import maplebirch from '../core';
+import { applySourcePatch } from '../modules/Frameworks/SourcePatch';
 
 export type Replacement = [RegExp, string];
 
@@ -11,13 +12,10 @@ export function replace(content: string, replacements: Replacement[], label = 'r
   let result = content;
   for (let i = 0; i < replacements.length; i++) {
     const [regex, replacement] = replacements[i];
-    regex.lastIndex = 0;
-    if (!regex.test(result)) {
-      unmatched.push(i + 1);
-      continue;
-    }
-    regex.lastIndex = 0;
-    result = result.replace(regex, replacement);
+    const { content, ...report } = applySourcePatch(result, { srcmatch: regex, to: replacement });
+    maplebirch.addon.diagnostics.recordPatch({ kind: 'source', target: label, index: i + 1, ...report });
+    if (report.status !== 'applied') unmatched.push(i + 1);
+    result = content;
   }
   if (unmatched.length) maplebirch.log(`${label}: 以下正则未匹配到内容 - ${unmatched.join(',')}`, 'WARN');
   return result;
@@ -73,9 +71,11 @@ function findAsset(text: string, kind: string, targetName: string) {
 
 export function defineTwineAsset(type: 'script' | 'style', name: string, content: string | ((current: string) => string), mode: TwineAssetMode = 'append'): void {
   const story = document.getElementsByTagName('tw-storydata')[0];
-  if (!story) return;
-  const node = story.getElementsByTagName(type)[0];
-  if (!node) return;
+  const node = story?.getElementsByTagName(type)[0];
+  if (!node) {
+    maplebirch.addon.diagnostics.recordPatch({ kind: type, target: name, index: 0, pattern: name, matches: 0, applied: 0, status: 'missing', error: 'Twine asset container not found' });
+    return;
+  }
   const text = node.textContent ?? '';
   const kind = type === 'script' ? 'twine-user-script' : 'twine-user-stylesheet';
   const targetName = normalizeName(name);
@@ -89,9 +89,11 @@ export function defineTwineAsset(type: 'script' | 'style', name: string, content
     const next = typeof content === 'function' ? content(current) : content;
     const normalized = next.replace(/^\r?\n/, '').replace(/\r?\n$/, '');
     node.textContent = text.slice(0, found.start) + `/* ${kind} #${found.id}: "${found.name}" */\n` + `${normalized}\n` + text.slice(found.end).replace(/^\r?\n/, '');
+    maplebirch.addon.diagnostics.recordPatch({ kind: type, target: name, index: 0, pattern: name, matches: 1, applied: 1, status: 'applied' });
     return;
   }
   if (mode === 'patch') {
+    maplebirch.addon.diagnostics.recordPatch({ kind: type, target: name, index: 0, pattern: name, matches: 0, applied: 0, status: 'missing', error: 'Twine asset not found' });
     maplebirch.log(`Twine asset patch: 未找到资产 ${name}，已跳过追加以避免重复脚本`, 'WARN');
     return;
   }

@@ -3,13 +3,7 @@
 import maplebirch from '../../../core';
 import { kaijuMask } from './functions';
 
-type NPCSidebarOptions = {
-  maplebirch: {
-    nnpc: Record<string, any>;
-    [key: string]: any;
-  };
-  [key: string]: any;
-};
+import type { NPCSidebarOptions, NPCSidebarState } from './types';
 
 function title_case(value: string) {
   return value
@@ -18,12 +12,12 @@ function title_case(value: string) {
     .join('');
 }
 
-function face_uncovered(nnpc: Record<string, any>) {
+function face_uncovered(nnpc: NPCSidebarState) {
   const type = nnpc.clothes.face?.type ?? [];
   return !type.includes('face_covering');
 }
 
-function cum_layer(file: string, prop: string, z: (nnpc: Record<string, any>) => number, show?: (nnpc: Record<string, any>) => boolean) {
+function cum_layer(file: string, prop: string, z: (nnpc: NPCSidebarState) => number, show?: (nnpc: NPCSidebarState) => boolean) {
   return {
     masksrcfn: (options: NPCSidebarOptions) => {
       return kaijuMask(options) || options.maplebirch.nnpc.close_up_mask;
@@ -49,13 +43,13 @@ function cum_layer(file: string, prop: string, z: (nnpc: Record<string, any>) =>
   };
 }
 
-function drip_layer(file: string, prop: string, animation: string, z: (nnpc: Record<string, any>) => number) {
+function drip_layer(file: string, prop: string, animation: string, z: (nnpc: NPCSidebarState) => number) {
   return {
     ...cum_layer(file, prop, z),
     repeat_mask: true,
     animationfn: (options: NPCSidebarOptions) => {
       const value = options.maplebirch.nnpc[prop];
-      return value ? `${animation}${title_case(value)}` : '';
+      return value ? `${animation}${title_case(String(value))}` : '';
     }
   };
 }

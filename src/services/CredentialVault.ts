@@ -1,8 +1,11 @@
 // ./src/services/CredentialVault.ts
 
 import type { MaplebirchCore } from '../core';
+import { errorMessage } from '../utils/error';
+import type { InputFileFormat } from '@scml/types/sugarcube-2-ModLoader/JSZipLikeReadOnlyInterface';
 import PromptStyle from '@/styles/PromptStyle.css';
-import { base64ToArrayBuffer, bytesToBase64, bytesToJson, escapeHtmlText, jsonToBytes, toArrayBuffer } from '../utils';
+import { base64ToArrayBuffer, bytesToBase64, bytesToJson, jsonToBytes, toArrayBuffer } from '../utils/binary';
+import { escapeHtmlText } from '../utils/string';
 
 export type CredentialPeriod = 'day' | 'month';
 
@@ -39,7 +42,7 @@ export interface CryptContext {
 }
 
 export interface CryptResult {
-  data: any;
+  data: Awaited<InputFileFormat>;
   auth?: AuthConfig | boolean | void;
 }
 
@@ -53,8 +56,8 @@ export interface CryptOptions {
   prompt?: AuthConfig['prompt'] & {
     name?: string;
   };
-  lazyOptions?: any;
-  decrypt(password: string, context: CryptContext): Promise<CryptResult | Uint8Array | ArrayBuffer | Blob | string>;
+  lazyOptions?: unknown;
+  decrypt(password: string, context: CryptContext): Promise<CryptResult | Awaited<InputFileFormat>>;
 }
 
 interface StoredBase {
@@ -123,14 +126,17 @@ class CredentialVault {
     if (!modName) throw new Error('无法获取当前模组名');
     const cache = options.cache?.subject && options.cache.key ? options.cache : undefined;
     if (cache) {
-      const saved = await this.readStored(cache.subject, cache.key);
+      const saved = await this.readStored(cache.subject, cache.key).catch(error => {
+        this.core.log(`凭证缓存读取失败: ${errorMessage(error)}`, 'WARN');
+        return null;
+      });
 
       if (saved) {
         try {
           const loaded = saved.type === 'credential' ? await this.loadCredential(modName, saved.credential, options) : await this.decryptAndLoad(modName, saved.password, options, {});
           if (loaded) return true;
         } catch {
-          await this.forget(cache.subject, cache.key);
+          await this.forget(cache.subject, cache.key).catch(error => this.core.log(`凭证缓存清理失败: ${errorMessage(error)}`, 'WARN'));
         }
       }
     }
@@ -146,8 +152,8 @@ class CredentialVault {
       try {
         if (await this.loadCredential(modName, credential, options)) return true;
         errorText = this.core.t('credential.auth.error.mismatch');
-      } catch (error: any) {
-        errorText = String(error?.message || error);
+      } catch (error) {
+        errorText = errorMessage(error);
       }
     }
   }
@@ -198,7 +204,7 @@ class CredentialVault {
             password,
             createdAt: Date.now()
           };
-      await this.storeStored(stored);
+      await this.storeStored(stored).catch(error => this.core.log(`凭证缓存写入失败: ${errorMessage(error)}`, 'WARN'));
     }
     return true;
   }
@@ -283,7 +289,7 @@ class CredentialVault {
   }
 
   private async readStored(subject: string, key: string): Promise<StoredCredential | null> {
-    const record = await this.core.idb.withTransaction(CredentialVault.STORE, 'readonly', (tx: any) => tx.objectStore(CredentialVault.STORE).get(['license', `${subject}:${key}`]));
+    const record = await this.core.idb.withTransaction(CredentialVault.STORE, 'readonly', tx => tx.objectStore(CredentialVault.STORE).get(['license', `${subject}:${key}`]));
     if (!record) return null;
     const stored = await this.decryptRecord<RawStoredCredential>(record as CredentialRecord);
     if (!stored || stored.subject !== subject || stored.key !== key || typeof stored.createdAt !== 'number') {
@@ -314,7 +320,7 @@ class CredentialVault {
 
   private async storeStored(value: StoredCredential): Promise<void> {
     const encrypted = await this.encryptRecord(value);
-    await this.core.idb.withTransaction(CredentialVault.STORE, 'readwrite', (tx: any) =>
+    await this.core.idb.withTransaction(CredentialVault.STORE, 'readwrite', tx =>
       tx.objectStore(CredentialVault.STORE).put({
         bucket: 'license',
         id: `${value.subject}:${value.key}`,
@@ -325,7 +331,7 @@ class CredentialVault {
   }
 
   private async forget(subject: string, key: string): Promise<void> {
-    await this.core.idb.withTransaction(CredentialVault.STORE, 'readwrite', (tx: any) => tx.objectStore(CredentialVault.STORE).delete(['license', `${subject}:${key}`]));
+    await this.core.idb.withTransaction(CredentialVault.STORE, 'readwrite', tx => tx.objectStore(CredentialVault.STORE).delete(['license', `${subject}:${key}`]));
   }
 
   private ensurePromptStyle(): void {
@@ -398,12 +404,12 @@ class CredentialVault {
   }
 
   private async loadStorageKey(): Promise<CryptoKey> {
-    const existing = await this.core.idb.withTransaction(CredentialVault.STORE, 'readonly', (tx: any) => tx.objectStore(CredentialVault.STORE).get(['meta', 'cryptoKey']));
+    const existing = (await this.core.idb.withTransaction(CredentialVault.STORE, 'readonly', tx => tx.objectStore(CredentialVault.STORE).get(['meta', 'cryptoKey']))) as CredentialRecord | undefined;
     if (existing?.cryptoKey) return existing.cryptoKey as CryptoKey;
     const candidate = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
-    return this.core.idb.withTransaction(CredentialVault.STORE, 'readwrite', async (tx: any) => {
+    return this.core.idb.withTransaction(CredentialVault.STORE, 'readwrite', async tx => {
       const store = tx.objectStore(CredentialVault.STORE);
-      const current = await store.get(['meta', 'cryptoKey']);
+      const current = (await store.get(['meta', 'cryptoKey'])) as CredentialRecord | undefined;
       if (current?.cryptoKey) return current.cryptoKey as CryptoKey;
       await store.put({
         bucket: 'meta',
@@ -443,8 +449,8 @@ class CredentialVault {
         base64ToArrayBuffer(record.data)
       );
       return bytesToJson<T>(decrypted);
-    } catch (error: any) {
-      this.core.log(`凭证解密失败: ${error?.message || error}`, 'WARN');
+    } catch (error) {
+      this.core.log(`凭证解密失败: ${errorMessage(error)}`, 'WARN');
       return null;
     }
   }

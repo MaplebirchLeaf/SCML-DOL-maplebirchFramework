@@ -2,32 +2,15 @@
 
 Antique registration adds new museum antique text and collection state.
 
-## Entry Points
+## Entry Point
 
 ```javascript
 maplebirch.tool.patch.addAntiques(key, config);
-maplebirch.tool.patch.injectAntiques(_museumAntiqueText);
 ```
 
-Use **`addAntiques`** to register data. Inject **`injectAntiques`** after vanilla creates **`_museumAntiqueText`** inside the **`museumAntiqueText`** widget.
+Register during startup. The framework merges text after `museumAntiqueText` and invokes vanilla `museumAntiqueStatus` during donation without changing widget source. Starting or loading a game only fills missing collection entries and preserves progress.
 
-Recommended injection point:
-
-```twine
-<<widget "museumAntiqueText">>
-  <<if _museumAntiqueText is undefined>>
-    <<set _museumAntiqueText to {
-      ...
-    }>>
-    <<run maplebirch.tool.patch.injectAntiques(_museumAntiqueText)>>
-  <</if>>
-<</widget>>
-```
-
-The single injection call does both jobs:
-
-- Adds registered entries to **`_museumAntiqueText`**.
-- If **`$museumAntiques.antiques`** exists, adds missing keys as **`notFound`** and refreshes **`maxCount`**.
+`injectAntiques(data)` manually merges into and returns the supplied object; normal registration does not need it. The Mod still provides assets, discovery stories and `Museum <name>` passages.
 
 ## Minimal Example
 

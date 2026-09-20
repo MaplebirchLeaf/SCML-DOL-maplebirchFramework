@@ -3,14 +3,7 @@
 import maplebirch from '../../../core';
 import { gray_suffix, clothes_layer, clothingZIndex, isAltPosition } from './functions';
 
-type NPCSidebarOptions = {
-  filters?: Record<string, any>;
-  maplebirch: {
-    nnpc: Record<string, any>;
-    [key: string]: any;
-  };
-  [key: string]: any;
-};
+import type { NPCSidebarOptions } from './types';
 
 const neck_layers = {
   nnpc_neck_main: clothes_layer('neck', 'main', {
@@ -30,7 +23,7 @@ const neck_layers = {
           : neck.name === 'sailor ribbon' && upper.name === 'serafuku'
             ? '-serafuku'
             : '';
-      const pattern = neck.pattern && !['tertiary', 'secondary'].includes(neck.pattern_layer) ? `-${neck.pattern.replace(/ /g, '-')}` : '';
+      const pattern = neck.pattern && !['tertiary', 'secondary'].includes(neck.pattern_layer ?? '') ? `-${neck.pattern.replace(/ /g, '-')}` : '';
       const alt = isAltPosition(neck) ? '-alt' : '';
       return gray_suffix(`img/clothes/neck/${neck.variable}/${neck.integrity}${collar}${pattern}${alt}.png`, options.filters?.nnpc_neck);
     },

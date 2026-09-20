@@ -1,7 +1,6 @@
-// .src/modules/Frameworks/OtherTools/Traits.ts
+// .src/modules/Frameworks/Patches/Traits.ts
 
-import maplebirch from '../../../core';
-import { clone } from '../../../utils';
+import { clone } from '../../../utils/object';
 
 export interface TraitCategory {
   title: string;
@@ -41,9 +40,6 @@ class Traits {
   public static add(...traits: Partial<TraitConfig>[]): void {
     for (const trait of traits) {
       if (!trait?.title || !trait.name) continue;
-      const title = maplebirch.auto(trait.title);
-      const name = value(trait.name, '');
-      if (!name) continue;
       const next: TraitConfig = {
         title: trait.title,
         name: trait.name,
@@ -51,11 +47,8 @@ class Traits {
         has: trait.has ?? false,
         text: trait.text ?? ''
       };
-      const index = traitsData.findIndex(item => {
-        const itemTitle = maplebirch.auto(item.title);
-        const itemName = value(item.name, '');
-        return itemTitle === title && itemName === name;
-      });
+      // Dynamic names may depend on V, which does not exist during registration.
+      const index = traitsData.findIndex(item => item.title === trait.title && item.name === trait.name);
       if (index >= 0) {
         traitsData[index] = next;
       } else {
@@ -64,40 +57,45 @@ class Traits {
     }
   }
 
-  public static inject(data: TraitCategory[]): TraitCategory[] {
-    const result = clone(data);
-    const titleMap: Record<string, number> = {};
+  public static inject(data: TraitCategory[], translate: (text: string) => string): TraitCategory[] {
+    const result: TraitCategory[] = clone(data);
+    const titleMap = new Map<string, number>();
     result.forEach((category: TraitCategory, index: number) => {
-      const title = maplebirch.auto(category.title);
-      titleMap[title] = index;
+      const title = translate(category.title);
+      titleMap.set(title, index);
       category.title = title;
       category.traits ??= [];
     });
     for (const rawTrait of traitsData) {
-      const trait = Traits.resolve(rawTrait);
+      const trait = Traits.resolve(rawTrait, translate);
+      if (!trait.name) continue;
       const item = {
         name: trait.name,
         colour: trait.colour,
         has: trait.has,
         text: trait.text
       };
-      if (Object.prototype.hasOwnProperty.call(titleMap, trait.title)) {
-        result[titleMap[trait.title]].traits.push(item);
+      const categoryIndex = titleMap.get(trait.title);
+      if (categoryIndex !== undefined) {
+        const entries = result[categoryIndex].traits;
+        const index = entries.findIndex(existing => existing.name === trait.name);
+        if (index < 0) entries.push(item);
+        else entries[index] = item;
         continue;
       }
       result.push({
         title: trait.title,
         traits: [item]
       });
-      titleMap[trait.title] = result.length - 1;
+      titleMap.set(trait.title, result.length - 1);
     }
 
     return (T.traitLists = result);
   }
 
-  private static resolve(trait: TraitConfig): ResolvedTrait {
+  private static resolve(trait: TraitConfig, translate: (text: string) => string): ResolvedTrait {
     return {
-      title: maplebirch.auto(trait.title),
+      title: translate(trait.title),
       name: value(trait.name, ''),
       colour: value(trait.colour, ''),
       has: value(trait.has, false),

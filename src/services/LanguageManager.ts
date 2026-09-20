@@ -2,6 +2,7 @@
 
 import { Languages, Translations, type LanguageCode } from '../constants';
 import type { MaplebirchCore } from '../core';
+import { errorMessage } from '../utils/error';
 
 export type Translation = Record<string, string>;
 type LanguageConfig = string[] | Partial<Record<string, string | { file: string }>>;
@@ -122,7 +123,7 @@ class LanguageManager {
           count = Object.keys(translations).length;
         } catch (error) {
           failed = true;
-          const reason = this.error(error);
+          const reason = error instanceof Error ? error : new Error(errorMessage(error));
           this.core.logger.log(`处理失败: ${modName}/${path} - ${reason.message}`, 'ERROR');
           yield {
             type: 'error',
@@ -173,7 +174,7 @@ class LanguageManager {
         error: null
       };
     } catch (error) {
-      const reason = this.error(error);
+      const reason = error instanceof Error ? error : new Error(errorMessage(error));
       this.core.logger.log(`加载失败: ${modName}/${path} - ${reason.message}`, 'ERROR');
       yield {
         type: 'error',
@@ -248,12 +249,16 @@ class LanguageManager {
     try {
       await this.loadBundledTranslations();
       const records = (await this.core.idb.withTransaction(this.STORE, 'readonly', tx => tx.objectStore(this.STORE).index('bucket').getAll('translation'))) as TranslationRecord[];
-      for (const record of records) this.translations.set(record.translationKey, record.translations);
+      for (const record of records) {
+        const translations = this.visibleTranslations(record);
+        if (Object.keys(translations).length) this.translations.set(record.translationKey, translations);
+        else this.translations.delete(record.translationKey);
+      }
       this.rebuild();
       this.preloaded = true;
       this.core.logger.log(`预加载完成: ${records.length} 条`, 'DEBUG');
     } catch (error) {
-      this.core.logger.log(`预加载失败: ${this.error(error).message}`, 'ERROR');
+      this.core.logger.log(`预加载失败: ${errorMessage(error)}`, 'ERROR');
     }
   }
 
@@ -266,7 +271,7 @@ class LanguageManager {
       this.preloaded = false;
       this.core.logger.log('语言数据库已清空', 'DEBUG');
     } catch (error) {
-      this.core.logger.log(`清空语言数据库失败: ${this.error(error).message}`, 'ERROR');
+      this.core.logger.log(`清空语言数据库失败: ${errorMessage(error)}`, 'ERROR');
     }
   }
 
@@ -359,7 +364,7 @@ class LanguageManager {
         const record = (await store.get(['translation', translationKey])) as TranslationRecord | undefined;
         if (!record) continue;
         if (this.updateSource(record, modName, language)) {
-          if (Object.keys(record.translations).length) {
+          if (Object.keys(record.translations).length || Object.keys(record.contributions ?? {}).length) {
             record.updatedAt = Date.now();
             await store.put(record);
           } else {
@@ -392,28 +397,62 @@ class LanguageManager {
       changed ||= contributions[modName]?.text !== text || contributions[modName]?.order !== order;
       contributions = { ...contributions, [modName]: { text, order } };
     }
+    const active = this.activeSources();
     let winner: [string, SourceTranslation] | undefined;
     for (const entry of Object.entries(contributions)) {
+      if (!active.has(entry[0])) continue;
       const order = sourceOrder.get(entry[0]) ?? entry[1].order;
       if (!winner || order >= (sourceOrder.get(winner[0]) ?? winner[1].order)) winner = entry;
     }
     changed ||= record.sources[language] !== winner?.[0] || record.translations[language] !== winner?.[1].text;
     record.contributions ??= {};
+    if (Object.keys(contributions).length) record.contributions[language] = contributions;
+    else delete record.contributions[language];
     if (winner) {
-      record.contributions[language] = contributions;
       record.sources[language] = winner[0];
       record.translations[language] = winner[1].text;
     } else {
-      delete record.contributions[language];
       delete record.sources[language];
       delete record.translations[language];
     }
     return changed;
   }
 
+  private activeSources(): Set<string> {
+    return new Set(['maplebirch', ...this.core.modUtils.getModListNameNoAlias()]);
+  }
+
+  private visibleTranslations(record: TranslationRecord): Translation {
+    const active = this.activeSources();
+    const translations: Translation = {};
+    for (const language of LanguageManager.DEFAULT_LANGS) {
+      const contributions = record.contributions?.[language];
+      if (!contributions) {
+        const owner = record.sources[language];
+        const text = record.translations[language];
+        if (text !== undefined && (!owner || active.has(owner))) translations[language] = text;
+        continue;
+      }
+      const order = this.sourceOrders.get(language);
+      let winner: SourceTranslation | undefined;
+      let winningOrder = -Infinity;
+      for (const [source, contribution] of Object.entries(contributions)) {
+        if (!active.has(source)) continue;
+        const priority = order?.get(source) ?? contribution.order;
+        if (priority >= winningOrder) {
+          winner = contribution;
+          winningOrder = priority;
+        }
+      }
+      if (winner) translations[language] = winner.text;
+    }
+    return translations;
+  }
+
   private syncTranslation(record: TranslationRecord, language: LanguageCode): void {
-    const translations = { ...record.translations, ...this.translations.get(record.translationKey) };
-    if (Object.hasOwn(record.translations, language)) translations[language] = record.translations[language];
+    const visible = this.visibleTranslations(record);
+    const translations = { ...visible, ...this.translations.get(record.translationKey) };
+    if (Object.hasOwn(visible, language)) translations[language] = visible[language];
     else delete translations[language];
     if (Object.keys(translations).length) this.translations.set(record.translationKey, translations);
     else this.translations.delete(record.translationKey);
@@ -441,11 +480,13 @@ class LanguageManager {
     try {
       const record = (await this.core.idb.withTransaction(this.STORE, 'readonly', tx => tx.objectStore(this.STORE).get(['translation', translationKey]))) as TranslationRecord | undefined;
       if (!record) return false;
-      this.translations.set(record.translationKey, record.translations);
+      const translations = this.visibleTranslations(record);
+      if (!Object.keys(translations).length) return false;
+      this.translations.set(record.translationKey, translations);
       this.rebuild();
       return true;
     } catch (error) {
-      this.core.logger.log(`加载翻译失败: ${translationKey} - ${this.error(error).message}`, 'DEBUG');
+      this.core.logger.log(`加载翻译失败: ${translationKey} - ${errorMessage(error)}`, 'DEBUG');
       return false;
     }
   }
@@ -490,10 +531,6 @@ class LanguageManager {
   private rebuild(): void {
     this.cache.clear();
     for (const [translationKey, translations] of this.translations) for (const text of Object.values(translations)) if (text) this.cache.set(text, translationKey);
-  }
-
-  private error(error: unknown): Error {
-    return error instanceof Error ? error : new Error(String(error));
   }
 }
 

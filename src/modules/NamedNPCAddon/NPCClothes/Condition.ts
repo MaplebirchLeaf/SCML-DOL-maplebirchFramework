@@ -1,5 +1,6 @@
 // ./src/modules/NamedNPCAddon/NPCClothes/Condition.ts
 
+import { errorMessage } from '../../../utils/error';
 import type { MaplebirchCore } from '../../../core';
 
 export type Condition = boolean | string | (() => boolean) | Condition[];
@@ -11,8 +12,8 @@ export function evaluate(core: MaplebirchCore, condition?: Condition): boolean {
   if (typeof condition === 'function') {
     try {
       return condition();
-    } catch (e: any) {
-      core.npc.log(`条件函数执行失败: ${e.message}`, 'WARN');
+    } catch (e) {
+      core.npc.log(`条件函数执行失败: ${errorMessage(e)}`, 'WARN');
       return false;
     }
   }

@@ -10,5 +10,6 @@ import './modules/Character';
 import './modules/NamedNPC';
 import './modules/Combat';
 import './SFcompat';
-export { default, type MaplebirchCore, type Extensions } from './core';
+export { default, type MaplebirchCore, type CoreModules, type CoreEvents, type Extensions } from './core';
+export type { default as Save, SaveObject } from './modules/Addon/Save';
 export * as utils from './utils';

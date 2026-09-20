@@ -1,8 +1,9 @@
 // ./src/services/EventEmitter.ts
 
 import type { MaplebirchCore } from '../core';
+import { errorMessage } from '../utils/error';
 
-type EventCallback = (...args: any[]) => unknown;
+export type EventCallback<Args extends unknown[] = unknown[]> = (...args: Args) => unknown;
 
 interface EventListener {
   callback: EventCallback;
@@ -34,11 +35,13 @@ class EventEmitter {
   ]);
 
   private readonly afters = new Map<string, EventCallback[]>();
+  private readonly triggering = new Map<string, number>();
   private readonly stickyEvents = new Set([':sugarcube', ':idbReady', ':storyready', ':modLoaderEnd', ':language']);
   private readonly stickyArgs = new Map<string, unknown[]>();
+  private readonly synchronousEvents = new Set([':onSave', ':onLoad']);
   public constructor(readonly core: MaplebirchCore) {}
 
-  public on(eventName: string, callback: EventCallback, description = ''): boolean {
+  public on<Args extends unknown[]>(eventName: string, callback: EventCallback<Args>, description = ''): boolean {
     let listeners = this.events.get(eventName);
     if (!listeners) {
       listeners = [];
@@ -51,7 +54,7 @@ class EventEmitter {
     }
 
     listeners.push({
-      callback,
+      callback: callback as EventCallback,
       description
     });
 
@@ -60,7 +63,7 @@ class EventEmitter {
     return true;
   }
 
-  public off(eventName: string, identifier: EventCallback | string): boolean {
+  public off<Args extends unknown[]>(eventName: string, identifier: EventCallback<Args> | string): boolean {
     const listeners = this.events.get(eventName);
     if (!listeners) {
       this.core.logger.log(`无效事件名: ${eventName}`, 'WARN');
@@ -81,83 +84,94 @@ class EventEmitter {
     return true;
   }
 
-  public once(eventName: string, callback: EventCallback, description = ''): boolean {
+  public once<Args extends unknown[]>(eventName: string, callback: EventCallback<Args>, description = ''): boolean {
     if (this.stickyArgs.has(eventName)) {
       this.callSticky(eventName, callback);
       return true;
     }
 
     let consumed = false;
-    const wrapper: EventCallback = (...args) => {
+    const wrapper: EventCallback<Args> = (...args) => {
       if (consumed) return;
       consumed = true;
       this.off(eventName, wrapper);
       try {
         const result = callback(...args);
         const pending = result as Catchable | null | undefined;
-        if (typeof pending?.catch === 'function') return pending.catch((error: unknown) => this.core.logger.log(`${eventName}事件once回调错误: ${this.error(error)}`, 'ERROR'));
+        if (typeof pending?.catch === 'function') return pending.catch((error: unknown) => this.core.logger.log(`${eventName}事件once回调错误: ${errorMessage(error)}`, 'ERROR'));
         return result;
       } catch (error) {
-        this.core.logger.log(`${eventName}事件once回调错误: ${this.error(error)}`, 'ERROR');
+        this.core.logger.log(`${eventName}事件once回调错误: ${errorMessage(error)}`, 'ERROR');
       }
     };
 
     return this.on(eventName, wrapper, description);
   }
 
-  public async trigger(eventName: string, ...args: any[]): Promise<void> {
+  public async trigger(eventName: string, ...args: unknown[]): Promise<void> {
     if (this.stickyEvents.has(eventName)) this.stickyArgs.set(eventName, args);
-    const listeners = this.events.get(eventName);
-    if (listeners?.length) {
-      for (let i = 0, length = listeners.length; i < length; i++) {
-        try {
-          const result = listeners[i].callback(...args);
-          const pending = result as PromiseLike<unknown> | null | undefined;
-          if (typeof pending?.then === 'function') await pending;
-        } catch (error) {
-          this.core.logger.log(`${eventName}事件处理错误: ${this.error(error)}`, 'ERROR');
+    this.triggering.set(eventName, (this.triggering.get(eventName) ?? 0) + 1);
+    try {
+      const listeners = this.events.get(eventName);
+      if (listeners?.length) {
+        for (let i = 0, length = listeners.length; i < length; i++) {
+          try {
+            const result = listeners[i].callback(...args);
+            const pending = this.pending(eventName, result);
+            if (pending) await pending;
+          } catch (error) {
+            this.core.logger.log(`${eventName}事件处理错误: ${errorMessage(error)}`, 'ERROR');
+          }
         }
       }
+    } finally {
+      const active = this.triggering.get(eventName)! - 1;
+      if (active) this.triggering.set(eventName, active);
+      else this.triggering.delete(eventName);
     }
-
+    if (this.triggering.has(eventName)) return;
     const callbacks = this.afters.get(eventName);
     if (!callbacks?.length) return;
     this.afters.delete(eventName);
     for (const callback of callbacks) {
       try {
         const result = callback(...args);
-        const pending = result as PromiseLike<unknown> | null | undefined;
-        if (typeof pending?.then === 'function') await pending;
+        const pending = this.pending(eventName, result);
+        if (pending) await pending;
       } catch (error) {
-        this.core.logger.log(`${eventName}事件after回调错误: ${this.error(error)}`, 'ERROR');
+        this.core.logger.log(`${eventName}事件after回调错误: ${errorMessage(error)}`, 'ERROR');
       }
     }
   }
 
-  public after(eventName: string, callback: EventCallback): void {
-    if (this.stickyArgs.has(eventName)) {
+  public after<Args extends unknown[]>(eventName: string, callback: EventCallback<Args>): void {
+    if (this.stickyArgs.has(eventName) && !this.triggering.has(eventName)) {
       this.callSticky(eventName, callback, 'after');
       return;
     }
     const callbacks = this.afters.get(eventName) ?? [];
-    callbacks.push(callback);
+    callbacks.push(callback as EventCallback);
     this.afters.set(eventName, callbacks);
   }
 
-  private callSticky(eventName: string, callback: EventCallback, type: 'listener' | 'after' = 'listener'): void {
+  private pending(eventName: string, result: unknown): PromiseLike<unknown> | undefined {
+    const pending = result as PromiseLike<unknown> | null | undefined;
+    if (typeof pending?.then !== 'function') return;
+    if (!this.synchronousEvents.has(eventName)) return pending;
+    this.core.logger.log(`${eventName}事件回调必须同步执行`, 'ERROR');
+    void Promise.resolve(pending).catch((error: unknown) => this.core.logger.log(`${eventName}事件处理错误: ${errorMessage(error)}`, 'ERROR'));
+  }
+
+  private callSticky<Args extends unknown[]>(eventName: string, callback: EventCallback<Args>, type: 'listener' | 'after' = 'listener'): void {
     const args = this.stickyArgs.get(eventName);
     if (!args) return;
     try {
-      const result = callback(...args);
+      const result = callback(...(args as Args));
       const pending = result as Catchable | null | undefined;
-      if (typeof pending?.catch === 'function') pending.catch((error: unknown) => this.core.logger.log(`${eventName} sticky ${type} error: ${this.error(error)}`, 'ERROR'));
+      if (typeof pending?.catch === 'function') pending.catch((error: unknown) => this.core.logger.log(`${eventName} sticky ${type} error: ${errorMessage(error)}`, 'ERROR'));
     } catch (error) {
-      this.core.logger.log(`${eventName} sticky ${type} error: ${this.error(error)}`, 'ERROR');
+      this.core.logger.log(`${eventName} sticky ${type} error: ${errorMessage(error)}`, 'ERROR');
     }
-  }
-
-  private error(error: unknown): string {
-    return error instanceof Error ? error.message : String(error);
   }
 }
 

@@ -3,21 +3,14 @@
 import maplebirch from '../../../core';
 import { clone } from '../../../utils';
 
-type NPCSidebarOptions = {
-  filters?: Record<string, any>;
-  maplebirch: {
-    nnpc: Record<string, any>;
-    [key: string]: any;
-  };
-  [key: string]: any;
-};
+import type { NPCSidebarOptions, NPCSidebarState, NPCSidebarClothing, NPCClothesSlot } from './types';
 
 type Part = 'face' | 'neck' | 'upper' | 'lower' | 'legs' | 'feet' | 'hands';
 type ClothesType = 'main' | 'acc' | 'detail';
 type Side = 'left' | 'right';
-type ClothingIndexResolver = (slot: string, clothes: Record<string, any>) => number;
+type ClothingIndexResolver = (slot: NPCClothesSlot, clothes: NPCSidebarClothing) => number;
 
-function clothingIndex(slot: string, clothes: Record<string, any>, resolver?: ClothingIndexResolver): number {
+function clothingIndex(slot: NPCClothesSlot, clothes: NPCSidebarClothing, resolver?: ClothingIndexResolver): number {
   const fallback = Number.isFinite(clothes.index) && clothes.index >= 0 ? clothes.index : 0;
   if (typeof resolver !== 'function' || !clothes.name || !clothes.variable) return fallback;
 
@@ -29,7 +22,7 @@ function clothingIndex(slot: string, clothes: Record<string, any>, resolver?: Cl
   }
 }
 
-function normaliseClothingState(setupData: Record<string, any>, data: Record<string, any>, index: number): Record<string, any> {
+function normaliseClothingState(setupData: NPCSidebarClothing, data: NPCSidebarClothing, index: number): NPCSidebarClothing {
   const alt = data.altposition ?? data.alt ?? setupData.altposition ?? setupData.alt ?? 'none';
   return {
     ...setupData,
@@ -43,12 +36,12 @@ function normaliseClothingState(setupData: Record<string, any>, data: Record<str
   };
 }
 
-function isAltPosition(clothes: Record<string, any>, part?: string): boolean {
+function isAltPosition(clothes: NPCSidebarClothing, part?: string): boolean {
   if ((clothes.altposition ?? clothes.alt) !== 'alt') return false;
   return part == null || !clothes.altdisabled?.includes(part);
 }
 
-function clothingZIndex(zIndices: Record<string, number>, clothes: Record<string, any>, fallback: number): number {
+function clothingZIndex(zIndices: Record<string, number>, clothes: NPCSidebarClothing, fallback: number): number {
   const configured = clothes.zIndex;
   return typeof configured === 'string' && Number.isFinite(zIndices[configured]) ? zIndices[configured] : fallback;
 }
@@ -66,7 +59,7 @@ function normaliseFileName(text: string): string {
     .toLowerCase();
 }
 
-function lookupColour(dict: { [x: string]: any }, key: string, prefilterName?: string) {
+function lookupColour(dict: Record<string, { canvasfilter: CanvasLayerFilter }>, key: string, prefilterName?: string) {
   const record = dict[key];
   if (!record) return {};
   const filter = clone(record.canvasfilter);
@@ -74,11 +67,11 @@ function lookupColour(dict: { [x: string]: any }, key: string, prefilterName?: s
   return filter;
 }
 
-function gray_suffix(path: string, _filter?: { blendMode: string; blend: any } | null) {
+function gray_suffix(path: string, _filter?: CanvasLayerFilter | null) {
   return path;
 }
 
-function layerFilters(slot: string, type: ClothesType, clothes: any) {
+function layerFilters(slot: NPCClothesSlot, type: ClothesType, clothes: NPCSidebarClothing) {
   if (type === 'detail') return [];
   const altFilterSwap = isAltPosition(clothes) && clothes.altdisabled?.includes('filter');
   if (type === 'main') return altFilterSwap ? [`nnpc_${slot}_acc`] : [`nnpc_${slot}`];
@@ -90,7 +83,7 @@ function kaijuMask(options: NPCSidebarOptions): string | undefined {
   if (options.maplebirch.nnpc.clothes?.over_upper?.name === 'kaiju costume') return 'img/clothes/over-upper/kaiju/mask.png';
 }
 
-function selected_art(nnpc: Record<string, any>) {
+function selected_art(nnpc: NPCSidebarState) {
   const selected = V.options.maplebirch.npcsidebar.display?.[nnpc.name];
   if (!selected || selected === 'none') return;
   return maplebirch.npc.Clothes.art.get(nnpc.name, selected);
@@ -112,13 +105,13 @@ function nnpc_sidepart(part: Part) {
     zfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const zIndex = selected_art(nnpc)?.parts[part]?.zIndex;
-      if (zIndex != null) return zIndex;
+      if (typeof zIndex === 'number' && Number.isFinite(zIndex)) return zIndex;
       return maplebirch.char.ZIndices[part] + nnpc.position;
     }
   };
 }
 
-function clothes_basic(slot: string, overrides: any = {}) {
+function clothes_basic(slot: NPCClothesSlot, overrides: LayerConfig = {}) {
   const { masksrcfn, ...layerOverrides } = overrides;
   return {
     masksrcfn: (options: NPCSidebarOptions) => {
@@ -131,7 +124,7 @@ function clothes_basic(slot: string, overrides: any = {}) {
     },
 
     alphafn: (options: NPCSidebarOptions) => {
-      return options.maplebirch.nnpc.clothes[slot].alpha;
+      return options.maplebirch.nnpc.clothes[slot].alpha ?? 1;
     },
 
     wornfn: (options: NPCSidebarOptions) => {
@@ -157,7 +150,7 @@ function clothes_basic(slot: string, overrides: any = {}) {
   };
 }
 
-function clothes_layer(slot: string, type: ClothesType, overrides: any = {}) {
+function clothes_layer(slot: NPCClothesSlot, type: ClothesType, overrides: LayerConfig = {}) {
   return clothes_basic(slot, {
     srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
@@ -174,7 +167,7 @@ function clothes_layer(slot: string, type: ClothesType, overrides: any = {}) {
       let prefix = '';
       let suffix = '';
       if (type === 'main') {
-        pattern = clothes.pattern && !['secondary', 'tertiary'].includes(clothes.pattern_layer) ? `-${clothes.pattern.replace(/ /g, '-')}` : '';
+        pattern = clothes.pattern && !['secondary', 'tertiary'].includes(clothes.pattern_layer ?? '') ? `-${clothes.pattern.replace(/ /g, '-')}` : '';
         prefix = clothes.integrity;
         suffix = down ? '-down' : alt ? '-alt' : '';
       } else if (type === 'acc') {
@@ -206,7 +199,7 @@ function clothes_layer(slot: string, type: ClothesType, overrides: any = {}) {
   });
 }
 
-function clothes_breasts(slot: string, type: ClothesType, overrides: any = {}) {
+function clothes_breasts(slot: NPCClothesSlot, type: ClothesType, overrides: LayerConfig = {}) {
   return clothes_layer(slot, type, {
     masksrcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
@@ -239,7 +232,7 @@ function clothes_breasts(slot: string, type: ClothesType, overrides: any = {}) {
       let pattern = '';
       let extension = '';
       if (type === 'main') {
-        pattern = clothes.pattern && !['tertiary', 'secondary'].includes(clothes.pattern_layer) ? `-${clothes.pattern.replace(/ /g, '-')}` : '';
+        pattern = clothes.pattern && !['tertiary', 'secondary'].includes(clothes.pattern_layer ?? '') ? `-${clothes.pattern.replace(/ /g, '-')}` : '';
       } else if (type === 'acc') {
         pattern = clothes.pattern && clothes.pattern_layer === 'secondary' ? `-${clothes.pattern.replace(/ /g, '-')}` : '';
         extension = '-acc';
@@ -268,7 +261,7 @@ function clothes_breasts(slot: string, type: ClothesType, overrides: any = {}) {
   });
 }
 
-function sleeveFilter(slot: string, colour: string | undefined, clothes: any) {
+function sleeveFilter(slot: NPCClothesSlot, colour: string | undefined, clothes: NPCSidebarClothing) {
   const altFilterSwap = isAltPosition(clothes) && clothes.altdisabled?.includes('filter');
   switch (colour) {
     case undefined:
@@ -300,7 +293,7 @@ function armState(options: NPCSidebarOptions, side: Side) {
   return arm === 'idle' ? 'idle' : arm;
 }
 
-function clothes_arm(slot: string, side: Side, overrides: any = {}) {
+function clothes_arm(slot: NPCClothesSlot, side: Side, overrides: LayerConfig = {}) {
   return clothes_basic(slot, {
     srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
@@ -337,7 +330,7 @@ function clothes_arm(slot: string, side: Side, overrides: any = {}) {
   });
 }
 
-function clothes_arm_acc(slot: string, side: Side, overrides: any = {}) {
+function clothes_arm_acc(slot: NPCClothesSlot, side: Side, overrides: LayerConfig = {}) {
   return clothes_basic(slot, {
     srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
@@ -369,7 +362,7 @@ function clothes_arm_acc(slot: string, side: Side, overrides: any = {}) {
   });
 }
 
-function backFilter(slot: string, colour: string | undefined) {
+function backFilter(slot: NPCClothesSlot, colour: string | undefined) {
   switch (colour) {
     case 'none':
       return [];
@@ -384,7 +377,7 @@ function backFilter(slot: string, colour: string | undefined) {
   }
 }
 
-function clothes_back(slot: string, overrides: any = {}) {
+function clothes_back(slot: NPCClothesSlot, overrides: LayerConfig = {}) {
   return clothes_basic(slot, {
     srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
@@ -393,7 +386,7 @@ function clothes_back(slot: string, overrides: any = {}) {
       const altPosition = isAltPosition(clothes, 'back');
       const prefix = altPosition ? 'back-alt' : 'back';
       const suffix = clothes.back_integrity_img ? `-${clothes.integrity}` : '';
-      const pattern = clothes.pattern && !['tertiary', 'secondary'].includes(clothes.pattern_layer) ? `-${clothes.pattern.replace(/ /g, '-')}` : '';
+      const pattern = clothes.pattern && !['tertiary', 'secondary'].includes(clothes.pattern_layer ?? '') ? `-${clothes.pattern.replace(/ /g, '-')}` : '';
       const filter = backFilter(slot, clothes.back_img_colour)[0];
       const path = `img/clothes/${folder}/${clothes.variable}/${prefix}${suffix}${pattern}.png`;
       return gray_suffix(path, options.filters?.[filter]);
@@ -421,7 +414,7 @@ function clothes_back(slot: string, overrides: any = {}) {
   });
 }
 
-function clothes_back_acc(slot: string, overrides: any = {}) {
+function clothes_back_acc(slot: NPCClothesSlot, overrides: LayerConfig = {}) {
   return clothes_basic(slot, {
     srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
@@ -466,7 +459,7 @@ function handSuffix(options: NPCSidebarOptions, side: Side) {
   return `right-${nnpc.arm_right}`;
 }
 
-function clothes_hand(side: Side, type: ClothesType, overrides: any = {}) {
+function clothes_hand(side: Side, type: ClothesType, overrides: LayerConfig = {}) {
   return clothes_basic('hands', {
     srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
@@ -479,7 +472,7 @@ function clothes_hand(side: Side, type: ClothesType, overrides: any = {}) {
       }
       let pattern = '';
       let extension = '';
-      if (type === 'main') pattern = hands.pattern && !['tertiary', 'secondary'].includes(hands.pattern_layer) ? `-${hands.pattern.replace(/ /g, '-')}` : '';
+      if (type === 'main') pattern = hands.pattern && !['tertiary', 'secondary'].includes(hands.pattern_layer ?? '') ? `-${hands.pattern.replace(/ /g, '-')}` : '';
       else if (type === 'acc') {
         pattern = hands.pattern && hands.pattern_layer === 'secondary' ? `-${hands.pattern.replace(/ /g, '-')}` : '';
         extension = '-acc';
@@ -493,7 +486,7 @@ function clothes_hand(side: Side, type: ClothesType, overrides: any = {}) {
       const nnpc = options.maplebirch.nnpc;
       const hands = nnpc.clothes.hands;
       const arm = nnpc[`arm_${side}`];
-      const image = `${side}Image`;
+      const image = `${side}Image` as const;
       if (arm === 'none' || !nnpc.show || !nnpc.model || nnpc.hide_all || hands.index <= 0) return false;
       if (type === 'detail') return hands[image] === 1 && hands.pattern_layer === 'tertiary' && !!hands.pattern;
       if (type === 'acc') return hands[image] === 1 && hands.accessory === 1;
@@ -524,7 +517,7 @@ function clothes_hand(side: Side, type: ClothesType, overrides: any = {}) {
   });
 }
 
-function clothes_handheld(type: ClothesType, overrides: any = {}) {
+function clothes_handheld(type: ClothesType, overrides: LayerConfig = {}) {
   return clothes_layer('handheld', type, {
     srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
@@ -541,7 +534,7 @@ function clothes_handheld(type: ClothesType, overrides: any = {}) {
       }
       let pattern = '';
       let extension = '';
-      if (type === 'main') pattern = handheld.pattern && !['tertiary', 'secondary'].includes(handheld.pattern_layer) ? `-${handheld.pattern.replace(/ /g, '-')}` : '';
+      if (type === 'main') pattern = handheld.pattern && !['tertiary', 'secondary'].includes(handheld.pattern_layer ?? '') ? `-${handheld.pattern.replace(/ /g, '-')}` : '';
       else if (type === 'acc') {
         pattern = handheld.pattern && handheld.pattern_layer === 'secondary' ? `-${handheld.pattern.replace(/ /g, '-')}` : '';
         extension = '-acc';
@@ -556,7 +549,7 @@ function clothes_handheld(type: ClothesType, overrides: any = {}) {
       const handheld = nnpc.clothes.handheld;
       if (!nnpc.show || !nnpc.model || nnpc.hide_all || handheld.index <= 0) return false;
       const arm = nnpc.arm_right !== 'none';
-      const cover = nnpc.arm_right === 'cover' && !['right_cover', 'cover_both'].includes(handheld.holdPosition) ? handheld.coverImage !== 0 : true;
+      const cover = nnpc.arm_right === 'cover' && !['right_cover', 'cover_both'].includes(handheld.holdPosition ?? '') ? handheld.coverImage !== 0 : true;
       if (type === 'detail') return arm && cover && handheld.pattern_layer === 'tertiary' && !!handheld.pattern;
       if (type === 'acc') return arm && cover && handheld.accessory === 1;
       if (type === 'main') return arm && cover;

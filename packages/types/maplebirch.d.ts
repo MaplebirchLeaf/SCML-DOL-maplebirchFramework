@@ -1,8 +1,9 @@
 import { Passage } from '@scml/types/sugarcube-2-ModLoader/SugarCube2';
 import { ModBootJson, ModInfo } from '@scml/types/sugarcube-2-ModLoader/ModLoader';
-import { JSZipLikeReadOnlyInterface } from '@scml/types/sugarcube-2-ModLoader/JSZipLikeReadOnlyInterface';
+import { InputFileFormat, JSZipLikeReadOnlyInterface } from '@scml/types/sugarcube-2-ModLoader/JSZipLikeReadOnlyInterface';
 import { ModZipReader } from '@scml/types/sugarcube-2-ModLoader/ModZipReader';
 import { SC2DataManager } from '@scml/types/sugarcube-2-ModLoader/SC2DataManager';
+import { WikifyTracerCallback } from '@scml/types/sugarcube-2-ModLoader/WikifyTracer';
 import { ModUtils } from '@scml/types/sugarcube-2-ModLoader/Utils';
 import { BrowserAPI } from '@scml/sc2-verlnir/src/browser';
 import { ConfigAPI } from '@scml/sc2-verlnir/src/config';
@@ -11,40 +12,270 @@ import { DialogAPI } from '@scml/sc2-verlnir/src/dialog';
 import { EngineAPI } from '@scml/sc2-verlnir/src/engine';
 import { FullscreenAPI } from '@scml/sc2-verlnir/src/fullscreen';
 import { HasAPI } from '@scml/sc2-verlnir/src/has';
-import { IdbAPI } from '@scml/sc2-verlnir/src/idb';
 import { L10nAPI } from '@scml/sc2-verlnir/src/l10n';
-import { LinksAPI } from '@scml/sc2-verlnir/src/links';
-import { LoadScreenAPI } from '@scml/sc2-verlnir/src/loadscreen';
 import { MacroAPI } from '@scml/sc2-verlnir/src/macro';
 import { PassageConstructor } from '@scml/sc2-verlnir/src/passage';
 import { SaveAPI } from '@scml/sc2-verlnir/src/save';
 import { ScriptingAPI } from '@scml/sc2-verlnir/src/scripting';
 import { SettingAPI } from '@scml/sc2-verlnir/src/setting';
 import { SimpleAudioAPI } from '@scml/sc2-verlnir/src/simpleaudio';
-import { SimpleStoreAPI, SimpleStoreInstanceAPI } from '@scml/sc2-verlnir/src/simplestore';
+import { SimpleStoreInstanceAPI } from '@scml/sc2-verlnir/src/simplestore';
 import { StoryAPI } from '@scml/sc2-verlnir/src/story';
-import { TemplateAPI } from '@scml/sc2-verlnir/src/template';
 import { UIAPI } from '@scml/sc2-verlnir/src/ui';
 import { UIBarAPI } from '@scml/sc2-verlnir/src/uibar';
 import { UtilAPI } from '@scml/sc2-verlnir/src/util';
 import { VersionInfo } from '@scml/sc2-verlnir/src/version';
 import { VisibilityAPI } from '@scml/sc2-verlnir/src/visibility';
 import { WikifierAPI } from '@scml/sc2-verlnir/src/wikifier';
+import { SugarCubeStoryVariables, SugarCubeTemporaryVariables } from 'twine-sugarcube/userdata';
 import { Gui } from '@scml/types/Mod_LoaderGui/Gui';
 import jsyaml from 'js-yaml';
 import { Howl, Howler } from 'howler';
 import * as marked from 'marked';
 import { MacroContext } from 'twine-sugarcube';
 //#endregion
+//#region src/modules/Frameworks/Patches/Bodywriting.d.ts
+interface BodywritingConfig {
+  writing?: string;
+  writ_cn?: string;
+  type?: 'text' | 'object';
+  arrow?: 0 | 1;
+  special?: string;
+  gender?: 'n' | 'f' | 'm' | 'h';
+  lewd?: 0 | 1;
+  degree?: number;
+  featSkip?: boolean;
+  sprites?: string[];
+  index?: number;
+  key?: string;
+}
+type BodywritingData =
+  | {
+      operation: 'add';
+      config: BodywritingConfig;
+    }
+  | {
+      operation: 'del';
+    };
+type BodywritingItem = BodywritingConfig & {
+  index: number;
+  key: string;
+};
+declare class Bodywriting {
+  static add(key: string, config: BodywritingConfig): void;
+  static delete(key: string): void;
+  static apply(): void;
+  private static remove;
+  private static set;
+}
+//#endregion
+//#region src/modules/Frameworks/Patches/Foodstuff.d.ts
+type FoodstuffSeason = 'spring' | 'summer' | 'autumn' | 'winter';
+type FoodstuffPlantingBed = 'earth' | 'water';
+type FoodstuffStallSize = 'small' | 'large';
+interface FoodstuffConfig {
+  key?: string;
+  index?: number;
+  is_fishing_bait?: boolean;
+  name?: string;
+  singular?: string;
+  plural?: string;
+  icon?: string;
+  category?: string;
+  kitchen_item_type_icon?: string;
+  prop_folder?: string;
+  ingredient_alternatives?: Partial<Record<'normal' | 'lewd', string[]>>;
+  tending?: {
+    planting_bed?: FoodstuffPlantingBed;
+    growth_days?: number;
+    featCost?: number;
+    yield_multiplier?: number;
+    has_seeds?: boolean;
+    seed_name?: string;
+    seasons?: FoodstuffSeason[];
+    affected_by_tending_skill?: boolean;
+    tags?: string[];
+    [key: string]: unknown;
+  };
+  shop?: {
+    sell_price?: number;
+    available_in?: string[];
+    bought_in_bulk?: number;
+    stall_size?: FoodstuffStallSize;
+    [key: string]: unknown;
+  };
+  recipe?: {
+    recipe_name?: string;
+    difficulty?: number;
+    cook_minutes?: number;
+    servings?: number;
+    ingredients?: string[];
+    ingredient_alternatives?: Partial<Record<'normal' | 'lewd', Record<string, string[]>>>;
+    tags?: string[];
+    [key: string]: unknown;
+  };
+  food?: {
+    handheld_gift?: boolean;
+    tags?: string[];
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+type FoodstuffItem = FoodstuffConfig & Required<Pick<FoodstuffConfig, 'index' | 'name' | 'singular' | 'plural' | 'icon' | 'category' | 'kitchen_item_type_icon' | 'prop_folder'>>;
+declare class Foodstuff {
+  static add(key: string, config: FoodstuffConfig): void;
+  static apply(): void;
+  static syncState(): void;
+  static applySetup(): void;
+  private static set;
+  private static nextIndex;
+  private static sort;
+  private static ensureState;
+}
+//#endregion
+//#region src/modules/Frameworks/Patches/Location.d.ts
+interface LocationConfigOptions {
+  overwrite?: boolean;
+  layer?: string;
+  element?: string;
+}
+interface LocationElement {
+  condition?: () => boolean;
+  image?: string;
+  frame?: number | (() => number);
+  animation?: {
+    frameDelay?: number;
+    cycleDelay?: number | (() => number);
+  };
+  [key: string]: unknown;
+}
+interface LocationConfig extends LocationElement {
+  folder?: string;
+  base?: Record<string, LocationElement> | LocationElement;
+  emissive?: Record<string, LocationElement> | LocationElement;
+  reflective?: Record<string, LocationElement> | LocationElement;
+  layerTop?: Record<string, LocationElement> | LocationElement;
+  weather?: Record<string, unknown>;
+  particles?: Record<string, unknown>[];
+  customMapping?: () => string;
+}
+interface LocationUpdate {
+  overwrite: boolean;
+  config: LocationConfig;
+  customMapping: (() => string) | null;
+}
+declare class Location {
+  static configure(locationId: string, config: LocationConfig, options?: LocationConfigOptions): boolean;
+  static apply(): void;
+}
+//#endregion
+//#region src/modules/Frameworks/Patches/Fishing.d.ts
+type FishingLocation = 'fishingBeach' | 'fishingPier' | 'fishingCoastPath' | 'fishingForestLake' | 'fishingMoor';
+type FishingSeason = 'spring' | 'summer' | 'autumn' | 'winter';
+type FishBehavior = 'runner' | 'darter' | 'panicked' | 'anchor' | 'thrasher' | 'slipper';
+interface FishConfig {
+  minSize: number;
+  maxSize: number;
+  locations: Partial<Record<FishingLocation, number>>;
+  icon: string;
+  preferredSeason?: FishingSeason[];
+  preferredLocation?: FishingLocation[];
+  preferredBait?: string;
+  cookable?: boolean;
+  requiresBaitFish?: boolean;
+  isBaitFish?: boolean;
+  minigame?: {
+    behavior: FishBehavior;
+    maxStamina: number;
+    armFatigueDifficulty: number;
+  };
+  foodstuff?: FoodstuffConfig;
+}
+type FishData = Omit<FishConfig, 'foodstuff'> & Required<Pick<FishConfig, 'preferredSeason' | 'preferredLocation' | 'cookable'>>;
+declare class Fishing {
+  static addFish(key: string, config: FishConfig): boolean;
+  static addBait(key: string, config: FoodstuffConfig): void;
+  /** Adjusts fish weights at an existing vanilla fishing spot; zero removes that fish from the spot. */
+  static configureLocation(location: FishingLocation, weights: Record<string, number>): boolean;
+  static apply(): void;
+}
+//#endregion
+//#region src/modules/Frameworks/Patches/Antiques.d.ts
+interface AntiqueConfig {
+  hint: string;
+  museum: string;
+  name: string;
+  cn_name?: string;
+  journal: string;
+  journalName?: string;
+  icon: string;
+  key?: string;
+}
+declare class Antiques {
+  static add(key: string, config: AntiqueConfig): void;
+  static inject(data: Record<string, AntiqueConfig>): Record<string, AntiqueConfig>;
+  static syncState(): void;
+}
+//#endregion
+//#region src/modules/Frameworks/Patches/Traits.d.ts
+interface TraitCategory {
+  title: string;
+  traits: Trait[];
+}
+interface Trait {
+  name: string;
+  colour: string;
+  has: boolean;
+  text: string;
+}
+interface TraitConfig {
+  title: string;
+  name: string | (() => string);
+  colour: string | (() => string);
+  has: boolean | (() => boolean);
+  text: string | (() => string);
+}
+declare class Traits {
+  static add(...traits: Partial<TraitConfig>[]): void;
+  static inject(data: TraitCategory[], translate: (text: string) => string): TraitCategory[];
+  private static resolve;
+}
+//#endregion
 //#region types/twine-sugarcube.d.ts
 declare module 'twine-sugarcube/userdata' {
   export interface SugarCubeSetupObject {
+    bodywriting: Record<string, BodywritingItem>;
+    bodywriting_namebyindex: (string | undefined)[];
+    foodstuff: Record<string, FoodstuffItem>;
+    LocationImages: Record<string, LocationConfig>;
+    Locations: Record<string, () => string>;
+    tips: Record<string, string[]>;
+    tipsList: string[];
+    fishing?: {
+      lootTables: {
+        fish: Record<string, FishData>;
+      };
+    };
     [x: string]: any;
   }
   export interface SugarCubeStoryVariables {
+    foodstuff: Record<
+      string,
+      {
+        amount: number;
+        [key: string]: unknown;
+      }
+    >;
+    museumAntiques?: {
+      antiques: Record<string, string>;
+      maxCount: number;
+      [key: string]: unknown;
+    };
     [x: string]: any;
   }
   export interface SugarCubeTemporaryVariables {
+    traitLists: TraitCategory[];
+    museumAntiqueText: Record<string, AntiqueConfig>;
     [x: string]: any;
   }
 }
@@ -139,8 +370,8 @@ interface DolStateAPI {
   play(...args: unknown[]): void;
 }
 interface DolSaveAPI extends SaveAPI {
-  serialize(metadata?: any): string;
-  deserialize(saveStr: string): any;
+  serialize(metadata?: unknown): string;
+  deserialize(saveStr: string): unknown;
 }
 type WikifierAPI$1 = WikifierAPI & {
   wikifyEval(
@@ -151,9 +382,7 @@ type WikifierAPI$1 = WikifierAPI & {
     passageTitle?: string
   ): DocumentFragment;
 };
-interface SugarCubeUtilAPI extends UtilAPI {
-  [key: string]: any;
-}
+type SugarCubeUtilAPI = UtilAPI;
 interface TwineSugarCube {
   Browser: BrowserAPI;
   Config: ConfigAPI;
@@ -162,25 +391,20 @@ interface TwineSugarCube {
   Fullscreen: FullscreenAPI;
   Has: HasAPI;
   L10n: L10nAPI;
-  Links: LinksAPI;
-  LoadScreen: LoadScreenAPI;
   Macro: MacroAPI;
   Passage: PassageConstructor;
   Save: DolSaveAPI;
   Scripting: ScriptingAPI;
   Setting: SettingAPI;
   SimpleAudio: SimpleAudioAPI;
-  SimpleStore: SimpleStoreAPI;
   State: DolStateAPI;
   Story: StoryAPI;
-  Template: TemplateAPI;
   UI: UIAPI;
   UIBar: UIBarAPI;
   DebugBar: DebugBarAPI;
   Util: SugarCubeUtilAPI;
   Visibility: VisibilityAPI;
   Wikifier: WikifierAPI$1;
-  idb: IdbAPI;
   session: SimpleStoreInstanceAPI | null;
   settings: Record<string, unknown>;
   setup: Record<string, unknown>;
@@ -188,9 +412,9 @@ interface TwineSugarCube {
   version: VersionInfo;
 }
 declare global {
-  const V: Record<string, any>;
+  const V: SugarCubeStoryVariables;
   const C: Record<string, any>;
-  const T: Record<string, any>;
+  const T: SugarCubeTemporaryVariables;
   interface DateTimeData {
     year: number;
     month: number;
@@ -345,6 +569,12 @@ declare global {
         convert?: boolean;
       };
   type CanvasLayerMaskSrc = CanvasLayerMask | CanvasLayerMask[] | undefined;
+  interface CanvasLayerWorn {
+    slot: string;
+    integrity: string | number;
+    alt?: string;
+    index: number;
+  }
   type CanvasLayerValueFn<T = any> = (options: any) => T;
   interface CanvasModelOptionsData {
     filters?: Record<string, any>;
@@ -374,7 +604,7 @@ declare global {
     dy?: number;
     width?: number;
     height?: number;
-    worn?: string;
+    worn?: CanvasLayerWorn;
     scale?: boolean | number;
     frameDx?: number;
     frameDy?: number;
@@ -397,7 +627,7 @@ declare global {
     dyfn?: CanvasLayerValueFn<number>;
     widthfn?: CanvasLayerValueFn<number>;
     heightfn?: CanvasLayerValueFn<number>;
-    wornfn?: CanvasLayerValueFn<string | undefined>;
+    wornfn?: CanvasLayerValueFn<CanvasLayerWorn | undefined>;
     scalefn?: CanvasLayerValueFn<boolean | number | undefined>;
     [key: string]: any;
   }
@@ -456,17 +686,46 @@ declare global {
 //#region src/constants.d.ts
 type LanguageCode = (typeof Languages)[number];
 declare const Languages: readonly ['EN', 'CN'];
+declare enum ModuleState {
+  REGISTERED = 0,
+  MOUNTED = 1,
+  ERROR = 2,
+  EXPOSED = 3,
+  DISABLED = 4
+}
 //#endregion
 //#region src/utils/object.d.ts
-type MergeFilterFn = (key: string, value: any, depth: number, targetValue: any) => boolean;
-declare function clone(source: any, deep?: boolean, proto?: boolean, map?: WeakMap<object, any>): any;
-declare function equal(a: any, b: any): boolean;
-declare function merge(target: any, ...sources: any[]): any;
-declare function append(target: any, ...sources: any[]): any;
-declare function cover(target: any, ...sources: any[]): any;
-declare function mergeFn(target: any, filterFn: MergeFilterFn | null, ...sources: any[]): any;
-declare function appendFn(target: any, filterFn: MergeFilterFn | null, ...sources: any[]): any;
-declare function coverFn(target: any, filterFn: MergeFilterFn | null, ...sources: any[]): any;
+type MergeMode = 'replace' | 'concat' | 'merge';
+type MergeFilterFn = (key: string, value: unknown, depth: number, targetValue: unknown) => boolean;
+type MergeTuple<T extends readonly unknown[], S extends readonly unknown[]> = S extends readonly [infer Head, ...infer Rest]
+  ? T extends readonly [infer Previous, ...infer Tail]
+    ? [Merged<Previous, Head, 'merge'>, ...MergeTuple<Tail, Rest>]
+    : [...S]
+  : [...T];
+type Merged<T, S, Mode extends MergeMode> = S extends readonly unknown[]
+  ? T extends readonly unknown[]
+    ? Mode extends 'replace'
+      ? [...S]
+      : Mode extends 'concat'
+        ? [...T, ...S]
+        : number extends T['length'] | S['length']
+          ? (T[number] | S[number])[]
+          : MergeTuple<T, S>
+    : [...S]
+  : S extends Record<string, unknown>
+    ? Omit<T, keyof S> & { [Key in keyof S]: Key extends keyof T ? Merged<T[Key], S[Key], Mode> : S[Key] }
+    : S;
+type MergeResult<T, Sources extends readonly unknown[], Mode extends MergeMode = 'merge'> = Sources extends readonly [infer Source, ...infer Rest]
+  ? MergeResult<Merged<T, Source, Mode>, Rest, Mode>
+  : T;
+declare function clone<T>(source: T, deep?: boolean, proto?: boolean, map?: WeakMap<object, unknown>): T;
+declare function equal(a: unknown, b: unknown): boolean;
+declare function merge<T, Sources extends unknown[]>(target: T, ...sources: Sources): MergeResult<T, Sources>;
+declare function append<T, Sources extends unknown[]>(target: T, ...sources: Sources): MergeResult<T, Sources, 'concat'>;
+declare function cover<T, Sources extends unknown[]>(target: T, ...sources: Sources): MergeResult<T, Sources, 'replace'>;
+declare function mergeFn<T, Sources extends unknown[]>(target: T, filter: MergeFilterFn | null, ...sources: Sources): MergeResult<T, Sources>;
+declare function appendFn<T, Sources extends unknown[]>(target: T, filter: MergeFilterFn | null, ...sources: Sources): MergeResult<T, Sources, 'concat'>;
+declare function coverFn<T, Sources extends unknown[]>(target: T, filter: MergeFilterFn | null, ...sources: Sources): MergeResult<T, Sources, 'replace'>;
 //#endregion
 //#region src/utils/array.d.ts
 type ContainsMode = 'all' | 'any' | 'none';
@@ -478,7 +737,7 @@ type ContainsOptions = {
 declare function contains(array: readonly unknown[], value: unknown, mode?: ContainsMode, options?: ContainsOptions): boolean;
 declare function randomNumber(min?: number, max?: number, float?: boolean): number;
 declare function randomPick<T>(items: readonly T[], weights?: readonly number[] | null, allowNull?: boolean): T | null | undefined;
-declare function clamp(value: any, min: number, max: number, fallback?: number): number;
+declare function clamp(value: unknown, min: number, max: number, fallback?: number): number;
 //#endregion
 //#region src/utils/string.d.ts
 type ConvertMode$1 = 'lower' | 'upper' | 'capitalize' | 'title' | 'camel' | 'pascal' | 'snake' | 'kebab' | 'constant';
@@ -497,7 +756,7 @@ declare function widgets(...contents: string[]): string[];
 //#region src/utils/binary.d.ts
 declare function textToBytes(value: string): Uint8Array;
 declare function jsonToBytes(value: unknown): Uint8Array;
-declare function bytesToJson<T = any>(bytes: Uint8Array | ArrayBuffer): T;
+declare function bytesToJson<T = unknown>(bytes: Uint8Array | ArrayBuffer): T;
 declare function toArrayBuffer(bytes: Uint8Array): ArrayBuffer;
 declare function bytesToBase64(bytes: Uint8Array): string;
 declare function base64ToBytes(value: string): Uint8Array;
@@ -507,46 +766,51 @@ declare function basicAuth(username: string, password: string): string;
 //#region src/utils/path.d.ts
 declare function joinEncodedPath(...parts: string[]): string;
 //#endregion
+//#region src/utils/error.d.ts
+declare function errorMessage(error: unknown): string;
+//#endregion
 //#region src/utils/selector.d.ts
-declare class SelectCase {
-  private cases;
+type Comparator = '<' | '<=' | '>' | '>=';
+type ResultValue<Input, Result, Meta> = Result | ((input: Input, meta: Meta) => Result);
+declare class SelectCase<Input = unknown, Result = unknown, Meta = Record<string, unknown>> {
+  private readonly cases;
   private defaultResult;
   private valueType;
   private allowMixedTypes;
-  case(condition: string | number, result: any): this;
-  case(condition: (input: any, meta?: any) => boolean, result: any): this;
-  casePredicate(fn: (input: any, meta?: any) => boolean, result: any): this;
-  caseRange(min: number, max: number, result: any): this;
-  caseIn(values: any[], result: any): this;
-  caseIncludes(values: string | string[], result: any): this;
-  caseRegex(regex: RegExp, result: any): this;
-  caseCompare(operator: '<' | '<=' | '>' | '>=', value: number, result: any): this;
-  else(result: any): this;
-  match(input: any, meta?: any): any;
+  case(condition: string | number | ((input: Input, meta: Meta) => boolean), result: ResultValue<Input, Result, Meta>): this;
+  casePredicate(fn: (input: Input, meta: Meta) => boolean, result: ResultValue<Input, Result, Meta>): this;
+  caseRange(min: number, max: number, result: ResultValue<Input, Result, Meta>): this;
+  caseIn(values: readonly (string | number)[], result: ResultValue<Input, Result, Meta>): this;
+  caseIncludes(values: string | readonly string[], result: ResultValue<Input, Result, Meta>): this;
+  caseRegex(regex: RegExp, result: ResultValue<Input, Result, Meta>): this;
+  caseCompare(operator: Comparator, value: number, result: ResultValue<Input, Result, Meta>): this;
+  else(result: ResultValue<Input, Result, Meta>): this;
+  match(input: Input, meta?: Meta): Result | null;
+  private resolve;
   private validateType;
 }
 //#endregion
 //#region src/utils/image.d.ts
-declare function loadImage(src: string): string | boolean | Promise<string | boolean>;
+declare function loadImage(src: string): string | false | Promise<string | false>;
 //#endregion
 //#region src/utils/prototype.d.ts
 declare global {
   interface ObjectConstructor {
-    merge<T extends object = any>(...sources: any[]): T;
-    append<T extends object = any>(...sources: any[]): T;
-    cover<T extends object = any>(...sources: any[]): T;
-    mergefn<T extends object = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T;
-    appendfn<T extends object = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T;
-    coverfn<T extends object = any>(filterFn: MergeFilterFn | null, ...sources: any[]): T;
+    merge<T extends object = Record<string, unknown>>(...sources: unknown[]): T;
+    append<T extends object = Record<string, unknown>>(...sources: unknown[]): T;
+    cover<T extends object = Record<string, unknown>>(...sources: unknown[]): T;
+    mergefn<T extends object = Record<string, unknown>>(filterFn: MergeFilterFn | null, ...sources: unknown[]): T;
+    appendfn<T extends object = Record<string, unknown>>(filterFn: MergeFilterFn | null, ...sources: unknown[]): T;
+    coverfn<T extends object = Record<string, unknown>>(filterFn: MergeFilterFn | null, ...sources: unknown[]): T;
   }
   interface Array<T> {
     contains(value: unknown, mode?: ContainsMode, options?: ContainsOptions): boolean;
     either(weights?: number[], allowNull?: boolean): T | null | undefined;
   }
   interface ArrayConstructor {
-    merge<T = any>(...sources: any[]): T[];
-    append<T = any>(...sources: any[]): T[];
-    cover<T = any>(...sources: any[]): T[];
+    merge<T>(...sources: readonly T[][]): T[];
+    append<T>(...sources: readonly T[][]): T[];
+    cover<T>(...sources: readonly T[][]): T[];
   }
   interface ReadonlyArray<T> {
     contains(value: unknown, mode?: ContainsMode, options?: ContainsOptions): boolean;
@@ -571,7 +835,7 @@ declare global {
     random(): number;
     random(max: number): number;
     random(min: number, max: number, float?: boolean): number;
-    clamp(value: any, min: number, max: number, fallback?: number): number;
+    clamp(value: unknown, min: number, max: number, fallback?: number): number;
   }
 }
 declare function prototypeUtils(): void;
@@ -593,6 +857,7 @@ declare namespace index_d_exports {
     coverFn as coverfn,
     randomPick as either,
     equal,
+    errorMessage,
     escapeHtmlText,
     joinEncodedPath,
     jsonToBytes,
@@ -639,21 +904,23 @@ declare class Logger {
 }
 //#endregion
 //#region src/services/EventEmitter.d.ts
-type EventCallback = (...args: any[]) => unknown;
+type EventCallback<Args extends unknown[] = unknown[]> = (...args: Args) => unknown;
 declare class EventEmitter {
   readonly core: MaplebirchCore;
   private readonly events;
   private readonly afters;
+  private readonly triggering;
   private readonly stickyEvents;
   private readonly stickyArgs;
+  private readonly synchronousEvents;
   constructor(core: MaplebirchCore);
-  on(eventName: string, callback: EventCallback, description?: string): boolean;
-  off(eventName: string, identifier: EventCallback | string): boolean;
-  once(eventName: string, callback: EventCallback, description?: string): boolean;
-  trigger(eventName: string, ...args: any[]): Promise<void>;
-  after(eventName: string, callback: EventCallback): void;
+  on<Args extends unknown[]>(eventName: string, callback: EventCallback<Args>, description?: string): boolean;
+  off<Args extends unknown[]>(eventName: string, identifier: EventCallback<Args> | string): boolean;
+  once<Args extends unknown[]>(eventName: string, callback: EventCallback<Args>, description?: string): boolean;
+  trigger(eventName: string, ...args: unknown[]): Promise<void>;
+  after<Args extends unknown[]>(eventName: string, callback: EventCallback<Args>): void;
+  private pending;
   private callSticky;
-  private error;
 }
 //#endregion
 //#region node_modules/idb/build/entry.d.ts
@@ -1350,7 +1617,6 @@ declare class IndexedDBService {
   withTransaction<T, Mode extends IDBTransactionMode>(storeNames: string | string[], mode: Mode, callback: (tx: Transaction<Mode>) => T | Promise<T>): Promise<T>;
   clearStore(storeName: string): Promise<void>;
   deleteDatabase(): Promise<boolean>;
-  private error;
 }
 //#endregion
 //#region src/services/CloudSaveService.d.ts
@@ -1363,8 +1629,8 @@ interface CloudSaveConfig {
 }
 interface CloudSaveRecord {
   slot: CloudSaveSlot;
-  details: any;
-  save: any;
+  details: SaveDetails | null;
+  save: SaveState;
   exportedAt: number;
   gameId?: string;
 }
@@ -1381,6 +1647,21 @@ interface CloudSaveRemoteItem {
 interface CloudSaveRemoteCode {
   updatedAt: number;
   payload?: CloudSaveCodeRecord;
+}
+interface SaveDetails {
+  date?: number;
+  title?: string;
+  idx?: unknown;
+  metadata?: {
+    saveName?: string;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+interface SaveState {
+  history?: DolStateMoment[];
+  delta?: unknown;
+  [key: string]: unknown;
 }
 declare class CloudSaveService {
   readonly core: MaplebirchCore;
@@ -1434,6 +1715,7 @@ declare class CloudSaveService {
   private validateRecord;
   private validateCodeRecord;
   private isSlot;
+  private validateSlot;
   private validateGame;
   private invalidResponse;
   private field;
@@ -1442,7 +1724,6 @@ declare class CloudSaveService {
   /** 动态填充本地存档槽位选项。 */
   populateSlotOptions(panel?: HTMLElement | null): Promise<void>;
   private status;
-  private error;
   private get saveDB();
   private get panel();
   private get current();
@@ -1487,6 +1768,8 @@ declare class LanguageManager {
   private writeBatch;
   private removeOldTranslations;
   private updateSource;
+  private activeSources;
+  private visibleTranslations;
   private syncTranslation;
   private readFileRecord;
   private writeFileRecord;
@@ -1495,7 +1778,6 @@ declare class LanguageManager {
   private computeHash;
   private getModFile;
   private rebuild;
-  private error;
 }
 //#endregion
 //#region src/services/ModuleSystem.d.ts
@@ -1506,11 +1788,10 @@ interface Module {
   Init?(): void;
   loadInit?(): void;
   postInit?(): void;
-  [key: string]: unknown;
 }
 interface ModuleRegistry {
   modules: Map<string, Module>;
-  states: Map<string, string | number>;
+  states: Map<string, ModuleState>;
   sources: Map<string, string>;
   dependencies: Map<string, Set<string>>;
   dependents: Map<string, Set<string>>;
@@ -1545,7 +1826,7 @@ declare class ModuleSystem {
   constructor(core: MaplebirchCore);
   static traverse(roots: Iterable<string>, links: ReadonlyMap<string, Iterable<string>>, excluded?: ReadonlySet<string>): Set<string>;
   with<T>(source: string, callback: () => T | Promise<T>): Promise<T>;
-  register(name: string, module: Module, dependencies?: string[]): boolean;
+  register<T extends object>(name: string, module: T & Module, dependencies?: string[]): boolean;
   get(name: string): Module | undefined;
   get dependencyGraph(): DependencyGraph;
   run(phase: 'pre'): Promise<void>;
@@ -1564,7 +1845,6 @@ declare class ModuleSystem {
   private circular;
   private lifecycle;
   private promiseLike;
-  private error;
 }
 //#endregion
 //#region src/services/GUIControl.d.ts
@@ -1605,31 +1885,49 @@ declare class GUIControl {
   private whenCreate;
 }
 //#endregion
+//#region src/modules/Addon/Save.d.ts
+interface SaveObject {
+  state: {
+    history: DolStateMoment[];
+    index?: number;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+declare class Save {
+  private readonly state;
+  readonly details?: unknown;
+  readonly saveObj: SaveObject;
+  constructor(state: DolStateAPI, saveObj: unknown, details?: unknown);
+  get V(): Record<string, unknown>;
+  use<T>(variables: Record<string, unknown>, callback: () => T): T;
+}
+//#endregion
 //#region src/modules/TimeStateWeather/Event.d.ts
 interface EventOptions {
   priority?: number;
   once?: boolean;
 }
+declare abstract class Event {
+  readonly id: string;
+  readonly priority: number;
+  readonly once: boolean;
+  protected abstract readonly eventName: string;
+  protected constructor(id: string, options?: EventOptions);
+  protected evaluate<T extends unknown[]>(label: string, callback: (...args: T) => boolean, ...args: T): boolean;
+  protected invoke<T extends unknown[]>(label: string, callback: ((...args: T) => void) | undefined, ...args: T): void;
+}
 //#endregion
 //#region src/modules/TimeStateWeather/TimeEvents.d.ts
 type TimeEventType = 'onSec' | 'onMin' | 'onHour' | 'onDay' | 'onWeek' | 'onMonth' | 'onYear' | 'onBefore' | 'onThread' | 'onAfter' | 'onTimeTravel';
 type TimeUnit = 'sec' | 'min' | 'hour' | 'day' | 'week' | 'month' | 'year';
-interface DateLike {
-  hour: number;
-  day: number;
-  month: number;
-  year: number;
-  timeStamp: number;
-  minute?: number;
-  second?: number;
-}
 interface AccumulateConfig {
   unit: TimeUnit;
   target?: number;
 }
 interface TimeData {
-  prevDate?: DateLike;
-  currentDate?: DateLike;
+  prevDate?: DateTime;
+  currentDate?: DateTime;
   changes?: Record<TimeUnit, number>;
   triggeredByAccumulator?: {
     unit: TimeUnit;
@@ -1637,6 +1935,7 @@ interface TimeData {
     count: number;
   };
   exactPoints?: {
+    min: boolean;
     hour: boolean;
     day: boolean;
     week: boolean;
@@ -1652,7 +1951,7 @@ interface TimeData {
   month?: number;
   year?: number;
   weekday?: [number, number];
-  detailedDiff?: any;
+  detailedDiff?: ReturnType<DateTime['compareWith']>;
   timeStamp?: number;
   prev?: DateTime;
   current?: DateTime;
@@ -1681,12 +1980,29 @@ interface TimeTravelOptions {
   addMinutes?: number;
   addSeconds?: number;
 }
+declare class TimeEvent extends Event {
+  readonly type: TimeEventType;
+  protected readonly eventName = 'TimeEvent';
+  private action?;
+  private cond;
+  private exact;
+  private accumulate?;
+  private accumulated;
+  private target;
+  constructor(id: string, type: TimeEventType, options?: TimeEventOptions);
+  tryRun(data: TimeData, accumulatedOnly?: boolean): boolean;
+  private runAccumulated;
+  private execute;
+  private match;
+  private runAction;
+  private isExactPoint;
+}
 declare class TimeManager {
   private readonly manager;
   private readonly eventTypes;
   private readonly timeEvents;
   private readonly sortedEventsCache;
-  readonly log: (message: string, level?: string, ...objects: any[]) => void;
+  readonly log: DynamicManager['log'];
   readonly TimeConstants: Readonly<{
     secondsPerDay: 86400;
     secondsPerHour: 3600;
@@ -1715,6 +2031,7 @@ declare class TimeManager {
     }>;
   }>;
   constructor(manager: DynamicManager);
+  get events(): Readonly<Record<string, ReadonlyMap<string, TimeEvent>>>;
   init(): void;
   patchDateTime(DateTimeClass: typeof DateTime): typeof DateTime;
   patchTime(TimeObject: typeof Time): void;
@@ -1742,11 +2059,31 @@ interface StateEventOptions extends EventOptions {
     match?: RegExp;
   };
 }
+interface StateEventResult {
+  hasOutput: boolean;
+  remove: boolean;
+}
+declare class StateEvent extends Event {
+  readonly type: 'gate' | 'append';
+  protected readonly eventName = 'StateEvent';
+  output?: string;
+  private action?;
+  private cond;
+  private forceExit;
+  private extra;
+  constructor(id: string, type: 'gate' | 'append', options?: StateEventOptions);
+  private checkPassage;
+  tryRun(passageName?: string): StateEventResult | null;
+  private match;
+  private runAction;
+  shouldForceExit(): boolean;
+}
 declare class StateManager {
   private readonly manager;
   private readonly stateEvents;
   private readonly log;
   constructor(manager: DynamicManager);
+  get events(): Readonly<Record<'gate' | 'append', ReadonlyMap<string, StateEvent>>>;
   trigger(type: 'gate' | 'append'): string;
   private processGateEvents;
   private processAppendEvents;
@@ -1821,11 +2158,11 @@ declare class DynamicManager {
   regTimeEvent(type: TimeEventType, eventId: string, options: TimeEventOptions): boolean;
   delTimeEvent(type: TimeEventType, eventId: string): boolean;
   timeTravel(options?: TimeTravelOptions): boolean;
-  get TimeEvents(): any;
+  get TimeEvents(): TimeManager['events'];
   regStateEvent(type: 'gate' | 'append', eventId: string, options: StateEventOptions): boolean;
   delStateEvent(type: 'gate' | 'append', eventId: string): boolean;
   trigger(type: 'gate' | 'append'): string;
-  get StateEvents(): any;
+  get StateEvents(): StateManager['events'];
   regWeatherEvent(eventId: string, options: WeatherEventOptions): boolean;
   delWeatherEvent(eventId: string): boolean;
   addWeather(data: WeatherException | WeatherTypeConfig): boolean | void;
@@ -1897,30 +2234,30 @@ declare class CheatConsole {
 interface Step {
   from: string;
   to: string;
-  apply: (data: Record<string, any>, utils: Utils) => void;
+  apply: (data: Record<string, unknown>, utils: Utils) => void;
 }
 interface PathRef {
-  parent: Record<string, any>;
+  parent: Record<string, unknown>;
   key: string;
 }
 interface Utils {
   readonly log: ReturnType<typeof createlog>;
-  path: (obj: Record<string, any>, path: string, create?: boolean) => PathRef | null;
-  move: (data: Record<string, any>, from: string, to: string) => boolean;
-  remove: (data: Record<string, any>, path: string) => boolean;
-  transform: (data: Record<string, any>, path: string, fn: (value: any) => any) => boolean;
-  fill: (target: Record<string, any>, defaults: Record<string, any>, mode?: 'merge' | 'cover') => void;
+  path: (obj: Record<string, unknown>, path: string, create?: boolean) => PathRef | null;
+  move: (data: Record<string, unknown>, from: string, to: string) => boolean;
+  remove: (data: Record<string, unknown>, path: string) => boolean;
+  transform: (data: Record<string, unknown>, path: string, fn: (value: unknown) => unknown) => boolean;
+  fill: (target: Record<string, unknown>, defaults: Record<string, unknown>, mode?: 'merge' | 'cover') => void;
 }
 declare class migration {
-  static readonly log: (message: string, level?: string, ...objects: any[]) => void;
+  static readonly log: (message: string, level?: string, ...objects: unknown[]) => void;
   static create(): migration;
-  readonly log: (message: string, level?: string, ...objects: any[]) => void;
+  readonly log: (message: string, level?: string, ...objects: unknown[]) => void;
   readonly utils: Utils;
   steps: Step[];
   private readonly unsafeKeys;
   constructor();
   add(from: string, to: string, apply: Step['apply']): void;
-  run(data: Record<string, any>, targetVersion: string): void;
+  run(data: Record<string, unknown>, targetVersion: string): void;
   private path;
   private move;
   private compare;
@@ -1933,9 +2270,9 @@ interface RandState {
   index: number;
 }
 declare class randSystem {
-  static readonly log: (message: string, level?: string, ...objects: any[]) => void;
+  static readonly log: (message: string, level?: string, ...objects: unknown[]) => void;
   static create(state?: Partial<RandState>): randSystem;
-  readonly log: (message: string, level?: string, ...objects: any[]) => void;
+  readonly log: (message: string, level?: string, ...objects: unknown[]) => void;
   readonly state: RandState;
   private readonly maxHistory;
   private readonly modulus;
@@ -1956,16 +2293,23 @@ declare class randSystem {
 //#region src/macros/helpers.d.ts
 declare const CONVERT_MODES: readonly ['lower', 'upper', 'capitalize', 'title', 'camel', 'pascal', 'snake', 'kebab', 'constant'];
 type ConvertMode = (typeof CONVERT_MODES)[number];
+type MacroArgs = unknown[] & {
+  full?: string;
+  raw?: string;
+};
 interface MacroPayload {
   name: string;
-  args: any;
+  args: MacroArgs;
   contents?: string;
 }
-interface MacroContext$1 extends Omit<MacroContext, 'createShadowWrapper' | 'error' | 'payload'> {
+interface MacroContext$1 extends Omit<MacroContext, 'args' | 'createShadowWrapper' | 'error' | 'payload'> {
+  args: MacroArgs;
   payload?: MacroPayload[] | null;
-  error(msg: string): any;
-  createShadowWrapper(callback: Function, doneCallback?: Function, startCallback?: Function): (...args: any[]) => void;
-  passageObj?: any;
+  error(msg: string): void;
+  createShadowWrapper(callback: (...args: never[]) => unknown, doneCallback?: (...args: never[]) => unknown, startCallback?: (...args: never[]) => unknown): (...args: unknown[]) => void;
+  passageObj?: {
+    title: string;
+  };
   lanListboxCache?: Record<
     string,
     {
@@ -1976,16 +2320,16 @@ interface MacroContext$1 extends Omit<MacroContext, 'createShadowWrapper' | 'err
 }
 interface ListboxOption {
   label: string;
-  value: any;
+  value: unknown;
   type: 'static' | 'dynamic';
   exprIndex?: number;
   convertMode: ConvertMode | null;
 }
 //#endregion
 //#region src/modules/Frameworks/macros.d.ts
-type MacroFunction = (this: MacroContext$1, ...args: any[]) => any;
-type SimpleMacroFunction = (this: MacroContext$1 | null, ...args: any[]) => any;
-type StatFunction = (...args: any[]) => DocumentFragment;
+type MacroFunction<Args extends unknown[] = unknown[]> = (this: MacroContext$1, ...args: Args) => unknown;
+type SimpleMacroFunction<Args extends unknown[]> = (this: MacroContext$1 | null, ...args: Args) => unknown;
+type StatFunction<Args extends unknown[] = unknown[]> = (...args: Args) => DocumentFragment;
 type MacroTags = string[] | null | undefined;
 type SkipArgs = string[] | boolean | null | undefined;
 declare class defineMacros {
@@ -1995,23 +2339,32 @@ declare class defineMacros {
   readonly statFunctions: Record<string, StatFunction>;
   constructor(manager: ToolCollection);
   get Macro(): MaplebirchCore['SugarCube']['Macro'];
-  define(macroName: string, macroFunction: MacroFunction, tags?: MacroTags, skipArgs?: SkipArgs, isAsync?: boolean): void;
-  defineS(macroName: string, macroFunction: SimpleMacroFunction, tags?: MacroTags, skipArgs?: SkipArgs, maintainContext?: boolean): void;
+  define<Args extends unknown[]>(macroName: string, macroFunction: MacroFunction<Args>, tags?: MacroTags, skipArgs?: SkipArgs, isAsync?: boolean): void;
+  defineS<Args extends unknown[]>(macroName: string, macroFunction: SimpleMacroFunction<Args>, tags?: MacroTags, skipArgs?: SkipArgs, maintainContext?: boolean): void;
   statChange(statType: string, amount: number, colorClass: string, condition?: () => boolean): DocumentFragment;
   grace(amount: number, expectedRank?: string): DocumentFragment;
-  create(name: string, fn: StatFunction): void;
-  callStatFunction(name: string, ...args: any[]): DocumentFragment;
+  create<Args extends unknown[]>(name: string, fn: StatFunction<Args>): void;
+  callStatFunction(name: string, ...args: unknown[]): DocumentFragment;
 }
 //#endregion
 //#region src/modules/Frameworks/HtmlTools.d.ts
+type HtmlRoot = Element | DocumentFragment;
+interface TextContext {
+  readonly macro?: MacroContext$1;
+  readonly args?: readonly unknown[];
+  readonly name?: string;
+  readonly widgetName?: string;
+  readonly passageTitle?: string;
+  readonly [key: string]: unknown;
+}
 type TextContent = string | number | boolean | null | undefined;
 type RawContent = TextContent | Node;
 declare class Builder {
   readonly parent: htmlTools;
   readonly auto: (text: string) => string;
-  readonly fragment: DocumentFragment;
-  readonly context: Record<string, any>;
-  constructor(parent: htmlTools, fragment: DocumentFragment, context?: Record<string, any>);
+  readonly fragment: HtmlRoot;
+  readonly context: TextContext;
+  constructor(parent: htmlTools, fragment: HtmlRoot, context?: TextContext);
   text(content: TextContent, style?: string): this;
   line(content?: TextContent, style?: string): this;
   wikify(content: TextContent): this;
@@ -2019,20 +2372,73 @@ declare class Builder {
   box(content: RawContent, style?: string): this;
 }
 declare class htmlTools {
-  readonly core: ToolCollection['core'];
+  readonly core: MaplebirchCore;
   readonly log: ReturnType<typeof createlog>;
   private uid;
   private readonly store;
-  constructor(manager: ToolCollection);
-  get Wikifier(): any;
-  replaceText(oldText: string, newText: string): void;
-  replaceLink(oldLink: string, newLink: string): void;
+  constructor(core: MaplebirchCore);
+  get Wikifier(): MaplebirchCore['SugarCube']['Wikifier'];
+  replaceText(oldText: string, newText: string, root?: HtmlRoot | null): number;
+  renameLink(target: string | Element, label: string, root?: HtmlRoot | null): boolean;
+  replaceLink(target: string | Element, source: string, root?: HtmlRoot | null): boolean;
+  private findLink;
   add(key: string, handler: (tools: Builder) => void, id?: string): string | false;
   delete(key: string, idOrHandler?: string | ((tools: Builder) => void)): boolean;
   clear(): void;
-  renderFragment(keys: string | string[], context?: Record<string, any>): DocumentFragment;
-  render(macro: any, keys: string | string[]): void;
+  renderFragment(keys: string | string[], context?: TextContext): DocumentFragment;
+  renderInto(root: HtmlRoot, keys: string | string[], context?: TextContext): void;
+  render(macro: MacroContext$1, keys: string | string[]): void;
   makeTextOutput(options?: { CSV?: boolean }): MacroFunction;
+}
+//#endregion
+//#region src/modules/Addon/Diagnostics.d.ts
+interface PatchResult {
+  kind: 'passage' | 'script' | 'style' | 'source';
+  target: string;
+  index: number;
+  pattern: string;
+  matches: number;
+  applied: number;
+  status: 'applied' | 'unmatched' | 'missing' | 'invalid' | 'mismatch' | 'error';
+  expected?: number;
+  error?: string;
+}
+interface ModRequirement {
+  name: string;
+  range?: string;
+  version?: string;
+  status: 'available' | 'missing' | 'incompatible' | 'invalid';
+  error?: string;
+}
+interface ModConflict {
+  source: string;
+  dataSource: string;
+  passages: string[];
+  scripts: string[];
+  styles: string[];
+}
+declare class Diagnostics {
+  private readonly manager;
+  private readonly modUtils;
+  private readonly results;
+  constructor(manager: SC2DataManager, modUtils: ModUtils);
+  get patches(): PatchResult[];
+  recordPatch(result: PatchResult): void;
+  clearPatches(): void;
+  mod(name: string, range?: string): ModRequirement;
+  dependencies(): boolean;
+  get conflicts(): ModConflict[] | undefined;
+}
+//#endregion
+//#region src/modules/Frameworks/SourcePatch.d.ts
+interface SourcePatch {
+  src?: string;
+  srcmatch?: RegExp;
+  srcmatchgroup?: RegExp;
+  to?: string;
+  applyafter?: string;
+  applybefore?: string;
+  expected?: number;
 }
 //#endregion
 //#region src/modules/Frameworks/ZonesManager.d.ts
@@ -2042,48 +2448,54 @@ interface ZoneWidgetConfig {
   passage?: string | string[];
   widget: string;
   type?: 'function';
-  func?: () => any;
+  func?: () => unknown;
 }
 interface CustomLinkZoneItem {
   position: number;
   widget: string | ZoneWidgetConfig;
 }
-interface PatchSet {
-  src?: string;
-  srcmatch?: RegExp;
-  srcmatchgroup?: RegExp;
-  to?: string;
-  applyafter?: string;
-  applybefore?: string;
-}
+type PatchSet = SourcePatch;
 type ZoneItem = string | ZoneWidgetConfig | CustomLinkZoneItem;
+type ZoneFunction = () => unknown;
 type InitObject =
   | {
-      init: Function;
+      init: ZoneFunction;
     }
   | {
       name: string;
-      func: Function;
+      func: ZoneFunction;
     };
-type InitFunction = string | Function | InitObject;
+type PositionedZoneWidgetConfig = Omit<ZoneWidgetConfig, 'widget'> & {
+  widget: [number, string];
+};
+type ZoneWidget = string | ZoneFunction | ZoneWidgetConfig | PositionedZoneWidgetConfig | [number, string | ZoneWidgetConfig];
+interface CustomLinkGroup {
+  position: number;
+  macro: string;
+}
+type InitFunction = string | ZoneFunction | InitObject;
 declare class zonesManager {
   readonly log: ReturnType<typeof createlog>;
   readonly core: ToolCollection['core'];
   data: Record<string, ZoneItem[]>;
   initFunction: InitFunction[];
-  specialWidget: (string | Function)[];
-  defaultData: Record<string, string | Function>;
+  specialWidget: (string | ZoneFunction)[];
+  defaultData: Record<string, string | ZoneFunction>;
   locationPassage: Record<string, PatchSet[]>;
   widgetPassage: Record<string, PatchSet[]>;
   widgethtml: string;
-  private functions;
+  private readonly functions;
+  private readonly functionNames;
+  private nextFunction;
   constructor(manager: ToolCollection);
   inject(...databases: Partial<Pick<zonesManager, 'specialWidget' | 'defaultData' | 'locationPassage' | 'widgetPassage'>>[]): void;
   onInit(...widgets: InitFunction[]): void;
-  addTo(zone: string, ...widgets: (string | Function | ZoneWidgetConfig | [number, string | ZoneWidgetConfig])[]): void;
+  addTo(zone: string, ...widgets: ZoneWidget[]): void;
   storyInit(): void;
-  call(name: string): any;
-  play(zone: string, passageTitle?: string): any;
+  call(name: string): unknown;
+  play(zone: 'CustomLinkZone', passageTitle?: string): CustomLinkGroup[];
+  play(zone: 'BeforeLinkZone' | 'AfterLinkZone', passageTitle?: string): string;
+  play(zone: string, passageTitle?: string): string | CustomLinkGroup[];
   patchModToGame(manager: AddonPlugin, type: 'before' | 'after'): void;
   private get widgets();
   private get specials();
@@ -2091,13 +2503,10 @@ declare class zonesManager {
   private render;
   private shouldRender;
   private customLinkItem;
-  private matchAndApply;
-  private applyPatch;
   private wrapSpecialPassage;
   private applyContentPatches;
   private patchPassage;
   private widgetInit;
-  private hash;
 }
 //#endregion
 //#region src/modules/Frameworks/ApplyLinkZone.d.ts
@@ -2116,10 +2525,13 @@ interface LinkZoneConfig {
   onAfterApply?: ((result: boolean, config: LinkZoneConfig) => void) | null;
   debug: boolean;
 }
-declare const log: (message: string, level?: string, ...objects: any[]) => void;
+declare const log: (message: string, level?: string, ...objects: unknown[]) => void;
 declare class LinkZoneManager {
   readonly containerId: string;
   readonly linkSelector: string;
+  static readonly apply: (config?: Partial<LinkZoneConfig>) => boolean;
+  static readonly add: (config: LinkZoneConfig, customZones: CustomZone[]) => void;
+  static readonly defaultConfig: LinkZoneConfig;
   firstLink: Element | null;
   lastLink: Element | null;
   links: Element[];
@@ -2139,166 +2551,73 @@ declare class LinkZoneManager {
 }
 declare const applyLinkZone: typeof LinkZoneManager;
 //#endregion
-//#region src/modules/Frameworks/OtherTools/Traits.d.ts
-interface TraitCategory {
-  title: string;
-  traits: Trait[];
+//#region src/modules/Frameworks/Patches/Patch.d.ts
+type PatchPhase = 'init' | 'state';
+interface WidgetPatch {
+  before?: (text: string) => string;
+  after?: (node: DocumentFragment) => void;
 }
-interface Trait {
-  name: string;
-  colour: string;
-  has: boolean;
-  text: string;
+interface PatchDefinition<T extends object = object> {
+  api: T;
+  init?: () => void;
+  state?: () => void;
+  widgets?: Readonly<Record<string, WidgetPatch>>;
 }
-interface TraitConfig {
-  title: string;
-  name: string | (() => string);
-  colour: string | (() => string);
-  has: boolean | (() => boolean);
-  text: string | (() => string);
-}
-//#endregion
-//#region src/modules/Frameworks/OtherTools/Location.d.ts
-interface LocationConfigOptions {
-  overwrite?: boolean;
-  layer?: string;
-  element?: string;
-}
-interface LocationConfig {
-  condition?: (...object: any[]) => boolean;
-  folder?: string;
-  base?: Record<string, any>;
-  emissive?: Record<string, any>;
-  reflective?: Record<string, any>;
-  layerTop?: Record<string, any>;
-  customMapping?: any;
-  [key: string]: any;
-}
-interface LocationUpdate {
-  overwrite: boolean;
-  config: LocationConfig;
-  customMapping: any;
-}
-//#endregion
-//#region src/modules/Frameworks/OtherTools/Bodywriting.d.ts
-interface BodywritingConfig {
-  writing?: string;
-  writ_cn?: string;
-  type?: 'text' | 'object';
-  arrow?: 0 | 1;
-  special?: string;
-  gender?: 'n' | 'f' | 'm' | 'h';
-  lewd?: 0 | 1;
-  degree?: number;
-  featSkip?: boolean;
-  sprites?: string[];
-  index?: number;
-  key?: string;
-}
-interface BodywritingData {
-  operation: 'add' | 'del';
-  config?: BodywritingConfig;
-}
-//#endregion
-//#region src/modules/Frameworks/OtherTools/Foodstuff.d.ts
-type FoodstuffSeason = 'spring' | 'summer' | 'autumn' | 'winter';
-type FoodstuffPlantingBed = 'earth' | 'water';
-type FoodstuffStallSize = 'small' | 'large';
-interface FoodstuffConfig {
-  key?: string;
-  index?: number;
-  name?: string;
-  singular?: string;
-  plural?: string;
-  icon?: string;
-  category?: string;
-  kitchen_item_type_icon?: string;
-  prop_folder?: string;
-  ingredient_alternatives?: Record<string, string[]>;
-  tending?: {
-    planting_bed?: FoodstuffPlantingBed;
-    growth_days?: number;
-    yield_multiplier?: number;
-    has_seeds?: boolean;
-    seed_name?: string;
-    seasons?: FoodstuffSeason[];
-    affected_by_tending_skill?: boolean;
-    tags?: string[];
-    [key: string]: any;
-  };
-  shop?: {
-    sell_price?: number;
-    available_in?: string[];
-    bought_in_bulk?: number;
-    stall_size?: FoodstuffStallSize;
-    [key: string]: any;
-  };
-  recipe?: {
-    recipe_name?: string;
-    difficulty?: number;
-    cook_minutes?: number;
-    servings?: number;
-    ingredients?: string[];
-    ingredient_alternatives?: Record<string, string[]>;
-    tags?: string[];
-    [key: string]: any;
-  };
-  food?: {
-    handheld_gift?: boolean;
-    tags?: string[];
-    [key: string]: any;
-  };
-  [key: string]: any;
-}
-//#endregion
-//#region src/modules/Frameworks/OtherTools/Antiques.d.ts
-interface AntiqueConfig {
-  hint: string;
-  museum: string;
-  name: string;
-  cn_name?: string;
-  journal: string;
-  journalName?: string;
-  icon: string;
-  key?: string;
-}
-//#endregion
-//#region src/modules/Frameworks/patch.d.ts
-type AddTraits = (...traits: Partial<TraitConfig>[]) => void;
-type InjectTraits = (data: TraitCategory[]) => TraitCategory[];
-type ConfigureLocation = (locationId: string, config: LocationConfig, options?: LocationConfigOptions) => boolean;
-type ApplyLocation = () => void;
-type AddBodywriting = (key: string, config: BodywritingConfig) => void;
-type ApplyBodywriting = () => void;
-type AddFoodstuff = (key: string, config: FoodstuffConfig) => void;
-type ApplyFoodstuff = () => void;
-type AddAntiques = (key: string, config: AntiqueConfig) => void;
-type InjectAntiques = (data: Record<string, AntiqueConfig>) => Record<string, AntiqueConfig>;
-type AddTips = (category: string, ...tips: string[]) => void;
-type ApplyTips = () => void;
-type InjectTips = (data: string[]) => string[];
 declare class Patch {
-  readonly traitsData: TraitConfig[];
-  readonly locationData: Record<string, LocationUpdate>;
-  readonly bodywritingData: Record<string, BodywritingData>;
-  readonly foodstuffData: Record<string, FoodstuffConfig>;
-  readonly antiquesData: Record<string, AntiqueConfig>;
-  readonly tipsData: Record<string, string[]>;
-  addTraits: AddTraits;
-  injectTraits: InjectTraits;
-  configureLocation: ConfigureLocation;
-  applyLocation: ApplyLocation;
-  addBodywriting: AddBodywriting;
-  applyBodywriting: ApplyBodywriting;
-  addFoodstuff: AddFoodstuff;
-  applyFoodstuff: ApplyFoodstuff;
-  addAntiques: AddAntiques;
-  injectAntiques: InjectAntiques;
-  addTips: AddTips;
-  applyTips: ApplyTips;
-  injectTips: InjectTips;
+  private readonly report;
+  private readonly entries;
+  constructor(report: (name: string, error: unknown) => void);
+  add<T extends object>(name: string, definition: PatchDefinition<T>): this & T;
+  beforeWidget(widget: string, text: string): string;
+  afterWidget(widget: string, node: DocumentFragment): void;
+  private widget;
+  private run;
+  apply(phase: PatchPhase): void;
 }
-declare const _default: Patch;
+//#endregion
+//#region src/modules/Frameworks/Patches/Tips.d.ts
+declare class Tips {
+  static add(category: string, ...tips: string[]): void;
+  static apply(): void;
+  static inject(data: string[]): string[];
+}
+//#endregion
+//#region src/modules/Frameworks/Patches/index.d.ts
+declare function create(core: MaplebirchCore): Patch & {
+  traitsData: TraitConfig[];
+  addTraits: typeof Traits.add;
+  injectTraits: (data: Parameters<typeof Traits.inject>[0]) => TraitCategory[];
+} & {
+  locationData: Record<string, LocationUpdate>;
+  configureLocation: typeof Location.configure;
+  applyLocation: typeof Location.apply;
+} & {
+  bodywritingData: Record<string, BodywritingData>;
+  addBodywriting: typeof Bodywriting.add;
+  deleteBodywriting: typeof Bodywriting.delete;
+  applyBodywriting: typeof Bodywriting.apply;
+} & {
+  fishData: Record<string, FishConfig>;
+  fishingLocationData: Partial<Record<FishingLocation, Record<string, number>>>;
+  addFish: typeof Fishing.addFish;
+  addBait: typeof Fishing.addBait;
+  configureFishingLocation: typeof Fishing.configureLocation;
+  applyFishing: typeof Fishing.apply;
+} & {
+  foodstuffData: Record<string, FoodstuffConfig>;
+  addFoodstuff: typeof Foodstuff.add;
+  applyFoodstuff: typeof Foodstuff.apply;
+} & {
+  antiquesData: Record<string, AntiqueConfig>;
+  addAntiques: typeof Antiques.add;
+  injectAntiques: typeof Antiques.inject;
+} & {
+  tipsData: Record<string, string[]>;
+  addTips: typeof Tips.add;
+  applyTips: typeof Tips.apply;
+  injectTips: typeof Tips.inject;
+};
+type Patches = ReturnType<typeof create>;
 //#endregion
 //#region src/modules/ToolCollection.d.ts
 declare class ToolCollection {
@@ -2310,18 +2629,12 @@ declare class ToolCollection {
   readonly text: htmlTools;
   readonly zone: zonesManager;
   readonly link: typeof applyLinkZone;
-  readonly patch: typeof _default;
+  readonly patch: Patches;
   readonly createlog: typeof createlog;
   constructor(core: MaplebirchCore);
   onInit(...widgets: InitFunction[]): void;
-  addTo(zone: string, ...widgets: (string | Function | ZoneWidgetConfig | [number, string | ZoneWidgetConfig])[]): void;
+  addTo(zone: string, ...widgets: ZoneWidget[]): void;
   preInit(): void;
-  private config;
-  private loadConfig;
-  private addTrait;
-  private addKeyedConfig;
-  private addTips;
-  private error;
 }
 //#endregion
 //#region src/modules/AudioAddon/Track.d.ts
@@ -2380,8 +2693,8 @@ declare const PlayState: {
 type PlayStateType = (typeof PlayState)[keyof typeof PlayState];
 interface AudioEventData {
   type: string;
-  data?: any[];
-  [key: string]: any;
+  data?: unknown[];
+  [key: string]: unknown;
 }
 type AudioEventHandler = (eventData: AudioEventData) => void;
 interface AudioProgress {
@@ -2405,6 +2718,7 @@ declare class AudioManager {
   readonly log: ReturnType<typeof createlog>;
   private readonly STORE;
   private readonly playlists;
+  private readonly playlistLoads;
   private readonly eventListeners;
   private readonly cache;
   private readonly pendingLoads;
@@ -2616,7 +2930,7 @@ declare class Transformation {
   readonly suppressConditions: Record<string, SuppressCondition[]>;
   readonly buildUpdaters: Record<string, BuildUpdater>;
   constructor(manager: Character);
-  private isDoLP;
+  private get isDoLP();
   private get animalTransforms();
   private get animalMacros();
   private get historyTransforms();
@@ -2625,6 +2939,7 @@ declare class Transformation {
   add(name: string, type: string, options: TransformationOption): this;
   inject(): void;
   private _update;
+  state(): void;
   private _clear;
   private suppress;
   _transform(name: string, change: number): void;
@@ -2641,7 +2956,7 @@ declare class Transformation {
     }
   ): boolean;
   get icon(): string;
-  setTransform(name: string, level: number | null): void;
+  setTransform(name: string, level?: number | null): void;
   part(partName: string): boolean;
 }
 //#endregion
@@ -2726,7 +3041,6 @@ interface EnhancedDate extends DateTime {
   isHour(...hours: number[]): boolean;
   isHourBetween(start: number, end: number): boolean;
   isMinuteBetween(start: number, end: number): boolean;
-  [key: string]: any;
 }
 declare class Schedule {
   daily: string[];
@@ -3010,7 +3324,14 @@ interface NPCConfig {
   special?: boolean | (() => boolean);
   loveInterest?: boolean | (() => boolean);
   romance?: (() => boolean)[];
-  [key: string]: any;
+  [key: string]: unknown;
+}
+interface NPCStatConfig {
+  min?: number;
+  max?: number;
+  default?: number;
+  position?: number | 'first' | 'last' | false;
+  [key: string]: unknown;
 }
 declare const NamedNPC: {
   new (
@@ -3058,7 +3379,7 @@ declare const NamedNPC: {
     outfits: string[];
     pregnancy: any;
     pregnancyAvoidance?: number;
-    descCache: Record<string, any>;
+    descCache: Record<string, string>;
     setPronouns(): void;
     setBodyTraits(data: NPCData): void;
     bodyPartdescription(): void;
@@ -3075,15 +3396,17 @@ declare const NamedNPC: {
 declare class NPCManager {
   readonly core: MaplebirchCore;
   readonly log: ReturnType<typeof createlog>;
-  readonly data: Map<string, any>;
+  readonly data: Map<
+    string,
+    {
+      Data: InstanceType<typeof NamedNPC>;
+      Config: NPCConfig;
+    }
+  >;
   NPCNameList: string[];
   readonly Transformation: NPCTransformation;
-  readonly type: {
-    [x: string]: Array<string>;
-  };
-  readonly customStats: {
-    [x: string]: any;
-  };
+  readonly type: Record<'loveInterestNpcs' | 'importantNPCs' | 'specialNPCs', string[]>;
+  readonly customStats: Record<string, NPCStatConfig>;
   readonly romanceConditions: {
     [key: string]: (() => boolean)[];
   };
@@ -3095,13 +3418,11 @@ declare class NPCManager {
   constructor(core: MaplebirchCore);
   add(npcData: NPCData, config?: NPCConfig, translationsData?: TranslationInput): boolean;
   addSchedule(npcName: string, config: ScheduleConfig | ScheduleBuilder): Schedule;
-  addStats(statsObject: { [x: string]: any }): void;
+  addStats(statsObject: Record<string, NPCStatConfig>): void;
   addClothes(...configs: OutfitSetConfig[]): void;
   injectModNPCs(): void;
-  vanillaNPCConfig(npcConfig: NPCConfig): any;
-  applyStatDefaults(statDefaults: { [x: string]: any }): {
-    [x: string]: any;
-  };
+  vanillaNPCConfig(npcConfig: Record<string, NPCConfig>): Record<string, NPCConfig>;
+  applyStatDefaults(statDefaults: Record<string, NPCStatConfig>): Record<string, NPCStatConfig>;
   vanillaInit(npcName: string): void;
   vanillaInject(npcName: string, npcno: number): void;
   private config;
@@ -3112,22 +3433,24 @@ declare class NPCManager {
 }
 //#endregion
 //#region src/modules/CombatAddon/CombatAction.d.ts
-type ActionType = 'leftaction' | 'rightaction' | 'feetaction' | 'mouthaction' | 'penisaction' | 'vaginaaction' | 'anusaction' | 'chestaction' | 'thighaction';
+declare const actionTypes: readonly ['leftaction', 'rightaction', 'feetaction', 'mouthaction', 'penisaction', 'vaginaaction', 'anusaction', 'chestaction', 'thighaction'];
+type ActionType = (typeof actionTypes)[number];
 type CombatType = 'Default' | 'Self' | 'Struggle' | 'Swarm' | 'Vore' | 'Machine' | 'Tentacle';
+type ActionValue = string | number;
 interface Context {
   actionType?: ActionType;
   combatType?: CombatType;
   encounterType?: CombatType;
-  action?: any;
+  action?: ActionValue;
+  id?: string;
   originalCount?: number;
-  [key: string]: any;
 }
 interface ActionEntry {
   id: string;
   actionType: ActionType;
   cond: (ctx: Context) => boolean;
   display: (ctx: Context) => string;
-  value: (ctx: Context) => any;
+  value: (ctx: Context) => ActionValue;
   color: (ctx: Context) => string;
   difficulty: (ctx: Context) => string;
   effect: (ctx: Context) => string;
@@ -3139,7 +3462,7 @@ interface ActionConfig {
   actionType: ActionType | ActionType[];
   cond: (ctx: Context) => boolean;
   display: (ctx: Context) => string;
-  value: (ctx: Context) => any;
+  value: (ctx: Context) => ActionValue;
   color?: string | ((ctx: Context) => string);
   difficulty?: string | ((ctx: Context) => string);
   effect?: string | ((ctx: Context) => string);
@@ -3147,15 +3470,15 @@ interface ActionConfig {
   order?: number | ((ctx: Context) => number);
 }
 interface OptionsTable {
-  [key: string]: any;
+  [key: string]: ActionValue;
 }
 declare class CombatActions {
   readonly actions: ActionEntry[];
   reg(...configs: ActionConfig[]): this;
   private eval;
   patchOptions(optionsTable: OptionsTable, actionType: ActionType, combatType?: CombatType): OptionsTable;
-  color(action: any, encounterType?: CombatType): string | null;
-  difficulty(action: any, combatType?: CombatType): string | null;
+  color(action: ActionValue, encounterType?: CombatType): string | null;
+  difficulty(action: ActionValue, combatType?: CombatType): string | null;
   effect(...actionTypes: ActionType[]): string;
 }
 //#endregion
@@ -3173,6 +3496,33 @@ declare class CombatManager {
 //#endregion
 //#region src/core.d.ts
 interface Extensions {}
+interface CoreModules {
+  readonly addon: AddonPlugin;
+  readonly dynamic: DynamicManager;
+  readonly tool: ToolCollection;
+  readonly audio: AudioManager;
+  readonly var: Variables;
+  readonly char: Character;
+  readonly npc: NPCManager;
+  readonly combat: CombatManager;
+}
+interface CoreEvents {
+  ':indexedDB': [];
+  ':idbReady': [];
+  ':import': [];
+  ':variable': [];
+  ':onSave': [save: Save];
+  ':onLoad': [save: Save];
+  ':language': [];
+  ':storyready': [];
+  ':passageinit': [passage: Passage];
+  ':passagestart': [passage: Passage, content: HTMLDivElement];
+  ':passagerender': [passage: Passage, content: HTMLDivElement];
+  ':passagedisplay': [passage: Passage, content: HTMLDivElement];
+  ':passageend': [passage: Passage, content: HTMLDivElement];
+  ':sugarcube': [];
+  ':modLoaderEnd': [];
+}
 type Instance = MaplebirchCore & Extensions;
 declare class MaplebirchCore {
   static meta: {
@@ -3204,12 +3554,12 @@ declare class MaplebirchCore {
     clamp: typeof clamp;
     loadImage: typeof loadImage;
   }>;
-  modList: string[];
+  readonly modList: string[];
   readonly manager: {
     modSC2DataManager: SC2DataManager;
     modLoaderGui: Gui;
   };
-  passage: any;
+  passage: Passage | null;
   readonly yaml: typeof jsyaml;
   readonly howler: {
     Howl: typeof Howl;
@@ -3223,22 +3573,26 @@ declare class MaplebirchCore {
   readonly lang: LanguageManager;
   readonly modules: ModuleSystem;
   readonly gui: GUIControl;
-  readonly addon: AddonPlugin;
-  readonly dynamic: DynamicManager;
-  readonly tool: ToolCollection;
-  readonly audio: AudioManager;
-  readonly var: Variables;
-  readonly char: Character;
-  readonly npc: NPCManager;
-  readonly combat: CombatManager;
+  readonly addon: CoreModules['addon'];
+  readonly dynamic: CoreModules['dynamic'];
+  readonly tool: CoreModules['tool'];
+  readonly audio: CoreModules['audio'];
+  readonly var: CoreModules['var'];
+  readonly char: CoreModules['char'];
+  readonly npc: CoreModules['npc'];
+  readonly combat: CoreModules['combat'];
   constructor(modSC2DataManager: SC2DataManager, modLoaderGui: Gui);
-  log(msg: string, level?: string, ...objs: any[]): void;
-  on(eventName: string, callback: (...args: any[]) => any, description?: string): boolean;
-  off(eventName: string, identifier: string | ((...args: any[]) => any)): boolean;
-  once(eventName: string, callback: (...args: any[]) => any, description?: string): boolean;
-  after(eventName: string, callback: (...args: any[]) => any): void;
-  trigger(evt: string, ...args: any[]): Promise<void>;
-  register(name: string, module: any, dependencies?: string[]): boolean;
+  log(msg: string, level?: string, ...objs: unknown[]): void;
+  on<Name extends keyof CoreEvents>(eventName: Name, callback: EventCallback<CoreEvents[Name]>, description?: string): boolean;
+  on<Name extends string, Args extends unknown[]>(eventName: Name extends keyof CoreEvents ? never : Name, callback: EventCallback<Args>, description?: string): boolean;
+  off<Args extends unknown[]>(eventName: string, identifier: string | EventCallback<Args>): boolean;
+  once<Name extends keyof CoreEvents>(eventName: Name, callback: EventCallback<CoreEvents[Name]>, description?: string): boolean;
+  once<Name extends string, Args extends unknown[]>(eventName: Name extends keyof CoreEvents ? never : Name, callback: EventCallback<Args>, description?: string): boolean;
+  after<Name extends keyof CoreEvents>(eventName: Name, callback: EventCallback<CoreEvents[Name]>): void;
+  after<Name extends string, Args extends unknown[]>(eventName: Name extends keyof CoreEvents ? never : Name, callback: EventCallback<Args>): void;
+  trigger<Name extends keyof CoreEvents>(eventName: Name, ...args: CoreEvents[Name]): Promise<void>;
+  trigger<Name extends string>(eventName: Name extends keyof CoreEvents ? never : Name, ...args: unknown[]): Promise<void>;
+  register<T extends object>(name: string, module: T & Module, dependencies?: string[]): boolean;
   t(key: string, space?: boolean): string;
   auto(text: string): string;
   disabled(modNames: string | string[], reload?: boolean): Promise<boolean>;
@@ -3250,14 +3604,15 @@ declare class MaplebirchCore {
   get Language(): string;
   set LogLevel(level: string);
   get LogLevel(): string;
-  get(name: string): any;
-  get dependencyGraph(): any;
+  get<K extends keyof (CoreModules & Extensions)>(name: K): (CoreModules & Extensions)[K] | undefined;
+  get(name: string): Module | undefined;
+  get dependencyGraph(): DependencyGraph;
   get modLoader(): ReturnType<SC2DataManager['getModLoader']>;
   get modUtils(): ModUtils;
   get gameVersion(): string;
 }
 declare var maplebirch: Instance;
-declare function createlog(prefix: string): (message: string, level?: string, ...objects: any[]) => void;
+declare function createlog(prefix: string): (message: string, level?: string, ...objects: unknown[]) => void;
 //#endregion
 //#region src/services/CredentialVault.d.ts
 type CredentialPeriod = 'day' | 'month';
@@ -3291,7 +3646,7 @@ interface CryptContext {
   payload?: AuthPayload;
 }
 interface CryptResult {
-  data: any;
+  data: Awaited<InputFileFormat>;
   auth?: AuthConfig | boolean | void;
 }
 interface CryptOptions {
@@ -3304,8 +3659,8 @@ interface CryptOptions {
   prompt?: AuthConfig['prompt'] & {
     name?: string;
   };
-  lazyOptions?: any;
-  decrypt(password: string, context: CryptContext): Promise<CryptResult | Uint8Array | ArrayBuffer | Blob | string>;
+  lazyOptions?: unknown;
+  decrypt(password: string, context: CryptContext): Promise<CryptResult | Awaited<InputFileFormat>>;
 }
 declare class CredentialVault {
   readonly core: MaplebirchCore;
@@ -3335,6 +3690,23 @@ declare class CredentialVault {
 type Replacement = [RegExp, string];
 declare function replace(content: string, replacements: Replacement[], label?: string): string;
 //#endregion
+//#region src/modules/Addon/Resources.d.ts
+type ImageResult = string | false;
+/** Resolves ModLoader images and ordinary URLs while retaining the resolved URL. */
+declare class Resources {
+  private readonly manager;
+  private readonly report;
+  private readonly cache;
+  private readonly pending;
+  constructor(manager: SC2DataManager, report: (path: string, error: unknown) => void);
+  normalize(path: string): string;
+  /** Undefined means the providers cannot determine whether the resource exists. */
+  has(path: string): boolean | undefined;
+  load(path: string): ImageResult | Promise<ImageResult>;
+  clear(path?: string): void;
+  private resolve;
+}
+//#endregion
 //#region src/modules/AddonPlugin.d.ts
 interface FileItem {
   modName: string;
@@ -3354,6 +3726,8 @@ declare class AddonPlugin {
   readonly replace: typeof replace;
   readonly SC2DataManager: SC2DataManager;
   readonly modUtils: ModUtils;
+  readonly resources: Resources;
+  readonly diagnostics: Diagnostics;
   readonly info: Map<
     string,
     {
@@ -3374,6 +3748,7 @@ declare class AddonPlugin {
   private scriptFilesExecuted;
   private bootReady;
   constructor(core: MaplebirchCore);
+  wikify(name: string, callbacks: WikifyTracerCallback): void;
   hook<T>(name: string, handler: BootHandler<T>): boolean;
   canLoadThisMod(bootJson: ModBootJson, _zip: JSZipLikeReadOnlyInterface): Promise<boolean>;
   afterInjectEarlyLoad(): Promise<void>;
@@ -3402,8 +3777,6 @@ declare class AddonPlugin {
   private run;
   private config;
   private modifyOptionsDateFormat;
-  private saveHandle;
-  private error;
 }
 //#endregion
-export { type Extensions, type MaplebirchCore, maplebirch as default, index_d_exports as utils };
+export { type CoreEvents, type CoreModules, type Extensions, type MaplebirchCore, type Save, type SaveObject, maplebirch as default, index_d_exports as utils };

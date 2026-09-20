@@ -115,11 +115,25 @@ Register framework data:
   },
   {
     "antiques": "data/antiques.yaml"
+  },
+  {
+    "fish": "data/fish.json",
+    "bait": "data/bait.yaml",
+    "fishingLocations": "data/fishing-locations.yaml"
   }
 ]
 ```
 
-**`traits`**, **`bodywriting`**, **`foodstuff`**, and **`antiques`** accept inline arrays/objects or external **`.json`**, **`.yaml`**, and **`.yml`** files. For array forms of **`bodywriting`**, **`foodstuff`**, and **`antiques`**, each item must include **`key`**.
+A single **`framework`** object may contain multiple data fields. Each field accepts a path or array of paths to **`.json`**, **`.yaml`**, or **`.yml`** files. Files are read in order and use these formats:
+
+| Field                                                  | Content Format                                                         |
+| :----------------------------------------------------- | :--------------------------------------------------------------------- |
+| `traits`                                               | Array of trait configurations                                          |
+| `tips`                                                 | Array of tip strings, or an object mapping categories to string arrays |
+| `bodywriting`, `foodstuff`, `antiques`, `fish`, `bait` | Object keyed by unique id, or an array with `key` on each item         |
+| `fishingLocations`                                     | Object mapping fishing spots to fish weights                           |
+
+These formats also work inline. For keyed data, later registrations take precedence. `fish`, `bait`, and `fishingLocations` target the vanilla 0.5.12.13 fishing system.
 
 `tips.json` may be a string array. This adds every entry to vanilla's always-enabled `general` category:
 
@@ -139,12 +153,16 @@ To follow vanilla content settings, use an object matching the shape of `setup.t
 
 Vanilla categories continue to follow vanilla content settings. New categories are always enabled by default and automatically join the pool built by vanilla `generateTipsList`. Scripts may also call `maplebirch.tool.patch.addTips('myMod', 'A new tip')`. The framework merges tips after vanilla `init_tips` and ignores duplicate text.
 
+Inline `tips` string arrays contain tip text. When every entry ends with `.json`, `.yaml`, or `.yml`, they are read as file paths instead.
+
 Related docs:
 
+- [Patch Registration](ToolCollection/Patches.md)
 - [Traits](ToolCollection/Traits.md)
 - [Tips](ToolCollection/Tips.md)
 - [Bodywriting](ToolCollection/Bodywriting.md)
 - [Foodstuff](ToolCollection/Foodstuff.md)
+- [Fishing Extensions](ToolCollection/Fishing.md)
 - [Antiques](ToolCollection/Antiques.md)
 
 ## npc

@@ -1,26 +1,28 @@
 // ./src/modules/Frameworks/migration.ts
 
+import { errorMessage } from '../../utils/error';
 import { createlog } from '../../core';
-import { coverfn as coverFn, mergefn as mergeFn } from '../../utils';
+import { coverFn, mergeFn } from '../../utils/object';
+import _ from '../../utils/shared';
 
 interface Step {
   from: string;
   to: string;
-  apply: (data: Record<string, any>, utils: Utils) => void;
+  apply: (data: Record<string, unknown>, utils: Utils) => void;
 }
 
 interface PathRef {
-  parent: Record<string, any>;
+  parent: Record<string, unknown>;
   key: string;
 }
 
 interface Utils {
   readonly log: ReturnType<typeof createlog>;
-  path: (obj: Record<string, any>, path: string, create?: boolean) => PathRef | null;
-  move: (data: Record<string, any>, from: string, to: string) => boolean;
-  remove: (data: Record<string, any>, path: string) => boolean;
-  transform: (data: Record<string, any>, path: string, fn: (value: any) => any) => boolean;
-  fill: (target: Record<string, any>, defaults: Record<string, any>, mode?: 'merge' | 'cover') => void;
+  path: (obj: Record<string, unknown>, path: string, create?: boolean) => PathRef | null;
+  move: (data: Record<string, unknown>, from: string, to: string) => boolean;
+  remove: (data: Record<string, unknown>, path: string) => boolean;
+  transform: (data: Record<string, unknown>, path: string, fn: (value: unknown) => unknown) => boolean;
+  fill: (target: Record<string, unknown>, defaults: Record<string, unknown>, mode?: 'merge' | 'cover') => void;
 }
 
 class migration {
@@ -40,32 +42,33 @@ class migration {
   public constructor() {
     this.utils = Object.freeze({
       log: this.log,
-      path: (obj: Record<string, any>, path: string, create = false) => this.path(obj, path, create),
-      move: (data: Record<string, any>, from: string, to: string) => this.move(data, from, to),
-      remove: (data: Record<string, any>, path: string) => {
+      path: (obj: Record<string, unknown>, path: string, create = false) => this.path(obj, path, create),
+      move: (data: Record<string, unknown>, from: string, to: string) => this.move(data, from, to),
+      remove: (data: Record<string, unknown>, path: string) => {
         const target = this.path(data, path);
         if (!target || !Object.prototype.hasOwnProperty.call(target.parent, target.key)) return false;
         delete target.parent[target.key];
         return true;
       },
-      transform: (data: Record<string, any>, path: string, fn: (arg0: any) => any) => {
+      transform: (data: Record<string, unknown>, path: string, fn: (value: unknown) => unknown) => {
         const target = this.path(data, path);
         if (!target || !Object.prototype.hasOwnProperty.call(target.parent, target.key)) return false;
         try {
           target.parent[target.key] = fn(target.parent[target.key]);
           return true;
-        } catch (error: any) {
-          this.log(`转换失败: ${path} - ${error?.message || error}`, 'ERROR');
+        } catch (error) {
+          this.log(`转换失败: ${path} - ${errorMessage(error)}`, 'ERROR');
           return false;
         }
       },
-      fill: (target: Record<string, any>, defaults: Record<string, any>, mode: 'merge' | 'cover' = 'merge') => {
+      fill: (target: Record<string, unknown>, defaults: Record<string, unknown>, mode: 'merge' | 'cover' = 'merge') => {
         try {
-          const filter = (key: string, _value: any, _depth: number, targetValue: any) => key !== 'version' && targetValue === undefined;
+          const filter = (key: string, value: unknown, depth: number, targetValue: unknown) =>
+            !(depth === 1 && key === 'version') && (targetValue === undefined || (_.isPlainObject(value) && _.isPlainObject(targetValue)));
           if (mode === 'cover') coverFn(target, filter, defaults);
           else mergeFn(target, filter, defaults);
-        } catch (error: any) {
-          this.log(`属性填充失败: ${error?.message || error}`, 'ERROR');
+        } catch (error) {
+          this.log(`属性填充失败: ${errorMessage(error)}`, 'ERROR');
         }
       }
     });
@@ -78,7 +81,7 @@ class migration {
     this.steps.push({ from, to, apply });
   }
 
-  public run(data: Record<string, any>, targetVersion: string): void {
+  public run(data: Record<string, unknown>, targetVersion: string): void {
     if (!data || typeof data !== 'object') return;
     let current = String(data.version || '0.0.0');
     data.version = current;
@@ -99,11 +102,8 @@ class migration {
         next.apply(data, this.utils);
         current = next.to;
         data.version = current;
-      } catch (error: any) {
-        const migrationError = new Error(`迁移失败 ${current} → ${next.to}: ${error?.message || error}`);
-        (migrationError as any).fromVersion = current;
-        (migrationError as any).toVersion = next.to;
-        (migrationError as any).cause = error;
+      } catch (error) {
+        const migrationError = Object.assign(new Error(`迁移失败 ${current} → ${next.to}: ${errorMessage(error)}`, { cause: error }), { fromVersion: current, toVersion: next.to });
         this.log('迁移失败', 'ERROR', migrationError.message);
         throw migrationError;
       }
@@ -111,7 +111,7 @@ class migration {
     if (this.compare(current, targetVersion) < 0) this.log('迁移步骤超过上限: 100', 'ERROR');
   }
 
-  private path(obj: Record<string, any>, route: string, create = false): PathRef | null {
+  private path(obj: Record<string, unknown>, route: string, create = false): PathRef | null {
     if (!obj || typeof obj !== 'object') return null;
     const parts = String(route)
       .split('.')
@@ -121,11 +121,11 @@ class migration {
     let current = obj;
     for (let i = 0; i < parts.length - 1; i++) {
       const key = parts[i];
-      if (current[key] === undefined || current[key] === null || typeof current[key] !== 'object') {
+      if (!Object.hasOwn(current, key) || current[key] === null || typeof current[key] !== 'object') {
         if (!create) return null;
         current[key] = {};
       }
-      current = current[key];
+      current = current[key] as Record<string, unknown>;
     }
     return {
       parent: current,
@@ -133,9 +133,19 @@ class migration {
     };
   }
 
-  private move(data: Record<string, any>, from: string, to: string): boolean {
+  private move(data: Record<string, unknown>, from: string, to: string): boolean {
     const source = this.path(data, from);
     if (!source || !Object.prototype.hasOwnProperty.call(source.parent, source.key)) return false;
+    const route = (value: string) =>
+      value
+        .split('.')
+        .map(part => part.trim())
+        .filter(Boolean)
+        .join('.');
+    const fromPath = route(from);
+    const toPath = route(to);
+    if (fromPath === toPath) return true;
+    if (toPath.startsWith(`${fromPath}.`)) return false;
     const target = this.path(data, to, true);
     if (!target) return false;
     target.parent[target.key] = source.parent[source.key];

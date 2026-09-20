@@ -4,14 +4,7 @@ import maplebirch from '../../../core';
 import { loadImage } from '../../../utils/image';
 import { kaijuMask, nnpc_sidepart, selected_art } from './functions';
 
-type NPCSidebarOptions = {
-  filters?: Record<string, any>;
-  maplebirch: {
-    nnpc: Record<string, any>;
-    [key: string]: any;
-  };
-  [key: string]: any;
-};
+import type { NPCSidebarOptions } from './types';
 
 function hair_mask(headMask: string[], closeUpMask: string, fallbackMask: string | undefined = closeUpMask): string | string[] | undefined {
   const head_masks = headMask.filter(mask => mask !== closeUpMask);
@@ -22,7 +15,7 @@ const base_layers = {
   nnpc_body: {
     masksrcfn: (options: NPCSidebarOptions) => {
       if (options.maplebirch.nnpc.model) return options.maplebirch.nnpc.close_up_mask;
-      return null;
+      return undefined;
     },
     srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
@@ -54,7 +47,7 @@ const base_layers = {
   nnpc_head: {
     masksrcfn: (options: NPCSidebarOptions) => {
       if (options.maplebirch.nnpc.model) return options.maplebirch.nnpc.close_up_mask;
-      return null;
+      return undefined;
     },
     srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;

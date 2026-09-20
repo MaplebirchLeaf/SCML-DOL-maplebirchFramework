@@ -2,16 +2,18 @@
 
 import maplebirch from '../../core';
 
-export type ActionType = 'leftaction' | 'rightaction' | 'feetaction' | 'mouthaction' | 'penisaction' | 'vaginaaction' | 'anusaction' | 'chestaction' | 'thighaction';
+export const actionTypes = ['leftaction', 'rightaction', 'feetaction', 'mouthaction', 'penisaction', 'vaginaaction', 'anusaction', 'chestaction', 'thighaction'] as const;
+export type ActionType = (typeof actionTypes)[number];
 export type CombatType = 'Default' | 'Self' | 'Struggle' | 'Swarm' | 'Vore' | 'Machine' | 'Tentacle';
+export type ActionValue = string | number;
 
 interface Context {
   actionType?: ActionType;
   combatType?: CombatType;
   encounterType?: CombatType;
-  action?: any;
+  action?: ActionValue;
+  id?: string;
   originalCount?: number;
-  [key: string]: any;
 }
 
 interface ActionEntry {
@@ -19,7 +21,7 @@ interface ActionEntry {
   actionType: ActionType;
   cond: (ctx: Context) => boolean;
   display: (ctx: Context) => string;
-  value: (ctx: Context) => any;
+  value: (ctx: Context) => ActionValue;
   color: (ctx: Context) => string;
   difficulty: (ctx: Context) => string;
   effect: (ctx: Context) => string;
@@ -32,7 +34,7 @@ interface ActionConfig {
   actionType: ActionType | ActionType[];
   cond: (ctx: Context) => boolean;
   display: (ctx: Context) => string;
-  value: (ctx: Context) => any;
+  value: (ctx: Context) => ActionValue;
   color?: string | ((ctx: Context) => string);
   difficulty?: string | ((ctx: Context) => string);
   effect?: string | ((ctx: Context) => string);
@@ -41,7 +43,7 @@ interface ActionConfig {
 }
 
 export interface OptionsTable {
-  [key: string]: any;
+  [key: string]: ActionValue;
 }
 
 class CombatActions {
@@ -85,7 +87,7 @@ class CombatActions {
       combatType: combatType || 'Default',
       originalCount: Object.keys(optionsTable).length
     };
-    const modActions: Array<{ display: string; value: any; order: number }> = [];
+    const modActions: Array<{ display: string; value: ActionValue; order: number }> = [];
     this.actions.forEach(entry => {
       if (entry.actionType !== actionType) return;
       const entryCombatType = this.eval(entry.combatType, ctx) ?? 'Default';
@@ -98,16 +100,18 @@ class CombatActions {
     });
     if (modActions.length === 0) return optionsTable;
     modActions.sort((a, b) => a.order - b.order);
-    const result = [...Object.entries(optionsTable), ...modActions.map(action => [action.display, action.value] as [string, any])];
+    const result = [...Object.entries(optionsTable), ...modActions.map(action => [action.display, action.value] as [string, ActionValue])];
     Object.keys(optionsTable).forEach(key => delete optionsTable[key]);
     result.forEach(([display, value]) => (optionsTable[display] = value));
     return optionsTable;
   }
 
-  public color(action: any, encounterType: CombatType = 'Default'): string | null {
+  public color(action: ActionValue, encounterType: CombatType = 'Default'): string | null {
+    encounterType ||= 'Default';
     const ctx: Context = {
       action,
-      encounterType
+      encounterType,
+      combatType: encounterType
     };
     const exact = this.actions.find(entry => {
       const value = this.eval(entry.value, ctx);
@@ -123,7 +127,8 @@ class CombatActions {
     return fallback ? this.eval(fallback.color, ctx) || null : null;
   }
 
-  public difficulty(action: any, combatType: CombatType = 'Default'): string | null {
+  public difficulty(action: ActionValue, combatType: CombatType = 'Default'): string | null {
+    combatType ||= 'Default';
     const ctx: Context = {
       action,
       combatType

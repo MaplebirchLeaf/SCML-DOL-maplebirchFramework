@@ -1,9 +1,12 @@
 // .src/modules/Frameworks/ZonesManager.ts
 
+import { errorMessage } from '../../utils/error';
+import type { PassageDataItem } from '@scml/types/sugarcube-2-ModLoader/SC2DataInfoCache';
 import { createlog } from '../../core';
-import ToolCollection from '../ToolCollection';
+import type ToolCollection from '../ToolCollection';
 import { specialWidget, defaultData, locationPassage, widgetPassage } from '../../replace';
-import AddonPlugin from '../AddonPlugin';
+import type AddonPlugin from '../AddonPlugin';
+import { applySourcePatch, type SourcePatch } from './SourcePatch';
 
 export interface ZoneWidgetConfig {
   exclude?: string[];
@@ -11,7 +14,7 @@ export interface ZoneWidgetConfig {
   passage?: string | string[];
   widget: string;
   type?: 'function';
-  func?: () => any;
+  func?: () => unknown;
 }
 
 interface CustomLinkZoneItem {
@@ -19,19 +22,19 @@ interface CustomLinkZoneItem {
   widget: string | ZoneWidgetConfig;
 }
 
-interface PatchSet {
-  src?: string;
-  srcmatch?: RegExp;
-  srcmatchgroup?: RegExp;
-  to?: string;
-  applyafter?: string;
-  applybefore?: string;
-}
+type PatchSet = SourcePatch;
 
 type ZoneItem = string | ZoneWidgetConfig | CustomLinkZoneItem;
-type InitObject = { init: Function } | { name: string; func: Function };
+export type ZoneFunction = () => unknown;
+type InitObject = { init: ZoneFunction } | { name: string; func: ZoneFunction };
+export type PositionedZoneWidgetConfig = Omit<ZoneWidgetConfig, 'widget'> & { widget: [number, string] };
+export type ZoneWidget = string | ZoneFunction | ZoneWidgetConfig | PositionedZoneWidgetConfig | [number, string | ZoneWidgetConfig];
+export interface CustomLinkGroup {
+  position: number;
+  macro: string;
+}
 
-export type InitFunction = string | Function | InitObject;
+export type InitFunction = string | ZoneFunction | InitObject;
 
 export class zonesManager {
   public readonly log: ReturnType<typeof createlog>;
@@ -39,13 +42,15 @@ export class zonesManager {
 
   public data: Record<string, ZoneItem[]>;
   public initFunction: InitFunction[] = [];
-  public specialWidget: (string | Function)[] = specialWidget;
-  public defaultData: Record<string, string | Function> = defaultData;
+  public specialWidget: (string | ZoneFunction)[] = specialWidget;
+  public defaultData: Record<string, string | ZoneFunction> = defaultData;
   public locationPassage: Record<string, PatchSet[]> = locationPassage;
   public widgetPassage: Record<string, PatchSet[]> = widgetPassage;
   public widgethtml = '';
 
-  private functions = new Map<string, Function>();
+  private readonly functions = new Map<string, ZoneFunction>();
+  private readonly functionNames = new WeakMap<ZoneFunction, string>();
+  private nextFunction = 0;
 
   public constructor(manager: ToolCollection) {
     this.log = createlog('zone');
@@ -110,7 +115,7 @@ export class zonesManager {
     }
   }
 
-  public addTo(zone: string, ...widgets: (string | Function | ZoneWidgetConfig | [number, string | ZoneWidgetConfig])[]): void {
+  public addTo(zone: string, ...widgets: ZoneWidget[]): void {
     const target = this.data[zone];
     if (!target) {
       this.log(`区域 ${zone} 不存在`, 'ERROR');
@@ -127,12 +132,16 @@ export class zonesManager {
         continue;
       }
       if (typeof widget === 'function') {
-        const name = widget.name || `func_${this.hash(widget.toString())}`;
+        let name = this.functionNames.get(widget);
+        if (!name) {
+          name = `maplebirch:zone:${++this.nextFunction}`;
+          this.functionNames.set(widget, name);
+        }
         this.functions.set(name, widget);
         target.push({ widget: name, type: 'function' });
         continue;
       }
-      if (widget && typeof widget === 'object' && 'widget' in widget) target.push(widget as ZoneWidgetConfig);
+      if (widget && typeof widget === 'object' && 'widget' in widget && typeof widget.widget === 'string') target.push({ ...widget, widget: widget.widget });
     }
   }
 
@@ -149,13 +158,13 @@ export class zonesManager {
           continue;
         }
         if (item && typeof item === 'object' && 'func' in item) item.func();
-      } catch (error: any) {
-        this.log(`初始化函数执行失败: ${error?.message || error}`, 'ERROR', error);
+      } catch (error) {
+        this.log(`初始化函数执行失败: ${errorMessage(error)}`, 'ERROR', error);
       }
     }
   }
 
-  public call(name: string): any {
+  public call(name: string): unknown {
     const fn = this.functions.get(name);
     if (!fn) {
       this.log(`区域函数不存在: ${name}`, 'WARN');
@@ -164,7 +173,10 @@ export class zonesManager {
     return fn();
   }
 
-  public play(zone: string, passageTitle?: string): any {
+  public play(zone: 'CustomLinkZone', passageTitle?: string): CustomLinkGroup[];
+  public play(zone: 'BeforeLinkZone' | 'AfterLinkZone', passageTitle?: string): string;
+  public play(zone: string, passageTitle?: string): string | CustomLinkGroup[];
+  public play(zone: string, passageTitle?: string): string | CustomLinkGroup[] {
     const items = this.data[zone];
     if (!items || items.length === 0) return zone === 'CustomLinkZone' ? [] : '';
     const title = passageTitle ?? this.core.passage?.title ?? '';
@@ -187,14 +199,36 @@ export class zonesManager {
     const SCdata = oldSCdata.cloneSC2DataInfo();
     const passageData = SCdata.passageDataItems.map;
     if (type === 'before') {
+      for (const [patches, widget] of [
+        [this.locationPassage, false],
+        [this.widgetPassage, true]
+      ] as const) {
+        for (const [title, sets] of Object.entries(patches)) {
+          const passage = passageData.get(title);
+          if (passage && passage.tags.includes('widget') === widget) continue;
+          sets.forEach((set, index) =>
+            this.core.addon.diagnostics.recordPatch({
+              kind: 'passage',
+              target: title,
+              index: index + 1,
+              pattern: String(set.src ?? set.srcmatch ?? set.srcmatchgroup ?? ''),
+              matches: 0,
+              applied: 0,
+              status: passage ? 'invalid' : 'missing',
+              error: passage ? 'Passage is registered in the wrong patch group' : 'Passage not found'
+            })
+          );
+          this.log(`补丁目标不可用: ${title}`, 'WARN');
+        }
+      }
       this.widgetInit(passageData);
       this.widgethtml = '';
     }
     for (const [title, passage] of passageData) {
       try {
         this.patchPassage(type, passage, title);
-      } catch (error: any) {
-        const message = error?.message || error;
+      } catch (error) {
+        const message = errorMessage(error);
         this.log(`处理段落 ${title} 时出错: ${message}`, 'ERROR', error);
       }
     }
@@ -240,27 +274,24 @@ export class zonesManager {
     if (typeof widget === 'string') return `<<${widget}>>`;
     if (!widget || typeof widget !== 'object') return '';
     if ('position' in widget) return this.render(widget.widget, title);
+    if (!this.shouldRender(widget, title)) return '';
     if (widget.type === 'function') {
       if (widget.func) this.functions.set(widget.widget, widget.func);
       return `<<= maplebirch.tool.zone.call(${JSON.stringify(widget.widget)})>>`;
     }
-    if (!this.shouldRender(widget, title)) return '';
     return widget.widget ? `<<${widget.widget}>>` : '';
   }
 
   private shouldRender(config: ZoneWidgetConfig, title: string): boolean {
     if (config.exclude?.includes(title)) return false;
-    if (config.match instanceof RegExp) {
-      config.match.lastIndex = 0;
-      if (!config.match.test(title)) return false;
-    }
+    if (config.match instanceof RegExp && !new RegExp(config.match.source, config.match.flags).test(title)) return false;
     if (config.passage == null) return true;
     if (typeof config.passage === 'string') return config.passage === '' || config.passage === title;
     if (Array.isArray(config.passage)) return config.passage.length === 0 || config.passage.includes(title);
     return true;
   }
 
-  private customLinkItem(widget: string | Function | ZoneWidgetConfig | [number, string | ZoneWidgetConfig]): CustomLinkZoneItem | null {
+  private customLinkItem(widget: ZoneWidget): CustomLinkZoneItem | null {
     if (Array.isArray(widget) && widget.length === 2) {
       return {
         position: Number(widget[0]) || 0,
@@ -274,8 +305,8 @@ export class zonesManager {
       };
     }
     if (widget && typeof widget === 'object' && 'widget' in widget) {
-      const raw = widget as any;
-      if (Array.isArray(raw.widget) && raw.widget.length === 2) {
+      const raw = widget;
+      if (Array.isArray(raw.widget)) {
         const [position, widgetName] = raw.widget;
         return {
           position: Number(position) || 0,
@@ -287,37 +318,10 @@ export class zonesManager {
       }
       return {
         position: 0,
-        widget: widget as ZoneWidgetConfig
+        widget: { ...raw, widget: raw.widget }
       };
     }
     return null;
-  }
-
-  private matchAndApply(set: PatchSet, source: string): string {
-    if (set.src && source.includes(set.src)) return this.applyPatch(source, set.src, set);
-    if (set.srcmatch instanceof RegExp) {
-      set.srcmatch.lastIndex = 0;
-      if (set.srcmatch.test(source)) return this.applyPatch(source, set.srcmatch, set);
-    }
-    if (set.srcmatchgroup instanceof RegExp) {
-      set.srcmatchgroup.lastIndex = 0;
-      const matches = source.match(set.srcmatchgroup);
-      if (matches?.length) {
-        let result = source;
-        for (const match of matches) result = this.applyPatch(result, match, set);
-        return result;
-      }
-    }
-    const pattern = [set.src, set.srcmatch, set.srcmatchgroup].find(Boolean)?.toString() ?? '';
-    this.log(`替换失败: 未找到匹配 (${pattern})`, 'WARN');
-    return source;
-  }
-
-  private applyPatch(source: string, pattern: string | RegExp, set: PatchSet): string {
-    if (set.to != null) return source.replace(pattern, set.to);
-    if (set.applyafter != null) return source.replace(pattern, match => match + set.applyafter);
-    if (set.applybefore != null) return source.replace(pattern, match => set.applybefore + match);
-    return source;
   }
 
   private wrapSpecialPassage(passage: { content: string }, title: string): void {
@@ -337,11 +341,16 @@ export class zonesManager {
     const sets = patchSets[title];
     if (!sets?.length) return;
     let content = String(passage.content);
-    for (const set of sets) content = this.matchAndApply(set, content);
+    sets.forEach((set, index) => {
+      const { content: next, ...result } = applySourcePatch(content, set);
+      this.core.addon.diagnostics.recordPatch({ kind: 'passage', target: title, index: index + 1, ...result });
+      if (result.status !== 'applied') this.log(`补丁 ${title} #${index + 1}: ${result.status}，匹配 ${result.matches} (${result.pattern})`, 'WARN');
+      content = next;
+    });
     passage.content = content;
   }
 
-  private patchPassage(type: 'before' | 'after', passage: any, title: string): void {
+  private patchPassage(type: 'before' | 'after', passage: PassageDataItem, title: string): void {
     const isWidget = Array.isArray(passage.tags) && passage.tags.includes('widget');
     if (type === 'before') {
       this.applyContentPatches(passage, title, isWidget ? this.widgetPassage : this.locationPassage);
@@ -350,7 +359,7 @@ export class zonesManager {
     if (!isWidget) this.wrapSpecialPassage(passage, title);
   }
 
-  private widgetInit(passageData: Map<string, any>): Map<string, any> {
+  private widgetInit(passageData: Map<string, PassageDataItem>): Map<string, PassageDataItem> {
     this.widgethtml = this.widgets + this.specials;
     // prettier-ignore
     const data = {
@@ -368,14 +377,5 @@ export class zonesManager {
       passageData.set('StoryInit', storyInit);
     }
     return passageData;
-  }
-
-  private hash(str: string): string {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      hash = (hash << 5) - hash + str.charCodeAt(i);
-      hash |= 0;
-    }
-    return Math.abs(hash).toString(16).slice(0, 8);
   }
 }

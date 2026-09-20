@@ -1,5 +1,6 @@
 // ./src/macros/lanLink.ts
 
+import { errorMessage } from '../utils/error';
 import maplebirch from '../core';
 import { addClasses, appendMacroIcon, bindLanguageUpdate, isStyleArg, readStyle, text, translatedText, type LinkArg, type MacroContext } from './helpers';
 
@@ -68,8 +69,8 @@ export function _languageLink(this: MacroContext): void {
     $container.append($link);
     $container.appendTo(this.output);
     bindLanguageUpdate($container, 'lanLink', update);
-  } catch (error: any) {
+  } catch (error) {
     maplebirch.log('<<lanLink>> error', 'ERROR', error);
-    return this.error(`<<lanLink>> error: ${error?.message || error}`);
+    return this.error(`<<lanLink>> error: ${errorMessage(error)}`);
   }
 }

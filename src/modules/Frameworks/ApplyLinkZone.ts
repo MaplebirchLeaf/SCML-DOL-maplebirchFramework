@@ -21,6 +21,9 @@ interface LinkZoneConfig {
 const log = createlog('link');
 
 class LinkZoneManager {
+  declare public static readonly apply: (config?: Partial<LinkZoneConfig>) => boolean;
+  declare public static readonly add: (config: LinkZoneConfig, customZones: CustomZone[]) => void;
+  declare public static readonly defaultConfig: LinkZoneConfig;
   public firstLink: Element | null = null;
   public lastLink: Element | null = null;
   public links: Element[] = [];
@@ -63,7 +66,7 @@ class LinkZoneManager {
   }
 
   private applyBefore(config: LinkZoneConfig): void {
-    if (!this.firstLink || !this.breakBeforeFirst) return;
+    if (!this.firstLink) return;
     const zone = this.zone('beforeLinkZone', config);
     this.insertAfterBreak(zone, this.breakBeforeFirst, this.firstLink);
     if (config.debug) this.log('应用链接前区域', 'DEBUG', zone);

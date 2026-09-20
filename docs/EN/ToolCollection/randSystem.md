@@ -2,7 +2,7 @@
 
 `randSystem` creates reproducible random number generators. Use it when a mod needs saved seeds, repeatable results, replayable random events, backtracking, or easier debugging.
 
-For one-off randomness, global helpers such as `random()` or `either()` may be enough. Use **`maplebirch.tool.rand.create()`** when the same state should produce the same sequence.
+For one-off randomness, the [Utilities](../Utilities.md) helpers `random()` or `either()` may be enough. Use **`maplebirch.tool.rand.create()`** when the same state should produce the same sequence.
 
 ## Create A Generator
 
@@ -45,7 +45,11 @@ const index = rng.int(5); // 0-5
 | `rng.history`                         | Copy of generated result history                  |
 | `rng.index`                           | Current history pointer                           |
 
+Each call to `int(max)` or `percent()` advances the random pointer.
+
 ## Reproducible Rolls
+
+Setting `seed` clears history and restarts the sequence:
 
 ```javascript
 function roll(seed) {
@@ -79,6 +83,8 @@ const result = list[rng.int(list.length - 1)];
 ```
 
 ## Back And Forward
+
+`back(steps)` only moves the history pointer. The next random call reuses a previously generated value:
 
 ```javascript
 const first = rng.percent();

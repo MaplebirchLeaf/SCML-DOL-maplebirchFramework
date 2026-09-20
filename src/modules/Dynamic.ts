@@ -30,8 +30,8 @@ class DynamicManager {
     return this.Time.timeTravel(options);
   }
 
-  public get TimeEvents() {
-    return (this.Time as any).timeEvents;
+  public get TimeEvents(): TimeManager['events'] {
+    return this.Time.events;
   }
 
   public regStateEvent(type: 'gate' | 'append', eventId: string, options: StateEventOptions): boolean {
@@ -46,8 +46,8 @@ class DynamicManager {
     return this.State.trigger(type);
   }
 
-  public get StateEvents() {
-    return (this.State as any).stateEvents;
+  public get StateEvents(): StateManager['events'] {
+    return this.State.events;
   }
 
   public regWeatherEvent(eventId: string, options: WeatherEventOptions): boolean {

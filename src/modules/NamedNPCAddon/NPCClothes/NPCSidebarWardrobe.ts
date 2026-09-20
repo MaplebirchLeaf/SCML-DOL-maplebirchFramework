@@ -1,5 +1,6 @@
 // ./src/modules/NamedNPCAddon/NPCClothes/NPCSidebarWardrobe.ts
 
+import { errorMessage } from '../../../utils/error';
 import builtinWardrobe from '../../../assets/npc-clothes.yaml';
 import { evaluate, type Condition } from './Condition';
 import type NPCManager from '../../NamedNPC';
@@ -76,8 +77,8 @@ class NPCSidebarWardrobe {
       const data = this.manager.core.yaml.load(builtinWardrobe);
       if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('无法解析内置衣柜配置');
       this.add(data as Record<string, WardrobeItem>);
-    } catch (e: any) {
-      this.manager.log(`NPCSidebarWardrobe 初始化失败: ${e.message}`, 'ERROR');
+    } catch (e) {
+      this.manager.log(`NPCSidebarWardrobe 初始化失败: ${errorMessage(e)}`, 'ERROR');
     }
   }
 
@@ -98,8 +99,8 @@ class NPCSidebarWardrobe {
       }
       if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('无法解析衣柜配置');
       this.add(data as Record<string, WardrobeItem>);
-    } catch (e: any) {
-      this.manager.log(`加载侧边栏衣柜配置失败: ${e.message}`, 'ERROR');
+    } catch (e) {
+      this.manager.log(`加载侧边栏衣柜配置失败: ${errorMessage(e)}`, 'ERROR');
     }
   }
 
@@ -212,8 +213,8 @@ class NPCSidebarWardrobe {
     for (const modifier of modifiers) {
       try {
         modifier(clothes, context);
-      } catch (e: any) {
-        this.manager.log(`${context.npcName} ${label}失败: ${e.message}`, 'WARN');
+      } catch (e) {
+        this.manager.log(`${context.npcName} ${label}失败: ${errorMessage(e)}`, 'WARN');
       }
     }
   }
@@ -261,8 +262,8 @@ class NPCSidebarWardrobe {
       const wetness: unknown = typeof source === 'function' ? source() : (source ?? 'dry');
       if (typeof wetness === 'string' && Object.hasOwn(alpha, wetness)) return wetness as WardrobeWetness;
       this.manager.log(`无效的 NPC 服装湿度: ${String(wetness)}`, 'WARN');
-    } catch (e: any) {
-      this.manager.log(`NPC 服装湿度计算失败: ${e.message}`, 'WARN');
+    } catch (e) {
+      this.manager.log(`NPC 服装湿度计算失败: ${errorMessage(e)}`, 'WARN');
     }
     return 'dry';
   }

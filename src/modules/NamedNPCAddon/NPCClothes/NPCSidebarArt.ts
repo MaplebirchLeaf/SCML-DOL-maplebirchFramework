@@ -1,5 +1,6 @@
 // ./src/modules/NamedNPCAddon/NPCClothes/NPCSidebarArt.ts
 
+import { errorMessage } from '../../../utils/error';
 import type { ModZipReader } from '@scml/types/sugarcube-2-ModLoader/ModZipReader';
 import { evaluate, type Condition } from './Condition';
 import NPCManager from '../../NamedNPC';
@@ -61,8 +62,8 @@ class NPCSidebarArt {
           this.manager.log(`不支持的文件格式: ${filePath}`, 'WARN');
           continue;
         }
-      } catch (e: any) {
-        this.manager.log(`读取侧边栏人模配置失败: ${filePath} - ${e.message}`, 'ERROR');
+      } catch (e) {
+        this.manager.log(`读取侧边栏人模配置失败: ${filePath} - ${errorMessage(e)}`, 'ERROR');
         continue;
       }
 

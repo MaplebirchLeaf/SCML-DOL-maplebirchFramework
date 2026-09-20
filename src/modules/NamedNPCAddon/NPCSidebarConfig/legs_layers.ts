@@ -3,13 +3,7 @@
 import maplebirch from '../../../core';
 import { clothes_layer, clothes_back, clothes_back_acc } from './functions';
 
-type NPCSidebarOptions = {
-  maplebirch: {
-    nnpc: Record<string, any>;
-    [key: string]: any;
-  };
-  [key: string]: any;
-};
+import type { NPCSidebarOptions } from './types';
 
 const legs_layers = {
   nnpc_legs_main: clothes_layer('legs', 'main', {

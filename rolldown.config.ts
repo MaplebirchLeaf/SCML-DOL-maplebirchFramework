@@ -6,7 +6,7 @@ export default defineConfig({
     maplebirch: 'src/main.ts'
   },
 
-  external: [/^@scml\//, /^@types\//, 'howler', 'js-yaml', 'marked', 'twine-sugarcube'],
+  external: [/^@scml\//, /^@types\//, /^twine-sugarcube(?:\/|$)/, 'howler', 'js-yaml', 'marked'],
 
   plugins: [
     dts({

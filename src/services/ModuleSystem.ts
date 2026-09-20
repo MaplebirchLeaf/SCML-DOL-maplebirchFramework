@@ -2,26 +2,26 @@
 
 import { ModuleState } from '../constants';
 import type { MaplebirchCore } from '../core';
+import { errorMessage } from '../utils/error';
 
-interface Module {
+export interface Module {
   dependencies?: string[];
   exposed?: boolean;
   preInit?(): void | Promise<void>;
   Init?(): void;
   loadInit?(): void;
   postInit?(): void;
-  [key: string]: unknown;
 }
 
 interface ModuleRegistry {
   modules: Map<string, Module>;
-  states: Map<string, string | number>;
+  states: Map<string, ModuleState>;
   sources: Map<string, string>;
   dependencies: Map<string, Set<string>>;
   dependents: Map<string, Set<string>>;
 }
 
-interface DependencyInfo {
+export interface DependencyInfo {
   protected: boolean;
   mounted: boolean;
   early: boolean;
@@ -40,7 +40,7 @@ interface ModuleSettings {
   };
 }
 
-type DependencyGraph = Record<string, DependencyInfo>;
+export type DependencyGraph = Record<string, DependencyInfo>;
 type RuntimePhase = 'Init' | 'loadInit' | 'postInit';
 
 class ModuleSystem {
@@ -93,7 +93,7 @@ class ModuleSystem {
     }
   }
 
-  public register(name: string, module: Module, dependencies: string[] = []): boolean {
+  public register<T extends object>(name: string, module: T & Module, dependencies: string[] = []): boolean {
     if (this.registry.modules.has(name)) {
       this.core.logger.log(`模块 ${name} 已注册`, 'WARN');
       return false;
@@ -242,7 +242,7 @@ class ModuleSystem {
         this.preQueued = false;
         await this.pre();
       })
-      .catch(error => this.core.logger.log(`late module 预初始化失败: ${this.error(error)}`, 'ERROR'));
+      .catch(error => this.core.logger.log(`late module 预初始化失败: ${errorMessage(error)}`, 'ERROR'));
   }
 
   private disable(): void {
@@ -284,7 +284,7 @@ class ModuleSystem {
             this.preInitialized.add(name);
           } catch (error) {
             this.registry.states.set(name, ModuleState.ERROR);
-            this.core.logger.log(`[${name}] preInit 执行失败: ${this.error(error)}`, 'ERROR');
+            this.core.logger.log(`[${name}] preInit 执行失败: ${errorMessage(error)}`, 'ERROR');
           }
 
           progressed = true;
@@ -308,7 +308,7 @@ class ModuleSystem {
         this.registry.states.set(name, ModuleState.MOUNTED);
       } catch (error) {
         this.registry.states.set(name, ModuleState.ERROR);
-        this.core.logger.log(`[${name}] Init 执行失败: ${this.error(error)}`, 'ERROR');
+        this.core.logger.log(`[${name}] Init 执行失败: ${errorMessage(error)}`, 'ERROR');
       }
     }
   }
@@ -321,7 +321,7 @@ class ModuleSystem {
       try {
         this.callHook(name, module, phase);
       } catch (error) {
-        this.core.logger.log(`[${name}] ${label}失败: ${this.error(error)}`, 'ERROR');
+        this.core.logger.log(`[${name}] ${label}失败: ${errorMessage(error)}`, 'ERROR');
       }
     }
     this.core.logger.log(`${label}完成`, 'DEBUG');
@@ -332,7 +332,7 @@ class ModuleSystem {
     if (typeof hook !== 'function') return;
     const result: unknown = hook.call(module);
     if (!this.promiseLike(result)) return;
-    void Promise.resolve(result).catch(error => this.core.logger.log(`[${name}] ${phase} 异步任务失败: ${this.error(error)}`, 'ERROR'));
+    void Promise.resolve(result).catch(error => this.core.logger.log(`[${name}] ${phase} 异步任务失败: ${errorMessage(error)}`, 'ERROR'));
     throw new Error(`${phase} 必须同步执行，不能返回 Promise`);
   }
 
@@ -431,10 +431,6 @@ class ModuleSystem {
 
   private promiseLike(value: unknown): value is PromiseLike<unknown> {
     return value != null && typeof (value as PromiseLike<unknown>).then === 'function';
-  }
-
-  private error(error: unknown): string {
-    return error instanceof Error ? error.message : String(error);
   }
 }
 

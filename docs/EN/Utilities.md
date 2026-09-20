@@ -299,18 +299,9 @@ if (result) {
 }
 ```
 
-`loadImage()` first asks ModLoader for the image. If that fails, it checks the path directly.
+`loadImage()` delegates to `maplebirch.addon.resources.load()`: resolve through ModLoader, then try the original path. It returns the resolved URL, `false`, or a Promise of either; use `await` consistently. The cache retains resolved URLs and shares concurrent requests. Failures retain the legacy sidebar refresh behavior.
 
-Possible return values:
-
-| Return                       | Description          |
-| :--------------------------- | :------------------- |
-| `string`                     | Available image path |
-| `true`                       | Image exists         |
-| `false`                      | Image unavailable    |
-| `Promise<string \| boolean>` | Async result         |
-
-Use `await` in async flows.
+Call `maplebirch.addon.resources.clear(path)` before retrying a cached failure. See [image resources](AddonPlugin.md#image-resources) for existence checks and normalization.
 
 ## Bytes and Base64
 
@@ -371,22 +362,32 @@ const list = widgets(Options, Cheats);
 `SelectCase` is useful for writing chained condition/result tables.
 
 ```javascript
-const result = new SelectCase().case('wolf', 'Wolf').caseIn(['cat', 'dog'], 'Animal').caseRange(0, 10, 'Low').caseIncludes('NPC', 'Character').caseRegex(/^mod:/, 'Mod').else('Unknown').match(value);
+const result = new SelectCase().case('wolf', 'Wolf').caseIn(['cat', 'dog'], 'Animal').caseIncludes('NPC', 'Character').caseRegex(/^mod:/, 'Mod').else('Unknown').match(value);
+```
+
+String and numeric conditions cannot be mixed by default; start with `casePredicate()` when mixed conditions are needed. Numeric ranges require finite, ordered bounds. Regex matching preserves the supplied expression's `lastIndex`.
+
+TypeScript callers can specify input, result, and metadata types:
+
+```typescript
+const rating = new SelectCase<number, string>().caseRange(0, 10, 'low').else('high');
+const result: string | null = rating.match(5);
 ```
 
 Common methods:
 
-| Method                           | Description              |
-| :------------------------------- | :----------------------- |
-| `case(value, result)`            | Exact match              |
-| `case(fn, result)`               | Predicate function       |
-| `caseRange(min, max, result)`    | Numeric range            |
-| `caseIn(values, result)`         | Value exists in an array |
-| `caseIncludes(text, result)`     | String contains text     |
-| `caseRegex(regex, result)`       | Regex match              |
-| `caseCompare(op, value, result)` | Numeric comparison       |
-| `else(result)`                   | Default result           |
-| `match(value, meta)`             | Execute matching         |
+| Method                           | Description                         |
+| :------------------------------- | :---------------------------------- |
+| `case(value, result)`            | Exact match                         |
+| `case(fn, result)`               | Predicate function                  |
+| `casePredicate(fn, result)`      | Predicate; permits mixed conditions |
+| `caseRange(min, max, result)`    | Numeric range                       |
+| `caseIn(values, result)`         | Value exists in an array            |
+| `caseIncludes(text, result)`     | String contains text                |
+| `caseRegex(regex, result)`       | Regex match                         |
+| `caseCompare(op, value, result)` | Numeric comparison                  |
+| `else(result)`                   | Default result                      |
+| `match(value, meta)`             | Execute matching                    |
 
 ## Global Functions
 

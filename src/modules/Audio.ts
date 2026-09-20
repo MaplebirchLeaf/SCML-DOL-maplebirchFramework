@@ -27,8 +27,8 @@ interface TrackMeta {
 
 interface AudioEventData {
   type: string;
-  data?: any[];
-  [key: string]: any;
+  data?: unknown[];
+  [key: string]: unknown;
 }
 
 type AudioEventHandler = (eventData: AudioEventData) => void;
@@ -75,6 +75,7 @@ class AudioManager {
   private readonly STORE = 'audio';
 
   private readonly playlists = new Map<string, Playlist>();
+  private readonly playlistLoads = new Map<string, Promise<Playlist>>();
   private readonly eventListeners = new Map<string, Set<AudioEventHandler>>();
   private readonly cache = new Map<string, Map<string, CacheEntry>>();
   private readonly pendingLoads = new Map<string, Promise<CacheEntry>>();
@@ -82,7 +83,7 @@ class AudioManager {
   private activePlaylist: Playlist | null = null;
   private currentTrack: Track | null = null;
   private loadingTrack: Track | null = null;
-  private currentHowl: any = null;
+  private currentHowl: AudioBufferPlayer | null = null;
   private state: PlayStateType = PlayState.IDLE;
   private volume = 1;
   private muted = false;
@@ -100,7 +101,7 @@ class AudioManager {
     this.core.howler.Howler.mute(this.muted);
     this.core.howler.Howler.volume(this.volume);
     this.core.once(':indexedDB', () => this.initDB());
-    this.core.on(':audio', eventData => this.dispatch(eventData), 'audio manager');
+    this.core.on(':audio', (eventData: AudioEventData) => this.dispatch(eventData), 'audio manager');
     this.core.addon.hook<AudioConfig>('audio', async ({ modName, config }) => {
       for (const Folder of config) {
         const folder = Folder.trim()
@@ -138,8 +139,8 @@ class AudioManager {
 
   protected once(event: string, handler: AudioEventHandler): void {
     const wrapper: AudioEventHandler = eventData => {
-      handler(eventData);
       this.off(event, wrapper);
+      handler(eventData);
     };
     this.on(event, wrapper);
   }
@@ -246,22 +247,33 @@ class AudioManager {
   }
 
   public async getPlaylist(modName: string): Promise<Playlist> {
+    const pending = this.playlistLoads.get(modName);
+    if (pending) return pending;
     const cached = this.playlists.get(modName);
     if (cached) return cached;
     const playlist = this.playlist(modName);
-    const records = await this.readRecords(modName);
-    playlist.clear();
-    playlist.add(
-      records.map(record => {
-        const track = new Track(record.audioName, record.modName, {
-          title: record.value.title,
-          artist: record.value.artist
-        });
-        track.format = record.value.format;
-        return track;
-      })
-    );
-    return playlist;
+    const task = Promise.resolve().then(async () => {
+      const records = await this.readRecords(modName);
+      if (this.playlistLoads.get(modName) !== task) return playlist;
+      playlist.clear();
+      playlist.add(
+        records.map(record => {
+          const track = new Track(record.audioName, record.modName, {
+            title: record.value.title,
+            artist: record.value.artist
+          });
+          track.format = record.value.format;
+          return track;
+        })
+      );
+      return playlist;
+    });
+    this.playlistLoads.set(modName, task);
+    try {
+      return await task;
+    } finally {
+      if (this.playlistLoads.get(modName) === task) this.playlistLoads.delete(modName);
+    }
   }
 
   public async playFromMod(modName: string, audioName?: string): Promise<boolean | string> {
@@ -314,6 +326,7 @@ class AudioManager {
         this.log(`加载失败: ${modName}/${path}`, 'WARN', error);
       }
     }
+    this.playlistLoads.delete(modName);
     this.playlists.delete(modName);
     await this.getPlaylist(modName);
     this.log(`导入 ${successCount}/${audioFiles.length} 个音频`, 'DEBUG');
@@ -339,7 +352,7 @@ class AudioManager {
   public async delete(modName: string, audioName: string): Promise<boolean> {
     if (this.currentTrack?.modName === modName && this.currentTrack.audioName === audioName) this.stop();
     try {
-      await this.core.idb.withTransaction([this.STORE], 'readwrite', async (tx: any) => await tx.objectStore(this.STORE).delete([modName, audioName]));
+      await this.core.idb.withTransaction([this.STORE], 'readwrite', async tx => await tx.objectStore(this.STORE).delete([modName, audioName]));
       this.unloadCache(modName, audioName);
       this.playlists.get(modName)?.remove(audioName);
       return true;
@@ -353,13 +366,14 @@ class AudioManager {
     try {
       if (this.currentTrack?.modName === modName) this.stop();
       const records = await this.readRecords(modName);
-      await this.core.idb.withTransaction([this.STORE], 'readwrite', async (tx: any) => {
+      await this.core.idb.withTransaction([this.STORE], 'readwrite', async tx => {
         const store = tx.objectStore(this.STORE);
         for (const record of records) {
           await store.delete([record.modName, record.audioName]);
           this.unloadCache(record.modName, record.audioName);
         }
       });
+      this.playlistLoads.delete(modName);
       this.playlists.delete(modName);
       if (this.activePlaylist?.name === modName) this.activePlaylist = null;
       return modName;
@@ -383,6 +397,7 @@ class AudioManager {
     for (const timer of this.progressBindings.values()) clearInterval(timer);
     this.progressBindings.clear();
     this.eventListeners.clear();
+    this.playlistLoads.clear();
     this.playlists.clear();
     this.activePlaylist = null;
     this.currentTrack = null;
@@ -551,6 +566,7 @@ class AudioManager {
 
   public async preInit(): Promise<void> {
     const records = await this.readRecords();
+    this.playlistLoads.clear();
     this.playlists.clear();
     const groups = new Map<string, AudioRecord[]>();
     for (const record of records) {
@@ -580,7 +596,7 @@ class AudioManager {
       let pending = this.pendingLoads.get(key);
       if (!pending) {
         const task: Promise<CacheEntry> = Promise.resolve().then(async () => {
-          const record = await this.core.idb.withTransaction([this.STORE], 'readonly', async (tx: any) => await tx.objectStore(this.STORE).get([track.modName, track.audioName]));
+          const record = await this.core.idb.withTransaction([this.STORE], 'readonly', async tx => await tx.objectStore(this.STORE).get([track.modName, track.audioName]));
           if (this.pendingLoads.get(key) !== task) throw new Error(`音频加载已取消: ${track.modName}/${track.audioName}`);
           if (!record) throw new Error(`音频不存在: ${track.modName}/${track.audioName}`);
           const { arrayBuffer, format } = (record as AudioRecord).value;
@@ -623,7 +639,8 @@ class AudioManager {
           artist: meta.artist
         }
       };
-      await this.core.idb.withTransaction([this.STORE], 'readwrite', async (tx: any) => await tx.objectStore(this.STORE).put(record));
+      await this.core.idb.withTransaction([this.STORE], 'readwrite', async tx => await tx.objectStore(this.STORE).put(record));
+      this.unloadCache(modName, audioName);
       return true;
     } catch (error) {
       this.log(`存储音频失败: ${modName}/${audioName}`, 'ERROR', error);
@@ -633,7 +650,7 @@ class AudioManager {
 
   private async readRecords(modName?: string): Promise<AudioRecord[]> {
     try {
-      const records = await this.core.idb.withTransaction([this.STORE], 'readonly', async (tx: any) => {
+      const records = await this.core.idb.withTransaction([this.STORE], 'readonly', async tx => {
         const store = tx.objectStore(this.STORE);
         if (modName) return await store.index('modName').getAll(modName);
         return await store.getAll();
@@ -757,7 +774,7 @@ class AudioManager {
     }
   }
 
-  private emit(event: string, ...args: any[]): void {
+  private emit(event: string, ...args: unknown[]): void {
     void this.core.trigger(':audio', {
       type: event,
       data: args

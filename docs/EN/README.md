@@ -25,12 +25,14 @@ This directory contains English documentation for mod authors using **`maplebirc
 - [Zone Manager](ToolCollection/Framework.md)
 - [Random System](ToolCollection/randSystem.md)
 - [Data Migration](ToolCollection/migration.md)
-- [Text Builder](ToolCollection/htmlTools.md)
+- [HTML Tools](ToolCollection/htmlTools.md)
+- [Patch Registration](ToolCollection/Patches.md)
 - [Traits](ToolCollection/Traits.md)
 - [Tips](ToolCollection/Tips.md)
 - [Location Config](ToolCollection/Location.md)
 - [Bodywriting](ToolCollection/Bodywriting.md)
 - [Foodstuff](ToolCollection/Foodstuff.md)
+- [Fishing Extensions](ToolCollection/Fishing.md)
 - [Antiques](ToolCollection/Antiques.md)
 
 ## Character, NPC, and Combat
@@ -47,6 +49,7 @@ This directory contains English documentation for mod authors using **`maplebirc
 
 ## Framework Services
 
+- [ModLoader Integration](AddonPlugin.md)
 - [Mod Encryption](Encryption.md)
 - [Cloud Save](CloudSave.md)
 

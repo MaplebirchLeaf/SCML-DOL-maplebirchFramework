@@ -4,9 +4,9 @@ import maplebirch from '../core';
 import { bindLanguageUpdate, text, wiki, type MacroContext } from './helpers';
 
 // <<lanSwitch>>
-export function _languageSwitch(this: void, ...lanObj: any[]): string;
-export function _languageSwitch(this: MacroContext, ...lanObj: any[]): HTMLElement;
-export function _languageSwitch(this: MacroContext | void, ...lanObj: any[]): string | HTMLElement {
+export function _languageSwitch(this: void, ...lanObj: unknown[]): string;
+export function _languageSwitch(this: MacroContext, ...lanObj: unknown[]): HTMLElement;
+export function _languageSwitch(this: MacroContext | void, ...lanObj: unknown[]): string | HTMLElement {
   const languages = maplebirch.meta.Languages;
   const currentLanguage = maplebirch.Language;
   const target: Record<string, string> = {};

@@ -1,19 +1,23 @@
 // ./src/modules/AddonPlugin.ts
 
+import { errorMessage } from '../utils/error';
 import type { Passage } from '@scml/types/sugarcube-2-ModLoader/SugarCube2';
 import type { ModBootJson, ModInfo } from '@scml/types/sugarcube-2-ModLoader/ModLoader';
 import type { JSZipLikeReadOnlyInterface } from '@scml/types/sugarcube-2-ModLoader/JSZipLikeReadOnlyInterface';
 import type { ModZipReader } from '@scml/types/sugarcube-2-ModLoader/ModZipReader';
 import type { TypeOrderItem } from '@scml/types/AddonMod_BeautySelector/BeautySelectorAddonType';
 import type { SC2DataManager } from '@scml/types/sugarcube-2-ModLoader/SC2DataManager';
+import type { WikifyTracerCallback } from '@scml/types/sugarcube-2-ModLoader/WikifyTracer';
 import type { ModUtils } from '@scml/types/sugarcube-2-ModLoader/Utils';
 import type { CryptOptions } from '../services/CredentialVault';
 import MaplebrichStyles from '@/styles/MaplebrichStyles.css';
 import maplebirch, { type MaplebirchCore, createlog } from '../core';
-import { clone } from '../utils';
 import { defineTwineAsset, replace, type Replacement } from '../utils/twine';
 import { patchTimeConstantsAsset, patchDateTimeAsset } from './TimeStateWeather/DateTime';
 import { patchTimeAsset } from './TimeStateWeather/Time';
+import Resources from './Addon/Resources';
+import Diagnostics from './Addon/Diagnostics';
+import Save from './Addon/Save';
 
 type FileType = 'Module' | 'Script';
 
@@ -47,6 +51,8 @@ class AddonPlugin {
   public readonly replace = replace;
   public readonly SC2DataManager: SC2DataManager;
   public readonly modUtils: ModUtils;
+  public readonly resources: Resources;
+  public readonly diagnostics: Diagnostics;
   public readonly info = new Map<string, { addonName: string; mod: ModInfo; modZip: ModZipReader }>();
   public readonly log: ReturnType<typeof createlog> = createlog('addon');
   public readonly jsFiles: FileItem[] = [];
@@ -64,6 +70,8 @@ class AddonPlugin {
   public constructor(readonly core: MaplebirchCore) {
     this.SC2DataManager = this.core.manager.modSC2DataManager;
     this.modUtils = this.core.modUtils;
+    this.resources = new Resources(this.SC2DataManager, (path, error) => this.log(`图片资源读取失败: ${path}`, 'WARN', error));
+    this.diagnostics = new Diagnostics(this.SC2DataManager, this.modUtils);
     this.log('框架开始初始化流程', 'DEBUG');
     this.modUtils.getAddonPluginManager().registerAddonPlugin('maplebirch', 'maplebirchAddon', this);
     this.SC2DataManager.getModLoadController().addLifeTimeCircleHook('maplebirchFramework', this);
@@ -73,6 +81,11 @@ class AddonPlugin {
     if (!modInfo) return;
     modInfo.modRef = this;
     this.log('框架初始化流程结束', 'DEBUG');
+  }
+
+  public wikify(name: string, callbacks: WikifyTracerCallback): void {
+    if (!name.trim()) throw new Error('Wikify callback name must not be empty');
+    this.SC2DataManager.getWikifyTracer().addCallback(`maplebirch:${name}`, callbacks);
   }
 
   public hook<T>(name: string, handler: BootHandler<T>): boolean {
@@ -113,6 +126,7 @@ class AddonPlugin {
   }
 
   public async afterEarlyLoad(): Promise<void> {
+    this.resources.clear();
     const imagePack = window.modGameOriginalImagePack;
     if (!imagePack) return;
     const hasImage = (src: string) => imagePack.selfIgnoreImagePath.has(src) || imagePack.selfImg.has(src);
@@ -201,9 +215,9 @@ class AddonPlugin {
     await this.core.trigger(':storyready');
     if (this.onSaveLoadTracer) return;
     this.onSaveLoadTracer = true;
-    this.core.SugarCube.Save.onSave.add((saveObj: any, details?: any) => void this.core.trigger(':onSave', this.saveHandle(saveObj, details)));
-    this.core.SugarCube.Save.onLoad.add((saveObj: any) => {
-      const save = this.saveHandle(saveObj);
+    this.core.SugarCube.Save.onSave.add((saveObj, details) => void this.core.trigger(':onSave', new Save(this.core.SugarCube.State, saveObj, details)));
+    this.core.SugarCube.Save.onLoad.add(saveObj => {
+      const save = new Save(this.core.SugarCube.State, saveObj);
       void this.core.trigger(':onLoad', save);
       save.use(save.V, () => this.core.modules.run('load'));
       if (!this.core.passage || this.blockedPassages.has(this.core.passage.title)) this.onStart = true;
@@ -252,7 +266,7 @@ class AddonPlugin {
         if (Array.isArray(params.module)) await this.loadFiles(modName, modZip, params.module, 'Module');
         if (Array.isArray(params.script)) await this.loadFiles(modName, modZip, params.script, 'Script');
       } catch (error) {
-        this.log(`加载模组脚本失败: ${modName} - ${this.error(error)}`, 'ERROR');
+        this.log(`加载模组脚本失败: ${modName} - ${errorMessage(error)}`, 'ERROR');
       }
     }
   }
@@ -284,7 +298,7 @@ class AddonPlugin {
         }
         target.push({ modName, filePath, content: await file.async('string') });
       } catch (error) {
-        this.log(`加载 ${type} 文件失败: ${filePath} (来自 ${modName}): ${this.error(error)}`, 'ERROR');
+        this.log(`加载 ${type} 文件失败: ${filePath} (来自 ${modName}): ${errorMessage(error)}`, 'ERROR');
       }
     }
   }
@@ -310,7 +324,7 @@ class AddonPlugin {
           await execute();
         }
       } catch (error) {
-        this.log(`执行 ${type} 文件失败: ${file.filePath} (来自 ${file.modName}): ${this.error(error)}`, 'ERROR');
+        this.log(`执行 ${type} 文件失败: ${file.filePath} (来自 ${file.modName}): ${errorMessage(error)}`, 'ERROR');
       } finally {
         file.content = '';
       }
@@ -353,7 +367,7 @@ class AddonPlugin {
     try {
       await handler(task);
     } catch (error) {
-      this.log(`${task.modName} 的 ${name} 配置处理失败: ${this.error(error)}`, 'ERROR');
+      this.log(`${task.modName} 的 ${name} 配置处理失败: ${errorMessage(error)}`, 'ERROR');
     }
   }
 
@@ -366,7 +380,12 @@ class AddonPlugin {
     const SCdata = oldSCdata.cloneSC2DataInfo();
     const passageData = SCdata.passageDataItems.map;
     const passageTitle = 'Options Overlay';
-    const passage = passageData.get(passageTitle)!;
+    const passage = passageData.get(passageTitle);
+    if (!passage) {
+      this.diagnostics.recordPatch({ kind: 'passage', target: passageTitle, index: 0, pattern: 'dateFormat', matches: 0, applied: 0, status: 'missing' });
+      this.log(`日期格式补丁目标不存在: ${passageTitle}`, 'WARN');
+      return;
+    }
     const hasI18N = this.modUtils.getModListNameNoAlias().includes('ModI18N');
     const replacements: Replacement[] = [
       [
@@ -386,43 +405,6 @@ class AddonPlugin {
     passageData.set(passageTitle, passage);
     SCdata.passageDataItems.back2Array();
     this.modUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
-  }
-
-  private saveHandle(saveObj: any, details?: any) {
-    const State = this.core.SugarCube.State;
-    const history: any[] = Array.isArray(saveObj?.state?.history) ? saveObj.state.history : [];
-    const replaceObject = (target: any, source: any) => {
-      for (const key of Object.keys(target)) delete target[key];
-      Object.assign(target, source);
-      return target;
-    };
-
-    const use = <T>(variables: any, fn: () => T): T => {
-      const runtime = State.variables;
-      const backup = clone(runtime);
-      replaceObject(runtime, clone(variables));
-      try {
-        const result = fn();
-        replaceObject(variables, clone(runtime));
-        return result;
-      } finally {
-        replaceObject(runtime, backup);
-      }
-    };
-
-    return {
-      saveObj,
-      details,
-      get V() {
-        const index = saveObj?.state?.index;
-        return history[index]?.variables ?? history[history.length - 1]?.variables;
-      },
-      use
-    };
-  }
-
-  private error(error: unknown): string {
-    return error instanceof Error ? error.message : String(error);
   }
 }
 

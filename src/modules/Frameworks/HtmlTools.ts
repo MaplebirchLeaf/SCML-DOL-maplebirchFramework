@@ -1,8 +1,19 @@
 // ./src/modules/Frameworks/HtmlTools.ts
 
-import { createlog } from '../../core';
+import { errorMessage } from '../../utils/error';
+import { createlog, type MaplebirchCore } from '../../core';
 import type { MacroFunction } from './macros';
-import ToolCollection from '../ToolCollection';
+import type { MacroContext } from '../../SugarCubeMacros';
+
+export type HtmlRoot = Element | DocumentFragment;
+export interface TextContext {
+  readonly macro?: MacroContext;
+  readonly args?: readonly unknown[];
+  readonly name?: string;
+  readonly widgetName?: string;
+  readonly passageTitle?: string;
+  readonly [key: string]: unknown;
+}
 
 interface TextHandler {
   id: string;
@@ -14,13 +25,13 @@ type RawContent = TextContent | Node;
 
 class Builder {
   public readonly auto: (text: string) => string;
-  public readonly fragment: DocumentFragment;
-  public readonly context: Record<string, any>;
+  public readonly fragment: HtmlRoot;
+  public readonly context: TextContext;
 
   public constructor(
     readonly parent: htmlTools,
-    fragment: DocumentFragment,
-    context: Record<string, any> = {}
+    fragment: HtmlRoot,
+    context: TextContext = {}
   ) {
     this.auto = text => parent.core.auto(text);
     this.fragment = fragment;
@@ -51,9 +62,7 @@ class Builder {
       this.parent.log('Wikifier 未设置，无法解析维基语法', 'ERROR');
       return this.text(text);
     }
-    const container = document.createElement('div');
-    new Wikifier(container, text);
-    while (container.firstChild) this.fragment.appendChild(container.firstChild);
+    new Wikifier(this.fragment, text);
     return this;
   }
 
@@ -64,7 +73,7 @@ class Builder {
       return this;
     }
     const text = typeof content === 'string' ? content : content.toString();
-    this.fragment.appendChild(document.createTextNode(this.auto(text)));
+    this.fragment.appendChild(document.createTextNode(text));
     return this;
   }
 
@@ -83,52 +92,64 @@ class Builder {
 }
 
 class htmlTools {
-  public readonly core: ToolCollection['core'];
   public readonly log: ReturnType<typeof createlog>;
   private uid = 0;
   private readonly store = new Map<string, TextHandler[]>();
-  public constructor(manager: ToolCollection) {
-    this.core = manager.core;
+  public constructor(readonly core: MaplebirchCore) {
     this.log = createlog('text');
   }
 
-  public get Wikifier(): any {
+  public get Wikifier(): MaplebirchCore['SugarCube']['Wikifier'] {
     return this.core.SugarCube.Wikifier;
   }
 
-  public replaceText(oldText: string, newText: string): void {
-    const passage = document.getElementById('passage-content');
-    if (!passage) return;
+  public replaceText(oldText: string, newText: string, root: HtmlRoot | null = document.getElementById('passage-content')): number {
+    if (!root) return 0;
     const target = window.lanSwitch(oldText);
     const replacement = window.lanSwitch(newText);
-    if (!target || !passage.textContent?.includes(target)) return;
-    const walker = document.createTreeWalker(passage, NodeFilter.SHOW_TEXT);
+    if (!target || !root.textContent?.includes(target)) return 0;
+    const walker = root.ownerDocument.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let count = 0;
     let node: Node | null;
     while ((node = walker.nextNode())) {
       if (!node.textContent?.includes(target)) continue;
-      node.textContent = node.textContent.split(target).join(replacement);
+      if (node.parentElement?.closest('script, style, textarea')) continue;
+      const parts = node.textContent.split(target);
+      count += parts.length - 1;
+      node.textContent = parts.join(replacement);
+    }
+    return count;
+  }
+
+  public renameLink(target: string | Element, label: string, root: HtmlRoot | null = document.getElementById('passage-content')): boolean {
+    const link = this.findLink(target, root);
+    if (!link) return false;
+    link.textContent = window.lanSwitch(label);
+    return true;
+  }
+
+  public replaceLink(target: string | Element, source: string, root: HtmlRoot | null = document.getElementById('passage-content')): boolean {
+    const link = this.findLink(target, root);
+    if (!link?.parentNode) return false;
+    const container = link.ownerDocument.createElement('span');
+    try {
+      new this.Wikifier(container, window.lanSwitch(source));
+      if (container.querySelector('.error')) return false;
+      link.replaceWith(container);
+      return true;
+    } catch (error) {
+      this.log('replaceLink:', 'ERROR', error);
+      return false;
     }
   }
 
-  public replaceLink(oldLink: string, newLink: string): void {
-    const passage = document.getElementById('passage-content');
-    if (!passage) return;
-    const target = window.lanSwitch(oldLink);
-    const replacement = window.lanSwitch(newLink);
-    if (!target) return;
-    const links = passage.querySelectorAll('.macro-link, .link-internal');
-    for (const link of links) {
-      if (!link.textContent?.includes(target)) continue;
-      const container = document.createElement('span');
-      try {
-        link.parentNode?.replaceChild(container, link);
-        new this.core.SugarCube.Wikifier(container, replacement);
-      } catch (error) {
-        this.log('replaceLink:', 'ERROR', error);
-        container.textContent = replacement;
-      }
-      return;
-    }
+  private findLink(target: string | Element, root: HtmlRoot | null): Element | undefined {
+    if (typeof target !== 'string') return target;
+    const label = window.lanSwitch(target);
+    if (!root || !label) return;
+    const selector = '.macro-link, .link-internal';
+    const links = [...(root instanceof Element && root.matches(selector) ? [root] : []), ...root.querySelectorAll(selector)];
+    return links.find(link => link.textContent?.includes(label));
   }
 
   public add(key: string, handler: (tools: Builder) => void, id?: string): string | false {
@@ -176,9 +197,14 @@ class htmlTools {
     this.log(`已清除所有键值 (共 ${count} 个)`, 'DEBUG');
   }
 
-  public renderFragment(keys: string | string[], context: Record<string, any> = {}): DocumentFragment {
+  public renderFragment(keys: string | string[], context: TextContext = {}): DocumentFragment {
     const fragment = document.createDocumentFragment();
-    const tools = new Builder(this, fragment, context);
+    this.renderInto(fragment, keys, context);
+    return fragment;
+  }
+
+  public renderInto(root: HtmlRoot, keys: string | string[], context: TextContext = {}): void {
+    const tools = new Builder(this, root, context);
     const list = Array.isArray(keys) ? keys : keys == null ? [] : [keys];
     for (const key of list) {
       const handlers = this.store.get(key);
@@ -186,49 +212,43 @@ class htmlTools {
         this.log(`渲染片段: 未找到键值 [${key}]`, 'DEBUG');
         continue;
       }
-      for (const { fn } of handlers) {
+      for (const { fn } of handlers.slice()) {
         try {
           fn(tools);
-        } catch (error: any) {
-          this.log(`处理器错误 [${key}]: ${error?.message || error}`, 'ERROR', error);
+        } catch (error) {
+          this.log(`处理器错误 [${key}]: ${errorMessage(error)}`, 'ERROR', error);
         }
       }
     }
-    return fragment;
   }
 
-  public render(macro: any, keys: string | string[]): void {
+  public render(macro: MacroContext, keys: string | string[]): void {
     if (keys == null) return;
     try {
-      const fragment = this.renderFragment(keys, macro);
-      const output = macro?.output;
-      if (output?.appendChild) {
-        output.appendChild(fragment);
-        return;
-      }
-      if (output?.append) {
-        output.append(fragment);
-        return;
-      }
-      this.log(`无法找到宏输出目标: ${String(macro)}`, 'WARN');
-    } catch (error: any) {
-      this.log(`渲染到宏输出失败: ${error?.message || error}`, 'ERROR', error);
+      this.renderInto(macro.output, keys, { ...macro, macro, name: macro.name, args: Array.from(macro.args) });
+    } catch (error) {
+      this.log(`渲染到宏输出失败: ${errorMessage(error)}`, 'ERROR', error);
     }
   }
 
   public makeTextOutput(options: { CSV?: boolean } = {}): MacroFunction {
     const CSV = options.CSV ?? true;
     const render = this.render.bind(this);
-    return function (this: any) {
-      const raw = this.args?.[0];
-      let keys = raw;
-      if (CSV && typeof raw === 'string' && raw.includes(',')) {
-        keys = raw
-          .split(',')
-          .map(item => item.trim())
-          .filter(Boolean);
+    return function (this: MacroContext) {
+      const raw: unknown = this.args[0];
+      if (typeof raw === 'string') {
+        const keys = CSV
+          ? raw
+              .split(',')
+              .map(item => item.trim())
+              .filter(Boolean)
+          : raw;
+        render(this, keys);
+      } else if (Array.isArray(raw) && raw.every((key): key is string => typeof key === 'string')) {
+        render(this, raw);
+      } else {
+        this.error('maplebirchTextOutput requires a string or string array');
       }
-      render(this, keys);
     };
   }
 }

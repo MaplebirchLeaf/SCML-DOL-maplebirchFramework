@@ -93,7 +93,7 @@ maplebirch.tool.patch.addTraits({
 }
 ```
 
-In `boot.json`, string expressions for fields such as `has`, `colour`, and `text` are evaluated in the game context.
+In `boot.json`, `has` accepts a boolean or JavaScript condition evaluated in the game context. Only use trusted expressions. `name`, `colour`, and `text` are plain strings; use function configurations in a script when these fields need dynamic values.
 
 External `.json`, `.yaml`, or `.yml` files are also supported:
 

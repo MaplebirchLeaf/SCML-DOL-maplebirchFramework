@@ -2,6 +2,7 @@
 
 import maplebirch, { type MaplebirchCore, createlog } from '../core';
 import { _language, _languageSwitch, _languageButton, _languageLink, _languageListbox, _radiobuttonsfrom, _overlayReplace } from '../SugarCubeMacros';
+import { actionTypes, type ActionType } from './CombatAddon/CombatAction';
 
 type Updater = () => void;
 type DynamicTask = (...args: any[]) => any;
@@ -9,7 +10,7 @@ type TextItem = string | number | boolean | null | undefined;
 
 interface LanguageManager {
   managers: Record<string, Set<Updater>>;
-  add(macroType: string, updater: Updater): void;
+  add(macroType: string, updater: Updater, root?: Node): void;
   remove(macroType: string, updater: Updater): void;
 }
 
@@ -42,6 +43,7 @@ class Internals {
       macro.define('maplebirchReplace', (name: string, type: string) => _overlayReplace(name, type));
       macro.define('maplebirchTextOutput', this.core.tool.text.makeTextOutput());
       macro.define('maplebirchCombatAction', function () {
+        if (!this.args.every((arg): arg is ActionType => (actionTypes as readonly unknown[]).includes(arg))) return this.error('Invalid combat action type.');
         const effects = maplebirch.combat?.CombatAction?.effect?.(...this.args);
         if (effects) this.output.append(maplebirch.SugarCube.Wikifier.wikifyEval(effects));
       });
@@ -61,24 +63,36 @@ class Internals {
       lanListbox: new Set(),
       radiobuttonsfrom: new Set()
     };
+    const roots = new WeakMap<Updater, Node>();
+    const connected = (updater: Updater) => roots.get(updater)?.isConnected ?? true;
+    const cleanup = () => {
+      for (const updaters of Object.values(managers)) for (const updater of updaters) if (!connected(updater)) updaters.delete(updater);
+    };
 
     this.core.on(
       ':language',
       () => {
-        for (const [macroType, updaters] of Object.entries(managers)) for (const updater of updaters) this.LanguageUpdater(macroType, updater);
+        cleanup();
+        const pending = Object.entries(managers).map(([macroType, updaters]) => [macroType, [...updaters]] as const);
+        for (const [macroType, updaters] of pending) {
+          for (const updater of updaters) if (managers[macroType].has(updater) && connected(updater)) this.LanguageUpdater(macroType, updater);
+        }
+        cleanup();
       },
       'language macro manager'
     );
 
-    this.core.once(':passagestart', () => Object.values(managers).forEach(manager => manager.clear()));
+    this.core.on(':passageend', cleanup, 'language macro cleanup');
     setup.maplebirch.language = {
       managers,
-      add(macroType: string, updater: Updater) {
+      add(macroType: string, updater: Updater, root?: Node) {
         managers[macroType] ??= new Set();
         managers[macroType].add(updater);
+        if (root) roots.set(updater, root);
       },
       remove(macroType: string, updater: Updater) {
         managers[macroType]?.delete(updater);
+        roots.delete(updater);
       }
     } as LanguageManager;
   }

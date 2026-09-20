@@ -24,18 +24,13 @@ export const Config = {
   ClearIndexedDB   : ['Clear IndexedDB', '清除索引数据库']
 };
 
-// prettier-ignore
-export const ModuleState: {[key: string|number]: string|number} = (() => {
-  const state: {[key: string|number]: string|number} = {
-    REGISTERED: 0,
-    MOUNTED   : 1,
-    ERROR     : 2,
-    EXPOSED   : 3,
-    DISABLED  : 4
-  };
-  Object.entries(state).forEach(([key, value]) => state[value] = key);
-  return state;
-})();
+export enum ModuleState {
+  REGISTERED,
+  MOUNTED,
+  ERROR,
+  EXPOSED,
+  DISABLED
+}
 
 export const Translations: Partial<Record<LanguageCode, string>> = {
   CN: builtinTranslationsCN,

@@ -45,6 +45,8 @@ Common config fields:
 | `layerTop`      | Top layer config                             |
 | `customMapping` | Custom location mapping                      |
 
+Keep `condition` functions focused on checks. Avoid changing game state inside location conditions.
+
 Options:
 
 | Field       | Description                                |
@@ -54,6 +56,8 @@ Options:
 | `overwrite` | Replace the whole location config          |
 
 ## Add A Layer Element
+
+Supply both `layer` and `element` to add or update one element within a layer:
 
 ```javascript
 maplebirch.tool.patch.configureLocation(
@@ -69,6 +73,8 @@ maplebirch.tool.patch.configureLocation(
 ```
 
 ## Merge Full Config
+
+Without `layer` and `element`, the configuration is merged into the location. Repeated configurations for the same location are merged by default.
 
 ```javascript
 maplebirch.tool.patch.configureLocation('old_ruins', {
@@ -99,5 +105,3 @@ maplebirch.tool.patch.configureLocation(
   }
 );
 ```
-
-Keep `condition` functions focused on checks. Avoid changing game state inside location conditions.
