@@ -1,6 +1,6 @@
 // ./src/modules/Frameworks/Patches/Tips.ts
 
-import { isKey } from './config';
+import { isKey, isRecord } from './config';
 
 export const tipsData: Record<string, string[]> = Object.create(null);
 const customCategories = new Set<string>();
@@ -15,7 +15,7 @@ class Tips {
   }
 
   public static apply(): void {
-    if (!setup.tips || typeof setup.tips !== 'object' || Array.isArray(setup.tips)) setup.tips = {};
+    if (typeof setup === 'undefined' || !isRecord(setup.tips)) return;
     for (const [category, tips] of Object.entries(tipsData)) {
       if (!isKey(category)) continue;
       if (!Object.prototype.hasOwnProperty.call(setup.tips, category)) customCategories.add(category);

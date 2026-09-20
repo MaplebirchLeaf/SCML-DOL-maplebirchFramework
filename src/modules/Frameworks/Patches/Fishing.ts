@@ -70,8 +70,9 @@ export default class Fishing {
   }
 
   public static apply(): void {
-    const target = setup.fishing?.lootTables.fish;
-    if (!target) return;
+    if (typeof setup === 'undefined') return;
+    const target = setup.fishing?.lootTables?.fish;
+    if (!isRecord(target)) return;
     for (const [key, config] of Object.entries(fishData)) {
       const { foodstuff: _foodstuff, ...fish } = clone(config) as FishConfig;
       target[key] = { preferredSeason: [], preferredLocation: [], preferredBait: 'bait_worm', cookable: false, ...fish };

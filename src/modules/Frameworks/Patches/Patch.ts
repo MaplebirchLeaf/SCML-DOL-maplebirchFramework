@@ -7,6 +7,7 @@ export interface WidgetPatch {
 
 export interface PatchDefinition<T extends object = object> {
   api: T;
+  available?: () => boolean;
   init?: () => void;
   state?: () => void;
   widgets?: Readonly<Record<string, WidgetPatch>>;
@@ -28,7 +29,7 @@ export default class Patch {
   public beforeWidget(widget: string, text: string): string {
     for (const [name, definition] of this.entries) {
       const callback = this.widget(definition, widget)?.before;
-      if (callback) this.run(name, () => (text = callback(text)));
+      if (callback && this.available(name, definition)) this.run(name, () => (text = callback(text)));
     }
     return text;
   }
@@ -36,12 +37,20 @@ export default class Patch {
   public afterWidget(widget: string, node: DocumentFragment): void {
     for (const [name, definition] of this.entries) {
       const callback = this.widget(definition, widget)?.after;
-      if (callback) this.run(name, () => callback(node));
+      if (callback && this.available(name, definition)) this.run(name, () => callback(node));
     }
   }
 
   private widget(definition: PatchDefinition, name: string): WidgetPatch | undefined {
     return definition.widgets && Object.hasOwn(definition.widgets, name) ? definition.widgets[name] : undefined;
+  }
+
+  private available(name: string, definition: PatchDefinition): boolean {
+    const check = definition.available;
+    if (!check) return true;
+    let available = false;
+    this.run(name, () => (available = check()));
+    return available;
   }
 
   private run(name: string, callback: () => void): void {
@@ -55,7 +64,7 @@ export default class Patch {
   public apply(phase: PatchPhase): void {
     for (const [name, definition] of this.entries) {
       const callback = definition[phase];
-      if (callback) this.run(name, callback);
+      if (callback && this.available(name, definition)) this.run(name, callback);
     }
   }
 }

@@ -17,6 +17,9 @@ The return value is `patch` with the new members and their TypeScript types. Dup
 ```typescript
 const patch = maplebirch.tool.patch.add('myMod:catalog', {
   api: { myCatalog: new Map<string, string>() },
+  available() {
+    return Boolean(setup.myCatalog);
+  },
   init() {
     // Merge static configuration into setup
   },
@@ -41,14 +44,15 @@ patch.myCatalog.set('example', 'value');
 
 | Handler                      | Timing                                                | Purpose                                                         |
 | ---------------------------- | ----------------------------------------------------- | --------------------------------------------------------------- |
+| `available()`                | Before each lifecycle handler or widget hook          | Silently skip this extension when it returns `false`            |
 | `init()`                     | During StoryInit, after vanilla static initialization | Merge setup catalogs without creating save variables            |
 | `state()`                    | State initialization for a new or loaded game         | Fill missing V entries while preserving quantities and progress |
 | `widgets[name].before(text)` | Before the named widget executes                      | Prepare data or transform source; must return a string          |
 | `widgets[name].after(node)`  | After the named widget renders                        | Use results or edit its fragment                                |
 
-Handlers run synchronously in registration order. Errors are logged without stopping subsequent handlers. `before` results feed subsequent handlers; return unchanged source when only preparing data. `after` receives a fragment that may not be attached yet and cannot determine whether a link has been clicked or a reward granted. See [ModLoader Integration](../AddonPlugin.md#render-hooks) for hooks with full context.
+Handlers run synchronously in registration order. `available` is evaluated each time and can return `false` when a required vanilla structure is absent; this skips `init`, `state` and widget hooks. Errors are logged without stopping subsequent handlers. `before` results feed subsequent handlers; return unchanged source when only preparing data. `after` receives a fragment that may not be attached yet and cannot determine whether a link has been clicked or a reward granted. See [ModLoader Integration](../AddonPlugin.md#render-hooks) for hooks with full context.
 
-Locations, bodywriting, food, fish and tips merge static data during init. Food inventory and antique state fill missing entries during state. Antique text, donation and tip lists use widget hooks. Loading a save does not initialize setup again.
+Locations, bodywriting, food, fish and tips merge static data during init. They silently skip when their vanilla catalog is absent and do not create missing vanilla `setup` roots. Food inventory and antique state fill missing entries during state. Antique text, donation and tip lists use widget hooks. Loading a save does not initialize setup again.
 
 Related docs:
 

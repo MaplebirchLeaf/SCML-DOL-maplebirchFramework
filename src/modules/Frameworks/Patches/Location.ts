@@ -69,8 +69,7 @@ class Location {
   }
 
   public static apply(): void {
-    setup.LocationImages ??= {};
-    setup.Locations ??= {};
+    if (typeof setup === 'undefined' || !isRecord(setup.LocationImages) || !isRecord(setup.Locations)) return;
     for (const [locationId, update] of Object.entries(locationData)) {
       const current = setup.LocationImages[locationId] || {};
       if (update.overwrite || !setup.LocationImages[locationId]) {

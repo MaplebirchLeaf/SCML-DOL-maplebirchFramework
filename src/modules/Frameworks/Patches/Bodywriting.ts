@@ -41,8 +41,7 @@ class Bodywriting {
   }
 
   public static apply(): void {
-    setup.bodywriting ??= {};
-    setup.bodywriting_namebyindex ??= [];
+    if (typeof setup === 'undefined' || !isRecord(setup.bodywriting) || !Array.isArray(setup.bodywriting_namebyindex)) return;
     for (const [key, data] of Object.entries(bodywritingData)) {
       if (data.operation === 'del') {
         Bodywriting.remove(key);

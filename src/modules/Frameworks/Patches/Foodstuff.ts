@@ -68,17 +68,18 @@ class Foodstuff {
   }
 
   public static apply(): void {
+    if (typeof setup === 'undefined' || !isRecord(setup.foodstuff)) return;
     Foodstuff.applySetup();
     Foodstuff.syncState();
   }
 
   public static syncState(): void {
+    if (typeof setup === 'undefined' || !isRecord(setup.foodstuff)) return;
     for (const key of Object.keys(foodstuffData)) Foodstuff.ensureState(key);
   }
 
   public static applySetup(): void {
-    if (Object.keys(foodstuffData).length === 0) return;
-    setup.foodstuff ??= {};
+    if (typeof setup === 'undefined' || !isRecord(setup.foodstuff) || Object.keys(foodstuffData).length === 0) return;
     for (const [key, config] of Object.entries(foodstuffData)) {
       Foodstuff.set(key, config);
     }

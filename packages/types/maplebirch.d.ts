@@ -2558,6 +2558,7 @@ interface WidgetPatch {
 }
 interface PatchDefinition<T extends object = object> {
   api: T;
+  available?: () => boolean;
   init?: () => void;
   state?: () => void;
   widgets?: Readonly<Record<string, WidgetPatch>>;
@@ -2570,6 +2571,7 @@ declare class Patch {
   beforeWidget(widget: string, text: string): string;
   afterWidget(widget: string, node: DocumentFragment): void;
   private widget;
+  private available;
   private run;
   apply(phase: PatchPhase): void;
 }
