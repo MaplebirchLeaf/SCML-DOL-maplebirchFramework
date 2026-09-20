@@ -2,7 +2,6 @@ import type { SC2DataManager } from '@scml/types/sugarcube-2-ModLoader/SC2DataMa
 
 type ImageResult = string | false;
 
-/** Resolves ModLoader images and ordinary URLs while retaining the resolved URL. */
 export default class Resources {
   private readonly cache = new Map<string, ImageResult>();
   private readonly pending = new Map<string, Promise<ImageResult>>();

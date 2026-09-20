@@ -171,6 +171,20 @@ Related docs:
 "npc": {
   "NamedNPC": [],
   "Stats": {},
+  "Transformation": {
+    "Example": {
+      "wolf": {
+        "parts": { "wolf_ears": { "level": 1 }, "wolf_tail": { "level": 2 } }
+      }
+    }
+  },
+  "Pregnancy": {
+    "Example": {
+      "canBePregnant": true,
+      "canImpregnatePlayer": true,
+      "cycle": { "days": [26, 30], "dangerousDay": 14, "fertileLeadDays": [4, 6] }
+    }
+  },
   "Sidebar": {
     "image": [],
     "clothes": [],
@@ -179,13 +193,23 @@ Related docs:
 }
 ```
 
-| Field             | Purpose                           |
-| :---------------- | :-------------------------------- |
-| `NamedNPC`        | Register named NPCs               |
-| `Stats`           | Register NPC stats                |
-| `Sidebar.image`   | Import static sidebar images      |
-| `Sidebar.clothes` | Import wardrobe config            |
-| `Sidebar.config`  | Import sidebar model layer config |
+| Field             | Purpose                                                   |
+| :---------------- | :-------------------------------------------------------- |
+| `NamedNPC`        | Register named NPCs                                       |
+| `Stats`           | Register NPC stats                                        |
+| `Transformation`  | Register independent transformation configs by NPC name   |
+| `Pregnancy`       | Register pregnancy content and cycle settings by NPC name |
+| `Sidebar.image`   | Import static sidebar images                              |
+| `Sidebar.clothes` | Import wardrobe config                                    |
+| `Sidebar.config`  | Import sidebar model layer config                         |
+
+Related docs:
+
+- [NPC Registration](NamedNPC/NamedNPC.md)
+- [NPC Transformation](NamedNPC/NamedNPCTransformation.md)
+- [NPC Pregnancy](NamedNPC/NamedNPCPregnancy.md)
+- [NPC Clothes](NamedNPC/NamedNPCClothes.md)
+- [NPC Sidebar](NamedNPC/NamedNPCSidebar.md)
 
 ## Full Example
 

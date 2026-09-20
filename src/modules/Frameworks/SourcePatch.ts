@@ -15,7 +15,6 @@ export interface SourcePatchResult extends Pick<PatchResult, 'pattern' | 'matche
   content: string;
 }
 
-/** Counts candidates without changing caller regex state or re-matching inserted text. */
 export function applySourcePatch(source: string, patch: SourcePatch): SourcePatchResult {
   const pattern = patch.src || patch.srcmatch || patch.srcmatchgroup;
   const result: SourcePatchResult = { content: source, pattern: String(pattern ?? ''), matches: 0, applied: 0, status: 'invalid', expected: patch.expected };

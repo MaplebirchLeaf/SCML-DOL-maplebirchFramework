@@ -195,7 +195,6 @@ type FishData = Omit<FishConfig, 'foodstuff'> & Required<Pick<FishConfig, 'prefe
 declare class Fishing {
   static addFish(key: string, config: FishConfig): boolean;
   static addBait(key: string, config: FoodstuffConfig): void;
-  /** Adjusts fish weights at an existing vanilla fishing spot; zero removes that fish from the spot. */
   static configureLocation(location: FishingLocation, weights: Record<string, number>): boolean;
   static apply(): void;
 }
@@ -3241,24 +3240,226 @@ declare class NPCFluids {
   apply(nnpc: Record<string, any>, npcData: any): void;
 }
 //#endregion
+//#region src/modules/NamedNPCAddon/NPCSidebarConfig/transformation_layers.d.ts
+declare const transformationDefaults: {
+  show_tf: boolean;
+  tf_ears_layer: string;
+  angel_wings_type: string;
+  angel_wing_right: string;
+  angel_wing_left: string;
+  angel_wings_layer: string;
+  angel_halo_type: string;
+  angel_halo_lower: boolean;
+  fallen_wings_type: string;
+  fallen_wing_right: string;
+  fallen_wing_left: string;
+  fallen_wings_layer: string;
+  fallen_halo_type: string;
+  demon_wings_type: string;
+  demon_wings_state: string;
+  demon_wings_layer: string;
+  demon_tail_type: string;
+  demon_tail_state: string;
+  demon_tail_layer: string;
+  demon_horns_type: string;
+  demon_horns_layer: string;
+  wolf_tail_type: string;
+  wolf_tail_layer: string;
+  wolf_ears_type: string;
+  wolf_pits_type: string;
+  wolf_pubes_type: string;
+  wolf_cheeks_type: string;
+  cat_tail_type: string;
+  cat_tail_layer: string;
+  cat_ears_type: string;
+  cow_horns_type: string;
+  cow_horns_layer: string;
+  cow_tail_type: string;
+  cow_tail_layer: string;
+  cow_ears_type: string;
+  bird_wings_type: string;
+  bird_wing_right: string;
+  bird_wing_left: string;
+  bird_wings_layer: string;
+  bird_tail_type: string;
+  bird_tail_layer: string;
+  bird_eyes_type: string;
+  bird_malar_type: string;
+  bird_plumage_type: string;
+  bird_pubes_type: string;
+  fox_tail_type: string;
+  fox_tail_layer: string;
+  fox_ears_type: string;
+  fox_cheeks_type: string;
+};
+//#endregion
+//#region src/modules/NamedNPCAddon/NPCSidebarConfig/types.d.ts
+type NPCBodyData = Pick<
+  NPCData,
+  | 'penis'
+  | 'vagina'
+  | 'virginity'
+  | 'hair_side_type'
+  | 'hair_fringe_type'
+  | 'hair_position'
+  | 'hair_sides_length'
+  | 'hair_fringe_length'
+  | 'eyeColour'
+  | 'hairColour'
+  | 'penissize'
+  | 'breastsize'
+  | 'ballssize'
+>;
+type NPCClothesSlot = 'head' | 'face' | 'neck' | 'upper' | 'lower' | 'feet' | 'legs' | 'handheld' | 'genitals' | 'under_upper' | 'under_lower' | 'over_head' | 'over_upper' | 'over_lower' | 'hands';
+interface NPCSidebarClothing {
+  index: number;
+  name: string;
+  variable: string;
+  type: string[];
+  integrity: string;
+  setup?: NPCSidebarClothing;
+  alpha?: number;
+  alt?: string;
+  altposition?: string;
+  altdisabled?: string[];
+  altsleeve?: string;
+  state?: string;
+  state_top?: string;
+  colour?: string;
+  colourCustom?: string;
+  accessory_colour?: string;
+  accessory_colourCustom?: string;
+  accessory_colour_sidebar?: string;
+  accessory?: number;
+  accessory_integrity_img?: number;
+  mainImage?: number;
+  accImage?: number;
+  leftImage?: number;
+  rightImage?: number;
+  coverImage?: number;
+  coverBackImage?: number;
+  back_img?: number;
+  back_img_acc?: number;
+  back_img_colour?: string;
+  back_img_acc_colour?: string;
+  back_integrity_img?: number;
+  breast_img?: number | Record<number, number>;
+  breast_acc_img?: number | Record<number, number>;
+  breast_pattern?: number;
+  sleeve_img?: number;
+  sleeve_acc_img?: number;
+  sleeve_colour?: string;
+  penis_img?: number;
+  penis_acc_img?: number;
+  mask_img?: number;
+  pattern?: string;
+  pattern_layer?: string;
+  holdPosition?: string;
+  hoodposition?: string;
+  hood?: number;
+  has_collar?: number;
+  high_img?: number;
+  notuck?: number;
+  outfitPrimary?: Partial<Record<NPCClothesSlot, string>>;
+  outfitSecondary?: string[];
+  set?: string;
+  zIndex?: string | number;
+}
+interface NPCSidebarState extends Partial<typeof transformationDefaults> {
+  name: string;
+  show: boolean;
+  model: boolean;
+  position: number;
+  dxfn: number;
+  dyfn: number;
+  tan: number;
+  skin_type: string;
+  freckles: boolean;
+  facestyle: string;
+  facevariant: string;
+  ears_position: string;
+  close_up_mask: string;
+  hide_all: boolean;
+  hide_head_acc: boolean;
+  hide_leash: boolean;
+  hood_down: boolean;
+  show_hair: boolean;
+  clothes: Record<NPCClothesSlot, NPCSidebarClothing>;
+  bodydata: NPCBodyData;
+  tf_filters?: Record<string, CanvasLayerFilter>;
+  head_mask: string[];
+  upper_mask: string[];
+  lower_mask: string[];
+  legs_mask: string[];
+  feet_mask: string[];
+  fringe_mask_src: string | null;
+  feet_clip_src: string | null;
+  upper_tucked: boolean;
+  lower_tucked: boolean;
+  crotch_visible: boolean;
+  crotch_exposed: boolean;
+  arm_left: string;
+  arm_right: string;
+  handheld_position: string | null;
+  handheld_animation: string;
+  handheld_overhead: boolean | null;
+  alt_sleeve_state: boolean | null;
+  high_waist_suspenders: boolean | null;
+  hood_mask: boolean | null;
+  zarms: number;
+  zupper: number;
+  zupperleft: number;
+  zupperright: number;
+  lust: number;
+  breasts: string;
+  breast_size: number;
+  penis: string | false;
+  penis_size: number;
+  balls: boolean;
+  genitals_chastity: boolean;
+  eye_colour: string;
+  hair_colour: string;
+  hair_sides_type: string;
+  hair_fringe_type: string;
+  hair_position: string;
+  hair_sides_position: string;
+  hair_sides_length: string;
+  hair_fringe_length: string;
+  drip_mouth: string;
+  calculate_penis_bulge(target?: NPCSidebarState): number;
+  [key: string]: unknown;
+}
+//#endregion
 //#region src/modules/NamedNPCAddon/NPCTransformation.d.ts
 interface NPCTransformationState {
   build: number;
   level: number;
 }
+type NPCTransformationPart = { [Key in keyof typeof transformationDefaults]: Key extends `${infer Part}_type` ? Part : never }[keyof typeof transformationDefaults];
+interface NPCTransformationPartConfig {
+  level?: number;
+  style?: string;
+  filter?: {
+    blend?: string;
+    blendMode?: string;
+    brightness?: number;
+    contrast?: number;
+    desaturate?: boolean;
+  };
+}
 interface NPCTransformationConfig {
-  levels?: number[];
+  levels?: readonly number[];
   type?: string;
-  pregnancy?: string;
-  body?: (bodydata: Record<string, any>, state: NPCTransformationState, npcName: string) => void;
-  sidebar?: (nnpc: Record<string, any>, state: NPCTransformationState, npcName: string) => void;
+  parts?: Partial<Record<NPCTransformationPart, NPCTransformationPartConfig>>;
+  body?: (bodydata: NPCBodyData, state: Readonly<NPCTransformationState>, npcName: string) => void;
+  sidebar?: (nnpc: Partial<NPCSidebarState>, state: Readonly<NPCTransformationState>, npcName: string) => void;
   layers?: CanvasLayerMap;
 }
 declare class NPCTransformation {
   private readonly manager;
   private readonly configs;
   constructor(manager: NPCManager);
-  add(type: string, config?: NPCTransformationConfig): this;
+  add(npcName: string, type: string, config?: NPCTransformationConfig): this;
   ensure(npcName: string, type?: string): Record<string, NPCTransformationState>;
   get(npcName: string, type: string): NPCTransformationState;
   build(npcName: string, type: string, value: number): NPCTransformationState;
@@ -3266,10 +3467,121 @@ declare class NPCTransformation {
   clear(npcName: string, type?: string): void;
   level(npcName: string, type: string): number;
   type(npcName: string): string;
-  pregnancyType(npcName: string): string;
-  applyBody(nnpc: Record<string, any>, npcData: any): void;
-  applySidebar(nnpc: Record<string, any>): void;
+  applyBody(
+    nnpc: Partial<NPCSidebarState>,
+    npcData: {
+      bodydata?: NPCBodyData;
+    }
+  ): void;
+  applySidebar(nnpc: Partial<NPCSidebarState>): void;
+  private read;
+  private entries;
+  private config;
   private active;
+}
+//#endregion
+//#region src/modules/NamedNPCAddon/NPCPregnancy.d.ts
+type NPCPregnancySpecies = 'human' | 'wolf' | 'wolfboy' | 'wolfgirl' | 'hawk' | 'harpy';
+type NPCPregnancyOrifice = 'vagina' | 'anus';
+type NPCPregnancyRange = number | readonly [min: number, max: number];
+interface NPCPregnancyState {
+  enabled?: boolean;
+  analEnabled?: boolean;
+  cycleDaysTotal?: number;
+  cycleDay?: number;
+  cycleDangerousDay?: number;
+  fertileLeadDays?: number;
+  pills?: 'contraceptive' | 'fertility' | null;
+  [key: string]: unknown;
+}
+interface NPCPregnancyRecord {
+  pregnancyId: number;
+  carrier: string;
+  carrierSpecies: string;
+  donor: string;
+  donorSpecies: NPCPregnancySpecies;
+  possibleDonors: {
+    name: string;
+    species: NPCPregnancySpecies;
+  }[];
+  conceivedDate: number;
+  conceivedLocation: string;
+  gestationVariance: number;
+  orifice: NPCPregnancyOrifice;
+  deliveredDate: number | null;
+  deliveredLocation: string | null;
+  awareOfPregnancy: string[];
+  awareOfCarrier: string[];
+  awareOfDonor: string[];
+  talkedAbout: Record<string, boolean>;
+  playerLearnedFrom: string | null;
+  hatchDelay?: number;
+  layCare?: number;
+  waterBreaking?: boolean;
+}
+interface NPCPregnancyCycleConfig {
+  days?: NPCPregnancyRange;
+  dangerousDay?: number;
+  fertileLeadDays?: NPCPregnancyRange;
+  pills?: 'contraceptive' | 'fertility' | null;
+  analEnabled?: boolean;
+  avoidance?: number;
+}
+interface NPCPregnancyConfig {
+  canBePregnant?: boolean;
+  canImpregnatePlayer?: boolean;
+  cycle?: NPCPregnancyCycleConfig;
+}
+interface NPCTryConceiveOptions {
+  donor?: string;
+  donorSpecies?: NPCPregnancySpecies;
+  orifice?: NPCPregnancyOrifice;
+  depth?: 'outside' | 'imminent' | 'deep';
+  location?: string;
+  fertility?: number;
+  aware?: boolean;
+  donorKnown?: boolean;
+}
+interface NPCPregnancySnapshot {
+  cycle: {
+    enabled: boolean;
+    day: number | null;
+    days: number | null;
+    dangerousDay: number | null;
+    fertileLeadDays: number | null;
+    fertility: number;
+    pills: NPCPregnancyState['pills'];
+    analEnabled: boolean;
+    avoidance: number | null;
+  };
+  pregnancies: NPCPregnancyRecord[];
+  progress: number | null;
+  dueDate: number | null;
+  belly: number;
+}
+declare class NPCPregnancy {
+  private readonly manager;
+  private readonly configs;
+  private initialized;
+  constructor(manager: NPCManager);
+  get available(): boolean;
+  add(npcName: string, config?: NPCPregnancyConfig): this;
+  init(): void;
+  inject(): void;
+  get(npcName: string): NPCPregnancySnapshot;
+  tryConceive(npcName: string, options?: NPCTryConceiveOptions): NPCPregnancyRecord | null;
+  private applyRegistration;
+  private applyCycle;
+  private validateCycle;
+  private validateRange;
+  private cycleConfigured;
+  private markCycleConfigured;
+  private species;
+  private name;
+  private npc;
+  private requireRuntime;
+  private range;
+  private random;
 }
 //#endregion
 //#region src/modules/NamedNPC.d.ts
@@ -3311,7 +3623,7 @@ interface NPCData {
   breastdesc?: string;
   ballssize?: number;
   outfits?: string[];
-  pregnancy?: any;
+  pregnancy?: NPCPregnancyState | null;
   pregnancyAvoidance?: number;
   [key: string]: any;
 }
@@ -3377,7 +3689,7 @@ declare const NamedNPC: {
     ballsdesc: string;
     ballssize: number;
     outfits: string[];
-    pregnancy: any;
+    pregnancy: NPCPregnancyState;
     pregnancyAvoidance?: number;
     descCache: Record<string, string>;
     setPronouns(): void;
@@ -3405,6 +3717,7 @@ declare class NPCManager {
   >;
   NPCNameList: string[];
   readonly Transformation: NPCTransformation;
+  readonly Pregnancy: NPCPregnancy;
   readonly type: Record<'loveInterestNpcs' | 'importantNPCs' | 'specialNPCs', string[]>;
   readonly customStats: Record<string, NPCStatConfig>;
   readonly romanceConditions: {
@@ -3692,7 +4005,6 @@ declare function replace(content: string, replacements: Replacement[], label?: s
 //#endregion
 //#region src/modules/Addon/Resources.d.ts
 type ImageResult = string | false;
-/** Resolves ModLoader images and ordinary URLs while retaining the resolved URL. */
 declare class Resources {
   private readonly manager;
   private readonly report;
@@ -3700,7 +4012,6 @@ declare class Resources {
   private readonly pending;
   constructor(manager: SC2DataManager, report: (path: string, error: unknown) => void);
   normalize(path: string): string;
-  /** Undefined means the providers cannot determine whether the resource exists. */
   has(path: string): boolean | undefined;
   load(path: string): ImageResult | Promise<ImageResult>;
   clear(path?: string): void;

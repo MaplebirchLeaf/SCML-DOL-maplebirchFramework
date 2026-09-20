@@ -8,8 +8,9 @@ import type { OutfitSetConfig } from './NamedNPCAddon/NPCClothes/NPCOutfitSets';
 import type { BootTask } from './AddonPlugin';
 import NPCSidebar, { type NPCSidebarBootConfig } from './NamedNPCAddon/NPCSidebar';
 import NPCFluids from './NamedNPCAddon/NPCFluids';
-import NPCTransformation from './NamedNPCAddon/NPCTransformation';
-import { bodyDefaults, definePregnancyProperty, setupNPCData, isPossible } from './NamedNPCAddon/NPCUtils';
+import NPCTransformation, { type NPCTransformationConfig } from './NamedNPCAddon/NPCTransformation';
+import NPCPregnancy, { type NPCPregnancyConfig, type NPCPregnancyState } from './NamedNPCAddon/NPCPregnancy';
+import { bodyDefaults, setupNPCData, isPossible } from './NamedNPCAddon/NPCUtils';
 import { clone, merge } from '../utils';
 
 type LanguageCode = 'CN' | 'EN';
@@ -21,6 +22,8 @@ interface NPCBootConfig {
   NamedNPC?: NPCBootEntry[];
   Stats?: Record<string, NPCStatConfig>;
   Sidebar?: NPCSidebarBootConfig;
+  Transformation?: Record<string, Record<string, NPCTransformationConfig>>;
+  Pregnancy?: Record<string, NPCPregnancyConfig>;
 }
 
 const vanillaList = new Set(
@@ -61,7 +64,7 @@ export interface NPCData {
   breastdesc?: string;
   ballssize?: number;
   outfits?: string[];
-  pregnancy?: any;
+  pregnancy?: NPCPregnancyState | null;
   pregnancyAvoidance?: number;
   [key: string]: any;
 }
@@ -180,7 +183,7 @@ export const NamedNPC = (core => {
     public ballsdesc!: string;
     public ballssize!: number;
     public outfits!: string[];
-    public pregnancy: any;
+    public pregnancy: NPCPregnancyState;
     public pregnancyAvoidance?: number;
     public descCache: Record<string, string> = {};
 
@@ -213,9 +216,8 @@ export const NamedNPC = (core => {
       this.setBodyTraits(data);
       this.bottomsize = data.bottomsize ?? Math.random(4);
       this.bodyPartdescription();
-      this.pregnancy = data.pregnancy ?? null;
+      this.pregnancy = clone(data.pregnancy ?? {});
       this.pregnancyAvoidance = data.pregnancyAvoidance;
-      definePregnancyProperty(manager, this);
       this.skincolour = data.skincolour ?? 0;
       this.init = data.init ?? 0;
       this.intro = data.intro ?? 0;
@@ -425,7 +427,6 @@ export const NamedNPC = (core => {
         continue;
       }
       const npc = clone(npcEntry.Data);
-      definePregnancyProperty(manager, npc);
       V.NPCName.push(npc);
       savedNPCNameSet.add(npcName);
       addedCount++;
@@ -570,6 +571,7 @@ class NPCManager {
   public NPCNameList: string[] = [];
 
   public readonly Transformation: NPCTransformation;
+  public readonly Pregnancy: NPCPregnancy;
 
   // prettier-ignore
   public readonly type: Record<'loveInterestNpcs' | 'importantNPCs' | 'specialNPCs', string[]> = {
@@ -604,8 +606,10 @@ class NPCManager {
     this.log = createlog('npc');
     this.Clothes = Object.seal(new NPCClothes(this));
     this.Transformation = Object.seal(new NPCTransformation(this));
+    this.Pregnancy = Object.seal(new NPCPregnancy(this));
     this.core.addon.hook<NPCBootConfig>('npc', task => this.config(task));
     this.core.tool.onInit(() => this.NamedNPC.proxy(this));
+    this.core.tool.onInit(() => this.Pregnancy.init());
     this.core.on(':variable', () => this.NamedNPC.proxy(this), 'Named NPC Proxy');
     this.core.on(
       ':language',
@@ -648,6 +652,7 @@ class NPCManager {
     this.NamedNPC.update(this);
     this.NamedNPC.setup(this);
     this.NamedNPC.convert(this);
+    this.Pregnancy.inject();
   }
 
   public vanillaNPCConfig(npcConfig: Record<string, NPCConfig>) {
@@ -726,6 +731,10 @@ class NPCManager {
       }
     }
     if (config.Stats) this.addStats(config.Stats);
+    for (const [name, transformations] of Object.entries(config.Transformation ?? {})) {
+      for (const [type, options] of Object.entries(transformations)) this.Transformation.add(name, type, options);
+    }
+    for (const [name, options] of Object.entries(config.Pregnancy ?? {})) this.Pregnancy.add(name, options);
     if (config.Sidebar) await this.Sidebar.config(this, modName, modZip, config.Sidebar);
   }
 
@@ -735,6 +744,7 @@ class NPCManager {
 
   public Init(): void {
     if (!['Start', 'Downgrade Waiting Room'].includes(this.core.passage?.title)) this.injectModNPCs();
+    else this.Pregnancy.inject();
     this.Schedule.init(this);
     this.Clothes.init();
     setupNPCData(this);

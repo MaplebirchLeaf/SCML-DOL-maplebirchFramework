@@ -38,7 +38,11 @@ maplebirch.npc.add(
 maplebirch.npc.addStats(stats);
 maplebirch.npc.addSchedule(npcName, schedule);
 maplebirch.npc.addClothes(config);
+maplebirch.npc.Transformation.add(npcName, type, transformationConfig);
+maplebirch.npc.Pregnancy.add(npcName, pregnancyConfig);
 ```
+
+See [NPC Transformation](NamedNPCTransformation.md) for visual stages and [NPC Pregnancy](NamedNPCPregnancy.md) for the original pregnancy records and lifecycle. `NPCData.pregnancy` contains switches and cycle data (`NPCPregnancyState`, default `{}`); pregnancies and children are stored in the original record arrays.
 
 ## NPC Config
 
@@ -82,6 +86,8 @@ loveAlias: () => {
 "npc": {
   "NamedNPC": [],
   "Stats": {},
+  "Transformation": {},
+  "Pregnancy": {},
   "Sidebar": {
     "image": [],
     "clothes": [],

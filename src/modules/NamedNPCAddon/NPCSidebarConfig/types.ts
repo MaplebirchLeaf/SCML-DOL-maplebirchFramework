@@ -3,6 +3,23 @@
 import type { NPCData } from '../../NamedNPC';
 import type { transformationDefaults } from './transformation_layers';
 
+export type NPCBodyData = Pick<
+  NPCData,
+  | 'penis'
+  | 'vagina'
+  | 'virginity'
+  | 'hair_side_type'
+  | 'hair_fringe_type'
+  | 'hair_position'
+  | 'hair_sides_length'
+  | 'hair_fringe_length'
+  | 'eyeColour'
+  | 'hairColour'
+  | 'penissize'
+  | 'breastsize'
+  | 'ballssize'
+>;
+
 export type NPCClothesSlot =
   | 'head'
   | 'face'
@@ -20,7 +37,6 @@ export type NPCClothesSlot =
   | 'over_lower'
   | 'hands';
 
-/** Clothing after the sidebar has combined the wardrobe entry with setup.clothes. */
 export interface NPCSidebarClothing {
   index: number;
   name: string;
@@ -96,7 +112,8 @@ export interface NPCSidebarState extends Partial<typeof transformationDefaults> 
   hood_down: boolean;
   show_hair: boolean;
   clothes: Record<NPCClothesSlot, NPCSidebarClothing>;
-  bodydata: Partial<NPCData>;
+  bodydata: NPCBodyData;
+  tf_filters?: Record<string, CanvasLayerFilter>;
   head_mask: string[];
   upper_mask: string[];
   lower_mask: string[];

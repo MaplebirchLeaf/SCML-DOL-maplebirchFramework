@@ -47,7 +47,6 @@ export default class Fishing {
     if (game && (!behaviors.includes(game.behavior) || !Number.isFinite(game.maxStamina) || game.maxStamina <= 0 || !Number.isFinite(game.armFatigueDifficulty) || game.armFatigueDifficulty <= 0))
       return false;
     fishData[key] = clone(config);
-    // Every caught fish can enter the original food inventory, even when not cookable.
     Foodstuff.add(key, {
       category: 'seafood',
       kitchen_item_type_icon: 'recipe-seafood.png',
@@ -63,7 +62,6 @@ export default class Fishing {
     Foodstuff.add(key, { ...config, is_fishing_bait: true });
   }
 
-  /** Adjusts fish weights at an existing vanilla fishing spot; zero removes that fish from the spot. */
   public static configureLocation(location: FishingLocation, weights: Record<string, number>): boolean {
     if (!locations.includes(location) || !isRecord(weights)) return false;
     if (!Object.entries(weights).every(([key, weight]) => isKey(key) && Number.isFinite(weight) && weight >= 0)) return false;

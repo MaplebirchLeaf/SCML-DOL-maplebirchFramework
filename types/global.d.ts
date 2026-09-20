@@ -23,8 +23,6 @@ declare global {
     readonly V: typeof V;
     readonly C: typeof C;
     readonly T: typeof T;
-    pregnancyGenerator: typeof pregnancyGenerator;
-    recordSperm: typeof recordSperm;
     pregnancyDaysEta: typeof pregnancyDaysEta;
     getChildDays: typeof getChildDays;
   }
@@ -79,12 +77,28 @@ declare global {
   const ZIndices: { [key: string]: number };
   function wikifier(widget: string, ...args: any): DocumentFragment;
   function playerNormalPregnancyType(): string;
-  function getPregnancyObject(mother?: string, returnGenital?: false): any;
-  function getPregnancyObject(mother: string | undefined, returnGenital: true): [any, string];
-  const pregnancyGenerator: Record<string, (...args: any[]) => any>;
-  let recordSperm: (options?: any) => any;
-  let pregnancyDaysEta: (pregnancyObject: any) => number | null;
-  let getChildDays: (childId: string) => number | null;
+  function getActivePregnancies(carrier: string): NPCPregnancyRecord[];
+  function getChildrenOf(pregnancyId: number): NPCChildRecord[];
+  function pregnancyProgress(record: NPCPregnancyRecord): number;
+  function getDueDate(record: NPCPregnancyRecord): number;
+  function npcMenstrualFertility(npcName: string): number;
+  function npcBellySize(npcName: string): number;
+  function pregnancyDaysEta(record: NPCPregnancyRecord): number;
+  function pregnancyDaysEta(record: null | undefined): null;
+  function getChildDays(childId: number): number;
+  function setKnowsPregnancy(pregnancyId: number, who: string): void;
+  function setKnowsDonor(pregnancyId: number, who: string): void;
+  function npcPregnancyRoll(
+    carrier: string,
+    carrierSpecies: NPCPregnancySpecies,
+    donor: string,
+    donorSpecies: NPCPregnancySpecies,
+    orifice: NPCPregnancyOrifice,
+    depth?: NPCTryConceiveOptions['depth'],
+    location?: string,
+    donorFertility?: number,
+    slot?: number | null
+  ): number | null;
   function hasSexStat(input: string, required: number, modifiers?: boolean): boolean;
   function clothesIndex(slot: string, itemToIndex: object): number;
   function integrityKeyword(worn: object, slot: string): string;

@@ -47,7 +47,6 @@ class Traits {
         has: trait.has ?? false,
         text: trait.text ?? ''
       };
-      // Dynamic names may depend on V, which does not exist during registration.
       const index = traitsData.findIndex(item => item.title === trait.title && item.name === trait.name);
       if (index >= 0) {
         traitsData[index] = next;

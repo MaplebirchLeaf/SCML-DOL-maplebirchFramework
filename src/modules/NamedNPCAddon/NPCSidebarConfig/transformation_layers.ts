@@ -8,7 +8,14 @@ import type { NPCSidebarOptions } from './types';
 const disabled = ['disabled', 'hidden'];
 const z = (name: string) => (maplebirch.char.ZIndices as Record<string, number>)[name];
 const nnpc = (options: NPCSidebarOptions) => options.maplebirch.nnpc;
-const enabled = (value: unknown) => typeof value === 'string' && !disabled.includes(value);
+const enabled = (value: unknown) => typeof value === 'string' && value.length > 0 && !disabled.includes(value);
+
+function filters(type: string, part: string, hair = true) {
+  return (options: NPCSidebarOptions): CanvasLayerFilter[] => {
+    const filter = nnpc(options).tf_filters?.[`${type}_${part}`];
+    return filter ? [filter] : hair ? ['nnpc_hair'] : [];
+  };
+}
 
 function basic(overrides: LayerConfig = {}) {
   return {
@@ -22,7 +29,7 @@ function basic(overrides: LayerConfig = {}) {
 
 function part(type: string, folder: string, name: string, overrides: LayerConfig = {}) {
   return basic({
-    filters: ['nnpc_hair'],
+    filtersfn: filters(type, name),
     srcfn: (options: NPCSidebarOptions) => {
       const value = nnpc(options)[`${type}_${name}_type`];
       return `img/transformations/${type}/${folder}/${folder === name ? value : `${name}-${value}`}.png`;
@@ -38,7 +45,7 @@ function part(type: string, folder: string, name: string, overrides: LayerConfig
 
 function wings(side: 'left' | 'right', type: string, hair: boolean) {
   return basic({
-    filters: hair ? ['nnpc_hair'] : [],
+    filtersfn: filters(type, 'wings', hair),
     srcfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
       const state = data[`${type}_wing_${side}`];
@@ -64,7 +71,7 @@ function wings(side: 'left' | 'right', type: string, hair: boolean) {
 
 function halo(side: 'back' | 'front', type: string) {
   return basic({
-    filters: ['nnpc_hair'],
+    filtersfn: filters(type, 'halo'),
     srcfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
       return `img/transformations/${type}/halo/${data[`${type}_halo_type`]}-${side}.png`;
@@ -87,7 +94,7 @@ function halo(side: 'back' | 'front', type: string) {
 
 function tail(type: string, hair: boolean, overrides: LayerConfig = {}) {
   return part(type, 'tail', 'tail', {
-    filters: hair ? ['nnpc_hair'] : [],
+    filtersfn: filters(type, 'tail', hair),
     srcfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
       const state = type === 'demon' ? data.demon_tail_state : 'idle';
@@ -104,7 +111,7 @@ function tail(type: string, hair: boolean, overrides: LayerConfig = {}) {
 
 function ears(type: string, hair: boolean, overrides: LayerConfig = {}) {
   return part(type, 'ears', 'ears', {
-    filters: hair ? ['nnpc_hair'] : [],
+    filtersfn: filters(type, 'ears', hair),
     masksrcfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
       return kaijuMask(options) || (!data.hide_head_acc ? data.head_mask : undefined);
@@ -120,7 +127,7 @@ function ears(type: string, hair: boolean, overrides: LayerConfig = {}) {
 
 function horns(type: string, offset = 0) {
   return part(type, 'horns', 'horns', {
-    filters: ['nnpc_hair'],
+    filtersfn: filters(type, 'horns'),
     masksrcfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
       return kaijuMask(options) || (data[`${type}_horns_layer`] === 'front' ? data.close_up_mask : data.head_mask);
@@ -203,7 +210,7 @@ const transformation_layers = {
     zfn: (options: NPCSidebarOptions) => z('ears') + 0.5 + nnpc(options).position,
     masksrcfn: (options: NPCSidebarOptions) => kaijuMask(options) || [nnpc(options).close_up_mask, 'img/face/masks/right.png']
   }),
-  nnpc_cow_tag: ears('cow', false, { src: 'img/transformations/cow/ears/tag.png', srcfn: undefined, zfn: (options: NPCSidebarOptions) => z('facewear') + nnpc(options).position }),
+  nnpc_cow_tag: ears('cow', false, { src: 'img/transformations/cow/ears/tag.png', srcfn: undefined, filtersfn: () => [], zfn: (options: NPCSidebarOptions) => z('facewear') + nnpc(options).position }),
   nnpc_cow_tail: tail('cow', true),
 
   nnpc_bird_wings_right: wings('right', 'bird', true),
@@ -235,7 +242,7 @@ const transformation_layers = {
   nnpc_fallen_halo_front: halo('front', 'fallen'),
 
   nnpc_demon_wings: basic({
-    filters: ['nnpc_hair'],
+    filtersfn: filters('demon', 'wings'),
     srcfn: (options: NPCSidebarOptions) => `img/transformations/demon/wings-${nnpc(options).demon_wings_state}/${nnpc(options).demon_wings_type}.png`,
     showfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);

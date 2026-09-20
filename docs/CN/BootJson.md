@@ -321,6 +321,8 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 "npc": {
   "NamedNPC": [],
   "Stats": {},
+  "Transformation": {},
+  "Pregnancy": {},
   "Sidebar": {
     "image": [],
     "clothes": [],
@@ -329,13 +331,15 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 }
 ```
 
-| 字段              | 说明                        |
-| :---------------- | :-------------------------- |
-| `NamedNPC`        | 注册命名 NPC                |
-| `Stats`           | 注册 NPC 状态               |
-| `Sidebar.image`   | 导入 NPC 静态侧边栏图片     |
-| `Sidebar.clothes` | 导入 NPC 衣柜配置           |
-| `Sidebar.config`  | 导入 NPC 侧边栏模型资源配置 |
+| 字段              | 说明                          |
+| :---------------- | :---------------------------- |
+| `NamedNPC`        | 注册命名 NPC                  |
+| `Stats`           | 注册 NPC 状态                 |
+| `Transformation`  | 按 NPC 名称注册独立的转化配置 |
+| `Pregnancy`       | 按 NPC 名称注册怀孕与周期配置 |
+| `Sidebar.image`   | 导入 NPC 静态侧边栏图片       |
+| `Sidebar.clothes` | 导入 NPC 衣柜配置             |
+| `Sidebar.config`  | 导入 NPC 侧边栏模型资源配置   |
 
 示例：
 
@@ -360,6 +364,20 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
       "position": 1
     }
   },
+  "Transformation": {
+    "Example": {
+      "wolf": {
+        "parts": { "wolf_ears": { "level": 1 }, "wolf_tail": { "level": 2 } }
+      }
+    }
+  },
+  "Pregnancy": {
+    "Example": {
+      "canBePregnant": true,
+      "canImpregnatePlayer": true,
+      "cycle": { "days": [26, 30], "dangerousDay": 14, "fertileLeadDays": [4, 6] }
+    }
+  },
   "Sidebar": {
     "image": ["img/npc/example.png"],
     "clothes": ["npc/clothes.yml"],
@@ -371,6 +389,8 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 相关说明：
 
 - [NPC 注册](NamedNPC/NamedNPC.md)
+- [NPC 转化](NamedNPC/NamedNPCTransformation.md)
+- [NPC 怀孕](NamedNPC/NamedNPCPregnancy.md)
 - [NPC 状态](NamedNPC/NamedNPCStats.md)
 - [NPC 服装](NamedNPC/NamedNPCClothes.md)
 - [NPC 侧边栏](NamedNPC/NamedNPCSidebar.md)
