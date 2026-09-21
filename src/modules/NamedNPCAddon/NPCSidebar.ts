@@ -19,6 +19,7 @@ import transformation_layers, { transformationDefaults } from './NPCSidebarConfi
 import type NPCManager from '../NamedNPC';
 import DoLPcompat from '../../DoLPcompat';
 import { FloatingPet, type PetOptions, type PetSettings } from '../CharacterAddon/Pet';
+import dol from '../../host/Adapter';
 
 export interface NPCSidebarBootConfig {
   clothes?: string[];
@@ -87,12 +88,14 @@ const upper_combat_slots: ClothesSlot[] = ['over_upper', 'upper', 'under_upper']
 const lower_combat_slots: ClothesSlot[] = ['over_lower', 'lower', 'under_lower', 'legs'];
 
 const portrait_npc_name = (name: string): string => String(name).replace(/[_-]/g, ' ').convert('title');
-const portrait_gender = (npc: Record<string, any>): string => (C.npc?.[npc.name]?.gender === 'm' ? 'male' : 'female');
+const portrait_gender = (npc: Record<string, any>): string => (dol.characters.npc?.[npc.name]?.gender === 'm' ? 'male' : 'female');
 const portrait_skin_tone = (npc: Record<string, any>): string => (npc.skin_type?.includes('dark') ? 'dark' : 'pale');
 
 function selected(): [string, string?] {
-  const sidebar = V.options.maplebirch.npcsidebar;
-  const nearby = Array.isArray(V.npc) ? V.npc.filter((name: unknown): name is string => typeof name === 'string' && name.length > 0 && setup.NPCNameList.includes(name)) : [];
+  const sidebar = dol.variables.options.maplebirch.npcsidebar;
+  const nearby = Array.isArray(dol.variables.npc)
+    ? dol.variables.npc.filter((name: unknown): name is string => typeof name === 'string' && name.length > 0 && dol.setup.NPCNameList.includes(name))
+    : [];
   const names = nearby.filter((name, index) => nearby.lastIndexOf(name) === index);
   const primary = names.includes(sidebar.primary_npc) ? sidebar.primary_npc : (names.at(-1) ?? '');
   const selected_secondary = names.includes(sidebar.secondary_npc) && sidebar.secondary_npc !== primary ? sidebar.secondary_npc : undefined;
@@ -118,7 +121,7 @@ function clothes_changed(rendered: Record<string, any> | undefined, current: Rec
 }
 
 function refresh(manager: NPCManager): void {
-  const model = Renderer.CanvasModelCaches?.main?.sidebar as CanvasModel | undefined;
+  const model = dol.renderer.CanvasModelCaches?.main?.sidebar as CanvasModel | undefined;
   if (!model?.canvas) return;
   const rendered = [model.options?.maplebirch?.nnpc, model.options?.maplebirch?.previous] as Array<Record<string, any> | undefined>;
   const changed = selected().some((name, index) => {
@@ -246,7 +249,7 @@ function npc_clothes(npcData: any, options: NPCSidebarOptions) {
   for (const slot of clothes_slots) {
     const data = clothes_data[slot] ?? {};
     const index = clothes_index(slot, data);
-    const setup_data = setup.clothes[slot][index] ?? setup.clothes[slot][0] ?? { type: [] };
+    const setup_data = dol.setup.clothes[slot][index] ?? dol.setup.clothes[slot][0] ?? { type: [] };
 
     clothes[slot] = normaliseClothingState(setup_data, data, index);
 
@@ -256,15 +259,15 @@ function npc_clothes(npcData: any, options: NPCSidebarOptions) {
     const colour = clothes[slot].colour ?? clothes[slot].colour_sidebar ?? 'white';
     const acc = clothes[slot].accessory_colour ?? clothes[slot].accColour ?? clothes[slot].accessory_colour_sidebar ?? 'white';
 
-    if (colour) filters[`nnpc_${slot}`] = lookupColour(setup.colours.clothes_map, colour, prefilter);
-    if (acc) filters[`nnpc_${slot}_acc`] = lookupColour(setup.colours.clothes_map, acc, prefilter);
+    if (colour) filters[`nnpc_${slot}`] = lookupColour(dol.setup.colours.clothes_map, colour, prefilter);
+    if (acc) filters[`nnpc_${slot}_acc`] = lookupColour(dol.setup.colours.clothes_map, acc, prefilter);
   }
 
   return clothes;
 }
 
 function combat_npc(name: string) {
-  const list = Array.isArray(V.NPCList) ? V.NPCList : [];
+  const list = Array.isArray(dol.variables.NPCList) ? dol.variables.NPCList : [];
   return list.find((npc: any) => {
     const npc_name = npc?.fullDescription ?? npc?.description ?? npc?.nam ?? npc?.name;
     return npc_name === name;
@@ -272,7 +275,7 @@ function combat_npc(name: string) {
 }
 
 function naked_clothes(slot: ClothesSlot) {
-  const data = setup.clothes[slot]?.[0] ?? { index: 0, name: 'naked', variable: 'naked', type: ['naked'] };
+  const data = dol.setup.clothes[slot]?.[0] ?? { index: 0, name: 'naked', variable: 'naked', type: ['naked'] };
   return {
     ...data,
     index: 0,
@@ -287,7 +290,7 @@ function exposed(state: unknown): boolean {
 }
 
 function apply_combat_clothes_state(nnpc: Record<string, any>) {
-  if (V.combat !== 1) return;
+  if (dol.variables.combat !== 1) return;
   const npc = combat_npc(nnpc.name);
   if (!npc) return;
   if (exposed(npc.chest)) upper_combat_slots.forEach(slot => (nnpc.clothes[slot] = naked_clothes(slot)));
@@ -300,11 +303,11 @@ function setup_basic_data(options: NPCSidebarOptions, name: string) {
   options.filters ??= {};
 
   const nnpc = options.maplebirch.nnpc;
-  const npcsidebar = V.options.maplebirch.npcsidebar;
+  const npcsidebar = dol.variables.options.maplebirch.npcsidebar;
 
   nnpc.name = name;
   nnpc.show = !!npcsidebar.show;
-  nnpc.model = !!npcsidebar.model && setup.NPCNameList.includes(nnpc.name);
+  nnpc.model = !!npcsidebar.model && dol.setup.NPCNameList.includes(nnpc.name);
 
   nnpc.position = npcsidebar.position === 'front' ? 300 : -300;
   nnpc.dxfn = npcsidebar.dxfn ?? -48;
@@ -329,13 +332,13 @@ function setup_basic_data(options: NPCSidebarOptions, name: string) {
 }
 
 function setup_clothes_data(options: NPCSidebarOptions, nnpc: Record<string, any>, npcData: any) {
-  options.filters!.nnpc_tan = setup.colours.getSkinFilter(nnpc.skin_type, nnpc.tan);
+  options.filters!.nnpc_tan = dol.setup.colours.getSkinFilter(nnpc.skin_type, nnpc.tan);
 
   nnpc.clothes = npc_clothes(npcData, options);
   apply_combat_clothes_state(nnpc);
 
   const clothes = nnpc.clothes;
-  const all_slots = Array.isArray(setup.clothes_all_slots) ? setup.clothes_all_slots : clothes_slots;
+  const all_slots = Array.isArray(dol.setup.clothes_all_slots) ? dol.setup.clothes_all_slots : clothes_slots;
 
   nnpc.hood_down = clothes.upper.hoodposition === 'down';
   nnpc.upper_tucked = !!npcData?.tucked?.[0] && !clothes.upper.notuck && clothes.upper.outfitPrimary == null;
@@ -426,7 +429,7 @@ function setup_body_data(options: NPCSidebarOptions, nnpc: Record<string, any>, 
   const filters = options.filters!;
   const bodydata = nnpc.bodydata ?? npcData.bodydata ?? {};
   const clothes = nnpc.clothes;
-  const npc = Array.isArray(V.NPCName) ? V.NPCName.find((npc: { nam?: string; name?: string }) => (npc.nam ?? npc.name) === nnpc.name) : undefined;
+  const npc = Array.isArray(dol.variables.NPCName) ? dol.variables.NPCName.find((npc: { nam?: string; name?: string }) => (npc.nam ?? npc.name) === nnpc.name) : undefined;
 
   nnpc.lust = Math.clamp(npc?.lust ?? 0, 0, 100);
 
@@ -443,16 +446,16 @@ function setup_body_data(options: NPCSidebarOptions, nnpc: Record<string, any>, 
   nnpc.genitals_chastity = clothes.genitals.type?.includes('chastity');
 
   nnpc.eye_colour = bodydata.eyeColour;
-  filters.nnpc_eyes = lookupColour(setup.colours.eyes_map, nnpc.eye_colour, 'eyes');
+  filters.nnpc_eyes = lookupColour(dol.setup.colours.eyes_map, nnpc.eye_colour, 'eyes');
 
   nnpc.hair_colour = bodydata.hairColour;
-  filters.nnpc_brows = lookupColour(setup.colours.hair_map, nnpc.hair_colour, 'brows');
-  filters.nnpc_hair = lookupColour(setup.colours.hair_map, nnpc.hair_colour, 'hair');
-  filters.nnpc_hair_fringe = lookupColour(setup.colours.hair_map, nnpc.hair_colour, 'hair_fringe');
+  filters.nnpc_brows = lookupColour(dol.setup.colours.hair_map, nnpc.hair_colour, 'brows');
+  filters.nnpc_hair = lookupColour(dol.setup.colours.hair_map, nnpc.hair_colour, 'hair');
+  filters.nnpc_hair_fringe = lookupColour(dol.setup.colours.hair_map, nnpc.hair_colour, 'hair_fringe');
 
-  const hairstyle = setup.hairstyles.sides.find((style: any) => style.variable === bodydata.hair_side_type);
+  const hairstyle = dol.setup.hairstyles.sides.find((style: any) => style.variable === bodydata.hair_side_type);
   const head_index = clothes_index('head', clothes.head);
-  const head_type = setup.clothes.head[head_index]?.head_type;
+  const head_type = dol.setup.clothes.head[head_index]?.head_type;
 
   nnpc.hair_sides_type = hairstyle?.alt_head_type?.includes(head_type) ? hairstyle.alt : bodydata.hair_side_type;
   nnpc.hair_fringe_type = bodydata.hair_fringe_type;
@@ -523,7 +526,7 @@ function setup_mask_data(nnpc: Record<string, any>) {
 
 function setup_npc(options: NPCSidebarOptions, nnpc: Record<string, any>) {
   if (!nnpc.name || !nnpc.model) return;
-  const npcData = V.maplebirch.npc[nnpc.name.toLowerCase()];
+  const npcData = dol.variables.maplebirch.npc[nnpc.name.toLowerCase()];
   if (!npcData) {
     nnpc.model = false;
     return;
@@ -539,7 +542,7 @@ function setup_npc(options: NPCSidebarOptions, nnpc: Record<string, any>) {
 }
 
 function preprocess(options: NPCSidebarOptions) {
-  const sidebar = V.options.maplebirch.npcsidebar;
+  const sidebar = dol.variables.options.maplebirch.npcsidebar;
   const [primary, secondary] = selected();
   const nnpc = setup_basic_data(options, primary);
   options.maplebirch!.previous = undefined;
@@ -636,14 +639,14 @@ const npc_layers = {
   nnpc_sidebar: {
     srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch!.nnpc!;
-      const selected = V.options.maplebirch.npcsidebar.display[nnpc.name];
+      const selected = dol.variables.options.maplebirch.npcsidebar.display[nnpc.name];
       if (!selected || selected === 'none' || maplebirch.npc.Clothes.art.has(nnpc.name, selected)) return '';
       return resolve(nnpc, selected);
     },
 
     showfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch!.nnpc!;
-      return !!nnpc.show && !nnpc.model && !!nnpc.name && setup.NPCNameList.includes(nnpc.name);
+      return !!nnpc.show && !nnpc.model && !!nnpc.name && dol.setup.NPCNameList.includes(nnpc.name);
     },
 
     zfn: (options: NPCSidebarOptions) => {
@@ -660,7 +663,7 @@ const layers = {
 };
 
 function init_drip_mask(): void {
-  const pipeline = Renderer.RenderingPipeline;
+  const pipeline = dol.renderer.RenderingPipeline;
   if (pipeline.some((step: { name: string }) => step.name === 'npc-drip-mask')) return;
   const index = pipeline.findIndex((step: { name: string }) => step.name === 'mask');
   if (index < 0) return;
@@ -675,7 +678,7 @@ function init_drip_mask(): void {
       const key = `${image.width}|${image.height}`;
       let mask = cached.get(key);
       if (!mask) {
-        const stencil = Renderer.createCanvas(image.width, image.height);
+        const stencil = dol.renderer.createCanvas(image.width, image.height);
         for (let x = 0; x < image.width; x += source.width) stencil.drawImage(source, x, 0);
         mask = stencil.canvas;
         if (cached.size >= 8) cached.clear();
@@ -716,7 +719,7 @@ class NPCPetSlot extends FloatingPet {
     const container = document.getElementById(this.petConfig.elementId);
     if (!container) return false;
     this.configure(settings);
-    const models = Renderer.CanvasModels as Record<string, CanvasModelOptions | undefined>;
+    const models = dol.renderer.CanvasModels as Record<string, CanvasModelOptions | undefined>;
     const main = models.main;
     if (!main) return false;
     models[this.model_name] = {
@@ -728,7 +731,7 @@ class NPCPetSlot extends FloatingPet {
       scale: main.scale,
       layers: {}
     };
-    const model = Renderer.locateModel(this.model_name);
+    const model = dol.renderer.locateModel(this.model_name);
     const context = model.createCanvas(false);
     this.render_options = {
       ...source,
@@ -749,12 +752,12 @@ class NPCPetSlot extends FloatingPet {
     if (!this.render_options) return;
     this.stopAnimation();
     try {
-      if (this.options.animated) model.animate(context, this.render_options, Renderer.defaultListener);
-      else model.render(context, this.render_options, Renderer.defaultListener);
+      if (this.options.animated) model.animate(context, this.render_options, dol.renderer.defaultListener);
+      else model.render(context, this.render_options, dol.renderer.defaultListener);
     } catch (error) {
       if (!this.options.animated) throw error;
       this.options.animated = false;
-      model.render(context, this.render_options, Renderer.defaultListener);
+      model.render(context, this.render_options, dol.renderer.defaultListener);
     }
   }
 }
@@ -765,7 +768,7 @@ class NPCPet {
   private syncing = false;
 
   public sync(): boolean {
-    const settings = (V.options?.maplebirch?.npcsidebar?.pet ?? {}) as PetSettings;
+    const settings = (dol.variables.options?.maplebirch?.npcsidebar?.pet ?? {}) as PetSettings;
     if (!settings.enabled) {
       this.cancel();
       this.pets.forEach(pet => pet.unmount());
@@ -786,12 +789,12 @@ class NPCPet {
   }
 
   private render(settings: PetSettings): void {
-    const source = ((Renderer.CanvasModelCaches?.main?.sidebar as CanvasModel | undefined)?.options ?? Renderer.CanvasModels.main.defaultOptions()) as CanvasModelOptionsData;
+    const source = ((dol.renderer.CanvasModelCaches?.main?.sidebar as CanvasModel | undefined)?.options ?? dol.renderer.CanvasModels.main.defaultOptions()) as CanvasModelOptionsData;
     const pet_source = { ...source, filters: { ...source.filters }, maplebirch: { ...source.maplebirch, nnpc: {} } };
     preprocess(pet_source);
-    const options: PetOptions = { ...settings, animated: !!V.options.sidebarAnimations, floating: true };
+    const options: PetOptions = { ...settings, animated: !!dol.variables.options.sidebarAnimations, floating: true };
     this.pets[0].render(pet_source, options);
-    if (V.options.maplebirch.npcsidebar.second_model) this.pets[1].render(pet_source, options);
+    if (dol.variables.options.maplebirch.npcsidebar.second_model) this.pets[1].render(pet_source, options);
     else this.pets[1].unmount();
   }
 
@@ -821,7 +824,7 @@ const NPCSidebar = (() => {
 
     public static hair_type(type: 'sides' | 'fringe') {
       const hair_name: Record<string, string> = {};
-      const styles = type === 'sides' ? setup.hairstyles.sides : setup.hairstyles.fringe;
+      const styles = type === 'sides' ? dol.setup.hairstyles.sides : dol.setup.hairstyles.fringe;
       styles.forEach((style: any) => {
         const name = maplebirch.modUtils.getModListNameNoAlias().includes('ModI18N') && maplebirch.Language === 'CN' ? style.name_cap : style.name;
         hair_name[name.convert('title')] = style.variable;
@@ -836,7 +839,7 @@ const NPCSidebar = (() => {
         load_all_images(manager);
         for (const npc_name of manager.NPCNameList) {
           if (!display.has(npc_name)) display.set(npc_name, new Set());
-          V.options.maplebirch.npcsidebar.display[npc_name] ??= 'none';
+          dol.variables.options.maplebirch.npcsidebar.display[npc_name] ??= 'none';
         }
       });
       manager.core.char.use('pre', preprocess, 'main');

@@ -3,6 +3,7 @@
 import maplebirch, { type MaplebirchCore, createlog } from '../core';
 import type { MacroContext } from '../SugarCubeMacros';
 import CombatActions, { type ActionType, type ActionValue, type CombatType, type OptionsTable } from './CombatAddon/CombatAction';
+import dol from '../host/Adapter';
 
 class CombatManager {
   public readonly log: ReturnType<typeof createlog>;
@@ -26,7 +27,7 @@ class CombatManager {
       const optionsTable = this.args[0] as OptionsTable;
       const actionType = this.args[1] as ActionType;
       const combatType = (this.args[2] || '') as CombatType;
-      const controls = V.options.combatControls;
+      const controls = dol.variables.options.combatControls;
       const frag = document.createDocumentFragment();
       const el = (val: string) => document.createElement(val);
 
@@ -39,8 +40,8 @@ class CombatManager {
         const optionValues = Object.values(optionsTable);
         const listSpan = el('span');
         listSpan.id = `${actionType}Select`;
-        listSpan.className = `${combatListColor(actionType, optionValues.includes(V[actionType]) ? V[actionType] : optionValues[0], combatType)}List flavorText ${T.reducedWidths ? 'reducedWidth' : ''}`;
-        T[`${actionType}options`] = optionsTable;
+        listSpan.className = `${combatListColor(actionType, optionValues.includes(dol.variables[actionType]) ? dol.variables[actionType] : optionValues[0], combatType)}List flavorText ${dol.temporary.reducedWidths ? 'reducedWidth' : ''}`;
+        dol.temporary[`${actionType}options`] = optionsTable;
         const listBox = maplebirch.SugarCube.Wikifier.wikifyEval(`<<listbox '$${actionType}' autoselect>><<optionsfrom _${actionType}options>><</listbox>>`);
         listSpan.append(listBox);
         frag.append(listSpan);
@@ -55,7 +56,7 @@ class CombatManager {
           let difficultyText = document.createDocumentFragment();
           if (action === 'ask') {
             nameSpan.id = 'askLabel';
-            nameSpan.className = V.askActionColour;
+            nameSpan.className = dol.variables.askActionColour;
           } else {
             nameSpan.className = combatListColor(false, action, combatType);
           }
@@ -79,7 +80,7 @@ class CombatManager {
 
   private _combatListColor(name: string | number | false, value?: ActionValue, type: CombatType = 'Default') {
     type = (type || 'Default') as CombatType;
-    const rawAction = value ?? (name !== false ? V[name] : '');
+    const rawAction = value ?? (name !== false ? dol.variables[name] : '');
     const action = String(rawAction || '').replace(/\d+/g, '');
     if (combatActionColours[type]) for (const color in combatActionColours[type]) if (combatActionColours[type][color].includes(action)) return color;
     try {
@@ -96,7 +97,7 @@ class CombatManager {
     jQuery(document)
       .off(eventName, '#listbox-' + name)
       .on(eventName, '#listbox-' + name, { name, extra }, e => {
-        const action = V[e.data.name];
+        const action = dol.variables[e.data.name];
         let difficultyMacro = `<<${e.data.name}Difficulty${e.data.extra} ${action}>>`;
         try {
           const modDifficulty = this.CombatAction.difficulty(action, e.data.extra || 'Default');

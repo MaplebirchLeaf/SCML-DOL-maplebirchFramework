@@ -2,6 +2,7 @@
 
 import type NPCManager from '../NamedNPC';
 import type { NPCData } from '../NamedNPC';
+import dol from '../../host/Adapter';
 
 export type NPCPregnancySpecies = 'human' | 'wolf' | 'wolfboy' | 'wolfgirl' | 'hawk' | 'harpy';
 export type NPCPregnancyOrifice = 'vagina' | 'anus';
@@ -155,18 +156,18 @@ class NPCPregnancy {
   }
 
   public init(): void {
-    if (!setup.pregnancy) return;
+    if (!dol.setup.pregnancy) return;
     this.initialized = true;
     for (const name of this.configs.keys()) this.applyRegistration(name);
   }
 
   public inject(): void {
-    if (!this.initialized || !this.available || !Array.isArray(V.NPCName) || !V.NPCName.length) return;
+    if (!this.initialized || !this.available || !Array.isArray(dol.variables.NPCName) || !dol.variables.NPCName.length) return;
     if (!this.manager.core.SugarCube.Macro.has('npcPregnancyUpdater')) return;
-    const initialized = new Set((V.NPCName as NPCData[]).filter(npc => npc.pregnancy?.enabled !== undefined).map(npc => npc.nam));
+    const initialized = new Set((dol.variables.NPCName as NPCData[]).filter(npc => npc.pregnancy?.enabled !== undefined).map(npc => npc.nam));
     new this.manager.core.SugarCube.Wikifier(document.createDocumentFragment(), '<<npcPregnancyUpdater>>');
     for (const [name, config] of this.configs) {
-      const npc = (V.NPCName as NPCData[]).find(npc => npc.nam === name);
+      const npc = (dol.variables.NPCName as NPCData[]).find(npc => npc.nam === name);
       if (npc && config.cycle && !this.cycleConfigured(name) && npc.pregnancy?.enabled !== undefined) {
         this.applyCycle(npc, config.cycle, !initialized.has(name));
         this.markCycleConfigured(name);
@@ -208,7 +209,7 @@ class NPCPregnancy {
     const donor = options.donor ?? 'pc';
     const donorSpecies = options.donorSpecies ?? (donor === 'pc' ? 'human' : this.species(donor, this.npc(donor).type));
     if (!isPregnancySpecies(donorSpecies)) throw new Error(`Unsupported pregnancy species for ${donor}: ${String(donorSpecies)}`);
-    const donorNpc = (V.NPCName as NPCData[]).find(npc => npc.nam === donor);
+    const donorNpc = (dol.variables.NPCName as NPCData[]).find(npc => npc.nam === donor);
     if ([npc, donorNpc].some(parent => parent?.penis === 'none' && parent.vagina === 'none')) return null;
     const orifice = options.orifice ?? (npc.vagina && npc.vagina !== 'none' ? 'vagina' : 'anus');
     if (orifice !== 'vagina' && orifice !== 'anus') throw new Error(`Invalid pregnancy orifice: ${String(orifice)}`);
@@ -219,13 +220,13 @@ class NPCPregnancy {
     if (id === null) return null;
     if (options.aware) setKnowsPregnancy(id, 'pc');
     if (options.donorKnown) setKnowsDonor(id, 'pc');
-    return (V.pregnancies as NPCPregnancyRecord[])[id];
+    return (dol.variables.pregnancies as NPCPregnancyRecord[])[id];
   }
 
   private applyRegistration(npcName: string): void {
     const config = this.configs.get(npcName)!;
     for (const field of ['canBePregnant', 'canImpregnatePlayer'] as const) {
-      const names: string[] = setup.pregnancy[field];
+      const names: string[] = dol.setup.pregnancy[field];
       if (config[field] && !names.includes(npcName)) names.push(npcName);
     }
   }
@@ -272,13 +273,13 @@ class NPCPregnancy {
   }
 
   private cycleConfigured(npcName: string): boolean {
-    return V.maplebirch?.npc?.[npcName.toLowerCase()]?.pregnancyCycleConfigured === true;
+    return dol.variables.maplebirch?.npc?.[npcName.toLowerCase()]?.pregnancyCycleConfigured === true;
   }
 
   private markCycleConfigured(npcName: string): void {
-    V.maplebirch ??= {};
-    V.maplebirch.npc ??= {};
-    const npc = (V.maplebirch.npc[npcName.toLowerCase()] ??= {});
+    dol.variables.maplebirch ??= {};
+    dol.variables.maplebirch.npc ??= {};
+    const npc = (dol.variables.maplebirch.npc[npcName.toLowerCase()] ??= {});
     npc.pregnancyCycleConfigured = true;
   }
 
@@ -294,7 +295,7 @@ class NPCPregnancy {
   }
 
   private npc(npcName: string): NPCData {
-    const npc = (V.NPCName as NPCData[] | undefined)?.find(npc => npc.nam === npcName);
+    const npc = (dol.variables.NPCName as NPCData[] | undefined)?.find(npc => npc.nam === npcName);
     if (!npc) throw new Error(`Unknown pregnancy NPC: ${npcName}`);
     return npc;
   }

@@ -5,6 +5,7 @@ import maplebirch, { MaplebirchCore, createlog } from '../core';
 import migration from './Frameworks/migration';
 import { clone } from '../utils';
 import { errorMessage } from '../utils/error';
+import dol from '../host/Adapter';
 
 const defaults = {
   player: {
@@ -22,7 +23,7 @@ type OptionsData = Record<string, any>;
 
 class Options {
   public define(...args: any[]) {
-    const options = ((V.options ??= {}).maplebirch ??= {}) as OptionsData;
+    const options = ((dol.variables.options ??= {}).maplebirch ??= {}) as OptionsData;
     const defaults = args.pop();
     if (defaults == null) return;
     if (typeof defaults !== 'object') {
@@ -79,9 +80,9 @@ interface HairGradientsReturn {
 }
 
 function hairgradients(): HairGradientsReturn {
-  if (!setup.colours?.hairgradients_prototypes) return { fringe: {}, sides: {} };
+  if (!dol.setup.colours?.hairgradients_prototypes) return { fringe: {}, sides: {} };
   const data: HairGradientsReturn = { fringe: {}, sides: {} };
-  const hg = setup.colours.hairgradients_prototypes;
+  const hg = dol.setup.colours.hairgradients_prototypes;
   for (const [style, hairstyles] of Object.entries(hg.fringe || {}))
     if ((hairstyles as HairStyleData).all?.colors) data.fringe[style] = (hairstyles as HairStyleData).all!.colors.map(color => color[0]);
   for (const [style, hairstyles] of Object.entries(hg.sides || {})) if ((hairstyles as HairStyleData).all?.colors) data.sides[style] = (hairstyles as HairStyleData).all!.colors.map(color => color[0]);
@@ -161,13 +162,13 @@ class Variables {
   public optionsStorage(action: 'save' | 'restore' | 'reset' | 'load'): any | null {
     try {
       if (action === 'save') {
-        localStorage.setItem(Variables.OPTIONS_STORAGE_KEY, JSON.stringify(V.options?.maplebirch ?? {}));
+        localStorage.setItem(Variables.OPTIONS_STORAGE_KEY, JSON.stringify(dol.variables.options?.maplebirch ?? {}));
         return null;
       }
 
       if (action === 'reset') {
         localStorage.removeItem(Variables.OPTIONS_STORAGE_KEY);
-        V.options.maplebirch = clone(Variables.options);
+        dol.variables.options.maplebirch = clone(Variables.options);
         return null;
       }
 
@@ -177,7 +178,7 @@ class Variables {
       const saved = this.core.lodash.isPlainObject(parsed) ? parsed : null;
 
       if (action === 'restore' && saved) {
-        V.options.maplebirch = saved;
+        dol.variables.options.maplebirch = saved;
         this.check();
       }
 
@@ -189,28 +190,28 @@ class Variables {
   }
 
   public check() {
-    V.options ??= {};
-    const current = this.core.lodash.isPlainObject(V.options.maplebirch) ? V.options.maplebirch : this.optionsStorage('load');
-    V.options.maplebirch = Object.merge(clone(Variables.options), current ?? {});
+    dol.variables.options ??= {};
+    const current = this.core.lodash.isPlainObject(dol.variables.options.maplebirch) ? dol.variables.options.maplebirch : this.optionsStorage('load');
+    dol.variables.options.maplebirch = Object.merge(clone(Variables.options), current ?? {});
   }
 
   public Init(): void {
     try {
-      V.maplebirch ??= {};
-      if (this.tool.core.passage?.title === 'Start2') V.maplebirch = clone({ ...defaults, version: this.version });
+      dol.variables.maplebirch ??= {};
+      if (this.tool.core.passage?.title === 'Start2') dol.variables.maplebirch = clone({ ...defaults, version: this.version });
     } catch (error) {
       this.log(`出现错误：${errorMessage(error)}`, 'ERROR');
     } finally {
-      this.migration.run(V.maplebirch, this.version);
+      this.migration.run(dol.variables.maplebirch, this.version);
       $.wiki('<<maplebirchState>>');
     }
   }
 
   public loadInit() {
     try {
-      V.maplebirch ??= {};
+      dol.variables.maplebirch ??= {};
       this.check();
-      this.migration.run(V.maplebirch, this.version);
+      this.migration.run(dol.variables.maplebirch, this.version);
       $.wiki('<<maplebirchState>>');
     } catch (error) {
       this.log(`读档迁移出错: ${errorMessage(error)}`, 'ERROR');
@@ -218,7 +219,7 @@ class Variables {
   }
 
   public postInit() {
-    if (V.maplebirch?.version !== this.version) this.migration.run(V.maplebirch, this.version);
+    if (dol.variables.maplebirch?.version !== this.version) this.migration.run(dol.variables.maplebirch, this.version);
   }
 }
 

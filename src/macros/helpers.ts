@@ -2,6 +2,7 @@
 
 import maplebirch, { type MaplebirchCore } from '../core';
 import type { MacroContext as SugarCubeMacroContext } from 'twine-sugarcube';
+import dol from '../host/Adapter';
 
 export const CONVERT_MODES = ['lower', 'upper', 'capitalize', 'title', 'camel', 'pascal', 'snake', 'kebab', 'constant'] as const;
 export type ConvertMode = (typeof CONVERT_MODES)[number];
@@ -132,7 +133,7 @@ export function addClasses($target: JQuery, className: string): void {
 }
 
 export function bindLanguageUpdate($target: JQuery, key: string, update: () => void): void {
-  setup.maplebirch?.language?.add(key, update, $target[0]);
+  dol.setup.maplebirch?.language?.add(key, update, $target[0]);
 }
 
 export function wiki($container: JQuery, content: string): void {

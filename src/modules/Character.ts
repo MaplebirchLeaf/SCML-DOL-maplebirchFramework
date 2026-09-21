@@ -8,6 +8,7 @@ import AddonPlugin from './AddonPlugin';
 import type { Replacement } from '../utils/twine';
 import Pet from './CharacterAddon/Pet';
 import Transformation from './CharacterAddon/Transformation';
+import dol from '../host/Adapter';
 
 interface HairGradientOptions {
   style: string;
@@ -126,11 +127,11 @@ function mask(x = 0, rotation = 0, swap = false, width = 256, height = 256): str
 }
 
 function hairColourGradient(part: string, gradient: HairGradientOptions, hairType: string, hairLength: number, prefilterName: string, type: 'charArt' | 'closeUp'): any {
-  const filterPrototypeLibrary = setup.colours?.hairgradients_prototypes?.[part]?.[gradient.style];
-  if (!filterPrototypeLibrary) return Renderer.emptyLayerFilter();
+  const filterPrototypeLibrary = dol.setup.colours?.hairgradients_prototypes?.[part]?.[gradient.style];
+  if (!filterPrototypeLibrary) return dol.renderer.emptyLayerFilter();
   const filterPrototype = filterPrototypeLibrary[hairType] || filterPrototypeLibrary.all;
-  if (!filterPrototype) return Renderer.emptyLayerFilter();
-  const storedPositions = V.options?.maplebirch?.character?.[type]?.value?.[part]?.[gradient.style];
+  if (!filterPrototype) return dol.renderer.emptyLayerFilter();
+  const storedPositions = dol.variables.options?.maplebirch?.character?.[type]?.value?.[part]?.[gradient.style];
   const blend = clone(filterPrototype);
   if (storedPositions && storedPositions.length === blend.colors.length) for (let i = 0; i < blend.colors.length; i++) blend.colors[i][0] = Math.clamp(storedPositions[i], 0, 1);
   const filter = {
@@ -148,7 +149,7 @@ function hairColourGradient(part: string, gradient: HairGradientOptions, hairTyp
     let lengthValue = typeof lengthFn === 'function' ? lengthFn(hairLength, color[0]) : color[0];
     lengthValue = Math.clamp(lengthValue, 0, 1);
     const colourKey = gradient.colours[index];
-    const colorData = setup.colours?.hair_map?.[colourKey]?.canvasfilter;
+    const colorData = dol.setup.colours?.hair_map?.[colourKey]?.canvasfilter;
     if (!colorData) continue;
     filter.brightness.adjustments[index][0] = lengthValue;
     filter.brightness.adjustments[index][1] = colorData.brightness || 0;
@@ -156,18 +157,18 @@ function hairColourGradient(part: string, gradient: HairGradientOptions, hairTyp
     color[1] = colorData.blend;
   }
 
-  const prefilter = setup.colours?.sprite_prefilters?.[prefilterName];
-  if (prefilter) Renderer.mergeLayerData(filter, prefilter, true);
+  const prefilter = dol.setup.colours?.sprite_prefilters?.[prefilterName];
+  if (prefilter) dol.renderer.mergeLayerData(filter, prefilter, true);
   return filter;
 }
 
 function preprocess(options: HairGradientPreprocessOptions) {
-  const styles = Object.values(setup.faceStyleOptions ?? {});
+  const styles = Object.values(dol.setup.faceStyleOptions ?? {});
   if (!options.facestyle || !styles.includes(options.facestyle)) options.facestyle = 'default';
-  const variants = Object.values(setup.faceVariantOptions?.[options.facestyle] ?? {});
+  const variants = Object.values(dol.setup.faceVariantOptions?.[options.facestyle] ?? {});
   if (!options.facevariant || !variants.includes(options.facevariant)) options.facevariant = 'default';
   (options.maplebirch ??= {}).char ??= {};
-  const characterOptions = V.options?.maplebirch?.character ?? {};
+  const characterOptions = dol.variables.options?.maplebirch?.character ?? {};
   options.maplebirch.char.mask_src = mask(characterOptions.mask ?? 0, characterOptions.rotation ?? 0);
   options.maplebirch.char.mask_src_close_up = mask(characterOptions.mask ?? 0, characterOptions.rotation ?? 0, true);
   const gradients = (style: string, key: string, part: string, type: string, lengthKey: string, prefilter: string) => {
@@ -299,9 +300,9 @@ class Character {
       this.faceStyleMap.set(style, variants);
     };
 
-    for (const style of Object.values(setup.faceStyleOptions ?? {})) if (typeof style === 'string') add(style);
+    for (const style of Object.values(dol.setup.faceStyleOptions ?? {})) if (typeof style === 'string') add(style);
 
-    for (const [style, variants] of Object.entries(setup.faceVariantOptions ?? {})) {
+    for (const [style, variants] of Object.entries(dol.setup.faceVariantOptions ?? {})) {
       add(style);
       for (const variant of Object.values(variants as Record<string, string>)) if (typeof variant === 'string') add(style, variant);
     }
@@ -328,8 +329,8 @@ class Character {
       }
     }
 
-    setup.faceStyleOptions = styleOptions;
-    setup.faceVariantOptions = variantOptions;
+    dol.setup.faceStyleOptions = styleOptions;
+    dol.setup.faceVariantOptions = variantOptions;
   }
 
   public modifyCanvasModel(manager: AddonPlugin): void {

@@ -6,6 +6,7 @@ import type DynamicManager from '../Dynamic';
 import Event, { type EventOptions } from './Event';
 import patchDateTime from './DateTime';
 import patchTime, { bindTimeHandlers, vanillaTime } from './Time';
+import dol from '../../host/Adapter';
 
 export type TimeEventType = 'onSec' | 'onMin' | 'onHour' | 'onDay' | 'onWeek' | 'onMonth' | 'onYear' | 'onBefore' | 'onThread' | 'onAfter' | 'onTimeTravel';
 
@@ -268,7 +269,7 @@ export class TimeManager {
     const targetDate = new window.DateTime(prevDate).addSeconds(seconds);
     this.trigger('onBefore', {
       passed: seconds,
-      timeStamp: V.timeStamp,
+      timeStamp: dol.variables.timeStamp,
       prev: prevDate,
       prevDate
     });
@@ -291,12 +292,12 @@ export class TimeManager {
     const prevDate = new window.DateTime(Time.date);
     const target = new window.DateTime(targetDate);
     if (target.timeStamp < TimeConstants.MIN_DATE.timeStamp || target.timeStamp > TimeConstants.MAX_DATE.timeStamp) throw new Error(`Invalid time travel target: ${target.timeStamp}`);
-    V.weatherObj.keypointsArr = [];
-    V.weatherObj.fogKeypoints = [];
+    dol.variables.weatherObj.keypointsArr = [];
+    dol.variables.weatherObj.fogKeypoints = [];
     Time.setDate(target);
     if (Weather.WeatherGeneration.updateWeather) Weather.WeatherGeneration.updateWeather(target);
     else Weather.WeatherGeneration.generate(target);
-    Weather.FogGeneration.generateFogKeypoints(V.weatherObj.keypointsArr);
+    Weather.FogGeneration.generateFogKeypoints(dol.variables.weatherObj.keypointsArr);
     Weather.Observables.checkForUpdate();
     void this.manager.core.trigger(':onWeather');
     const currentDate = new window.DateTime(Time.date);

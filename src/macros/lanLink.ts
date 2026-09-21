@@ -3,12 +3,13 @@
 import { errorMessage } from '../utils/error';
 import maplebirch from '../core';
 import { addClasses, appendMacroIcon, bindLanguageUpdate, isStyleArg, readStyle, text, translatedText, type LinkArg, type MacroContext } from './helpers';
+import dol from '../host/Adapter';
 
 // <<lanLink>>
 export function _languageLink(this: MacroContext): void {
   try {
     if (!this.args || this.args.length === 0) return this.error('<<lanLink>> needs at least one argument.');
-    T.link = true;
+    dol.temporary.link = true;
     const payload = Array.isArray(this.payload) ? this.payload : [];
     const content = (payload[0]?.contents || '').trim();
     const firstArg = this.args[0];

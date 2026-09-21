@@ -1,6 +1,7 @@
 // .src/modules/Frameworks/Patches/Traits.ts
 
 import { clone } from '../../../utils/object';
+import dol from '../../../host/Adapter';
 
 export interface TraitCategory {
   title: string;
@@ -89,7 +90,7 @@ class Traits {
       titleMap.set(trait.title, result.length - 1);
     }
 
-    return (T.traitLists = result);
+    return (dol.temporary.traitLists = result);
   }
 
   private static resolve(trait: TraitConfig, translate: (text: string) => string): ResolvedTrait {

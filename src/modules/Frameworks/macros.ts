@@ -4,6 +4,7 @@ import { errorMessage } from '../../utils/error';
 import { createlog, type MaplebirchCore } from '../../core';
 import type { MacroContext } from '../../SugarCubeMacros';
 import type ToolCollection from '../ToolCollection';
+import dol from '../../host/Adapter';
 
 export type MacroFunction<Args extends unknown[] = unknown[]> = (this: MacroContext, ...args: Args) => unknown;
 type SimpleMacroFunction<Args extends unknown[]> = (this: MacroContext | null, ...args: Args) => unknown;
@@ -70,7 +71,7 @@ class defineMacros {
     const fragment = document.createDocumentFragment();
     const value = Math.trunc(Number(amount));
     if (!Number.isFinite(value) || value === 0) return fragment;
-    if (V.settings.blindStatsEnabled || !condition()) return fragment;
+    if (dol.variables.settings.blindStatsEnabled || !condition()) return fragment;
     const span = document.createElement('span');
     span.className = colorClass;
     span.textContent = `${value < 0 ? '- ' : '+ '}`.repeat(Math.abs(value)) + statType;
@@ -82,10 +83,10 @@ class defineMacros {
   public grace(amount: number, expectedRank?: string): DocumentFragment {
     const value = Math.trunc(Number(amount));
     const ranks = ['prospective', 'initiate', 'monk', 'priest', 'bishop'];
-    const playerRank = ranks.indexOf(V.temple_rank);
+    const playerRank = ranks.indexOf(dol.variables.temple_rank);
     const expected = expectedRank == null ? -1 : ranks.indexOf(expectedRank);
     if (!Number.isFinite(value) || value === 0) return document.createDocumentFragment();
-    if (V.settings.blindStatsEnabled) return document.createDocumentFragment();
+    if (dol.variables.settings.blindStatsEnabled) return document.createDocumentFragment();
     if (playerRank === -1) return document.createDocumentFragment();
     if (expected > 1 && playerRank >= expected) return document.createDocumentFragment();
     return this.statChange('Grace', value, value > 0 ? 'green' : 'red');

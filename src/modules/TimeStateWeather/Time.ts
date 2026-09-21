@@ -2,6 +2,7 @@
 
 import { TimeConstants } from '../../constants';
 import { replace } from '../../utils/twine';
+import dol from '../../host/Adapter';
 
 export function patchTimeAsset(content: string): string {
   let result = content;
@@ -54,11 +55,11 @@ function patchTime(time: TimeAPI): void {
     if (value && typeof value === 'object' && typeof value.timeStamp === 'number') {
       cachedDate = new window.DateTime(value);
       cachedAbsoluteTimestamp = cachedDate.timeStamp;
-      V.startDate ??= new window.DateTime(2022, 9, 4, 7).timeStamp;
-      V.timeStamp = cachedAbsoluteTimestamp - V.startDate;
+      dol.variables.startDate ??= new window.DateTime(2022, 9, 4, 7).timeStamp;
+      dol.variables.timeStamp = cachedAbsoluteTimestamp - dol.variables.startDate;
       return;
     }
-    const elapsedTimestamp = Number(value ?? V.timeStamp ?? 0);
+    const elapsedTimestamp = Number(value ?? dol.variables.timeStamp ?? 0);
     vanillaTime.set?.(Number.isFinite(elapsedTimestamp) ? elapsedTimestamp : 0);
     cachedDate = null;
     cachedAbsoluteTimestamp = null;
@@ -69,8 +70,8 @@ function patchTime(time: TimeAPI): void {
   };
 
   const date = (): DateTime => {
-    const startDate = V.startDate ?? (V.startDate = new window.DateTime(2022, 9, 4, 7).timeStamp);
-    const absoluteTimestamp = startDate + (V.timeStamp || 0);
+    const startDate = dol.variables.startDate ?? (dol.variables.startDate = new window.DateTime(2022, 9, 4, 7).timeStamp);
+    const absoluteTimestamp = startDate + (dol.variables.timeStamp || 0);
 
     if (!cachedDate || cachedAbsoluteTimestamp !== absoluteTimestamp) {
       cachedDate = new window.DateTime(absoluteTimestamp);
@@ -248,11 +249,11 @@ function patchTime(time: TimeAPI): void {
 
     startDate: {
       get: () => {
-        V.startDate ??= new window.DateTime(2022, 9, 4, 7).timeStamp;
-        return new window.DateTime(V.startDate);
+        dol.variables.startDate ??= new window.DateTime(2022, 9, 4, 7).timeStamp;
+        return new window.DateTime(dol.variables.startDate);
       },
       set: (value: DateTime) => {
-        V.startDate = value.timeStamp;
+        dol.variables.startDate = value.timeStamp;
         cachedDate = null;
         cachedAbsoluteTimestamp = null;
       },

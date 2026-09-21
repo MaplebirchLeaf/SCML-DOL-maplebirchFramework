@@ -1,6 +1,7 @@
 // .src/modules/Frameworks/Patches/Foodstuff.ts
 
 import { isKey, isRecord } from './config';
+import dol from '../../../host/Adapter';
 
 type FoodstuffSeason = 'spring' | 'summer' | 'autumn' | 'winter';
 type FoodstuffPlantingBed = 'earth' | 'water';
@@ -68,18 +69,18 @@ class Foodstuff {
   }
 
   public static apply(): void {
-    if (typeof setup === 'undefined' || !isRecord(setup.foodstuff)) return;
+    if (!dol.has('setup') || !isRecord(dol.setup.foodstuff)) return;
     Foodstuff.applySetup();
     Foodstuff.syncState();
   }
 
   public static syncState(): void {
-    if (typeof setup === 'undefined' || !isRecord(setup.foodstuff)) return;
+    if (!dol.has('setup') || !isRecord(dol.setup.foodstuff)) return;
     for (const key of Object.keys(foodstuffData)) Foodstuff.ensureState(key);
   }
 
   public static applySetup(): void {
-    if (typeof setup === 'undefined' || !isRecord(setup.foodstuff) || Object.keys(foodstuffData).length === 0) return;
+    if (!dol.has('setup') || !isRecord(dol.setup.foodstuff) || Object.keys(foodstuffData).length === 0) return;
     for (const [key, config] of Object.entries(foodstuffData)) {
       Foodstuff.set(key, config);
     }
@@ -87,11 +88,11 @@ class Foodstuff {
   }
 
   private static set(key: string, config: FoodstuffConfig): void {
-    const current = setup.foodstuff[key];
+    const current = dol.setup.foodstuff[key];
     const item: FoodstuffConfig = { ...clone(current), ...clone(config) };
     const name = item.name ?? key.replace(/_/g, ' ');
     if (item.index === undefined) item.index = Foodstuff.nextIndex();
-    setup.foodstuff[key] = {
+    dol.setup.foodstuff[key] = {
       index: item.index,
       name,
       singular: item.singular ?? name,
@@ -107,7 +108,7 @@ class Foodstuff {
 
   private static nextIndex(): number {
     let maxIndex = -1;
-    for (const item of Object.values(setup.foodstuff) as FoodstuffConfig[]) {
+    for (const item of Object.values(dol.setup.foodstuff) as FoodstuffConfig[]) {
       const index = Number(item.index);
       if (Number.isFinite(index) && index > maxIndex) maxIndex = index;
     }
@@ -116,18 +117,18 @@ class Foodstuff {
 
   private static sort(): void {
     const sorted: Record<string, FoodstuffItem> = {};
-    Object.keys(setup.foodstuff)
+    Object.keys(dol.setup.foodstuff)
       .sort()
       .forEach(key => {
-        sorted[key] = setup.foodstuff[key];
+        sorted[key] = dol.setup.foodstuff[key];
       });
-    setup.foodstuff = sorted;
+    dol.setup.foodstuff = sorted;
   }
 
   private static ensureState(key: string): void {
-    if (typeof V === 'undefined') return;
-    V.foodstuff ??= {};
-    V.foodstuff[key] ??= { amount: 0 };
+    if (!dol.has('variables')) return;
+    dol.variables.foodstuff ??= {};
+    dol.variables.foodstuff[key] ??= { amount: 0 };
   }
 }
 

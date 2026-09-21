@@ -5,6 +5,7 @@ import type AddonPlugin from '../AddonPlugin';
 import type { Replacement } from '../../utils/twine';
 import type DynamicManager from '../Dynamic';
 import Event, { type EventOptions } from './Event';
+import dol from '../../host/Adapter';
 
 export interface WeatherEventOptions extends EventOptions {
   condition?: () => boolean;
@@ -92,7 +93,12 @@ class WeatherEvent extends Event {
 
     if (builtIn[key]) return this.matchValue(builtIn[key](), value);
 
-    const paths: (() => any)[] = [() => (V as Record<string, any>)[key], () => (T as Record<string, any>)[key], () => (Weather as Record<string, any>)[key], () => (Time as Record<string, any>)[key]];
+    const paths: (() => any)[] = [
+      () => (dol.variables as Record<string, any>)[key],
+      () => (dol.temporary as Record<string, any>)[key],
+      () => (Weather as Record<string, any>)[key],
+      () => (Time as Record<string, any>)[key]
+    ];
     for (const getter of paths) {
       try {
         const current = getter();
@@ -232,9 +238,10 @@ export class WeatherManager {
   }
 
   public init(): void {
-    for (const exception of this.Exceptions) setup.WeatherExceptions.push(exception);
+    for (const exception of this.Exceptions) dol.setup.WeatherExceptions.push(exception);
     this.Exceptions.length = 0;
-    for (const weatherType of this.WeatherTypes) if (!setup.WeatherGeneration.weatherTypes.find((type: any) => type.name === weatherType.name)) setup.WeatherGeneration.weatherTypes.push(weatherType);
+    for (const weatherType of this.WeatherTypes)
+      if (!dol.setup.WeatherGeneration.weatherTypes.find((type: any) => type.name === weatherType.name)) dol.setup.WeatherGeneration.weatherTypes.push(weatherType);
     this.WeatherTypes.length = 0;
     this.log('天气事件系统已激活', 'DEBUG');
   }

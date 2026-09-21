@@ -2,6 +2,7 @@
 
 import { TimeConstants } from '../../constants';
 import { replace } from '../../utils/twine';
+import dol from '../../host/Adapter';
 
 export function patchTimeConstantsAsset(content: string): string {
   const patch = `const TimeConstants = maplebirch.dynamic.Time.TimeConstants;\nwindow.TimeConstants = TimeConstants;`;
@@ -245,7 +246,7 @@ function patchDateTime(BaseDateTime: DateTimeConstructor): DateTimeConstructor {
     weekDay: {
       get(this: DateTime) {
         const dayNumber = Math.floor(this.timeStamp / TimeConstants.secondsPerDay);
-        const weekDayOffset = V.weekDayOffset !== undefined ? V.weekDayOffset : 6;
+        const weekDayOffset = dol.variables.weekDayOffset !== undefined ? dol.variables.weekDayOffset : 6;
         return ((((dayNumber + weekDayOffset + 2) % 7) + 7) % 7) + 1;
       },
       configurable: true

@@ -3,6 +3,7 @@
 import type NPCManager from '../NamedNPC';
 import type { NPCBodyData, NPCSidebarState } from './NPCSidebarConfig/types';
 import { transformationDefaults } from './NPCSidebarConfig/transformation_layers';
+import dol from '../../host/Adapter';
 
 export interface NPCTransformationState {
   build: number;
@@ -99,9 +100,9 @@ class NPCTransformation {
   public ensure(npcName: string, type?: string): Record<string, NPCTransformationState> {
     const name = key(npcName).toLowerCase();
     const requested = type === undefined ? undefined : key(type);
-    V.maplebirch ??= {};
-    V.maplebirch.npc ??= {};
-    const npc = (V.maplebirch.npc[name] ??= {});
+    dol.variables.maplebirch ??= {};
+    dol.variables.maplebirch.npc ??= {};
+    const npc = (dol.variables.maplebirch.npc[name] ??= {});
     if (!record(npc.transformation)) npc.transformation = {};
     const data: Record<string, unknown> = npc.transformation;
     for (const type of requested ? [requested] : Object.keys(data)) {
@@ -172,7 +173,7 @@ class NPCTransformation {
   }
 
   private read(npcName: string): Record<string, unknown> | undefined {
-    const data: unknown = V.maplebirch?.npc?.[key(npcName).toLowerCase()]?.transformation;
+    const data: unknown = dol.variables.maplebirch?.npc?.[key(npcName).toLowerCase()]?.transformation;
     return record(data) ? data : undefined;
   }
 

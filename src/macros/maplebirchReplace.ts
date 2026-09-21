@@ -2,21 +2,22 @@
 
 import maplebirch from '../core';
 import { text } from './helpers';
+import dol from '../host/Adapter';
 
 // <<maplebirchReplace>>
 export function _overlayReplace(name: string, type: string): void {
   const key = text(name);
   if (!key) return;
-  if (T.currentOverlay === key) {
+  if (dol.temporary.currentOverlay === key) {
     if (typeof window.closeOverlay === 'function') window.closeOverlay();
     $.wiki('<<exit>>');
     return;
   }
-  T.buttons.toggle();
+  dol.temporary.buttons.toggle();
   if (typeof window.updateOptions === 'function') window.updateOptions();
-  T.currentOverlay = key;
+  dol.temporary.currentOverlay = key;
   const $overlay = jQuery('#customOverlay');
-  if ($overlay.length) $overlay.removeClass('hidden').parent().removeClass('hidden').attr('data-overlay', T.currentOverlay);
+  if ($overlay.length) $overlay.removeClass('hidden').parent().removeClass('hidden').attr('data-overlay', dol.temporary.currentOverlay);
   switch (type) {
     case 'customize':
       return $.wiki(`<<${key}>><<exit>>`);

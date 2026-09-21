@@ -1,6 +1,7 @@
 // ./src/utils/image.ts
 
 import maplebirch from '../core';
+import dol from '../host/Adapter';
 
 let sidebarRefreshTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -12,7 +13,7 @@ function queueSidebarRefresh(delay = 100): void {
 
     try {
       Errors.Reporter.hide(true);
-      Renderer.clearCaches(T.modelclass);
+      dol.renderer.clearCaches(dol.temporary.modelclass);
       $.wiki('<<updatesidebarimg>>');
     } catch {}
   }, delay);

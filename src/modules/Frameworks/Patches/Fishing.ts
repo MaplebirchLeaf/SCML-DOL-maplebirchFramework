@@ -1,6 +1,7 @@
 import { clone } from '../../../utils/object';
 import Foodstuff, { type FoodstuffConfig } from './Foodstuff';
 import { isKey, isRecord } from './config';
+import dol from '../../../host/Adapter';
 
 export type FishingLocation = 'fishingBeach' | 'fishingPier' | 'fishingCoastPath' | 'fishingForestLake' | 'fishingMoor';
 export type FishingSeason = 'spring' | 'summer' | 'autumn' | 'winter';
@@ -70,8 +71,8 @@ export default class Fishing {
   }
 
   public static apply(): void {
-    if (typeof setup === 'undefined') return;
-    const target = setup.fishing?.lootTables?.fish;
+    if (!dol.has('setup')) return;
+    const target = dol.setup.fishing?.lootTables?.fish;
     if (!isRecord(target)) return;
     for (const [key, config] of Object.entries(fishData)) {
       const { foodstuff: _foodstuff, ...fish } = clone(config) as FishConfig;

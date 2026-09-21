@@ -3,6 +3,7 @@
 import maplebirch, { type MaplebirchCore, createlog } from '../core';
 import { _language, _languageSwitch, _languageButton, _languageLink, _languageListbox, _radiobuttonsfrom, _overlayReplace } from '../SugarCubeMacros';
 import { actionTypes, type ActionType } from './CombatAddon/CombatAction';
+import dol from '../host/Adapter';
 
 type Updater = () => void;
 type DynamicTask = (...args: any[]) => any;
@@ -83,7 +84,7 @@ class Internals {
     );
 
     this.core.on(':passageend', cleanup, 'language macro cleanup');
-    setup.maplebirch.language = {
+    dol.setup.maplebirch.language = {
       managers,
       add(macroType: string, updater: Updater, root?: Node) {
         managers[macroType] ??= new Set();
@@ -182,8 +183,8 @@ class Internals {
     const titleSource = "<<lanSwitch 'Welcome to' '欢迎使用'>>[[<<lanSwitch 'Maplebirch Framework' '秋枫白桦框架'>>|https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchframework]]";
     const title = $('<div>').wiki(titleSource).html() || titleSource;
     const t = (key: string) => this.core.t(key);
-    T.maplebirchNoticeLinksEnabled = Links.enabled;
-    T.maplebirchNoticeVerify = false;
+    dol.temporary.maplebirchNoticeLinksEnabled = Links.enabled;
+    dol.temporary.maplebirchNoticeVerify = false;
     Links.enabled = false;
     $('#story').addClass('gateBlur');
     $('#ui-bar').addClass('gateBlur');
@@ -212,10 +213,10 @@ class Internals {
 
   private compatibleModI18N(): void {
     if (this.modI18NPatched) return;
-    const originalName = setup.NPC_CN_NAME;
-    const originalTitle = setup.NPC_CN_TITLE;
+    const originalName = dol.setup.NPC_CN_NAME;
+    const originalTitle = dol.setup.NPC_CN_TITLE;
     if (typeof originalName === 'function') {
-      setup.NPC_CN_NAME = (text: string) => {
+      dol.setup.NPC_CN_NAME = (text: string) => {
         if (!text || typeof text !== 'string') return text;
         const result = originalName(text);
         if (result !== text) return result;
@@ -224,7 +225,7 @@ class Internals {
       };
     }
     if (typeof originalTitle === 'function') {
-      setup.NPC_CN_TITLE = (text: string) => {
+      dol.setup.NPC_CN_TITLE = (text: string) => {
         if (!text || typeof text !== 'string') return text;
         const result = originalTitle(text);
         if (result !== text) return result;
@@ -249,10 +250,10 @@ class Internals {
     });
 
     this.core.tool.onInit(() => {
-      setup.maplebirch ??= {};
+      dol.setup.maplebirch ??= {};
       this.Language();
-      setup.maplebirch.hint = this.uniqueTextStore();
-      setup.maplebirch.content = this.uniqueTextStore();
+      dol.setup.maplebirch.hint = this.uniqueTextStore();
+      dol.setup.maplebirch.content = this.uniqueTextStore();
     });
 
     this.core.tool.patch.configureLocation(
@@ -323,7 +324,7 @@ class Internals {
     $(document).on('change', 'select[name="lanListbox-optionsmaplebirchnpcsidebarnnpc"]', refreshOptions);
     $(document).on('change', 'select.maplebirch-npc-model-primary, select.maplebirch-npc-model-secondary', event => {
       const select = event.currentTarget as HTMLSelectElement;
-      const sidebar = V.options.maplebirch.npcsidebar;
+      const sidebar = dol.variables.options.maplebirch.npcsidebar;
       if (sidebar.primary_npc && sidebar.primary_npc === sidebar.secondary_npc) {
         const primaryChanged = select.classList.contains('maplebirch-npc-model-primary');
         if (primaryChanged) sidebar.secondary_npc = '';
@@ -347,7 +348,7 @@ class Internals {
       if (this.relationTimer) clearTimeout(this.relationTimer);
       this.relationTimer = setTimeout(() => {
         try {
-          const count = (V.options.maplebirch?.relationcount ?? 4) - 2;
+          const count = (dol.variables.options.maplebirch?.relationcount ?? 4) - 2;
           document.querySelectorAll('.relation-stat-list').forEach(list => (list as HTMLElement).style.setProperty('--maplebirch-relation-count', count.toString()));
         } catch (error) {
           this.log('关系数量样式刷新错误:', 'ERROR', error);

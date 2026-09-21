@@ -1,6 +1,7 @@
 // .src/modules/Frameworks/Patches/Antiques.ts
 
 import { isKey, isRecord } from './config';
+import dol from '../../../host/Adapter';
 
 export interface AntiqueConfig {
   hint: string;
@@ -33,8 +34,8 @@ class Antiques {
   }
 
   public static syncState(): void {
-    if (typeof V === 'undefined' || !V.museumAntiques?.antiques) return;
-    const museumAntiques = V.museumAntiques;
+    if (!dol.has('variables') || !dol.variables.museumAntiques?.antiques) return;
+    const museumAntiques = dol.variables.museumAntiques;
     for (const key of Object.keys(antiquesData)) museumAntiques.antiques[key] ??= 'notFound';
     museumAntiques.maxCount = Object.keys(museumAntiques.antiques).length;
   }

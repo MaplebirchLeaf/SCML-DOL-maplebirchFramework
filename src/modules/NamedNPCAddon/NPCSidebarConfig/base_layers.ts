@@ -5,6 +5,7 @@ import { loadImage } from '../../../utils/image';
 import { kaijuMask, nnpc_sidepart, selected_art } from './functions';
 
 import type { NPCSidebarOptions } from './types';
+import dol from '../../../host/Adapter';
 
 function hair_mask(headMask: string[], closeUpMask: string, fallbackMask: string | undefined = closeUpMask): string | string[] | undefined {
   const head_masks = headMask.filter(mask => mask !== closeUpMask);
@@ -20,7 +21,7 @@ const base_layers = {
     srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       if (nnpc.model) return 'img/body/base-classic.png';
-      const selected = V.options.maplebirch.npcsidebar.display[nnpc.name];
+      const selected = dol.variables.options.maplebirch.npcsidebar.display[nnpc.name];
       if (!selected || selected === 'none') return;
       const art = maplebirch.npc.Clothes.art.get(nnpc.name, selected);
       if (!art) return;

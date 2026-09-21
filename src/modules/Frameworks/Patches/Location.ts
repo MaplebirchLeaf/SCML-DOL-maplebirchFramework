@@ -1,6 +1,7 @@
 // .src/modules/Frameworks/Patches/Location.ts
 
 import { isKey, isRecord } from './config';
+import dol from '../../../host/Adapter';
 
 export interface LocationConfigOptions {
   overwrite?: boolean;
@@ -69,16 +70,16 @@ class Location {
   }
 
   public static apply(): void {
-    if (typeof setup === 'undefined' || !isRecord(setup.LocationImages) || !isRecord(setup.Locations)) return;
+    if (!dol.has('setup') || !isRecord(dol.setup.LocationImages) || !isRecord(dol.setup.Locations)) return;
     for (const [locationId, update] of Object.entries(locationData)) {
-      const current = setup.LocationImages[locationId] || {};
-      if (update.overwrite || !setup.LocationImages[locationId]) {
+      const current = dol.setup.LocationImages[locationId] || {};
+      if (update.overwrite || !dol.setup.LocationImages[locationId]) {
         const { customMapping: _mapping, ...config } = clone(update.config);
-        setup.LocationImages[locationId] = { folder: 'default', base: {}, ...config };
+        dol.setup.LocationImages[locationId] = { folder: 'default', base: {}, ...config };
       } else {
-        setup.LocationImages[locationId] = coverFn(current, mergeLocation, clone(update.config));
+        dol.setup.LocationImages[locationId] = coverFn(current, mergeLocation, clone(update.config));
       }
-      if (update.customMapping) setup.Locations[locationId] = clone(update.customMapping);
+      if (update.customMapping) dol.setup.Locations[locationId] = clone(update.customMapping);
       delete locationData[locationId];
     }
   }

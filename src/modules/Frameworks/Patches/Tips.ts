@@ -1,6 +1,7 @@
 // ./src/modules/Frameworks/Patches/Tips.ts
 
 import { isKey, isRecord } from './config';
+import dol from '../../../host/Adapter';
 
 export const tipsData: Record<string, string[]> = Object.create(null);
 const customCategories = new Set<string>();
@@ -15,11 +16,11 @@ class Tips {
   }
 
   public static apply(): void {
-    if (typeof setup === 'undefined' || !isRecord(setup.tips)) return;
+    if (!dol.has('setup') || !isRecord(dol.setup.tips)) return;
     for (const [category, tips] of Object.entries(tipsData)) {
       if (!isKey(category)) continue;
-      if (!Object.prototype.hasOwnProperty.call(setup.tips, category)) customCategories.add(category);
-      const target = Array.isArray(setup.tips[category]) ? setup.tips[category] : (setup.tips[category] = []);
+      if (!Object.prototype.hasOwnProperty.call(dol.setup.tips, category)) customCategories.add(category);
+      const target = Array.isArray(dol.setup.tips[category]) ? dol.setup.tips[category] : (dol.setup.tips[category] = []);
       for (const tip of tips) if (!target.includes(tip)) target.push(tip);
     }
   }

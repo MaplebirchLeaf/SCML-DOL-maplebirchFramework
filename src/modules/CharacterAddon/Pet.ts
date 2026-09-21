@@ -1,6 +1,7 @@
 // ./src/modules/CharacterAddon/Pet.ts
 
 import type Character from '../Character';
+import dol from '../../host/Adapter';
 
 export interface PetOptions {
   mask?: number;
@@ -129,7 +130,7 @@ export abstract class FloatingPet {
 
   protected stopAnimation(): void {
     const context = this.canvas?.getContext('2d');
-    const animation = context ? Renderer.getAnimatingCanvas?.(context) : null;
+    const animation = context ? dol.renderer.getAnimatingCanvas?.(context) : null;
     animation?.stop?.();
   }
 
@@ -304,7 +305,7 @@ class Pet extends FloatingPet {
   }
 
   public capture(mainModel?: CanvasModelOptions): void {
-    const models = Renderer.CanvasModels as Record<string, CanvasModelOptions | undefined>;
+    const models = dol.renderer.CanvasModels as Record<string, CanvasModelOptions | undefined>;
     if (!mainModel?.layers || models[PET.model]) return;
 
     const layers = Object.fromEntries(Object.entries(mainModel.layers).filter(([name]) => isPetLayer(name))) as CanvasLayerMap;
@@ -328,7 +329,7 @@ class Pet extends FloatingPet {
 
       this.stopAnimation();
 
-      const models = Renderer.CanvasModels as Record<string, CanvasModelOptions | undefined>;
+      const models = dol.renderer.CanvasModels as Record<string, CanvasModelOptions | undefined>;
       if (!models[PET.model]) this.capture(models.main);
 
       if (!models[PET.model]) {
@@ -336,7 +337,7 @@ class Pet extends FloatingPet {
         return false;
       }
 
-      const model = Renderer.locateModel(PET.model);
+      const model = dol.renderer.locateModel(PET.model);
       const context = model.createCanvas(false);
       const canvas = context.canvas;
 
@@ -363,11 +364,11 @@ class Pet extends FloatingPet {
   }
 
   private readSettings(): PetSettings {
-    const settings = (V.options?.maplebirch?.character?.pet ?? {}) as PetSettings;
+    const settings = (dol.variables.options?.maplebirch?.character?.pet ?? {}) as PetSettings;
 
     return {
       enabled: !!settings.enabled,
-      animated: !!V.options.sidebarAnimations,
+      animated: !!dol.variables.options.sidebarAnimations,
       mask: Math.clamp(settings.mask ?? DEFAULT_OPTIONS.mask, -128, 128),
       rotation: Math.clamp(settings.rotation ?? DEFAULT_OPTIONS.rotation, -90, 90),
       scale: Math.clamp(settings.scale ?? DEFAULT_OPTIONS.scale, SCALE_RANGE.min, SCALE_RANGE.max),
@@ -376,7 +377,7 @@ class Pet extends FloatingPet {
   }
 
   protected draw(model: CanvasModel, context: CanvasRenderingContext2D): void {
-    const sidebar = Renderer.CanvasModelCaches?.main?.sidebar as CanvasModel | undefined;
+    const sidebar = dol.renderer.CanvasModelCaches?.main?.sidebar as CanvasModel | undefined;
     const source = sidebar?.options ?? model.defaultOptions();
     const options = { ...(source ?? { filters: {} }) };
     const filters = source?.filters ?? {};
@@ -394,14 +395,14 @@ class Pet extends FloatingPet {
 
     try {
       if (this.options.animated) {
-        model.animate(context, options, Renderer.defaultListener);
+        model.animate(context, options, dol.renderer.defaultListener);
       } else {
-        model.render(context, options, Renderer.defaultListener);
+        model.render(context, options, dol.renderer.defaultListener);
       }
     } catch (error) {
       if (!this.options.animated) throw error;
       this.options.animated = false;
-      model.render(context, options, Renderer.defaultListener);
+      model.render(context, options, dol.renderer.defaultListener);
     }
   }
 }

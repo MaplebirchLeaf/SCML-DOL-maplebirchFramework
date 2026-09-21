@@ -1,5 +1,7 @@
 // ./src/modules/NamedNPCAddon/NPCFluids.ts
 
+import dol from '../../host/Adapter';
+
 export type NPCFluidPart = 'vagina' | 'vaginaoutside' | 'anus' | 'mouth' | 'penis' | 'chest' | 'face' | 'hair' | 'bottom' | 'feet' | 'leftarm' | 'rightarm' | 'neck' | 'thigh' | 'tummy';
 
 export type NPCFluidType = 'goo' | 'semen';
@@ -40,9 +42,9 @@ class NPCFluids {
   public readonly parts = parts;
 
   public ensure(npcName: string): NPCFluidData {
-    V.maplebirch ??= {};
-    V.maplebirch.npc ??= {};
-    const npc = (V.maplebirch.npc[key(npcName)] ??= {});
+    dol.variables.maplebirch ??= {};
+    dol.variables.maplebirch.npc ??= {};
+    const npc = (dol.variables.maplebirch.npc[key(npcName)] ??= {});
     const current = npc.fluids && typeof npc.fluids === 'object' ? npc.fluids : {};
     const fluids = empty();
     parts.forEach(part => {
@@ -89,7 +91,7 @@ class NPCFluids {
   }
 
   public decay(value = 1): void {
-    for (const name of Object.keys(V.maplebirch?.npc ?? {})) {
+    for (const name of Object.keys(dol.variables.maplebirch?.npc ?? {})) {
       const fluids = this.ensure(name);
       parts.forEach(part => (fluids[part] = [level(fluids[part][0] - value), level(fluids[part][1] - value)]));
     }

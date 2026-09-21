@@ -2,6 +2,7 @@
 
 import { errorMessage } from '../../../utils/error';
 import type NPCManager from '../../NamedNPC';
+import dol from '../../../host/Adapter';
 
 interface OutfitPartConfig {
   name: string;
@@ -96,21 +97,21 @@ class NPCOutfitSets {
   }
 
   public add(...configs: OutfitSetConfig[]): void {
-    setup.npcClothesSets ??= [];
+    dol.setup.npcClothesSets ??= [];
     for (const config of configs) {
       const set = this.create(config);
       if (!set) continue;
-      if (setup.npcClothesSets.some((item: OutfitSet) => item.name === set.name)) {
+      if (dol.setup.npcClothesSets.some((item: OutfitSet) => item.name === set.name)) {
         this.manager.log(`服装套装 ${set.name} 已存在，跳过添加`, 'WARN');
         continue;
       }
-      setup.npcClothesSets.push(set);
+      dol.setup.npcClothesSets.push(set);
     }
   }
 
   public get data(): OutfitSet[] {
-    setup.npcClothesSets ??= [];
-    return setup.npcClothesSets;
+    dol.setup.npcClothesSets ??= [];
+    return dol.setup.npcClothesSets;
   }
 
   private create(config: OutfitSetConfig): OutfitSet | undefined {

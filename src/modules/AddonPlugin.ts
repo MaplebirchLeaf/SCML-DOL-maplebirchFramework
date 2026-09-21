@@ -18,6 +18,7 @@ import { patchTimeAsset } from './TimeStateWeather/Time';
 import Resources from './Addon/Resources';
 import Diagnostics from './Addon/Diagnostics';
 import Save from './Addon/Save';
+import dol from '../host/Adapter';
 
 type FileType = 'Module' | 'Script';
 
@@ -415,8 +416,8 @@ Object.defineProperty(window.addonBeautySelectorAddon, 'typeOrderUsed', {
   },
   set(value: TypeOrderItem[]) {
     order = value;
-    if (T?.modelclass) {
-      Renderer.clearCaches(T.modelclass);
+    if (dol.temporary?.modelclass) {
+      dol.renderer.clearCaches(dol.temporary.modelclass);
       $.wiki('<<updatesidebarimg>>');
     }
   }

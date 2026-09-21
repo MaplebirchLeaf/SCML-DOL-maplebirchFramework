@@ -1,6 +1,7 @@
 // .src/modules/Frameworks/Patches/Bodywriting.ts
 
 import { isKey, isRecord } from './config';
+import dol from '../../../host/Adapter';
 
 export interface BodywritingConfig {
   writing?: string;
@@ -41,7 +42,7 @@ class Bodywriting {
   }
 
   public static apply(): void {
-    if (typeof setup === 'undefined' || !isRecord(setup.bodywriting) || !Array.isArray(setup.bodywriting_namebyindex)) return;
+    if (!dol.has('setup') || !isRecord(dol.setup.bodywriting) || !Array.isArray(dol.setup.bodywriting_namebyindex)) return;
     for (const [key, data] of Object.entries(bodywritingData)) {
       if (data.operation === 'del') {
         Bodywriting.remove(key);
@@ -53,24 +54,24 @@ class Bodywriting {
   }
 
   private static remove(key: string): void {
-    const item = setup.bodywriting[key];
+    const item = dol.setup.bodywriting[key];
     if (!item) return;
     const index = item.index;
-    delete setup.bodywriting[key];
-    if (setup.bodywriting_namebyindex[index] === key) delete setup.bodywriting_namebyindex[index];
+    delete dol.setup.bodywriting[key];
+    if (dol.setup.bodywriting_namebyindex[index] === key) delete dol.setup.bodywriting_namebyindex[index];
   }
 
   private static set(key: string, config: BodywritingConfig): void {
-    const current = setup.bodywriting[key];
+    const current = dol.setup.bodywriting[key];
     let index = config.index ?? current?.index;
     if (index === undefined) {
-      index = Math.max(0, ...Object.values(setup.bodywriting).map(item => Number(item.index) || 0)) + 1;
+      index = Math.max(0, ...Object.values(dol.setup.bodywriting).map(item => Number(item.index) || 0)) + 1;
     }
     if (!Number.isInteger(index) || index < 0) throw new Error(`Invalid bodywriting index: ${key}`);
-    const owner = setup.bodywriting_namebyindex[index];
+    const owner = dol.setup.bodywriting_namebyindex[index];
     if (owner !== undefined && owner !== key) throw new Error(`Bodywriting index ${index} already belongs to ${owner}`);
-    if (current && current.index !== index && setup.bodywriting_namebyindex[current.index] === key) delete setup.bodywriting_namebyindex[current.index];
-    setup.bodywriting[key] = {
+    if (current && current.index !== index && dol.setup.bodywriting_namebyindex[current.index] === key) delete dol.setup.bodywriting_namebyindex[current.index];
+    dol.setup.bodywriting[key] = {
       type: 'text',
       arrow: 0,
       special: 'none',
@@ -83,7 +84,7 @@ class Bodywriting {
       key,
       index
     };
-    setup.bodywriting_namebyindex[index] = key;
+    dol.setup.bodywriting_namebyindex[index] = key;
   }
 }
 

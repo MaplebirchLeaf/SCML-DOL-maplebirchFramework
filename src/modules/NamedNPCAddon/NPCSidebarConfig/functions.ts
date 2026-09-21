@@ -4,6 +4,7 @@ import maplebirch from '../../../core';
 import { clone } from '../../../utils';
 
 import type { NPCSidebarOptions, NPCSidebarState, NPCSidebarClothing, NPCClothesSlot } from './types';
+import dol from '../../../host/Adapter';
 
 type Part = 'face' | 'neck' | 'upper' | 'lower' | 'legs' | 'feet' | 'hands';
 type ClothesType = 'main' | 'acc' | 'detail';
@@ -63,7 +64,7 @@ function lookupColour(dict: Record<string, { canvasfilter: CanvasLayerFilter }>,
   const record = dict[key];
   if (!record) return {};
   const filter = clone(record.canvasfilter);
-  if (prefilterName) Renderer.mergeLayerData(filter, setup.colours.sprite_prefilters[prefilterName], true);
+  if (prefilterName) dol.renderer.mergeLayerData(filter, dol.setup.colours.sprite_prefilters[prefilterName], true);
   return filter;
 }
 
@@ -84,7 +85,7 @@ function kaijuMask(options: NPCSidebarOptions): string | undefined {
 }
 
 function selected_art(nnpc: NPCSidebarState) {
-  const selected = V.options.maplebirch.npcsidebar.display?.[nnpc.name];
+  const selected = dol.variables.options.maplebirch.npcsidebar.display?.[nnpc.name];
   if (!selected || selected === 'none') return;
   return maplebirch.npc.Clothes.art.get(nnpc.name, selected);
 }
