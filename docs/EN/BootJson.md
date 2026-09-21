@@ -151,7 +151,7 @@ To follow vanilla content settings, use an object matching the shape of `setup.t
 }
 ```
 
-Vanilla categories continue to follow vanilla content settings. New categories are always enabled by default and automatically join the pool built by vanilla `generateTipsList`. Scripts may also call `maplebirch.tool.patch.tips.addTips('myMod', 'A new tip')`. The framework merges tips after vanilla `init_tips` and ignores duplicate text.
+Vanilla categories continue to follow vanilla content settings. New categories are always enabled by default and automatically join the pool built by vanilla `generateTipsList`. Scripts may also call `maplebirch.tool.patch.tips.add('myMod', 'A new tip')`. The framework merges tips after vanilla `init_tips` and ignores duplicate text.
 
 Inline `tips` string arrays contain tip text. When every entry ends with `.json`, `.yaml`, or `.yml`, they are read as file paths instead.
 

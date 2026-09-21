@@ -11,17 +11,17 @@
 ## 使用入口
 
 ```javascript
-maplebirch.tool.patch.bodywriting.addBodywriting(key, config);
+maplebirch.tool.patch.bodywriting.add(key, config);
 ```
 
-删除条目使用 `maplebirch.tool.patch.bodywriting.deleteBodywriting(key)`。注册操作在初始化时统一应用，也可调用 `applyBodywriting()` 手动应用；删除时会同步移除索引映射。
+删除条目使用 `maplebirch.tool.patch.bodywriting.delete(key)`。注册操作在初始化时统一应用，也可调用 `maplebirch.tool.patch.bodywriting.apply()` 手动应用；删除时会同步移除索引映射。
 
 ---
 
 ## 最小写法
 
 ```javascript
-maplebirch.tool.patch.bodywriting.addBodywriting('my_mod_mark', {
+maplebirch.tool.patch.bodywriting.add('my_mod_mark', {
   writing: 'My Mark',
   writ_cn: '我的标记',
   type: 'text',
@@ -66,7 +66,7 @@ maplebirch.tool.patch.bodywriting.addBodywriting('my_mod_mark', {
 ## 文本纹身
 
 ```javascript
-maplebirch.tool.patch.bodywriting.addBodywriting('my_mod_rune_text', {
+maplebirch.tool.patch.bodywriting.add('my_mod_rune_text', {
   writing: 'Rune',
   writ_cn: '符文',
   type: 'text',
@@ -80,7 +80,7 @@ maplebirch.tool.patch.bodywriting.addBodywriting('my_mod_rune_text', {
 ## 图案纹身
 
 ```javascript
-maplebirch.tool.patch.bodywriting.addBodywriting('my_mod_phoenix', {
+maplebirch.tool.patch.bodywriting.add('my_mod_phoenix', {
   writing: 'Phoenix',
   writ_cn: '凤凰',
   type: 'object',
@@ -97,7 +97,7 @@ maplebirch.tool.patch.bodywriting.addBodywriting('my_mod_phoenix', {
 ## 条件或特殊内容
 
 ```javascript
-maplebirch.tool.patch.bodywriting.addBodywriting('my_mod_magic_mark', {
+maplebirch.tool.patch.bodywriting.add('my_mod_magic_mark', {
   writing: 'Magic Mark',
   writ_cn: '魔法标记',
   type: 'text',
@@ -111,7 +111,7 @@ maplebirch.tool.patch.bodywriting.addBodywriting('my_mod_magic_mark', {
 如果需要走原版特征检查，把 `featSkip` 设为 `false`：
 
 ```javascript
-maplebirch.tool.patch.bodywriting.addBodywriting('my_mod_restricted_mark', {
+maplebirch.tool.patch.bodywriting.add('my_mod_restricted_mark', {
   writing: 'Restricted Mark',
   writ_cn: '受限标记',
   featSkip: false

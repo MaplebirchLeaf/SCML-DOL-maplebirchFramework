@@ -9,7 +9,7 @@
 ## 使用入口
 
 ```javascript
-maplebirch.tool.patch.location.configureLocation(locationId, config, options);
+maplebirch.tool.patch.location.configure(locationId, config, options);
 ```
 
 ---
@@ -17,7 +17,7 @@ maplebirch.tool.patch.location.configureLocation(locationId, config, options);
 ## 最小写法
 
 ```javascript
-maplebirch.tool.patch.location.configureLocation(
+maplebirch.tool.patch.location.configure(
   'lake_ruin',
   {
     condition: () => Weather.bloodMoon && !Weather.isSnow
@@ -74,7 +74,7 @@ maplebirch.tool.patch.location.configureLocation(
 同时指定 `layer` 和 `element`，可以只添加或更新图层中的一个元素：
 
 ```javascript
-maplebirch.tool.patch.location.configureLocation(
+maplebirch.tool.patch.location.configure(
   'forest_clearing',
   {
     condition: () => Weather.name === 'rain'
@@ -89,7 +89,7 @@ maplebirch.tool.patch.location.configureLocation(
 也可以添加顶层装饰：
 
 ```javascript
-maplebirch.tool.patch.location.configureLocation(
+maplebirch.tool.patch.location.configure(
   'main_street',
   {
     condition: () => V.myMod?.festival === true
@@ -108,7 +108,7 @@ maplebirch.tool.patch.location.configureLocation(
 不传 `layer` 和 `element` 时，会把 `config` 合并到该地点配置中。多次配置同一地点时，默认也会合并：
 
 ```javascript
-maplebirch.tool.patch.location.configureLocation('old_ruins', {
+maplebirch.tool.patch.location.configure('old_ruins', {
   folder: 'locations/old_ruins',
   base: {
     default: {
@@ -125,7 +125,7 @@ maplebirch.tool.patch.location.configureLocation('old_ruins', {
 如果需要完全替换原地点配置：
 
 ```javascript
-maplebirch.tool.patch.location.configureLocation(
+maplebirch.tool.patch.location.configure(
   'old_ruins',
   {
     folder: 'locations/ruins_remastered',
@@ -146,7 +146,7 @@ maplebirch.tool.patch.location.configureLocation(
 ## 组合条件
 
 ```javascript
-maplebirch.tool.patch.location.configureLocation(
+maplebirch.tool.patch.location.configure(
   'mountain_pass',
   {
     condition: () => {

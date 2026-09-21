@@ -5,21 +5,21 @@ Targets vanilla 0.5.12.13 `setup.fishing.lootTables.fish`. Register fish, foodst
 ## Entry Point
 
 ```javascript
-maplebirch.tool.patch.fishing.addFish(key, config);
+maplebirch.tool.patch.fishing.add(key, config);
 maplebirch.tool.patch.fishing.addBait(key, config);
-maplebirch.tool.patch.fishing.configureFishingLocation(location, weights);
+maplebirch.tool.patch.fishing.configure(location, weights);
 ```
 
-**`key`** is the unique fish or bait id. Use a mod prefix to avoid collisions. `addFish()` and `configureFishingLocation()` return whether the configuration was accepted; invalid configurations return `false`. `addBait()` has no return value.
+**`key`** is the unique fish or bait id. Use a mod prefix to avoid collisions. `add()` and `configure()` return whether the configuration was accepted; invalid configurations return `false`. `addBait()` has no return value.
 
-Register during startup so the framework can merge the configuration into `setup`. Loading a save only fills missing food inventory; vanilla `updateFishRecord()` updates catch records. When configuration depends on reading vanilla `setup`, use `onInit`, then call `applyFishing()` followed by `applyFoodstuff()` after registration.
+Register during startup so the framework can merge the configuration into `setup`. Loading a save only fills missing food inventory; vanilla `updateFishRecord()` updates catch records. When configuration depends on reading vanilla `setup`, use `onInit`, then call `maplebirch.tool.patch.fishing.apply()` followed by `maplebirch.tool.patch.foodstuff.apply()` after registration.
 
 ## Minimal Example
 
 This example adjusts existing salmon and reuses its vanilla assets:
 
 ```javascript
-maplebirch.tool.patch.fishing.addFish('salmon', {
+maplebirch.tool.patch.fishing.add('salmon', {
   minSize: 45,
   maxSize: 120,
   preferredSeason: ['autumn'],
@@ -32,12 +32,12 @@ maplebirch.tool.patch.fishing.addFish('salmon', {
 });
 
 maplebirch.tool.patch.fishing.addBait('apple', { name: 'apple' });
-maplebirch.tool.patch.fishing.configureFishingLocation('fishingPier', { salmon: 1.25 });
+maplebirch.tool.patch.fishing.configure('fishingPier', { salmon: 1.25 });
 ```
 
 ## Config Fields
 
-Configuration fields for `addFish(key, config)`:
+Configuration fields for `add(key, config)`:
 
 | Field               | Description                                                           | Default     |
 | :------------------ | :-------------------------------------------------------------------- | :---------- |
@@ -62,13 +62,13 @@ Every registered fish gets a same-key food catalog entry for vanilla catch inven
 
 ## Fishing Locations
 
-`locations`, `preferredLocation`, and `configureFishingLocation()` use these vanilla spots:
+`locations`, `preferredLocation`, and `configure()` use these vanilla spots:
 
 ```text
 fishingBeach / fishingPier / fishingCoastPath / fishingForestLake / fishingMoor
 ```
 
-`configureFishingLocation(location, weights)` adjusts fish weights at an existing spot. `0` excludes a fish from that spot. Fish keys must exist when the configuration is applied; unknown keys produce an error. This API adjusts fish distribution; the Mod provides entrances, discovery conditions, and stories. Fishing configuration is skipped on older versions without `setup.fishing`.
+`configure(location, weights)` adjusts fish weights at an existing spot. `0` excludes a fish from that spot. Fish keys must exist when the configuration is applied; unknown keys produce an error. This API adjusts fish distribution; the Mod provides entrances, discovery conditions, and stories. Fishing configuration is skipped on older versions without `setup.fishing`.
 
 ## boot.json
 

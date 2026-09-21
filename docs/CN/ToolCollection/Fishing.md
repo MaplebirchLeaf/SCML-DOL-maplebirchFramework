@@ -5,21 +5,21 @@
 ## 使用入口
 
 ```javascript
-maplebirch.tool.patch.fishing.addFish(key, config);
+maplebirch.tool.patch.fishing.add(key, config);
 maplebirch.tool.patch.fishing.addBait(key, config);
-maplebirch.tool.patch.fishing.configureFishingLocation(location, weights);
+maplebirch.tool.patch.fishing.configure(location, weights);
 ```
 
-**`key`** 是鱼类或鱼饵的唯一标识，建议带模组名前缀。`addFish()` 和 `configureFishingLocation()` 返回是否接受配置，无效配置返回 `false`；`addBait()` 无返回值。
+**`key`** 是鱼类或鱼饵的唯一标识，建议带模组名前缀。`add()` 和 `configure()` 返回是否接受配置，无效配置返回 `false`；`addBait()` 无返回值。
 
-在启动脚本中注册，由框架统一合并到 `setup`。读档只补齐食物库存，捕获记录仍由原版 `updateFishRecord()` 更新。需要读取原版 `setup` 后再配置时，使用 `onInit`，注册后依次调用 `applyFishing()` 和 `applyFoodstuff()`。
+在启动脚本中注册，由框架统一合并到 `setup`。读档只补齐食物库存，捕获记录仍由原版 `updateFishRecord()` 更新。需要读取原版 `setup` 后再配置时，使用 `onInit`，注册后依次调用 `maplebirch.tool.patch.fishing.apply()` 和 `maplebirch.tool.patch.foodstuff.apply()`。
 
 ## 最小示例
 
 下面用原版已有的鲑鱼配置演示扩展，不引入新的图片资源：
 
 ```javascript
-maplebirch.tool.patch.fishing.addFish('salmon', {
+maplebirch.tool.patch.fishing.add('salmon', {
   minSize: 45,
   maxSize: 120,
   preferredSeason: ['autumn'],
@@ -32,12 +32,12 @@ maplebirch.tool.patch.fishing.addFish('salmon', {
 });
 
 maplebirch.tool.patch.fishing.addBait('apple', { name: 'apple' });
-maplebirch.tool.patch.fishing.configureFishingLocation('fishingPier', { salmon: 1.25 });
+maplebirch.tool.patch.fishing.configure('fishingPier', { salmon: 1.25 });
 ```
 
 ## 配置字段
 
-`addFish(key, config)` 的配置字段：
+`add(key, config)` 的配置字段：
 
 | 字段                | 说明                                             | 默认值      |
 | :------------------ | :----------------------------------------------- | :---------- |
@@ -62,13 +62,13 @@ maplebirch.tool.patch.fishing.configureFishingLocation('fishingPier', { salmon: 
 
 ## 钓点配置
 
-`locations`、`preferredLocation` 和 `configureFishingLocation()` 使用以下原版钓点：
+`locations`、`preferredLocation` 和 `configure()` 使用以下原版钓点：
 
 ```text
 fishingBeach / fishingPier / fishingCoastPath / fishingForestLake / fishingMoor
 ```
 
-`configureFishingLocation(location, weights)` 调整现有钓点中各鱼类的权重，`0` 表示该处不出现此鱼。鱼类键必须在应用配置时存在，否则报错。此接口只调整鱼类分布，钓点入口、发现条件和剧情由 Mod 提供。旧版本缺少 `setup.fishing` 时会跳过钓鱼配置。
+`configure(location, weights)` 调整现有钓点中各鱼类的权重，`0` 表示该处不出现此鱼。鱼类键必须在应用配置时存在，否则报错。此接口只调整鱼类分布，钓点入口、发现条件和剧情由 Mod 提供。旧版本缺少 `setup.fishing` 时会跳过钓鱼配置。
 
 ## boot.json
 

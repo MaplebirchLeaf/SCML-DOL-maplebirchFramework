@@ -256,7 +256,7 @@ class Internals {
       dol.setup.maplebirch.content = this.uniqueTextStore();
     });
 
-    this.core.tool.patch.location.configureLocation(
+    this.core.tool.patch.location.configure(
       'lake_ruin',
       {
         condition: () => Weather.bloodMoon && !Weather.isSnow
@@ -264,7 +264,7 @@ class Internals {
       { layer: 'base', element: 'bloodmoon' }
     );
 
-    this.core.tool.patch.location.configureLocation(
+    this.core.tool.patch.location.configure(
       'lake_ruin',
       {
         condition: () => Weather.bloodMoon && Weather.isSnow

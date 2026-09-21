@@ -3,12 +3,12 @@
 ### 基本介绍
 
 小贴士注册用于向原版 `setup.tips` 分类中添加新的提示文本。
-_可通过 `maplebirch.tool.patch.tips.addTips()` 访问。_
+_可通过 `maplebirch.tool.patch.tips.add()` 访问。_
 
 ### 添加小贴士
 
 ```javascript
-maplebirch.tool.patch.tips.addTips('general', '第一条模组小贴士。', '第二条模组小贴士。');
+maplebirch.tool.patch.tips.add('general', '第一条模组小贴士。', '第二条模组小贴士。');
 ```
 
 - 第一个参数是已有或新增的小贴士分类名。
@@ -16,7 +16,7 @@ maplebirch.tool.patch.tips.addTips('general', '第一条模组小贴士。', '�
 - 空文本会被忽略，重复文本不会再次添加。
 - 原版分类继续遵循原版的内容开关；新增分类会作为始终启用的小贴士分类，自动加入原版随机池。
 
-框架会在原版 `init_tips` 完成后调用 `applyTips()`，因此不会覆盖或阻止原版小贴士初始化。通过 `maplebirchAddon` 加载的普通 `script` 可以直接调用 `addTips()`。
+框架会在原版 `init_tips` 完成后调用 `apply()`，因此不会覆盖或阻止原版小贴士初始化。通过 `maplebirchAddon` 加载的普通 `script` 可以直接调用 `add()`。
 
 ### 在 boot.json 中注册
 

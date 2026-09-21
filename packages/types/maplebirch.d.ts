@@ -2599,39 +2599,39 @@ declare function create(core: MaplebirchCore): (Patch<{
     inject: (data: Parameters<typeof Traits.inject>[0]) => TraitCategory[];
   };
   location: {
-    locationData: Record<string, LocationUpdate>;
-    configureLocation: typeof Location.configure;
-    applyLocation: typeof Location.apply;
+    data: Record<string, LocationUpdate>;
+    configure: typeof Location.configure;
+    apply: typeof Location.apply;
   };
   bodywriting: {
-    bodywritingData: Record<string, BodywritingData>;
-    addBodywriting: typeof Bodywriting.add;
-    deleteBodywriting: typeof Bodywriting.delete;
-    applyBodywriting: typeof Bodywriting.apply;
+    data: Record<string, BodywritingData>;
+    add: typeof Bodywriting.add;
+    delete: typeof Bodywriting.delete;
+    apply: typeof Bodywriting.apply;
   };
   fishing: {
-    fishData: Record<string, FishConfig>;
-    fishingLocationData: Partial<Record<FishingLocation, Record<string, number>>>;
-    addFish: typeof Fishing.addFish;
+    data: Record<string, FishConfig>;
+    locations: Partial<Record<FishingLocation, Record<string, number>>>;
+    add: typeof Fishing.addFish;
     addBait: typeof Fishing.addBait;
-    configureFishingLocation: typeof Fishing.configureLocation;
-    applyFishing: typeof Fishing.apply;
+    configure: typeof Fishing.configureLocation;
+    apply: typeof Fishing.apply;
   };
   foodstuff: {
-    foodstuffData: Record<string, FoodstuffConfig>;
-    addFoodstuff: typeof Foodstuff.add;
-    applyFoodstuff: typeof Foodstuff.apply;
+    data: Record<string, FoodstuffConfig>;
+    add: typeof Foodstuff.add;
+    apply: typeof Foodstuff.apply;
   };
   antiques: {
-    antiquesData: Record<string, AntiqueConfig>;
-    addAntiques: typeof Antiques.add;
-    injectAntiques: typeof Antiques.inject;
+    data: Record<string, AntiqueConfig>;
+    add: typeof Antiques.add;
+    inject: typeof Antiques.inject;
   };
   tips: {
-    tipsData: Record<string, string[]>;
-    addTips: typeof Tips.add;
-    applyTips: typeof Tips.apply;
-    injectTips: typeof Tips.inject;
+    data: Record<string, string[]>;
+    add: typeof Tips.add;
+    apply: typeof Tips.apply;
+    inject: typeof Tips.inject;
   };
 }> & {
   traitsData: TraitConfig[];
@@ -2673,39 +2673,39 @@ declare function create(core: MaplebirchCore): (Patch<{
     inject: (data: Parameters<typeof Traits.inject>[0]) => TraitCategory[];
   };
   location: {
-    locationData: Record<string, LocationUpdate>;
-    configureLocation: typeof Location.configure;
-    applyLocation: typeof Location.apply;
+    data: Record<string, LocationUpdate>;
+    configure: typeof Location.configure;
+    apply: typeof Location.apply;
   };
   bodywriting: {
-    bodywritingData: Record<string, BodywritingData>;
-    addBodywriting: typeof Bodywriting.add;
-    deleteBodywriting: typeof Bodywriting.delete;
-    applyBodywriting: typeof Bodywriting.apply;
+    data: Record<string, BodywritingData>;
+    add: typeof Bodywriting.add;
+    delete: typeof Bodywriting.delete;
+    apply: typeof Bodywriting.apply;
   };
   fishing: {
-    fishData: Record<string, FishConfig>;
-    fishingLocationData: Partial<Record<FishingLocation, Record<string, number>>>;
-    addFish: typeof Fishing.addFish;
+    data: Record<string, FishConfig>;
+    locations: Partial<Record<FishingLocation, Record<string, number>>>;
+    add: typeof Fishing.addFish;
     addBait: typeof Fishing.addBait;
-    configureFishingLocation: typeof Fishing.configureLocation;
-    applyFishing: typeof Fishing.apply;
+    configure: typeof Fishing.configureLocation;
+    apply: typeof Fishing.apply;
   };
   foodstuff: {
-    foodstuffData: Record<string, FoodstuffConfig>;
-    addFoodstuff: typeof Foodstuff.add;
-    applyFoodstuff: typeof Foodstuff.apply;
+    data: Record<string, FoodstuffConfig>;
+    add: typeof Foodstuff.add;
+    apply: typeof Foodstuff.apply;
   };
   antiques: {
-    antiquesData: Record<string, AntiqueConfig>;
-    addAntiques: typeof Antiques.add;
-    injectAntiques: typeof Antiques.inject;
+    data: Record<string, AntiqueConfig>;
+    add: typeof Antiques.add;
+    inject: typeof Antiques.inject;
   };
   tips: {
-    tipsData: Record<string, string[]>;
-    addTips: typeof Tips.add;
-    applyTips: typeof Tips.apply;
-    injectTips: typeof Tips.inject;
+    data: Record<string, string[]>;
+    add: typeof Tips.add;
+    apply: typeof Tips.apply;
+    inject: typeof Tips.inject;
   };
 };
 type Patches = ReturnType<typeof create>;

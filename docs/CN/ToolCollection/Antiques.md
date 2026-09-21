@@ -5,17 +5,17 @@
 ## 使用入口
 
 ```javascript
-maplebirch.tool.patch.antiques.addAntiques(key, config);
+maplebirch.tool.patch.antiques.add(key, config);
 ```
 
 在启动脚本中注册。框架在 `museumAntiqueText` 执行后合并文本，在捐赠时调用原版 `museumAntiqueStatus`，无需修改 widget 源码。新游戏及读档只补齐缺失的收集条目，不覆盖已有进度。
 
-`injectAntiques(data)` 是手动合并入口，返回传入的对象；通常无需调用。古董的资源、发现剧情及 `Museum <name>` 段落仍由 Mod 提供。
+`inject(data)` 是手动合并入口，返回传入的对象；通常无需调用。古董的资源、发现剧情及 `Museum <name>` 段落仍由 Mod 提供。
 
 ## 最小示例
 
 ```javascript
-maplebirch.tool.patch.antiques.addAntiques('antiquemyitem', {
+maplebirch.tool.patch.antiques.add('antiquemyitem', {
   hint: '"For a curious little relic," Winter says.',
   museum: 'The curious relic rests on a pedestal.',
   name: 'Curious Relic',
