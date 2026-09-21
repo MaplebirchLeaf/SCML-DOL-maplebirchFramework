@@ -3964,7 +3964,7 @@ declare class MaplebirchCore {
     modSC2DataManager: SC2DataManager;
     modLoaderGui: Gui;
   };
-  passage: Passage | null;
+  passage: Passage;
   readonly yaml: typeof jsyaml;
   readonly howler: {
     Howl: typeof Howl;

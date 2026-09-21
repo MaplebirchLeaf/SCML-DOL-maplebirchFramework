@@ -116,7 +116,7 @@ class MaplebirchCore {
   public readonly utils = utils.publicUtils;
   public readonly modList: string[];
   public readonly manager: { modSC2DataManager: SC2DataManager; modLoaderGui: Gui };
-  public passage: Passage | null;
+  public passage: Passage;
   public readonly yaml: typeof jsyaml;
   public readonly howler: { Howl: typeof Howl; Howler: typeof Howler };
   public readonly logger: Logger;
@@ -141,7 +141,7 @@ class MaplebirchCore {
     this.meta = { ...MaplebirchCore.meta };
     this.modList = [];
     this.manager = { modSC2DataManager, modLoaderGui };
-    this.passage = null;
+    this.passage = null!;
     this.yaml = Object.freeze(jsyaml);
     this.howler = Object.freeze({ Howl, Howler });
     this.logger = Object.seal(new Logger(this));
