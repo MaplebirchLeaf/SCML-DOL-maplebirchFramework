@@ -5,15 +5,15 @@ Bodywriting registration adds new entries to vanilla `setup.bodywriting`. It is 
 ## Entry Point
 
 ```javascript
-maplebirch.tool.patch.addBodywriting(key, config);
+maplebirch.tool.patch.bodywriting.addBodywriting(key, config);
 ```
 
-Use `maplebirch.tool.patch.deleteBodywriting(key)` to remove an entry. Registered operations are applied during initialization; call `applyBodywriting()` to apply them manually. Removal also clears the index mapping.
+Use `maplebirch.tool.patch.bodywriting.deleteBodywriting(key)` to remove an entry. Registered operations are applied during initialization; call `applyBodywriting()` to apply them manually. Removal also clears the index mapping.
 
 ## Minimal Example
 
 ```javascript
-maplebirch.tool.patch.addBodywriting('my_mod_mark', {
+maplebirch.tool.patch.bodywriting.addBodywriting('my_mod_mark', {
   writing: 'My Mark',
   writ_cn: 'My Mark',
   type: 'text',
@@ -54,7 +54,7 @@ Gender values:
 ## Text Mark
 
 ```javascript
-maplebirch.tool.patch.addBodywriting('my_mod_rune_text', {
+maplebirch.tool.patch.bodywriting.addBodywriting('my_mod_rune_text', {
   writing: 'Rune',
   writ_cn: 'Rune',
   type: 'text',
@@ -66,7 +66,7 @@ maplebirch.tool.patch.addBodywriting('my_mod_rune_text', {
 ## Object Mark
 
 ```javascript
-maplebirch.tool.patch.addBodywriting('my_mod_phoenix', {
+maplebirch.tool.patch.bodywriting.addBodywriting('my_mod_phoenix', {
   writing: 'Phoenix',
   writ_cn: 'Phoenix',
   type: 'object',

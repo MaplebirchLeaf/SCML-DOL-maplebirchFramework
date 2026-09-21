@@ -1,22 +1,27 @@
 # Patch 注册
 
-`maplebirch.tool.patch` 管理原版数据扩展。直接使用 `addTraits()`、`addFoodstuff()`、`addFish()` 等目录接口，或通过 `.add(name, definition)` 注册自己的 API 和生命周期处理器。
+`maplebirch.tool.patch` 管理原版数据扩展。每个扩展按名称挂载到 `patch`，并通过 `.add(name, definition)` 注册 API 和生命周期处理器。
 
 ## 使用入口
 
 ```javascript
 maplebirch.tool.patch.add(name, definition);
+maplebirch.tool.patch.get(name);
 ```
 
 **`name`** 是扩展的唯一名称，可以使用 `myMod:catalog` 或 `myMod-catalog`。**`definition.api`** 声明要加入 `patch` 的成员，其余字段按需提供。
 
-返回值是包含新增成员的 `patch`，保留对应的 TypeScript 类型。重复名称或与现有成员冲突的 API 属性会抛错。请在启动脚本注册，晚注册不会补跑已经结束的阶段。
+内置扩展直接使用 `patch.traits`、`patch.location`、`patch.bodywriting`、`patch.fishing`、`patch.foodstuff`、`patch.antiques` 和 `patch.tips`。动态名称使用 `get(name)`；不存在时返回 `undefined`，需要强制取得时使用 `require(name)`。`has(name)` 和 `names()` 可用于查询。
+
+不同扩展可以声明同名 API，它们在各自命名空间中互不冲突。`.add()` 仍为未冲突的 API 保留 4.x 扁平访问兼容；新代码应使用命名空间。重复扩展名称会抛错。请在启动脚本注册，晚注册不会补跑已经结束的阶段。
 
 ## 最小示例
 
 ```typescript
-const patch = maplebirch.tool.patch.add('myMod:catalog', {
-  api: { myCatalog: new Map<string, string>() },
+const api = { myCatalog: new Map<string, string>() };
+
+maplebirch.tool.patch.add('myMod:catalog', {
+  api,
   available() {
     return Boolean(setup.myCatalog);
   },
@@ -37,7 +42,9 @@ const patch = maplebirch.tool.patch.add('myMod:catalog', {
     }
   }
 });
-patch.myCatalog.set('example', 'value');
+
+const catalog = maplebirch.tool.patch.require<typeof api>('myMod:catalog');
+catalog.myCatalog.set('example', 'value');
 ```
 
 ## 执行阶段

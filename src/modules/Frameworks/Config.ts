@@ -53,23 +53,24 @@ export default class FrameworkConfigLoader {
     private readonly patch: Patches,
     private readonly zone: zonesManager
   ) {
+    const { bodywriting, foodstuff, antiques, fishing } = patch;
     this.handlers = {
       traits: (name, source) => {
         if (!Array.isArray(source)) throw new Error('traits 配置必须为数组');
         for (const trait of source) this.addTrait(name, trait);
       },
-      bodywriting: (name, source) => this.addKeyedConfig(name, 'bodywriting', source, patch.addBodywriting),
-      foodstuff: (name, source) => this.addKeyedConfig(name, 'foodstuff', source, patch.addFoodstuff),
-      antiques: (name, source) => this.addKeyedConfig(name, 'antiques', source, patch.addAntiques),
-      fish: (name, source) => this.addKeyedConfig(name, 'fish', source, patch.addFish),
-      bait: (name, source) => this.addKeyedConfig(name, 'bait', source, patch.addBait),
+      bodywriting: (name, source) => this.addKeyedConfig(name, 'bodywriting', source, bodywriting.addBodywriting),
+      foodstuff: (name, source) => this.addKeyedConfig(name, 'foodstuff', source, foodstuff.addFoodstuff),
+      antiques: (name, source) => this.addKeyedConfig(name, 'antiques', source, antiques.addAntiques),
+      fish: (name, source) => this.addKeyedConfig(name, 'fish', source, fishing.addFish),
+      bait: (name, source) => this.addKeyedConfig(name, 'bait', source, fishing.addBait),
       fishingLocations: (name, source) => {
         if (!isRecord(source)) throw new Error('fishingLocations 配置必须为对象');
         for (const [location, weights] of Object.entries(source)) {
           if (
             !isRecord(weights) ||
             !Object.values(weights).every(weight => typeof weight === 'number') ||
-            !patch.configureFishingLocation(location as FishingLocation, weights as Record<string, number>)
+            !fishing.configureFishingLocation(location as FishingLocation, weights as Record<string, number>)
           ) {
             this.core.log(`${name} 的钓点配置无效: ${location}`, 'WARN');
           }
@@ -158,7 +159,7 @@ export default class FrameworkConfigLoader {
       has,
       text: typeof trait.text === 'string' ? trait.text : ''
     };
-    this.patch.addTraits(config);
+    this.patch.traits.add(config);
   }
 
   private addKeyedConfig<T extends object>(modName: string, label: string, source: unknown, add: (key: string, config: T) => void | boolean): void {
@@ -177,13 +178,13 @@ export default class FrameworkConfigLoader {
     let added = 0;
     if (Array.isArray(source)) {
       const tips = source.filter((tip): tip is string => typeof tip === 'string' && Boolean(tip.trim()));
-      this.patch.addTips('general', ...tips);
+      this.patch.tips.addTips('general', ...tips);
       added += tips.length;
     } else if (source && typeof source === 'object') {
       for (const [category, value] of Object.entries(source)) {
         if (!category.trim() || !Array.isArray(value)) continue;
         const tips = value.filter((tip): tip is string => typeof tip === 'string' && Boolean(tip.trim()));
-        this.patch.addTips(category, ...tips);
+        this.patch.tips.addTips(category, ...tips);
         added += tips.length;
       }
     }

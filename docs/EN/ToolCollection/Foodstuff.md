@@ -5,17 +5,17 @@ Foodstuff registration adds new ingredients, dishes, drinks, or growable items t
 ## Entry Point
 
 ```javascript
-maplebirch.tool.patch.addFoodstuff(key, config);
+maplebirch.tool.patch.foodstuff.addFoodstuff(key, config);
 ```
 
 **`key`** is the unique foodstuff id. Use a mod prefix to avoid collisions.
 
-Register during startup so the framework can merge the configuration into `setup.foodstuff`. Starting or loading a game only fills missing inventory entries and preserves existing quantities. Call `maplebirch.tool.patch.applyFoodstuff()` to manually apply both the catalog and missing inventory entries.
+Register during startup so the framework can merge the configuration into `setup.foodstuff`. Starting or loading a game only fills missing inventory entries and preserves existing quantities. Call `maplebirch.tool.patch.foodstuff.applyFoodstuff()` to manually apply both the catalog and missing inventory entries.
 
 ## Minimal Example
 
 ```javascript
-maplebirch.tool.patch.addFoodstuff('my_mod_berry', {
+maplebirch.tool.patch.foodstuff.addFoodstuff('my_mod_berry', {
   name: 'strange berry',
   singular: 'strange berry',
   plural: 'strange berries',
@@ -48,7 +48,7 @@ maplebirch.tool.patch.addFoodstuff('my_mod_berry', {
 ## Dish Example
 
 ```javascript
-maplebirch.tool.patch.addFoodstuff('my_mod_soup', {
+maplebirch.tool.patch.foodstuff.addFoodstuff('my_mod_soup', {
   name: 'herbal soup',
   singular: 'serving of herbal soup',
   plural: 'servings of herbal soup',

@@ -5,13 +5,13 @@ Location config modifies or extends vanilla `setup.LocationImages` and `setup.Lo
 Use:
 
 ```javascript
-maplebirch.tool.patch.configureLocation(locationId, config, options);
+maplebirch.tool.patch.location.configureLocation(locationId, config, options);
 ```
 
 ## Minimal Example
 
 ```javascript
-maplebirch.tool.patch.configureLocation(
+maplebirch.tool.patch.location.configureLocation(
   'lake_ruin',
   {
     condition: () => Weather.bloodMoon && !Weather.isSnow
@@ -60,7 +60,7 @@ Options:
 Supply both `layer` and `element` to add or update one element within a layer:
 
 ```javascript
-maplebirch.tool.patch.configureLocation(
+maplebirch.tool.patch.location.configureLocation(
   'forest_clearing',
   {
     condition: () => Weather.name === 'rain'
@@ -77,7 +77,7 @@ maplebirch.tool.patch.configureLocation(
 Without `layer` and `element`, the configuration is merged into the location. Repeated configurations for the same location are merged by default.
 
 ```javascript
-maplebirch.tool.patch.configureLocation('old_ruins', {
+maplebirch.tool.patch.location.configureLocation('old_ruins', {
   folder: 'locations/old_ruins',
   base: {
     default: {
@@ -90,7 +90,7 @@ maplebirch.tool.patch.configureLocation('old_ruins', {
 ## Overwrite A Location
 
 ```javascript
-maplebirch.tool.patch.configureLocation(
+maplebirch.tool.patch.location.configureLocation(
   'old_ruins',
   {
     folder: 'locations/ruins_remastered',

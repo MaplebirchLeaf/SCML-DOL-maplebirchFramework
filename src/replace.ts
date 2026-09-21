@@ -102,7 +102,7 @@ const widgetPassage = {
     { src: '<<if $chestaction is "rub">>', applybefore: '<<maplebirchCombatAction "chestaction">>\n\t\t' },
   ],
   Traits: [
-    { src: '<div id="traitListsSearch">', applybefore: '<<run maplebirch.tool.patch.injectTraits(_traitLists)>>\n\t' }
+    { src: '<div id="traitListsSearch">', applybefore: '<<run maplebirch.tool.patch.traits.inject(_traitLists)>>\n\t' }
   ],
   'Widgets Journal': [
     { srcmatch: /<<print\s*("It is "\s*\+\s*getFormattedDate\(Time\.date\)\s*\+\s*",\s*"\s*\+\s*Time\.year\s*\+\s*"\."|"今天是"\s*\+\s*Time\.year\s*\+\s*"年"\s*\+\s*getFormattedDate\(Time\.date\)\s*\+\s*"。"|ordinalSuffixOf\(Time\.monthDay\)\s*\+\s*"\s*"\s*\+\s*Time\.monthName\.slice\(0,3\)|Time\.month\s*\+\s*"月"\s*\+\s*ordinalSuffixOf\(Time\.monthDay\)\s*\+\s*"日")\s*>>/, to: '<<= maplebirch.dynamic.Time.updateTimeLanguage("JournalTime")>>' },

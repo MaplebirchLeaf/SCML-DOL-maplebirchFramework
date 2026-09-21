@@ -2556,18 +2556,26 @@ interface WidgetPatch {
   before?: (text: string) => string;
   after?: (node: DocumentFragment) => void;
 }
-interface PatchDefinition<T extends object = object> {
+interface PatchDefinition<T extends object = object, Flat extends object = T> {
   api: T;
+  legacy?: Flat;
   available?: () => boolean;
   init?: () => void;
   state?: () => void;
   widgets?: Readonly<Record<string, WidgetPatch>>;
 }
-declare class Patch {
+declare class Patch<Extensions extends Record<string, object> = Record<never, never>> {
   private readonly report;
   private readonly entries;
+  private readonly extensionValues;
   constructor(report: (name: string, error: unknown) => void);
-  add<T extends object>(name: string, definition: PatchDefinition<T>): this & T;
+  add<T extends object, Flat extends object = T>(name: string, definition: PatchDefinition<T, Flat>): this & Flat;
+  get<Name extends keyof Extensions>(name: Name): Extensions[Name] | undefined;
+  get<T extends object = object>(name: string): T | undefined;
+  require<Name extends keyof Extensions>(name: Name): Extensions[Name];
+  require<T extends object = object>(name: string): T;
+  has(name: string): boolean;
+  names(): string[];
   beforeWidget(widget: string, text: string): string;
   afterWidget(widget: string, node: DocumentFragment): void;
   private widget;
@@ -2584,7 +2592,48 @@ declare class Tips {
 }
 //#endregion
 //#region src/modules/Frameworks/Patches/index.d.ts
-declare function create(core: MaplebirchCore): Patch & {
+declare function create(core: MaplebirchCore): (Patch<{
+  traits: {
+    data: TraitConfig[];
+    add: typeof Traits.add;
+    inject: (data: Parameters<typeof Traits.inject>[0]) => TraitCategory[];
+  };
+  location: {
+    locationData: Record<string, LocationUpdate>;
+    configureLocation: typeof Location.configure;
+    applyLocation: typeof Location.apply;
+  };
+  bodywriting: {
+    bodywritingData: Record<string, BodywritingData>;
+    addBodywriting: typeof Bodywriting.add;
+    deleteBodywriting: typeof Bodywriting.delete;
+    applyBodywriting: typeof Bodywriting.apply;
+  };
+  fishing: {
+    fishData: Record<string, FishConfig>;
+    fishingLocationData: Partial<Record<FishingLocation, Record<string, number>>>;
+    addFish: typeof Fishing.addFish;
+    addBait: typeof Fishing.addBait;
+    configureFishingLocation: typeof Fishing.configureLocation;
+    applyFishing: typeof Fishing.apply;
+  };
+  foodstuff: {
+    foodstuffData: Record<string, FoodstuffConfig>;
+    addFoodstuff: typeof Foodstuff.add;
+    applyFoodstuff: typeof Foodstuff.apply;
+  };
+  antiques: {
+    antiquesData: Record<string, AntiqueConfig>;
+    addAntiques: typeof Antiques.add;
+    injectAntiques: typeof Antiques.inject;
+  };
+  tips: {
+    tipsData: Record<string, string[]>;
+    addTips: typeof Tips.add;
+    applyTips: typeof Tips.apply;
+    injectTips: typeof Tips.inject;
+  };
+}> & {
   traitsData: TraitConfig[];
   addTraits: typeof Traits.add;
   injectTraits: (data: Parameters<typeof Traits.inject>[0]) => TraitCategory[];
@@ -2617,6 +2666,47 @@ declare function create(core: MaplebirchCore): Patch & {
   addTips: typeof Tips.add;
   applyTips: typeof Tips.apply;
   injectTips: typeof Tips.inject;
+}) & {
+  traits: {
+    data: TraitConfig[];
+    add: typeof Traits.add;
+    inject: (data: Parameters<typeof Traits.inject>[0]) => TraitCategory[];
+  };
+  location: {
+    locationData: Record<string, LocationUpdate>;
+    configureLocation: typeof Location.configure;
+    applyLocation: typeof Location.apply;
+  };
+  bodywriting: {
+    bodywritingData: Record<string, BodywritingData>;
+    addBodywriting: typeof Bodywriting.add;
+    deleteBodywriting: typeof Bodywriting.delete;
+    applyBodywriting: typeof Bodywriting.apply;
+  };
+  fishing: {
+    fishData: Record<string, FishConfig>;
+    fishingLocationData: Partial<Record<FishingLocation, Record<string, number>>>;
+    addFish: typeof Fishing.addFish;
+    addBait: typeof Fishing.addBait;
+    configureFishingLocation: typeof Fishing.configureLocation;
+    applyFishing: typeof Fishing.apply;
+  };
+  foodstuff: {
+    foodstuffData: Record<string, FoodstuffConfig>;
+    addFoodstuff: typeof Foodstuff.add;
+    applyFoodstuff: typeof Foodstuff.apply;
+  };
+  antiques: {
+    antiquesData: Record<string, AntiqueConfig>;
+    addAntiques: typeof Antiques.add;
+    injectAntiques: typeof Antiques.inject;
+  };
+  tips: {
+    tipsData: Record<string, string[]>;
+    addTips: typeof Tips.add;
+    applyTips: typeof Tips.apply;
+    injectTips: typeof Tips.inject;
+  };
 };
 type Patches = ReturnType<typeof create>;
 //#endregion

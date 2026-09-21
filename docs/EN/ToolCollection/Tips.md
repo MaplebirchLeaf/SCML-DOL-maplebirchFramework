@@ -3,12 +3,12 @@
 ### Introduction
 
 Tip registration adds new text to vanilla `setup.tips` categories.
-_Access it through `maplebirch.tool.patch.addTips()`._
+_Access it through `maplebirch.tool.patch.tips.addTips()`._
 
 ### Adding Tips
 
 ```javascript
-maplebirch.tool.patch.addTips('general', 'The first mod tip.', 'The second mod tip.');
+maplebirch.tool.patch.tips.addTips('general', 'The first mod tip.', 'The second mod tip.');
 ```
 
 - The first argument is an existing or new tip category.

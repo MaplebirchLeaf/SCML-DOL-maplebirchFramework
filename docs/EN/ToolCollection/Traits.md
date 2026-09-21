@@ -5,13 +5,13 @@ Trait registration lets a mod add custom player or NPC traits to the vanilla tra
 Use:
 
 ```javascript
-maplebirch.tool.patch.addTraits(...traits);
+maplebirch.tool.patch.traits.add(...traits);
 ```
 
 ## Basic Example
 
 ```javascript
-maplebirch.tool.patch.addTraits({
+maplebirch.tool.patch.traits.add({
   title: 'General Traits',
   name: 'quick_learner',
   colour: 'blue',
@@ -48,7 +48,7 @@ Unknown category names are kept as-is.
 ## Dynamic Trait
 
 ```javascript
-maplebirch.tool.patch.addTraits({
+maplebirch.tool.patch.traits.add({
   title: 'Medicinal Traits',
   name: 'poison_resistance',
   colour: () => {

@@ -3,13 +3,13 @@
 ### 基本介绍
 
 `Traits` 是框架提供的角色特质管理系统，允许模组制作者添加自定义的角色特质。
-_可通过 `maplebirch.tool.patch.addTraits()` 访问。_
+_可通过 `maplebirch.tool.patch.traits.add()` 访问。_
 
 ---
 
 ### 核心功能
 
-#### **添加特质 (addTraits)**
+#### **添加特质 (add)**
 
 - 添加一个或多个自定义特质
 - **@param**: `...traits` (TraitConfig[]): 特质配置对象数组
@@ -17,7 +17,7 @@ _可通过 `maplebirch.tool.patch.addTraits()` 访问。_
 - **@example**:
   ```javascript
   // 添加一个简单特质
-  maplebirch.tool.patch.addTraits({
+  maplebirch.tool.patch.traits.add({
     title: 'General Traits',
     name: 'brave',
     colour: 'green',
@@ -131,7 +131,7 @@ _可通过 `maplebirch.tool.patch.addTraits()` 访问。_
 
 ```javascript
 // 添加静态特质(始终显示)
-maplebirch.tool.patch.addTraits({
+maplebirch.tool.patch.traits.add({
   title: 'General Traits',
   name: 'quick_learner',
   colour: 'blue',
@@ -144,7 +144,7 @@ maplebirch.tool.patch.addTraits({
 
 ```javascript
 // 添加动态特质(根据游戏状态变化)
-maplebirch.tool.patch.addTraits({
+maplebirch.tool.patch.traits.add({
   title: 'Medicinal Traits',
   name: 'poison_resistance',
   colour: () => {
@@ -170,7 +170,7 @@ maplebirch.tool.patch.addTraits({
 
 ```javascript
 // 只在特定条件下显示的特质
-maplebirch.tool.patch.addTraits({
+maplebirch.tool.patch.traits.add({
   title: 'Special Traits',
   name: 'moon_caller',
   colour: 'purple',

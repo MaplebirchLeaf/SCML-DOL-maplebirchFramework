@@ -5,17 +5,17 @@
 ## 使用入口
 
 ```javascript
-maplebirch.tool.patch.addFoodstuff(key, config);
+maplebirch.tool.patch.foodstuff.addFoodstuff(key, config);
 ```
 
 **`key`** 是食物的唯一标识，建议带模组名前缀，避免和原版或其他模组冲突。
 
-在启动脚本注册后，框架自动合并 `setup.foodstuff`。新游戏及读档只补齐缺失的库存条目，保留现有数量。需要手动应用时，调用 `maplebirch.tool.patch.applyFoodstuff()`，同时合并目录并补齐当前库存。
+在启动脚本注册后，框架自动合并 `setup.foodstuff`。新游戏及读档只补齐缺失的库存条目，保留现有数量。需要手动应用时，调用 `maplebirch.tool.patch.foodstuff.applyFoodstuff()`，同时合并目录并补齐当前库存。
 
 ## 最小示例
 
 ```javascript
-maplebirch.tool.patch.addFoodstuff('my_mod_berry', {
+maplebirch.tool.patch.foodstuff.addFoodstuff('my_mod_berry', {
   name: 'strange berry',
   singular: 'strange berry',
   plural: 'strange berries',

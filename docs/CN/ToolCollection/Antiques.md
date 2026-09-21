@@ -5,7 +5,7 @@
 ## 使用入口
 
 ```javascript
-maplebirch.tool.patch.addAntiques(key, config);
+maplebirch.tool.patch.antiques.addAntiques(key, config);
 ```
 
 在启动脚本中注册。框架在 `museumAntiqueText` 执行后合并文本，在捐赠时调用原版 `museumAntiqueStatus`，无需修改 widget 源码。新游戏及读档只补齐缺失的收集条目，不覆盖已有进度。
@@ -15,7 +15,7 @@ maplebirch.tool.patch.addAntiques(key, config);
 ## 最小示例
 
 ```javascript
-maplebirch.tool.patch.addAntiques('antiquemyitem', {
+maplebirch.tool.patch.antiques.addAntiques('antiquemyitem', {
   hint: '"For a curious little relic," Winter says.',
   museum: 'The curious relic rests on a pedestal.',
   name: 'Curious Relic',

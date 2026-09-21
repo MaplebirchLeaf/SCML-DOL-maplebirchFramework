@@ -5,9 +5,9 @@ Targets vanilla 0.5.12.13 `setup.fishing.lootTables.fish`. Register fish, foodst
 ## Entry Point
 
 ```javascript
-maplebirch.tool.patch.addFish(key, config);
-maplebirch.tool.patch.addBait(key, config);
-maplebirch.tool.patch.configureFishingLocation(location, weights);
+maplebirch.tool.patch.fishing.addFish(key, config);
+maplebirch.tool.patch.fishing.addBait(key, config);
+maplebirch.tool.patch.fishing.configureFishingLocation(location, weights);
 ```
 
 **`key`** is the unique fish or bait id. Use a mod prefix to avoid collisions. `addFish()` and `configureFishingLocation()` return whether the configuration was accepted; invalid configurations return `false`. `addBait()` has no return value.
@@ -19,7 +19,7 @@ Register during startup so the framework can merge the configuration into `setup
 This example adjusts existing salmon and reuses its vanilla assets:
 
 ```javascript
-maplebirch.tool.patch.addFish('salmon', {
+maplebirch.tool.patch.fishing.addFish('salmon', {
   minSize: 45,
   maxSize: 120,
   preferredSeason: ['autumn'],
@@ -31,8 +31,8 @@ maplebirch.tool.patch.addFish('salmon', {
   icon: 'fish/salmon.png'
 });
 
-maplebirch.tool.patch.addBait('apple', { name: 'apple' });
-maplebirch.tool.patch.configureFishingLocation('fishingPier', { salmon: 1.25 });
+maplebirch.tool.patch.fishing.addBait('apple', { name: 'apple' });
+maplebirch.tool.patch.fishing.configureFishingLocation('fishingPier', { salmon: 1.25 });
 ```
 
 ## Config Fields

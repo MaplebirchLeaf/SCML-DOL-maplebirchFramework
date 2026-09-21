@@ -5,9 +5,9 @@
 ## 使用入口
 
 ```javascript
-maplebirch.tool.patch.addFish(key, config);
-maplebirch.tool.patch.addBait(key, config);
-maplebirch.tool.patch.configureFishingLocation(location, weights);
+maplebirch.tool.patch.fishing.addFish(key, config);
+maplebirch.tool.patch.fishing.addBait(key, config);
+maplebirch.tool.patch.fishing.configureFishingLocation(location, weights);
 ```
 
 **`key`** 是鱼类或鱼饵的唯一标识，建议带模组名前缀。`addFish()` 和 `configureFishingLocation()` 返回是否接受配置，无效配置返回 `false`；`addBait()` 无返回值。
@@ -19,7 +19,7 @@ maplebirch.tool.patch.configureFishingLocation(location, weights);
 下面用原版已有的鲑鱼配置演示扩展，不引入新的图片资源：
 
 ```javascript
-maplebirch.tool.patch.addFish('salmon', {
+maplebirch.tool.patch.fishing.addFish('salmon', {
   minSize: 45,
   maxSize: 120,
   preferredSeason: ['autumn'],
@@ -31,8 +31,8 @@ maplebirch.tool.patch.addFish('salmon', {
   icon: 'fish/salmon.png'
 });
 
-maplebirch.tool.patch.addBait('apple', { name: 'apple' });
-maplebirch.tool.patch.configureFishingLocation('fishingPier', { salmon: 1.25 });
+maplebirch.tool.patch.fishing.addBait('apple', { name: 'apple' });
+maplebirch.tool.patch.fishing.configureFishingLocation('fishingPier', { salmon: 1.25 });
 ```
 
 ## 配置字段
