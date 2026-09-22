@@ -16,6 +16,7 @@ import handheld_layers from './NPCSidebarConfig/handheld_layers';
 import legs_layers from './NPCSidebarConfig/legs_layers';
 import feet_layers from './NPCSidebarConfig/feet_layers';
 import transformation_layers, { transformationDefaults } from './NPCSidebarConfig/transformation_layers';
+import type { NPCClothesSlot } from './NPCSidebarConfig/types';
 import type NPCManager from '../NamedNPC';
 import DoLPcompat from '../../DoLPcompat';
 import { FloatingPet, type PetOptions, type PetSettings } from '../CharacterAddon/Pet';
@@ -71,21 +72,19 @@ type NPCSidebarOptions = {
   [key: string]: any;
 };
 
-type ClothesSlot = 'head' | 'face' | 'neck' | 'upper' | 'lower' | 'feet' | 'legs' | 'handheld' | 'genitals' | 'under_upper' | 'under_lower' | 'over_head' | 'over_upper' | 'over_lower' | 'hands';
-
 const display = new Map<string, Set<string>>();
 const image_formats = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp']);
 const portrait_paths = new Map<string, Set<string>>();
 
 // prettier-ignore
-const clothes_slots: ClothesSlot[] = [
+const clothes_slots: NPCClothesSlot[] = [
   'head', 'face', 'neck', 'upper', 'lower', 'feet', 'legs', 'handheld',
   'genitals', 'under_upper', 'under_lower', 'over_head', 'over_upper', 'over_lower', 'hands'
 ];
 
 const hair_length_list = ['short', 'shoulder', 'chest', 'navel', 'thighs', 'feet'] as const;
-const upper_combat_slots: ClothesSlot[] = ['over_upper', 'upper', 'under_upper'];
-const lower_combat_slots: ClothesSlot[] = ['over_lower', 'lower', 'under_lower', 'legs', 'feet'];
+const upper_combat_slots: NPCClothesSlot[] = ['over_upper', 'upper', 'under_upper'];
+const lower_combat_slots: NPCClothesSlot[] = ['over_lower', 'lower', 'under_lower', 'legs', 'feet'];
 
 const portrait_npc_name = (name: string): string => String(name).replace(/[_-]/g, ' ').convert('title');
 const portrait_gender = (npc: Record<string, any>): string => (dol.characters.npc?.[npc.name]?.gender === 'm' ? 'male' : 'female');
@@ -210,12 +209,12 @@ function resolve(nnpc: Record<string, any>, selected: string): string {
   return candidates.find(path => path.includes(`/${gender}/`)) ?? candidates[0];
 }
 
-function clothes_index(slot: ClothesSlot, clothes: any) {
+function clothes_index(slot: NPCClothesSlot, clothes: any) {
   const fn = window.clothesIndex;
-  return clothingIndex(slot, clothes ?? {}, typeof fn === 'function' ? (target, item) => fn(target as ClothesSlot, item) : undefined);
+  return clothingIndex(slot, clothes ?? {}, typeof fn === 'function' ? (target, item) => fn(target as NPCClothesSlot, item) : undefined);
 }
 
-function Integrity(clothes: any, slot: ClothesSlot) {
+function Integrity(clothes: any, slot: NPCClothesSlot) {
   const fn = window.integrityKeyword;
   if (typeof fn === 'function') {
     try {
@@ -233,7 +232,7 @@ function default_clothes() {
       result[slot] = { index: 0, name: '', type: [] };
       return result;
     },
-    {} as Record<ClothesSlot, any>
+    {} as Record<NPCClothesSlot, any>
   );
 }
 
@@ -244,7 +243,7 @@ function npc_clothes(npcData: any, options: NPCSidebarOptions) {
     ...npcData?.clothes
   };
 
-  const clothes = {} as Record<ClothesSlot, any>;
+  const clothes = {} as Record<NPCClothesSlot, any>;
 
   for (const slot of clothes_slots) {
     const data = clothes_data[slot] ?? {};
@@ -274,7 +273,7 @@ function combat_npc(name: string) {
   });
 }
 
-function naked_clothes(slot: ClothesSlot) {
+function naked_clothes(slot: NPCClothesSlot) {
   const data = dol.setup.clothes[slot]?.[0] ?? { index: 0, name: 'naked', variable: 'naked', type: ['naked'] };
   return {
     ...data,

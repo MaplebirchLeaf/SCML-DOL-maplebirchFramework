@@ -5,10 +5,10 @@ import builtinWardrobe from '../../../assets/npc-clothes.yaml';
 import { evaluate, type Condition } from './Condition';
 import type NPCManager from '../../NamedNPC';
 import { clone } from '../../../utils';
+import type { NPCClothesSlot, NPCSidebarClothing } from '../NPCSidebarConfig/types';
 
-interface WardrobeItem {
-  [part: string]: any;
-}
+type WardrobeClothing = Partial<NPCSidebarClothing>;
+type WardrobeItem = Partial<Record<NPCClothesSlot, WardrobeClothing>>;
 
 type WardrobeWetness = 'dry' | 'damp' | 'wet' | 'soaked';
 type WardrobeWetnessResolver = WardrobeWetness | (() => WardrobeWetness);
@@ -170,7 +170,7 @@ class NPCSidebarWardrobe {
     this.merge(clothes, template);
   }
 
-  public strip(clothes: WardrobeItem, slot: string | readonly string[]): void {
+  public strip(clothes: WardrobeItem, slot: NPCClothesSlot | readonly NPCClothesSlot[]): void {
     const naked = this.templates.naked ?? {};
     for (const key of typeof slot === 'string' ? [slot] : slot) {
       if (naked[key] != null) clothes[key] = clone(naked[key]);
@@ -224,7 +224,7 @@ class NPCSidebarWardrobe {
   }
 
   private merge(clothes: WardrobeItem, layer: WardrobeItem): void {
-    for (const [part, value] of Object.entries(layer)) if (value != null) clothes[part] = clone(value);
+    for (const [part, value] of Object.entries(layer)) if (value != null) clothes[part as NPCClothesSlot] = clone(value);
   }
 
   private select(profile: WardrobeProfile, location: string): WearRule | undefined {
