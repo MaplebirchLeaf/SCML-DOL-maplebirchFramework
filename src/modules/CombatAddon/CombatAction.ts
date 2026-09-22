@@ -82,9 +82,10 @@ class CombatActions {
   }
 
   public patchOptions(optionsTable: OptionsTable, actionType: ActionType, combatType: CombatType = 'Default'): OptionsTable {
+    combatType ||= 'Default';
     const ctx: Context = {
       actionType,
-      combatType: combatType || 'Default',
+      combatType,
       originalCount: Object.keys(optionsTable).length
     };
     const modActions: Array<{ display: string; value: ActionValue; order: number }> = [];

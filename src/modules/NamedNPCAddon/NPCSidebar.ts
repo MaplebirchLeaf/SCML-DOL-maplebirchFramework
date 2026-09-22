@@ -85,7 +85,7 @@ const clothes_slots: ClothesSlot[] = [
 
 const hair_length_list = ['short', 'shoulder', 'chest', 'navel', 'thighs', 'feet'] as const;
 const upper_combat_slots: ClothesSlot[] = ['over_upper', 'upper', 'under_upper'];
-const lower_combat_slots: ClothesSlot[] = ['over_lower', 'lower', 'under_lower', 'legs'];
+const lower_combat_slots: ClothesSlot[] = ['over_lower', 'lower', 'under_lower', 'legs', 'feet'];
 
 const portrait_npc_name = (name: string): string => String(name).replace(/[_-]/g, ' ').convert('title');
 const portrait_gender = (npc: Record<string, any>): string => (dol.characters.npc?.[npc.name]?.gender === 'm' ? 'male' : 'female');
