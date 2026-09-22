@@ -3227,111 +3227,6 @@ declare class NPCSidebarArt {
 //#region src/modules/NamedNPCAddon/NPCClothes/Condition.d.ts
 type Condition = boolean | string | (() => boolean) | Condition[];
 //#endregion
-//#region src/modules/NamedNPCAddon/NPCClothes/NPCSidebarWardrobe.d.ts
-interface WardrobeItem {
-  [part: string]: any;
-}
-type WardrobeWetness = 'dry' | 'damp' | 'wet' | 'soaked';
-type WardrobeWetnessResolver = WardrobeWetness | (() => WardrobeWetness);
-interface WardrobeWearOptions {
-  when?: Condition;
-  wetness?: WardrobeWetnessResolver;
-}
-type WardrobeWeightedChoice = readonly [key: string, weight: number];
-type WardrobeChoice = string | readonly WardrobeWeightedChoice[];
-type WardrobeLayerResolver = string | (() => string);
-interface WardrobeContext {
-  npcName: string;
-  location: string;
-  key: string;
-  wetness: WardrobeWetness;
-}
-type WardrobeModifier = (clothes: WardrobeItem, context: WardrobeContext) => void;
-declare class NPCSidebarWardrobe {
-  private readonly manager;
-  private readonly templates;
-  private readonly profiles;
-  constructor(manager: NPCManager);
-  init(): void;
-  load(modName: string, filePath: string): Promise<void>;
-  get(key: string): WardrobeItem | undefined;
-  set(key: string, template: WardrobeItem): void;
-  has(key: string): boolean;
-  wear(npcName: string, location: string | readonly string[], choice: WardrobeChoice, options?: Condition | WardrobeWearOptions): void;
-  wet(npcName: string, wetness: WardrobeWetnessResolver, cond?: Condition): void;
-  layer(npcName: string, source: WardrobeLayerResolver, cond?: Condition): void;
-  put(clothes: WardrobeItem, key: string): void;
-  strip(clothes: WardrobeItem, slot: string | readonly string[]): void;
-  base(npcName: string, modifier: WardrobeModifier): void;
-  modify(npcName: string, modifier: WardrobeModifier): void;
-  worn(npcName: string): WardrobeItem;
-  private run;
-  private add;
-  private merge;
-  private select;
-  private find;
-  private choose;
-  private findWet;
-  private resolveWet;
-  private applyWet;
-  private profile;
-  private location;
-}
-//#endregion
-//#region src/modules/NamedNPCAddon/NPCClothes.d.ts
-declare class NPCClothes {
-  readonly outfitSets: NPCOutfitSets;
-  readonly art: NPCSidebarArt;
-  readonly wardrobe: NPCSidebarWardrobe;
-  constructor(manager: NPCManager);
-  init(): void;
-}
-//#endregion
-//#region src/modules/NamedNPCAddon/NPCSidebar.d.ts
-interface NPCSidebarBootConfig {
-  clothes?: string[];
-  image?: string[];
-  config?: string[];
-}
-declare function config(manager: NPCManager, modName: string, modZip: ModZipReader, config: NPCSidebarBootConfig): Promise<void>;
-declare function loadFromMod(modZip: ModZipReader, npc_names: string[]): string[];
-declare class NPCPet {
-  private readonly pets;
-  private frame;
-  private syncing;
-  sync(): boolean;
-  private render;
-  reset(): void;
-  private cancel;
-}
-declare const NPCSidebar: {
-  new (): {};
-  readonly pet: NPCPet;
-  get display(): Map<string, Set<string>>;
-  config: typeof config;
-  loadFromMod: typeof loadFromMod;
-  hair_type(type: 'sides' | 'fringe'): Record<string, string>;
-  init(manager: NPCManager): void;
-};
-//#endregion
-//#region src/modules/NamedNPCAddon/NPCFluids.d.ts
-type NPCFluidPart = 'vagina' | 'vaginaoutside' | 'anus' | 'mouth' | 'penis' | 'chest' | 'face' | 'hair' | 'bottom' | 'feet' | 'leftarm' | 'rightarm' | 'neck' | 'thigh' | 'tummy';
-type NPCFluidType = 'goo' | 'semen';
-type NPCFluidAmount = [goo: number, semen: number];
-type NPCFluidData = Record<NPCFluidPart, NPCFluidAmount>;
-declare class NPCFluids {
-  readonly parts: NPCFluidPart[];
-  ensure(npcName: string): NPCFluidData;
-  get(npcName: string): NPCFluidData;
-  combined(npcName: string, part: NPCFluidPart): number;
-  set(npcName: string, part: NPCFluidPart, value: number, type?: NPCFluidType): NPCFluidData;
-  add(npcName: string, part: NPCFluidPart, value?: number, type?: NPCFluidType): NPCFluidData;
-  reduce(npcName: string, part: NPCFluidPart, value?: number, type?: NPCFluidType): NPCFluidData;
-  clear(npcName: string, part?: NPCFluidPart, type?: NPCFluidType): NPCFluidData;
-  decay(value?: number): void;
-  apply(nnpc: Record<string, any>, npcData: any): void;
-}
-//#endregion
 //#region src/modules/NamedNPCAddon/NPCSidebarConfig/transformation_layers.d.ts
 declare const transformationDefaults: {
   show_tf: boolean;
@@ -3520,6 +3415,110 @@ interface NPCSidebarState extends Partial<typeof transformationDefaults> {
   drip_mouth: string;
   calculate_penis_bulge(target?: NPCSidebarState): number;
   [key: string]: unknown;
+}
+//#endregion
+//#region src/modules/NamedNPCAddon/NPCClothes/NPCSidebarWardrobe.d.ts
+type WardrobeClothing = Partial<NPCSidebarClothing>;
+type WardrobeItem = Partial<Record<NPCClothesSlot, WardrobeClothing>>;
+type WardrobeWetness = 'dry' | 'damp' | 'wet' | 'soaked';
+type WardrobeWetnessResolver = WardrobeWetness | (() => WardrobeWetness);
+interface WardrobeWearOptions {
+  when?: Condition;
+  wetness?: WardrobeWetnessResolver;
+}
+type WardrobeWeightedChoice = readonly [key: string, weight: number];
+type WardrobeChoice = string | readonly WardrobeWeightedChoice[];
+type WardrobeLayerResolver = string | (() => string);
+interface WardrobeContext {
+  npcName: string;
+  location: string;
+  key: string;
+  wetness: WardrobeWetness;
+}
+type WardrobeModifier = (clothes: WardrobeItem, context: WardrobeContext) => void;
+declare class NPCSidebarWardrobe {
+  private readonly manager;
+  private readonly templates;
+  private readonly profiles;
+  constructor(manager: NPCManager);
+  init(): void;
+  load(modName: string, filePath: string): Promise<void>;
+  get(key: string): WardrobeItem | undefined;
+  set(key: string, template: WardrobeItem): void;
+  has(key: string): boolean;
+  wear(npcName: string, location: string | readonly string[], choice: WardrobeChoice, options?: Condition | WardrobeWearOptions): void;
+  wet(npcName: string, wetness: WardrobeWetnessResolver, cond?: Condition): void;
+  layer(npcName: string, source: WardrobeLayerResolver, cond?: Condition): void;
+  put(clothes: WardrobeItem, key: string): void;
+  strip(clothes: WardrobeItem, slot: NPCClothesSlot | readonly NPCClothesSlot[]): void;
+  base(npcName: string, modifier: WardrobeModifier): void;
+  modify(npcName: string, modifier: WardrobeModifier): void;
+  worn(npcName: string): WardrobeItem;
+  private run;
+  private add;
+  private merge;
+  private select;
+  private find;
+  private choose;
+  private findWet;
+  private resolveWet;
+  private applyWet;
+  private profile;
+  private location;
+}
+//#endregion
+//#region src/modules/NamedNPCAddon/NPCClothes.d.ts
+declare class NPCClothes {
+  readonly outfitSets: NPCOutfitSets;
+  readonly art: NPCSidebarArt;
+  readonly wardrobe: NPCSidebarWardrobe;
+  constructor(manager: NPCManager);
+  init(): void;
+}
+//#endregion
+//#region src/modules/NamedNPCAddon/NPCSidebar.d.ts
+interface NPCSidebarBootConfig {
+  clothes?: string[];
+  image?: string[];
+  config?: string[];
+}
+declare function config(manager: NPCManager, modName: string, modZip: ModZipReader, config: NPCSidebarBootConfig): Promise<void>;
+declare function loadFromMod(modZip: ModZipReader, npc_names: string[]): string[];
+declare class NPCPet {
+  private readonly pets;
+  private frame;
+  private syncing;
+  sync(): boolean;
+  private render;
+  reset(): void;
+  private cancel;
+}
+declare const NPCSidebar: {
+  new (): {};
+  readonly pet: NPCPet;
+  get display(): Map<string, Set<string>>;
+  config: typeof config;
+  loadFromMod: typeof loadFromMod;
+  hair_type(type: 'sides' | 'fringe'): Record<string, string>;
+  init(manager: NPCManager): void;
+};
+//#endregion
+//#region src/modules/NamedNPCAddon/NPCFluids.d.ts
+type NPCFluidPart = 'vagina' | 'vaginaoutside' | 'anus' | 'mouth' | 'penis' | 'chest' | 'face' | 'hair' | 'bottom' | 'feet' | 'leftarm' | 'rightarm' | 'neck' | 'thigh' | 'tummy';
+type NPCFluidType = 'goo' | 'semen';
+type NPCFluidAmount = [goo: number, semen: number];
+type NPCFluidData = Record<NPCFluidPart, NPCFluidAmount>;
+declare class NPCFluids {
+  readonly parts: NPCFluidPart[];
+  ensure(npcName: string): NPCFluidData;
+  get(npcName: string): NPCFluidData;
+  combined(npcName: string, part: NPCFluidPart): number;
+  set(npcName: string, part: NPCFluidPart, value: number, type?: NPCFluidType): NPCFluidData;
+  add(npcName: string, part: NPCFluidPart, value?: number, type?: NPCFluidType): NPCFluidData;
+  reduce(npcName: string, part: NPCFluidPart, value?: number, type?: NPCFluidType): NPCFluidData;
+  clear(npcName: string, part?: NPCFluidPart, type?: NPCFluidType): NPCFluidData;
+  decay(value?: number): void;
+  apply(nnpc: Record<string, any>, npcData: any): void;
 }
 //#endregion
 //#region src/modules/NamedNPCAddon/NPCTransformation.d.ts

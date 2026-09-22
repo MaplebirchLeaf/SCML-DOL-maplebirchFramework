@@ -1,6 +1,7 @@
 // ./src/modules/Frameworks/Config.ts
 
 import { errorMessage } from '../../utils/error';
+import { compileBooleanExpression } from '../../utils/condition';
 import type { MaplebirchCore } from '../../core';
 import type { BootTask } from '../AddonPlugin';
 import type { zonesManager, ZoneWidgetConfig } from './ZonesManager';
@@ -140,8 +141,7 @@ export default class FrameworkConfigLoader {
     let has: boolean | (() => boolean) = false;
     if (typeof trait.has === 'string') {
       try {
-        const fn = new Function(`return (${trait.has});`) as () => unknown;
-        has = () => Boolean(fn());
+        has = compileBooleanExpression(trait.has);
       } catch {
         this.core.log(`无效的 has 条件表达式: ${trait.has}`, 'ERROR');
       }

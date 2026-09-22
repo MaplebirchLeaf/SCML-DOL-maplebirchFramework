@@ -1,6 +1,6 @@
 {
   "name": "maplebirch",
-  "version": "4.4.0",
+  "version": "4.4.1",
   "private": true,
   "description": "SugarCube2-ModLoader-Degrees of Lewdity-Maplebirch Frameworks",
   "author": "楓樺葉",
@@ -57,7 +57,7 @@
     "typescript": "^7.0.2"
   },
   "lastModifiedBy": "楓樺葉",
-  "lastUpdate": "2026.09.20",
+  "lastUpdate": "2026.09.21",
   "scml": {
     "nickName": {
       "en": "Maplebirch Frameworks",
@@ -97,7 +97,7 @@
       },
       {
         "modName": "GameVersion",
-        "version": ">=0.5.12.11"
+        "version": ">=0.5.12.13"
       }
     ]
   }

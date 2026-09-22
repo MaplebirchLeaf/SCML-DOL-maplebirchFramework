@@ -33,6 +33,25 @@ export interface ResolvedArt {
 
 const artParts: ArtPart[] = ['head', 'face', 'neck', 'upper', 'lower', 'legs', 'feet', 'hands'];
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isCondition(value: unknown): value is Condition {
+  return typeof value === 'boolean' || typeof value === 'string' || typeof value === 'function' || (Array.isArray(value) && value.every(isCondition));
+}
+
+function artLayer(value: unknown): ArtLayer | undefined {
+  if (!isRecord(value) || typeof value.img !== 'string' || !value.img) return;
+  if (value.cond !== undefined && !isCondition(value.cond)) return;
+  if (value.zIndex !== undefined && typeof value.zIndex !== 'number' && typeof value.zIndex !== 'string') return;
+  return {
+    img: value.img,
+    cond: value.cond,
+    zIndex: value.zIndex
+  };
+}
+
 class NPCSidebarArt {
   private readonly configs = new Map<string, Map<string, ArtConfig>>();
 
@@ -50,7 +69,7 @@ class NPCSidebarArt {
     for (const filePath of paths) {
       const file = modZip.zip.file(filePath);
       if (!file) continue;
-      let data: any;
+      let data: unknown;
 
       try {
         const content = await file.async('string');
@@ -75,24 +94,29 @@ class NPCSidebarArt {
 
       const items = Array.isArray(data) ? data : [data];
 
-      items.forEach((item: any, index: number) => {
-        if (!item?.name) return;
+      items.forEach((item, index) => {
+        if (!isRecord(item) || typeof item.name !== 'string' || !item.name) {
+          this.manager.log(`侧边栏人模配置条目无效: ${filePath}#${index}`, 'WARN');
+          return;
+        }
         const npcName = item.name.convert('title');
         const key = items.length > 1 ? `${modName}_${fileName}_${index}` : `${modName}_${fileName}`;
         const config: ArtConfig = {
           key,
           name: npcName,
-          body: item.body ?? '',
+          body: typeof item.body === 'string' ? item.body : '',
           parts: {}
         };
 
-        if (item.body) imagePaths.add(item.body);
+        if (config.body) imagePaths.add(config.body);
 
         for (const part of artParts) {
           if (!Array.isArray(item[part])) continue;
-          const layers = item[part] as ArtLayer[];
+          const layers = item[part].map(artLayer).filter((layer): layer is ArtLayer => layer !== undefined);
+          if (layers.length !== item[part].length) this.manager.log(`侧边栏人模图层配置无效: ${filePath}#${index}.${part}`, 'WARN');
+          if (!layers.length) continue;
           config.parts[part] = layers;
-          for (const layer of layers) if (layer?.img) imagePaths.add(layer.img);
+          for (const layer of layers) imagePaths.add(layer.img);
         }
 
         this.setConfig(npcName, key, config);

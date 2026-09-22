@@ -1,6 +1,7 @@
 // ./src/modules/NamedNPCAddon/NPCClothes/Condition.ts
 
 import { errorMessage } from '../../../utils/error';
+import { compileBooleanExpression } from '../../../utils/condition';
 import type { MaplebirchCore } from '../../../core';
 
 export type Condition = boolean | string | (() => boolean) | Condition[];
@@ -18,7 +19,7 @@ export function evaluate(core: MaplebirchCore, condition?: Condition): boolean {
     }
   }
   try {
-    return new Function(`return (${condition})`)();
+    return compileBooleanExpression(condition)();
   } catch {
     core.npc.log(`条件求值失败: ${condition}`, 'WARN');
     return false;
