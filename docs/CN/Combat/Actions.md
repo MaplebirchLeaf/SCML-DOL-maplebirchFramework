@@ -4,7 +4,7 @@
 
 `maplebirch.combat.CombatAction` 用于向原版战斗动作列表添加模组按钮，并为按钮补充对应的战斗反应文本。
 
-按钮本身会通过原版的 `generateCombatAction` 显示；动作被选择后，框架会把 `effect` 注入到原版 `effectsman` 的对应动作区域中执行。
+按钮通过原版的 `generateCombatAction` 显示。普通人类遭遇的 `effect` 在 `effectsman` 的对应动作区域执行；设置 `combatType` 后，挣扎、虫群、吞食、机械和触手遭遇的 `effect` 会在各自的效果 widget 中执行。
 
 ## 入口
 
@@ -22,7 +22,7 @@ maplebirch.combat.CombatAction.reg(configA, configB, configC);
 
 ```javascript
 maplebirch.combat.CombatAction.reg({
-  id: 'myMod.quickStrike',
+  id: 'myMod:quickStrike',
   actionType: 'leftaction',
   cond: () => V.stamina >= 20,
   display: () => '快速打击',
@@ -64,7 +64,7 @@ maplebirch.combat.CombatAction.reg({
 | `effect`       | 否   | 选中该动作后在 `effectsman` 中执行的 Twine 文本或函数 |
 | `color`        | 否   | 按钮/列表颜色，默认 `white`                           |
 | `difficulty`   | 否   | 按钮旁边的难度或提示文本                              |
-| `combatType`   | 否   | 限定战斗类型，默认 `Default`                          |
+| `combatType`   | 否   | 战斗类型或类型数组，默认 `Default`                    |
 | `order`        | 否   | 排序值，默认 `-4`，越小越靠前                         |
 
 除 `id`、`actionType` 外，多数字段都支持函数。函数会收到 `ctx` 参数。
@@ -87,7 +87,7 @@ maplebirch.combat.CombatAction.reg({
 
 ```javascript
 maplebirch.combat.CombatAction.reg({
-  id: 'myMod.guard',
+  id: 'myMod:guard',
   actionType: ['leftaction', 'rightaction'],
   cond: () => V.stamina >= 10,
   display: () => '格挡',
@@ -95,6 +95,26 @@ maplebirch.combat.CombatAction.reg({
   effect: '<<myModGuardEffect>>'
 });
 ```
+
+不同遭遇提供的列表并不相同：挣扎有左右手、脚和嘴；虫群与机械有左右手和脚；吞食有左右手；触手有左右手、脚、嘴、阴茎、阴道、肛门和胸部。只在原版实际生成的列表中注册动作。
+
+同一动作适用于多种遭遇时，可写 `combatType: ['Default', 'Struggle']`，不必重复注册。
+
+## 修改原版按钮
+
+用原版动作值定位现有按钮，只调整显示、可见条件或列表位置，点击后仍由原版结算：
+
+```javascript
+maplebirch.combat.CombatAction.modify({
+  id: 'myMod:askLabel',
+  actionType: 'mouthaction',
+  value: 'ask',
+  display: ctx => `提出请求：${ctx.label}`,
+  order: 0
+});
+```
+
+`cond(ctx)` 返回 `false` 会隐藏该选项；`order` 是在原有选项中从 `0` 开始的目标位置。`ctx.label` 是原有显示文本。若要调整 `Ask` 下拉框中的某个请求，使用 `actionType: 'ask'` 和对应的 `$askAction` 值；这不会改写请求的结算逻辑。
 
 ## effect
 
@@ -121,7 +141,7 @@ effect: ctx => (ctx.actionType === 'leftaction' ? '<<myModLeftGuardEffect>>' : '
 
 ## 注入位置
 
-原版的战斗反应集中写在 `effectsman` 中，但不同部位的动作大致分区。框架会把模组动作注入到对应大区：
+普通人类遭遇的战斗反应集中写在 `effectsman` 中，但不同部位的动作大致分区。框架会把模组动作注入到对应大区：
 
 - `leftaction` / `rightaction`：手部动作区
 - `feetaction`：脚部动作区
@@ -134,11 +154,13 @@ effect: ctx => (ctx.actionType === 'leftaction' ? '<<myModLeftGuardEffect>>' : '
 
 这样左手动作的反应不会被丢到整段战斗文本末尾。
 
+非人类遭遇在对应效果 widget 开始时执行模组动作一次，随后继续原版结算；不会替换原版动作或额外推进回合。触手遭遇使用外层 `effectstentacles`，不会因单回合有多根触手而重复执行。
+
 ## 完整示例
 
 ```javascript
 maplebirch.combat.CombatAction.reg({
-  id: 'myMod.moonlightHeal',
+  id: 'myMod:moonlightHeal',
   actionType: 'chestaction',
   combatType: 'Default',
   cond: () => {

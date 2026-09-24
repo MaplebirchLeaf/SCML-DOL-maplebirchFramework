@@ -2,6 +2,7 @@ import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { readPackageJSON } from 'pkg-types';
 import AdmZip from 'adm-zip';
+import { collectThirdPartyNotices } from './notices';
 
 interface ScmlConfig {
   name: string;
@@ -27,7 +28,8 @@ export async function resolvePackageInfo(rootDir: string): Promise<PackageInfo> 
   if (!pkg?.name) throw new Error('package.json missing name');
   if (!pkg?.version) throw new Error('package.json missing version');
 
-  const gameVersion = pkg.scml.dependenceInfo.find((dep: { modName: string }) => dep.modName === 'GameVersion').version.match(/\d+(\.\d+)*/)?.[0];
+  const scml = pkg.scml as ScmlConfig | undefined;
+  const gameVersion = scml?.dependenceInfo?.find(dep => dep.modName === 'GameVersion')?.version.match(/\d+(\.\d+)*/)?.[0];
   if (!gameVersion) throw new Error('package.json scml.dependenceInfo missing GameVersion');
 
   return {
@@ -42,7 +44,7 @@ export function devZipFileName(name: string, version: string): string {
   return `${name}-${version}.mod.zip`;
 }
 
-export async function createZip(rootDir: string): Promise<Buffer> {
+async function packageFiles(rootDir: string): Promise<Map<string, Buffer>> {
   const distDir = path.join(rootDir, 'dist');
 
   const pkg = await readPackageJSON(rootDir);
@@ -50,21 +52,9 @@ export async function createZip(rootDir: string): Promise<Buffer> {
   const scml = (pkg as { scml?: ScmlConfig }).scml;
   if (!scml) throw new Error('package.json 中缺少 scml 配置');
 
-  const zip = new AdmZip();
-  const additionFiles: string[] = [];
-
-  for (const file of ['inject_early.js', 'maplebirch.d.ts']) {
-    try {
-      const buf = await readFile(path.join(distDir, file));
-      zip.addFile(`dist/${file}`, buf);
-    } catch {
-      console.warn(`警告: 找不到文件 ${file}，跳过`);
-    }
-  }
-
-  const readmePath = path.join(rootDir, 'README.md');
-  zip.addFile('README.md', await readFile(readmePath));
-  additionFiles.push('README.md');
+  const additionFiles = ['LICENSE', 'LICENSE-CC-BY-NC-SA-4.0', 'README.md', 'THIRD_PARTY_NOTICES'];
+  const notices = await readFile(path.join(rootDir, 'THIRD_PARTY_NOTICES'));
+  if (!notices.equals(Buffer.from(await collectThirdPartyNotices(rootDir)))) throw new Error('THIRD_PARTY_NOTICES is outdated; run bun run notices');
   const boot = {
     name: pkg.name,
     nickName: scml.nickName,
@@ -84,8 +74,34 @@ export async function createZip(rootDir: string): Promise<Buffer> {
     dependenceInfo: scml.dependenceInfo
   };
 
-  zip.addFile('boot.json', Buffer.from(JSON.stringify(boot, null, 2)));
+  return new Map([
+    ['LICENSE', await readFile(path.join(rootDir, 'LICENSE'))],
+    ['LICENSE-CC-BY-NC-SA-4.0', await readFile(path.join(rootDir, 'LICENSE-CC-BY-NC-SA-4.0'))],
+    ['README.md', await readFile(path.join(rootDir, 'README.md'))],
+    ['THIRD_PARTY_NOTICES', notices],
+    ['boot.json', Buffer.from(JSON.stringify(boot, null, 2))],
+    ['dist/inject_early.js', await readFile(path.join(distDir, 'inject_early.js'))],
+    ['dist/maplebirch.d.ts', await readFile(path.join(distDir, 'maplebirch.d.ts'))]
+  ]);
+}
+
+export async function createZip(rootDir: string): Promise<Buffer> {
+  const files = await packageFiles(rootDir);
+  const zip = new AdmZip();
+  for (const [name, data] of [...files].sort(([first], [second]) => first.localeCompare(second, 'en'))) zip.addFile(name, data);
+  for (const entry of zip.getEntries()) entry.header.time = new Date(1980, 0, 1);
   return zip.toBuffer();
+}
+
+export async function verifyZip(rootDir: string, archive: Buffer): Promise<void> {
+  const files = await packageFiles(rootDir);
+  const entries = new AdmZip(archive).getEntries();
+  const actual = entries.map(entry => entry.entryName);
+  const expected = [...files.keys()].sort((first, second) => first.localeCompare(second, 'en'));
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`ZIP contents mismatch: expected ${expected.join(', ')}, got ${actual.join(', ')}`);
+  for (const entry of entries) {
+    if (!files.get(entry.entryName)!.equals(entry.getData())) throw new Error(`ZIP file differs from source: ${entry.entryName}`);
+  }
 }
 
 export async function createZipPackage(rootDir: string): Promise<PackageAsset> {

@@ -1,21 +1,16 @@
 // ./src/modules/NamedNPCAddon/NPCSidebarConfig/face_layers.ts
 
 import maplebirch from '../../../core';
-import { clothes_layer, clothes_back, clothes_back_acc } from './functions';
+import { clothes_layer, clothes_back, clothes_back_acc, isAltPosition } from './functions';
 
-type NPCSidebarOptions = {
-  maplebirch: {
-    nnpc: Record<string, any>;
-    [key: string]: any;
-  };
-  [key: string]: any;
-};
+import type { NPCSidebarOptions } from './types';
 
 const face_layers = {
   nnpc_face_main: clothes_layer('face', 'main', {
     zfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
-      if (nnpc.clothes.face.type.includes('glasses')) return maplebirch.char.ZIndices.over_head + nnpc.position;
+      const face = nnpc.clothes.face;
+      if (isAltPosition(face) && (face.type.includes('cool') || face.type.includes('glasses'))) return maplebirch.char.ZIndices.over_head + nnpc.position;
       return maplebirch.char.ZIndices.facewear + nnpc.position;
     }
   }),
@@ -23,7 +18,8 @@ const face_layers = {
   nnpc_face_acc: clothes_layer('face', 'acc', {
     zfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
-      if (nnpc.clothes.face.type.includes('glasses')) return maplebirch.char.ZIndices.over_head + nnpc.position;
+      const face = nnpc.clothes.face;
+      if (isAltPosition(face) && (face.type.includes('cool') || face.type.includes('glasses'))) return maplebirch.char.ZIndices.over_head + nnpc.position;
       return maplebirch.char.ZIndices.facewear + nnpc.position;
     }
   }),

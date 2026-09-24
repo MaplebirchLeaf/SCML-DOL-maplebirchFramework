@@ -4,6 +4,18 @@
 
 支持格式：**`.mp3`**、**`.wav`**、**`.ogg`**、**`.m4a`**、**`.flac`**、**`.webm`**。
 
+## 独立环境音通道
+
+`maplebirch.audio.ambience` 不占用音乐播放列表。它直接读取模组 ZIP 内的音频文件，通过 Howler 的公开接口循环播放；切换曲目时交叉淡化，不需要访问 `Howler.ctx`。文件需在音频包的 `additionFile` 中。`play()` 返回 `false` 表示文件不存在；解码或加载失败会拒绝 Promise。
+
+```javascript
+await maplebirch.audio.ambience.play('myAudioPack', 'audio/rain.ogg', 0.25, 1200);
+maplebirch.audio.ambience.setVolume(0.4);
+maplebirch.audio.ambience.stop(1200);
+```
+
+后两个数字分别是 0–1 的通道音量和毫秒淡化时长；重复播放同一文件只更新音量。环境音的曲目选择规则仍由模组决定。
+
 ## boot.json 导入
 
 音频文件需要先写入 `boot.json` 的 **`additionFile`**，再在 `maplebirchAddon` 参数里声明要导入的目录。

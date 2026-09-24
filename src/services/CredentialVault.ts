@@ -1,8 +1,13 @@
 // ./src/services/CredentialVault.ts
 
-import type { MaplebirchCore } from '../core';
+import type ModLoader from '../host/ModLoader';
+import Diagnostics from '../infra/Diagnostics';
+import type Emitter from '../infra/Emitter';
+import type IndexedDB from './IndexedDB';
+import type { InputFileFormat } from '@scml/types/sugarcube-2-ModLoader/JSZipLikeReadOnlyInterface';
 import PromptStyle from '@/styles/PromptStyle.css';
-import { base64ToArrayBuffer, bytesToBase64, bytesToJson, escapeHtmlText, jsonToBytes, toArrayBuffer } from '../utils';
+import { base64ToArrayBuffer, bytesToBase64, bytesToJson, jsonToBytes, toArrayBuffer } from '../utils/binary';
+import { escapeHtmlText } from '../utils/string';
 
 export type CredentialPeriod = 'day' | 'month';
 
@@ -39,7 +44,7 @@ export interface CryptContext {
 }
 
 export interface CryptResult {
-  data: any;
+  data: Awaited<InputFileFormat>;
   auth?: AuthConfig | boolean | void;
 }
 
@@ -53,8 +58,8 @@ export interface CryptOptions {
   prompt?: AuthConfig['prompt'] & {
     name?: string;
   };
-  lazyOptions?: any;
-  decrypt(password: string, context: CryptContext): Promise<CryptResult | Uint8Array | ArrayBuffer | Blob | string>;
+  lazyOptions?: unknown;
+  decrypt(password: string, context: CryptContext): Promise<CryptResult | Awaited<InputFileFormat>>;
 }
 
 interface StoredBase {
@@ -107,30 +112,40 @@ interface DecodedCredential {
   signatureBuffer: ArrayBuffer;
 }
 
-class CredentialVault {
+export class CredentialVault {
   private static readonly STORE = 'credentials';
   private static readonly TOKEN_PREFIX = 'maplebirch-auth';
 
   private dialogQueue: Promise<unknown> = Promise.resolve();
   private storageKey: Promise<CryptoKey> | null = null;
 
-  public constructor(readonly core: MaplebirchCore) {
-    this.core.once(':indexedDB', () => this.core.idb.register(CredentialVault.STORE, { keyPath: ['bucket', 'id'] }, [{ name: 'bucket', keyPath: 'bucket', options: { unique: false } }]));
+  public constructor(
+    readonly idb: IndexedDB,
+    readonly modloader: ModLoader,
+    readonly events: Emitter,
+    readonly diagnostics: Diagnostics,
+    readonly translate: (key: string) => string
+  ) {
+    this.events.once(':indexedDB', () => this.idb.define(CredentialVault.STORE, { keyPath: ['bucket', 'id'] }, [{ name: 'bucket', keyPath: 'bucket', options: { unique: false } }]));
   }
 
   public async loadCrypt(options: CryptOptions): Promise<boolean> {
-    const modName = options.modName || this.core.modUtils.getNowRunningModName?.() || '';
+    const modName = options.modName || this.modloader.modUtils.getNowRunningModName?.() || '';
     if (!modName) throw new Error('无法获取当前模组名');
     const cache = options.cache?.subject && options.cache.key ? options.cache : undefined;
     if (cache) {
-      const saved = await this.readStored(cache.subject, cache.key);
+      const saved = await this.readStored(cache.subject, cache.key).catch(error => {
+        this.diagnostics.write(`凭证缓存读取失败: ${Diagnostics.message(error)}`, 'WARN');
+        return null;
+      });
 
       if (saved) {
         try {
           const loaded = saved.type === 'credential' ? await this.loadCredential(modName, saved.credential, options) : await this.decryptAndLoad(modName, saved.password, options, {});
           if (loaded) return true;
         } catch {
-          await this.forget(cache.subject, cache.key);
+          this.diagnostics.write('缓存凭证不可用，已清除缓存', 'WARN', 'credentialVault');
+          await this.forget(cache.subject, cache.key).catch(error => this.diagnostics.write(`凭证缓存清理失败: ${Diagnostics.message(error)}`, 'WARN'));
         }
       }
     }
@@ -139,15 +154,15 @@ class CredentialVault {
     while (true) {
       const credential = await this.promptCredential(modName, options.prompt, errorText);
       if (!credential) {
-        this.core.log(`模组加密验证失败，已禁用: ${modName}`, 'WARN');
-        await this.core.disabled(modName, false);
+        this.diagnostics.write(`模组加密验证失败，已禁用: ${modName}`, 'WARN');
+        await this.modloader.disabled(modName, false);
         return false;
       }
       try {
         if (await this.loadCredential(modName, credential, options)) return true;
-        errorText = this.core.t('credential.auth.error.mismatch');
-      } catch (error: any) {
-        errorText = String(error?.message || error);
+        errorText = this.translate('credential.auth.error.mismatch');
+      } catch (error) {
+        errorText = Diagnostics.message(error);
       }
     }
   }
@@ -168,17 +183,17 @@ class CredentialVault {
 
     const result: CryptResult = decrypted && typeof decrypted === 'object' && 'data' in decrypted ? (decrypted as CryptResult) : { data: decrypted };
     if (result.data == null) throw new Error('解密结果为空');
-    if (result.auth === false) throw new Error(this.core.t('credential.auth.error.mismatch'));
+    if (result.auth === false) throw new Error(this.translate('credential.auth.error.mismatch'));
     const auth = result.auth && typeof result.auth === 'object' ? result.auth : undefined;
     if (context.credential) {
-      if (!auth) throw new Error(this.core.t('credential.auth.error.mismatch'));
+      if (!auth) throw new Error(this.translate('credential.auth.error.mismatch'));
       const verified = await this.verify(modName, auth, context.credential);
-      if (verified.password !== password) throw new Error(this.core.t('credential.auth.error.mismatch'));
+      if (verified.password !== password) throw new Error(this.translate('credential.auth.error.mismatch'));
     }
-    const loaded = await this.core.modUtils.lazyRegisterNewModZipData.call(this.core.modUtils, result.data, options.lazyOptions);
+    const loaded = await this.modloader.modUtils.lazyRegisterNewModZipData.call(this.modloader.modUtils, result.data, options.lazyOptions);
     if (!loaded) {
-      this.core.log(`模组加密验证失败，已禁用: ${modName}`, 'ERROR');
-      await this.core.disabled(modName, false);
+      this.diagnostics.write(`模组加密验证失败，已禁用: ${modName}`, 'ERROR');
+      await this.modloader.disabled(modName, false);
       return false;
     }
     const cache = options.cache?.subject && options.cache.key ? options.cache : undefined;
@@ -198,7 +213,7 @@ class CredentialVault {
             password,
             createdAt: Date.now()
           };
-      await this.storeStored(stored);
+      await this.storeStored(stored).catch(error => this.diagnostics.write(`凭证缓存写入失败: ${Diagnostics.message(error)}`, 'WARN'));
     }
     return true;
   }
@@ -206,7 +221,7 @@ class CredentialVault {
   private decodeCredential(credential: string): DecodedCredential {
     const [prefix, payloadPart, signaturePart, extraPart] = credential.trim().split('.');
     if (extraPart !== undefined || prefix !== CredentialVault.TOKEN_PREFIX || !payloadPart || !signaturePart) {
-      throw new Error(`${this.core.t('credential.auth.error.format')}: ${CredentialVault.TOKEN_PREFIX}.<payload>.<signature>`);
+      throw new Error(`${this.translate('credential.auth.error.format')}: ${CredentialVault.TOKEN_PREFIX}.<payload>.<signature>`);
     }
     let payloadBuffer: ArrayBuffer;
     let signatureBuffer: ArrayBuffer;
@@ -216,13 +231,13 @@ class CredentialVault {
       signatureBuffer = base64ToArrayBuffer(signaturePart);
       raw = bytesToJson<RawAuthPayload>(payloadBuffer);
     } catch {
-      throw new Error(this.core.t('credential.auth.error.format'));
+      throw new Error(this.translate('credential.auth.error.format'));
     }
     if (typeof raw.subject !== 'string' || !raw.subject || typeof raw.key !== 'string' || !raw.key || typeof raw.password !== 'string' || !raw.password) {
-      throw new Error(this.core.t('credential.auth.error.format'));
+      throw new Error(this.translate('credential.auth.error.format'));
     }
-    if (raw.date != null && (typeof raw.date !== 'string' || !raw.date)) throw new Error(this.core.t('credential.auth.error.format'));
-    if (raw.expiresAt != null && (typeof raw.expiresAt !== 'number' || !Number.isFinite(raw.expiresAt))) throw new Error(this.core.t('credential.auth.error.format'));
+    if (raw.date != null && (typeof raw.date !== 'string' || !raw.date)) throw new Error(this.translate('credential.auth.error.format'));
+    if (raw.expiresAt != null && (typeof raw.expiresAt !== 'number' || !Number.isFinite(raw.expiresAt))) throw new Error(this.translate('credential.auth.error.format'));
     const payload: AuthPayload = {
       subject: raw.subject,
       key: raw.key,
@@ -244,14 +259,14 @@ class CredentialVault {
         ? await crypto.subtle.importKey('spki', base64ToArrayBuffer(config.publicKey), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify'])
         : await crypto.subtle.importKey('jwk', config.publicKey, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify']);
     const valid = await crypto.subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, publicKey, decoded.signatureBuffer, decoded.payloadBuffer);
-    if (!valid) throw new Error(this.core.t('credential.auth.error.signature'));
+    if (!valid) throw new Error(this.translate('credential.auth.error.signature'));
     const payload = decoded.payload;
     const subject = config.subject || modName;
-    if (payload.subject !== subject) throw new Error(`${this.core.t('credential.auth.error.mismatch')}: ${payload.subject}`);
-    if (payload.key !== config.key) throw new Error(this.core.t('credential.auth.error.mismatch'));
-    if (payload.expiresAt !== undefined && payload.expiresAt < Date.now()) throw new Error(this.core.t('credential.auth.error.mismatch'));
+    if (payload.subject !== subject) throw new Error(`${this.translate('credential.auth.error.mismatch')}: ${payload.subject}`);
+    if (payload.key !== config.key) throw new Error(this.translate('credential.auth.error.mismatch'));
+    if (payload.expiresAt !== undefined && payload.expiresAt < Date.now()) throw new Error(this.translate('credential.auth.error.mismatch'));
     if (payload.date || config.date) {
-      if (!payload.date) throw new Error(this.core.t('credential.auth.error.mismatch'));
+      if (!payload.date) throw new Error(this.translate('credential.auth.error.mismatch'));
       const period = config.date?.period ?? 'day';
       const timezone = config.date?.timezone || 'UTC';
       const graceDays = Math.max(0, Math.floor(config.date?.graceDays ?? 0));
@@ -263,7 +278,7 @@ class CredentialVault {
           break;
         }
       }
-      if (!matched) throw new Error(`${this.core.t('credential.auth.error.mismatch')}: ${payload.date}`);
+      if (!matched) throw new Error(`${this.translate('credential.auth.error.mismatch')}: ${payload.date}`);
     }
     return payload;
   }
@@ -283,7 +298,7 @@ class CredentialVault {
   }
 
   private async readStored(subject: string, key: string): Promise<StoredCredential | null> {
-    const record = await this.core.idb.withTransaction(CredentialVault.STORE, 'readonly', (tx: any) => tx.objectStore(CredentialVault.STORE).get(['license', `${subject}:${key}`]));
+    const record = await this.idb.with(CredentialVault.STORE, 'readonly', tx => tx.objectStore(CredentialVault.STORE).get(['license', `${subject}:${key}`]));
     if (!record) return null;
     const stored = await this.decryptRecord<RawStoredCredential>(record as CredentialRecord);
     if (!stored || stored.subject !== subject || stored.key !== key || typeof stored.createdAt !== 'number') {
@@ -314,7 +329,7 @@ class CredentialVault {
 
   private async storeStored(value: StoredCredential): Promise<void> {
     const encrypted = await this.encryptRecord(value);
-    await this.core.idb.withTransaction(CredentialVault.STORE, 'readwrite', (tx: any) =>
+    await this.idb.with(CredentialVault.STORE, 'readwrite', tx =>
       tx.objectStore(CredentialVault.STORE).put({
         bucket: 'license',
         id: `${value.subject}:${value.key}`,
@@ -325,7 +340,7 @@ class CredentialVault {
   }
 
   private async forget(subject: string, key: string): Promise<void> {
-    await this.core.idb.withTransaction(CredentialVault.STORE, 'readwrite', (tx: any) => tx.objectStore(CredentialVault.STORE).delete(['license', `${subject}:${key}`]));
+    await this.idb.with(CredentialVault.STORE, 'readwrite', tx => tx.objectStore(CredentialVault.STORE).delete(['license', `${subject}:${key}`]));
   }
 
   private ensurePromptStyle(): void {
@@ -344,10 +359,10 @@ class CredentialVault {
       const Swal = window.modSweetAlert2Mod;
       this.ensurePromptStyle();
       let credentialDraft = '';
-      const label = prompt.label || `${prompt.name || modName} - ${this.core.t('credential.auth.label')}`;
+      const label = prompt.label || `${prompt.name || modName} - ${this.translate('credential.auth.label')}`;
       while (true) {
-        const title = prompt.title || this.core.t('credential.auth.title');
-        const hint = errorText || prompt.hint || this.core.t('credential.auth.hint');
+        const title = prompt.title || this.translate('credential.auth.title');
+        const hint = errorText || prompt.hint || this.translate('credential.auth.hint');
         const html = `
           <div class="maplebirch-auth-header">${escapeHtmlText(String(title))}</div>
           <div class="maplebirch-auth-body">
@@ -359,11 +374,11 @@ class CredentialVault {
           html,
           input: 'password',
           inputValue: credentialDraft,
-          inputPlaceholder: prompt.placeholder || this.core.t('credential.auth.placeholder'),
+          inputPlaceholder: prompt.placeholder || this.translate('credential.auth.placeholder'),
           showCancelButton: false,
           showCloseButton: true,
           allowOutsideClick: false,
-          confirmButtonText: this.core.t('credential.auth.unlock'),
+          confirmButtonText: this.translate('credential.auth.unlock'),
           padding: 0,
           customClass: {
             popup: 'maplebirch-auth-popup'
@@ -380,9 +395,10 @@ class CredentialVault {
         const credential = String(result.value || '').trim();
         credentialDraft = credential;
         if (credential) return credential;
-        errorText = this.core.t('credential.auth.error.format');
+        errorText = this.translate('credential.auth.error.format');
       }
     });
+    // The caller receives the rejection; only the queue tail must recover.
     this.dialogQueue = next.catch(() => undefined);
     return next;
   }
@@ -398,12 +414,12 @@ class CredentialVault {
   }
 
   private async loadStorageKey(): Promise<CryptoKey> {
-    const existing = await this.core.idb.withTransaction(CredentialVault.STORE, 'readonly', (tx: any) => tx.objectStore(CredentialVault.STORE).get(['meta', 'cryptoKey']));
+    const existing = (await this.idb.with(CredentialVault.STORE, 'readonly', tx => tx.objectStore(CredentialVault.STORE).get(['meta', 'cryptoKey']))) as CredentialRecord | undefined;
     if (existing?.cryptoKey) return existing.cryptoKey as CryptoKey;
     const candidate = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
-    return this.core.idb.withTransaction(CredentialVault.STORE, 'readwrite', async (tx: any) => {
+    return this.idb.with(CredentialVault.STORE, 'readwrite', async tx => {
       const store = tx.objectStore(CredentialVault.STORE);
-      const current = await store.get(['meta', 'cryptoKey']);
+      const current = (await store.get(['meta', 'cryptoKey'])) as CredentialRecord | undefined;
       if (current?.cryptoKey) return current.cryptoKey as CryptoKey;
       await store.put({
         bucket: 'meta',
@@ -443,8 +459,8 @@ class CredentialVault {
         base64ToArrayBuffer(record.data)
       );
       return bytesToJson<T>(decrypted);
-    } catch (error: any) {
-      this.core.log(`凭证解密失败: ${error?.message || error}`, 'WARN');
+    } catch (error) {
+      this.diagnostics.write(`凭证解密失败: ${Diagnostics.message(error)}`, 'WARN');
       return null;
     }
   }

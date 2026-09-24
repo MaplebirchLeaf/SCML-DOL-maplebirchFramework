@@ -1,6 +1,7 @@
 // .src/modules/Frameworks/RandSystem.ts
 
-import { createlog } from '../../core';
+import maplebirch from '../../core';
+import type { ScopedLog } from '../../infra/Diagnostics';
 
 export interface RandState {
   seed: number | null;
@@ -9,7 +10,7 @@ export interface RandState {
 }
 
 class randSystem {
-  public static readonly log = createlog('rand');
+  public static readonly log: ScopedLog = (message, level = 'INFO', ...objects) => maplebirch.tool.log(message, level, ...objects);
 
   public static create(state: Partial<RandState> = {}): randSystem {
     return new randSystem(state);

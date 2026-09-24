@@ -1,4 +1,4 @@
-## NPC服装
+# NPC 服装与衣柜
 
 ### 基本介绍
 
@@ -157,7 +157,9 @@ setup.npcClothesSets = [
 - **服装定义**: 定义一套完整的服装
 - **位置注册**: 在特定位置穿着特定服装
 - **条件控制**: 满足条件时才穿着
-- **层级系统**: 位置特定 > 全局默认
+- **服装选择**: 位置特定 > 全局默认
+- **服装延留**: 服装持续保留，直到另一条有效穿着规则触发
+- **合并顺序**: 裸体模板 → NPC 基础层 → 选中的地点服装 → 动态修改 → 整套湿度
 
 #### 服装定义文件 (来源于PC身上的服装数据)
 
@@ -208,26 +210,95 @@ work_uniform:
 框架内置衣柜会自动加载。通过代码加载额外衣柜文件时，需要同时传入模组名和文件路径。
 
 ```javascript
-// 1. 加载衣柜配置
-await maplebirch.npc.Clothes.loadWardrobe('myMod', 'data/wardrobe.yaml');
+const wardrobe = maplebirch.npc.Clothes.wardrobe;
 
-// 2. 为NPC注册服装
+// 1. 加载衣柜配置
+await wardrobe.load('myMod', 'data/wardrobe.yaml');
+
+// 2. 设置 NPC 的基础服装；地点服装可覆盖同名部位
+wardrobe.base('Luna', clothes => {
+  clothes.neck = { name: 'collar' };
+});
+
+// 3. 为 NPC 注册服装
 // 在学校位置总是穿校服
-maplebirch.npc.Clothes.wear('Luna', 'school', 'school_uniform');
+wardrobe.wear('Luna', 'school', 'school_uniform');
 
 // 在咖啡馆位置穿便服，但只在非工作时间
-maplebirch.npc.Clothes.wear('Luna', 'cafe', 'casual_outfit', () => V.time.hour >= 18 || V.time.hour <= 8);
+wardrobe.wear('Luna', 'cafe', 'casual_outfit', () => V.time.hour >= 18 || V.time.hour <= 8);
+
+// 每次重新触发规则时，按权重随机选择一套服装
+wardrobe.wear('Luna', 'school', [
+  ['school_uniform', 8],
+  ['school_uniform_alt', 2]
+]);
+
+// 湿度属于本次穿着规则，而不是服装模板；整套服装统一使用字符串状态
+wardrobe.wear('Luna', 'lake', 'school_uniform', {
+  when: () => V.lunaSwimming,
+  wetness: 'soaked'
+});
+
+// 需要动态变化时返回 dry、damp、wet 或 soaked
+wardrobe.wear('Luna', 'park', 'casual_outfit', {
+  wetness: () => (V.weather === 'rain' ? 'wet' : 'dry')
+});
+
+// 场景湿度覆盖当前已经选中的整套服装；条件不成立时退回 wear 的湿度
+wardrobe.wet('Luna', 'soaked', () => passage() === 'Lake Soak');
+
+// 条件基础层，可动态决定使用哪个已注册模板
+wardrobe.layer(
+  'Luna',
+  () => (C.npc.Luna.pronoun === 'm' ? 'male_underwear' : 'female_underwear'),
+  () => C.npc.Luna.corruption < 10
+);
+
+// 在动态修改中合并模板，或将槽位恢复为裸体占位
+wardrobe.modify('Luna', clothes => {
+  wardrobe.put(clothes, 'chastity_belt');
+  wardrobe.strip(clothes, ['upper', 'lower']);
+});
 
 // 在面包店工作位置穿工作服
-maplebirch.npc.Clothes.wear('Luna', 'bakery', 'work_uniform');
+wardrobe.wear('Luna', 'bakery', 'work_uniform');
 
 // 全局默认(当没有其他匹配时)
-maplebirch.npc.Clothes.wear('Luna', '*', 'casual_outfit');
+wardrobe.wear('Luna', '*', 'casual_outfit');
 
-// 3. 获取当前服装
-const currentOutfit = maplebirch.npc.Clothes.worn('Luna');
+// 4. 最终动态修改；在地点服装合并后执行
+wardrobe.modify('Luna', (clothes, context) => {
+  if (context.location === 'park' && V.weather === 'rain') clothes.head = { name: 'hood' };
+});
+
+// 5. 获取当前服装
+const currentOutfit = wardrobe.worn('Luna');
 console.log('Luna当前穿着:', currentOutfit);
 ```
+
+NPC 服装湿度使用 `dry`（干燥）、`damp`（湿润）、`wet`（潮湿）、`soaked`（湿透）四种语义状态，框架内部对应透明度 `1`、`0.9`、`0.7`、`0.5`。湿度统一作用于 `upper`、`lower`、`under_upper`、`under_lower`，不会使眼镜、首饰或鞋等槽位透明。未配置 `wetness` 时保持原有干燥显示。`wardrobe.wet()` 用于覆盖当前已选服装的湿度；存在多条匹配规则时最后注册的规则优先，未命中时退回 `wardrobe.wear()` 的湿度。
+
+`wardrobe.layer()` 在地点服装之前按条件合并基础模板，适合内衣或固定配饰；模板键也可以由函数动态返回。`wardrobe.put(clothes, key, slots?)` 在回调中合并已注册模板，可用单个槽位或槽位数组限制合并范围。`wardrobe.apply(clothes, slot, item)` 将一件服装复制到指定槽位。`wardrobe.strip()` 会把指定槽位恢复为 `naked` 模板中的占位数据，不会留下渲染器无法读取的空槽位。地点服装在基础层之后合并，因此泳装等模板自身的 `under_upper`、`under_lower` 不受基础内衣条件影响。
+
+`wardrobe.wear()` 只在当前位置存在有效规则时换装。当前位置没有匹配规则或规则条件不成立时，NPC 会延续上一次成功选中的服装；尚未触发过任何规则时才使用 `naked`。
+
+重复使用的条件可命名组合。`location` 检查 `V.location`，`passage` 检查当前 passage 标题；`hours: [起始, 结束]` 使用 `V.time.hour`，允许跨午夜。第三个参数可补充原版剧情状态等条件。条件会在使用时重新求值，按名称再次调用 `when()` 可取得同一个函数：
+
+```javascript
+const nightStudy = wardrobe.when(
+  'night-study',
+  {
+    location: ['library', 'school'],
+    passage: 'Study',
+    hours: [21, 5]
+  },
+  () => V.weather === 'rain'
+);
+wardrobe.wear('Luna', 'library', 'school_uniform', { when: nightStudy });
+wardrobe.wet('Luna', 'damp', wardrobe.when('night-study'));
+```
+
+第三个参数也可以使用 `[服装键, 权重]` 数组。随机选择只在规则由未触发变为触发时执行一次；连续读取和服装延留期间不会重复随机，规则中断后再次触发时才会重新选择。不存在的服装键、非有限数或小于等于零的权重会被忽略并记录警告。
 
 #### 服装层级示例
 

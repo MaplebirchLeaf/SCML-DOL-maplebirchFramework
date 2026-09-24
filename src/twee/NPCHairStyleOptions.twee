@@ -5,10 +5,16 @@
   <<lanSwitch 'Sides: ' '侧发：'>><<lanListbox  '$NPCName[_npcId].hair_side_type' autoselect>><<optionsfrom maplebirch.npc.Sidebar.hair_type('sides')>><</lanListbox>><br>
   <<lanSwitch 'Fringe: ' '刘海：'>><<lanListbox  '$NPCName[_npcId].hair_fringe_type' autoselect>><<optionsfrom maplebirch.npc.Sidebar.hair_type('fringe')>><</lanListbox>><br>
   <<radiobuttonsfrom '$NPCName[_npcId].hair_position' 'front[Sides in front,两侧头发在身体前]|back[Sides behind,两侧头发在身体后]'>><</radiobuttonsfrom>><br>
-  <<numberStepper '<<lanSwitch "Length" "长度">>' $NPCName[_npcId].hairlength {max: 1000, callback: value => { V.NPCName[T.npcId].hairlength = value; $.wiki('<<replace #maplebirchNPCHairStyleOptions>><<maplebirchNPCHairStyleOptions>><</replace>>') }}>>
-  <<set _NPCHairLength to (function(v) { if (v < 200) return 'ear'; if (v < 400) return 'neck'; if (v < 600) return 'chest'; if (v < 800) return 'waist'; if (v < 1000) return 'knees'; return 'ankles'; })($NPCName[_npcId].hairlength)>>
-  <<radiobuttonsfrom '_NPCHairLength' 'ear[Ear,耳朵]|neck[Neck,颈部]|chest[Chest,胸前]|waist[Waist,腰际]|knees[Knees,膝盖]|ankles[Ankles,脚踝]'>>
-    <<set $NPCName[_npcId].hairlength to { ear:0, neck:200, chest:400, waist:600, knees:800, ankles:1000 }[_NPCHairLength]>>
+  <<numberStepper '<<lanSwitch "Hair length" "头发长度">>' $NPCName[_npcId].hair_sides_length {min: 0, max: 1000, callback: value => { V.NPCName[T.npcId].hair_sides_length = value; $.wiki('<<replace #maplebirchNPCHairStyleOptions>><<maplebirchNPCHairStyleOptions>><</replace>>') }}>>
+  <<set _NPCHairSidesLength to (function(v) { if (v < 200) return 'short'; if (v < 400) return 'shoulder'; if (v < 600) return 'chest'; if (v < 800) return 'navel'; if (v < 1000) return 'thighs'; return 'feet'; })($NPCName[_npcId].hair_sides_length)>>
+  <<radiobuttonsfrom '_NPCHairSidesLength' 'short[Short,短发]|shoulder[Shoulder,肩膀]|chest[Chest,胸前]|navel[Navel,肚脐]|thighs[Thighs,大腿]|feet[Feet,脚部]'>>
+    <<set $NPCName[_npcId].hair_sides_length to { short:0, shoulder:200, chest:400, navel:600, thighs:800, feet:1000 }[_NPCHairSidesLength]>>
+    <<replace #maplebirchNPCHairStyleOptions>><<maplebirchNPCHairStyleOptions>><</replace>>
+  <</radiobuttonsfrom>>
+  <<numberStepper '<<lanSwitch "Fringe length" "刘海长度">>' $NPCName[_npcId].hair_fringe_length {min: 0, max: 1000, callback: value => { V.NPCName[T.npcId].hair_fringe_length = value; $.wiki('<<replace #maplebirchNPCHairStyleOptions>><<maplebirchNPCHairStyleOptions>><</replace>>') }}>>
+  <<set _NPCHairFringeLength to (function(v) { if (v < 200) return 'short'; if (v < 400) return 'shoulder'; if (v < 600) return 'chest'; if (v < 800) return 'navel'; if (v < 1000) return 'thighs'; return 'feet'; })($NPCName[_npcId].hair_fringe_length)>>
+  <<radiobuttonsfrom '_NPCHairFringeLength' 'short[Short,短发]|shoulder[Shoulder,肩膀]|chest[Chest,胸前]|navel[Navel,肚脐]|thighs[Thighs,大腿]|feet[Feet,脚部]'>>
+    <<set $NPCName[_npcId].hair_fringe_length to { short:0, shoulder:200, chest:400, navel:600, thighs:800, feet:1000 }[_NPCHairFringeLength]>>
     <<replace #maplebirchNPCHairStyleOptions>><<maplebirchNPCHairStyleOptions>><</replace>>
   <</radiobuttonsfrom>>
 <</widget>>

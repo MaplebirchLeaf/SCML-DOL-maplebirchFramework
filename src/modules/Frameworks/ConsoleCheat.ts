@@ -1,8 +1,9 @@
 // ./src/modules/Frameworks/ConsoleCheat.ts
 
-import { createlog, type MaplebirchCore } from '../../core';
-import ToolCollection from '../ToolCollection';
-import TimeTravelCheat from './TimeTravelCheat';
+import Diagnostics from '../../infra/Diagnostics';
+import maplebirch, { type MaplebirchCore } from '../../core';
+import type { ScopedLog } from '../../infra/Diagnostics';
+import type ToolCollection from '../ToolCollection';
 
 interface JSExecutionResult {
   success: boolean;
@@ -31,19 +32,17 @@ interface ExecutionResult {
 }
 
 class CheatConsole {
-  private readonly log: ReturnType<typeof createlog>;
+  private readonly log: ScopedLog;
   private readonly core: MaplebirchCore;
   private readonly globals: Record<string, any> = {};
-  public readonly timeTravel: TimeTravelCheat;
 
   private readonly jsStatus = '#js-cheat-console-status';
   private readonly twineStatus = '#twine-cheat-console-status';
   private readonly twineOutputs = ['#twine-cheat-console-output', '#your-output-container'];
 
   public constructor(readonly manager: ToolCollection) {
-    this.log = createlog('console');
+    this.log = maplebirch.infra.diagnostics.scoped('console');
     this.core = manager.core;
-    this.timeTravel = new TimeTravelCheat(this.core);
   }
 
   public executeJS(code: string = ''): JSExecutionResult {
@@ -70,8 +69,8 @@ class CheatConsole {
         message,
         globals: this.globals
       };
-    } catch (error: any) {
-      const errorText = error?.message || lanSwitch('Unknown error', '未知错误');
+    } catch (error) {
+      const errorText = Diagnostics.message(error) || lanSwitch('Unknown error', '未知错误');
       const message = lanSwitch('Execution error → ', '执行错误 → ') + errorText;
       this.showStatus(this.jsStatus, message, false);
       return {
@@ -98,12 +97,12 @@ class CheatConsole {
       const fragment = document.createDocumentFragment();
       const hasOutputMacro = /<<(?:link|goto|display)\b/i.test(code);
       try {
-        new this.core.SugarCube.Wikifier(fragment, code);
+        new (this.core.host.sugarcube.require().Wikifier)(fragment, code);
         if (hasOutputMacro) {
           const target = this.linkTarget(code);
           if (target) {
             this.showStatus(this.twineStatus, lanSwitch('Execution successful, redirecting...', '执行成功，即将跳转...'), true);
-            setTimeout(() => this.core.SugarCube.Engine.play(target), 300);
+            setTimeout(() => this.core.host.sugarcube.require().Engine.play(target), 300);
             return {
               success: true,
               message: lanSwitch('Code executed successfully.', '代码执行成功。'),
@@ -126,8 +125,8 @@ class CheatConsole {
           message: lanSwitch('Code executed successfully.', '代码执行成功。'),
           parsedContent: this.html(fragment)
         };
-      } catch (error: any) {
-        const errorText = error?.message || lanSwitch('Wikifier parsing error', 'Wikifier 解析错误');
+      } catch (error) {
+        const errorText = Diagnostics.message(error) || lanSwitch('Wikifier parsing error', 'Wikifier 解析错误');
         const message = lanSwitch('Parsing error: ', '解析错误: ') + errorText;
         this.showStatus(this.twineStatus, message, false);
         this.log('Twine代码解析失败', 'ERROR', error);
@@ -137,8 +136,8 @@ class CheatConsole {
           message
         };
       }
-    } catch (error: any) {
-      const errorText = error?.message || lanSwitch('Unknown error', '未知错误');
+    } catch (error) {
+      const errorText = Diagnostics.message(error) || lanSwitch('Unknown error', '未知错误');
       const message = lanSwitch('Execution error: ', '执行错误: ') + errorText;
       this.showStatus(this.twineStatus, message, false);
       return {
@@ -162,12 +161,7 @@ class CheatConsole {
   }
 
   private runJavaScript(code: string): any {
-    const scope: Record<string, any> = {
-      C: window.C,
-      V: window.V,
-      T: window.T,
-      global: this.globals
-    };
+    const scope: Record<string, any> = { global: this.globals };
 
     const scoped = new Proxy(scope, {
       has: () => true,
@@ -181,11 +175,6 @@ class CheatConsole {
 
       set: (target: Record<string, any>, key: string | symbol, value: any) => {
         if (typeof key === 'symbol') return false;
-        if (key === 'C' || key === 'V' || key === 'T') {
-          (window as any)[key] = value;
-          target[key] = value;
-          return true;
-        }
         if (key === 'global') throw new Error(lanSwitch('Cannot override global', '不能覆盖 global'));
         if (key in window) {
           (window as any)[key] = value;
@@ -223,7 +212,8 @@ class CheatConsole {
     if (typeof value === 'function') return 'function';
     try {
       return JSON.stringify(value, null, 2);
-    } catch {
+    } catch (error) {
+      this.log('控制台结果序列化失败', 'WARN', error);
       return String(value);
     }
   }

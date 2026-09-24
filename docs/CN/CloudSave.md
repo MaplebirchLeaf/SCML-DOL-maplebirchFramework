@@ -16,18 +16,25 @@
 仓库根 `cloudflare/` 目录已提供可部署的 Worker（`worker.ts` + `wrangler.jsonc`）：
 
 1. 安装并登录 wrangler：
+
    ```bash
    bunx wrangler login
    ```
+
 2. 在 `cloudflare/` 目录创建 R2 桶（`wrangler.jsonc` 已声明绑定 `SAVE_BUCKET` → 桶名 `maplebirch-save`，可按需修改）：
+
    ```bash
    bunx wrangler r2 bucket create maplebirch-save
    ```
+
 3. 设置访问令牌（必填 secret `MAPLEBIRCH_TOKEN`，请使用足够长的随机串）：
+
    ```bash
    bunx wrangler secret put MAPLEBIRCH_TOKEN
    ```
+
 4. 部署：
+
    ```bash
    bunx wrangler deploy
    ```
@@ -38,12 +45,12 @@
 
 除 `/health` 外均要求请求头 `Authorization: Bearer <MAPLEBIRCH_TOKEN>`：
 
-| 端点 | 方法 | 说明 |
-| :--- | :--- | :--- |
-| `/health` | GET | 健康检查 |
-| `/saves` | GET | 远端槽位列表 |
+| 端点           | 方法               | 说明                       |
+| :------------- | :----------------- | :------------------------- |
+| `/health`      | GET                | 健康检查                   |
+| `/saves`       | GET                | 远端槽位列表               |
 | `/saves/:slot` | PUT / GET / DELETE | 上传 / 下载 / 删除指定槽位 |
-| `/save-code` | GET / PUT | 读取 / 写入导出码 |
+| `/save-code`   | GET / PUT          | 读取 / 写入导出码          |
 
 ## 游戏内使用
 
@@ -52,10 +59,12 @@
    - **地址**：你的 Worker 地址，例如 `https://maplebirch-cloud-save.<你的子域>.workers.dev`
    - **访问令牌**：与 `MAPLEBIRCH_TOKEN` 一致
 3. 点「连接」验证（会自动刷新远端列表），之后可：
-   - **槽位**：选择本地槽位后上传；对远端槽位下载 / 删除（槽位 0 为自动存档，1–10 为手动槽位）
+   - **槽位**：选择本地槽位后上传；对远端槽位下载 / 删除（槽位 0 为自动存档，1–200 为手动槽位，系统会自动识别本地已有存档并默认选中最近保存的槽位）
    - **导出码**：把当前存档或指定槽位生成一段导出码并上传到云端；也可下载云端导出码，或直接粘贴导入
 
 ## 注意事项
 
 - 删除远端槽位**不可恢复**。
-- 令牌只在本会话生效（每次打开面板填写/连接）；请妥善保管，泄漏等于任何人可读写你的云端存档。
+- 框架默认只在本地持久化 Worker 地址，不持久化令牌。若勾选「在此设备上记住访问令牌」，令牌将保存在当前浏览器的本地存储（localStorage）中。请妥善保管令牌，泄漏等于任何人可读写你的云端存档。
+- 游戏内仅接受 HTTPS Worker 地址。请求超过 15 秒会自动超时。
+- 示例 Worker 接受的单次 JSON 请求最大为 32 MiB，并会拒绝格式错误或槽位不匹配的存档。

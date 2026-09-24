@@ -1,35 +1,31 @@
 // ./src/modules/NamedNPCAddon/NPCSidebarConfig/base_layers.ts
 
 import maplebirch from '../../../core';
-import { loadImage } from '../../../utils';
-import { nnpc_sidepart } from './functions';
+import ImageLoader from '../../Frameworks/ImageLoader';
+import { kaijuMask, nnpc_sidepart, selected_art } from './functions';
 
-type NPCSidebarOptions = {
-  filters?: Record<string, any>;
-  maplebirch: {
-    nnpc: Record<string, any>;
-    [key: string]: any;
-  };
-  [key: string]: any;
-};
+import type { NPCSidebarOptions } from './types';
+import dol from '../../../host/DoL';
 
-function kaiju_mask(options: NPCSidebarOptions): string | undefined {
-  if (options.maplebirch.nnpc.clothes?.over_upper?.name === 'kaiju costume') return 'img/clothes/over-upper/kaiju/mask.png';
+function hair_mask(headMask: string[], closeUpMask: string, fallbackMask: string | undefined = closeUpMask): string | string[] | undefined {
+  const head_masks = headMask.filter(mask => mask !== closeUpMask);
+  return head_masks.length ? head_masks : fallbackMask;
 }
 
 const base_layers = {
   nnpc_body: {
     masksrcfn: (options: NPCSidebarOptions) => {
       if (options.maplebirch.nnpc.model) return options.maplebirch.nnpc.close_up_mask;
-      return null;
+      return undefined;
     },
     srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       if (nnpc.model) return 'img/body/base-classic.png';
-      const selected = V.options.maplebirch.npcsidebar.display[nnpc.name];
-      const art = maplebirch.npc.Clothes.art.get(nnpc.name);
-      if (!selected) return;
-      if (selected === art?.key) return art.body;
+      const selected = dol.variables.options.maplebirch.npcsidebar.display[nnpc.name];
+      if (!selected || selected === 'none') return;
+      const art = maplebirch.npc.Clothes.art.get(nnpc.name, selected);
+      if (!art) return;
+      return art.body;
     },
     showfn: (options: NPCSidebarOptions) => {
       return options.maplebirch.nnpc.show;
@@ -52,26 +48,25 @@ const base_layers = {
   nnpc_head: {
     masksrcfn: (options: NPCSidebarOptions) => {
       if (options.maplebirch.nnpc.model) return options.maplebirch.nnpc.close_up_mask;
-      return null;
+      return undefined;
     },
     srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       if (nnpc.model) {
         const path = `img/face/${nnpc.facestyle}/base-head.png`;
-        return loadImage(path) === false ? 'img/body/base-head.png' : path;
+        return ImageLoader.load(path) === false ? 'img/body/base-head.png' : path;
       }
-      const selected = V.options.maplebirch.npcsidebar.display[nnpc.name];
-      const art = maplebirch.npc.Clothes.art.get(nnpc.name);
-      if (!selected) return;
-      if (selected === art?.key) return art.head?.img;
+      return selected_art(nnpc)?.parts.head?.img;
     },
     showfn: (options: NPCSidebarOptions) => {
       return options.maplebirch.nnpc.show;
     },
     zfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
-      const art = maplebirch.npc.Clothes.art.get(nnpc.name);
-      if (!nnpc.model && typeof art?.head?.zIndex === 'number') return art.head.zIndex;
+      if (!nnpc.model) {
+        const zIndex = selected_art(nnpc)?.parts.head?.zIndex;
+        if (typeof zIndex === 'number') return zIndex;
+      }
       return (nnpc.model ? maplebirch.char.ZIndices.basehead : maplebirch.char.ZIndices.head) + nnpc.position;
     },
     dxfn: (options: NPCSidebarOptions) => {
@@ -155,7 +150,8 @@ const base_layers = {
     srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       if (nnpc.arm_right === 'idle') return 'img/body/right-arm-idle-classic.png';
-      return `img/body/right-arm-${nnpc.arm_right}.png`;
+      if (nnpc.arm_right === 'cover' || nnpc.arm_right === 'hold') return `img/body/right-arm-${nnpc.arm_right}.png`;
+      return '';
     },
     showfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
@@ -439,7 +435,8 @@ const base_layers = {
 
   nnpc_hair_sides: {
     masksrcfn: (options: NPCSidebarOptions) => {
-      return kaiju_mask(options) || options.maplebirch.nnpc.head_mask;
+      const nnpc = options.maplebirch.nnpc;
+      return kaijuMask(options) || hair_mask(nnpc.head_mask, nnpc.close_up_mask);
     },
     srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
@@ -466,14 +463,10 @@ const base_layers = {
   nnpc_hair_fringe: {
     masksrcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
-      const costumeMask = kaiju_mask(options);
+      const costumeMask = kaijuMask(options);
       if (costumeMask) return costumeMask;
 
-      if (Array.isArray(nnpc.head_mask) && nnpc.head_mask.length) return nnpc.head_mask;
-
-      if (nnpc.fringe_mask_src) return [nnpc.close_up_mask, nnpc.fringe_mask_src];
-
-      return nnpc.close_up_mask;
+      return hair_mask(nnpc.head_mask, nnpc.close_up_mask, nnpc.fringe_mask_src || nnpc.close_up_mask);
     },
     srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
@@ -498,7 +491,8 @@ const base_layers = {
 
   nnpc_hair_extra: {
     masksrcfn: (options: NPCSidebarOptions) => {
-      return kaiju_mask(options) || options.maplebirch.nnpc.head_mask;
+      const nnpc = options.maplebirch.nnpc;
+      return kaijuMask(options) || hair_mask(nnpc.head_mask, nnpc.close_up_mask);
     },
     srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
@@ -507,19 +501,25 @@ const base_layers = {
         'loose',
         'curl',
         'defined curl',
+        'drill ringlets',
         'neat',
         'dreads',
         'afro pouf',
         'thick ponytail',
         'all down',
-        'half-up',
+        'half up',
         'messy ponytail',
         'ruffled',
-        'half up twintail',
+        'half up twintails',
         'princess wave',
         'space buns',
         'sleek',
-        'bedhead'
+        'bedhead',
+        'classic',
+        'cornrows',
+        'french curls',
+        'jellyfish bob',
+        'princess ponytail'
       ];
       const path = `img/hair/back/${nnpc.hair_sides_type}`;
       if (nnpc.hair_sides_length === 'feet' && [...hairs, 'straight'].includes(nnpc.hair_sides_type)) return `${path}/feet.png`;

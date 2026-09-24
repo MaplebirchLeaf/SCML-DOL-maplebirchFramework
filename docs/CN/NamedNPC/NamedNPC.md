@@ -1,4 +1,4 @@
-## NPC注册
+# NPC 注册
 
 ### 基本介绍
 
@@ -17,38 +17,41 @@ maplebirch.npc.add(
 );
 ```
 
+注册后可按需使用 [NPC 转化](NamedNPCTransformation.md)、[NPC 怀孕](NamedNPCPregnancy.md)、[NPC 数值](NamedNPCStats.md)、[NPC 日程](NamedNPCSchedule.md)、[NPC 服装](NamedNPCClothes.md)和 [NPC 侧边栏](NamedNPCSidebar.md)；怀孕配置应通过 `maplebirch.npc.Pregnancy.add()` 或 `boot.json` 的 `npc.Pregnancy` 注册，`NPCData.pregnancy` 只保存游戏中的开关与周期状态。
+
 ### NPC基础数据 (NPCData)
 
-| 属性               | 类型                   | 说明                    | 默认值    |
-| :----------------- | :--------------------- | :---------------------- | :-------- |
-| `nam`              | string                 | **必需**，NPC的唯一名称 | -         |
-| `gender`           | 'm'/'f'/'h'/'n'/'none' | 性别                    | 随机      |
-| `title`            | string                 | 称呼/头衔               | 'none'    |
-| `description`      | string                 | 描述文本                | NPC名称   |
-| `type`             | string                 | NPC类型                 | 'human'   |
-| `adult`            | number                 | 是否为成人 (1/0)        | 随机      |
-| `teen`             | number                 | 是否为青少年 (1/0)      | 随机      |
-| `age`              | number                 | 年龄                    | 0         |
-| `insecurity`       | string                 | 不安全感类型            | 随机      |
-| `chastity`         | object                 | 贞操带状态              | {}        |
-| `virginity`        | object                 | 处女状态                | 完整      |
-| `hair_side_type`   | string                 | 侧发类型                | 'default' |
-| `hair_fringe_type` | string                 | 前发类型                | 'default' |
-| `hair_position`    | string                 | 头发位置                | 'back'    |
-| `hairlength`       | number                 | 头发长度                | 随机      |
-| `eyeColour`        | string                 | 眼睛颜色                | 随机      |
-| `hairColour`       | string                 | 头发颜色                | 随机      |
-| `bottomsize`       | number                 | 臀部大小                | 随机      |
-| `skincolour`       | number                 | 肤色                    | 0         |
-| `init`             | number                 | 初始化状态              | 0         |
-| `intro`            | number                 | 介绍状态                | 0         |
-| `penis`            | string                 | 阴茎状态                | 根据性别  |
-| `penissize`        | number                 | 阴茎大小                | 根据性别  |
-| `vagina`           | string                 | 阴道状态                | 根据性别  |
-| `breastsize`       | number                 | 胸部大小                | 根据性别  |
-| `ballssize`        | number                 | 睾丸大小                | 根据性别  |
-| `outfits`          | string[]               | 服装列表                | 默认服装  |
-| `pregnancy`        | any                    | 怀孕状态                | null      |
+| 属性                 | 类型                   | 说明                                                    | 默认值    |
+| :------------------- | :--------------------- | :------------------------------------------------------ | :-------- |
+| `nam`                | string                 | **必需**，NPC的唯一名称                                 | -         |
+| `gender`             | 'm'/'f'/'h'/'n'/'none' | 性别                                                    | 随机      |
+| `title`              | string                 | 称呼/头衔                                               | 'none'    |
+| `description`        | string                 | 描述文本                                                | NPC名称   |
+| `type`               | string                 | NPC类型                                                 | 'human'   |
+| `adult`              | number                 | 是否为成人 (1/0)                                        | 随机      |
+| `teen`               | number                 | 是否为青少年 (1/0)                                      | 随机      |
+| `age`                | number                 | 年龄                                                    | 0         |
+| `insecurity`         | string                 | 不安全感类型                                            | 随机      |
+| `chastity`           | object                 | 贞操带状态                                              | {}        |
+| `virginity`          | object                 | 处女状态                                                | 完整      |
+| `hair_side_type`     | string                 | 侧发类型                                                | 'default' |
+| `hair_fringe_type`   | string                 | 前发类型                                                | 'default' |
+| `hair_position`      | string                 | 头发位置                                                | 'back'    |
+| `hair_sides_length`  | number                 | 主体头发数值长度                                        | 200       |
+| `hair_fringe_length` | number                 | 刘海数值长度                                            | 200       |
+| `eyeColour`          | string                 | 眼睛颜色                                                | 随机      |
+| `hairColour`         | string                 | 头发颜色                                                | 随机      |
+| `bottomsize`         | number                 | 臀部大小                                                | 随机      |
+| `skincolour`         | number                 | 肤色                                                    | 0         |
+| `init`               | number                 | 初始化状态                                              | 0         |
+| `intro`              | number                 | 介绍状态                                                | 0         |
+| `penis`              | string                 | 阴茎状态                                                | 根据性别  |
+| `penissize`          | number                 | 阴茎大小                                                | 根据性别  |
+| `vagina`             | string                 | 阴道状态                                                | 根据性别  |
+| `breastsize`         | number                 | 胸部大小                                                | 根据性别  |
+| `ballssize`          | number                 | 睾丸大小                                                | 根据性别  |
+| `outfits`            | string[]               | 服装列表                                                | 默认服装  |
+| `pregnancy`          | NPCPregnancyState      | 怀孕开关与周期数据，见 [NPC 怀孕](NamedNPCPregnancy.md) | {}        |
 
 #### 性别说明
 
@@ -122,7 +125,8 @@ maplebirch.npc.add(
     virginity: { penile: false, vaginal: true, anal: false },
     hair_side_type: 'short',
     hair_fringe_type: 'messy',
-    hairlength: 300,
+    hair_sides_length: 300,
+    hair_fringe_length: 300,
     eyeColour: 'light grey',
     hairColour: 'black',
     penissize: 4,
@@ -307,3 +311,5 @@ maplebirch.npc.add(
   ]
 }
 ```
+
+主体头发 `hair_sides_length` 与刘海 `hair_fringe_length` 各自保存数值长度，默认均为 200；缺失、类型不对或非有限数值恢复默认值，不转换旧字段。有效的 0 会保留，修改一项不影响另一项。

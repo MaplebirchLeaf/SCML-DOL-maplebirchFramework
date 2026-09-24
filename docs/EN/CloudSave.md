@@ -16,18 +16,25 @@ Uploaded records contain `slot`/`details`/`save`/`exportedAt`/`gameId` and are *
 The `cloudflare/` directory at the repo root ships a deployable Worker (`worker.ts` + `wrangler.jsonc`):
 
 1. Install and log in to wrangler:
+
    ```bash
    bunx wrangler login
    ```
+
 2. Inside `cloudflare/`, create the R2 bucket (`wrangler.jsonc` already declares the `SAVE_BUCKET` binding → bucket name `maplebirch-save`; edit if needed):
+
    ```bash
    bunx wrangler r2 bucket create maplebirch-save
    ```
+
 3. Set the access token (required secret `MAPLEBIRCH_TOKEN`; use a long random string):
+
    ```bash
    bunx wrangler secret put MAPLEBIRCH_TOKEN
    ```
+
 4. Deploy:
+
    ```bash
    bunx wrangler deploy
    ```
@@ -38,12 +45,12 @@ After deployment, `https://<worker-name>.<your-subdomain>.workers.dev/health` sh
 
 All endpoints except `/health` require the `Authorization: Bearer <MAPLEBIRCH_TOKEN>` header:
 
-| Endpoint | Methods | Description |
-| :--- | :--- | :--- |
-| `/health` | GET | Health check |
-| `/saves` | GET | List remote slots |
+| Endpoint       | Methods            | Description                       |
+| :------------- | :----------------- | :-------------------------------- |
+| `/health`      | GET                | Health check                      |
+| `/saves`       | GET                | List remote slots                 |
 | `/saves/:slot` | PUT / GET / DELETE | Upload / download / delete a slot |
-| `/save-code` | GET / PUT | Read / write the export code |
+| `/save-code`   | GET / PUT          | Read / write the export code      |
 
 ## Using it in-game
 
@@ -52,10 +59,12 @@ All endpoints except `/health` require the `Authorization: Bearer <MAPLEBIRCH_TO
    - **Address**: your Worker URL, e.g. `https://maplebirch-cloud-save.<your-subdomain>.workers.dev`
    - **Access token**: must match `MAPLEBIRCH_TOKEN`
 3. Click **Connect** to verify (the remote list refreshes), then you can:
-   - **Slots**: pick a local slot and upload; download / delete remote slots (slot 0 is Autosave, 1–10 are manual slots)
+   - **Slots**: pick a local slot and upload; download / delete remote slots (slot 0 is Autosave, 1–200 are manual slots; automatically detects existing local saves and selects the most recent save by default)
    - **Export code**: generate an export code for the current save or a chosen slot and upload it; or download the cloud code and import it by pasting
 
 ## Notes
 
 - Deleting a remote slot **cannot be undone**.
-- The token applies for the current session (fill in / connect each time you open the panel). Keep it safe — anyone who has it can read and write your cloud saves.
+- By default, the framework persists only the Worker URL and keeps the token in memory. If "Remember access token on this device" is checked, the token is saved to the browser's local storage. Keep it safe — anyone who has it can read and write your cloud saves.
+- The game accepts HTTPS Worker addresses only. Requests time out after 15 seconds.
+- The example Worker accepts JSON request bodies up to 32 MiB and rejects malformed saves or payloads whose slot does not match the URL.

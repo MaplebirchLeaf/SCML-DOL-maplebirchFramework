@@ -55,7 +55,6 @@ export interface EnhancedDate extends DateTime {
   isHour(...hours: number[]): boolean;
   isHourBetween(start: number, end: number): boolean;
   isMinuteBetween(start: number, end: number): boolean;
-  [key: string]: any;
 }
 
 const schedules = new Map<string, Schedule>();
@@ -134,7 +133,9 @@ export class Schedule {
     });
 
     const addEdge = (from: string | number, to: string | number) => {
-      graph.get(from)?.add(to);
+      const edges = graph.get(from);
+      if (!edges || edges.has(to)) return;
+      edges.add(to);
       inDegree.set(to, (inDegree.get(to) ?? 0) + 1);
     };
 
@@ -202,7 +203,7 @@ export class Schedule {
 
   public createEnhancedDate(date: DateTime): EnhancedDate {
     if (!enhancedDateProto) enhancedDateProto = this.buildEnhancedDateProto();
-    const enhancedDate = Object.create(enhancedDateProto) as EnhancedDate;
+    const enhancedDate = Object.assign(Object.create(enhancedDateProto), date) as EnhancedDate;
     Object.defineProperty(enhancedDate, 'schedule', {
       value: new Schedule(),
       configurable: true
@@ -229,19 +230,11 @@ export class Schedule {
       });
     }
 
-    for (const key in date) {
-      if (Object.prototype.hasOwnProperty.call(enhancedDate, key)) continue;
-      Object.defineProperty(enhancedDate, key, {
-        get: () => (date as any)[key],
-        configurable: true
-      });
-    }
-
     for (const key in Time) {
-      if (typeof (Time as any)[key] === 'function') continue;
-      if (Object.prototype.hasOwnProperty.call(enhancedDate, key)) continue;
+      if (typeof Reflect.get(Time, key) === 'function') continue;
+      if (key in enhancedDate) continue;
       Object.defineProperty(enhancedDate, key, {
-        get: () => (Time as any)[key],
+        get: () => Reflect.get(Time, key),
         configurable: true
       });
     }
@@ -250,7 +243,7 @@ export class Schedule {
   }
 
   public buildEnhancedDateProto(): EnhancedDate {
-    const proto = Object.create(null) as EnhancedDate;
+    const proto = Object.create(DateTime.prototype) as EnhancedDate;
     const toMinutes = (time: ScheduleTime): number => {
       return Array.isArray(time) ? time[0] * 60 + (time[1] ?? 0) : time * 60;
     };
@@ -313,7 +306,9 @@ const NPCSchedules = ((core: typeof maplebirch) => {
     schedules.set(npcName, schedule);
     if (typeof config === 'function') {
       const result = config(schedule);
-      return result instanceof Schedule ? result : schedule;
+      const configured = result instanceof Schedule ? result : schedule;
+      schedules.set(npcName, configured);
+      return configured;
     }
     config.daily?.forEach(({ time, location }) => {
       schedule.at(time, location);

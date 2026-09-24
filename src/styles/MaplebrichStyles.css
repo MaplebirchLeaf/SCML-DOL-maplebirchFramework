@@ -200,11 +200,12 @@ button.saveMenuButton.saves-clear {
 }
 
 .maplebirch-cloud-save select[data-cloud-save-field='slot'] {
-  width: 5rem;
+  min-width: 14rem;
+  max-width: 22rem;
+  width: auto;
 }
 
-.maplebirch-cloud-save-auth > .maplebirch-cloud-save-actions,
-.maplebirch-cloud-save-transfer {
+.maplebirch-cloud-save-auth > .maplebirch-cloud-save-actions {
   flex-wrap: nowrap;
 }
 
@@ -217,7 +218,34 @@ button.saveMenuButton.saves-clear {
 }
 
 .maplebirch-cloud-save-transfer > .maplebirch-cloud-save-actions {
+  flex: 1 1 0;
+  flex-wrap: nowrap;
+  min-width: 0;
   margin-left: auto;
+  justify-content: flex-end;
+}
+
+.maplebirch-cloud-save-transfer > .maplebirch-cloud-save-actions > span,
+.maplebirch-cloud-save-transfer > .maplebirch-cloud-save-actions > button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.maplebirch-cloud-save-transfer > .maplebirch-cloud-save-actions > span > .saveMenuButton {
+  width: 100%;
+}
+
+.maplebirch-cloud-save-transfer > label {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.maplebirch-cloud-save-transfer {
+  flex-wrap: nowrap;
 }
 
 .maplebirch-cloud-save-auth > .maplebirch-cloud-save-actions .saveMenuButton {
@@ -300,6 +328,15 @@ button.saveMenuButton.saves-clear {
   white-space: nowrap;
 }
 
+.maplebirch-cloud-save-auth > .maplebirch-cloud-save-actions .saveMenuButton,
+.maplebirch-cloud-save-transfer > .maplebirch-cloud-save-actions .saveMenuButton,
+.maplebirch-cloud-save-code > .maplebirch-cloud-save-actions .saveMenuButton {
+  height: 2.4em;
+  padding: 0.3em 0.55em;
+  font-size: 0.85em;
+  box-sizing: border-box;
+}
+
 @media (max-width: 768px) {
   .maplebirch-cloud-save {
     --cloud-save-label-width: 4.5rem;
@@ -331,7 +368,30 @@ button.saveMenuButton.saves-clear {
   }
 
   .maplebirch-cloud-save-transfer > .maplebirch-cloud-save-actions {
+    flex: 1 1 0;
+    flex-wrap: nowrap;
     width: auto;
+    min-width: 0;
+    margin-left: auto;
+    justify-content: flex-end;
+  }
+
+  .maplebirch-cloud-save-transfer {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: nowrap;
+  }
+
+  .maplebirch-cloud-save .maplebirch-cloud-save-transfer > label {
+    grid-template-columns: max-content 6rem;
+    flex: 0 0 auto;
+    width: auto;
+    max-width: 100%;
+  }
+
+  .maplebirch-cloud-save .maplebirch-cloud-save-transfer select[data-cloud-save-field='slot'] {
+    width: 100%;
+    min-width: 0;
   }
 
   .maplebirch-cloud-save label {
@@ -358,7 +418,11 @@ button.saveMenuButton.saves-clear {
     width: 100%;
   }
 
-  .maplebirch-cloud-save-transfer .saveMenuButton,
+  .maplebirch-cloud-save-transfer .saveMenuButton {
+    width: 100%;
+    white-space: nowrap;
+  }
+
   .maplebirch-cloud-save-row .saveMenuButton {
     width: auto;
     white-space: nowrap;

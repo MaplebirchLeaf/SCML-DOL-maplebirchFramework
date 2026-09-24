@@ -79,7 +79,9 @@ class AudioBufferPlayer {
     source.onended = null;
     try {
       source.stop();
-    } catch {}
+    } catch (error) {
+      console.warn('[maplebirch] Audio source could not stop:', error);
+    }
     source.disconnect();
   }
 }

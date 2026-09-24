@@ -64,21 +64,26 @@ function padToBlockSize(data: Uint8Array, pad = 0): BlockData {
   };
 }
 
-function createFileTree(fileList: string[]): Record<string, any> {
-  const fileTree: Record<string, any> = {};
+interface FileTree {
+  [key: string]: FileTree | true;
+}
+
+function createFileTree(fileList: string[]): FileTree {
+  const fileTree: FileTree = Object.create(null);
   for (const filePath of fileList) {
     const parts = filePath.split(/[\\/]/).filter(Boolean);
     let current = fileTree;
     for (const part of parts) {
-      current[part] ??= {};
-      current = current[part];
+      const next = current[part] ?? (current[part] = Object.create(null) as FileTree);
+      if (next === true) throw new Error(`Invalid file tree path: ${filePath}`);
+      current = next;
     }
     current._f_ = true;
   }
   return fileTree;
 }
 
-function serializeBsonDocument(value: Record<string, any>): Uint8Array {
+function serializeBsonDocument(value: object): Uint8Array {
   const chunks: Uint8Array[] = [];
   let contentLength = 0;
 
@@ -87,7 +92,8 @@ function serializeBsonDocument(value: Record<string, any>): Uint8Array {
     contentLength += bytes.length;
   };
 
-  for (const [key, item] of Object.entries(value)) {
+  const entries: Array<[string, unknown]> = Object.entries(value);
+  for (const [key, item] of entries) {
     if (item === undefined) continue;
     let type = 0x00;
 
@@ -121,7 +127,7 @@ function serializeBsonDocument(value: Record<string, any>): Uint8Array {
       continue;
     }
 
-    push(serializeBsonDocument(item));
+    if (item && typeof item === 'object') push(serializeBsonDocument(item));
   }
 
   const result = new Uint8Array(4 + contentLength + 1);

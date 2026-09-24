@@ -1,6 +1,11 @@
-## boot.json 配置
+# boot.json 配置
 
-### 适用场景
+[文档导航](README.md) · [快速开始](GettingStarted.md)
+
+> [!IMPORTANT]
+> 路径均相对模组 ZIP 根目录。先用最小 `script` 配置确认模组能加载，再按需要增加语言、音频和 NPC 资源。
+
+## 适用场景
 
 当模组需要使用 **`maplebirchFramework`** 的脚本加载、语言导入、音频导入、区域挂载或 NPC 资源注册时，可以在 **`boot.json`** 中配置 **`maplebirchAddon`**。
 
@@ -22,7 +27,7 @@
 
 ---
 
-### 基本结构
+## 基本结构
 
 ```json
 "addonPlugin": [
@@ -37,16 +42,16 @@
 ]
 ```
 
-**`params`** 是配置主体。常用字段如下：
+所有文件路径以模组压缩包内部路径为准。**`params`** 是配置主体，常用字段如下：
 
-| 字段        | 说明                                        |
-| :---------- | :------------------------------------------ |
-| `script`    | 加载普通 JavaScript 脚本                    |
-| `module`    | 加载更早执行的模块脚本                      |
-| `language`  | 导入翻译文件                                |
-| `audio`     | 导入音频目录                                |
-| `framework` | 添加区域 widget、注册特质、纹身、食物或古董 |
-| `npc`       | 注册 NPC 相关资源                           |
+| 字段        | 说明                                                          |
+| :---------- | :------------------------------------------------------------ |
+| `script`    | 加载普通 JavaScript 脚本                                      |
+| `module`    | 加载更早执行的模块脚本                                        |
+| `language`  | 导入翻译文件                                                  |
+| `audio`     | 导入音频目录                                                  |
+| `framework` | 添加区域 widget，注册特质、小贴士、纹身、食物、古董或钓鱼数据 |
+| `npc`       | 注册 NPC 相关资源                                             |
 
 ---
 
@@ -125,14 +130,25 @@
 }
 ```
 
+同一语言分多个文件时，用数组并按希望的覆盖顺序排列；后面的文件覆盖前面的同名键：
+
+```json
+"language": {
+  "CN": ["i18n/CN/common.yml", "i18n/CN/npc.yml"],
+  "EN": ["i18n/EN/common.yml", "i18n/EN/npc.yml"]
+}
+```
+
+对象写法中的 `file` 也接受数组。框架会先合并该语言的全部文件，再导入一次；指定文件缺失或无效时不会只导入其中一部分。默认的 `"language": ["CN", "EN"]` 会按 JSON、YML、YAML 顺序合并每种语言现有的默认文件。
+
 脚本中使用：
 
 ```javascript
-maplebirch.t('myMod.text.key');
+maplebirch.t('myMod:text.key');
 maplebirch.auto('Known source text');
 ```
 
-更多说明见 [语言管理](LanguageManager.md)。
+更多说明见 [翻译服务](Translator.md)。
 
 ---
 
@@ -205,7 +221,7 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 }
 ```
 
-更多区域名称和 widget 配置见 [区域管理系统](ToolCollection/Framework.md)。
+更多区域名称和 widget 配置见 [区域管理系统](Tools/Zones.md)。
 
 ---
 
@@ -237,7 +253,7 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 
 `has` 可以写布尔值，也可以写判断表达式。表达式会作为代码执行，只应写可信内容。
 
-更多说明见 [特质注册](ToolCollection/Traits.md)。
+更多说明见 [特质注册](Tools/Traits.md)。
 
 ---
 
@@ -251,6 +267,9 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
     "traits": "data/traits.yaml"
   },
   {
+    "tips": "data/tips.json"
+  },
+  {
     "bodywriting": "data/bodywriting.yaml"
   },
   {
@@ -258,18 +277,55 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
   },
   {
     "antiques": "data/antiques.yaml"
+  },
+  {
+    "fish": "data/fish.json",
+    "bait": "data/bait.yaml",
+    "fishingLocations": "data/fishing-locations.yaml"
   }
 ]
 ```
 
-**`traits`**、**`bodywriting`**、**`foodstuff`**、**`antiques`** 都可以使用内联数组/对象或外部文件。**`bodywriting`**、**`foodstuff`**、**`antiques`** 使用数组写法时，每一项必须包含 **`key`**。
+同一个 **`framework`** 对象可以声明多个数据字段。每个字段都支持文件路径或路径数组；多个文件按顺序读取，内容使用下表中的格式：
+
+| 字段                                                   | 内容格式                                      |
+| :----------------------------------------------------- | :-------------------------------------------- |
+| `traits`                                               | 特质配置数组                                  |
+| `tips`                                                 | 提示文本数组，或分类到文本数组的对象          |
+| `bodywriting`、`foodstuff`、`antiques`、`fish`、`bait` | 以唯一标识为键的对象，或每项包含 `key` 的数组 |
+| `fishingLocations`                                     | 钓点到鱼类权重的对象                          |
+
+这些内容也可以直接内联。按键注册的数据重复时，以后注册的配置为准；`fish`、`bait` 和 `fishingLocations` 对应原版 0.5.12.13 的钓鱼系统。
+
+`tips.json` 可以直接写字符串数组，默认加入原版始终启用的 `general` 分类：
+
+```json
+["第一条模组小贴士。", "小贴士支持原版使用的 HTML 与 SugarCube 标记。"]
+```
+
+需要跟随原版内容开关时，也可以按 `setup.tips` 的分类对象来写：
+
+```json
+{
+  "general": ["始终可能出现的小贴士。"],
+  "weather": ["启用天气内容时出现的小贴士。"],
+  "myMod:tips": ["自定义分类也会自动加入随机池。"]
+}
+```
+
+原版分类继续遵循原版内容开关；新增分类默认始终启用，并会自动加入原版 `generateTipsList` 生成的随机池。脚本中也可以调用 `maplebirch.tool.patch.tips.add('myMod:tips', '新的小贴士')`；框架会在原版 `init_tips` 之后合并内容，并自动去除重复文本。
+
+内联的 `tips` 字符串数组用于提示文本；当所有项均以 `.json`、`.yaml` 或 `.yml` 结尾时，按文件路径读取。
 
 相关文档：
 
-- [特质注册](ToolCollection/Traits.md)
-- [身体文字](ToolCollection/Bodywriting.md)
-- [食物注册](ToolCollection/Foodstuff.md)
-- [古董注册](ToolCollection/Antiques.md)
+- [Patch 注册](Tools/Patches.md)
+- [特质注册](Tools/Traits.md)
+- [小贴士注册](Tools/Tips.md)
+- [身体文字](Tools/Bodywriting.md)
+- [食物注册](Tools/Foodstuff.md)
+- [钓鱼扩展](Tools/Fishing.md)
+- [古董注册](Tools/Antiques.md)
 
 ---
 
@@ -281,6 +337,8 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 "npc": {
   "NamedNPC": [],
   "Stats": {},
+  "Transformation": {},
+  "Pregnancy": {},
   "Sidebar": {
     "image": [],
     "clothes": [],
@@ -289,13 +347,15 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 }
 ```
 
-| 字段              | 说明                        |
-| :---------------- | :-------------------------- |
-| `NamedNPC`        | 注册命名 NPC                |
-| `Stats`           | 注册 NPC 状态               |
-| `Sidebar.image`   | 导入 NPC 静态侧边栏图片     |
-| `Sidebar.clothes` | 导入 NPC 衣柜配置           |
-| `Sidebar.config`  | 导入 NPC 侧边栏模型资源配置 |
+| 字段              | 说明                          |
+| :---------------- | :---------------------------- |
+| `NamedNPC`        | 注册命名 NPC                  |
+| `Stats`           | 注册 NPC 状态                 |
+| `Transformation`  | 按 NPC 名称注册独立的转化配置 |
+| `Pregnancy`       | 按 NPC 名称注册怀孕与周期配置 |
+| `Sidebar.image`   | 导入 NPC 静态侧边栏图片       |
+| `Sidebar.clothes` | 导入 NPC 衣柜配置             |
+| `Sidebar.config`  | 导入 NPC 侧边栏模型资源配置   |
 
 示例：
 
@@ -320,6 +380,20 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
       "position": 1
     }
   },
+  "Transformation": {
+    "Example": {
+      "wolf": {
+        "parts": { "wolf_ears": { "level": 1 }, "wolf_tail": { "level": 2 } }
+      }
+    }
+  },
+  "Pregnancy": {
+    "Example": {
+      "canBePregnant": true,
+      "canImpregnatePlayer": true,
+      "cycle": { "days": [26, 30], "dangerousDay": 14, "fertileLeadDays": [4, 6] }
+    }
+  },
   "Sidebar": {
     "image": ["img/npc/example.png"],
     "clothes": ["npc/clothes.yml"],
@@ -331,6 +405,8 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 相关说明：
 
 - [NPC 注册](NamedNPC/NamedNPC.md)
+- [NPC 转化](NamedNPC/NamedNPCTransformation.md)
+- [NPC 怀孕](NamedNPC/NamedNPCPregnancy.md)
 - [NPC 状态](NamedNPC/NamedNPCStats.md)
 - [NPC 服装](NamedNPC/NamedNPCClothes.md)
 - [NPC 侧边栏](NamedNPC/NamedNPCSidebar.md)
@@ -382,14 +458,3 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
   }
 ]
 ```
-
----
-
-### 补充说明
-
-- 文件路径以模组压缩包内部路径为准。
-- `script` 文件按数组顺序执行。
-- `module` 不是普通脚本入口，不确定时使用 `script`。
-- `framework` 可以是单个对象，也可以是对象数组。
-- `npc.NamedNPC` 的每一项是 `[npcData, npcConfig, translations]`。
-- 配置能表达的内容有限，复杂逻辑应写入 JavaScript。

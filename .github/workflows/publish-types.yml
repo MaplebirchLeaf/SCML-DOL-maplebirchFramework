@@ -28,6 +28,10 @@ jobs:
           fi
 
           VERSION="${TAG_NAME#maplebirch-release-v}"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: release version must be MAJOR.MINOR.PATCH (got: $VERSION)"
+            exit 1
+          fi
           echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
           echo "TAG_NAME=$TAG_NAME" >> "$GITHUB_OUTPUT"
 
@@ -38,9 +42,9 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+        uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: '1.4.2'
 
       - name: Setup npm
         uses: actions/setup-node@v4
@@ -49,7 +53,7 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
 
       - name: Verify root package version
         run: |
@@ -62,6 +66,12 @@ jobs:
 
       - name: Build types package
         run: bun run types
+
+      - name: Verify framework
+        run: bun run verify
+
+      - name: Test services
+        run: bun run test:services
 
       - name: Verify types package version
         run: |
@@ -76,7 +86,7 @@ jobs:
         id: npm_version
         run: |
           VERSION="${{ steps.release.outputs.VERSION }}"
-          if npm view "@scml-maplebirch/types@$VERSION" version >/dev/null 2>&1; then
+          if npm view "@scml-dol-maplebirch/types@$VERSION" version >/dev/null 2>&1; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
@@ -88,7 +98,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
-            echo "Error: NPM_TOKEN secret is required to publish @scml-maplebirch/types."
+            echo "Error: NPM_TOKEN secret is required to publish @scml-dol-maplebirch/types."
             exit 1
           fi
 

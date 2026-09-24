@@ -1,16 +1,9 @@
 // ./src/modules/NamedNPCAddon/NPCSidebarConfig/neck_layers.ts
 
 import maplebirch from '../../../core';
-import { gray_suffix, clothes_layer } from './functions';
+import { gray_suffix, clothes_layer, clothingZIndex, isAltPosition } from './functions';
 
-type NPCSidebarOptions = {
-  filters?: Record<string, any>;
-  maplebirch: {
-    nnpc: Record<string, any>;
-    [key: string]: any;
-  };
-  [key: string]: any;
-};
+import type { NPCSidebarOptions } from './types';
 
 const neck_layers = {
   nnpc_neck_main: clothes_layer('neck', 'main', {
@@ -24,9 +17,15 @@ const neck_layers = {
       const nnpc = options.maplebirch.nnpc;
       const neck = nnpc.clothes.neck;
       const upper = nnpc.clothes.upper;
-      const collar = neck.has_collar === 1 && upper.has_collar === 1 ? '-nocollar' : neck.name === 'sailor ribbon' && upper.name === 'serafuku' ? '-serafuku' : '';
-      const pattern = neck.pattern && !['tertiary', 'secondary'].includes(neck.pattern_layer) ? `-${neck.pattern.replace(/ /g, '-')}` : '';
-      return gray_suffix(`img/clothes/neck/${neck.variable}/${neck.integrity}${collar}${pattern}.png`, options.filters?.nnpc_neck);
+      const collar =
+        neck.has_collar === 1 && upper.has_collar === 1 && !(upper.name === 'dress shirt' && isAltPosition(upper))
+          ? '-nocollar'
+          : neck.name === 'sailor ribbon' && upper.name === 'serafuku'
+            ? '-serafuku'
+            : '';
+      const pattern = neck.pattern && !['tertiary', 'secondary'].includes(neck.pattern_layer ?? '') ? `-${neck.pattern.replace(/ /g, '-')}` : '';
+      const alt = isAltPosition(neck) ? '-alt' : '';
+      return gray_suffix(`img/clothes/neck/${neck.variable}/${neck.integrity}${collar}${pattern}${alt}.png`, options.filters?.nnpc_neck);
     },
 
     showfn: (options: NPCSidebarOptions) => {
@@ -37,7 +36,8 @@ const neck_layers = {
 
     zfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
-      return (nnpc.hood_mask ? maplebirch.char.ZIndices.collar : maplebirch.char.ZIndices.neck) + nnpc.position;
+      const fallback = nnpc.hood_mask ? maplebirch.char.ZIndices.collar : maplebirch.char.ZIndices.neck;
+      return clothingZIndex(maplebirch.char.ZIndices, nnpc.clothes.neck, fallback) + nnpc.position;
     }
   }),
 
@@ -47,7 +47,8 @@ const neck_layers = {
       const neck = nnpc.clothes.neck;
       const integrity = neck.accessory_integrity_img ? `-${neck.integrity}` : '';
       const pattern = neck.pattern && neck.pattern_layer === 'secondary' ? `-${neck.pattern.replace(/ /g, '-')}` : '';
-      return gray_suffix(`img/clothes/neck/${neck.variable}/acc${integrity}${pattern}.png`, options.filters?.nnpc_neck_acc);
+      const alt = isAltPosition(neck) ? '-alt' : '';
+      return gray_suffix(`img/clothes/neck/${neck.variable}/acc${integrity}${pattern}${alt}.png`, options.filters?.nnpc_neck_acc);
     },
 
     showfn: (options: NPCSidebarOptions) => {
@@ -61,7 +62,8 @@ const neck_layers = {
       const head = nnpc.clothes.head;
       const upper = nnpc.clothes.upper;
       const covered = head.mask_img === 1 && !(upper.hoodposition === 'down' && head.hood && head.outfitSecondary != null);
-      return (covered ? maplebirch.char.ZIndices.collar : maplebirch.char.ZIndices.neck) + nnpc.position;
+      const fallback = covered ? maplebirch.char.ZIndices.collar : maplebirch.char.ZIndices.neck;
+      return clothingZIndex(maplebirch.char.ZIndices, nnpc.clothes.neck, fallback) + nnpc.position;
     },
 
     dyfn: (options: NPCSidebarOptions) => {

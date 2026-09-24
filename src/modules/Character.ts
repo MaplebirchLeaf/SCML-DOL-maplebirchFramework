@@ -1,12 +1,15 @@
 // ./src/modules/Character.ts
 
+import Diagnostics from '../infra/Diagnostics';
 import { MacroDefinition } from 'twine-sugarcube';
-import maplebirch, { MaplebirchCore, createlog } from '../core';
+import maplebirch, { MaplebirchCore } from '../core';
+import type { ScopedLog } from '../infra/Diagnostics';
 import { clone, mergefn as mergeFn } from '../utils';
-import AddonPlugin from './AddonPlugin';
-import type { Replacement } from '../utils/twine';
+import type AddonPlugin from '../services/AddonPlugin';
+import type { Replacement } from '../host/ModLoader';
 import Pet from './CharacterAddon/Pet';
 import Transformation from './CharacterAddon/Transformation';
+import dol from '../host/DoL';
 
 interface HairGradientOptions {
   style: string;
@@ -61,6 +64,25 @@ const faceImagePaths = new Set<string>();
 
 const maskCache = new Map<string, string>();
 
+function guarded(layers: CanvasLayerMap): CanvasLayerMap {
+  return Object.fromEntries(
+    Object.entries(layers).map(([name, layer]) => {
+      if (!layer.showfn) return [name, layer];
+      const { showfn, srcfn, src } = layer;
+      return [
+        name,
+        {
+          ...layer,
+          srcfn(options: any) {
+            if (!showfn.call(this, options)) return '';
+            return srcfn ? srcfn.call(this, options) : src;
+          }
+        }
+      ];
+    })
+  );
+}
+
 function mask(x = 0, rotation = 0, swap = false, width = 256, height = 256): string {
   rotation = Math.clamp(rotation, -90, 90);
   x = Math.clamp(x, -width / 2, width / 2);
@@ -106,11 +128,11 @@ function mask(x = 0, rotation = 0, swap = false, width = 256, height = 256): str
 }
 
 function hairColourGradient(part: string, gradient: HairGradientOptions, hairType: string, hairLength: number, prefilterName: string, type: 'charArt' | 'closeUp'): any {
-  const filterPrototypeLibrary = setup.colours?.hairgradients_prototypes?.[part]?.[gradient.style];
-  if (!filterPrototypeLibrary) return Renderer.emptyLayerFilter();
+  const filterPrototypeLibrary = dol.setup.colours?.hairgradients_prototypes?.[part]?.[gradient.style];
+  if (!filterPrototypeLibrary) return dol.renderer.emptyLayerFilter();
   const filterPrototype = filterPrototypeLibrary[hairType] || filterPrototypeLibrary.all;
-  if (!filterPrototype) return Renderer.emptyLayerFilter();
-  const storedPositions = V.options?.maplebirch?.character?.[type]?.value?.[part]?.[gradient.style];
+  if (!filterPrototype) return dol.renderer.emptyLayerFilter();
+  const storedPositions = dol.variables.options?.maplebirch?.character?.[type]?.value?.[part]?.[gradient.style];
   const blend = clone(filterPrototype);
   if (storedPositions && storedPositions.length === blend.colors.length) for (let i = 0; i < blend.colors.length; i++) blend.colors[i][0] = Math.clamp(storedPositions[i], 0, 1);
   const filter = {
@@ -128,7 +150,7 @@ function hairColourGradient(part: string, gradient: HairGradientOptions, hairTyp
     let lengthValue = typeof lengthFn === 'function' ? lengthFn(hairLength, color[0]) : color[0];
     lengthValue = Math.clamp(lengthValue, 0, 1);
     const colourKey = gradient.colours[index];
-    const colorData = setup.colours?.hair_map?.[colourKey]?.canvasfilter;
+    const colorData = dol.setup.colours?.hair_map?.[colourKey]?.canvasfilter;
     if (!colorData) continue;
     filter.brightness.adjustments[index][0] = lengthValue;
     filter.brightness.adjustments[index][1] = colorData.brightness || 0;
@@ -136,18 +158,18 @@ function hairColourGradient(part: string, gradient: HairGradientOptions, hairTyp
     color[1] = colorData.blend;
   }
 
-  const prefilter = setup.colours?.sprite_prefilters?.[prefilterName];
-  if (prefilter) Renderer.mergeLayerData(filter, prefilter, true);
+  const prefilter = dol.setup.colours?.sprite_prefilters?.[prefilterName];
+  if (prefilter) dol.renderer.mergeLayerData(filter, prefilter, true);
   return filter;
 }
 
 function preprocess(options: HairGradientPreprocessOptions) {
-  const styles = Object.values(setup.faceStyleOptions ?? {});
+  const styles = Object.values(dol.setup.faceStyleOptions ?? {});
   if (!options.facestyle || !styles.includes(options.facestyle)) options.facestyle = 'default';
-  const variants = Object.values(setup.faceVariantOptions?.[options.facestyle] ?? {});
+  const variants = Object.values(dol.setup.faceVariantOptions?.[options.facestyle] ?? {});
   if (!options.facevariant || !variants.includes(options.facevariant)) options.facevariant = 'default';
   (options.maplebirch ??= {}).char ??= {};
-  const characterOptions = V.options?.maplebirch?.character ?? {};
+  const characterOptions = dol.variables.options?.maplebirch?.character ?? {};
   options.maplebirch.char.mask_src = mask(characterOptions.mask ?? 0, characterOptions.rotation ?? 0);
   options.maplebirch.char.mask_src_close_up = mask(characterOptions.mask ?? 0, characterOptions.rotation ?? 0, true);
   const gradients = (style: string, key: string, part: string, type: string, lengthKey: string, prefilter: string) => {
@@ -218,7 +240,7 @@ const layers: CanvasLayerMap = {
 };
 
 class Character {
-  public readonly log: ReturnType<typeof createlog>;
+  public readonly log!: ScopedLog;
   public readonly mask = mask;
   public readonly faceStyleMap: Map<string, string[]> = new Map();
   private readonly handlers: ProcessEntry[] = [];
@@ -227,7 +249,6 @@ class Character {
   public readonly transformation: Transformation;
 
   public constructor(readonly core: MaplebirchCore) {
-    this.log = createlog('char');
     this.pet = new Pet(this);
     this.transformation = new Transformation(this);
   }
@@ -279,9 +300,9 @@ class Character {
       this.faceStyleMap.set(style, variants);
     };
 
-    for (const style of Object.values(setup.faceStyleOptions ?? {})) if (typeof style === 'string') add(style);
+    for (const style of Object.values(dol.setup.faceStyleOptions ?? {})) if (typeof style === 'string') add(style);
 
-    for (const [style, variants] of Object.entries(setup.faceVariantOptions ?? {})) {
+    for (const [style, variants] of Object.entries(dol.setup.faceVariantOptions ?? {})) {
       add(style);
       for (const variant of Object.values(variants as Record<string, string>)) if (typeof variant === 'string') add(style, variant);
     }
@@ -308,8 +329,8 @@ class Character {
       }
     }
 
-    setup.faceStyleOptions = styleOptions;
-    setup.faceVariantOptions = variantOptions;
+    dol.setup.faceStyleOptions = styleOptions;
+    dol.setup.faceVariantOptions = variantOptions;
   }
 
   public modifyCanvasModel(manager: AddonPlugin): void {
@@ -400,7 +421,7 @@ class Character {
       this.handlers.push({ type, target, handler });
       return this;
     }
-    const layers = args[0];
+    const layers = guarded(args[0]);
     const target = args[1] ?? 'main';
     const options = args[2];
     this.layers.push({ target, layers });
@@ -421,8 +442,8 @@ class Character {
     for (const handler of handlers) {
       try {
         handler(options, model);
-      } catch (error: any) {
-        this.log(`${model}-${type}process 错误: ${error?.message || error}`, 'ERROR', error);
+      } catch (error) {
+        this.log(`${model}-${type}process 错误: ${Diagnostics.message(error)}`, 'ERROR', error);
       }
     }
   }
@@ -432,7 +453,7 @@ class Character {
     core.on(':language', () => this.faceStyleSetupOption(), 'face style setup options');
     core.once(':storyready', () => {
       this.faceStyleSetupOption();
-      const macro = core.SugarCube.Macro.get('updatesidebarimg') as MacroDefinition | undefined;
+      const macro = core.host.sugarcube.require().Macro.get('updatesidebarimg') as MacroDefinition | undefined;
       if (!macro) return;
       core.tool.macro.define('updatesidebarimg', function (this: any) {
         macro.handler.call(this);
@@ -449,10 +470,8 @@ class Character {
   }
 
   public loadInit() {
-    void this.transformation.inject();
+    this.transformation.state();
   }
 }
-
-maplebirch.register('char', Object.seal(new Character(maplebirch)), ['var']);
 
 export default Character;

@@ -1,15 +1,7 @@
 {
-  "name": "@scml-maplebirch/types",
-  "version": "4.3.0",
+  "name": "@scml-dol-maplebirch/types",
+  "version": "5.0.0",
   "description": "TypeScript definitions for maplebirchFramework.",
-  "license": "MIT",
-  "types": "index.d.ts",
-  "sideEffects": false,
-  "files": [
-    "index.d.ts",
-    "maplebirch.d.ts",
-    "README.md"
-  ],
   "keywords": [
     "degrees-of-lewdity",
     "dol",
@@ -18,10 +10,25 @@
     "types"
   ],
   "homepage": "https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework#readme",
+  "license": "(MIT OR CC-BY-NC-SA-4.0)",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework.git",
     "directory": "packages/types"
+  },
+  "files": [
+    "index.d.ts",
+    "maplebirch.d.ts",
+    "README.md",
+    "LICENSE",
+    "LICENSE-CC-BY-NC-SA-4.0"
+  ],
+  "sideEffects": false,
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts"
+    }
   },
   "publishConfig": {
     "access": "public"

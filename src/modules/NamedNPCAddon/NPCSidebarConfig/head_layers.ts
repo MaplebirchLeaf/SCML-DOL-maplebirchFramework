@@ -1,15 +1,17 @@
 // ./src/modules/NamedNPCAddon/NPCSidebarConfig/head_layers.ts
 
-import { gray_suffix, clothes_layer, clothes_back, clothes_back_acc } from './functions';
+import { gray_suffix, clothes_layer, clothes_back, clothes_back_acc, kaijuMask, isAltPosition } from './functions';
 
-type NPCSidebarOptions = {
-  filters?: Record<string, any>;
-  maplebirch: {
-    nnpc: Record<string, any>;
-    [key: string]: any;
-  };
-  [key: string]: any;
-};
+import type { NPCSidebarOptions } from './types';
+
+function headMask(options: NPCSidebarOptions, back = false) {
+  const nnpc = options.maplebirch.nnpc;
+  const costume = kaijuMask(options);
+  if (costume) return costume;
+  const handheld = nnpc.clothes.handheld;
+  if (handheld?.mask_img === 1) return `img/clothes/handheld/${handheld.variable}/mask.png`;
+  return back ? nnpc.head_mask : nnpc.close_up_mask;
+}
 
 const head_layers = {
   nnpc_over_head_main: clothes_layer('over_head', 'main'),
@@ -22,14 +24,17 @@ const head_layers = {
       const nnpc = options.maplebirch.nnpc;
       const head = nnpc.clothes.head;
       const integrity = head.accessory_integrity_img ? nnpc.clothes.upper.integrity : head.integrity;
-      const pattern = head.pattern && !['tertiary', 'secondary'].includes(head.pattern_layer) ? `-${head.pattern.replace(/ /g, '-')}` : '';
-      return gray_suffix(`img/clothes/head/${head.variable}/${integrity}${pattern}.png`, options.filters?.nnpc_head);
+      const pattern = head.pattern && !['tertiary', 'secondary'].includes(head.pattern_layer ?? '') ? `-${head.pattern.replace(/ /g, '-')}` : '';
+      const alt = isAltPosition(head, 'full') ? '-alt' : '';
+      return gray_suffix(`img/clothes/head/${head.variable}/${integrity}${pattern}${alt}.png`, options.filters?.nnpc_head);
     },
 
     showfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       return nnpc.clothes.head.index > 0 && nnpc.clothes.head.mainImage !== 0 && !nnpc.hide_all && nnpc.show && nnpc.model;
-    }
+    },
+
+    masksrcfn: (options: NPCSidebarOptions) => headMask(options)
   }),
 
   nnpc_head_acc: clothes_layer('head', 'acc', {
@@ -45,7 +50,9 @@ const head_layers = {
       const nnpc = options.maplebirch.nnpc;
       const head = nnpc.clothes.head;
       return head.index > 0 && head.accImage !== 0 && head.accessory === 1 && !nnpc.hide_head_acc && !nnpc.hide_all && nnpc.show && nnpc.model;
-    }
+    },
+
+    masksrcfn: (options: NPCSidebarOptions) => headMask(options)
   }),
 
   nnpc_head_detail: clothes_layer('head', 'detail', {
@@ -60,11 +67,13 @@ const head_layers = {
       const nnpc = options.maplebirch.nnpc;
       const head = nnpc.clothes.head;
       return head.index > 0 && head.mainImage !== 0 && head.pattern_layer === 'tertiary' && !!head.pattern && !nnpc.hide_all && nnpc.show && nnpc.model;
-    }
+    },
+
+    masksrcfn: (options: NPCSidebarOptions) => headMask(options)
   }),
 
-  nnpc_head_back: clothes_back('head'),
-  nnpc_head_back_acc: clothes_back_acc('head')
+  nnpc_head_back: clothes_back('head', { masksrcfn: (options: NPCSidebarOptions) => headMask(options, true) }),
+  nnpc_head_back_acc: clothes_back_acc('head', { masksrcfn: (options: NPCSidebarOptions) => headMask(options, true) })
 };
 
 export default head_layers;

@@ -1,9 +1,12 @@
 // ./src/modules/Variables.ts
 
 import { version } from '../constants';
-import maplebirch, { MaplebirchCore, createlog } from '../core';
+import maplebirch, { MaplebirchCore } from '../core';
+import type { ScopedLog } from '../infra/Diagnostics';
 import migration from './Frameworks/migration';
 import { clone } from '../utils';
+import Diagnostics from '../infra/Diagnostics';
+import dol from '../host/DoL';
 
 const defaults = {
   player: {
@@ -21,7 +24,7 @@ type OptionsData = Record<string, any>;
 
 class Options {
   public define(...args: any[]) {
-    const options = ((V.options ??= {}).maplebirch ??= {}) as OptionsData;
+    const options = ((dol.variables.options ??= {}).maplebirch ??= {}) as OptionsData;
     const defaults = args.pop();
     if (defaults == null) return;
     if (typeof defaults !== 'object') {
@@ -36,7 +39,7 @@ class Options {
         if (key in defaults) {
           const value = defaults[key];
           Variables.add(key, value);
-          if (maplebirch.lodash.isPlainObject(value) && maplebirch.lodash.isPlainObject(options[key])) {
+          if (maplebirch.host.modLoader.lodash.isPlainObject(value) && maplebirch.host.modLoader.lodash.isPlainObject(options[key])) {
             options[key] = Object.merge(clone(value), options[key]);
           } else {
             options[key] ??= clone(value);
@@ -51,7 +54,7 @@ class Options {
 
     for (const [key, value] of Object.entries(defaults)) {
       Variables.add(key, value);
-      if (maplebirch.lodash.isPlainObject(value) && maplebirch.lodash.isPlainObject(options[key])) {
+      if (maplebirch.host.modLoader.lodash.isPlainObject(value) && maplebirch.host.modLoader.lodash.isPlainObject(options[key])) {
         options[key] = Object.merge(clone(value), options[key]);
       } else {
         options[key] ??= clone(value);
@@ -78,9 +81,9 @@ interface HairGradientsReturn {
 }
 
 function hairgradients(): HairGradientsReturn {
-  if (!setup.colours?.hairgradients_prototypes) return { fringe: {}, sides: {} };
+  if (!dol.setup.colours?.hairgradients_prototypes) return { fringe: {}, sides: {} };
   const data: HairGradientsReturn = { fringe: {}, sides: {} };
-  const hg = setup.colours.hairgradients_prototypes;
+  const hg = dol.setup.colours.hairgradients_prototypes;
   for (const [style, hairstyles] of Object.entries(hg.fringe || {}))
     if ((hairstyles as HairStyleData).all?.colors) data.fringe[style] = (hairstyles as HairStyleData).all!.colors.map(color => color[0]);
   for (const [style, hairstyles] of Object.entries(hg.sides || {})) if ((hairstyles as HairStyleData).all?.colors) data.sides[style] = (hairstyles as HairStyleData).all!.colors.map(color => color[0]);
@@ -93,7 +96,7 @@ class Variables {
 
   public static add(key: string, value: any): void {
     const current = this.moduleOptions[key];
-    if (maplebirch.lodash.isPlainObject(value) && maplebirch.lodash.isPlainObject(current)) {
+    if (maplebirch.host.modLoader.lodash.isPlainObject(value) && maplebirch.host.modLoader.lodash.isPlainObject(current)) {
       this.moduleOptions[key] = Object.merge(clone(value), current);
       return;
     }
@@ -111,21 +114,27 @@ class Variables {
         closeUp  : { type: 'fringe' as const, select: 'low-ombre', value: clone(hairgradients()) },
       },
       npcsidebar: {
-        show       : false,
-        model      : false,
-        position   : 'back' as const,
-        dxfn       : -48,
-        dyfn       : -8,
-        skin_type  : 'light',
-        tan        : 0,
-        facestyle  : 'default',
-        facevariant: 'default',
-        freckles   : false,
-        ears       : 'back',
-        mask       : 30,
-        rotation   : 0,
-        nnpc       : false,
-        display    : {}
+        show         : false,
+        model        : false,
+        second_model : false,
+        primary_npc  : '',
+        secondary_npc: '',
+        position     : 'back' as const,
+        dxfn         : -48,
+        dyfn         : -8,
+        previous_dx  : -36,
+        previous_dy  : -8,
+        skin_type    : 'light',
+        tan          : 0,
+        facestyle    : 'default',
+        facevariant  : 'default',
+        freckles     : false,
+        ears         : 'back',
+        mask         : 30,
+        rotation     : 0,
+        pet          : { enabled: false, mask: 25, rotation: 0, scale: 1 },
+        nnpc         : false,
+        display      : {}
       },
       relationcount: 4,
 
@@ -135,13 +144,12 @@ class Variables {
 
   public version: string;
   public readonly tool: MaplebirchCore['tool'];
-  public readonly log: ReturnType<typeof createlog>;
+  public readonly log!: ScopedLog;
   public readonly migration: migration;
   public readonly options: Options;
   constructor(readonly core: MaplebirchCore) {
     this.version = version;
     this.tool = this.core.tool;
-    this.log = createlog('var');
     this.migration = new this.tool.migration();
     this.options = new Options();
     dataUpdate(this.migration);
@@ -149,70 +157,77 @@ class Variables {
     this.core.on(':rest-options', () => this.check());
   }
 
+  public hairgradients = hairgradients;
+
   public optionsStorage(action: 'save' | 'restore' | 'reset' | 'load'): any | null {
     try {
       if (action === 'save') {
-        localStorage.setItem(Variables.OPTIONS_STORAGE_KEY, JSON.stringify(V.options?.maplebirch ?? {}));
+        localStorage.setItem(Variables.OPTIONS_STORAGE_KEY, JSON.stringify(dol.variables.options?.maplebirch ?? {}));
         return null;
       }
 
       if (action === 'reset') {
         localStorage.removeItem(Variables.OPTIONS_STORAGE_KEY);
-        V.options.maplebirch = clone(Variables.options);
+        dol.variables.options.maplebirch = clone(Variables.options);
         return null;
       }
 
       const raw = localStorage.getItem(Variables.OPTIONS_STORAGE_KEY);
       if (!raw) return null;
       const parsed = JSON.parse(raw);
-      const saved = this.core.lodash.isPlainObject(parsed) ? parsed : null;
+      const saved = this.core.host.modLoader.lodash.isPlainObject(parsed) ? parsed : null;
 
       if (action === 'restore' && saved) {
-        V.options.maplebirch = saved;
+        dol.variables.options.maplebirch = saved;
         this.check();
       }
 
       return saved;
-    } catch (error: any) {
-      this.log(`框架设置存储处理失败: ${error?.message || error}`, 'WARN');
+    } catch (error) {
+      this.log(`框架设置存储处理失败: ${Diagnostics.message(error)}`, 'WARN');
       return null;
     }
   }
 
   public check() {
-    V.options ??= {};
-    const current = this.core.lodash.isPlainObject(V.options.maplebirch) ? V.options.maplebirch : this.optionsStorage('load');
-    V.options.maplebirch = Object.merge(clone(Variables.options), current ?? {});
+    dol.variables.options ??= {};
+    const current = this.core.host.modLoader.lodash.isPlainObject(dol.variables.options.maplebirch) ? dol.variables.options.maplebirch : this.optionsStorage('load');
+    dol.variables.options.maplebirch = Object.merge(clone(Variables.options), current ?? {});
   }
 
   public Init(): void {
     try {
-      V.maplebirch ??= {};
-      if (this.tool.core.passage?.title === 'Start2') V.maplebirch = clone({ ...defaults, version: this.version });
-    } catch (e: any) {
-      this.log(`出现错误：${e?.message || e}`, 'ERROR');
+      dol.variables.maplebirch ??= {};
+      if (this.tool.core.host.sugarcube.passage?.title === 'Start2') dol.variables.maplebirch = clone({ ...defaults, version: this.version });
+    } catch (error) {
+      this.log(`出现错误：${Diagnostics.message(error)}`, 'ERROR');
     } finally {
-      this.migration.run(V.maplebirch, this.version);
-      $.wiki('<<maplebirchState>>');
+      this.migration.run(dol.variables.maplebirch, this.version);
+      this.run();
     }
   }
 
   public loadInit() {
     try {
-      V.maplebirch ??= {};
+      dol.variables.maplebirch ??= {};
       this.check();
-      this.migration.run(V.maplebirch, this.version);
-      $.wiki('<<maplebirchState>>');
-    } catch (e: any) {
-      this.log(`读档迁移出错: ${e?.message || e}`, 'ERROR');
+      this.migration.run(dol.variables.maplebirch, this.version);
+      this.run();
+    } catch (error) {
+      this.log(`读档迁移出错: ${Diagnostics.message(error)}`, 'ERROR');
     }
   }
 
   public postInit() {
-    if (V.maplebirch?.version !== this.version) this.migration.run(V.maplebirch, this.version);
+    if (dol.variables.maplebirch?.version !== this.version) this.migration.run(dol.variables.maplebirch, this.version);
+  }
+
+  private run(): void {
+    this.tool.patch.apply('state');
+    void this.core.trigger(':variable');
+    const widgets = this.tool.zone.play('State');
+    if (widgets) new (this.core.host.sugarcube.require().Wikifier)(document.createDocumentFragment(), widgets);
   }
 }
-
-maplebirch.register('var', Object.seal(new Variables(maplebirch)), ['tool']);
 
 export default Variables;

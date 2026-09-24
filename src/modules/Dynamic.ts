@@ -1,74 +1,20 @@
 // ./src/modules/Dynamic.ts
 
-import maplebirch, { type MaplebirchCore, createlog } from '../core';
-import { TimeManager, TimeEventOptions, TimeTravelOptions, type TimeEventType } from './TimeStateWeather/TimeEvents';
-import { StateManager, StateEventOptions } from './TimeStateWeather/StateEvents';
-import { WeatherManager, WeatherEventOptions, WeatherTypeConfig, WeatherException } from './TimeStateWeather/WeatherEvents';
+import type { MaplebirchCore } from '../core';
+import type { ScopedLog } from '../infra/Diagnostics';
+import Lifecycle, { type LifecycleTarget } from '../infra/Lifecycle';
 
-class DynamicManager {
-  public readonly Time: TimeManager;
-  public readonly State: StateManager;
-  public readonly Weather: WeatherManager;
-  public readonly log: ReturnType<typeof createlog>;
+class Dynamic extends Lifecycle<string, LifecycleTarget> {
+  public readonly log: ScopedLog;
 
   public constructor(readonly core: MaplebirchCore) {
-    this.log = createlog('dynamic');
-    this.Time = Object.seal(new TimeManager(this));
-    this.State = Object.seal(new StateManager(this));
-    this.Weather = Object.seal(new WeatherManager(this));
+    super(core.host.modLoader);
+    this.log = core.infra.diagnostics.scoped('dynamic');
   }
 
-  public regTimeEvent(type: TimeEventType, eventId: string, options: TimeEventOptions): boolean {
-    return this.Time.register(type, eventId, options);
-  }
-
-  public delTimeEvent(type: TimeEventType, eventId: string): boolean {
-    return this.Time.unregister(type, eventId);
-  }
-
-  public timeTravel(options: TimeTravelOptions = {}): boolean {
-    return this.Time.timeTravel(options);
-  }
-
-  public get TimeEvents() {
-    return (this.Time as any).timeEvents;
-  }
-
-  public regStateEvent(type: 'gate' | 'append', eventId: string, options: StateEventOptions): boolean {
-    return this.State.register(type, eventId, options);
-  }
-
-  public delStateEvent(type: 'gate' | 'append', eventId: string): boolean {
-    return this.State.unregister(type, eventId);
-  }
-
-  public trigger(type: 'gate' | 'append'): string {
-    return this.State.trigger(type);
-  }
-
-  public get StateEvents() {
-    return (this.State as any).stateEvents;
-  }
-
-  public regWeatherEvent(eventId: string, options: WeatherEventOptions): boolean {
-    return this.Weather.register(eventId, options);
-  }
-
-  public delWeatherEvent(eventId: string): boolean {
-    return this.Weather.unregister(eventId);
-  }
-
-  public addWeather(data: WeatherException | WeatherTypeConfig): boolean | void {
-    return this.Weather.addWeatherData(data);
-  }
-
-  public Init(): void {
-    this.Time.init();
-    this.State.init();
-    this.Weather.init();
+  public override Init(): void {
+    for (const [name, feature] of this.items) this.executeSync(feature, 'Init', `dynamic:${name}`);
   }
 }
 
-maplebirch.register('dynamic', Object.seal(new DynamicManager(maplebirch)), ['addon']);
-
-export default DynamicManager;
+export default Dynamic;

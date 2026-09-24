@@ -38,7 +38,11 @@ maplebirch.npc.add(
 maplebirch.npc.addStats(stats);
 maplebirch.npc.addSchedule(npcName, schedule);
 maplebirch.npc.addClothes(config);
+maplebirch.npc.Transformation.add(npcName, type, transformationConfig);
+maplebirch.npc.Pregnancy.add(npcName, pregnancyConfig);
 ```
+
+See [NPC Transformation](NamedNPCTransformation.md) for visual stages and [NPC Pregnancy](NamedNPCPregnancy.md) for the original pregnancy records and lifecycle. `NPCData.pregnancy` contains switches and cycle data (`NPCPregnancyState`, default `{}`); pregnancies and children are stored in the original record arrays.
 
 ## NPC Config
 
@@ -82,6 +86,8 @@ loveAlias: () => {
 "npc": {
   "NamedNPC": [],
   "Stats": {},
+  "Transformation": {},
+  "Pregnancy": {},
   "Sidebar": {
     "image": [],
     "clothes": [],
@@ -89,3 +95,7 @@ loveAlias: () => {
   }
 }
 ```
+
+## Hair Lengths
+
+`NPCData.hair_sides_length` and `NPCData.hair_fringe_length` are independent numeric lengths (0–1000). Both fields default independently to 200. Missing, nonnumeric or nonfinite values reset to that default during construction and variable validation; old length fields are not converted. Each NPC owns its values; changing one field does not change the other. See [NPC Sidebar](./NamedNPCSidebar.md) for the numeric-to-model-stage conversion.

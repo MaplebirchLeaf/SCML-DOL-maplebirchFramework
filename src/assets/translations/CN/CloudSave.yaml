@@ -1,0 +1,28 @@
+'cloud.save.none': 暂无云端存档。
+'cloud.save.action.connect': 连接
+'cloud.save.action.refresh': 刷新
+'cloud.save.action.upload': 上传
+'cloud.save.action.download': 下载
+'cloud.save.action.delete': 删除
+'cloud.save.action.code.current': 获取存档码
+'cloud.save.action.code.export': 导出存档码
+'cloud.save.action.code.upload': 上传存档码
+'cloud.save.action.code.download': 下载存档码
+'cloud.save.action.code.load': 读取存档码
+'cloud.save.slot.existing': 已有存档
+'cloud.save.slot.available': 空槽位
+'cloud.save.slot.autosave': 自动存档
+'cloud.save.slot.latest': 最新
+'cloud.save.slot.empty': 空
+'cloud.save.status.working': 处理中...
+'cloud.save.status.done': '{action}完成。'
+'cloud.save.error.download': 下载失败。
+'cloud.save.error.auth': 云存档授权失败。
+'cloud.save.error.endpoint': 云存档地址无效。请使用 HTTPS 地址。
+'cloud.save.error.timeout': 云存档请求超时。
+'cloud.save.error.response': 云端返回了无效的存档数据。
+'cloud.save.error.game': 云存档不属于当前游戏。
+'cloud.save.error.code.invalid': 无效存档码。
+'cloud.save.error.code.remote': 没有可用的云端存档码。
+'cloud.save.error.slot.range': 槽位必须在 0 到 200 之间。
+'cloud.save.error.code.tools': 存档码工具不可用。

@@ -20,7 +20,7 @@
     <div class='settingsToggleItem'><label>
       <<checkbox '$options.maplebirch.character.pet.enabled' false true autocheck>><<lanSwitch 'Pet Display' '桌宠显示'>>
       <span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Enable or disable the draggable canvas pet. The pet floats above the passage text and remembers its last position.' '开启或关闭可拖拽的 Canvas 桌宠。桌宠会浮在正文文字上方，并记住上次拖动的位置。'>></span>">(?)</span>
-      <<lanLink 'reset' 'capitalize'>>
+      <<lanLink 'reset' 'capitalize' 'class:teal'>>
         <<set $options.maplebirch.character.pet.mask to 25>>
         <<set $options.maplebirch.character.pet.rotation to 0>>
         <<set $options.maplebirch.character.pet.scale to 1>>
@@ -46,7 +46,7 @@
 
     <div class='settingsToggleItem maplebirch-relationcount-slider'><label>
       <span class='gold'><<lanSwitch 'Close-up Mask Divider' '特写遮罩分割线'>></span><<numberslider '$options.maplebirch.character.mask' $options.maplebirch.character.mask -128 128 1 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => `${v}px` }>>
-      <<lanLink 'reset' 'capitalize'>>
+      <<lanLink 'reset' 'capitalize' 'class:teal'>>
         <<set $options.maplebirch.character.mask to 0>>
         <<set $options.maplebirch.character.rotation to 0>>
         <<updatesidebarimg>>
@@ -68,7 +68,7 @@
         <<option 'split' 'split' 'title'>>
         <<option 'face-framing highlights' 'face-frame' 'title'>>
       <</lanListbox>>
-      <<lanLink 'reset' 'capitalize'>><<set $options.maplebirch.character.charArt.value to maplebirch.var.hairgradients()>><<updatesidebarimg>><<replace #customOverlayContent>><<maplebirchOptions>><</replace>><</lanLink>>
+      <<lanLink 'reset' 'capitalize' 'class:teal'>><<set $options.maplebirch.character.charArt.value to maplebirch.var.hairgradients()>><<updatesidebarimg>><<replace #customOverlayContent>><<maplebirchOptions>><</replace>><</lanLink>>
       <<set _charArtStart to `$options.maplebirch.character.charArt.value['${$options.maplebirch.character.charArt.type}']['${$options.maplebirch.character.charArt.select}'][0]`>><br>
       <<lanSwitch 'Gradient Start: ' '渐变起点：'>><<numberbox _charArtStart $options.maplebirch.character.charArt.value[$options.maplebirch.character.charArt.type][$options.maplebirch.character.charArt.select][0]>>
       <div class='maplebirch-relationcount-slider'><label><<numberslider _charArtStart $options.maplebirch.character.charArt.value[$options.maplebirch.character.charArt.type][$options.maplebirch.character.charArt.select][0] 0 1 0.01 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => `${Math.floor(v*100)}%` }>></label></div>
@@ -86,7 +86,7 @@
         <<option 'split' 'split' 'title'>>
         <<option 'face-framing highlights' 'face-frame' 'title'>>
       <</lanListbox>>
-      <<lanLink 'reset' 'capitalize'>><<set $options.maplebirch.character.closeUp.value to maplebirch.var.hairgradients()>><<updatesidebarimg>><<replace #customOverlayContent>><<maplebirchOptions>><</replace>><</lanLink>>
+      <<lanLink 'reset' 'capitalize' 'class:teal'>><<set $options.maplebirch.character.closeUp.value to maplebirch.var.hairgradients()>><<updatesidebarimg>><<replace #customOverlayContent>><<maplebirchOptions>><</replace>><</lanLink>>
       <<set _closeUpStart to `$options.maplebirch.character.closeUp.value['${$options.maplebirch.character.closeUp.type}']['${$options.maplebirch.character.closeUp.select}'][0]`>><br>
       <<lanSwitch 'Gradient Start: ' '渐变起点：'>><<numberbox _closeUpStart $options.maplebirch.character.closeUp.value[$options.maplebirch.character.closeUp.type][$options.maplebirch.character.closeUp.select][0]>>
       <div class='maplebirch-relationcount-slider'><label><<numberslider _closeUpStart $options.maplebirch.character.closeUp.value[$options.maplebirch.character.closeUp.type][$options.maplebirch.character.closeUp.select][0] 0 1 0.01 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => `${Math.floor(v*100)}%` }>></label></div>
@@ -97,17 +97,55 @@
 
     <div class='settingsToggleItem'><label><<checkbox '$options.maplebirch.npcsidebar.show' false true autocheck>><<lanSwitch 'NPC Sidebar Image Display' 'NPC侧边栏图像显示'>></label><span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'After enabling the display, named NPCs will show their models when nearby.' '开启显示后命名NPC在附近将显示模型。'>></span>">(?)</span></div>
 
-    <div class='settingsToggleItem'><label><<checkbox '$options.maplebirch.npcsidebar.model' false true autocheck>><<lanSwitch 'PC MODEL MODE' 'PC模型模式'>></label><span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'PC model mode is using the player character standing illustration data.' 'PC模型模式为是用玩家角色立绘数据。'>></span>">(?)</span></div>
+    <div class='settingsToggleItem'><label><<checkbox '$options.maplebirch.npcsidebar.model' false true autocheck>><<lanSwitch 'PC Model Mode' 'PC模型模式'>></label><span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Uses player model assets to display nearby NPCs.' '使用玩家模型素材显示附近NPC。'>></span>">(?)</span></div>
+
+    <div class='settingsToggleItem'><label>
+      <<checkbox '$options.maplebirch.npcsidebar.pet.enabled' false true autocheck>><<lanSwitch 'NPC Pet Display' 'NPC桌宠显示'>>
+      <span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Displays nearby NPC images or PC models as independently draggable pets.' '将附近NPC的图像或PC模型显示为可独立拖拽的桌宠。'>></span>">(?)</span>
+      <<lanLink 'reset' 'capitalize' 'class:teal'>>
+        <<set $options.maplebirch.npcsidebar.pet.mask to 25>>
+        <<set $options.maplebirch.npcsidebar.pet.rotation to 0>>
+        <<set $options.maplebirch.npcsidebar.pet.scale to 1>>
+        <<run maplebirch.npc.Sidebar.pet.reset()>>
+      <</lanLink>>
+    </label></div>
+
+    <div class='settingsToggleItem maplebirch-relationcount-slider'><label><span class='gold'><<lanSwitch 'NPC Pet Scale' 'NPC桌宠缩放'>></span>
+      <<numberslider '$options.maplebirch.npcsidebar.pet.scale' $options.maplebirch.npcsidebar.pet.scale 0.5 1 0.05 { onInputChange: value => { maplebirch.npc.Sidebar.pet.sync(); }, value: v => `${Math.round(v * 100)}%` }>>
+    </label></div>
+
+    <div class='settingsToggleItem maplebirch-relationcount-slider'><label><span class='gold'><<lanSwitch 'NPC Pet Mask Divider' 'NPC桌宠遮罩分割线'>></span>
+      <<numberslider '$options.maplebirch.npcsidebar.pet.mask' $options.maplebirch.npcsidebar.pet.mask -128 128 1 { onInputChange: value => { maplebirch.npc.Sidebar.pet.sync(); }, value: v => `${v}px` }>>
+    </label></div>
+
+    <div class='settingsToggleItem maplebirch-relationcount-slider'><label><span class='gold'><<lanSwitch 'NPC Pet Mask Rotation Angle' 'NPC桌宠遮罩旋转角度'>></span>
+      <<numberslider '$options.maplebirch.npcsidebar.pet.rotation' $options.maplebirch.npcsidebar.pet.rotation -90 90 1 { onInputChange: value => { maplebirch.npc.Sidebar.pet.sync(); }, value: v => `${v}°` }>>
+    </label></div>
+
+    <div class='settingsToggleItemWide'>
+      <label><<checkbox '$options.maplebirch.npcsidebar.second_model' false true autocheck>><<lanSwitch 'Second NPC Model' '第二NPC模型'>></label><span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Also displays a selected second nearby NPC in the sidebar or as a pet.' '在侧边栏或桌宠中同时显示选中的第二名附近NPC。'>></span>">(?)</span><br>
+      <span class='gold'><<lanSwitch 'Second Model Offset: ' '第二模型偏移：'>></span><span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Offsets the second model from the first model.' '相对第一模型偏移第二模型。'>></span>">(?)</span><br>
+      <div class='maplebirch-relationcount-slider'><label><<lanSwitch 'Horizontal Offset' '水平偏移'>><<numberslider '$options.maplebirch.npcsidebar.previous_dx' $options.maplebirch.npcsidebar.previous_dx -96 96 1 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => `${v}px` }>></label></div>
+      <div class='maplebirch-relationcount-slider'><label><<lanSwitch 'Vertical Offset' '垂直偏移'>><<numberslider '$options.maplebirch.npcsidebar.previous_dy' $options.maplebirch.npcsidebar.previous_dy -62 46 1 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => `${v}px` }>></label></div>
+    </div>
+
+    <<set $_nearbyNPCs = Array.from(new Set(($npc ?? []).filter(name => typeof name === 'string' && setup.NPCNameList.includes(name))))>>
+    <<set $_nearbyNPCOptions = {}>>
+    <<run $_nearbyNPCs.forEach(name => $_nearbyNPCOptions[maplebirch.auto(name.convert('title'))] = name)>>
+
+    <div class='settingsToggleItem'><label><span class='gold'><<lanSwitch 'First NPC Model: ' '第一NPC模型：'>></span><<lanListbox '$options.maplebirch.npcsidebar.primary_npc' autoselect class:maplebirch-npc-model-primary>><<option `lanSwitch('Automatic', '自动')` ''>><<optionsfrom $_nearbyNPCOptions>><</lanListbox>></label></div>
+
+    <div class='settingsToggleItem'><label><span class='gold'><<lanSwitch 'Second NPC Model: ' '第二NPC模型：'>></span><<lanListbox '$options.maplebirch.npcsidebar.secondary_npc' autoselect class:maplebirch-npc-model-secondary>><<option `lanSwitch('Automatic', '自动')` ''>><<optionsfrom $_nearbyNPCOptions>><</lanListbox>></label></div>
 
     <div class='settingsToggleItem'>
       <span class='gold'><<lanSwitch 'Image Position: ' '图像位置：'>></span><<radiobuttonsfrom '$options.maplebirch.npcsidebar.position' 'front[Front,前置]|back[Back,后置]'>><<updatesidebarimg>><</radiobuttonsfrom>>
       <span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Front: Model appears in front. Back: Model appears behind.' '前置：模型显示在前面。后置：模型显示在后面。'>></span>">(?)</span><br>
-      <div class='maplebirch-relationcount-slider'><span class='gold'><<lanSwitch 'Model Mask: ' '模型遮罩：'>></span><<lanLink 'reset' 'capitalize'>><<set $options.maplebirch.npcsidebar.mask to 0>><<set $options.maplebirch.npcsidebar.rotation to 0>><<updatesidebarimg>><<replace #customOverlayContent>><<maplebirchOptions>><</replace>><</lanLink>>
+      <div class='maplebirch-relationcount-slider'><span class='gold'><<lanSwitch 'Model Mask: ' '模型遮罩：'>></span><<lanLink 'reset' 'capitalize' 'class:teal'>><<set $options.maplebirch.npcsidebar.mask to 0>><<set $options.maplebirch.npcsidebar.rotation to 0>><<updatesidebarimg>><<replace #customOverlayContent>><<maplebirchOptions>><</replace>><</lanLink>>
       <<numberslider '$options.maplebirch.npcsidebar.mask' $options.maplebirch.npcsidebar.mask -128 128 1 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => `${v}px` }>></div>
       <div class='maplebirch-relationcount-slider'><span class='gold'><<lanSwitch 'Rotation Angle' '旋转角度'>></span><<numberslider '$options.maplebirch.npcsidebar.rotation' $options.maplebirch.npcsidebar.rotation -90 90 1 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => `${v}°` }>></div>
-      <span class='gold'><<lanSwitch 'Canvas Model Offset: ' '画布模型偏移：'>></span><<lanLink 'reset' 'capitalize'>><<set $options.maplebirch.npcsidebar.dxfn to -48>><<set $options.maplebirch.npcsidebar.dyfn to -8>><<updatesidebarimg>><<replace #customOverlayContent>><<maplebirchOptions>><</replace>><</lanLink>><br>
-      <div class='maplebirch-relationcount-slider'><label><<lanSwitch 'Horizontal Offset' '水平偏移'>><<numberslider '$options.maplebirch.npcsidebar.dxfn' $options.maplebirch.npcsidebar.dxfn -96 96 1 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => `${v}px` }>></label></div>
-      <div class='maplebirch-relationcount-slider'><label><<lanSwitch 'Vertical Offset' '垂直偏移'>><<numberslider '$options.maplebirch.npcsidebar.dyfn' $options.maplebirch.npcsidebar.dyfn -62 46 1 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => `${v}px` }>></label></div>
+      <span class='gold'><<lanSwitch 'Canvas Model Offset: ' '画布模型偏移：'>></span><<lanLink 'reset' 'capitalize' 'class:teal'>><<set $options.maplebirch.npcsidebar.dxfn to -48>><<set $options.maplebirch.npcsidebar.dyfn to -8>><<set $options.maplebirch.npcsidebar.previous_dx to -36>><<set $options.maplebirch.npcsidebar.previous_dy to -8>><<updatesidebarimg>><<replace #customOverlayContent>><<maplebirchOptions>><</replace>><</lanLink>><br>
+      <div class='maplebirch-relationcount-slider'><label><<lanSwitch 'Group Horizontal Offset' '整体水平偏移'>><<numberslider '$options.maplebirch.npcsidebar.dxfn' $options.maplebirch.npcsidebar.dxfn -96 96 1 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => `${v}px` }>></label></div>
+      <div class='maplebirch-relationcount-slider'><label><<lanSwitch 'Group Vertical Offset' '整体垂直偏移'>><<numberslider '$options.maplebirch.npcsidebar.dyfn' $options.maplebirch.npcsidebar.dyfn -62 46 1 { onInputChange: value => { Wikifier.wikifyEval('<<updatesidebarimg>>'); }, value: v => `${v}px` }>></label></div>
     </div>
 
     <div class='settingsToggleItem'>
@@ -133,7 +171,7 @@
         <<if !['none'].concat(Array.from($_npcsidebarSet)).includes($options.maplebirch.npcsidebar.display[$options.maplebirch.npcsidebar.nnpc])>>
           <<set $options.maplebirch.npcsidebar.display[$options.maplebirch.npcsidebar.nnpc] = 'none'>>
         <</if>>
-        <<set $_fixedName = `$options.maplebirch.npcsidebar.display.${$options.maplebirch.npcsidebar.nnpc}`>>
+        <<set $_fixedName = '$options.maplebirch.npcsidebar.display[' + JSON.stringify($options.maplebirch.npcsidebar.nnpc) + ']'>>
         <<set $_npcsidebarDisplay = ['none'].concat(Array.from($_npcsidebarSet))>>
         <<lanSwitch 'Graphic Selection: ' '图形选择：'>><<radiobuttonsfrom $_fixedName $_npcsidebarDisplay>><</radiobuttonsfrom>>
       <</if>>

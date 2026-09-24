@@ -1,22 +1,23 @@
 // ./src/macros/lanListbox.ts
 
+import Diagnostics from '../infra/Diagnostics';
 import maplebirch from '../core';
 import { addClasses, bindLanguageUpdate, macroTranslation, text, type ListboxOption, type MacroContext, type MacroPayload, CONVERT_MODES, type ConvertMode } from './helpers';
 
-function optionsFrom(value: any, convertMode: ConvertMode | null, exprIndex: number): ListboxOption[] {
+function optionsFrom(value: unknown, convertMode: ConvertMode | null, exprIndex: number): ListboxOption[] {
   const result: ListboxOption[] = [];
   if (Array.isArray(value) || value instanceof Set) {
     for (const item of Array.isArray(value) ? value : Array.from(value)) result.push({ label: text(item), value: item, type: 'dynamic', exprIndex, convertMode });
   } else if (value instanceof Map) {
     value.forEach((item, key) => result.push({ label: text(key), value: item, type: 'dynamic', exprIndex, convertMode }));
   } else if (value && typeof value === 'object') {
-    for (const key of Object.keys(value)) result.push({ label: key, value: value[key], type: 'dynamic', exprIndex, convertMode });
+    for (const [key, item] of Object.entries(value)) result.push({ label: key, value: item, type: 'dynamic', exprIndex, convertMode });
   }
   return result;
 }
 
-function optionConvertMode(args: any[], start: number): ConvertMode | null {
-  for (let i = start; i < args.length; i++) if (typeof args[i] === 'string' && (CONVERT_MODES as readonly string[]).includes(args[i])) return args[i] as ConvertMode;
+function optionConvertMode(args: unknown[], start: number): ConvertMode | null {
+  for (const arg of args.slice(start)) if (typeof arg === 'string' && (CONVERT_MODES as readonly string[]).includes(arg)) return arg as ConvertMode;
   return null;
 }
 
@@ -44,11 +45,11 @@ function buildOptions(payload: MacroPayload[], allowSelected: boolean): { option
     if (item.name === 'optionsfrom') {
       const expression = text(item.args?.full);
       if (!expression) return '<<optionsfrom>> needs an expression.';
-      let value: any;
+      let value: unknown;
       try {
-        value = maplebirch.SugarCube.Scripting.evalJavaScript(expression[0] === '{' ? `(${expression})` : expression);
-      } catch (error: any) {
-        return `Expression error: ${error?.message || error}`;
+        value = maplebirch.host.sugarcube.require().Scripting.evalJavaScript(expression[0] === '{' ? `(${expression})` : expression);
+      } catch (error) {
+        return `Expression error: ${Diagnostics.message(error)}`;
       }
       if (!value || typeof value !== 'object') return 'Expression must return an object or array.';
       for (const option of optionsFrom(value, optionConvertMode(args, 1), exprIndex)) options.push(option);
@@ -68,7 +69,7 @@ export function _languageListbox(this: MacroContext): void {
     const varName = text(this.args[0]).trim();
     if (!varName || (varName[0] !== '$' && varName[0] !== '_')) return this.error(`Variable '${varName}' needs a sigil.`);
 
-    const varId = maplebirch.SugarCube.Util.slugify(varName);
+    const varId = maplebirch.host.sugarcube.require().Util.slugify(varName);
     const config = { autoselect: false };
     let classes = '';
     let style = '';
@@ -85,7 +86,7 @@ export function _languageListbox(this: MacroContext): void {
     const options = built.options;
     let selectedIdx = built.selectedIdx;
     if (selectedIdx === -1) {
-      selectedIdx = config.autoselect ? options.findIndex(option => maplebirch.SugarCube.Util.sameValueZero(option.value, State.getVar(varName))) : 0;
+      selectedIdx = config.autoselect ? options.findIndex(option => maplebirch.host.sugarcube.require().Util.sameValueZero(option.value, State.getVar(varName))) : 0;
       if (selectedIdx === -1) selectedIdx = 0;
     }
 
@@ -124,13 +125,13 @@ export function _languageListbox(this: MacroContext): void {
     State.setVar(varName, options[selectedIdx].value);
     const update = () => {
       const currentValue = State.getVar(varName);
-      const currentIndex = options.findIndex(option => maplebirch.SugarCube.Util.sameValueZero(option.value, currentValue));
+      const currentIndex = options.findIndex(option => maplebirch.host.sugarcube.require().Util.sameValueZero(option.value, currentValue));
       if (currentIndex >= 0) selectedIdx = currentIndex;
       create(options, selectedIdx);
     };
     bindLanguageUpdate($select, 'lanListbox', update);
-  } catch (error: any) {
+  } catch (error) {
     maplebirch.log('<<lanListbox>> error', 'ERROR', error);
-    return this.error(`<<lanListbox>> error: ${error?.message || error}`);
+    return this.error(`<<lanListbox>> error: ${Diagnostics.message(error)}`);
   }
 }

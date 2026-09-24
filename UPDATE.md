@@ -1,10 +1,72 @@
-##### (v.4.3.0更新日志):
+##### (v.5.0.0 更新日志):
+
+- 重构框架基础设施：`infra` 统一日志、诊断、注册、钩子、生命周期和事件行为；`services` 负责具体服务，SugarCube、ModLoader 与 DoL 宿主访问集中到 `host`。通用 Patch 与 DoL 专属补丁分离。
+- **模组作者需要检查旧接口**：Core 不再直接暴露整套 `idb`、`lang`、`logger` 等服务对象，旧 `ModuleSystem`、`LanguageManager` 等类名与部分路径已移除。优先使用 `maplebirch.on/once/off/after/trigger`、`t/auto`、`define/with`、`register/get`、`wikify` 和 `log`；高级配置再访问 `maplebirch.services`、`maplebirch.infra` 或 `maplebirch.host`。
+- 翻译服务改为 `Translator`，单个语言可按顺序导入多个文件；内置 CN/EN 文本按功能拆分。模块注册统一附带全局诊断日志，状态初始化不再通过生成的 State 宏间接触发。
+- 旧版框架遇到更高版本的现有 IndexedDB 时，按数据库当前版本重新打开并校验必需存储和索引；不降级或清空数据，结构不兼容时仍明确报错。
+- 补齐基础类与服务测试、NPC 怀孕等模组开发文档；类型包与模组 ZIP 收录项目双重许可证，自动校验第三方 notice 与归档内容、可重复性。
+
+##### (v.4.4.1更新日志):
+
+- 修正 NPC 在战斗中脱除下装后仍显示鞋子的问题。
+- 修正战斗选项未提供有效战斗类型时未统一回退到 `Default` 的问题。
+- 收紧 NPC 衣柜与侧边栏人模配置类型，忽略并报告无效图层；缓存衣柜和特质的字符串条件，避免渲染期间重复编译。
+
+##### (v.4.4.0更新日志):
+
+- `maplebirch.tool.patch` 改为注册制，扩展 API 按名称挂载到 `patch`，并支持初始化处理和 widget 执行前后钩子；缺少对应原版数据时静默跳过，古董与小贴士改用 widget 钩子接入，减少对原版源码的匹配替换。
+- 新增原版 0.5.12.13 钓鱼扩展，可注册鱼类、食物鱼饵并调整现有钓点权重，继续使用原版抽取、小游戏、库存和捕获记录；`boot.json` 支持内联配置及 JSON/YAML 文件。
+- `maplebirch.addon.wikify()` 新增 passage、widget 与 Wikifier 的执行前后钩子；新增资源查询与加载、依赖检查、冲突信息和补丁执行报告接口。
+- HTML 工具支持向当前渲染片段追加内容并传递上下文；链接操作区分修改显示文字与替换整个链接，保留链接目标和事件时使用 `renameLink()`。
+- NPC 转化配置改为按角色隔离，注册写法调整为 `Transformation.add(npcName, type, config)`，不同 NPC 可使用相同的转化 ID；`boot.json` 的 `Transformation` 同步改为按 NPC 名称分组。
+- 新增 NPC 怀孕接口，可注册原版可怀孕内容、配置月经周期与生育状态、查询受孕风险和孕期进度，并在自定义剧情中调用原版受孕判定；妊娠记录、子女、每日推进和生产仍由原版处理。
+
+##### (v.4.3.6更新日志):
+
+- 云存档支持 `0–200` 槽位，自动识别已有存档并显示名称与保存时间，优先选中最新手动存档；`0` 为自动存档。
+- 云存档新增“记住令牌”选项，修复面板初始化时机；仅在勾选后将令牌保存在当前浏览器，请勿在共用设备上启用。
+- 完善云存档数据校验，增加 15 秒请求超时和重复操作保护；精简状态提示，优化移动端布局。服务地址须使用 HTTPS。
+- 新增游戏小贴士注册接口 `maplebirch.tool.patch.addTips()`，支持通过 `boot.json` 或外部配置追加原版与自定义分类提示。
+- 新增 `<<transform-hint "翻译键" "颜色类">>`，在选项旁显示转化名称；不增加进度，隐藏数值时不显示。
+- NPC 主体头发与刘海长度可独立调整，分别使用 `hair_sides_length`、`hair_fringe_length`；旧 `hairlength` 不再使用，也不会自动转换，相关模组需更新配置。
+- NPC 体液改为按部位保存 `[goo, semen]`，支持分类操作与合计读取；旧数字自动迁入 `[旧值, 0]`。直接读取部位数值的代码需改用数组下标或 `combined()`，增减接口省略类型时默认操作 `semen`；新增数据部位不附带新素材。
+- 修正 NPC 战斗脱衣判定，避免误脱袜子与鞋；修复滴液遮罩在重复渲染后丢失偏移、导致动画异常间歇的问题。第二 NPC 模型默认关闭，已有设置不变。
+- NPC 桌宠支持 NPC 图像与 PC 模型两种模式。
+- 修复湖中遗迹血月积雪背景的配置错误，消除 `lake-ruin/[object Object]` 图片路径警告。
+
+感谢 [@JohnLiao501](https://github.com/JohnLiao501) 通过 [PR #13](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/pull/13) 贡献记住令牌与面板初始化修复，并通过 [PR #14](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/pull/14) 贡献存档槽位智能选择。
+
+##### (v.4.3.5更新日志):
+
+- **NPC 桌宠**：NPC 侧边栏的一、二模型可作为独立可拖拽桌宠显示；两个桌宠分别保存位置，并可与玩家桌宠同时启用。玩家与 NPC 桌宠共用浮动容器基类，缩放、遮罩与刷新行为保持一致。
+- **NPC 衣柜分层工具**：新增条件基础层 `wardrobe.layer()`、模板合并 `wardrobe.put()` 与安全脱衣 `wardrobe.strip()`；脱衣会恢复裸体占位槽，避免渲染器读取空槽位。
+- **NPC 衣柜规则扩展**：`wardrobe.wear()` 支持服装权重随机、穿着延留以及 `dry`、`damp`、`wet`、`soaked` 整套湿度；`wardrobe.wet()` 可按场景覆盖当前湿度，并兼容原有条件参数写法。
+- **DoLP 命名 NPC 兼容**：在 DoLP `StoryInit` 创建 `C.npc` 后立即替换依赖未加载 `V.NPCNameList.indexOf()` 的旧 getter，并在变量阶段持续校验，修复 NPC 日程、基层服装和动态服装连续报错。
+- **NPC 兜帽遮罩**：修正侧发、刘海和长发背层的头部遮罩组合，兜帽后方头发会被服装遮罩正确挡住，同时保留刘海专用遮罩。
+- **NPC 图层容错**：仅在图层实际显示时求取图片路径，并补齐 NPC 桌宠独立模型的图层注册，修复隐藏图层或空模型反复报告缺少 `src`、`z` 的问题；同时补足部分胸部衣物图层的图片判定。
+- **设置界面整理**：NPC 桌宠设置接入即时刷新，统一重置链接样式，并将第二 NPC 模型设置移至相关选项附近。
+
+##### (v.4.3.4更新日志):
+
+- **NPC 衣柜模板接口**：新增 `wardrobe.get()`、`set()` 与 `has()`，模板读写统一克隆隔离；`wardrobe.wear()` 的地点参数支持字符串数组，便于同一套服装注册到多个地点。
+- **附近 NPC 模型选择**：PC 模型模式新增第一、第二 NPC 选择框，可从当前附近的命名 NPC 中指定两个模型；重复选择时保留最后一次选择，并将另一个选择框恢复为自动。
+- **克隆实现统一**：NPC 衣柜与侧边栏颜色滤镜改用框架 `clone()` 工具，避免依赖运行环境的 `structuredClone()`。
+
+##### (v.4.3.3更新日志):
+
+- **NPC 侧边栏双人模型**：PC 模型模式可选择同时展示最近两名 NPC；旧 NPC 相对最新 NPC 降低 300 图层，支持单独开关以及调节相对水平/垂直错位；两名 NPC 共享侧边栏设置与日晒滤镜，发色和瞳色滤镜独立。
+- **NPC 侧边栏设置优化**：完善双人模式说明，并区分模型整体偏移与旧 NPC 相对间距。
+- **NPC 衣柜基础层**：新增 `wardrobe.base()`，可在地点服装合并前为指定 NPC 设置基础服装；地点服装仍可覆盖同名部位，`wardrobe.modify()` 继续负责最终动态调整。
+- **构建与发布流程清理**：移除容易受 Bun 模块 mock 缓存影响的内置测试与覆盖率配置；发布验证保留类型检查、代码检查、格式检查、构建及类型包生成，GitHub Actions 始终使用最新稳定版 Bun，并通过锁文件固定依赖。
+
+##### (v.4.3.1更新日志):
 
 - **类型声明构建迁移到 rolldown**：`tsup` → `rolldown`（`rolldown-plugin-dts`/tsgo），TypeScript 升级到 7；`types` 脚本改为 `rolldown -c`；移除不再使用的 `vite`/`wrangler`/`@vitejs/plugin-vue`/`tsup` 开发依赖，`@cloudflare/workers-types` 升级。
 - **云端服务端移出仓库**：删除仓库内 `cloud-services/`（go-sql-server / admin-ui / cloudflare-webdav-worker）与 `scripts/cloudR2.ts` 及相关 npm scripts；云存档服务端改为独立维护，仓库根 `cloudflare/` 仅保留精简版 R2 Worker 示例（`worker.ts` + `wrangler.jsonc`）。
 - **时间/状态/天气事件统一基类**：新增共享 `Event` 抽象基类（`id`/`priority`/`once`/`eventName`），`StateEvents`/`TimeEvents`/`WeatherEvents` 注册表迁移到统一实现，去除重复的优先级/一次性逻辑。
 - NPC 侧边栏图层配置整理：图层模块回调统一为箭头函数写法并清理冗余；补充 `gwylanSchedule` 等全局类型声明。
-- 重新生成 `@scml-maplebirch/types` 类型声明；README 与文档索引同步移除指向已删除 cloud-services 目录的失效链接。
+- 类型声明包迁移为 `@scml-dol-maplebirch/types`，完善 README、发布校验与 GitHub Actions；文档索引同步移除指向已删除 cloud-services 目录的失效链接。
+- **测试与发布可靠性完善**：补齐工具、服务、音频、打包与类型声明回归测试，加入 Bun 覆盖率门槛；修复测试间共享 `window` mock 相互覆盖导致 GitHub Actions 偶发读取不到 `modUtils.getMod` 的问题。
 
 ##### (v.4.2.9更新日志):
 

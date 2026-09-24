@@ -1,16 +1,9 @@
 // ./src/modules/NamedNPCAddon/NPCSidebarConfig/lower_layers.ts
 
 import maplebirch from '../../../core';
-import { gray_suffix, clothes_layer, clothes_breasts, clothes_back, clothes_back_acc, normaliseFileName } from './functions';
+import { gray_suffix, clothes_layer, clothes_breasts, clothes_back, clothes_back_acc, normaliseFileName, clothingZIndex } from './functions';
 
-type NPCSidebarOptions = {
-  filters?: Record<string, any>;
-  maplebirch: {
-    nnpc: Record<string, any>;
-    [key: string]: any;
-  };
-  [key: string]: any;
-};
+import type { NPCSidebarOptions } from './types';
 
 const lower_layers = {
   nnpc_over_lower_main: clothes_layer('over_lower', 'main'),
@@ -26,9 +19,9 @@ const lower_layers = {
     zfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const lower = nnpc.clothes.lower;
-      const base = lower.type.includes('covered') ? maplebirch.char.ZIndices.lower_cover : maplebirch.char.ZIndices.lower;
-      if (lower.high_img) return maplebirch.char.ZIndices.lower_high + nnpc.position;
-      return base + nnpc.position;
+      const base = lower.type.includes('overalls') || lower.type.includes('covered') ? maplebirch.char.ZIndices.lower_cover : maplebirch.char.ZIndices.lower;
+      const fallback = lower.high_img ? maplebirch.char.ZIndices.lower_high : base;
+      return clothingZIndex(maplebirch.char.ZIndices, lower, fallback) + nnpc.position;
     }
   }),
 
@@ -51,15 +44,26 @@ const lower_layers = {
     zfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       const lower = nnpc.clothes.lower;
-      if (lower.name.includes('ballgown') || lower.name.includes('pinafore')) return maplebirch.char.ZIndices.upper_top + nnpc.position;
-      if (lower.type.includes('covered')) return maplebirch.char.ZIndices.lower_cover + nnpc.position;
-      return maplebirch.char.ZIndices.lower + nnpc.position;
+      const fallback =
+        lower.name.includes('ballgown') || lower.name.includes('pinafore')
+          ? maplebirch.char.ZIndices.upper_top
+          : lower.type.includes('overalls') || lower.type.includes('covered')
+            ? maplebirch.char.ZIndices.lower_cover
+            : maplebirch.char.ZIndices.lower;
+      return clothingZIndex(maplebirch.char.ZIndices, lower, fallback) + nnpc.position;
     }
   }),
 
   nnpc_lower_detail: clothes_layer('lower', 'detail', {
     masksrcfn: (options: NPCSidebarOptions) => {
       return options.maplebirch.nnpc.lower_mask;
+    },
+
+    zfn: (options: NPCSidebarOptions) => {
+      const nnpc = options.maplebirch.nnpc;
+      const lower = nnpc.clothes.lower;
+      const fallback = lower.type.includes('overalls') ? maplebirch.char.ZIndices.lower_high : maplebirch.char.ZIndices.lower;
+      return clothingZIndex(maplebirch.char.ZIndices, lower, fallback) + nnpc.position;
     }
   }),
 

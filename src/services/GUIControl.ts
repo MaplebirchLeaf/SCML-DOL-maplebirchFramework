@@ -1,10 +1,16 @@
 // ./src/services/GUIControl.ts
 
+import type { IDBPObjectStore } from 'idb';
+import type { ModSubUiAngularJsModeExportInterface } from '@scml/types/Mod_SubUiAngularJs/ModSubUiAngularJsModeExportInterface';
 import type { ModSubUiAngularJsService } from '@scml/types/Mod_LoaderGui/ModSubUiAngularJsService';
-import maplebirch, { type MaplebirchCore } from '../core';
+import type ModLoader from '../host/ModLoader';
+import type Emitter from '../infra/Emitter';
 import Gui from '@/twee/Gui.twee';
-import { widgets } from '../utils';
-import { Config } from './../constants';
+import { widgets } from '../utils/string';
+import { Config, Languages } from './../constants';
+import type IndexedDB from './IndexedDB';
+import Modules from './Modules';
+import type Translator from './Translator';
 
 type ModuleType = 'protected' | 'mounted' | 'exposed' | 'module';
 
@@ -35,27 +41,98 @@ interface ScriptStore {
   disabled: string[];
 }
 
-interface SettingRecord<T = any> {
+type ChangeValues = {
+  Language: { Language: string };
+  DEBUG: { enabled: boolean; level: string };
+  toggleModule: ModulesSettings;
+  toggleScript: { enabled: string[]; disabled: string[] };
+};
+
+type ChangeArgs = { [K in keyof ChangeValues]: [action: K, data: ChangeValues[K] & { $ctrl?: GuiData }] }[keyof ChangeValues];
+
+interface GuiData {
+  onChange(...args: ChangeArgs): Promise<void>;
+  Language: string;
+  moduleText: string;
+  enabledModules: ModuleInfo[];
+  disabledModules: ModuleInfo[];
+  enabledScripts: string[];
+  disabledScripts: string[];
+  text: {
+    Title: string[];
+    DEBUGMODE: string[];
+    DEBUGSTATUS: string[];
+    EnabledSTATUS: string[];
+    DisabledSTATUS: string[];
+    Languages: [string, string][];
+    LanguageSelection: string[];
+    EnableModule: string[];
+    DisableModule: string[];
+    EnableScript: string[];
+    DisableScript: string[];
+    ClearIndexedDB: string[];
+  };
+}
+
+interface GuiController {
+  data: GuiData;
+  translation(text: string[]): string;
+  $onInit(): void;
+}
+
+interface GuiScope {
+  $ctrl: GuiController;
+  t(text: string[]): string;
+  languages: Array<{ code: string; readonly name: string }>;
+  selectedEnabledModule: number;
+  selectedDisabledModule: number;
+  selectedEnabledScript: number;
+  selectedDisabledScript: number;
+  ClearIndexedDB(): Promise<boolean>;
+  isDEBUG(): boolean;
+  typeLabel(type: ModuleType): string;
+  changeLanguage(): void;
+  DEBUGMODE(type: string): string;
+  DEBUGSTATUS(): string;
+  EnableDisableItem(action: string): void;
+  selectModule(index: number, listType: 'enabled' | 'disabled'): void;
+  toggleModule(action: 'enable' | 'disable'): void;
+  selectScript(index: number, listType: 'enabled' | 'disabled'): void;
+  toggleScript(action: 'enable' | 'disable'): void;
+}
+
+interface SettingRecord<T = unknown> {
   key: string;
   value: T;
 }
 
-class GUIControl {
+interface ScriptSource {
+  jsFiles: Array<{ modName: string; filePath: string }>;
+}
+
+export class GUIControl {
   public enabledModules: ModuleInfo[] = [];
   public disabledModules: ModuleInfo[] = [];
   public enabledScripts: string[] = [];
   public disabledScripts: string[] = [];
   private modSubUiAngularJsService: ModSubUiAngularJsService;
 
-  public constructor(readonly core: MaplebirchCore) {
-    this.modSubUiAngularJsService = core.manager.modLoaderGui.getModSubUiAngularJsService();
-    this.core.once(':indexedDB', () => this.core.idb.register('settings', { keyPath: 'key' }));
-    this.core.once(':idbReady', async () => await this.initSettings());
+  public constructor(
+    readonly idb: IndexedDB,
+    readonly modloader: ModLoader,
+    readonly events: Emitter,
+    readonly modules: Modules,
+    readonly translator: Translator,
+    private readonly addon: () => ScriptSource | undefined
+  ) {
+    this.modSubUiAngularJsService = modloader.modLoaderGui.getModSubUiAngularJsService();
+    this.events.once(':indexedDB', () => this.idb.define('settings', { keyPath: 'key' }));
+    this.events.once(':idbReady', async () => await this.initSettings());
   }
 
   private async initSettings(): Promise<void> {
     const modNames = await this.modNames();
-    await this.core.idb.withTransaction(['settings'], 'readwrite', async (tx: any) => {
+    await this.idb.with(['settings'], 'readwrite', async tx => {
       const store = tx.objectStore('settings');
       if (!(await store.get('DEBUG'))) await store.put({ key: 'DEBUG', value: false });
       if (!(await store.get('Language'))) await store.put({ key: 'Language', value: navigator.language.includes('zh') ? 'CN' : 'EN' });
@@ -72,18 +149,22 @@ class GUIControl {
 
   private async loadSettings(): Promise<void> {
     const modNames = await this.modNames();
-    await this.core.idb.withTransaction(['settings'], 'readonly', async (tx: any) => {
+    await this.idb.with(['settings'], 'readonly', async tx => {
       const store = tx.objectStore('settings');
-      const Modules = (await store.get('Modules')) as SettingRecord<ModulesStore> | undefined;
-      const Script = (await store.get('Script')) as SettingRecord<ScriptStore> | undefined;
+      const modulesRecord = (await store.get('Modules')) as SettingRecord<ModulesStore> | undefined;
+      const scriptRecord = (await store.get('Script')) as SettingRecord<ScriptStore> | undefined;
       const modules = this.currentModules(modNames);
-      const disabledModuleNames = new Set((Modules?.value?.disabled || []).map(m => m.name));
+      const disabledModuleNames = Modules.traverse(
+        (modulesRecord?.value?.disabled || []).map(m => m.name),
+        this.moduleLinks(modules, 'disable'),
+        new Set(modules.filter(m => m.protected).map(m => m.name))
+      );
       const script_valid = (script: string) => {
         const modName = script.match(/^\[([^\]]+)\]:/)?.[1] || '';
         return !!modName && modNames.has(modName);
       };
-      const scripts: string[] = Array.from(new Set<string>(((this.core.addon?.jsFiles || []) as any[]).map((entry: any) => `[${entry.modName}]:${entry.filePath}`).filter(script_valid)));
-      const disabledScriptSet = new Set<string>((Script?.value?.disabled || []).filter(script_valid));
+      const scripts = [...new Set((this.addon()?.jsFiles ?? []).map(entry => `[${entry.modName}]:${entry.filePath}`).filter(script_valid))];
+      const disabledScriptSet = new Set<string>((scriptRecord?.value?.disabled || []).filter(script_valid));
       this.enabledModules = modules.filter(m => !disabledModuleNames.has(m.name));
       this.disabledModules = modules.filter(m => disabledModuleNames.has(m.name));
       this.enabledScripts = scripts.filter(s => !disabledScriptSet.has(s));
@@ -92,24 +173,27 @@ class GUIControl {
   }
 
   private async modNames(): Promise<Set<string>> {
-    const controller = this.core.modUtils.getModLoadController();
+    const controller = this.modloader.loadController;
     const [enabled, hidden] = await Promise.all([controller.listModIndexDB(), controller.loadHiddenModList()]);
     return new Set([...enabled, ...hidden]);
   }
 
   private currentModules(modNames: Set<string>): ModuleInfo[] {
-    const graph = this.core.dependencyGraph;
+    const graph: Modules['dependencyGraph'] = this.modules.dependencyGraph;
+    const links = new Map(Object.entries(graph).map(([name, info]) => [name, info.dependencies]));
+    const protectedNames = new Set(
+      Object.entries(graph)
+        .filter(([, info]) => info.protected)
+        .map(([name]) => name)
+    );
     return Object.entries(graph)
-      .map(([name, info]: [string, any]) => ({
+      .map(([name, info]) => ({
         name,
         type: (info.protected ? 'protected' : info.exposed ? 'exposed' : info.mounted ? 'mounted' : 'module') as ModuleType,
         source: info.source || '',
         protected: info.protected === true,
         lifecycle: info.lifecycle === true,
-        dependencies: (info.allDependencies || []).filter((dep: string) => {
-          const target = graph[dep];
-          return target && !target.protected;
-        })
+        dependencies: [...Modules.traverse(info.dependencies, links, protectedNames)]
       }))
       .filter(mod => !mod.source || modNames.has(mod.source));
   }
@@ -121,7 +205,7 @@ class GUIControl {
     return '[Module]';
   }
 
-  private async modulesStore(store: any, modNames: Set<string>): Promise<void> {
+  private async modulesStore(store: IDBPObjectStore<unknown, string[], 'settings', 'readwrite'>, modNames: Set<string>): Promise<void> {
     const record = (await store.get('Modules')) as SettingRecord<ModulesStore> | undefined;
     const visibleNames = new Set(this.currentModules(modNames).map(m => m.name));
     const next = new Map<string, ModuleDisabledRecord>();
@@ -132,7 +216,7 @@ class GUIControl {
     await store.put({ key: 'Modules', value: { disabled: Array.from(next.values()) } });
   }
 
-  private async scriptsStore(store: any, modNames: Set<string>): Promise<void> {
+  private async scriptsStore(store: IDBPObjectStore<unknown, string[], 'settings', 'readwrite'>, modNames: Set<string>): Promise<void> {
     const record = (await store.get('Script')) as SettingRecord<ScriptStore> | undefined;
     const disabled = new Set<string>();
     for (const script of record?.value?.disabled || []) {
@@ -145,7 +229,7 @@ class GUIControl {
   public async saveModules(enabled: ModuleInfo[], disabled: ModuleInfo[]): Promise<void> {
     const modNames = await this.modNames();
     const currentNames = new Set([...enabled, ...disabled].map(m => m.name));
-    await this.core.idb.withTransaction(['settings'], 'readwrite', async (tx: any) => {
+    await this.idb.with(['settings'], 'readwrite', async tx => {
       const store = tx.objectStore('settings');
       const old = (await store.get('Modules')) as SettingRecord<ModulesStore> | undefined;
       const next = new Map<string, ModuleDisabledRecord>();
@@ -156,10 +240,45 @@ class GUIControl {
     await this.loadSettings();
   }
 
+  public async setModuleStates(states: Readonly<Record<string, boolean>>): Promise<boolean> {
+    const changes = Object.entries(states);
+    if (changes.length === 0) return false;
+    const modules = this.currentModules(await this.modNames());
+    const byName = new Map(modules.map(module => [module.name, module]));
+    for (const [name, enabled] of changes) {
+      const module = byName.get(name);
+      if (!module || module.protected || (module.type === 'exposed' && !module.lifecycle) || typeof enabled !== 'boolean') throw new Error(`模块状态不可修改: ${name}`);
+    }
+    let changed = false;
+    await this.idb.with(['settings'], 'readwrite', async tx => {
+      const store = tx.objectStore('settings');
+      const old = (await store.get('Modules')) as SettingRecord<ModulesStore> | undefined;
+      const disabled = new Map((old?.value?.disabled ?? []).map(item => [item.name, item]));
+      const protectedNames = new Set(modules.filter(module => module.protected).map(module => module.name));
+      const links = this.moduleLinks(modules, 'disable');
+      const before = Modules.traverse(disabled.keys(), links, protectedNames);
+      for (const [name, enabled] of changes) {
+        const module = byName.get(name)!;
+        if (enabled) disabled.delete(name);
+        else disabled.set(name, { name, source: module.source });
+      }
+      const after = Modules.traverse(disabled.keys(), links, protectedNames);
+      for (const [name, enabled] of changes) if (after.has(name) === enabled) throw new Error(`模块依赖阻止状态修改: ${name}`);
+      for (const module of modules) {
+        if (Object.hasOwn(states, module.name)) continue;
+        if (before.has(module.name) !== after.has(module.name)) throw new Error(`模块状态会影响未指定模块: ${module.name}`);
+      }
+      changed = modules.some(module => Object.hasOwn(states, module.name) && before.has(module.name) !== after.has(module.name));
+      if (changed) await store.put({ key: 'Modules', value: { disabled: [...disabled.values()] } });
+    });
+    if (changed) await this.loadSettings();
+    return changed;
+  }
+
   public async saveScripts(enabled: string[], disabled: string[]): Promise<void> {
     const modNames = await this.modNames();
     const currentScripts = new Set([...enabled, ...disabled]);
-    await this.core.idb.withTransaction(['settings'], 'readwrite', async (tx: any) => {
+    await this.idb.with(['settings'], 'readwrite', async tx => {
       const store = tx.objectStore('settings');
       const old = (await store.get('Script')) as SettingRecord<ScriptStore> | undefined;
       const next = new Set<string>();
@@ -177,47 +296,43 @@ class GUIControl {
   }
 
   public cascadeModules(action: 'enable' | 'disable', moduleName: string, modules: ModulesSettings): string[] {
-    const result = new Set([moduleName]);
-    if (action === 'enable') {
-      const disabled = new Set(modules.disabled.map(m => m.name));
-      const addDeps = (name: string) => {
-        const module = modules.disabled.find(m => m.name === name) || modules.enabled.find(m => m.name === name);
-        if (!module) return;
-        for (const dep of module.dependencies || []) {
-          if (!disabled.has(dep)) continue;
-          result.add(dep);
-          addDeps(dep);
-        }
-      };
-      addDeps(moduleName);
-      return Array.from(result);
-    }
+    const allModules = [...modules.enabled, ...modules.disabled];
+    const protectedNames = new Set(allModules.filter(module => module.protected).map(module => module.name));
+    const candidateNames = new Set((action === 'enable' ? modules.disabled : modules.enabled).map(module => module.name));
+    const affectedNames = Modules.traverse([moduleName], this.moduleLinks(allModules, action), protectedNames);
+    return [...affectedNames].filter(name => candidateNames.has(name));
+  }
 
-    const enabled = new Set(modules.enabled.map(m => m.name));
-    const addDependents = (name: string) => {
-      for (const mod of modules.enabled) {
-        if (!(mod.dependencies || []).includes(name) || !enabled.has(mod.name) || mod.protected || (mod.type === 'exposed' && !mod.lifecycle)) continue;
-        result.add(mod.name);
-        addDependents(mod.name);
+  private moduleLinks(modules: ModuleInfo[], action: 'enable' | 'disable'): Map<string, Set<string>> {
+    const links = new Map<string, Set<string>>();
+    for (const module of modules) {
+      for (const dependency of module.dependencies) {
+        const from = action === 'enable' ? module.name : dependency;
+        const to = action === 'enable' ? dependency : module.name;
+        if (!links.has(from)) links.set(from, new Set());
+        links.get(from)!.add(to);
       }
-    };
-
-    addDependents(moduleName);
-    return Array.from(result);
+    }
+    return links;
   }
 
   public get moduleList(): string {
     const result: string[] = [];
-    Object.entries(this.core.dependencyGraph).forEach(([name, info]: [string, any]) => {
+    Object.entries(this.modules.dependencyGraph).forEach(([name, info]) => {
       const type = (info.protected ? 'protected' : info.exposed ? 'exposed' : info.mounted ? 'mounted' : 'module') as ModuleType;
       result.push(`${this.typeLabel(type)} ${name} [${info.source || info.state}]`);
     });
-    this.core.addon?.jsFiles?.forEach((entry: any) => result.push(`[Script] ${entry.filePath} [${entry.modName}]`));
+    this.addon()?.jsFiles.forEach(entry => result.push(`[Script] ${entry.filePath} [${entry.modName}]`));
     return result.length > 0 ? result.join('\n') : '';
   }
 
-  private async whenCreate(Ref: any): Promise<void> {
-    Ref.registryComponentModGuiConfig((ngModule: any) => {
+  private async whenCreate(Ref: ModSubUiAngularJsModeExportInterface): Promise<void> {
+    const { translator, idb, events, modloader } = this;
+    const typeLabel = this.typeLabel.bind(this);
+    const cascadeModules = this.cascadeModules.bind(this);
+    const saveModules = this.saveModules.bind(this);
+    const saveScripts = this.saveScripts.bind(this);
+    Ref.registryComponentModGuiConfig(ngModule => {
       const componentDef = {
         selector: 'maplebirch-control-component',
         componentName: 'maplebirchControlComponent',
@@ -226,36 +341,35 @@ class GUIControl {
           template: widgets(Gui),
           controller: [
             '$scope',
-            '$compile',
-            '$element',
-            function (this: ModSubUiAngularJsService['Ref'], $scope: any, _$compile: any, _$element: any) {
-              $scope.t = this.translation = (text: string[]) => text[maplebirch.meta.Languages.indexOf(maplebirch.Language as 'EN' | 'CN')];
-              const callOnChange = (action: any, data: any) => {
+            function (this: GuiController, $scope: GuiScope) {
+              $scope.t = this.translation = (text: string[]) => text[Languages.indexOf(translator.language as 'EN' | 'CN')];
+              const callOnChange = async (...args: ChangeArgs): Promise<boolean> => {
                 try {
-                  return $scope.$ctrl.data?.onChange?.(action, data) || false;
+                  await $scope.$ctrl.data.onChange(...args);
+                  return true;
                 } catch (e) {
-                  maplebirch.log(`Error in onChange: ${action}`, 'ERROR', e);
+                  modloader.diagnostics.write(`Error in onChange: ${args[0]}`, 'ERROR', 'gui', e);
                   return false;
                 }
               };
 
-              $scope.ClearIndexedDB = () => maplebirch.idb.deleteDatabase();
+              $scope.ClearIndexedDB = () => idb.deleteDatabase();
 
               this.$onInit = () => {
                 $scope.languages = $scope.$ctrl.data.text.Languages.map((lang: string[]) => ({
                   code: lang[0],
                   get name() {
-                    return maplebirch.auto(lang[1]);
+                    return translator.auto(lang[1]);
                   }
                 }));
-                $scope.isDEBUG = () => maplebirch.LogLevel === 'DEBUG';
+                $scope.isDEBUG = () => modloader.diagnostics.LevelName === 'DEBUG';
                 $scope.selectedEnabledModule = -1;
                 $scope.selectedDisabledModule = -1;
                 $scope.selectedEnabledScript = -1;
                 $scope.selectedDisabledScript = -1;
               };
 
-              $scope.typeLabel = (type: ModuleType) => maplebirch.gui.typeLabel(type);
+              $scope.typeLabel = (type: ModuleType) => typeLabel(type);
 
               $scope.changeLanguage = () => {
                 callOnChange('Language', {
@@ -264,10 +378,11 @@ class GUIControl {
                 });
               };
 
-              $scope.DEBUGMODE = (type: string) => maplebirch.t(type === 'enable' ? 'enable' : 'disable', true).convert('title') + $scope.t($scope.$ctrl.data.text.DEBUGMODE);
+              $scope.DEBUGMODE = (type: string) => translator.t(type === 'enable' ? 'enable' : 'disable', true).convert('title') + $scope.t($scope.$ctrl.data.text.DEBUGMODE);
 
               $scope.DEBUGSTATUS = () =>
-                $scope.t($scope.$ctrl.data.text.DEBUGSTATUS) + (maplebirch.LogLevel === 'DEBUG' ? $scope.t($scope.$ctrl.data.text.EnabledSTATUS) : $scope.t($scope.$ctrl.data.text.DisabledSTATUS));
+                $scope.t($scope.$ctrl.data.text.DEBUGSTATUS) +
+                (modloader.diagnostics.LevelName === 'DEBUG' ? $scope.t($scope.$ctrl.data.text.EnabledSTATUS) : $scope.t($scope.$ctrl.data.text.DisabledSTATUS));
 
               $scope.EnableDisableItem = (action: string) => {
                 const enable = action === 'enable';
@@ -296,7 +411,7 @@ class GUIControl {
                 if (idx === -1 || !src[idx]) return;
                 const module = src[idx];
                 const modules: ModulesSettings = {
-                  enabled: $scope.$ctrl.data.enabledModules.map((m: any) => ({
+                  enabled: $scope.$ctrl.data.enabledModules.map(m => ({
                     name: m.name,
                     type: m.type,
                     source: m.source || '',
@@ -304,7 +419,7 @@ class GUIControl {
                     lifecycle: m.lifecycle === true,
                     dependencies: m.dependencies || []
                   })),
-                  disabled: $scope.$ctrl.data.disabledModules.map((m: any) => ({
+                  disabled: $scope.$ctrl.data.disabledModules.map(m => ({
                     name: m.name,
                     type: m.type,
                     source: m.source || '',
@@ -314,14 +429,14 @@ class GUIControl {
                   }))
                 };
 
-                for (const moduleName of maplebirch.gui.cascadeModules(action, module.name, modules)) {
+                for (const moduleName of cascadeModules(action, module.name, modules)) {
                   const srcArray = isEnable ? $scope.$ctrl.data.disabledModules : $scope.$ctrl.data.enabledModules;
                   const dstArray = isEnable ? $scope.$ctrl.data.enabledModules : $scope.$ctrl.data.disabledModules;
-                  const srcIdx = srcArray.findIndex((m: any) => m.name === moduleName);
+                  const srcIdx = srcArray.findIndex(m => m.name === moduleName);
                   if (srcIdx === -1) continue;
                   const mod = srcArray[srcIdx];
                   srcArray.splice(srcIdx, 1);
-                  if (!dstArray.some((m: any) => m.name === moduleName)) dstArray.push(mod);
+                  if (!dstArray.some(m => m.name === moduleName)) dstArray.push(mod);
                 }
 
                 callOnChange('toggleModule', {
@@ -375,33 +490,34 @@ class GUIControl {
       return componentDef;
     });
 
-    Ref.addComponentModGuiConfig({
+    Ref.addComponentModGuiConfig<GuiData>({
       selector: 'maplebirch-control-component',
       data: {
-        onChange: async function (action: any, data: any) {
+        onChange: async function (...[action, data]: ChangeArgs) {
           switch (action) {
             case 'Language':
-              maplebirch.Language = data.Language;
-              await maplebirch.idb.withTransaction(['settings'], 'readwrite', async (tx: any) => await tx.objectStore('settings').put({ key: 'Language', value: data.Language }));
+              await translator.setLanguage(data.Language);
+              await events.trigger(':language');
+              await idb.with(['settings'], 'readwrite', async tx => await tx.objectStore('settings').put({ key: 'Language', value: data.Language }));
               break;
             case 'DEBUG':
-              maplebirch.LogLevel = data.level;
-              await maplebirch.idb.withTransaction(['settings'], 'readwrite', async (tx: any) => await tx.objectStore('settings').put({ key: 'DEBUG', value: data.enabled }));
+              modloader.diagnostics.LevelName = data.level;
+              await idb.with(['settings'], 'readwrite', async tx => await tx.objectStore('settings').put({ key: 'DEBUG', value: data.enabled }));
               break;
             case 'toggleModule':
-              await maplebirch.gui.saveModules(data.enabled, data.disabled);
+              await saveModules(data.enabled, data.disabled);
               break;
             case 'toggleScript':
-              await maplebirch.gui.saveScripts(data.enabled, data.disabled);
+              await saveScripts(data.enabled, data.disabled);
               break;
           }
         },
-        Language: maplebirch.Language,
-        moduleText: maplebirch.gui.moduleList,
-        enabledModules: maplebirch.gui.enabledModules.filter(m => !m.protected && (m.type !== 'exposed' || m.lifecycle)),
-        disabledModules: maplebirch.gui.disabledModules.filter(m => !m.protected && (m.type !== 'exposed' || m.lifecycle)),
-        enabledScripts: maplebirch.gui.enabledScripts,
-        disabledScripts: maplebirch.gui.disabledScripts,
+        Language: translator.language,
+        moduleText: this.moduleList,
+        enabledModules: this.enabledModules.filter(m => !m.protected && (m.type !== 'exposed' || m.lifecycle)),
+        disabledModules: this.disabledModules.filter(m => !m.protected && (m.type !== 'exposed' || m.lifecycle)),
+        enabledScripts: this.enabledScripts,
+        disabledScripts: this.disabledScripts,
         text: {
           Title: Config.Title,
           DEBUGMODE: Config.DEBUG,

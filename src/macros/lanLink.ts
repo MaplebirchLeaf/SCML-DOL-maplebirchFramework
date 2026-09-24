@@ -1,13 +1,15 @@
 // ./src/macros/lanLink.ts
 
+import Diagnostics from '../infra/Diagnostics';
 import maplebirch from '../core';
 import { addClasses, appendMacroIcon, bindLanguageUpdate, isStyleArg, readStyle, text, translatedText, type LinkArg, type MacroContext } from './helpers';
+import dol from '../host/DoL';
 
 // <<lanLink>>
 export function _languageLink(this: MacroContext): void {
   try {
     if (!this.args || this.args.length === 0) return this.error('<<lanLink>> needs at least one argument.');
-    T.link = true;
+    dol.temporary.link = true;
     const payload = Array.isArray(this.payload) ? this.payload : [];
     const content = (payload[0]?.contents || '').trim();
     const firstArg = this.args[0];
@@ -38,8 +40,8 @@ export function _languageLink(this: MacroContext): void {
     if (style) $link.attr('style', style);
     if (passageName != null) {
       $link.attr('data-passage', passageName);
-      if (maplebirch.SugarCube.Story.has(passageName)) {
-        if (maplebirch.SugarCube.Config.addVisitedLinkClass && maplebirch.SugarCube.State.hasPlayed(passageName)) $link.addClass('link-visited');
+      if (maplebirch.host.sugarcube.require().Story.has(passageName)) {
+        if (maplebirch.host.sugarcube.require().Config.addVisitedLinkClass && maplebirch.host.sugarcube.require().State.hasPlayed(passageName)) $link.addClass('link-visited');
       } else {
         $link.addClass('link-broken');
       }
@@ -61,15 +63,15 @@ export function _languageLink(this: MacroContext): void {
     $link.ariaClick(
       { namespace: '.macros', role: passageName != null ? 'link' : 'button', one: passageName != null },
       this.createShadowWrapper(
-        content ? () => maplebirch.SugarCube.Wikifier.wikifyEval(content, passageObj) : () => {},
-        passageName != null ? () => maplebirch.SugarCube.Engine.play(passageName) : undefined
+        content ? () => maplebirch.host.sugarcube.require().Wikifier.wikifyEval(content, passageObj) : () => {},
+        passageName != null ? () => maplebirch.host.sugarcube.require().Engine.play(passageName) : undefined
       )
     );
     $container.append($link);
     $container.appendTo(this.output);
     bindLanguageUpdate($container, 'lanLink', update);
-  } catch (error: any) {
+  } catch (error) {
     maplebirch.log('<<lanLink>> error', 'ERROR', error);
-    return this.error(`<<lanLink>> error: ${error?.message || error}`);
+    return this.error(`<<lanLink>> error: ${Diagnostics.message(error)}`);
   }
 }

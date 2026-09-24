@@ -1,28 +1,30 @@
 // .src/modules/TimeStateWeather/Time.ts
 
 import { TimeConstants } from '../../constants';
-import { replace } from '../../utils/twine';
+import maplebirch from '../../core';
+import dol from '../../host/DoL';
 
 export function patchTimeAsset(content: string): string {
   let result = content;
-  if (!result.includes('maplebirch.dynamic.Time.patchTime(Time)')) result = replace(result, [[/(\nwindow\.Time = Time;)/, `\nmaplebirch.dynamic.Time.patchTime(Time);$1`]], 'Time asset patch');
+  if (!result.includes('maplebirch.dynamic.Time.patchTime(Time)'))
+    result = maplebirch.host.modLoader.replace(result, [[/(\nwindow\.Time = Time;)/, `\nmaplebirch.dynamic.Time.patchTime(Time);$1`]], 'Time asset patch');
   return result;
 }
 
 interface TimeHandlers {
-  pass?: (seconds: number) => any;
-  timeTravel?: (date: DateTime) => any;
+  pass?: (seconds: number) => unknown;
+  timeTravel?: (date: DateTime) => unknown;
 }
 
 export interface VanillaTimeHandlers {
   set?: (value?: number | DateTime) => void;
-  pass?: (seconds: number) => any;
+  pass?: (seconds: number) => unknown;
   setDate?: (date: DateTime) => void;
 }
 
 export const vanillaTime: VanillaTimeHandlers = {};
 
-export function bindTimeHandlers(time: any, handlers: TimeHandlers): void {
+export function bindTimeHandlers(time: TimeAPI, handlers: TimeHandlers): void {
   if (!time) return;
   Object.defineProperties(time, {
     ...(handlers.pass && {
@@ -42,7 +44,7 @@ export function bindTimeHandlers(time: any, handlers: TimeHandlers): void {
   });
 }
 
-function patchTime(time: any): void {
+function patchTime(time: TimeAPI): void {
   if (!time) return;
   vanillaTime.set ??= typeof time.set === 'function' ? time.set.bind(time) : undefined;
   vanillaTime.pass ??= typeof time.pass === 'function' ? time.pass.bind(time) : undefined;
@@ -51,14 +53,14 @@ function patchTime(time: any): void {
   let cachedAbsoluteTimestamp: number | null = null;
 
   const set = (value?: number | DateTime): void => {
-    if (value && typeof value === 'object' && typeof (value as any).timeStamp === 'number') {
+    if (value && typeof value === 'object' && typeof value.timeStamp === 'number') {
       cachedDate = new window.DateTime(value);
       cachedAbsoluteTimestamp = cachedDate.timeStamp;
-      V.startDate ??= new window.DateTime(2022, 9, 4, 7).timeStamp;
-      V.timeStamp = cachedAbsoluteTimestamp - V.startDate;
+      dol.variables.startDate ??= new window.DateTime(2022, 9, 4, 7).timeStamp;
+      dol.variables.timeStamp = cachedAbsoluteTimestamp - dol.variables.startDate;
       return;
     }
-    const elapsedTimestamp = Number(value ?? V.timeStamp ?? 0);
+    const elapsedTimestamp = Number(value ?? dol.variables.timeStamp ?? 0);
     vanillaTime.set?.(Number.isFinite(elapsedTimestamp) ? elapsedTimestamp : 0);
     cachedDate = null;
     cachedAbsoluteTimestamp = null;
@@ -69,8 +71,8 @@ function patchTime(time: any): void {
   };
 
   const date = (): DateTime => {
-    const startDate = V.startDate ?? (V.startDate = new window.DateTime(2022, 9, 4, 7).timeStamp);
-    const absoluteTimestamp = startDate + (V.timeStamp || 0);
+    const startDate = dol.variables.startDate ?? (dol.variables.startDate = new window.DateTime(2022, 9, 4, 7).timeStamp);
+    const absoluteTimestamp = startDate + (dol.variables.timeStamp || 0);
 
     if (!cachedDate || cachedAbsoluteTimestamp !== absoluteTimestamp) {
       cachedDate = new window.DateTime(absoluteTimestamp);
@@ -248,11 +250,11 @@ function patchTime(time: any): void {
 
     startDate: {
       get: () => {
-        V.startDate ??= new window.DateTime(2022, 9, 4, 7).timeStamp;
-        return new window.DateTime(V.startDate);
+        dol.variables.startDate ??= new window.DateTime(2022, 9, 4, 7).timeStamp;
+        return new window.DateTime(dol.variables.startDate);
       },
       set: (value: DateTime) => {
-        V.startDate = value.timeStamp;
+        dol.variables.startDate = value.timeStamp;
         cachedDate = null;
         cachedAbsoluteTimestamp = null;
       },
