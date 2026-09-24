@@ -1,5 +1,8 @@
 # NPC Pregnancy
 
+> [!IMPORTANT]
+> This feature depends on the target DoL version's native NPC pregnancy API. Check `maplebirch.npc.Pregnancy.available` before querying state or rolling for conception; registration may run while your mod script loads.
+
 `maplebirch.npc.Pregnancy` registers named NPCs with the original 0.5.12.13 pregnancy system and provides cycle configuration, story queries, and conception rolls. The original game continues to own pregnancy records, time progression, child generation, and birth.
 
 Call `add()` while loading your mod script; query state or roll for conception only after the game has initialized and loaded the NPC. Check `maplebirch.npc.Pregnancy.available` before calling: `get()` and `tryConceive()` throw if the original pregnancy API is unavailable or the NPC name is unknown.

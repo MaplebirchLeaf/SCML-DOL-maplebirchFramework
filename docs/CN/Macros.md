@@ -1,4 +1,4 @@
-## SugarCube 宏扩展
+# SugarCube 宏
 
 ## 用来做什么
 
@@ -180,7 +180,7 @@ SugarCube 链接语法：
 <<maplebirchTextOutput "myTextKey">>
 ```
 
-相关功能见 [文本工具](ToolCollection/htmlTools.md)。
+相关功能见 [文本工具](Tools/Text.md)。
 
 ---
 
@@ -215,4 +215,4 @@ maplebirch.tool.macro.define('myModRaw', function () {
 - 多语言宏会在语言切换后尽量刷新自身文本。
 - 翻译键建议带模组名前缀。
 - `lanButton` 和 `lanLink` 内部可以写 SugarCube 动作。
-- 需要生成复杂文本时，可把逻辑放到 [文本工具](ToolCollection/htmlTools.md) 中。
+- 需要生成复杂文本时，可把逻辑放到 [文本工具](Tools/Text.md) 中。

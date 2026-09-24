@@ -4,6 +4,18 @@
 
 Supported formats: **`.mp3`**, **`.wav`**, **`.ogg`**, **`.m4a`**, **`.flac`**, **`.webm`**.
 
+## Independent Ambience Channel
+
+`maplebirch.audio.ambience` does not occupy the music playlist. It reads audio directly from a mod ZIP and loops it through Howler's public API, crossfading when tracks change without accessing `Howler.ctx`. Include the file in the audio pack's `additionFile`. `play()` returns `false` if the file is missing; decoding or loading failures reject its promise.
+
+```javascript
+await maplebirch.audio.ambience.play('myAudioPack', 'audio/rain.ogg', 0.25, 1200);
+maplebirch.audio.ambience.setVolume(0.4);
+maplebirch.audio.ambience.stop(1200);
+```
+
+The final two arguments are channel volume from 0–1 and fade duration in milliseconds. Replaying the same file only updates its volume. The mod still owns the rules for choosing ambience tracks.
+
 ## Importing From boot.json
 
 Audio files must be listed in **`additionFile`** so ModLoader can provide them. Then declare the folders to import in the `maplebirchAddon` params.

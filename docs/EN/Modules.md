@@ -1,11 +1,16 @@
-# Module Management (Modules)
+# Modules and diagnostics
+
+> [!NOTE]
+> This page is for extending framework modules or investigating load failures. Ordinary content mods can load code through `script` in `boot.json`.
 
 `Modules` manages framework module registration, dependency order, and lifecycle hooks. Most content mods do not need to register framework modules directly; use this only when a mod intentionally extends framework behavior.
+
+Top-level `maplebirch.define()` registers a framework module. Use `maplebirch.idb()` to define an IndexedDB store and `maplebirch.with()` for transactions.
 
 ## Registering A Module
 
 ```javascript
-maplebirch.register(name, module, dependencies);
+maplebirch.define(name, module, dependencies);
 ```
 
 | Argument       | Description                                      |
@@ -17,7 +22,7 @@ maplebirch.register(name, module, dependencies);
 Example:
 
 ```javascript
-maplebirch.register('myModule', {
+maplebirch.define('myModule', {
   Init() {
     this.log('module initialized', 'INFO');
   }
@@ -27,7 +32,7 @@ maplebirch.register('myModule', {
 With dependencies:
 
 ```javascript
-maplebirch.register(
+maplebirch.define(
   'myModule',
   {
     Init() {
@@ -38,10 +43,10 @@ maplebirch.register(
 );
 ```
 
-The module object can also declare `dependencies`; they are merged with dependencies passed to `register`.
+The module object can also declare `dependencies`; they are merged with dependencies passed to `define`.
 
 ```javascript
-maplebirch.register(
+maplebirch.define(
   'myModule',
   {
     dependencies: ['tool'],
@@ -56,7 +61,7 @@ maplebirch.register(
 If a module object has `exposed: true`, it is registered as `EXPOSED` and mounted directly onto `maplebirch[name]`.
 
 ```javascript
-maplebirch.register('myApi', {
+maplebirch.define('myApi', {
   exposed: true,
   hello() {
     return 'Hello';
@@ -149,10 +154,12 @@ class MyModule {
   refreshPassageState() {}
 }
 
-maplebirch.register('myModule', new MyModule(), ['npc']);
+maplebirch.define('myModule', new MyModule(), ['npc']);
 ```
 
 ## Dependency Rules
+
+Use `maplebirch.services.gui.setModuleStates({ myModule: false, anotherModule: true })` to update only named modules; pass one key for a single module. Unnamed module states are preserved. If dependency rules would change an unnamed module too, the call rejects until that module is included explicitly. Reload the game after saving for the lifecycle state to change.
 
 - A module initializes after all dependencies are satisfied.
 - Transitive dependencies are collected automatically.
@@ -165,3 +172,14 @@ maplebirch.register('myModule', new MyModule(), ['npc']);
 Use mod-prefixed names to avoid collisions with framework modules or other mods.
 
 Late modules receive `preInit()`. If a `preInit()` hook registers children through `modules.with()`, the outer scheduler prepares those children after the parent hook returns, avoiding a wait on the parent itself.
+
+## Inspecting diagnostics
+
+The framework collects logs, module failures, and patch results in one place. `maplebirch.export` is a JSON string property that you can copy when investigating a load problem; there is no need to retrieve a diagnostics object from each module.
+
+```javascript
+console.log(maplebirch.export);
+```
+
+> [!TIP]
+> Inside a module lifecycle method, call `this.log(message, level)` for a module-scoped record. Use `maplebirch.log(message, level)` in ordinary scripts.

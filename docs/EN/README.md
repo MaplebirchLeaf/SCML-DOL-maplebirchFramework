@@ -1,61 +1,52 @@
-# English Documentation
+# Mod author documentation
 
-[中文文档](../CN/README.md)
+[Project home](../../README.EN.md) · [中文](../CN/README.md)
 
-This directory contains English documentation for mod authors using **`maplebirchFramework`**. The English docs focus on practical usage: _entry points_, _minimal examples_, _configuration fields_, and common patterns.
+These guides follow the path from a running script to specific extensions. Read only the topics your mod needs; each topic page is the reference for its fields and behavior.
 
-## Getting Started
+> [!TIP]
+> New to the framework? Start with [Getting started](GettingStarted.md), then use the [boot.json reference](BootJson.md). Examples prefer short `maplebirch` entry points.
 
-- [boot.json Configuration](BootJson.md)
-- [Utilities](Utilities.md)
-- [Event Emitter](EventEmitter.md)
-- [Translation Service](Translator.md)
-- [SugarCube Macros](SugarCubeMacro.md)
-- [Audio Manager](Audio.md)
-- [Module Management](ModuleSystem.md)
+Callouts have distinct meanings: **TIP** recommends a practice, **NOTE** adds context, **IMPORTANT** marks a prerequisite, and **WARNING** identifies a likely failure mode.
 
-## Dynamic Events
+## Everyday mod development
 
-- [Time Events](Dynamic/TimeEvents.md)
-- [State Events](Dynamic/StateEvents.md)
-- [Weather Events](Dynamic/WeatherEvents.md)
+| Goal                                                   | Guide                                                        |
+| :----------------------------------------------------- | :----------------------------------------------------------- |
+| Load scripts, translations, audio, and fixed resources | [boot.json configuration](BootJson.md)                       |
+| Translate text and split language files                | [Translator](Translator.md)                                  |
+| Listen for or trigger events                           | [Events](Events.md)                                          |
+| Add widgets to a page                                  | [Zones](Tools/Zones.md)                                      |
+| Define macros or work with SugarCube text              | [SugarCube macros](Macros.md) / [HTML tools](Tools/Text.md)  |
+| Play music, effects, and ambience                      | [Audio](Audio.md)                                            |
+| Use general helpers                                    | [Utilities](Utilities.md) / [Random system](Tools/Random.md) |
 
-## Tool Collection
+## DoL content extensions
 
-- [Zone Manager](ToolCollection/Framework.md)
-- [Random System](ToolCollection/randSystem.md)
-- [Data Migration](ToolCollection/migration.md)
-- [HTML Tools](ToolCollection/htmlTools.md)
-- [Patch Registration](ToolCollection/Patches.md)
-- [Traits](ToolCollection/Traits.md)
-- [Tips](ToolCollection/Tips.md)
-- [Location Config](ToolCollection/Location.md)
-- [Bodywriting](ToolCollection/Bodywriting.md)
-- [Foodstuff](ToolCollection/Foodstuff.md)
-- [Fishing Extensions](ToolCollection/Fishing.md)
-- [Antiques](ToolCollection/Antiques.md)
+### Game state and passages
 
-## Character, NPC, and Combat
+- [Time events](Dynamic/TimeEvents.md) · [State events](Dynamic/StateEvents.md) · [Weather events](Dynamic/WeatherEvents.md)
+- [Patch registration](Tools/Patches.md): consider passage or script patching only when a zone hook cannot do the job.
+- [Locations](Tools/Location.md) · [Variable migration](Tools/Migration.md)
 
-- [Character Layers](Character/Character.md)
-- [Transformation System](Character/Transformation.md)
-- [Transformation Hint](Character/TransformHint.md)
-- [Named NPC](NamedNPC/NamedNPC.md)
-- [NPC Transformation](NamedNPC/NamedNPCTransformation.md)
-- [NPC Pregnancy](NamedNPC/NamedNPCPregnancy.md)
-- [NPC Stats](NamedNPC/NamedNPCStats.md)
-- [NPC Schedule](NamedNPC/NamedNPCSchedule.md)
-- [NPC Clothes](NamedNPC/NamedNPCClothes.md)
-- [NPC Sidebar](NamedNPC/NamedNPCSidebar.md)
-- [Combat Actions](Combat/Actions.md)
+### Characters and combat
 
-## Framework Services
+- [Character layers](Character/Character.md) · [Transformations](Character/Transformation.md) · [Transformation hints](Character/TransformHint.md)
+- [NPC registration](NamedNPC/NamedNPC.md) · [Stats](NamedNPC/NamedNPCStats.md) · [Schedules](NamedNPC/NamedNPCSchedule.md)
+- [NPC clothes and wardrobe](NamedNPC/NamedNPCClothes.md) · [Sidebar](NamedNPC/NamedNPCSidebar.md) · [Transformations](NamedNPC/NamedNPCTransformation.md) · [Pregnancy](NamedNPC/NamedNPCPregnancy.md)
+- [Combat actions](Combat/Actions.md)
 
-- Prefer focused top-level `maplebirch` methods such as `on`, `t`, `define`, `register`, and `wikify`; see [Recommended Structure](../../README.EN.md#recommended-structure).
-- [ModLoader Integration](AddonPlugin.md)
-- [Mod Encryption](Encryption.md)
-- [Cloud Save](CloudSave.md)
+### Data registration
 
-## Translation Status
+- [Traits](Tools/Traits.md) · [Tips](Tools/Tips.md) · [Bodywriting](Tools/Bodywriting.md)
+- [Foodstuff](Tools/Foodstuff.md) · [Fishing](Tools/Fishing.md) · [Antiques](Tools/Antiques.md)
 
-The English docs mirror the Chinese documentation structure and focus on public APIs that mod authors are likely to use.
+## Advanced and optional services
+
+- [Modules and diagnostics](Modules.md): for framework extensions or investigating load failures.
+- [AddonPlugin integration](AddonPlugin.md): for custom loading behavior or plugin-level capabilities.
+- [Mod encryption](Encryption.md): for authors publishing encrypted mods.
+- [Cloud save](CloudSave.md): requires player-owned storage; ordinary content mods do not need it.
+
+> [!NOTE]
+> `services`, `infra`, and `host` are advanced entry points. Most mods should use top-level methods such as `maplebirch.on/once/off/after/trigger`, `t/auto`, `idb/define/with`, `wikify`, and `log`.

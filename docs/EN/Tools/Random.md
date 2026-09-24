@@ -1,4 +1,4 @@
-# Random System
+# Random system
 
 `randSystem` creates reproducible random number generators. Use it when a mod needs saved seeds, repeatable results, replayable random events, backtracking, or easier debugging.
 

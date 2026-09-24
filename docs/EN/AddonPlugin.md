@@ -1,6 +1,6 @@
 # ModLoader Integration
 
-Register synchronous render hooks with `maplebirch.wikify`. Image resources belong to `maplebirch.host.modLoader.resources`, while `maplebirch.infra.diagnostics` collects diagnostics globally. See [boot.json](BootJson.md) for configuration and [HTML Tools](ToolCollection/htmlTools.md) for content construction.
+Register synchronous render hooks with `maplebirch.wikify`. Image resources belong to `maplebirch.host.modLoader.resources`, while `maplebirch.infra.diagnostics` collects diagnostics globally. See [boot.json](BootJson.md) for configuration and [HTML Tools](Tools/Text.md) for content construction.
 
 ## Render Hooks
 
@@ -29,9 +29,9 @@ Names are ordinary strings: both `myMod:relationship` and `myMod-relationship` w
 
 Callbacks run synchronously, outside the async event bus. Before hooks must return strings; subsequent callbacks receive the previous result. Widget passage information may be `undefined`; the ModLoader SugarCube hook can pass the widget definition passage rather than the current player page. Read `maplebirch.SugarCube.State.passage` when the current page is needed. The current fragment may not yet be attached to the page.
 
-Filter targets before calling Wikifier within a hook to avoid recursion. Upstream exposes no removal API; this entry point does not provide removal or priorities. For vanilla adapters matched by widget name, see [Patch](ToolCollection/Patches.md).
+Filter targets before calling Wikifier within a hook to avoid recursion. Upstream exposes no removal API; this entry point does not provide removal or priorities. For vanilla adapters matched by widget name, see [Patch](Tools/Patches.md).
 
-These hooks describe rendering order. A widget containing a reward link can finish before the player clicks that link. Reward logic belongs in the successful branch. Use [source patches](ToolCollection/Framework.md#source-patches) when an exact branch must be adapted; `afterWidget` is not a success event.
+These hooks describe rendering order. A widget containing a reward link can finish before the player clicks that link. Reward logic belongs in the successful branch. Use [source patches](Tools/Zones.md#source-patches) when an exact branch must be adapted; `afterWidget` is not a success event.
 
 ## Image Resources
 

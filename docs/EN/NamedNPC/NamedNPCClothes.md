@@ -148,8 +148,24 @@ The final outfit is composed in this order: naked template, NPC base modifiers, 
 
 `wardrobe.wear()` changes an outfit only when a valid rule matches the current location. With no matching rule, the NPC retains the last successfully selected outfit; `naked` is used only before any rule has matched.
 
+Use named condition groups to reuse a location, passage, time, and story-state check. `location` reads `V.location`, `passage` reads the current passage title, and `hours: [from, to]` reads `V.time.hour` (including ranges crossing midnight). The third argument adds game-specific conditions. Conditions are evaluated when used; calling `when()` by name returns the same function:
+
+```javascript
+const nightStudy = wardrobe.when(
+  'night-study',
+  {
+    location: ['library', 'school'],
+    passage: 'Study',
+    hours: [21, 5]
+  },
+  () => V.weather === 'rain'
+);
+wardrobe.wear('Luna', 'library', 'school_uniform', { when: nightStudy });
+wardrobe.wet('Luna', 'damp', wardrobe.when('night-study'));
+```
+
 The third argument also accepts an array of `[outfit key, weight]` entries. A weighted choice is made once when a rule becomes active, not on repeated reads or while the outfit is retained. The choice is made again after the rule stops matching and later becomes active. Missing outfit keys and non-positive or non-finite weights are ignored with a warning.
 
 NPC outfit wetness uses the semantic states `dry`, `damp`, `wet`, and `soaked`, which the framework maps internally to alpha values `1`, `0.9`, `0.7`, and `0.5`. One state applies uniformly to `upper`, `lower`, `under_upper`, and `under_lower`; glasses, jewellery, shoes, and other slots remain unchanged. Wetness belongs to a `wear` rule rather than a reusable outfit template. Omitting `wetness` preserves the dry display. `wardrobe.wet()` overrides the currently selected outfit's wetness; the last matching rule wins, and no match falls back to the `wardrobe.wear()` wetness.
 
-`wardrobe.layer()` conditionally merges a base template before the location outfit and may resolve its template key dynamically. `wardrobe.put()` merges a registered template inside a callback. `wardrobe.strip()` restores the requested slots from the `naked` template instead of leaving undefined slots that renderers cannot read. Because the location outfit is merged after base layers, swimwear and other outfits may still provide their own `under_upper` or `under_lower` items.
+`wardrobe.layer()` conditionally merges a base template before the location outfit and may resolve its template key dynamically. `wardrobe.put(clothes, key, slots?)` merges a registered template inside a callback, optionally filtering to one slot or a list of slots. `wardrobe.apply(clothes, slot, item)` copies one clothing item into a typed slot. `wardrobe.strip()` restores the requested slots from the `naked` template instead of leaving undefined slots that renderers cannot read. Because the location outfit is merged after base layers, swimwear and other outfits may still provide their own `under_upper` or `under_lower` items.

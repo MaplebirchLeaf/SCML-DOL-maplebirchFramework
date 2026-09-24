@@ -1,13 +1,18 @@
-## 模块管理 (Modules)
+# 模块与诊断
+
+> [!NOTE]
+> 只有需要扩展框架模块或排查加载问题时才需要本页。普通内容模组用 `boot.json` 的 `script` 加载代码即可。
 
 `Modules` 是框架的模块注册、依赖排序与生命周期调度服务。一般内容模组通常不需要直接注册框架模块；只有在你明确要扩展框架内部能力时，才建议使用这一套接口。
+
+顶层 `maplebirch.define()` 注册框架模块；IndexedDB 存储定义使用 `maplebirch.idb()`，事务仍使用 `maplebirch.with()`，两者不要混淆。
 
 ---
 
 ## 注册模块
 
 ```javascript
-maplebirch.register(name, module, dependencies);
+maplebirch.define(name, module, dependencies);
 ```
 
 | 参数           | 说明                           |
@@ -19,7 +24,7 @@ maplebirch.register(name, module, dependencies);
 示例：
 
 ```javascript
-maplebirch.register('myModule', {
+maplebirch.define('myModule', {
   Init() {
     this.log('module initialized', 'INFO');
   }
@@ -29,7 +34,7 @@ maplebirch.register('myModule', {
 带依赖：
 
 ```javascript
-maplebirch.register(
+maplebirch.define(
   'myModule',
   {
     Init() {
@@ -43,7 +48,7 @@ maplebirch.register(
 模块对象也可以声明 `dependencies`，会和注册时传入的依赖合并：
 
 ```javascript
-maplebirch.register(
+maplebirch.define(
   'myModule',
   {
     dependencies: ['tool'],
@@ -60,7 +65,7 @@ maplebirch.register(
 如果模块对象带有 `exposed: true`，注册后会被标记为 `EXPOSED`，并直接挂载到 `maplebirch[name]`。
 
 ```javascript
-maplebirch.register('myApi', {
+maplebirch.define('myApi', {
   exposed: true,
   hello() {
     return 'Hello';
@@ -163,12 +168,14 @@ class MyModule {
   refreshPassageState() {}
 }
 
-maplebirch.register('myModule', new MyModule(), ['npc']);
+maplebirch.define('myModule', new MyModule(), ['npc']);
 ```
 
 ---
 
 ## 依赖规则
+
+只更新指定模块时，使用 `maplebirch.services.gui.setModuleStates({ myModule: false, anotherModule: true })`；单个模块只需传一个键。它保留未指定模块的状态。若依赖关系会导致未指定模块一起改变，调用会报错，须明确把相关模块加入本次选择。状态写入后仍需重载游戏才会影响模块生命周期。
 
 - 模块会在所有依赖满足后再初始化。
 - 依赖会做传递收集，例如 A 依赖 B，B 依赖 C，则 A 会等待 C。
@@ -186,3 +193,14 @@ maplebirch.register('myModule', new MyModule(), ['npc']);
 - 模块名称建议带模组前缀，避免和框架内置模块或其它模组冲突。
 - 受保护模块不会被禁用界面关闭。
 - 晚注册模块会补做 `preInit()`；在 `preInit()` 内通过 `modules.with()` 注册子模块时，子模块的预初始化由外层调度继续完成，避免等待尚未返回的父模块。
+
+## 查看诊断
+
+框架统一收集日志、模块错误和补丁结果。排查加载问题时先查看 `maplebirch.export`，它是 JSON 字符串属性，可复制给作者分析；不需要从每个模块单独取诊断对象。
+
+```javascript
+console.log(maplebirch.export);
+```
+
+> [!TIP]
+> 模块生命周期方法内可直接调用 `this.log(message, level)`，日志会带模块作用域。普通脚本使用 `maplebirch.log(message, level)`。

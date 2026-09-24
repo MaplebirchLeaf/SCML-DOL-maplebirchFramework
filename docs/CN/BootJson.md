@@ -1,6 +1,11 @@
-## boot.json 配置
+# boot.json 配置
 
-### 适用场景
+[文档导航](README.md) · [快速开始](GettingStarted.md)
+
+> [!IMPORTANT]
+> 路径均相对模组 ZIP 根目录。先用最小 `script` 配置确认模组能加载，再按需要增加语言、音频和 NPC 资源。
+
+## 适用场景
 
 当模组需要使用 **`maplebirchFramework`** 的脚本加载、语言导入、音频导入、区域挂载或 NPC 资源注册时，可以在 **`boot.json`** 中配置 **`maplebirchAddon`**。
 
@@ -22,7 +27,7 @@
 
 ---
 
-### 基本结构
+## 基本结构
 
 ```json
 "addonPlugin": [
@@ -216,7 +221,7 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 }
 ```
 
-更多区域名称和 widget 配置见 [区域管理系统](ToolCollection/Framework.md)。
+更多区域名称和 widget 配置见 [区域管理系统](Tools/Zones.md)。
 
 ---
 
@@ -248,7 +253,7 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 
 `has` 可以写布尔值，也可以写判断表达式。表达式会作为代码执行，只应写可信内容。
 
-更多说明见 [特质注册](ToolCollection/Traits.md)。
+更多说明见 [特质注册](Tools/Traits.md)。
 
 ---
 
@@ -314,13 +319,13 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 
 相关文档：
 
-- [Patch 注册](ToolCollection/Patches.md)
-- [特质注册](ToolCollection/Traits.md)
-- [小贴士注册](ToolCollection/Tips.md)
-- [身体文字](ToolCollection/Bodywriting.md)
-- [食物注册](ToolCollection/Foodstuff.md)
-- [钓鱼扩展](ToolCollection/Fishing.md)
-- [古董注册](ToolCollection/Antiques.md)
+- [Patch 注册](Tools/Patches.md)
+- [特质注册](Tools/Traits.md)
+- [小贴士注册](Tools/Tips.md)
+- [身体文字](Tools/Bodywriting.md)
+- [食物注册](Tools/Foodstuff.md)
+- [钓鱼扩展](Tools/Fishing.md)
+- [古董注册](Tools/Antiques.md)
 
 ---
 

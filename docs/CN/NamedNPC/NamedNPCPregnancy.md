@@ -1,5 +1,8 @@
 # NPC 怀孕
 
+> [!IMPORTANT]
+> 此功能依赖目标 DoL 版本提供原版 NPC 怀孕 API。先检查 `maplebirch.npc.Pregnancy.available`，再读取状态或判定受孕；注册本身可在模组脚本加载时执行。
+
 `maplebirch.npc.Pregnancy` 将命名 NPC 注册到原版 0.5.12.13 怀孕系统，并提供周期配置、剧情查询和受孕判定。妊娠记录、时间推进、子女生成与生产仍由原版负责。
 
 `add()` 可在模组脚本加载时注册；读取状态或判定受孕应等游戏初始化并载入 NPC 后进行。调用前可检查 `maplebirch.npc.Pregnancy.available`：缺少原版怀孕 API 时，`get()` 和 `tryConceive()` 会抛错。未知 NPC 名称也会抛错。

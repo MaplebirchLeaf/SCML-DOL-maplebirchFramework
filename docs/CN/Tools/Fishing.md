@@ -1,6 +1,9 @@
 # 钓鱼扩展
 
-对应原版 0.5.12.13 的 `setup.fishing.lootTables.fish`。框架注册鱼类、食物鱼饵和现有钓点的鱼类权重，继续使用原版抽取、小游戏、鱼饵扣除和捕获记录。
+用于向原版 `setup.fishing.lootTables.fish` 注册鱼类、食物鱼饵，以及**现有钓点**的鱼类权重。抽取、小游戏、鱼饵扣除和捕获记录仍由原版处理。
+
+> [!IMPORTANT]
+> 此功能依赖目标 DoL 版本提供 `setup.fishing.lootTables.fish`。框架不会创建新钓点，也不会替模组提供鱼类图标。
 
 ## 使用入口
 
@@ -10,29 +13,26 @@ maplebirch.tool.patch.fishing.addBait(key, config);
 maplebirch.tool.patch.fishing.configure(location, weights);
 ```
 
-**`key`** 是鱼类或鱼饵的唯一标识，建议带模组名前缀。`add()` 和 `configure()` 返回是否接受配置，无效配置返回 `false`；`addBait()` 无返回值。
+**`key`** 是鱼类或鱼饵的标识，建议带模组名前缀，避免覆盖原版或其它模组的条目。`add()` 和 `configure()` 返回是否接受配置，无效配置返回 `false`；`addBait()` 无返回值。
 
-在启动脚本中注册，由框架统一合并到 `setup`。读档只补齐食物库存，捕获记录仍由原版 `updateFishRecord()` 更新。需要读取原版 `setup` 后再配置时，使用 `onInit`，注册后依次调用 `maplebirch.tool.patch.fishing.apply()` 和 `maplebirch.tool.patch.foodstuff.apply()`。
+通常在启动脚本中注册，框架会在初始化时合并到 `setup`。读档只补齐缺失的食物库存；捕获记录仍由原版更新。
 
 ## 最小示例
 
-下面用原版已有的鲑鱼配置演示扩展，不引入新的图片资源：
+下面注册一条新鱼及其偏好的鱼饵，并调整码头权重。示例假设模组已提供 `fish/my-mod-silverfish.png`：
 
 ```javascript
-maplebirch.tool.patch.fishing.add('salmon', {
-  minSize: 45,
-  maxSize: 120,
-  preferredSeason: ['autumn'],
-  preferredLocation: ['fishingCoastPath'],
-  preferredBait: 'wild_carrot',
-  locations: { fishingPier: 0.75, fishingCoastPath: 1, fishingForestLake: 0.5 },
-  cookable: true,
-  minigame: { behavior: 'panicked', maxStamina: 5, armFatigueDifficulty: 2000 },
-  icon: 'fish/salmon.png'
+maplebirch.tool.patch.fishing.addBait('my_mod_grub', { name: 'river grub' });
+
+maplebirch.tool.patch.fishing.add('my_mod_silverfish', {
+  minSize: 10,
+  maxSize: 35,
+  locations: { fishingPier: 0.7 },
+  preferredBait: 'my_mod_grub',
+  icon: 'fish/my-mod-silverfish.png'
 });
 
-maplebirch.tool.patch.fishing.addBait('apple', { name: 'apple' });
-maplebirch.tool.patch.fishing.configure('fishingPier', { salmon: 1.25 });
+maplebirch.tool.patch.fishing.configure('fishingPier', { my_mod_silverfish: 1.2 });
 ```
 
 ## 配置字段
@@ -60,6 +60,9 @@ maplebirch.tool.patch.fishing.configure('fishingPier', { salmon: 1.25 });
 
 `addBait(key, config)` 接受 [食物配置](Foodstuff.md#常用字段)，自动设置原版 `is_fishing_bait` 标记并共用食物库存。自定义鱼饵使用原版普通食物鱼饵逻辑；原版 `baitfish` 和 `bait_worm` 保留各自的特殊处理。
 
+> [!TIP]
+> 如果必须等原版 `setup` 可用后才能决定配置，可在 `maplebirch.tool.onInit()` 中注册，再依次调用 `maplebirch.tool.patch.fishing.apply()` 和 `maplebirch.tool.patch.foodstuff.apply()`。一般的静态配置不需要手动调用 `apply()`。
+
 ## 钓点配置
 
 `locations`、`preferredLocation` 和 `configure()` 使用以下原版钓点：
@@ -83,3 +86,10 @@ fishingBeach / fishingPier / fishingCoastPath / fishingForestLake / fishingMoor
 ```
 
 `fish`、`bait` 支持键值对象或带 `key` 的数组；`fishingLocations` 使用钓点到鱼类权重的对象。文件写法和完整 addon 结构见 [boot.json 配置](../BootJson.md)。
+
+## 相关文档
+
+- [食物注册](Foodstuff.md)：鱼类对应的食物条目与鱼饵配置。
+- [Patch 扩展](Patches.md)：注册与应用 DoL 数据补丁的规则。
+- [boot.json 配置](../BootJson.md)：从文件导入鱼类、鱼饵与钓点权重。
+- [文档导航](../README.md)：查找其它 DoL 内容扩展。

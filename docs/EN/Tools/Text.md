@@ -1,4 +1,4 @@
-# HTML Tools
+# Text and HTML tools
 
 Use `maplebirch.tool.text` to register content, build fragments and edit existing nodes. For widgets, pass the fragment received by the hook. Replacement methods default to the current page's `#passage-content` only when no root is supplied.
 

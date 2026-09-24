@@ -236,7 +236,7 @@ Allow `null`:
 ['a', 'b'].either(undefined, true);
 ```
 
-For reproducible random sequences, use [randSystem](ToolCollection/randSystem.md).
+For reproducible random sequences, use [randSystem](Tools/Random.md).
 
 ## convert
 

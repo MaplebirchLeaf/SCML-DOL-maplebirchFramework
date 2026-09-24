@@ -158,7 +158,7 @@ if (maplebirch.services.translator.has('myMod.button.save')) {
 <</language>>
 ```
 
-更多宏用法见 [SugarCube 宏扩展](SugarCubeMacro.md)。
+更多宏用法见 [SugarCube 宏扩展](Macros.md)。
 
 ---
 

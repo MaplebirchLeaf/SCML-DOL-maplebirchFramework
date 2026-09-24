@@ -243,7 +243,7 @@ Math.random(5, 10, true); // 5 到 10 的浮点数
 ['a', 'b'].either(undefined, true);
 ```
 
-需要可复现随机序列时，使用 [随机数系统](ToolCollection/randSystem.md)。
+需要可复现随机序列时，使用 [随机数系统](Tools/Random.md)。
 
 ## convert
 

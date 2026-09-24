@@ -1,6 +1,6 @@
 # ModLoader 接入
 
-通过 `maplebirch.wikify` 注册同步渲染钩子；图片资源由 `maplebirch.host.modLoader.resources` 管理，诊断由 `maplebirch.infra.diagnostics` 统一汇集。boot 配置见 [boot.json](BootJson.md)，内容构建见 [HTML 工具](ToolCollection/htmlTools.md)。
+通过 `maplebirch.wikify` 注册同步渲染钩子；图片资源由 `maplebirch.host.modLoader.resources` 管理，诊断由 `maplebirch.infra.diagnostics` 统一汇集。boot 配置见 [boot.json](BootJson.md)，内容构建见 [HTML 工具](Tools/Text.md)。
 
 ## 渲染钩子
 
@@ -29,9 +29,9 @@ maplebirch.wikify('myMod:relationship', {
 
 回调同步执行，不使用异步事件总线。`before` 必须返回字符串，后续处理器收到前一个处理器的结果。widget 的 passage 信息可能为 `undefined`；ModLoader 配套 SugarCube 的钩子可传入定义 widget 的 passage，不能据此推断玩家当前页面。需要当前页面时读取 `maplebirch.SugarCube.State.passage`。`node` 是当前渲染片段，可能尚未挂载到页面。
 
-在钩子中再次调用 Wikifier 时必须过滤目标，避免重复进入同一个钩子。上游没有公开注销入口，此接口不提供注销或优先级。按 widget 名声明原版适配可以使用 [Patch](ToolCollection/Patches.md)。
+在钩子中再次调用 Wikifier 时必须过滤目标，避免重复进入同一个钩子。上游没有公开注销入口，此接口不提供注销或优先级。按 widget 名声明原版适配可以使用 [Patch](Tools/Patches.md)。
 
-钩子只描述渲染时序。例如含有“领取奖励”链接的 widget 执行完毕时，玩家可能还没点击链接；奖励逻辑必须放在成功处理分支中。需要精确改动分支时使用 [源码适配](ToolCollection/Framework.md#源码适配)，不能把成功结算等同于 `afterWidget`。
+钩子只描述渲染时序。例如含有“领取奖励”链接的 widget 执行完毕时，玩家可能还没点击链接；奖励逻辑必须放在成功处理分支中。需要精确改动分支时使用 [源码适配](Tools/Zones.md#源码适配)，不能把成功结算等同于 `afterWidget`。
 
 ## 图片资源
 

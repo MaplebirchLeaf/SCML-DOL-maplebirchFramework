@@ -1,4 +1,4 @@
-# HTML 工具
+# 文本与 HTML 工具
 
 通过 `maplebirch.tool.text` 注册内容、构建片段或修改现有节点。操作 widget 时传入回调提供的片段；省略替换方法的根节点才会查找当前页面的 `#passage-content`。
 

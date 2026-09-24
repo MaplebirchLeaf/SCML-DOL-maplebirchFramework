@@ -1,4 +1,7 @@
-## 区域管理
+# 区域添加
+
+> [!TIP]
+> 优先使用 `maplebirch.tool.addTo()`。只有区域钩子无法满足需求时，才考虑[源码注入](Patches.md)。
 
 ### 用来做什么
 
@@ -13,14 +16,6 @@
 ```javascript
 maplebirch.tool.addTo(zone, widget);
 ```
-
-也可以通过子模块访问：
-
-```javascript
-maplebirch.tool.zone.addTo(zone, widget);
-```
-
-两种写法等价，文档中统一使用 `maplebirch.tool.addTo()`。
 
 ---
 
@@ -171,10 +166,10 @@ maplebirch.tool.onInit('MyModInitWidget');
 
 ### 源码适配
 
-没有适用的渲染钩子、需要修改原版内部执行分支时，使用 `maplebirch.tool.zone.inject()`。普通 passage 放在 `locationPassage`，带 widget 标签的 passage 放在 `widgetPassage`。
+没有适用的渲染钩子、需要修改原版内部执行分支时，使用 `maplebirch.tool.inject()`。普通 passage 放在 `locationPassage`，带 widget 标签的 passage 放在 `widgetPassage`。
 
 ```javascript
-maplebirch.tool.zone.inject({
+maplebirch.tool.inject({
   locationPassage: {
     'MyMod Reward': [
       {

@@ -1,4 +1,7 @@
-# Event Emitter
+# Events
+
+> [!TIP]
+> Use `maplebirch.on()`, `once()`, `off()`, and `after()` in ordinary mod scripts; direct access to the internal emitter is unnecessary.
 
 ## Purpose
 

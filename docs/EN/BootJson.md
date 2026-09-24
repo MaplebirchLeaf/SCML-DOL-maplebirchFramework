@@ -1,5 +1,10 @@
 # boot.json Configuration
 
+[Documentation index](README.md) · [Getting started](GettingStarted.md)
+
+> [!IMPORTANT]
+> Paths are relative to the mod ZIP root. Verify a minimal `script` entry first; add translations, audio, and NPC resources only as needed.
+
 ## Purpose
 
 Use **`boot.json`** when your mod has fixed resources that can be declared at load time: scripts, translation files, audio folders, UI widgets, or basic NPC resources.
@@ -168,13 +173,13 @@ Inline `tips` string arrays contain tip text. When every entry ends with `.json`
 
 Related docs:
 
-- [Patch Registration](ToolCollection/Patches.md)
-- [Traits](ToolCollection/Traits.md)
-- [Tips](ToolCollection/Tips.md)
-- [Bodywriting](ToolCollection/Bodywriting.md)
-- [Foodstuff](ToolCollection/Foodstuff.md)
-- [Fishing Extensions](ToolCollection/Fishing.md)
-- [Antiques](ToolCollection/Antiques.md)
+- [Patch Registration](Tools/Patches.md)
+- [Traits](Tools/Traits.md)
+- [Tips](Tools/Tips.md)
+- [Bodywriting](Tools/Bodywriting.md)
+- [Foodstuff](Tools/Foodstuff.md)
+- [Fishing Extensions](Tools/Fishing.md)
+- [Antiques](Tools/Antiques.md)
 
 ## npc
 

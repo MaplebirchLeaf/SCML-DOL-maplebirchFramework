@@ -114,4 +114,4 @@ The language macro can choose text without a translation file:
 <</language>>
 ```
 
-See [SugarCube macros](SugarCubeMacro.md) for other examples.
+See [SugarCube macros](Macros.md) for other examples.

@@ -1,4 +1,4 @@
-## Tip Registration (Tips)
+# Tip Registration
 
 ### Introduction
 

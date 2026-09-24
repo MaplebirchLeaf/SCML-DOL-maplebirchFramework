@@ -1,6 +1,9 @@
 # Fishing Extensions
 
-Targets vanilla 0.5.12.13 `setup.fishing.lootTables.fish`. Register fish, foodstuff bait and fish weights at existing fishing spots while retaining vanilla selection, minigames, bait consumption and catch records.
+Register fish, foodstuff bait, and fish weights at **existing fishing spots** in vanilla `setup.fishing.lootTables.fish`. Vanilla still handles selection, minigames, bait consumption, and catch records.
+
+> [!IMPORTANT]
+> The target DoL version must provide `setup.fishing.lootTables.fish`. The framework does not create new fishing spots or supply fish icons for your mod.
 
 ## Entry Point
 
@@ -10,29 +13,26 @@ maplebirch.tool.patch.fishing.addBait(key, config);
 maplebirch.tool.patch.fishing.configure(location, weights);
 ```
 
-**`key`** is the unique fish or bait id. Use a mod prefix to avoid collisions. `add()` and `configure()` return whether the configuration was accepted; invalid configurations return `false`. `addBait()` has no return value.
+**`key`** identifies a fish or bait. Use a mod prefix to avoid replacing a vanilla or another mod's entry. `add()` and `configure()` return whether the configuration was accepted; invalid configurations return `false`. `addBait()` has no return value.
 
-Register during startup so the framework can merge the configuration into `setup`. Loading a save only fills missing food inventory; vanilla `updateFishRecord()` updates catch records. When configuration depends on reading vanilla `setup`, use `onInit`, then call `maplebirch.tool.patch.fishing.apply()` followed by `maplebirch.tool.patch.foodstuff.apply()` after registration.
+Register during startup so the framework can merge the configuration into `setup` during initialization. Loading a save only fills missing food inventory; vanilla updates catch records.
 
 ## Minimal Example
 
-This example adjusts existing salmon and reuses its vanilla assets:
+This example registers a new fish and its preferred bait, then adjusts the pier weight. It assumes your mod supplies `fish/my-mod-silverfish.png`:
 
 ```javascript
-maplebirch.tool.patch.fishing.add('salmon', {
-  minSize: 45,
-  maxSize: 120,
-  preferredSeason: ['autumn'],
-  preferredLocation: ['fishingCoastPath'],
-  preferredBait: 'wild_carrot',
-  locations: { fishingPier: 0.75, fishingCoastPath: 1, fishingForestLake: 0.5 },
-  cookable: true,
-  minigame: { behavior: 'panicked', maxStamina: 5, armFatigueDifficulty: 2000 },
-  icon: 'fish/salmon.png'
+maplebirch.tool.patch.fishing.addBait('my_mod_grub', { name: 'river grub' });
+
+maplebirch.tool.patch.fishing.add('my_mod_silverfish', {
+  minSize: 10,
+  maxSize: 35,
+  locations: { fishingPier: 0.7 },
+  preferredBait: 'my_mod_grub',
+  icon: 'fish/my-mod-silverfish.png'
 });
 
-maplebirch.tool.patch.fishing.addBait('apple', { name: 'apple' });
-maplebirch.tool.patch.fishing.configure('fishingPier', { salmon: 1.25 });
+maplebirch.tool.patch.fishing.configure('fishingPier', { my_mod_silverfish: 1.2 });
 ```
 
 ## Config Fields
@@ -60,6 +60,9 @@ Every registered fish gets a same-key food catalog entry for vanilla catch inven
 
 `addBait(key, config)` accepts [food configuration](Foodstuff.md#common-fields), sets vanilla `is_fishing_bait`, and shares food inventory. Custom bait uses vanilla ordinary-food behavior; the original `baitfish` and `bait_worm` retain their special handling.
 
+> [!TIP]
+> If configuration depends on reading vanilla `setup`, register it inside `maplebirch.tool.onInit()`, then call `maplebirch.tool.patch.fishing.apply()` followed by `maplebirch.tool.patch.foodstuff.apply()`. Ordinary static configurations do not need manual `apply()` calls.
+
 ## Fishing Locations
 
 `locations`, `preferredLocation`, and `configure()` use these vanilla spots:
@@ -83,3 +86,10 @@ fishingBeach / fishingPier / fishingCoastPath / fishingForestLake / fishingMoor
 ```
 
 `fish` and `bait` accept keyed objects or arrays with a `key` on each entry. `fishingLocations` uses a spot-to-fish-weights object. See [boot.json Configuration](../BootJson.md) for file formats and the complete addon structure.
+
+## Related guides
+
+- [Foodstuff](Foodstuff.md): fish food entries and bait configuration.
+- [Patch extensions](Patches.md): registering and applying DoL data patches.
+- [boot.json configuration](../BootJson.md): importing fish, bait, and location weights from files.
+- [Documentation index](../README.md): other DoL content extensions.

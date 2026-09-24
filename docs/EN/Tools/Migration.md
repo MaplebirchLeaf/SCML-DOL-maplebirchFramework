@@ -1,4 +1,4 @@
-# Data Migration
+# Data migration
 
 `migration` upgrades a mod's saved data. Create an instance through `maplebirch.tool.migration`, register version transitions, and run them against the saved object.
 

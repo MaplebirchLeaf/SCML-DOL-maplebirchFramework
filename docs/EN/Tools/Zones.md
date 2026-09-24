@@ -1,4 +1,7 @@
-# Zone Manager
+# Zones
+
+> [!TIP]
+> Prefer `maplebirch.tool.addTo()`. Consider [source patches](Patches.md) only when a zone hook cannot achieve the result.
 
 ## Purpose
 
@@ -59,10 +62,10 @@ maplebirch.tool.addTo('StatusBar', {
 
 ## Source Patches
 
-Use `maplebirch.tool.zone.inject()` when no render hook fits and an internal execution branch must be changed. Put ordinary passages in `locationPassage` and widget-tagged passages in `widgetPassage`.
+Use `maplebirch.tool.inject()` when no render hook fits and an internal execution branch must be changed. Put ordinary passages in `locationPassage` and widget-tagged passages in `widgetPassage`.
 
 ```javascript
-maplebirch.tool.zone.inject({
+maplebirch.tool.inject({
   locationPassage: {
     'MyMod Reward': [
       {

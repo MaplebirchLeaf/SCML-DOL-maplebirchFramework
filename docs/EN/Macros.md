@@ -1,4 +1,4 @@
-# SugarCube Macros
+# SugarCube macros
 
 ## Purpose
 
