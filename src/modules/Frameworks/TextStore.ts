@@ -1,6 +1,6 @@
 type TextItem = string | number | boolean | null | undefined;
 
-export default class TextStore {
+class TextStore {
   private readonly items: TextItem[] = [];
 
   public push(...items: TextItem[]): void {
@@ -11,3 +11,5 @@ export default class TextStore {
     return this.items.map(item => (item == null ? '' : String(item))).join('');
   }
 }
+
+export default TextStore;

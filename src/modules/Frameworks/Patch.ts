@@ -14,7 +14,7 @@ export interface PatchDefinition<T extends object = object, Flat extends object 
   widgets?: Readonly<Record<string, WidgetPatch>>;
 }
 
-export default class Patch<Extensions extends Record<string, object> = Record<never, never>> {
+class Patch<Extensions extends Record<string, object> = Record<never, never>> {
   private readonly entries = new Map<string, PatchDefinition>();
   private readonly extensionValues = new Map<string, object>();
 
@@ -105,3 +105,5 @@ export default class Patch<Extensions extends Record<string, object> = Record<ne
     }
   }
 }
+
+export default Patch;

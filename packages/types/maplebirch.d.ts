@@ -27,12 +27,117 @@ import { WikifyTracerCallback } from '@scml/types/sugarcube-2-ModLoader/WikifyTr
 import { Gui } from '@scml/types/Mod_LoaderGui/Gui';
 import * as marked from 'marked';
 import jsyaml from 'js-yaml';
-import { Howl } from 'howler';
+import { Howl, HowlOptions } from 'howler';
 import { InputFileFormat, JSZipLikeReadOnlyInterface } from '@scml/types/sugarcube-2-ModLoader/JSZipLikeReadOnlyInterface';
 import { ModBootJson, ModInfo } from '@scml/types/sugarcube-2-ModLoader/ModLoader';
 import { ModZipReader } from '@scml/types/sugarcube-2-ModLoader/ModZipReader';
 import { ModUtils } from '@scml/types/sugarcube-2-ModLoader/Utils';
 import { MacroContext } from 'twine-sugarcube';
+//#endregion
+//#region src/utils/object.d.ts
+type MergeMode = 'replace' | 'concat' | 'merge';
+type MergeFilterFn = (key: string, value: unknown, depth: number, targetValue: unknown) => boolean;
+type MergeTuple<T extends readonly unknown[], S extends readonly unknown[]> = S extends readonly [infer Head, ...infer Rest]
+  ? T extends readonly [infer Previous, ...infer Tail]
+    ? [Merged<Previous, Head, 'merge'>, ...MergeTuple<Tail, Rest>]
+    : [...S]
+  : [...T];
+type Merged<T, S, Mode extends MergeMode> = S extends readonly unknown[]
+  ? T extends readonly unknown[]
+    ? Mode extends 'replace'
+      ? [...S]
+      : Mode extends 'concat'
+        ? [...T, ...S]
+        : number extends T['length'] | S['length']
+          ? (T[number] | S[number])[]
+          : MergeTuple<T, S>
+    : [...S]
+  : S extends Record<string, unknown>
+    ? Omit<T, keyof S> & { [Key in keyof S]: Key extends keyof T ? Merged<T[Key], S[Key], Mode> : S[Key] }
+    : S;
+type MergeResult<T, Sources extends readonly unknown[], Mode extends MergeMode = 'merge'> = Sources extends readonly [infer Source, ...infer Rest]
+  ? MergeResult<Merged<T, Source, Mode>, Rest, Mode>
+  : T;
+declare function clone<T>(source: T, deep?: boolean, proto?: boolean, map?: WeakMap<object, unknown>): T;
+declare function equal(a: unknown, b: unknown): boolean;
+declare function merge<T, Sources extends unknown[]>(target: T, ...sources: Sources): MergeResult<T, Sources>;
+declare function append<T, Sources extends unknown[]>(target: T, ...sources: Sources): MergeResult<T, Sources, 'concat'>;
+declare function cover<T, Sources extends unknown[]>(target: T, ...sources: Sources): MergeResult<T, Sources, 'replace'>;
+declare function mergeFn<T, Sources extends unknown[]>(target: T, filter: MergeFilterFn | null, ...sources: Sources): MergeResult<T, Sources>;
+declare function appendFn<T, Sources extends unknown[]>(target: T, filter: MergeFilterFn | null, ...sources: Sources): MergeResult<T, Sources, 'concat'>;
+declare function coverFn<T, Sources extends unknown[]>(target: T, filter: MergeFilterFn | null, ...sources: Sources): MergeResult<T, Sources, 'replace'>;
+//#endregion
+//#region src/utils/array.d.ts
+type ContainsMode = 'all' | 'any' | 'none';
+type ContainsOptions = {
+  case?: boolean;
+  compare?: (item: unknown, value: unknown) => boolean;
+  deep?: boolean;
+};
+declare function contains(array: readonly unknown[], value: unknown, mode?: ContainsMode, options?: ContainsOptions): boolean;
+declare function randomNumber(min?: number, max?: number, float?: boolean): number;
+declare function randomPick<T>(items: readonly T[], weights?: readonly number[] | null, allowNull?: boolean): T | null | undefined;
+declare function clamp(value: unknown, min: number, max: number, fallback?: number): number;
+//#endregion
+//#region src/utils/string.d.ts
+type ConvertMode$1 = 'lower' | 'upper' | 'capitalize' | 'title' | 'camel' | 'pascal' | 'snake' | 'kebab' | 'constant';
+declare function convert(
+  value: string,
+  mode?: ConvertMode$1,
+  options?: {
+    delimiter?: string;
+    acronym?: boolean;
+  }
+): string;
+declare function escapeHtmlText(value: string): string;
+declare function widgets(content: string): string;
+declare function widgets(...contents: string[]): string[];
+//#endregion
+//#region src/compat/Prototype.d.ts
+declare global {
+  interface ObjectConstructor {
+    merge<T extends object = Record<string, unknown>>(...sources: unknown[]): T;
+    append<T extends object = Record<string, unknown>>(...sources: unknown[]): T;
+    cover<T extends object = Record<string, unknown>>(...sources: unknown[]): T;
+    mergefn<T extends object = Record<string, unknown>>(filterFn: MergeFilterFn | null, ...sources: unknown[]): T;
+    appendfn<T extends object = Record<string, unknown>>(filterFn: MergeFilterFn | null, ...sources: unknown[]): T;
+    coverfn<T extends object = Record<string, unknown>>(filterFn: MergeFilterFn | null, ...sources: unknown[]): T;
+  }
+  interface Array<T> {
+    contains(value: unknown, mode?: ContainsMode, options?: ContainsOptions): boolean;
+    either(weights?: number[], allowNull?: boolean): T | null | undefined;
+  }
+  interface ArrayConstructor {
+    merge<T>(...sources: readonly T[][]): T[];
+    append<T>(...sources: readonly T[][]): T[];
+    cover<T>(...sources: readonly T[][]): T[];
+  }
+  interface ReadonlyArray<T> {
+    contains(value: unknown, mode?: ContainsMode, options?: ContainsOptions): boolean;
+    either(weights?: number[], allowNull?: boolean): T | null | undefined;
+  }
+  interface String {
+    contains(
+      value: string,
+      options?: {
+        case?: boolean;
+      }
+    ): boolean;
+    convert(
+      mode?: ConvertMode$1,
+      options?: {
+        delimiter?: string;
+        acronym?: boolean;
+      }
+    ): string;
+  }
+  interface Math {
+    random(): number;
+    random(max: number): number;
+    random(min: number, max: number, float?: boolean): number;
+    clamp(value: unknown, min: number, max: number, fallback?: number): number;
+  }
+}
 //#endregion
 //#region src/modules/DoL/Patches/Bodywriting.d.ts
 interface BodywritingConfig {
@@ -681,65 +786,6 @@ declare global {
     role?: string;
   }
 }
-//#endregion
-//#region src/utils/object.d.ts
-type MergeMode = 'replace' | 'concat' | 'merge';
-type MergeFilterFn = (key: string, value: unknown, depth: number, targetValue: unknown) => boolean;
-type MergeTuple<T extends readonly unknown[], S extends readonly unknown[]> = S extends readonly [infer Head, ...infer Rest]
-  ? T extends readonly [infer Previous, ...infer Tail]
-    ? [Merged<Previous, Head, 'merge'>, ...MergeTuple<Tail, Rest>]
-    : [...S]
-  : [...T];
-type Merged<T, S, Mode extends MergeMode> = S extends readonly unknown[]
-  ? T extends readonly unknown[]
-    ? Mode extends 'replace'
-      ? [...S]
-      : Mode extends 'concat'
-        ? [...T, ...S]
-        : number extends T['length'] | S['length']
-          ? (T[number] | S[number])[]
-          : MergeTuple<T, S>
-    : [...S]
-  : S extends Record<string, unknown>
-    ? Omit<T, keyof S> & { [Key in keyof S]: Key extends keyof T ? Merged<T[Key], S[Key], Mode> : S[Key] }
-    : S;
-type MergeResult<T, Sources extends readonly unknown[], Mode extends MergeMode = 'merge'> = Sources extends readonly [infer Source, ...infer Rest]
-  ? MergeResult<Merged<T, Source, Mode>, Rest, Mode>
-  : T;
-declare function clone<T>(source: T, deep?: boolean, proto?: boolean, map?: WeakMap<object, unknown>): T;
-declare function equal(a: unknown, b: unknown): boolean;
-declare function merge<T, Sources extends unknown[]>(target: T, ...sources: Sources): MergeResult<T, Sources>;
-declare function append<T, Sources extends unknown[]>(target: T, ...sources: Sources): MergeResult<T, Sources, 'concat'>;
-declare function cover<T, Sources extends unknown[]>(target: T, ...sources: Sources): MergeResult<T, Sources, 'replace'>;
-declare function mergeFn<T, Sources extends unknown[]>(target: T, filter: MergeFilterFn | null, ...sources: Sources): MergeResult<T, Sources>;
-declare function appendFn<T, Sources extends unknown[]>(target: T, filter: MergeFilterFn | null, ...sources: Sources): MergeResult<T, Sources, 'concat'>;
-declare function coverFn<T, Sources extends unknown[]>(target: T, filter: MergeFilterFn | null, ...sources: Sources): MergeResult<T, Sources, 'replace'>;
-//#endregion
-//#region src/utils/array.d.ts
-type ContainsMode = 'all' | 'any' | 'none';
-type ContainsOptions = {
-  case?: boolean;
-  compare?: (item: unknown, value: unknown) => boolean;
-  deep?: boolean;
-};
-declare function contains(array: readonly unknown[], value: unknown, mode?: ContainsMode, options?: ContainsOptions): boolean;
-declare function randomNumber(min?: number, max?: number, float?: boolean): number;
-declare function randomPick<T>(items: readonly T[], weights?: readonly number[] | null, allowNull?: boolean): T | null | undefined;
-declare function clamp(value: unknown, min: number, max: number, fallback?: number): number;
-//#endregion
-//#region src/utils/string.d.ts
-type ConvertMode$1 = 'lower' | 'upper' | 'capitalize' | 'title' | 'camel' | 'pascal' | 'snake' | 'kebab' | 'constant';
-declare function convert(
-  value: string,
-  mode?: ConvertMode$1,
-  options?: {
-    delimiter?: string;
-    acronym?: boolean;
-  }
-): string;
-declare function escapeHtmlText(value: string): string;
-declare function widgets(content: string): string;
-declare function widgets(...contents: string[]): string[];
 //#endregion
 //#region src/utils/binary.d.ts
 declare function textToBytes(value: string): Uint8Array;
@@ -2081,6 +2127,7 @@ export declare class GUIControl {
   private modulesStore;
   private scriptsStore;
   saveModules(enabled: ModuleInfo[], disabled: ModuleInfo[]): Promise<void>;
+  setModuleStates(states: Readonly<Record<string, boolean>>): Promise<boolean>;
   saveScripts(enabled: string[], disabled: string[]): Promise<void>;
   cascadeModules(action: 'enable' | 'disable', moduleName: string, modules: ModulesSettings): string[];
   private moduleLinks;
@@ -2280,9 +2327,9 @@ declare const MaplebirchCore: {
     after<Name extends string, Args extends unknown[]>(eventName: Name extends keyof CoreEvents ? never : Name, callback: EventCallback<Args>): void;
     trigger<Name extends keyof CoreEvents>(eventName: Name, ...args: CoreEvents[Name]): Promise<void>;
     trigger<Name extends string>(eventName: Name extends keyof CoreEvents ? never : Name, ...args: unknown[]): Promise<void>;
-    register<T extends object>(name: string, module: T & Module, dependencies?: string[]): boolean;
+    define<T extends object>(name: string, module: T & Module, dependencies?: string[]): boolean;
     wikify(name: string, callbacks: WikifyTracerCallback): void;
-    define(name: string, options?: IDBObjectStoreParameters, indexes?: StoreIndex[]): boolean;
+    idb(name: string, options?: IDBObjectStoreParameters, indexes?: StoreIndex[]): boolean;
     with<T, Mode extends IDBTransactionMode>(storeNames: string | string[], mode: Mode, callback: (tx: Transaction<Mode>) => T | Promise<T>): Promise<T>;
     t(key: string, space?: boolean): string;
     auto(text: string): string;
@@ -2735,6 +2782,7 @@ declare class ToolCollection {
   constructor(core: MaplebirchCore, constructors?: ToolConstructors);
   onInit(...widgets: InitFunction[]): void;
   addTo(zone: string, ...widgets: ZoneWidget[]): void;
+  inject(...databases: Parameters<zonesManager['inject']>): void;
 }
 //#endregion
 //#region src/host/DoL.d.ts
@@ -3161,6 +3209,22 @@ declare class Playlist {
   private shuffle;
 }
 //#endregion
+//#region src/modules/AudioAddon/Ambience.d.ts
+declare class Ambience {
+  private readonly modloader;
+  private active;
+  private request;
+  constructor(modloader: ModLoader);
+  protected create(options: HowlOptions): Howl;
+  play(modName: string, path: string, volume?: number, fadeMs?: number): Promise<boolean>;
+  setVolume(volume: number, fadeMs?: number): void;
+  stop(fadeMs?: number): void;
+  private fadeOut;
+  private dispose;
+  private clamp;
+  private duration;
+}
+//#endregion
 //#region src/modules/Audio.d.ts
 declare const PlayState: {
   readonly IDLE: 'idle';
@@ -3195,6 +3259,7 @@ interface AudioSnapshot {
 declare class Audio {
   readonly core: MaplebirchCore;
   readonly log: ScopedLog;
+  readonly ambience: Ambience;
   private readonly STORE;
   private readonly playlists;
   private readonly playlistLoads;
@@ -3815,6 +3880,11 @@ interface WardrobeWearOptions {
   when?: Condition;
   wetness?: WardrobeWetnessResolver;
 }
+interface WardrobeConditionGroup {
+  location?: string | readonly string[];
+  passage?: string | readonly string[];
+  hours?: readonly [from: number, to: number];
+}
 type WardrobeWeightedChoice = readonly [key: string, weight: number];
 type WardrobeChoice = string | readonly WardrobeWeightedChoice[];
 type WardrobeLayerResolver = string | (() => string);
@@ -3829,16 +3899,19 @@ declare class NPCSidebarWardrobe {
   private readonly manager;
   private readonly templates;
   private readonly profiles;
+  private readonly conditions;
   constructor(manager: NPCManager);
   init(): void;
   load(modName: string, filePath: string): Promise<void>;
   get(key: string): WardrobeItem | undefined;
   set(key: string, template: WardrobeItem): void;
   has(key: string): boolean;
+  when(name: string, group?: WardrobeConditionGroup, condition?: Condition): () => boolean;
   wear(npcName: string, location: string | readonly string[], choice: WardrobeChoice, options?: Condition | WardrobeWearOptions): void;
   wet(npcName: string, wetness: WardrobeWetnessResolver, cond?: Condition): void;
   layer(npcName: string, source: WardrobeLayerResolver, cond?: Condition): void;
-  put(clothes: WardrobeItem, key: string): void;
+  apply(clothes: WardrobeItem, slot: NPCClothesSlot, item: WardrobeClothing): void;
+  put(clothes: WardrobeItem, key: string, slots?: NPCClothesSlot | readonly NPCClothesSlot[]): void;
   strip(clothes: WardrobeItem, slot: NPCClothesSlot | readonly NPCClothesSlot[]): void;
   base(npcName: string, modifier: WardrobeModifier): void;
   modify(npcName: string, modifier: WardrobeModifier): void;

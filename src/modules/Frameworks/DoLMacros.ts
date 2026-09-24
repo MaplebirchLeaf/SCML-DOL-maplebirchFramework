@@ -1,7 +1,7 @@
 import dol from '../../host/DoL';
 import defineMacros from './macros';
 
-export default class DoLMacros extends defineMacros {
+class DoLMacros extends defineMacros {
   public statChange(statType: string, amount: number, colorClass: string, condition: () => boolean = () => true): DocumentFragment {
     const fragment = document.createDocumentFragment();
     const value = Math.trunc(Number(amount));
@@ -27,3 +27,5 @@ export default class DoLMacros extends defineMacros {
     return this.statChange('Grace', value, value > 0 ? 'green' : 'red');
   }
 }
+
+export default DoLMacros;

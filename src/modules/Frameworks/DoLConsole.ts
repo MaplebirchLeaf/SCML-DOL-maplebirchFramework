@@ -2,7 +2,7 @@ import type ToolCollection from '../ToolCollection';
 import Console from './ConsoleCheat';
 import TimeTravelCheat from './TimeTravelCheat';
 
-export default class DoLConsole extends Console {
+class DoLConsole extends Console {
   public readonly timeTravel: TimeTravelCheat;
 
   public constructor(manager: ToolCollection) {
@@ -10,3 +10,5 @@ export default class DoLConsole extends Console {
     this.timeTravel = new TimeTravelCheat(manager.core);
   }
 }
+
+export default DoLConsole;

@@ -2,7 +2,7 @@ import type ModLoader from '../host/ModLoader';
 import dol from '../host/DoL';
 import type Translator from '../services/Translator';
 
-export default class ModI18N {
+class ModI18N {
   private installed = false;
 
   public constructor(
@@ -24,3 +24,5 @@ export default class ModI18N {
     this.installed = true;
   }
 }
+
+export default ModI18N;

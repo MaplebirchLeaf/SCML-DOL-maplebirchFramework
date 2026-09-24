@@ -1,7 +1,7 @@
 import type { MaplebirchCore } from '../../core';
 import dol from '../../host/DoL';
 
-export default class OptionEvents {
+class OptionEvents {
   private relationTimer: ReturnType<typeof setTimeout> | null = null;
   private installed = false;
 
@@ -80,3 +80,5 @@ export default class OptionEvents {
     }, 100);
   }
 }
+
+export default OptionEvents;

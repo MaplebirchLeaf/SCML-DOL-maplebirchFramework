@@ -6,6 +6,7 @@ import { Howler } from 'howler';
 import AudioBufferPlayer from './AudioAddon/AudioBufferPlayer';
 import Playlist, { PlayMode, type PlayModeType } from './AudioAddon/Playlist';
 import Track from './AudioAddon/Track';
+import Ambience from './AudioAddon/Ambience';
 
 const PlayState = {
   IDLE: 'idle',
@@ -73,6 +74,7 @@ interface AudioSnapshot {
 
 class Audio {
   public readonly log!: ScopedLog;
+  public readonly ambience: Ambience;
 
   private readonly STORE = 'audio';
 
@@ -99,6 +101,7 @@ class Audio {
   private progressBindings = new Map<string, ReturnType<typeof setInterval>>();
 
   public constructor(readonly core: MaplebirchCore) {
+    this.ambience = Object.seal(new Ambience(core.host.modLoader));
     Howler.mute(this.muted);
     Howler.volume(this.volume);
     this.core.once(':indexedDB', () => this.initDB());
@@ -115,7 +118,7 @@ class Audio {
   }
 
   private initDB(): void {
-    this.core.define(this.STORE, { keyPath: ['modName', 'audioName'] }, [
+    this.core.idb(this.STORE, { keyPath: ['modName', 'audioName'] }, [
       {
         name: 'modName',
         keyPath: 'modName',

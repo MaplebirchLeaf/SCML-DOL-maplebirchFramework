@@ -5,7 +5,7 @@ import { WeatherManager, type WeatherEventOptions, type WeatherTypeConfig, type 
 
 type DynamicTask = (...args: any[]) => any;
 
-export default class DoLDynamic extends BaseDynamic {
+class DoLDynamic extends BaseDynamic {
   public get State(): StateManager {
     return this.get('State') as StateManager;
   }
@@ -89,3 +89,5 @@ export default class DoLDynamic extends BaseDynamic {
     return task;
   }
 }
+
+export default DoLDynamic;

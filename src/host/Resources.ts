@@ -2,7 +2,7 @@ import type { SC2DataManager } from '@scml/types/sugarcube-2-ModLoader/SC2DataMa
 
 type ImageResult = string | false;
 
-export default class Resources {
+class Resources {
   private readonly cache = new Map<string, ImageResult>();
   private readonly pending = new Map<string, Promise<ImageResult>>();
 
@@ -78,3 +78,5 @@ export default class Resources {
     });
   }
 }
+
+export default Resources;

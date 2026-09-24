@@ -15,7 +15,7 @@ type ToolConstructors = {
   macro?: new (manager: ToolCollection) => defineMacros;
 };
 
-export default class ToolCollection {
+class ToolCollection {
   public readonly log!: ScopedLog;
   public readonly console: Console;
   public readonly migration: typeof migration = Object.freeze(migration);
@@ -44,4 +44,10 @@ export default class ToolCollection {
   public addTo(zone: string, ...widgets: ZoneWidget[]): void {
     this.zone.addTo(zone, ...widgets);
   }
+
+  public inject(...databases: Parameters<zonesManager['inject']>): void {
+    this.zone.inject(...databases);
+  }
 }
+
+export default ToolCollection;

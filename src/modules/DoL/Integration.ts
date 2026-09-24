@@ -7,7 +7,7 @@ import { patchTimeConstantsAsset, patchDateTimeAsset } from '../TimeStateWeather
 import { patchTimeAsset } from '../TimeStateWeather/Time';
 import ImageLoader from '../Frameworks/ImageLoader';
 
-export default class DoLIntegration {
+class DoLIntegration {
   public constructor(private readonly core: MaplebirchCore) {}
 
   public install(): void {
@@ -126,3 +126,5 @@ export default class DoLIntegration {
     modUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
   }
 }
+
+export default DoLIntegration;

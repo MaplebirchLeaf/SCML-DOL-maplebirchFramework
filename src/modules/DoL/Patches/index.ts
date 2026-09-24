@@ -12,7 +12,7 @@ import Fishing, { fishData, fishingLocationData } from './Fishing';
 import { isRecord } from './config';
 import dol from '../../../host/DoL';
 
-export default function register(core: MaplebirchCore, patch: Patch) {
+function register(core: MaplebirchCore, patch: Patch) {
   const injectTraits = (data: Parameters<typeof Traits.inject>[0]) => Traits.inject(data, text => core.auto(text));
   const definitions = {
     traits: {
@@ -81,3 +81,5 @@ export default function register(core: MaplebirchCore, patch: Patch) {
 }
 
 export type Patches = ReturnType<typeof register>;
+
+export default register;

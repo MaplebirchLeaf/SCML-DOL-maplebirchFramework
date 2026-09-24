@@ -1,7 +1,7 @@
 import maplebirch from '../../core';
 import dol from '../../host/DoL';
 
-export default class ImageLoader {
+class ImageLoader {
   private static refreshTimer: ReturnType<typeof setTimeout> | null = null;
 
   public static load(src: string): string | false | Promise<string | false> {
@@ -27,3 +27,5 @@ export default class ImageLoader {
     }, 100);
   }
 }
+
+export default ImageLoader;

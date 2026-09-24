@@ -240,6 +240,41 @@ export class GUIControl {
     await this.loadSettings();
   }
 
+  public async setModuleStates(states: Readonly<Record<string, boolean>>): Promise<boolean> {
+    const changes = Object.entries(states);
+    if (changes.length === 0) return false;
+    const modules = this.currentModules(await this.modNames());
+    const byName = new Map(modules.map(module => [module.name, module]));
+    for (const [name, enabled] of changes) {
+      const module = byName.get(name);
+      if (!module || module.protected || (module.type === 'exposed' && !module.lifecycle) || typeof enabled !== 'boolean') throw new Error(`模块状态不可修改: ${name}`);
+    }
+    let changed = false;
+    await this.idb.with(['settings'], 'readwrite', async tx => {
+      const store = tx.objectStore('settings');
+      const old = (await store.get('Modules')) as SettingRecord<ModulesStore> | undefined;
+      const disabled = new Map((old?.value?.disabled ?? []).map(item => [item.name, item]));
+      const protectedNames = new Set(modules.filter(module => module.protected).map(module => module.name));
+      const links = this.moduleLinks(modules, 'disable');
+      const before = Modules.traverse(disabled.keys(), links, protectedNames);
+      for (const [name, enabled] of changes) {
+        const module = byName.get(name)!;
+        if (enabled) disabled.delete(name);
+        else disabled.set(name, { name, source: module.source });
+      }
+      const after = Modules.traverse(disabled.keys(), links, protectedNames);
+      for (const [name, enabled] of changes) if (after.has(name) === enabled) throw new Error(`模块依赖阻止状态修改: ${name}`);
+      for (const module of modules) {
+        if (Object.hasOwn(states, module.name)) continue;
+        if (before.has(module.name) !== after.has(module.name)) throw new Error(`模块状态会影响未指定模块: ${module.name}`);
+      }
+      changed = modules.some(module => Object.hasOwn(states, module.name) && before.has(module.name) !== after.has(module.name));
+      if (changed) await store.put({ key: 'Modules', value: { disabled: [...disabled.values()] } });
+    });
+    if (changed) await this.loadSettings();
+    return changed;
+  }
+
   public async saveScripts(enabled: string[], disabled: string[]): Promise<void> {
     const modNames = await this.modNames();
     const currentScripts = new Set([...enabled, ...disabled]);

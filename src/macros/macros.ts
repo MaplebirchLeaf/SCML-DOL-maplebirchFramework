@@ -18,7 +18,7 @@ interface ModInfo {
   bootJson?: { dependenceInfo?: Array<{ modName: string }> };
 }
 
-export default class Macros {
+class Macros {
   private installed = false;
 
   public constructor(private readonly core: MaplebirchCore) {}
@@ -170,3 +170,5 @@ export default class Macros {
     macro.defineS('maplebirchTimeTravel', () => core.tool.console.timeTravel.fragment());
   }
 }
+
+export default Macros;

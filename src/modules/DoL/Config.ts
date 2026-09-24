@@ -47,7 +47,7 @@ export interface FrameworkConfig {
 
 type ConfigHandler = (modName: string, source: unknown) => void;
 
-export default class FrameworkConfigLoader {
+class FrameworkConfigLoader {
   private readonly handlers: Readonly<Record<string, ConfigHandler>>;
 
   public constructor(
@@ -188,3 +188,5 @@ export default class FrameworkConfigLoader {
     if (!added) this.core.log(`${modName} 的 tips 配置为空或无效`, 'WARN');
   }
 }
+
+export default FrameworkConfigLoader;

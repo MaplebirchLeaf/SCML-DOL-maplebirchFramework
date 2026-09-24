@@ -6,6 +6,7 @@ import builtinWardrobe from '../../../assets/npc-clothes.yaml';
 import { evaluate, type Condition } from './Condition';
 import type NPCManager from '../../NamedNPC';
 import { clone } from '../../../utils';
+import dol from '../../../host/DoL';
 import type { NPCClothesSlot, NPCSidebarClothing } from '../NPCSidebarConfig/types';
 
 type WardrobeClothing = Partial<NPCSidebarClothing>;
@@ -17,6 +18,12 @@ type WardrobeWetnessResolver = WardrobeWetness | (() => WardrobeWetness);
 interface WardrobeWearOptions {
   when?: Condition;
   wetness?: WardrobeWetnessResolver;
+}
+
+interface WardrobeConditionGroup {
+  location?: string | readonly string[];
+  passage?: string | readonly string[];
+  hours?: readonly [from: number, to: number];
 }
 
 type WardrobeWeightedChoice = readonly [key: string, weight: number];
@@ -70,6 +77,7 @@ const slots = ['upper', 'lower', 'under_upper', 'under_lower'] as const;
 class NPCSidebarWardrobe {
   private readonly templates: Record<string, WardrobeItem> = {};
   private readonly profiles = new Map<string, WardrobeProfile>();
+  private readonly conditions = new Map<string, () => boolean>();
 
   public constructor(private readonly manager: NPCManager) {}
 
@@ -118,6 +126,29 @@ class NPCSidebarWardrobe {
     return Object.hasOwn(this.templates, key);
   }
 
+  public when(name: string, group?: WardrobeConditionGroup, condition?: Condition): () => boolean {
+    if (!group) {
+      const condition = this.conditions.get(name);
+      if (!condition) throw new Error(`衣柜条件不存在: ${name}`);
+      return condition;
+    }
+    if (!name.trim() || this.conditions.has(name)) throw new Error(`衣柜条件名称无效或重复: ${name}`);
+    if (group.hours && group.hours.some(hour => !Number.isInteger(hour) || hour < 0 || hour > 23)) throw new Error(`衣柜条件小时范围无效: ${name}`);
+    const match = (expected: string | readonly string[], actual: string): boolean => (typeof expected === 'string' ? expected === actual : expected.includes(actual));
+    const predicate = () => {
+      if (group.location && !match(group.location, dol.variables.location)) return false;
+      if (group.passage && !match(group.passage, this.manager.core.host.sugarcube.passage?.title ?? '')) return false;
+      if (group.hours) {
+        const [from, to] = group.hours;
+        const hour = dol.variables.time.hour;
+        if (from <= to ? hour < from || hour > to : hour < from && hour > to) return false;
+      }
+      return evaluate(this.manager.core, condition);
+    };
+    this.conditions.set(name, predicate);
+    return predicate;
+  }
+
   public wear(npcName: string, location: string | readonly string[], choice: WardrobeChoice, options?: Condition | WardrobeWearOptions): void {
     if (typeof choice === 'string') {
       if (choice !== 'naked' && !this.has(choice)) {
@@ -162,13 +193,24 @@ class NPCSidebarWardrobe {
     });
   }
 
-  public put(clothes: WardrobeItem, key: string): void {
+  public apply(clothes: WardrobeItem, slot: NPCClothesSlot, item: WardrobeClothing): void {
+    clothes[slot] = clone(item);
+  }
+
+  public put(clothes: WardrobeItem, key: string, slots?: NPCClothesSlot | readonly NPCClothesSlot[]): void {
     const template = this.templates[key];
     if (!template) {
       this.manager.log(`侧边栏服装配置 ${key} 不存在`, 'WARN');
       return;
     }
-    this.merge(clothes, template);
+    if (slots == null) {
+      this.merge(clothes, template);
+      return;
+    }
+    for (const slot of typeof slots === 'string' ? [slots] : slots) {
+      const item = template[slot];
+      if (item != null) this.apply(clothes, slot, item);
+    }
   }
 
   public strip(clothes: WardrobeItem, slot: NPCClothesSlot | readonly NPCClothesSlot[]): void {

@@ -78,7 +78,7 @@ const mergeFnMethods = [
   ['coverfn', coverFn]
 ] as const;
 
-export default function prototypeUtils(): void {
+function prototypeUtils(): void {
   for (const [name, fn] of mergeMethods) {
     definePrototype(Object, name, function (...sources: unknown[]) {
       return fn({}, ...sources);
@@ -137,3 +137,5 @@ export default function prototypeUtils(): void {
     return clamp(value, min, max, fallback);
   });
 }
+
+export default prototypeUtils;

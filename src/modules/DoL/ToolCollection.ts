@@ -12,7 +12,7 @@ import OptionEvents from '../Frameworks/OptionEvents';
 import TextStore from '../Frameworks/TextStore';
 import { specialWidget, defaultData, locationPassage, widgetPassage } from './Replacements';
 
-export default class DoLToolCollection extends ToolCollection {
+class DoLToolCollection extends ToolCollection {
   declare public readonly console: DoLConsole;
   declare public readonly macro: DoLMacros;
   declare public readonly patch: Patches;
@@ -23,7 +23,7 @@ export default class DoLToolCollection extends ToolCollection {
 
   public constructor(core: MaplebirchCore) {
     super(core, { console: DoLConsole, macro: DoLMacros });
-    this.zone.inject({ specialWidget, defaultData, locationPassage, widgetPassage });
+    this.inject({ specialWidget, defaultData, locationPassage, widgetPassage });
     this.macros = new Macros(core);
     this.optionEvents = new OptionEvents(core);
     this.modI18N = new ModI18N(core.services.translator, core.host.modLoader);
@@ -56,3 +56,5 @@ export default class DoLToolCollection extends ToolCollection {
     this.modI18N.install();
   }
 }
+
+export default DoLToolCollection;

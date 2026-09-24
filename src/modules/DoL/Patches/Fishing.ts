@@ -30,7 +30,7 @@ const locations: FishingLocation[] = ['fishingBeach', 'fishingPier', 'fishingCoa
 const seasons: FishingSeason[] = ['spring', 'summer', 'autumn', 'winter'];
 const behaviors: FishBehavior[] = ['runner', 'darter', 'panicked', 'anchor', 'thrasher', 'slipper'];
 
-export default class Fishing {
+class Fishing {
   public static addFish(key: string, config: FishConfig): boolean {
     if (!isKey(key) || !isRecord(config)) return false;
     if (!Number.isFinite(config.minSize) || config.minSize <= 0 || !Number.isFinite(config.maxSize) || config.maxSize < config.minSize) return false;
@@ -86,3 +86,5 @@ export default class Fishing {
     }
   }
 }
+
+export default Fishing;

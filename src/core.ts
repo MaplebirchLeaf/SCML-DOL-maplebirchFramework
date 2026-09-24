@@ -217,7 +217,7 @@ const MaplebirchCore = class MaplebirchCore {
     await this.infra.events.trigger(eventName, ...args);
   }
 
-  public register<T extends object>(name: string, module: T & Module, dependencies: string[] = []): boolean {
+  public define<T extends object>(name: string, module: T & Module, dependencies: string[] = []): boolean {
     return this.services.modules.register(name, module, dependencies);
   }
 
@@ -225,7 +225,7 @@ const MaplebirchCore = class MaplebirchCore {
     this.services.addonPlugin.wikify(name, callbacks);
   }
 
-  public define(name: string, options: IDBObjectStoreParameters = { keyPath: 'id' }, indexes: StoreIndex[] = []): boolean {
+  public idb(name: string, options: IDBObjectStoreParameters = { keyPath: 'id' }, indexes: StoreIndex[] = []): boolean {
     return this.services.indexedDB.define(name, options, indexes);
   }
 
