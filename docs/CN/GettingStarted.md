@@ -42,7 +42,7 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 这里的 `MyModOptions` 需由模组提供为 SugarCube widget。`on()` 监听框架事件，`tool.addTo()` 将 widget 加到选项区域。详细用法见[事件](Events.md)与[区域添加](Tools/Zones.md)。
 
 > [!TIP]
-> 优先用 `maplebirch` 的短入口，例如 `on()`、`t()`、`define()`、`with()`、`wikify()`、`log()`；只在需要高级能力时进入 `services`、`infra` 或 `host`。
+> 优先用 `maplebirch` 的短入口，例如 `on()`、`t()`、`define()`、`with()`、`log()`；只在需要高级能力时进入 `services`、`infra` 或 `host`。
 
 为自定义事件、注册项、翻译键等命名时，推荐 `myMod:用途`（例如 `myMod:dailyCheck`）；`V.myMod` 是变量对象名，不按此规则改写。
 

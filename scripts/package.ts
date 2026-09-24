@@ -16,7 +16,7 @@ function parseOptions(args: string[]): PackageOptions {
   return {
     force: args.includes('--force'),
     zip: !modpackOnly,
-    modpack: !zipOnly
+    modpack: modpackOnly
   };
 }
 

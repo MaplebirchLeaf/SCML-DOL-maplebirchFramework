@@ -23,7 +23,6 @@ import { VisibilityAPI } from '@scml/sc2-verlnir/src/visibility';
 import { WikifierAPI } from '@scml/sc2-verlnir/src/wikifier';
 import { SugarCubeStoryVariables, SugarCubeTemporaryVariables } from 'twine-sugarcube/userdata';
 import { SC2DataManager } from '@scml/types/sugarcube-2-ModLoader/SC2DataManager';
-import { WikifyTracerCallback } from '@scml/types/sugarcube-2-ModLoader/WikifyTracer';
 import { Gui } from '@scml/types/Mod_LoaderGui/Gui';
 import * as marked from 'marked';
 import jsyaml from 'js-yaml';
@@ -2193,7 +2192,6 @@ export declare class AddonPlugin extends Hooks<[BootTask], void> {
   constructor(modloader: ModLoader, sugarcube: SugarCube, events: Emitter, idb: IndexedDB, modules: Modules, services: AddonServices);
   get SC2DataManager(): SC2DataManager;
   get modUtils(): ModUtils;
-  wikify(name: string, callbacks: WikifyTracerCallback): void;
   hook<T>(name: string, handler: BootHandler<T>): boolean;
   canLoadThisMod(bootJson: ModBootJson, _zip: JSZipLikeReadOnlyInterface): Promise<boolean>;
   afterInjectEarlyLoad(): Promise<void>;
@@ -2316,6 +2314,7 @@ declare const MaplebirchCore: {
     get LogLevel(): string;
     set LogLevel(level: string);
     get dependencyGraph(): DependencyGraph;
+    get modList(): string[];
     on<Name extends keyof CoreEvents>(eventName: Name, callback: EventCallback<CoreEvents[Name]>, description?: string): boolean;
     on<Name extends string, Args extends unknown[]>(eventName: Name extends keyof CoreEvents ? never : Name, callback: EventCallback<Args>, description?: string): boolean;
     off<Args extends unknown[]>(eventName: string, identifier: string | EventCallback<Args>): boolean;
@@ -2326,7 +2325,6 @@ declare const MaplebirchCore: {
     trigger<Name extends keyof CoreEvents>(eventName: Name, ...args: CoreEvents[Name]): Promise<void>;
     trigger<Name extends string>(eventName: Name extends keyof CoreEvents ? never : Name, ...args: unknown[]): Promise<void>;
     define<T extends object>(name: string, module: T & Module, dependencies?: string[]): boolean;
-    wikify(name: string, callbacks: WikifyTracerCallback): void;
     idb(name: string, options?: IDBObjectStoreParameters, indexes?: StoreIndex[]): boolean;
     with<T, Mode extends IDBTransactionMode>(storeNames: string | string[], mode: Mode, callback: (tx: Transaction<Mode>) => T | Promise<T>): Promise<T>;
     t(key: string, space?: boolean): string;
@@ -2566,9 +2564,12 @@ declare class defineMacros {
   readonly log: ScopedLog;
   readonly macros: string[];
   readonly statFunctions: Record<string, StatFunction>;
+  private readonly definitions;
   constructor(manager: ToolCollection);
   get Macro(): ReturnType<MaplebirchCore['host']['sugarcube']['require']>['Macro'];
   define<Args extends unknown[]>(macroName: string, macroFunction: MacroFunction<Args>, tags?: MacroTags, skipArgs?: SkipArgs, isAsync?: boolean): void;
+  private installAll;
+  private install;
   defineS<Args extends unknown[]>(macroName: string, macroFunction: SimpleMacroFunction<Args>, tags?: MacroTags, skipArgs?: SkipArgs, maintainContext?: boolean): void;
   create<Args extends unknown[]>(name: string, fn: StatFunction<Args>): void;
   callStatFunction(name: string, ...args: unknown[]): DocumentFragment;
@@ -2729,17 +2730,12 @@ declare const applyLinkZone: typeof LinkZoneManager;
 //#endregion
 //#region src/modules/Frameworks/Patch.d.ts
 type PatchPhase = 'init' | 'state';
-interface WidgetPatch {
-  before?: (text: string) => string;
-  after?: (node: DocumentFragment) => void;
-}
 interface PatchDefinition<T extends object = object, Flat extends object = T> {
   api: T;
   legacy?: Flat;
   available?: () => boolean;
   init?: () => void;
   state?: () => void;
-  widgets?: Readonly<Record<string, WidgetPatch>>;
 }
 declare class Patch<Extensions extends Record<string, object> = Record<never, never>> {
   private readonly report;
@@ -2752,9 +2748,6 @@ declare class Patch<Extensions extends Record<string, object> = Record<never, ne
   require<T extends object = object>(name: string): T;
   has(name: string): boolean;
   names(): string[];
-  beforeWidget(widget: string, text: string): string;
-  afterWidget(widget: string, node: DocumentFragment): void;
-  private widget;
   private available;
   private run;
   apply(phase: PatchPhase): void;
@@ -2778,6 +2771,8 @@ declare class ToolCollection {
   readonly patch: Patch;
   constructor(core: MaplebirchCore, constructors?: ToolConstructors);
   onInit(...widgets: InitFunction[]): void;
+  define<Args extends unknown[]>(name: string, fn: MacroFunction<Args>, tags?: MacroTags, skipArgs?: SkipArgs, isAsync?: boolean): void;
+  defineS<Args extends unknown[]>(name: string, fn: SimpleMacroFunction<Args>, tags?: MacroTags, skipArgs?: SkipArgs, maintainContext?: boolean): void;
   addTo(zone: string, ...widgets: ZoneWidget[]): void;
   inject(...databases: Parameters<zonesManager['inject']>): void;
 }
@@ -4369,6 +4364,7 @@ declare class Combat {
   readonly log: ScopedLog;
   readonly CombatAction: CombatActions;
   constructor(core: MaplebirchCore);
+  preInit(): void;
   private _generateCombatAction;
   private _combatListColor;
   private _combatButtonAdjustments;

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import AdmZip from 'adm-zip';
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { collectThirdPartyNotices } from '../../scripts/notices';
@@ -121,6 +121,12 @@ describe('package licenses', () => {
     zip.deleteFile('README.md');
     await writeFile(file, zip.toBuffer());
     await expect(verifyPackage(root)).rejects.toThrow('README.md');
+  });
+
+  test('packages only the ZIP by default', async () => {
+    const root = await fixture();
+    await createModPackage(root);
+    expect(await readdir(path.join(root, 'package'))).toEqual(['maplebirch-0.5.0-v1.2.3.mod.zip']);
   });
 
   test('produces identical ZIP bytes in different time zones', async () => {

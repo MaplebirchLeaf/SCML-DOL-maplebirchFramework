@@ -98,7 +98,7 @@ test('time travel emits a time event and Weather refreshes itself before the cal
 test('character pre and post processors retain order and isolate failing hooks', async () => {
   const [{ default: Character }, { default: Diagnostics }] = await Promise.all([import('../../src/modules/Character'), import('../../src/infra/Diagnostics')]);
   const checks: string[] = [];
-  const core = { host: { modLoader: undefined }, once() {}, var: { check: () => checks.push('check') } };
+  const core = { host: { modLoader: undefined }, once() {}, tool: { define() {}, defineS() {} }, var: { check: () => checks.push('check') } };
   const character = new Character(core as never);
   const model = { name: 'main' } as CanvasModel;
   character.use('pre', () => checks.push('first'), 'main');

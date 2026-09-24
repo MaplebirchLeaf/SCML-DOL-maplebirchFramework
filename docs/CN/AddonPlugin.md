@@ -1,37 +1,10 @@
 # ModLoader 接入
 
-通过 `maplebirch.wikify` 注册同步渲染钩子；图片资源由 `maplebirch.host.modLoader.resources` 管理，诊断由 `maplebirch.infra.diagnostics` 统一汇集。boot 配置见 [boot.json](BootJson.md)，内容构建见 [HTML 工具](Tools/Text.md)。
+图片资源由 `maplebirch.host.modLoader.resources` 管理，诊断由 `maplebirch.infra.diagnostics` 统一汇集。boot 配置见 [boot.json](BootJson.md)，内容构建见 [HTML 工具](Tools/Text.md)。
 
-## 渲染钩子
+## 修改原版内容
 
-```typescript
-maplebirch.wikify('myMod:relationship', {
-  beforeWidget(text, name, passageTitle, passage) {
-    return text;
-  },
-  afterWidget(text, name, passageTitle, passage, node) {
-    if (name !== 'relationshiptext') return;
-    node.append(document.createTextNode('Relationship details'));
-  }
-});
-```
-
-名称是普通字符串，`myMod:relationship`、`myMod-relationship` 均可。框架只在底层注册名之前加 `maplebirch:`，不会拆分你的名称；同名注册遵循 ModLoader 的替换规则。建议带上 Mod 名避免冲突。
-
-| 回调            | 参数                                            | 返回值             |
-| --------------- | ----------------------------------------------- | ------------------ |
-| `beforePassage` | `text, passageTitle, passage`                   | 原始或修改后的源码 |
-| `afterPassage`  | `text, passageTitle, passage, node`             | 无                 |
-| `beforeWidget`  | `text, widgetName, passageTitle?, passage?`     | 原始或修改后的源码 |
-| `afterWidget`   | `text, widgetName, passageTitle, passage, node` | 无                 |
-| `beforeWikify`  | `text`                                          | 原始或修改后的源码 |
-| `afterWikify`   | `text, node`                                    | 无                 |
-
-回调同步执行，不使用异步事件总线。`before` 必须返回字符串，后续处理器收到前一个处理器的结果。widget 的 passage 信息可能为 `undefined`；ModLoader 配套 SugarCube 的钩子可传入定义 widget 的 passage，不能据此推断玩家当前页面。需要当前页面时读取 `maplebirch.SugarCube.State.passage`。`node` 是当前渲染片段，可能尚未挂载到页面。
-
-在钩子中再次调用 Wikifier 时必须过滤目标，避免重复进入同一个钩子。上游没有公开注销入口，此接口不提供注销或优先级。按 widget 名声明原版适配可以使用 [Patch](Tools/Patches.md)。
-
-钩子只描述渲染时序。例如含有“领取奖励”链接的 widget 执行完毕时，玩家可能还没点击链接；奖励逻辑必须放在成功处理分支中。需要精确改动分支时使用 [源码适配](Tools/Zones.md#源码适配)，不能把成功结算等同于 `afterWidget`。
+框架不再提供 `maplebirch.wikify()` 渲染拦截：当前宿主虽接受回调注册，却不在 SugarCube 解析时触发。修改 widget 内容应使用 [源码适配](Tools/Zones.md#源码适配) 并设置 `expected`；修改已经显示的页面节点可监听 [`:passagedisplay`](Events.md)。文本工具 Builder 的 `wikify(content)` 只负责解析提供的文本，与渲染拦截无关。
 
 ## 图片资源
 

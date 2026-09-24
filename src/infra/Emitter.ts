@@ -37,7 +37,7 @@ export class Emitter extends Diagnostics {
   private readonly triggering = new Map<string, number>();
   private readonly stickyEvents = new Set([':sugarcube', ':idbReady', ':storyready', ':modLoaderEnd', ':language']);
   private readonly stickyArgs = new Map<string, unknown[]>();
-  private readonly synchronousEvents = new Set([':onSave', ':onLoad']);
+  private readonly synchronousEvents = new Set([':onSave', ':onLoad', ':variable']);
   public on<Args extends unknown[]>(eventName: string, callback: EventCallback<Args>, description = ''): boolean {
     let listeners = this.events.get(eventName);
     if (!listeners) {

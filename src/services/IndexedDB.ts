@@ -32,6 +32,7 @@ export class IndexedDB extends Catalog<string, StoreDefinition> {
   }
 
   public define(name: string, options: IDBObjectStoreParameters = { keyPath: 'id' }, indexes: StoreIndex[] = []): boolean {
+    if (this.db || this.opening) throw new Error(`IDB存储必须在数据库打开前注册: ${name}`);
     if (!this.add(name, { options, indexes })) {
       this.write(`存储 ${name} 已注册`, 'WARN', 'indexedDB');
       return false;
@@ -67,49 +68,54 @@ export class IndexedDB extends Catalog<string, StoreDefinition> {
       this.db?.close();
       this.db = null;
     };
+    const upgrade = (db: IDBPDatabase<unknown>, _oldVersion: number, _newVersion: number | null, tx: IDBPTransaction<unknown, string[], 'versionchange'>) => {
+      for (const [name, definition] of this.items) {
+        const store = db.objectStoreNames.contains(name) ? tx.objectStore(name) : db.createObjectStore(name, definition.options);
+        for (const index of definition.indexes) {
+          if (store.indexNames.contains(index.name)) continue;
+          store.createIndex(index.name, index.keyPath, index.options);
+        }
+      }
+    };
     let db: IDBPDatabase<unknown>;
     try {
       db = await openDB<unknown>(IndexedDB.DATABASE_NAME, IndexedDB.DATABASE_VERSION, {
-        upgrade: (db, _oldVersion, _newVersion, tx) => {
-          for (const [name, definition] of this.items) {
-            const store = db.objectStoreNames.contains(name) ? tx.objectStore(name) : db.createObjectStore(name, definition.options);
-            for (const index of definition.indexes) {
-              if (store.indexNames.contains(index.name)) continue;
-              store.createIndex(index.name, index.keyPath, index.options);
-            }
-          }
-        },
+        upgrade,
         blocking
       });
     } catch (error) {
       if (!error || typeof error !== 'object' || !('name' in error) || error.name !== 'VersionError') throw error;
-      db = await openDB<unknown>(IndexedDB.DATABASE_NAME, undefined, { blocking });
-      this.write(`IDB数据库版本 ${db.version} 高于当前框架要求的 ${IndexedDB.DATABASE_VERSION}，按现有版本打开`, 'WARN', 'indexedDB');
+      await deleteDB(IndexedDB.DATABASE_NAME);
+      this.write(`IDB数据库版本高于当前框架，已清空并按版本 ${IndexedDB.DATABASE_VERSION} 重建`, 'WARN', 'indexedDB');
+      db = await openDB<unknown>(IndexedDB.DATABASE_NAME, IndexedDB.DATABASE_VERSION, { upgrade, blocking });
     }
 
-    const missingStores = [...this.items.keys()].filter(name => !db.objectStoreNames.contains(name));
+    const missing = async () => {
+      const stores = [...this.items.keys()].filter(name => !db.objectStoreNames.contains(name));
+      const indexes: string[] = [];
+      const existing = [...this.items.keys()].filter(name => db.objectStoreNames.contains(name));
+      if (existing.length) {
+        const tx = db.transaction(existing, 'readonly');
+        for (const name of existing) {
+          const store = tx.objectStore(name);
+          for (const index of this.items.get(name)!.indexes) if (!store.indexNames.contains(index.name)) indexes.push(`${name}.${index.name}`);
+        }
+        await tx.done;
+      }
+      return { stores, indexes };
+    };
 
-    if (missingStores.length) {
+    let absent = await missing();
+    if (absent.stores.length || absent.indexes.length) {
       db.close();
-      throw new Error(`IDB缺少存储: ${missingStores.join(', ')}`);
+      await deleteDB(IndexedDB.DATABASE_NAME);
+      this.write(`IDB数据库缺少存储或索引，已清空并按版本 ${IndexedDB.DATABASE_VERSION} 重建`, 'WARN', 'indexedDB', absent);
+      db = await openDB<unknown>(IndexedDB.DATABASE_NAME, IndexedDB.DATABASE_VERSION, { upgrade, blocking });
+      absent = await missing();
     }
-
-    if (this.items.size) {
-      const tx = db.transaction([...this.items.keys()], 'readonly');
-
-      const missingIndexes: string[] = [];
-
-      for (const [name, definition] of this.items) {
-        const store = tx.objectStore(name);
-        for (const index of definition.indexes) if (!store.indexNames.contains(index.name)) missingIndexes.push(`${name}.${index.name}`);
-      }
-
-      await tx.done;
-
-      if (missingIndexes.length) {
-        db.close();
-        throw new Error(`IDB缺少索引: ${missingIndexes.join(', ')}`);
-      }
+    if (absent.stores.length || absent.indexes.length) {
+      db.close();
+      throw new Error(absent.stores.length ? `IDB缺少存储: ${absent.stores.join(', ')}` : `IDB缺少索引: ${absent.indexes.join(', ')}`);
     }
 
     this.db = db;

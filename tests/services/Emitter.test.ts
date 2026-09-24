@@ -13,14 +13,14 @@ function emitter() {
 }
 
 describe('Emitter', () => {
-  test('save and load dispatch finish synchronous listeners before returning', async () => {
-    for (const name of [':onSave', ':onLoad']) {
+  test('save, load and variable initialization dispatch finish synchronous listeners before returning', async () => {
+    for (const name of [':onSave', ':onLoad', ':variable']) {
       const { events, errors } = emitter();
       const calls: string[] = [];
       events.on(name, async () => {
         calls.push('async start');
         await Promise.resolve();
-        throw new Error('async save failure');
+        throw new Error('async listener failure');
       });
       events.on(name, () => calls.push('sync listener'));
       events.after(name, () => calls.push('after'));
@@ -30,7 +30,7 @@ describe('Emitter', () => {
       await pending;
       await Promise.resolve();
       expect(errors).toHaveLength(2);
-      expect(errors[1]).toContain('async save failure');
+      expect(errors[1]).toContain('async listener failure');
     }
   });
 

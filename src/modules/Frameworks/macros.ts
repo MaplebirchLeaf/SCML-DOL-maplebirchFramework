@@ -1,24 +1,28 @@
 // .src/modules/Frameworks/macros.ts
 
 import Diagnostics from '../../infra/Diagnostics';
-import maplebirch, { type MaplebirchCore } from '../../core';
+import type { MaplebirchCore } from '../../core';
 import type { ScopedLog } from '../../infra/Diagnostics';
 import type { MacroContext } from '../../macros';
 import type ToolCollection from '../ToolCollection';
+import type { MacroDefinition } from 'twine-sugarcube';
 
 export type MacroFunction<Args extends unknown[] = unknown[]> = (this: MacroContext, ...args: Args) => unknown;
-type SimpleMacroFunction<Args extends unknown[]> = (this: MacroContext | null, ...args: Args) => unknown;
+export type SimpleMacroFunction<Args extends unknown[]> = (this: MacroContext | null, ...args: Args) => unknown;
 type StatFunction<Args extends unknown[] = unknown[]> = (...args: Args) => DocumentFragment;
-type MacroTags = string[] | null | undefined;
-type SkipArgs = string[] | boolean | null | undefined;
+export type MacroTags = string[] | null | undefined;
+export type SkipArgs = string[] | boolean | null | undefined;
 
 class defineMacros {
   public readonly log: ScopedLog;
   public readonly macros: string[] = [];
   public readonly statFunctions: Record<string, StatFunction> = {};
+  private readonly definitions = new Map<string, MacroDefinition>();
 
   public constructor(readonly manager: ToolCollection) {
-    this.log = maplebirch.infra.diagnostics.scoped('macro');
+    this.log = manager.core.infra.diagnostics.scoped('macro');
+    manager.core.once(':sugarcube', () => this.installAll());
+    manager.core.once(':storyready', () => this.installAll());
   }
 
   public get Macro(): ReturnType<MaplebirchCore['host']['sugarcube']['require']>['Macro'] {
@@ -30,11 +34,8 @@ class defineMacros {
       this.log(`宏定义无效: ${macroName}`, 'WARN');
       return;
     }
-    if (this.Macro.has(macroName)) {
-      this.Macro.delete(macroName);
-    }
     const log = this.log;
-    this.Macro.add(macroName, {
+    const definition = {
       isAsync,
       isWidget: !isAsync,
       tags,
@@ -49,8 +50,22 @@ class defineMacros {
           log(`宏执行错误: ${macroName}\n${Diagnostics.message(error)}`, 'ERROR', error);
         }
       }
-    });
+    };
+    const registration = definition as unknown as MacroDefinition;
+    this.definitions.set(macroName, registration);
     if (!this.macros.includes(macroName)) this.macros.push(macroName);
+    if (this.manager.core.host.sugarcube.runtime) this.install(macroName, registration);
+  }
+
+  private installAll(): void {
+    for (const [name, definition] of this.definitions) this.install(name, definition);
+  }
+
+  private install(name: string, definition: MacroDefinition): void {
+    const macro = this.Macro;
+    if (macro.get(name) === definition) return;
+    if (macro.has(name)) macro.delete(name);
+    macro.add(name, definition);
   }
 
   public defineS<Args extends unknown[]>(macroName: string, macroFunction: SimpleMacroFunction<Args>, tags?: MacroTags, skipArgs?: SkipArgs, maintainContext = false): void {
@@ -72,7 +87,7 @@ class defineMacros {
       this.log(`状态显示函数无效: ${name}`, 'WARN');
       return;
     }
-    if (this.statFunctions[name] || this.Macro.has(name)) {
+    if (this.statFunctions[name] || this.definitions.has(name) || this.manager.core.host.sugarcube.runtime?.Macro.has(name)) {
       this.log(`已存在名为 '${name}' 的函数或宏`, 'WARN');
       return;
     }
