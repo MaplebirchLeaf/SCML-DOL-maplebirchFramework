@@ -1,37 +1,10 @@
 # ModLoader Integration
 
-Register synchronous render hooks with `maplebirch.wikify`. Image resources belong to `maplebirch.host.modLoader.resources`, while `maplebirch.infra.diagnostics` collects diagnostics globally. See [boot.json](BootJson.md) for configuration and [HTML Tools](Tools/Text.md) for content construction.
+Image resources belong to `maplebirch.host.modLoader.resources`, while `maplebirch.infra.diagnostics` collects diagnostics globally. See [boot.json](BootJson.md) for configuration and [HTML Tools](Tools/Text.md) for content construction.
 
-## Render Hooks
+## Adapting Vanilla Content
 
-```typescript
-maplebirch.wikify('myMod:relationship', {
-  beforeWidget(text, name, passageTitle, passage) {
-    return text;
-  },
-  afterWidget(text, name, passageTitle, passage, node) {
-    if (name !== 'relationshiptext') return;
-    node.append(document.createTextNode('Relationship details'));
-  }
-});
-```
-
-Names are ordinary strings: both `myMod:relationship` and `myMod-relationship` work. The framework prefixes the underlying registration with `maplebirch:` without splitting your name. Same-name registration follows ModLoader's replacement rules. Include your Mod name to avoid collisions.
-
-| Callback        | Arguments                                       | Return value                 |
-| --------------- | ----------------------------------------------- | ---------------------------- |
-| `beforePassage` | `text, passageTitle, passage`                   | Unchanged or modified source |
-| `afterPassage`  | `text, passageTitle, passage, node`             | None                         |
-| `beforeWidget`  | `text, widgetName, passageTitle?, passage?`     | Unchanged or modified source |
-| `afterWidget`   | `text, widgetName, passageTitle, passage, node` | None                         |
-| `beforeWikify`  | `text`                                          | Unchanged or modified source |
-| `afterWikify`   | `text, node`                                    | None                         |
-
-Callbacks run synchronously, outside the async event bus. Before hooks must return strings; subsequent callbacks receive the previous result. Widget passage information may be `undefined`; the ModLoader SugarCube hook can pass the widget definition passage rather than the current player page. Read `maplebirch.SugarCube.State.passage` when the current page is needed. The current fragment may not yet be attached to the page.
-
-Filter targets before calling Wikifier within a hook to avoid recursion. Upstream exposes no removal API; this entry point does not provide removal or priorities. For vanilla adapters matched by widget name, see [Patch](Tools/Patches.md).
-
-These hooks describe rendering order. A widget containing a reward link can finish before the player clicks that link. Reward logic belongs in the successful branch. Use [source patches](Tools/Zones.md#source-patches) when an exact branch must be adapted; `afterWidget` is not a success event.
+The framework no longer exposes `maplebirch.wikify()` rendering interception: the current host accepts callback registration but does not invoke it while SugarCube parses content. Use [source patches](Tools/Zones.md#source-patches) with `expected` to change widget content, or listen for [`:passagedisplay`](Events.md) to edit displayed page nodes. The text Builder's `wikify(content)` only parses supplied text; it is not a rendering hook.
 
 ## Image Resources
 

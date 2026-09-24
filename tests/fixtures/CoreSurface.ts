@@ -2,8 +2,6 @@ import { strict as assert } from 'node:assert';
 import { mock } from 'bun:test';
 import { lodash } from '../services/runtime';
 
-let receivedName: string | undefined;
-let receivedCallbacks: object | undefined;
 const logs: Array<{ message: string; level: string }> = [];
 const diagnostics = { write: (message: string, level: string) => logs.push({ message, level }), export: () => '' };
 class Service {}
@@ -23,10 +21,7 @@ mock.module('../../src/services/IndexedDB', () => ({ default: Service }));
 mock.module('../../src/services/Modules', () => ({ default: Service }));
 mock.module('../../src/services/AddonPlugin', () => ({
   default: class {
-    wikify(name: string, callbacks: object): void {
-      receivedName = name;
-      receivedCallbacks = callbacks;
-    }
+    readonly modList: string[] = [];
   }
 }));
 mock.module('../../src/services/Translator', () => ({ default: Service }));
@@ -34,18 +29,20 @@ mock.module('../../src/services/CredentialVault', () => ({ default: Service }));
 mock.module('../../src/services/CloudSave', () => ({ default: Service }));
 mock.module('../../src/services/GUIControl', () => ({ default: Service }));
 
+const hostClamp = () => 7;
+Object.defineProperty(window, 'clamp', { value: hostClamp, configurable: false });
 const { default: maplebirch } = await import('../../src/core');
-const callbacks = { beforeWikify: (text: string) => text };
+assert.equal(Object.getOwnPropertyDescriptor(window, 'clamp')?.value, hostClamp);
+assert.equal(maplebirch.modList, maplebirch.services.addonPlugin.modList);
+maplebirch.modList.push('cheatExtended');
+assert.deepEqual(maplebirch.services.addonPlugin.modList, ['cheatExtended']);
 const cloneDescriptor = Object.getOwnPropertyDescriptor(window, 'clone');
-assert.equal(cloneDescriptor?.configurable, true);
+assert.equal(cloneDescriptor?.configurable, false);
 assert.equal(cloneDescriptor?.writable, false);
-Object.defineProperty(window, 'clone', { value: () => 'custom' });
-assert.equal(window.clone({}), 'custom');
+assert.throws(() => Object.defineProperty(window, 'clone', { value: () => 'custom' }), TypeError);
 
 assert.deepEqual(
   logs.filter(({ message }) => message.startsWith('框架核心系统创建完成')),
   [{ message: `框架核心系统创建完成(v${maplebirch.meta.version})`, level: 'INFO' }]
 );
-maplebirch.wikify('myMod:render', callbacks);
-assert.equal(receivedName, 'myMod:render');
-assert.equal(receivedCallbacks, callbacks);
+assert.equal('wikify' in maplebirch, false);

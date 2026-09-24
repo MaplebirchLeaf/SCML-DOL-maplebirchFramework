@@ -1,6 +1,6 @@
 // ./src/compat/DoLPcompat.ts
 
-import maplebirch from '../core';
+import type { MaplebirchCore } from '../core';
 import type { BuildUpdater, DecayCondition, NativeHistoryEntry, NativeMacroMap, NativeTransformState, SuppressCondition } from '../modules/CharacterAddon/TransformationConfig';
 import dol from '../host/DoL';
 
@@ -370,6 +370,24 @@ class Transformations {
 class DoLPcompat {
   public static get isDoLP() {
     return String(dol.gameVersion ?? '').includes('DoLP');
+  }
+
+  public static install(core: MaplebirchCore): void {
+    core.on(':addon:beforePatch', () => {
+      const passage = core.services.addonPlugin.SC2DataManager.getSC2DataInfoAfterPatch().passageDataItems.map.get('Widgets modUpdate');
+      if (!passage?.tags.includes('widget')) return;
+      core.tool.inject({
+        widgetPassage: {
+          'Widgets modUpdate': [
+            {
+              src: '<<widget "modupdate">>',
+              applyafter: "\n\t<<run if (maplebirch.passage && maplebirch.passage.title === 'Start') maplebirch.trigger(':variable')>>",
+              expected: 1
+            }
+          ]
+        }
+      });
+    });
   }
 
   public static readonly Transformations = Transformations;

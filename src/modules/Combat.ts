@@ -10,11 +10,11 @@ class Combat {
   public readonly log!: ScopedLog;
   public readonly CombatAction = new CombatActions();
 
-  public constructor(readonly core: MaplebirchCore) {
-    this.core.once(':storyready', () => {
-      this.core.tool.macro.define('generateCombatAction', this._generateCombatAction());
-      this.core.tool.macro.define('combatButtonAdjustments', (name: string, extra: CombatType | '' = '') => this._combatButtonAdjustments(name, extra));
-    });
+  public constructor(readonly core: MaplebirchCore) {}
+
+  public preInit(): void {
+    this.core.tool.define('generateCombatAction', this._generateCombatAction());
+    this.core.tool.define('combatButtonAdjustments', (name: string, extra: CombatType | '' = '') => this._combatButtonAdjustments(name, extra));
   }
 
   private _generateCombatAction() {

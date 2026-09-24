@@ -42,7 +42,7 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 Your mod must provide `MyModOptions` as a SugarCube widget. `on()` listens for a framework event, while `tool.addTo()` places the widget in Options. See [events](Events.md) and [zones](Tools/Zones.md).
 
 > [!TIP]
-> Prefer short `maplebirch` entry points such as `on()`, `t()`, `define()`, `with()`, `wikify()`, and `log()`. Reach into `services`, `infra`, or `host` only for advanced needs.
+> Prefer short `maplebirch` entry points such as `on()`, `t()`, `define()`, `with()`, and `log()`. Reach into `services`, `infra`, or `host` only for advanced needs.
 
 Use `myMod:purpose` for your own event IDs, registration names, and translation keys (for example, `myMod:dailyCheck`). `V.myMod` is a variable object name and is not renamed by this convention.
 

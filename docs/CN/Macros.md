@@ -186,10 +186,10 @@ SugarCube 链接语法：
 
 ## 自定义宏
 
-可以通过 `maplebirch.tool.macro` 定义自己的 SugarCube 宏。
+可以通过 `maplebirch.tool.defineS()` 定义返回文本或节点的 SugarCube 宏。
 
 ```javascript
-maplebirch.tool.macro.defineS('myModHello', name => {
+maplebirch.tool.defineS('myModHello', name => {
   return `Hello, ${name}`;
 });
 ```
@@ -203,10 +203,12 @@ maplebirch.tool.macro.defineS('myModHello', name => {
 如果需要直接操作宏上下文，可用 `define()`：
 
 ```javascript
-maplebirch.tool.macro.define('myModRaw', function () {
+maplebirch.tool.define('myModRaw', function () {
   $(this.output).wiki('raw output');
 });
 ```
+
+`define()` 和 `defineS()` 沿用 `tool.macro` 的参数与行为，框架会等到 SugarCube 可用时注册，并在故事就绪时恢复被原版覆盖的定义；无需自己包一层 `once(':sugarcube')`。若要读取原版宏的处理器并包装它，仍需等到 `:storyready`。需要 `create()` 等其它宏管理能力时可访问 `maplebirch.tool.macro`。
 
 ---
 

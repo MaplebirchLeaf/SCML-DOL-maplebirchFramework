@@ -48,24 +48,13 @@ function register(core: MaplebirchCore, patch: Patch) {
       api: { data: antiquesData, add: Antiques.add, inject: Antiques.inject },
       legacy: { antiquesData, addAntiques: Antiques.add, injectAntiques: Antiques.inject },
       available: () => dol.has('variables') && isRecord(dol.variables.museumAntiques?.antiques),
-      state: Antiques.syncState,
-      widgets: {
-        museumAntiqueText: { after: () => Antiques.inject(dol.temporary.museumAntiqueText) },
-        museumdonate: {
-          after: node => {
-            for (const key of Object.keys(antiquesData)) {
-              if (dol.variables.museumAntiques?.antiques[key] === 'found') new (core.host.sugarcube.require().Wikifier)(node, `<<museumAntiqueStatus ${JSON.stringify(key)} "talk">>`);
-            }
-          }
-        }
-      }
+      state: Antiques.syncState
     },
     tips: {
       api: { data: tipsData, add: Tips.add, apply: Tips.apply, inject: Tips.inject },
       legacy: { tipsData, addTips: Tips.add, applyTips: Tips.apply, injectTips: Tips.inject },
       available: () => dol.has('setup') && isRecord(dol.setup.tips),
-      init: Tips.apply,
-      widgets: { generateTipsList: { after: () => Tips.inject(dol.setup.tipsList) } }
+      init: Tips.apply
     }
   } satisfies Record<string, PatchDefinition>;
   type PatchCatalog = { [Name in keyof typeof definitions]: (typeof definitions)[Name]['api'] };

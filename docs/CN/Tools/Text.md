@@ -1,6 +1,6 @@
 # 文本与 HTML 工具
 
-通过 `maplebirch.tool.text` 注册内容、构建片段或修改现有节点。操作 widget 时传入回调提供的片段；省略替换方法的根节点才会查找当前页面的 `#passage-content`。
+通过 `maplebirch.tool.text` 注册内容、构建片段或修改现有节点。操作现有页面时传入事件提供的根节点；省略替换方法的根节点才会查找当前页面的 `#passage-content`。
 
 ## 使用入口
 
@@ -15,25 +15,25 @@ const text = maplebirch.tool.text;
 text.add(
   'myMod:relationship',
   tools => {
-    const label = tools.context.label;
-    if (typeof label === 'string') tools.text(label, 'gold');
+    tools.text('Relationship details', 'gold');
   },
   'myMod:label'
 );
 
-maplebirch.wikify('myMod:relationship', {
-  afterWidget(_source, name, passageTitle, _passage, node) {
-    if (name !== 'relationshiptext') return;
-    text.renderInto(node, 'myMod:relationship', {
-      widgetName: name,
-      passageTitle,
-      label: 'Relationship details'
-    });
+maplebirch.tool.inject({
+  widgetPassage: {
+    'Widgets Named Npcs': [
+      {
+        src: '<<relationshiptext>>',
+        applyafter: '<<maplebirchTextOutput "myMod:relationship">>',
+        expected: 1
+      }
+    ]
   }
 });
 ```
 
-这个例子在每次 `relationshiptext` 执行后追加内容，原版 widget 源码无需替换。实际 Mod 应按目标 passage、NPC 或显示条件缩小范围。钩子详见 [ModLoader 接入](../AddonPlugin.md#渲染钩子)。
+这个例子在指定源码接点后追加文本宏。`expected` 要与目标版本实际匹配次数一致；不匹配时不会修改 passage，失败记录见 [补丁报告](../AddonPlugin.md#补丁报告)。实际 Mod 应按目标 passage、NPC 或显示条件缩小范围。
 
 ## 注册与渲染
 
@@ -73,12 +73,9 @@ maplebirch.wikify('myMod:relationship', {
 ## 修改已有内容
 
 ```typescript
-maplebirch.wikify('myMod:links', {
-  afterWidget(_source, name, _title, _passage, node) {
-    if (name !== 'myModMenu') return;
-    const link = node.querySelector('a[data-passage="Town"]');
-    if (link) maplebirch.tool.text.renameLink(link, 'Visit town');
-  }
+maplebirch.on(':passagedisplay', (_passage, root) => {
+  const link = root.querySelector('a[data-passage="Town"]');
+  if (link) maplebirch.tool.text.renameLink(link, 'Visit town');
 });
 ```
 

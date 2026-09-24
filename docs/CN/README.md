@@ -49,4 +49,4 @@
 - [云存档](CloudSave.md)：玩家自行部署存储端；普通内容模组不需要此功能。
 
 > [!NOTE]
-> 专题页中的 `services`、`infra`、`host` 是高级入口。一般模组优先使用 `maplebirch.on/once/off/after/trigger`、`t/auto`、`idb/define/with`、`wikify` 和 `log` 等顶层方法。
+> 专题页中的 `services`、`infra`、`host` 是高级入口。一般模组优先使用 `maplebirch.on/once/off/after/trigger`、`t/auto`、`idb/define/with` 和 `log` 等顶层方法。

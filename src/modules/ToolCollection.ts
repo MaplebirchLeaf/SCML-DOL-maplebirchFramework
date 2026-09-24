@@ -3,7 +3,7 @@ import type { ScopedLog } from '../infra/Diagnostics';
 import Console from './Frameworks/ConsoleCheat';
 import migration from './Frameworks/migration';
 import randSystem from './Frameworks/RandSystem';
-import defineMacros from './Frameworks/macros';
+import defineMacros, { type MacroFunction, type SimpleMacroFunction, type MacroTags, type SkipArgs } from './Frameworks/macros';
 import htmlTools from './Frameworks/HtmlTools';
 import { zonesManager, type InitFunction, type ZoneWidget } from './Frameworks/ZonesManager';
 import applyLinkZone from './Frameworks/ApplyLinkZone';
@@ -31,7 +31,7 @@ class ToolCollection {
     constructors: ToolConstructors = {}
   ) {
     this.console = Object.seal(new (constructors.console ?? Console)(this));
-    this.macro = Object.freeze(new (constructors.macro ?? defineMacros)(this));
+    this.macro = Object.freeze(new (constructors.macro ?? defineMacros)(this)) as defineMacros;
     this.text = Object.seal(new htmlTools(core));
     this.zone = Object.seal(new zonesManager(core));
     this.patch = new Patch((name, error) => core.infra.diagnostics.record(`Patch ${name}: ${Diagnostics.message(error)}`, 'ERROR', 'patch', error));
@@ -39,6 +39,14 @@ class ToolCollection {
 
   public onInit(...widgets: InitFunction[]): void {
     this.zone.onInit(...widgets);
+  }
+
+  public define<Args extends unknown[]>(name: string, fn: MacroFunction<Args>, tags?: MacroTags, skipArgs?: SkipArgs, isAsync = false): void {
+    this.macro.define(name, fn, tags, skipArgs, isAsync);
+  }
+
+  public defineS<Args extends unknown[]>(name: string, fn: SimpleMacroFunction<Args>, tags?: MacroTags, skipArgs?: SkipArgs, maintainContext = false): void {
+    this.macro.defineS(name, fn, tags, skipArgs, maintainContext);
   }
 
   public addTo(zone: string, ...widgets: ZoneWidget[]): void {

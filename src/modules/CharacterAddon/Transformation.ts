@@ -97,19 +97,19 @@ class Transformation {
         Object.cover(this.suppressConditions, DoLPcompat.Transformations.SuppressConditions);
         Object.cover(this.buildUpdaters, DoLPcompat.Transformations.BuildUpdaters);
       }
-      manager.core.tool.macro.define('transform', (name: string, change: number) => this._transform(name, change));
-      manager.core.tool.macro.defineS('transform-hint', (name: string, colour: string) => {
-        if (dol.variables.settings?.blindStatsEnabled) return;
-        const fragment = document.createDocumentFragment();
-        const label = document.createElement('span');
-        label.className = colour;
-        label.textContent = manager.core.t(name);
-        fragment.append(' | ', label);
-        return fragment;
-      });
-      manager.core.tool.macro.define('transformationAlteration', () => this._transformationAlteration());
-      manager.core.tool.macro.define('transformationStateUpdate', () => this._transformationStateUpdate());
     });
+    manager.core.tool.define('transform', (name: string, change: number) => this._transform(name, change));
+    manager.core.tool.defineS('transform-hint', (name: string, colour: string) => {
+      if (dol.variables.settings?.blindStatsEnabled) return;
+      const fragment = document.createDocumentFragment();
+      const label = document.createElement('span');
+      label.className = colour;
+      label.textContent = manager.core.t(name);
+      fragment.append(' | ', label);
+      return fragment;
+    });
+    manager.core.tool.define('transformationAlteration', () => this._transformationAlteration());
+    manager.core.tool.define('transformationStateUpdate', () => this._transformationStateUpdate());
   }
 
   private get isDoLP() {

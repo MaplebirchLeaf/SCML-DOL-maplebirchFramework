@@ -30,15 +30,11 @@ class DoLToolCollection extends ToolCollection {
     register(core, this.patch);
     const config = new FrameworkConfigLoader(core, this.patch, this.zone);
     core.services.addonPlugin.hook<FrameworkConfig | FrameworkConfig[]>('framework', task => config.apply(task));
-    core.once(':sugarcube', () => this.macros.register());
   }
 
   public preInit(): void {
+    this.macros.register();
     this.macros.notice();
-    this.core.wikify('patches', {
-      beforeWidget: (text, name) => this.patch.beforeWidget(name, text),
-      afterWidget: (_text, name, _title, _passage, node) => this.patch.afterWidget(name, node)
-    });
     this.onInit(() => this.patch.apply('init'));
     window.lanSwitch = Object.freeze(_languageSwitch);
     this.onInit(() => {

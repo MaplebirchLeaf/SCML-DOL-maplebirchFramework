@@ -8,7 +8,7 @@
 maplebirch.tool.patch.antiques.add(key, config);
 ```
 
-在启动脚本中注册。框架在 `museumAntiqueText` 执行后合并文本，在捐赠时调用原版 `museumAntiqueStatus`，无需修改 widget 源码。新游戏及读档只补齐缺失的收集条目，不覆盖已有进度。
+在启动脚本中注册。框架通过加载时源码补丁，在 `museumAntiqueText` 执行后合并文本，并在捐赠时调用原版 `museumAntiqueStatus`。新游戏及读档只补齐缺失的收集条目，不覆盖已有进度。目标游戏版本若修改了这两个 widget 的源码接点，请检查[补丁报告](../AddonPlugin.md#补丁报告)。
 
 `inject(data)` 是手动合并入口，返回传入的对象；通常无需调用。古董的资源、发现剧情及 `Museum <name>` 段落仍由 Mod 提供。
 
