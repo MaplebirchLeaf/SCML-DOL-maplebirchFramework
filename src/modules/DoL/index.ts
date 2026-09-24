@@ -1,0 +1,30 @@
+import maplebirch from '../../core';
+import DoLDynamic from './Dynamic';
+import { StateManager } from '../State';
+import { TimeManager } from '../TimeStateWeather/TimeEvents';
+import { WeatherManager } from '../TimeStateWeather/WeatherEvents';
+import DoLToolCollection from './ToolCollection';
+import Audio from '../Audio';
+import Variables from '../Variables';
+import Character from '../Character';
+import NPCManager from '../NamedNPC';
+import Combat from '../Combat';
+import DoLIntegration from './Integration';
+import type { CoreModules } from './types';
+
+const names = ['dynamic', 'tool', 'audio', 'var', 'char', 'npc', 'combat'] satisfies Array<keyof CoreModules>;
+maplebirch.meta.core = names;
+maplebirch.meta.protected = names;
+
+const dynamic = new DoLDynamic(maplebirch);
+dynamic.add('Time', Object.seal(new TimeManager(dynamic)));
+dynamic.add('State', Object.seal(new StateManager(dynamic)));
+dynamic.add('Weather', Object.seal(new WeatherManager(dynamic)));
+maplebirch.register('dynamic', dynamic);
+maplebirch.register('tool', new DoLToolCollection(maplebirch), ['dynamic']);
+maplebirch.register('audio', new Audio(maplebirch), ['tool']);
+maplebirch.register('var', new Variables(maplebirch), ['tool']);
+maplebirch.register('char', new Character(maplebirch), ['var']);
+maplebirch.register('npc', new NPCManager(maplebirch), ['char']);
+maplebirch.register('combat', new Combat(maplebirch), ['npc']);
+new DoLIntegration(maplebirch).install();

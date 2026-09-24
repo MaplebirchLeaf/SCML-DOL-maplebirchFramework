@@ -68,6 +68,17 @@ Custom files:
 }
 ```
 
+To split one language across several files, use an ordered array. Later files override duplicate keys:
+
+```json
+"language": {
+  "CN": ["i18n/CN/common.yml", "i18n/CN/npc.yml"],
+  "EN": ["i18n/EN/common.yml", "i18n/EN/npc.yml"]
+}
+```
+
+The object form's `file` field also accepts an array. Files for one language are merged before import; a missing or invalid specified file will not partially replace existing translations. The default `"language": ["CN", "EN"]` merges available JSON, YML, and YAML files in that order. See [Translator](Translator.md) for translation keys and runtime usage.
+
 ## audio
 
 ```json

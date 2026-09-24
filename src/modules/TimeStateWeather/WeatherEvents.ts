@@ -1,11 +1,11 @@
 // ./src/modules/TimeStateWeather/WeatherEvents.ts
 
 import { append, cover, merge } from '../../utils';
-import type AddonPlugin from '../AddonPlugin';
-import type { Replacement } from '../../utils/twine';
-import type DynamicManager from '../Dynamic';
-import Event, { type EventOptions } from './Event';
-import dol from '../../host/Adapter';
+import type AddonPlugin from '../../services/AddonPlugin';
+import type { Replacement } from '../../host/ModLoader';
+import type DoLDynamic from '../DoL/Dynamic';
+import Event, { type EventOptions } from '../Event';
+import dol from '../../host/DoL';
 
 export interface WeatherEventOptions extends EventOptions {
   condition?: () => boolean;
@@ -58,8 +58,8 @@ class WeatherEvent extends Event {
   private onEnter?: () => void;
   private onExit?: () => void;
   private fields: Record<string, any>;
-  public constructor(id: string, options: WeatherEventOptions = {}) {
-    super(id, options);
+  public constructor(id: string, options: WeatherEventOptions, log: DoLDynamic['log']) {
+    super(id, options, log);
     this.condition = options.condition;
     this.onEnter = options.onEnter;
     this.onExit = options.onExit;
@@ -103,7 +103,9 @@ class WeatherEvent extends Event {
       try {
         const current = getter();
         if (current !== undefined) return this.matchValue(current, value);
-      } catch {}
+      } catch (error) {
+        this.log(`[WeatherEvent:${this.id}] ${key} 读取失败`, 'WARN', error);
+      }
     }
     return false;
   }
@@ -138,8 +140,8 @@ export class WeatherManager {
   private weatherTriggered = false;
   private readonly log: (message: string, level?: string, ...objects: any[]) => void;
 
-  public constructor(private readonly manager: DynamicManager) {
-    this.log = manager.log;
+  public constructor(private readonly manager: DoLDynamic) {
+    this.log = (...args) => manager.log(...args);
     $(document).on(':onWeatherChange', () => this.manager.core.trigger(':onWeather'));
     this.manager.core.on(':onWeather', () => this.checkEvents(), 'weather change');
   }
@@ -172,7 +174,7 @@ export class WeatherManager {
       this.log(`天气事件ID已存在: ${eventId}`, 'WARN');
       return false;
     }
-    this.weatherEvents.set(eventId, new WeatherEvent(eventId, options));
+    this.weatherEvents.set(eventId, new WeatherEvent(eventId, options, this.log));
     this.sortedEventsCache = null;
     this.log(`注册天气事件: ${eventId}`, 'DEBUG');
     return true;
@@ -237,7 +239,7 @@ export class WeatherManager {
     return true;
   }
 
-  public init(): void {
+  public Init(): void {
     for (const exception of this.Exceptions) dol.setup.WeatherExceptions.push(exception);
     this.Exceptions.length = 0;
     for (const weatherType of this.WeatherTypes)

@@ -229,7 +229,7 @@ npm install -D @scml-dol-maplebirch/types
 - [boot.json 配置][BootJson]
 - [工具函数][Utilities]
 - [事件发射器][EventEmitter]
-- [语言管理][LanguageManager]
+- [翻译服务][Translator]
 - [SugarCube 宏][SugarCubeMacro]
 - [音频管理][Audio]
 - [框架服务](docs/CN/README.md#框架服务)
@@ -343,7 +343,7 @@ npm install -D @scml-dol-maplebirch/types
 [BootJson]: docs/CN/BootJson.md
 [Utilities]: docs/CN/Utilities.md
 [EventEmitter]: docs/CN/EventEmitter.md
-[LanguageManager]: docs/CN/LanguageManager.md
+[Translator]: docs/CN/Translator.md
 [SugarCubeMacro]: docs/CN/SugarCubeMacro.md
 [Audio]: docs/CN/Audio.md
 [Dynamic]: docs/CN/Dynamic/

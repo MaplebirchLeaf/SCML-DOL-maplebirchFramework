@@ -1,6 +1,6 @@
 # Patch Registration
 
-`maplebirch.tool.patch` manages vanilla data extensions. Each extension is mounted by name on `patch` and registers its APIs and lifecycle handlers through `.add(name, definition)`.
+`maplebirch.tool.patch` is a reusable patch registry. The DoL integration registers the built-in vanilla-data extensions, such as traits and locations; another game can register only the extensions it needs. Each extension is mounted by name on `patch` and registers its APIs and lifecycle handlers through `.add(name, definition)`.
 
 ## Entry Point
 

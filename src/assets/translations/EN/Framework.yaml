@@ -1,0 +1,7 @@
+'framework.notice.desc': 'Maplebirch Framework provides loading, extension, and compatibility support for Degrees of Lewdity mods. When enabled, the game may be affected by the framework itself or by related mods.'
+'framework.notice.issue.title': 'Before reporting an issue, please check where it comes from:'
+'framework.notice.issue.mod': 'If the issue appears in the content of a specific mod, please contact that mod author first.'
+'framework.notice.issue.framework': 'If the issue is related to framework loading, APIs, compatibility, or core framework features, please report it to the framework author.'
+'framework.notice.issue.report': 'When reporting an issue, please include the framework version, game version, enabled mod list, error screenshots, or reproduction steps if possible.'
+'framework.notice.verify': 'I have read and understood the notice above'
+'framework.notice.confirm': 'I Understand'

@@ -1,6 +1,6 @@
 // ./src/modules/CharacterAddon/TransformationConfig.ts
 
-import dol from '../../host/Adapter';
+import dol from '../../host/DoL';
 
 export type DecayCondition = () => boolean;
 export type SuppressCondition = (sourceName: string) => boolean;

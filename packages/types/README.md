@@ -76,4 +76,4 @@ install them separately unless your project imports those packages directly.
 
 ## License
 
-[MIT](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/LICENSE)
+This package, like the whole project, is dual-licensed: choose either [MIT](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/LICENSE) or [CC BY-NC-SA 4.0](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/blob/main/LICENSE-CC-BY-NC-SA-4.0). Both license texts are included in the package. Third-party dependencies retain their own licenses.

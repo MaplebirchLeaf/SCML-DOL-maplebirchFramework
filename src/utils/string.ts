@@ -1,6 +1,8 @@
 // ./src/utils/string.ts
 
-import _ from './shared';
+import ModLoader from '../host/ModLoader';
+
+const _ = ModLoader.getLodash();
 
 export type ConvertMode = 'lower' | 'upper' | 'capitalize' | 'title' | 'camel' | 'pascal' | 'snake' | 'kebab' | 'constant';
 

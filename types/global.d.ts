@@ -5,7 +5,8 @@ import { BeautySelectorAddon } from '@scml/types/AddonMod_BeautySelector/BeautyS
 import { ImgLoaderHooker } from '@scml/types/Hook_ImgLoader/ImgLoaderHooker';
 import { Gui } from '@scml/types/Mod_LoaderGui/Gui';
 import { ModUtils } from '@scml/types/sugarcube-2-ModLoader/Utils';
-import { _languageSwitch } from '../src/SugarCubeMacros';
+import { _languageSwitch } from '../src/macros';
+import ImageLoader from '../src/modules/Frameworks/ImageLoader';
 
 declare global {
   interface Window {
@@ -20,6 +21,7 @@ declare global {
     closeOverlay(): void;
     updateOptions(): void;
     lanSwitch: typeof _languageSwitch;
+    readonly loadImage: typeof ImageLoader.load;
     readonly V: typeof V;
     readonly C: typeof C;
     readonly T: typeof T;

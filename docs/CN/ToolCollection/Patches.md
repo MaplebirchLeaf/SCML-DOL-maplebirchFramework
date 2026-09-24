@@ -1,6 +1,6 @@
 # Patch 注册
 
-`maplebirch.tool.patch` 管理原版数据扩展。每个扩展按名称挂载到 `patch`，并通过 `.add(name, definition)` 注册 API 和生命周期处理器。
+`maplebirch.tool.patch` 是通用补丁注册入口；框架的 DoL 接入负责注册特质、地点等原版数据扩展。每个扩展按名称挂载到 `patch`，并通过 `.add(name, definition)` 注册 API 和生命周期处理器。接入其它游戏时可以只注册该游戏需要的扩展。
 
 ## 使用入口
 

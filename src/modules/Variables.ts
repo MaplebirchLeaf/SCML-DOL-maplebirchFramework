@@ -1,11 +1,12 @@
 // ./src/modules/Variables.ts
 
 import { version } from '../constants';
-import maplebirch, { MaplebirchCore, createlog } from '../core';
+import maplebirch, { MaplebirchCore } from '../core';
+import type { ScopedLog } from '../infra/Diagnostics';
 import migration from './Frameworks/migration';
 import { clone } from '../utils';
-import { errorMessage } from '../utils/error';
-import dol from '../host/Adapter';
+import Diagnostics from '../infra/Diagnostics';
+import dol from '../host/DoL';
 
 const defaults = {
   player: {
@@ -38,7 +39,7 @@ class Options {
         if (key in defaults) {
           const value = defaults[key];
           Variables.add(key, value);
-          if (maplebirch.lodash.isPlainObject(value) && maplebirch.lodash.isPlainObject(options[key])) {
+          if (maplebirch.host.modLoader.lodash.isPlainObject(value) && maplebirch.host.modLoader.lodash.isPlainObject(options[key])) {
             options[key] = Object.merge(clone(value), options[key]);
           } else {
             options[key] ??= clone(value);
@@ -53,7 +54,7 @@ class Options {
 
     for (const [key, value] of Object.entries(defaults)) {
       Variables.add(key, value);
-      if (maplebirch.lodash.isPlainObject(value) && maplebirch.lodash.isPlainObject(options[key])) {
+      if (maplebirch.host.modLoader.lodash.isPlainObject(value) && maplebirch.host.modLoader.lodash.isPlainObject(options[key])) {
         options[key] = Object.merge(clone(value), options[key]);
       } else {
         options[key] ??= clone(value);
@@ -95,7 +96,7 @@ class Variables {
 
   public static add(key: string, value: any): void {
     const current = this.moduleOptions[key];
-    if (maplebirch.lodash.isPlainObject(value) && maplebirch.lodash.isPlainObject(current)) {
+    if (maplebirch.host.modLoader.lodash.isPlainObject(value) && maplebirch.host.modLoader.lodash.isPlainObject(current)) {
       this.moduleOptions[key] = Object.merge(clone(value), current);
       return;
     }
@@ -143,13 +144,12 @@ class Variables {
 
   public version: string;
   public readonly tool: MaplebirchCore['tool'];
-  public readonly log: ReturnType<typeof createlog>;
+  public readonly log!: ScopedLog;
   public readonly migration: migration;
   public readonly options: Options;
   constructor(readonly core: MaplebirchCore) {
     this.version = version;
     this.tool = this.core.tool;
-    this.log = createlog('var');
     this.migration = new this.tool.migration();
     this.options = new Options();
     dataUpdate(this.migration);
@@ -175,7 +175,7 @@ class Variables {
       const raw = localStorage.getItem(Variables.OPTIONS_STORAGE_KEY);
       if (!raw) return null;
       const parsed = JSON.parse(raw);
-      const saved = this.core.lodash.isPlainObject(parsed) ? parsed : null;
+      const saved = this.core.host.modLoader.lodash.isPlainObject(parsed) ? parsed : null;
 
       if (action === 'restore' && saved) {
         dol.variables.options.maplebirch = saved;
@@ -184,26 +184,26 @@ class Variables {
 
       return saved;
     } catch (error) {
-      this.log(`框架设置存储处理失败: ${errorMessage(error)}`, 'WARN');
+      this.log(`框架设置存储处理失败: ${Diagnostics.message(error)}`, 'WARN');
       return null;
     }
   }
 
   public check() {
     dol.variables.options ??= {};
-    const current = this.core.lodash.isPlainObject(dol.variables.options.maplebirch) ? dol.variables.options.maplebirch : this.optionsStorage('load');
+    const current = this.core.host.modLoader.lodash.isPlainObject(dol.variables.options.maplebirch) ? dol.variables.options.maplebirch : this.optionsStorage('load');
     dol.variables.options.maplebirch = Object.merge(clone(Variables.options), current ?? {});
   }
 
   public Init(): void {
     try {
       dol.variables.maplebirch ??= {};
-      if (this.tool.core.passage?.title === 'Start2') dol.variables.maplebirch = clone({ ...defaults, version: this.version });
+      if (this.tool.core.host.sugarcube.passage?.title === 'Start2') dol.variables.maplebirch = clone({ ...defaults, version: this.version });
     } catch (error) {
-      this.log(`出现错误：${errorMessage(error)}`, 'ERROR');
+      this.log(`出现错误：${Diagnostics.message(error)}`, 'ERROR');
     } finally {
       this.migration.run(dol.variables.maplebirch, this.version);
-      $.wiki('<<maplebirchState>>');
+      this.run();
     }
   }
 
@@ -212,17 +212,22 @@ class Variables {
       dol.variables.maplebirch ??= {};
       this.check();
       this.migration.run(dol.variables.maplebirch, this.version);
-      $.wiki('<<maplebirchState>>');
+      this.run();
     } catch (error) {
-      this.log(`读档迁移出错: ${errorMessage(error)}`, 'ERROR');
+      this.log(`读档迁移出错: ${Diagnostics.message(error)}`, 'ERROR');
     }
   }
 
   public postInit() {
     if (dol.variables.maplebirch?.version !== this.version) this.migration.run(dol.variables.maplebirch, this.version);
   }
-}
 
-maplebirch.register('var', Object.seal(new Variables(maplebirch)), ['tool']);
+  private run(): void {
+    this.tool.patch.apply('state');
+    void this.core.trigger(':variable');
+    const widgets = this.tool.zone.play('State');
+    if (widgets) new (this.core.host.sugarcube.require().Wikifier)(document.createDocumentFragment(), widgets);
+  }
+}
 
 export default Variables;

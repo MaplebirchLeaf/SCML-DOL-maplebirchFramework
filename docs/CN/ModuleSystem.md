@@ -1,6 +1,6 @@
-## 模块系统 (ModuleSystem)
+## 模块管理 (Modules)
 
-`ModuleSystem` 是框架的模块注册、依赖排序与生命周期调度系统。一般内容模组通常不需要直接注册框架模块；只有在你明确要扩展框架内部能力时，才建议使用这一套接口。
+`Modules` 是框架的模块注册、依赖排序与生命周期调度服务。一般内容模组通常不需要直接注册框架模块；只有在你明确要扩展框架内部能力时，才建议使用这一套接口。
 
 ---
 
@@ -21,7 +21,7 @@ maplebirch.register(name, module, dependencies);
 ```javascript
 maplebirch.register('myModule', {
   Init() {
-    console.log('module initialized');
+    this.log('module initialized', 'INFO');
   }
 });
 ```
@@ -33,7 +33,7 @@ maplebirch.register(
   'myModule',
   {
     Init() {
-      console.log('runs after tool and npc');
+      this.log('runs after tool and npc', 'INFO');
     }
   },
   ['tool', 'npc']
@@ -74,6 +74,8 @@ maplebirch.myApi.hello();
 
 纯暴露模块仍受依赖禁用规则约束：前置模块被禁用时，它也会被禁用，并移除 `maplebirch[name]` 上的暴露属性。
 
+`exposed: 'window'` 可将模块挂到 `window[name]`；名称冲突时注册失败。注册服务会自动为可扩展的模块对象附加 `this.log(message, level?, ...objects)`，诊断集中记录在 `maplebirch.infra.diagnostics`，无需在模块内另建日志器。框架自身的核心模块由 `meta.core` 统一提前挂载；不再有单独的 `early` 列表。
+
 ---
 
 ## 查询模块
@@ -97,7 +99,8 @@ console.log(maplebirch.dependencyGraph.npc);
 | :---------------- | :--------------------------------- |
 | `protected`       | 是否为受保护模块                   |
 | `mounted`         | 是否属于框架核心挂载列表           |
-| `early`           | 是否会在预初始化阶段提前挂载       |
+| `exposed`         | 是否暴露到框架对象或 `window`      |
+| `lifecycle`       | 是否实现生命周期方法               |
 | `dependencies`    | 直接依赖                           |
 | `dependents`      | 依赖该模块的模块                   |
 | `allDependencies` | 传递依赖                           |

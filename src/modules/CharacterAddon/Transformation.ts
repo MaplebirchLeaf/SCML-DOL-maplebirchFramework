@@ -1,10 +1,11 @@
 // ./src/modules/CharacterAddon/Transformation.ts
 
-import { errorMessage } from '../../utils/error';
-import maplebirch, { createlog } from '../../core';
-import { Translation } from '../../services/LanguageManager';
-import type AddonPlugin from '../AddonPlugin';
-import type { Replacement } from '../../utils/twine';
+import Diagnostics from '../../infra/Diagnostics';
+import maplebirch from '../../core';
+import type { ScopedLog } from '../../infra/Diagnostics';
+import type { Translation } from '../../services/Translator';
+import type AddonPlugin from '../../services/AddonPlugin';
+import type { Replacement } from '../../host/ModLoader';
 import type Character from '../Character';
 import {
   AnimalMacros,
@@ -18,8 +19,8 @@ import {
   type SuppressCondition,
   type BuildUpdater
 } from './TransformationConfig';
-import DoLPcompat from '../../DoLPcompat';
-import dol from '../../host/Adapter';
+import DoLPcompat from '../../compat/DoLPcompat';
+import dol from '../../host/DoL';
 
 interface Part {
   name: string;
@@ -81,14 +82,15 @@ class Entry {
 }
 
 class Transformation {
-  private log: ReturnType<typeof createlog>;
+  private get log(): ScopedLog {
+    return this.manager.log;
+  }
   private config: Map<string, Entry> = new Map();
   public readonly decayConditions: Record<string, DecayCondition[]> = { ...DecayConditions };
   public readonly suppressConditions: Record<string, SuppressCondition[]> = { ...SuppressConditions };
   public readonly buildUpdaters: Record<string, BuildUpdater> = { ...BuildUpdaters };
 
   public constructor(private manager: Character) {
-    this.log = manager.log;
     manager.core.once(':storyready', () => {
       if (DoLPcompat.isDoLP) {
         Object.cover(this.decayConditions, DoLPcompat.Transformations.DecayConditions);
@@ -127,7 +129,7 @@ class Transformation {
   }
 
   public wikifier(widget: string, ...args: any[]): any {
-    return this.manager.core.SugarCube.Wikifier.wikifyEval(`<<${widget}${args.length ? ` ${args.join(' ')}` : ''}>>`);
+    return this.manager.core.host.sugarcube.require().Wikifier.wikifyEval(`<<${widget}${args.length ? ` ${args.join(' ')}` : ''}>>`);
   }
 
   public modifyEffect(manager: AddonPlugin): void {
@@ -161,9 +163,9 @@ class Transformation {
       const translations = options.translations instanceof Map ? options.translations.entries() : Object.entries(options.translations);
       for (const [key, value] of translations) {
         try {
-          this.manager.core.lang.set(key, value);
+          this.manager.core.services.translator.set(key, value);
         } catch (error) {
-          this.log(`设置翻译键失败: ${key} - ${errorMessage(error)}`, 'ERROR');
+          this.log(`设置翻译键失败: ${key} - ${Diagnostics.message(error)}`, 'ERROR');
         }
       }
     }
@@ -496,7 +498,7 @@ class Transformation {
 
     if (!entry?.message) return false;
 
-    const lang = maplebirch.Language as string;
+    const lang = maplebirch.services.translator.language as string;
     const messageArray = entry.message[lang]?.[direction.toLowerCase() as 'up' | 'down'];
 
     if (!messageArray) return false;

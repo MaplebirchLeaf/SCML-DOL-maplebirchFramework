@@ -25,10 +25,10 @@
 
     <div class="maplebirch-cloud-save-actions">
       <<lanButton 'cloud.save.action.connect' 'title' 'class:saveMenuButton maplebirch-cloud-save-connect'>>
-        <<run maplebirch.cloudSave.panelAction('connectRemote')>>
+        <<run maplebirch.services.cloudSave.panelAction('connectRemote')>>
       <</lanButton>>
 
-      <<lanButton 'cloud.save.action.refresh' 'title' 'class:saveMenuButton'>><<run maplebirch.cloudSave.panelAction('refreshRemoteList')>><</lanButton>>
+      <<lanButton 'cloud.save.action.refresh' 'title' 'class:saveMenuButton'>><<run maplebirch.services.cloudSave.panelAction('refreshRemoteList')>><</lanButton>>
     </div>
   </div>
 
@@ -42,10 +42,10 @@
 
     <div class="maplebirch-cloud-save-actions">
       <<lanButton 'cloud.save.action.upload' 'title' 'class:saveMenuButton maplebirch-cloud-save-upload'>>
-        <<run maplebirch.cloudSave.panelAction('uploadSlot')>>
+        <<run maplebirch.services.cloudSave.panelAction('uploadSlot')>>
       <</lanButton>>
 
-      <<lanButton 'cloud.save.action.code.export' 'title' 'class:saveMenuButton maplebirch-cloud-save-export'>><<run maplebirch.cloudSave.panelAction('exportSlotCode')>><</lanButton>>
+      <<lanButton 'cloud.save.action.code.export' 'title' 'class:saveMenuButton maplebirch-cloud-save-export'>><<run maplebirch.services.cloudSave.panelAction('exportSlotCode')>><</lanButton>>
     </div>
   </div>
 
@@ -58,19 +58,19 @@
 
     <div class="maplebirch-cloud-save-actions">
       <<lanButton 'cloud.save.action.code.current' 'title' 'class:saveMenuButton maplebirch-cloud-save-code-current'>>
-        <<run maplebirch.cloudSave.panelAction('exportCurrentCode')>>
+        <<run maplebirch.services.cloudSave.panelAction('exportCurrentCode')>>
       <</lanButton>>
 
       <<lanButton 'cloud.save.action.code.upload' 'title' 'class:saveMenuButton maplebirch-cloud-save-code-upload'>>
-        <<run maplebirch.cloudSave.panelAction('uploadCode')>>
+        <<run maplebirch.services.cloudSave.panelAction('uploadCode')>>
       <</lanButton>>
 
       <<lanButton 'cloud.save.action.code.download' 'title' 'class:saveMenuButton maplebirch-cloud-save-code-download'>>
-        <<run maplebirch.cloudSave.panelAction('downloadCode')>>
+        <<run maplebirch.services.cloudSave.panelAction('downloadCode')>>
       <</lanButton>>
 
       <<lanButton 'cloud.save.action.code.load' 'title' 'class:saveMenuButton maplebirch-cloud-save-code-load'>>
-        <<run maplebirch.cloudSave.panelAction('importCode')>>
+        <<run maplebirch.services.cloudSave.panelAction('importCode')>>
       <</lanButton>>
     </div>
   </div>
@@ -83,5 +83,5 @@
   </div>
 </div>
 
-<<run maplebirch.cloudSave.mountPanel()>>
+<<run maplebirch.services.cloudSave.mountPanel()>>
 <</widget>>

@@ -9,10 +9,10 @@ This directory contains English documentation for mod authors using **`maplebirc
 - [boot.json Configuration](BootJson.md)
 - [Utilities](Utilities.md)
 - [Event Emitter](EventEmitter.md)
-- [Language Manager](LanguageManager.md)
+- [Translation Service](Translator.md)
 - [SugarCube Macros](SugarCubeMacro.md)
 - [Audio Manager](Audio.md)
-- [Module System](ModuleSystem.md)
+- [Module Management](ModuleSystem.md)
 
 ## Dynamic Events
 
@@ -39,6 +39,7 @@ This directory contains English documentation for mod authors using **`maplebirc
 
 - [Character Layers](Character/Character.md)
 - [Transformation System](Character/Transformation.md)
+- [Transformation Hint](Character/TransformHint.md)
 - [Named NPC](NamedNPC/NamedNPC.md)
 - [NPC Transformation](NamedNPC/NamedNPCTransformation.md)
 - [NPC Pregnancy](NamedNPC/NamedNPCPregnancy.md)
@@ -50,6 +51,7 @@ This directory contains English documentation for mod authors using **`maplebirc
 
 ## Framework Services
 
+- Prefer focused top-level `maplebirch` methods such as `on`, `t`, `define`, `register`, and `wikify`; see [Recommended Structure](../../README.EN.md#recommended-structure).
 - [ModLoader Integration](AddonPlugin.md)
 - [Mod Encryption](Encryption.md)
 - [Cloud Save](CloudSave.md)

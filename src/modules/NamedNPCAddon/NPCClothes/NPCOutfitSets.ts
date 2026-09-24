@@ -1,8 +1,8 @@
 // ./src/modules/NamedNPCAddon/NPCClothes/NPCOutfitSets.ts
 
-import { errorMessage } from '../../../utils/error';
+import Diagnostics from '../../../infra/Diagnostics';
 import type NPCManager from '../../NamedNPC';
-import dol from '../../../host/Adapter';
+import dol from '../../../host/DoL';
 
 interface OutfitPartConfig {
   name: string;
@@ -92,7 +92,7 @@ class NPCOutfitSets {
         }
       );
     } catch (e) {
-      this.manager.log(`NPCOutfitSets 初始化失败: ${errorMessage(e)}`, 'ERROR');
+      this.manager.log(`NPCOutfitSets 初始化失败: ${Diagnostics.message(e)}`, 'ERROR');
     }
   }
 

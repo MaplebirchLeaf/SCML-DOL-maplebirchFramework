@@ -1,6 +1,6 @@
-# Module System
+# Module Management (Modules)
 
-`ModuleSystem` manages framework module registration, dependency order, and lifecycle hooks. Most content mods do not need to register framework modules directly; use this only when a mod intentionally extends framework behavior.
+`Modules` manages framework module registration, dependency order, and lifecycle hooks. Most content mods do not need to register framework modules directly; use this only when a mod intentionally extends framework behavior.
 
 ## Registering A Module
 
@@ -19,7 +19,7 @@ Example:
 ```javascript
 maplebirch.register('myModule', {
   Init() {
-    console.log('module initialized');
+    this.log('module initialized', 'INFO');
   }
 });
 ```
@@ -31,7 +31,7 @@ maplebirch.register(
   'myModule',
   {
     Init() {
-      console.log('runs after tool and npc');
+      this.log('runs after tool and npc', 'INFO');
     }
   },
   ['tool', 'npc']
@@ -70,6 +70,8 @@ Pure exposed modules without lifecycle methods are mounted as API modules and ar
 
 Pure exposed modules still follow dependency disabling: disabling a prerequisite also disables its dependent API modules and removes their `maplebirch[name]` properties.
 
+Use `exposed: 'window'` to mount a module at `window[name]`; registration fails on a name collision. The service attaches `this.log(message, level?, ...objects)` to extensible registered modules, feeding the shared `maplebirch.infra.diagnostics` store. Core modules in `meta.core` are mounted early as a group; there is no separate `early` list.
+
 ## Reading Modules
 
 ```javascript
@@ -87,7 +89,8 @@ Common fields:
 | :---------------- | :---------------------------------------------------- |
 | `protected`       | Whether this is a protected module                    |
 | `mounted`         | Whether this belongs to the framework core mount list |
-| `early`           | Whether it is mounted early after `preInit`           |
+| `exposed`         | Whether it is exposed on the core object or `window`  |
+| `lifecycle`       | Whether it implements lifecycle hooks                 |
 | `dependencies`    | Direct dependencies                                   |
 | `dependents`      | Modules that depend on this module                    |
 | `allDependencies` | Transitive dependencies                               |

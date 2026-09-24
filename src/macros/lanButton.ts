@@ -1,6 +1,6 @@
 // ./src/macros/lanButton.ts
 
-import { errorMessage } from '../utils/error';
+import Diagnostics from '../infra/Diagnostics';
 import maplebirch from '../core';
 import { addClasses, appendMacroIcon, bindLanguageUpdate, readStyle, text, translatedText, type MacroContext } from './helpers';
 
@@ -31,11 +31,14 @@ export function _languageButton(this: MacroContext): void {
     };
     update();
 
-    $button.ariaClick({ namespace: '.macros', role: 'button', one: false }, this.createShadowWrapper(content ? () => maplebirch.SugarCube.Wikifier.wikifyEval(content, passageObj) : () => {}));
+    $button.ariaClick(
+      { namespace: '.macros', role: 'button', one: false },
+      this.createShadowWrapper(content ? () => maplebirch.host.sugarcube.require().Wikifier.wikifyEval(content, passageObj) : () => {})
+    );
     $button.appendTo(this.output);
     bindLanguageUpdate($button, 'lanButton', update);
   } catch (error) {
     maplebirch.log('<<lanButton>> error', 'ERROR', error);
-    return this.error(`<<lanButton>> error: ${errorMessage(error)}`);
+    return this.error(`<<lanButton>> error: ${Diagnostics.message(error)}`);
   }
 }

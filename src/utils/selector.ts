@@ -1,6 +1,6 @@
 // ./src/utils/selector.ts
 
-import { errorMessage } from './error';
+import Diagnostics from '../infra/Diagnostics';
 
 type Comparator = '<' | '<=' | '>' | '>=';
 type ResultValue<Input, Result, Meta> = Result | ((input: Input, meta: Meta) => Result);
@@ -107,7 +107,7 @@ export class SelectCase<Input = unknown, Result = unknown, Meta = Record<string,
           try {
             matched = item.condition(input, meta);
           } catch (error) {
-            console.error(`SelectCase predicate error: ${errorMessage(error)}`);
+            console.error(`SelectCase predicate error: ${Diagnostics.message(error)}`);
           }
           break;
       }

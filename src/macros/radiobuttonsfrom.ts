@@ -48,12 +48,12 @@ export function _radiobuttonsfrom(this: MacroContext): HTMLElement | void {
     const displayData = Array.isArray(option) && option.length >= 2 ? option[1] : option;
     options.push({ value: optionValue, data: displayData, label: $label });
     try {
-      new maplebirch.SugarCube.Wikifier($temp[0], `<<radiobutton ${JSON.stringify(varPath)} ${JSON.stringify(optionValue)} autocheck>>`);
+      new (maplebirch.host.sugarcube.require().Wikifier)($temp[0], `<<radiobutton ${JSON.stringify(varPath)} ${JSON.stringify(optionValue)} autocheck>>`);
       if (content) {
         $temp.find('input[type="radio"]').on(
           'change.macros',
           this.createShadowWrapper(function (this: HTMLInputElement) {
-            if (this.checked) maplebirch.SugarCube.Wikifier.wikifyEval(content, passageObj);
+            if (this.checked) maplebirch.host.sugarcube.require().Wikifier.wikifyEval(content, passageObj);
           })
         );
       }
@@ -68,7 +68,7 @@ export function _radiobuttonsfrom(this: MacroContext): HTMLElement | void {
 
   $container.appendTo(this.output);
   const update = () => {
-    const language = maplebirch.Language;
+    const language = maplebirch.services.translator.language;
     options.forEach((option, index) => {
       try {
         const $text = $container.find(`.radiobuttonsfrom-text[data-option-index="${index}"]`);

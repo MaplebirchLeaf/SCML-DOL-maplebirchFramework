@@ -8,7 +8,7 @@
 - 转换字符串命名格式。
 - 限制数字范围。
 - 检查图片资源。
-- 处理文本、JSON、字节、Base64 和路径。
+- 处理文本、JSON、字节和 Base64。
 
 框架初始化时会安装一部分原型/静态方法，同时也会把常用工具挂到全局，方便模组脚本直接使用。
 
@@ -306,9 +306,9 @@ if (result) {
 }
 ```
 
-`loadImage()` 复用 `maplebirch.addon.resources.load()`：优先解析 ModLoader 图片，未解析到时检查原路径。返回解析地址、`false` 或对应的 Promise；统一使用 `await` 即可。缓存保留解析地址，并合并同路径并发请求。失败时保留旧接口的侧边栏刷新行为。
+`loadImage()` 复用 `maplebirch.host.modLoader.resources.load()`：优先解析 ModLoader 图片，未解析到时检查原路径。返回解析地址、`false` 或对应的 Promise；统一使用 `await` 即可。缓存保留解析地址，并合并同路径并发请求。失败时保留旧接口的侧边栏刷新行为。
 
-使用 `maplebirch.addon.resources.clear(path)` 清除缓存后重试；存在性查询、路径归一化见 [图片资源](AddonPlugin.md#图片资源)。
+使用 `maplebirch.host.modLoader.resources.clear(path)` 清除缓存后重试；存在性查询、路径归一化见 [图片资源](AddonPlugin.md#图片资源)。
 
 ## 字节与 Base64 工具
 
@@ -335,17 +335,15 @@ const buffer = base64ToArrayBuffer(base64);
 | `base64ToBytes(base64)`       | Base64 转字节                            |
 | `base64ToArrayBuffer(base64)` | Base64 转 `ArrayBuffer`                  |
 
-## 路径与文本工具
+## 文本与认证工具
 
 ```javascript
-joinEncodedPath('user name', 'slot 1'); // user%20name/slot%201
 escapeHtmlText('<b>text</b>'); // &lt;b&gt;text&lt;/b&gt;
 ```
 
 | 函数                            | 说明                               |
 | :------------------------------ | :--------------------------------- |
 | `basicAuth(username, password)` | 生成 Basic Auth 的 Base64 凭据部分 |
-| `joinEncodedPath(...parts)`     | 拼接并编码路径                     |
 | `escapeHtmlText(value)`         | 转义 HTML 文本                     |
 
 ## widgets

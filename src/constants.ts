@@ -1,7 +1,17 @@
 // .src/constants.ts
 
-import builtinTranslationsCN from '@/assets/translations/CN.yaml';
-import builtinTranslationsEN from '@/assets/translations/EN.yaml';
+import commonCN from '@/assets/translations/CN/Common.yaml';
+import characterCN from '@/assets/translations/CN/Character.yaml';
+import frameworkCN from '@/assets/translations/CN/Framework.yaml';
+import credentialCN from '@/assets/translations/CN/Credential.yaml';
+import cloudSaveCN from '@/assets/translations/CN/CloudSave.yaml';
+import traitsCN from '@/assets/translations/CN/Traits.yaml';
+import commonEN from '@/assets/translations/EN/Common.yaml';
+import characterEN from '@/assets/translations/EN/Character.yaml';
+import frameworkEN from '@/assets/translations/EN/Framework.yaml';
+import credentialEN from '@/assets/translations/EN/Credential.yaml';
+import cloudSaveEN from '@/assets/translations/EN/CloudSave.yaml';
+import traitsEN from '@/assets/translations/EN/Traits.yaml';
 
 export type LanguageCode = (typeof Languages)[number];
 
@@ -32,9 +42,9 @@ export enum ModuleState {
   DISABLED
 }
 
-export const Translations: Partial<Record<LanguageCode, string>> = {
-  CN: builtinTranslationsCN,
-  EN: builtinTranslationsEN
+export const Translations: Record<LanguageCode, readonly string[]> = {
+  CN: [commonCN, characterCN, frameworkCN, credentialCN, cloudSaveCN, traitsCN],
+  EN: [commonEN, characterEN, frameworkEN, credentialEN, cloudSaveEN, traitsEN]
 };
 
 export const TimeConstants = (() => {

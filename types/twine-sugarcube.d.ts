@@ -22,12 +22,12 @@ import type { VersionInfo } from '@scml/sc2-verlnir/src/version';
 import type { VisibilityAPI } from '@scml/sc2-verlnir/src/visibility';
 import type { WikifierAPI as VerlnirWikifierAPI, WikifierStaticAPI, WikifierParserAPI, WikifierHelpersAPI } from '@scml/sc2-verlnir/src/wikifier';
 
-import type { BodywritingItem } from '../src/modules/Frameworks/Patches/Bodywriting';
-import type { FoodstuffItem } from '../src/modules/Frameworks/Patches/Foodstuff';
-import type { LocationConfig } from '../src/modules/Frameworks/Patches/Location';
-import type { FishData } from '../src/modules/Frameworks/Patches/Fishing';
-import type { AntiqueConfig } from '../src/modules/Frameworks/Patches/Antiques';
-import type { TraitCategory } from '../src/modules/Frameworks/Patches/Traits';
+import type { BodywritingItem } from '../src/modules/DoL/Patches/Bodywriting';
+import type { FoodstuffItem } from '../src/modules/DoL/Patches/Foodstuff';
+import type { LocationConfig } from '../src/modules/DoL/Patches/Location';
+import type { FishData } from '../src/modules/DoL/Patches/Fishing';
+import type { AntiqueConfig } from '../src/modules/DoL/Patches/Antiques';
+import type { TraitCategory } from '../src/modules/DoL/Patches/Traits';
 import type { SugarCubeStoryVariables, SugarCubeTemporaryVariables } from 'twine-sugarcube/userdata';
 
 declare module 'twine-sugarcube/userdata' {

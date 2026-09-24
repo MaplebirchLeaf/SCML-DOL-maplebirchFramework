@@ -34,3 +34,5 @@ jobs:
         run: bun run types:pack
       - name: Package mod
         run: bun run package:zip
+      - name: Verify final ZIP
+        run: bun run package:verify

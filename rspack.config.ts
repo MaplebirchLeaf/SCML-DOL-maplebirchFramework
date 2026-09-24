@@ -10,7 +10,7 @@ const modFilename = devZipFileName(name, version);
 
 function commonConfig(isProduction: boolean): Configuration {
   return {
-    entry: './src/main.ts',
+    entry: './src/index.ts',
     output: {
       path: path.resolve(__dirname, 'dist'),
       filename: 'inject_early.js',

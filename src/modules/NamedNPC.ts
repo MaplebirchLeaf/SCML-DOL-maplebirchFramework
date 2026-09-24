@@ -1,18 +1,19 @@
 // ./src/modules/NamedNPC.ts
 
-import maplebirch, { MaplebirchCore, createlog } from '../core';
-import type { Translation } from '../services/LanguageManager';
+import maplebirch, { MaplebirchCore } from '../core';
+import type { ScopedLog } from '../infra/Diagnostics';
+import type { Translation } from '../services/Translator';
 import NPCSchedules, { ScheduleConfig, ScheduleBuilder } from './NamedNPCAddon/NPCSchedules';
 import NPCClothes from './NamedNPCAddon/NPCClothes';
 import type { OutfitSetConfig } from './NamedNPCAddon/NPCClothes/NPCOutfitSets';
-import type { BootTask } from './AddonPlugin';
+import type { BootTask } from '../services/AddonPlugin';
 import NPCSidebar, { type NPCSidebarBootConfig } from './NamedNPCAddon/NPCSidebar';
 import NPCFluids from './NamedNPCAddon/NPCFluids';
 import NPCTransformation, { type NPCTransformationConfig } from './NamedNPCAddon/NPCTransformation';
 import NPCPregnancy, { type NPCPregnancyConfig, type NPCPregnancyState } from './NamedNPCAddon/NPCPregnancy';
 import { bodyDefaults, setupNPCData, isPossible } from './NamedNPCAddon/NPCUtils';
 import { clone, merge } from '../utils';
-import dol from '../host/Adapter';
+import dol from '../host/DoL';
 
 type LanguageCode = 'CN' | 'EN';
 type PronounCode = 'm' | 'f' | 'i' | 'n' | 't';
@@ -225,10 +226,10 @@ export const NamedNPC = (core => {
     }
 
     public setPronouns() {
-      const lang: LanguageCode = maplebirch.Language === 'CN' ? 'CN' : 'EN';
+      const lang: LanguageCode = maplebirch.services.translator.language === 'CN' ? 'CN' : 'EN';
       const pronoun = (this.pronoun in pronounsMap ? this.pronoun : 'n') as PronounCode;
       const base = pronounsMap[pronoun][lang];
-      const useI18N = lang === 'CN' && core.modUtils.getModListNameNoAlias().includes('ModI18N') && vanillaList.has(this.nam) && ['m', 'f'].includes(pronoun);
+      const useI18N = lang === 'CN' && core.host.modLoader.modUtils.getModListNameNoAlias().includes('ModI18N') && vanillaList.has(this.nam) && ['m', 'f'].includes(pronoun);
       this.pronouns = useI18N ? { ...base, his: base.he, hers: base.he } : { ...base };
     }
 
@@ -293,7 +294,7 @@ export const NamedNPC = (core => {
 
     public bodyPartdescription() {
       const cache = (this.descCache ??= {});
-      const lang: LanguageCode = maplebirch.Language === 'CN' ? 'CN' : 'EN';
+      const lang: LanguageCode = maplebirch.services.translator.language === 'CN' ? 'CN' : 'EN';
       const bottomSuffixMap = {
         CN: ['屁股', '臀部', '臀部'],
         EN: [' ass', ' bum', ' butt']
@@ -350,9 +351,9 @@ export const NamedNPC = (core => {
       Object.defineProperty(newNPC, statName, { value: npcData[statName] ?? config.default ?? 0, writable: true, configurable: true, enumerable: true });
     }
     if (translationsData instanceof Map) {
-      for (const [key, value] of translationsData) core.lang.set(key, value);
+      for (const [key, value] of translationsData) core.services.translator.set(key, value);
     } else if (translationsData && typeof translationsData === 'object') {
-      for (const key in translationsData) if (Object.prototype.hasOwnProperty.call(translationsData, key)) core.lang.set(key, translationsData[key]);
+      for (const key in translationsData) if (Object.prototype.hasOwnProperty.call(translationsData, key)) core.services.translator.set(key, translationsData[key]);
     }
     manager.data.set(npcName, { Data: newNPC, Config: npcConfig });
     manager.log(`成功注入NPC: ${npcName}`, 'DEBUG');
@@ -448,7 +449,7 @@ export const NamedNPC = (core => {
         : 'Avery,艾弗里|Bailey,贝利|Briar,布莱尔|Charlie,查里|Darryl,达里尔|Doren,多伦|Eden,伊甸|Gwylan,格威岚|Harper,哈珀|Jordan,约旦|Kylar,凯拉尔|Landry,兰德里|Leighton,礼顿|Mason,梅森|Morgan,摩根|River,瑞沃|Robin,罗宾|Sam,萨姆|Sirris,西里斯|Whitney,惠特尼|Winter,温特|Black Wolf,黑狼|Niki,尼奇|Quinn,奎恩|Remy,雷米|Alex,艾利克斯|Great Hawk,巨鹰|Wren,伦恩|Sydney,悉尼|Ivory Wraith,象牙怨灵|Zephyr,泽菲尔|Night Monster,夜魔|Nona,诺娜|Lake couple,湖边情侣|the witch,巫女|Taylor,泰勒|Casey,凯西|Sterling,斯特林|Cass,卡斯';
     npcNameText.split('|').forEach(pair => {
       const [enName, cnName] = pair.split(',').map(name => name?.trim());
-      if (enName && cnName) core.lang.set(enName, { EN: enName, CN: cnName });
+      if (enName && cnName) core.services.translator.set(enName, { EN: enName, CN: cnName });
     });
   }
 
@@ -567,7 +568,7 @@ export const NamedNPC = (core => {
 })(maplebirch);
 
 class NPCManager {
-  public readonly log: ReturnType<typeof createlog>;
+  public readonly log!: ScopedLog;
   public readonly data = new Map<string, { Data: InstanceType<typeof NamedNPC>; Config: NPCConfig }>();
   public NPCNameList: string[] = [];
 
@@ -604,11 +605,10 @@ class NPCManager {
   public readonly fluids: NPCFluids = Object.seal(new NPCFluids());
 
   public constructor(readonly core: MaplebirchCore) {
-    this.log = createlog('npc');
     this.Clothes = Object.seal(new NPCClothes(this));
     this.Transformation = Object.seal(new NPCTransformation(this));
     this.Pregnancy = Object.seal(new NPCPregnancy(this));
-    this.core.addon.hook<NPCBootConfig>('npc', task => this.config(task));
+    this.core.services.addonPlugin.hook<NPCBootConfig>('npc', task => this.config(task));
     this.core.tool.onInit(() => this.NamedNPC.proxy(this));
     this.core.tool.onInit(() => this.Pregnancy.init());
     this.core.on(':variable', () => this.NamedNPC.proxy(this), 'Named NPC Proxy');
@@ -744,7 +744,7 @@ class NPCManager {
   }
 
   public Init(): void {
-    if (!['Start', 'Downgrade Waiting Room'].includes(this.core.passage?.title)) this.injectModNPCs();
+    if (!['Start', 'Downgrade Waiting Room'].includes(this.core.host.sugarcube.passage?.title)) this.injectModNPCs();
     else this.Pregnancy.inject();
     this.Schedule.init(this);
     this.Clothes.init();
@@ -763,7 +763,5 @@ class NPCManager {
     setupNPCData(this);
   }
 }
-
-maplebirch.register('npc', Object.seal(new NPCManager(maplebirch)), ['char']);
 
 export default NPCManager;

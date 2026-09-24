@@ -45,7 +45,7 @@ Use this framework when your mod needs to:
 - Add custom combat actions.
 - Protect framework-dependent mods with encrypted shells, credential verification, and secure local credential storage.
 - Sync local save slots and export codes through a self-hosted Cloudflare Worker and private R2 bucket.
-- Use shared helpers such as `source.clone()`, `Object.merge()`, `list.contains()`, `list.either()`, and `Math.clamp()`.
+- Use shared helpers such as `maplebirch.utils.clone(source)`, `Object.merge()`, `list.contains()`, `list.either()`, and `Math.clamp()`.
 
 English documentation is organized under **[docs/EN](docs/EN/README.md)** and mirrors the Chinese documentation structure.
 
@@ -182,10 +182,10 @@ Start here:
 - [boot.json configuration](docs/EN/BootJson.md)
 - [Utilities](docs/EN/Utilities.md)
 - [Event emitter](docs/EN/EventEmitter.md)
-- [Language manager](docs/EN/LanguageManager.md)
+- [Translation service](docs/EN/Translator.md)
 - [SugarCube macros](docs/EN/SugarCubeMacro.md)
 - [Audio manager](docs/EN/Audio.md)
-- [Module system](docs/EN/ModuleSystem.md)
+- [Module management](docs/EN/ModuleSystem.md)
 - [Mod encryption](docs/EN/Encryption.md)
 - [Cloud save](docs/EN/CloudSave.md)
 

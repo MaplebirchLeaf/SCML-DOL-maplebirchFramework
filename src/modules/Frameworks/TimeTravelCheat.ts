@@ -1,6 +1,6 @@
 ﻿// ./src/modules/Frameworks/TimeTravelCheat.ts
 
-import { errorMessage } from '../../utils/error';
+import Diagnostics from '../../infra/Diagnostics';
 import { TimeConstants } from '../../constants';
 import type { MaplebirchCore } from '../../core';
 
@@ -27,7 +27,7 @@ class TimeTravelCheat {
   private createRoot(): HTMLElement {
     const root = document.createElement('div');
     root.className = 'settingsToggleItemWide';
-    new this.core.SugarCube.Wikifier(root, this.render());
+    new (this.core.host.sugarcube.require().Wikifier)(root, this.render());
     return root;
   }
 
@@ -104,7 +104,9 @@ class TimeTravelCheat {
       const maxDay = new window.DateTime(year, month, 1).lastDayOfMonth;
       dayInput.max = String(maxDay);
       if (Number(dayInput.value) > maxDay) dayInput.value = String(maxDay);
-    } catch {}
+    } catch (error) {
+      this.core.tool.log('时间跳转日期限制更新失败', 'WARN', error);
+    }
   }
 
   private travel(root: HTMLElement): void {
@@ -113,9 +115,9 @@ class TimeTravelCheat {
       const date = new window.DateTime(target.year, target.month, target.day, target.hour, target.minute, 0);
       if (date.timeStamp < TimeConstants.MIN_DATE.timeStamp || date.timeStamp > TimeConstants.MAX_DATE.timeStamp) throw new Error(lanSwitch('Target date is out of range.', '目标时间超出范围。'));
       if (!this.core.dynamic.timeTravel({ ...target, second: 0 })) throw new Error(lanSwitch('Time travel failed.', '时间跳转失败。'));
-      this.core.SugarCube.State.show();
+      this.core.host.sugarcube.require().State.show();
     } catch (error) {
-      this.status(root, errorMessage(error));
+      this.status(root, Diagnostics.message(error));
     }
   }
 

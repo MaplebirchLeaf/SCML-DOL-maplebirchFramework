@@ -11,7 +11,6 @@ export const lodash = {
   inRange: (value: number, start: number, end: number) => value >= start && value < end
 };
 
-mock.module('../../src/utils/shared', () => ({ default: lodash }));
 mock.module('@/styles/PromptStyle.css', () => ({ default: '' }));
 mock.module('../../src/constants', () => ({
   Languages: ['EN', 'CN'],
@@ -21,5 +20,6 @@ mock.module('../../src/constants', () => ({
 }));
 
 if (!('window' in globalThis)) Object.defineProperty(globalThis, 'window', { value: {}, configurable: true });
+Object.assign(window, { modSC2DataManager: { getModUtils: () => ({ getLodash: () => lodash }) } });
 
 if (typeof navigator.language !== 'string') Object.defineProperty(navigator, 'language', { value: 'en-US', configurable: true });

@@ -1,6 +1,7 @@
 // ./src/modules/NamedNPCAddon/NPCClothes/NPCSidebarWardrobe.ts
 
-import { errorMessage } from '../../../utils/error';
+import jsyaml from 'js-yaml';
+import Diagnostics from '../../../infra/Diagnostics';
 import builtinWardrobe from '../../../assets/npc-clothes.yaml';
 import { evaluate, type Condition } from './Condition';
 import type NPCManager from '../../NamedNPC';
@@ -74,17 +75,17 @@ class NPCSidebarWardrobe {
 
   public init(): void {
     try {
-      const data = this.manager.core.yaml.load(builtinWardrobe);
+      const data = jsyaml.load(builtinWardrobe);
       if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('无法解析内置衣柜配置');
       this.add(data as Record<string, WardrobeItem>);
     } catch (e) {
-      this.manager.log(`NPCSidebarWardrobe 初始化失败: ${errorMessage(e)}`, 'ERROR');
+      this.manager.log(`NPCSidebarWardrobe 初始化失败: ${Diagnostics.message(e)}`, 'ERROR');
     }
   }
 
   public async load(modName: string, filePath: string): Promise<void> {
     try {
-      const modZip = this.manager.core.modUtils.getModZip(modName);
+      const modZip = this.manager.core.host.modLoader.modUtils.getModZip(modName);
       if (!modZip) throw new Error(`未找到模组: ${modName}`);
       const file = modZip.zip.file(filePath);
       if (!file) throw new Error(`未找到文件: ${filePath}`);
@@ -93,14 +94,14 @@ class NPCSidebarWardrobe {
       if (filePath.endsWith('.json')) {
         data = JSON.parse(content);
       } else if (filePath.endsWith('.yml') || filePath.endsWith('.yaml')) {
-        data = this.manager.core.yaml.load(content);
+        data = jsyaml.load(content);
       } else {
         throw new Error(`不支持的文件格式: ${filePath}`);
       }
       if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('无法解析衣柜配置');
       this.add(data as Record<string, WardrobeItem>);
     } catch (e) {
-      this.manager.log(`加载侧边栏衣柜配置失败: ${errorMessage(e)}`, 'ERROR');
+      this.manager.log(`加载侧边栏衣柜配置失败: ${Diagnostics.message(e)}`, 'ERROR');
     }
   }
 
@@ -214,7 +215,7 @@ class NPCSidebarWardrobe {
       try {
         modifier(clothes, context);
       } catch (e) {
-        this.manager.log(`${context.npcName} ${label}失败: ${errorMessage(e)}`, 'WARN');
+        this.manager.log(`${context.npcName} ${label}失败: ${Diagnostics.message(e)}`, 'WARN');
       }
     }
   }
@@ -263,7 +264,7 @@ class NPCSidebarWardrobe {
       if (typeof wetness === 'string' && Object.hasOwn(alpha, wetness)) return wetness as WardrobeWetness;
       this.manager.log(`无效的 NPC 服装湿度: ${String(wetness)}`, 'WARN');
     } catch (e) {
-      this.manager.log(`NPC 服装湿度计算失败: ${errorMessage(e)}`, 'WARN');
+      this.manager.log(`NPC 服装湿度计算失败: ${Diagnostics.message(e)}`, 'WARN');
     }
     return 'dry';
   }

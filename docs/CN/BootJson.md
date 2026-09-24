@@ -125,6 +125,17 @@
 }
 ```
 
+同一语言分多个文件时，用数组并按希望的覆盖顺序排列；后面的文件覆盖前面的同名键：
+
+```json
+"language": {
+  "CN": ["i18n/CN/common.yml", "i18n/CN/npc.yml"],
+  "EN": ["i18n/EN/common.yml", "i18n/EN/npc.yml"]
+}
+```
+
+对象写法中的 `file` 也接受数组。框架会先合并该语言的全部文件，再导入一次；指定文件缺失或无效时不会只导入其中一部分。默认的 `"language": ["CN", "EN"]` 会按 JSON、YML、YAML 顺序合并每种语言现有的默认文件。
+
 脚本中使用：
 
 ```javascript
@@ -132,7 +143,7 @@ maplebirch.t('myMod.text.key');
 maplebirch.auto('Known source text');
 ```
 
-更多说明见 [语言管理](LanguageManager.md)。
+更多说明见 [翻译服务](Translator.md)。
 
 ---
 

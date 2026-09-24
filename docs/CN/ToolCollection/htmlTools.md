@@ -21,7 +21,7 @@ text.add(
   'myMod:label'
 );
 
-maplebirch.addon.wikify('myMod:relationship', {
+maplebirch.wikify('myMod:relationship', {
   afterWidget(_source, name, passageTitle, _passage, node) {
     if (name !== 'relationshiptext') return;
     text.renderInto(node, 'myMod:relationship', {
@@ -73,7 +73,7 @@ maplebirch.addon.wikify('myMod:relationship', {
 ## 修改已有内容
 
 ```typescript
-maplebirch.addon.wikify('myMod:links', {
+maplebirch.wikify('myMod:links', {
   afterWidget(_source, name, _title, _passage, node) {
     if (name !== 'myModMenu') return;
     const link = node.querySelector('a[data-passage="Town"]');

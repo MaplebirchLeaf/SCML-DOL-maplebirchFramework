@@ -9,9 +9,10 @@
 - [boot.json 配置](BootJson.md)
 - [实用工具](Utilities.md)
 - [事件发送器](EventEmitter.md)
-- [语言管理](LanguageManager.md)
+- [翻译服务](Translator.md)
 - [SugarCube 宏](SugarCubeMacro.md)
 - [音频功能](Audio.md)
+- [模块管理](ModuleSystem.md)
 
 ## 动态事件
 
@@ -38,6 +39,7 @@
 
 - [角色图层](Character/Character.md)
 - [角色转化](Character/Transformation.md)
+- [转化选项提示](Character/TransformHint.md)
 - [NPC 注册](NamedNPC/NamedNPC.md)
 - [NPC 转化](NamedNPC/NamedNPCTransformation.md)
 - [NPC 怀孕](NamedNPC/NamedNPCPregnancy.md)
@@ -52,6 +54,7 @@
 
 ## 框架服务
 
+- 常用操作优先使用 `maplebirch` 顶层方法，例如 `on`、`t`、`define`、`register`、`wikify`；详见[推荐写法](../../README.md#推荐写法)。
 - [ModLoader 接入](AddonPlugin.md)
 - [模组加密](Encryption.md)
 - [云存档](CloudSave.md)

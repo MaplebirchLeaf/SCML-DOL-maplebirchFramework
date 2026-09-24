@@ -1,11 +1,11 @@
 # ModLoader Integration
 
-`maplebirch.addon` connects to ModLoader and provides synchronous render hooks, image resolution and diagnostics. See [boot.json](BootJson.md) for configuration and [HTML Tools](ToolCollection/htmlTools.md) for content construction.
+Register synchronous render hooks with `maplebirch.wikify`. Image resources belong to `maplebirch.host.modLoader.resources`, while `maplebirch.infra.diagnostics` collects diagnostics globally. See [boot.json](BootJson.md) for configuration and [HTML Tools](ToolCollection/htmlTools.md) for content construction.
 
 ## Render Hooks
 
 ```typescript
-maplebirch.addon.wikify('myMod:relationship', {
+maplebirch.wikify('myMod:relationship', {
   beforeWidget(text, name, passageTitle, passage) {
     return text;
   },
@@ -36,7 +36,7 @@ These hooks describe rendering order. A widget containing a reward link can fini
 ## Image Resources
 
 ```typescript
-const resources = maplebirch.addon.resources;
+const resources = maplebirch.host.modLoader.resources;
 const image = await resources.load('img/myMod/icon.png');
 if (image !== false) document.querySelector<HTMLImageElement>('#myModIcon')!.src = image;
 ```
@@ -55,27 +55,27 @@ Concurrent loads of the same path share a request. The cache retains the resolve
 ## Dependencies and Conflicts
 
 ```typescript
-const diagnostics = maplebirch.addon.diagnostics;
+const diagnostics = maplebirch.infra.diagnostics;
 const requirement = diagnostics.mod('OtherMod', '>=1.2.0');
 console.log(requirement.status, requirement.version);
-console.log(diagnostics.dependencies());
+console.log(diagnostics.checkDependencies());
 console.table(diagnostics.conflicts);
 ```
 
 `mod(name, range?)` queries an ordinary loaded Mod and returns its name, version, range and status: `available`, `missing` or `incompatible`. Parsing exceptions return `invalid` with `error`. It uses ModLoader's version algorithm; omit the range to check presence only.
 
-`dependencies()` delegates complete dependency and load-order validation to ModLoader. It returns a boolean; the loader logs details. Use it for special dependencies such as ModLoader and game versions as well.
+`checkDependencies()` delegates complete dependency and load-order validation to ModLoader. It returns a boolean; the loader logs details. Use it for special dependencies such as ModLoader and game versions as well.
 
 `conflicts` snapshots upstream merge results: `source`, `dataSource`, and arrays of colliding `passages`, `scripts` and `styles`. `undefined` means results are unavailable. These are resource-name conflicts, not failed source patches or exact attribution of conflicting source changes.
 
 ## Patch Reports
 
 ```typescript
-const failures = maplebirch.addon.diagnostics.patches.filter(item => item.status !== 'applied');
+const failures = maplebirch.infra.diagnostics.patches.filter(item => item.status !== 'applied');
 console.table(failures);
 ```
 
-Framework zone patches, `addon.replace()` and replacement of existing Twine scripts/styles produce reports with `kind`, `target`, `index`, `pattern`, `matches`, `applied`, `status`, and optional `expected`/`error`. Patch indices start at 1; whole-asset operations and target checks use 0.
+Framework zone patches, `maplebirch.host.modLoader.replace()` and replacement of existing Twine scripts/styles produce reports with `kind`, `target`, `index`, `pattern`, `matches`, `applied`, `status`, and optional `expected`/`error`. Patch indices start at 1; whole-asset operations and target checks use 0.
 
 | Status      | Meaning                                                  |
 | ----------- | -------------------------------------------------------- |

@@ -2,7 +2,7 @@
 
 import maplebirch from '../../core';
 import type NPCManager from '../NamedNPC';
-import dol from '../../host/Adapter';
+import dol from '../../host/DoL';
 
 const bodyDefaults = { hair_sides_length: 200, hair_fringe_length: 200 };
 

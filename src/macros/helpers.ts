@@ -2,7 +2,7 @@
 
 import maplebirch, { type MaplebirchCore } from '../core';
 import type { MacroContext as SugarCubeMacroContext } from 'twine-sugarcube';
-import dol from '../host/Adapter';
+import dol from '../host/DoL';
 
 export const CONVERT_MODES = ['lower', 'upper', 'capitalize', 'title', 'camel', 'pascal', 'snake', 'kebab', 'constant'] as const;
 export type ConvertMode = (typeof CONVERT_MODES)[number];
@@ -56,7 +56,8 @@ export function text(value: unknown): string {
     if ('text' in value && typeof value.text === 'string') return value.text;
     try {
       return JSON.stringify(value);
-    } catch {
+    } catch (error) {
+      maplebirch.log('宏文本序列化失败', 'WARN', error);
       return '';
     }
   }
@@ -73,7 +74,7 @@ export function macroTranslation(key: unknown, core: MaplebirchCore = maplebirch
   if (!source.includes(' ')) return source;
   const words = source.split(' ');
   const translated = words.map(word => core.auto(word));
-  if (translated.some((word, index) => word !== words[index])) return core.Language === 'CN' ? translated.join('') : translated.join(' ');
+  if (translated.some((word, index) => word !== words[index])) return core.services.translator.language === 'CN' ? translated.join('') : translated.join(' ');
   return source;
 }
 
@@ -140,7 +141,7 @@ export function wiki($container: JQuery, content: string): void {
   $container.empty();
   if (!content) return;
   const fragment = document.createDocumentFragment();
-  new maplebirch.SugarCube.Wikifier(fragment, content);
+  new (maplebirch.host.sugarcube.require().Wikifier)(fragment, content);
   $container.append(fragment);
   Links.generate();
 }

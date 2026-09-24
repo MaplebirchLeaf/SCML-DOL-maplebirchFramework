@@ -1,0 +1,28 @@
+'cloud.save.none': No remote saves.
+'cloud.save.action.connect': Connect
+'cloud.save.action.refresh': Refresh
+'cloud.save.action.upload': Upload
+'cloud.save.action.download': Download
+'cloud.save.action.delete': Delete
+'cloud.save.action.code.current': Get Save Code
+'cloud.save.action.code.export': Export Save Code
+'cloud.save.action.code.upload': Upload Code
+'cloud.save.action.code.download': Download Code
+'cloud.save.action.code.load': Load Save Code
+'cloud.save.slot.existing': Existing Saves
+'cloud.save.slot.available': Empty Slots
+'cloud.save.slot.autosave': Autosave
+'cloud.save.slot.latest': Latest
+'cloud.save.slot.empty': Empty
+'cloud.save.status.working': Working...
+'cloud.save.status.done': '{action}: done.'
+'cloud.save.error.download': Download failed.
+'cloud.save.error.auth': Cloud save authorization failed.
+'cloud.save.error.endpoint': Invalid cloud save address. Use an HTTPS URL.
+'cloud.save.error.timeout': Cloud save request timed out.
+'cloud.save.error.response': The cloud returned invalid save data.
+'cloud.save.error.game': This cloud save belongs to another game.
+'cloud.save.error.code.invalid': Invalid save code.
+'cloud.save.error.code.remote': No usable remote save code.
+'cloud.save.error.slot.range': Slot must be between 0 and 200.
+'cloud.save.error.code.tools': Save code tools are not available.

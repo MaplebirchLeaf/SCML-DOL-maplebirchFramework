@@ -1,8 +1,8 @@
 // .src/modules/TimeStateWeather/DateTime.ts
 
 import { TimeConstants } from '../../constants';
-import { replace } from '../../utils/twine';
-import dol from '../../host/Adapter';
+import maplebirch from '../../core';
+import dol from '../../host/DoL';
 
 export function patchTimeConstantsAsset(content: string): string {
   const patch = `const TimeConstants = maplebirch.dynamic.Time.TimeConstants;\nwindow.TimeConstants = TimeConstants;`;
@@ -12,7 +12,7 @@ export function patchTimeConstantsAsset(content: string): string {
 
 export function patchDateTimeAsset(content: string): string {
   if (content.includes('maplebirch.dynamic.Time.patchDateTime(DateTime)')) return content;
-  return replace(content, [[/(\r?\n?window\.DateTime\s*=\s*DateTime\s*;)/, `\nDateTime = maplebirch.dynamic.Time.patchDateTime(DateTime);$1`]], 'DateTime asset patch');
+  return maplebirch.host.modLoader.replace(content, [[/(\r?\n?window\.DateTime\s*=\s*DateTime\s*;)/, `\nDateTime = maplebirch.dynamic.Time.patchDateTime(DateTime);$1`]], 'DateTime asset patch');
 }
 
 function patchDateTime(BaseDateTime: DateTimeConstructor): DateTimeConstructor {

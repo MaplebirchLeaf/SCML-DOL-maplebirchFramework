@@ -2,7 +2,7 @@
 
 import maplebirch from '../core';
 import { text } from './helpers';
-import dol from '../host/Adapter';
+import dol from '../host/DoL';
 
 // <<maplebirchReplace>>
 export function _overlayReplace(name: string, type: string): void {
