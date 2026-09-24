@@ -4298,12 +4298,14 @@ declare class NPCManager {
   postInit(): void;
 }
 //#endregion
-//#region src/modules/CombatAddon/CombatAction.d.ts
+//#region src/modules/CombatAddon/CombatTypes.d.ts
 declare const actionTypes: readonly ['leftaction', 'rightaction', 'feetaction', 'mouthaction', 'penisaction', 'vaginaaction', 'anusaction', 'chestaction', 'thighaction'];
 type ActionType = (typeof actionTypes)[number];
-type OptionType = ActionType | 'ask';
 declare const combatTypes: readonly ['Default', 'Self', 'Struggle', 'Swarm', 'Vore', 'Machine', 'Tentacle'];
 type CombatType = (typeof combatTypes)[number];
+//#endregion
+//#region src/modules/CombatAddon/CombatAction.d.ts
+type OptionType = ActionType | 'ask';
 type ActionValue = string | number;
 interface Context {
   actionType?: OptionType;

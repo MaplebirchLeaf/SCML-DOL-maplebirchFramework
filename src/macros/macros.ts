@@ -1,6 +1,6 @@
 import type { MaplebirchCore } from '../core';
 import dol from '../host/DoL';
-import { actionTypes, combatTypes, type ActionType, type CombatType } from '../modules/CombatAddon/CombatAction';
+import { actionTypes, combatTypes, type ActionType, type CombatType } from '../modules/CombatAddon/CombatTypes';
 import { _language, _languageSwitch, _languageButton, _languageLink, _languageListbox, _radiobuttonsfrom, _overlayReplace } from '.';
 
 type Updater = () => void;

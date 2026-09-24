@@ -8,7 +8,6 @@ import Diagnostics from '../../src/infra/Diagnostics';
 import ModI18N from '../../src/compat/ModI18N';
 import type { MaplebirchCore } from '../../src/core';
 import type IndexedDB from '../../src/services/IndexedDB';
-mock.module('../../src/modules/CombatAddon/CombatAction', () => ({ actionTypes: [] }));
 mock.module('../../src/macros/index', () => ({ _language() {}, _languageSwitch() {}, _languageButton() {}, _languageLink() {}, _languageListbox() {}, _radiobuttonsfrom() {}, _overlayReplace() {} }));
 const [{ default: Translator }, { default: Macros }, { Translations }] = await Promise.all([import('../../src/services/Translator'), import('../../src/macros/macros'), import('../../src/constants')]);
 
