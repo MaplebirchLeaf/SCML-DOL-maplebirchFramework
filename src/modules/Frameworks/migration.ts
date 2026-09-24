@@ -1,9 +1,12 @@
 // ./src/modules/Frameworks/migration.ts
 
-import { errorMessage } from '../../utils/error';
-import { createlog } from '../../core';
+import Diagnostics from '../../infra/Diagnostics';
+import maplebirch from '../../core';
+import type { ScopedLog } from '../../infra/Diagnostics';
 import { coverFn, mergeFn } from '../../utils/object';
-import _ from '../../utils/shared';
+import ModLoader from '../../host/ModLoader';
+
+const _ = ModLoader.getLodash();
 
 interface Step {
   from: string;
@@ -17,7 +20,7 @@ interface PathRef {
 }
 
 interface Utils {
-  readonly log: ReturnType<typeof createlog>;
+  readonly log: ScopedLog;
   path: (obj: Record<string, unknown>, path: string, create?: boolean) => PathRef | null;
   move: (data: Record<string, unknown>, from: string, to: string) => boolean;
   remove: (data: Record<string, unknown>, path: string) => boolean;
@@ -26,7 +29,7 @@ interface Utils {
 }
 
 class migration {
-  public static readonly log = createlog('migration');
+  public static readonly log: ScopedLog = (message, level = 'INFO', ...objects) => maplebirch.tool.log(message, level, ...objects);
 
   public static create(): migration {
     return new migration();
@@ -57,7 +60,7 @@ class migration {
           target.parent[target.key] = fn(target.parent[target.key]);
           return true;
         } catch (error) {
-          this.log(`转换失败: ${path} - ${errorMessage(error)}`, 'ERROR');
+          this.log(`转换失败: ${path} - ${Diagnostics.message(error)}`, 'ERROR');
           return false;
         }
       },
@@ -68,7 +71,7 @@ class migration {
           if (mode === 'cover') coverFn(target, filter, defaults);
           else mergeFn(target, filter, defaults);
         } catch (error) {
-          this.log(`属性填充失败: ${errorMessage(error)}`, 'ERROR');
+          this.log(`属性填充失败: ${Diagnostics.message(error)}`, 'ERROR');
         }
       }
     });
@@ -103,7 +106,7 @@ class migration {
         current = next.to;
         data.version = current;
       } catch (error) {
-        const migrationError = Object.assign(new Error(`迁移失败 ${current} → ${next.to}: ${errorMessage(error)}`, { cause: error }), { fromVersion: current, toVersion: next.to });
+        const migrationError = Object.assign(new Error(`迁移失败 ${current} → ${next.to}: ${Diagnostics.message(error)}`, { cause: error }), { fromVersion: current, toVersion: next.to });
         this.log('迁移失败', 'ERROR', migrationError.message);
         throw migrationError;
       }

@@ -4,7 +4,7 @@
 
 `maplebirch.combat.CombatAction` adds modded action buttons to vanilla combat action lists, and can also attach the matching combat reaction text.
 
-The button itself is shown through the vanilla `generateCombatAction` flow. When the action is selected, the framework injects the configured `effect` into the matching action section of vanilla `effectsman`.
+Buttons use the vanilla `generateCombatAction` flow. In a human encounter, `effect` runs in the matching section of `effectsman`. With `combatType` set, effects for struggle, swarm, vore, machine and tentacle encounters run in their respective effect widgets.
 
 ## Entry Point
 
@@ -22,7 +22,7 @@ maplebirch.combat.CombatAction.reg(configA, configB, configC);
 
 ```javascript
 maplebirch.combat.CombatAction.reg({
-  id: 'myMod.quickStrike',
+  id: 'myMod:quickStrike',
   actionType: 'leftaction',
   cond: () => V.stamina >= 20,
   display: () => 'Quick strike',
@@ -64,7 +64,7 @@ When the player selects this action, `$leftaction` becomes `myModQuickStrike`. D
 | `effect`       | No       | Twine text or function executed in `effectsman`        |
 | `color`        | No       | Button/list color, default `white`                     |
 | `difficulty`   | No       | Difficulty or hint text shown near the action          |
-| `combatType`   | No       | Combat type filter, default `Default`                  |
+| `combatType`   | No       | Combat type or array of types, default `Default`       |
 | `order`        | No       | Sort value, default `-4`; lower values appear earlier  |
 
 Most fields except `id` and `actionType` may be functions. Functions receive a `ctx` object.
@@ -87,7 +87,7 @@ The same action can be registered to multiple lists:
 
 ```javascript
 maplebirch.combat.CombatAction.reg({
-  id: 'myMod.guard',
+  id: 'myMod:guard',
   actionType: ['leftaction', 'rightaction'],
   cond: () => V.stamina >= 10,
   display: () => 'Guard',
@@ -97,6 +97,26 @@ maplebirch.combat.CombatAction.reg({
 ```
 
 ## effect
+
+Encounter types expose different lists: struggle has left hand, right hand, feet and mouth; swarm and machine have left hand, right hand and feet; vore has left and right hand; tentacle has left hand, right hand, feet, mouth, penis, vagina, anus and chest. Register only for lists the vanilla encounter generates.
+
+Use `combatType: ['Default', 'Struggle']` when one action belongs in several encounters.
+
+## Modify a Vanilla Button
+
+Target an existing action by its original value. This changes its label, visibility or list position without replacing vanilla resolution:
+
+```javascript
+maplebirch.combat.CombatAction.modify({
+  id: 'myMod:askLabel',
+  actionType: 'mouthaction',
+  value: 'ask',
+  display: ctx => `Request: ${ctx.label}`,
+  order: 0
+});
+```
+
+`cond(ctx)` hides the option when it returns `false`. `order` is a zero-based position among the original options, and `ctx.label` is the original label. To modify an option inside the Ask dropdown, use `actionType: 'ask'` and its `$askAction` value. The original request resolution remains unchanged.
 
 `effect` is the Twine content that runs after the action is selected. The recommended form is a widget call:
 
@@ -134,11 +154,13 @@ Vanilla combat reaction text is hardcoded in `effectsman`, but actions are rough
 
 This keeps a left-hand action reaction near the hand-action text instead of appending it to the end of the whole combat output.
 
+Other encounters run the mod action once at the start of their effect widget, then continue vanilla resolution. Tentacle effects run in the outer `effectstentacles` widget, not once per tentacle.
+
 ## Full Example
 
 ```javascript
 maplebirch.combat.CombatAction.reg({
-  id: 'myMod.moonlightHeal',
+  id: 'myMod:moonlightHeal',
   actionType: 'chestaction',
   combatType: 'Default',
   cond: () => {

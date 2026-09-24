@@ -43,7 +43,13 @@ export async function generateTypesPackage(rootDir: string = defaultRootDir): Pr
 
   typesPackage.version = version;
 
-  await Promise.all([writeFile(distTypes, declarations), writeFile(path.join(packageDir, 'maplebirch.d.ts'), declarations), writeFile(packageJsonPath, `${JSON.stringify(typesPackage, null, 2)}\n`)]);
+  await Promise.all([
+    writeFile(distTypes, declarations),
+    writeFile(path.join(packageDir, 'maplebirch.d.ts'), declarations),
+    writeFile(path.join(packageDir, 'LICENSE'), await readFile(path.join(rootDir, 'LICENSE'))),
+    writeFile(path.join(packageDir, 'LICENSE-CC-BY-NC-SA-4.0'), await readFile(path.join(rootDir, 'LICENSE-CC-BY-NC-SA-4.0'))),
+    writeFile(packageJsonPath, `${JSON.stringify(typesPackage, null, 2)}\n`)
+  ]);
 
   console.log(`Types package generated: ${path.relative(rootDir, packageDir)}`);
 }

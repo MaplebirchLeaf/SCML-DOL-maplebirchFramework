@@ -1,4 +1,4 @@
-## 转化选项提示
+# 转化选项提示
 
 在选择链接外使用 `<<transform-hint "horse" "softbrown">>` 显示转化名称。
 

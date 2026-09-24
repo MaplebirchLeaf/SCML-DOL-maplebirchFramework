@@ -1,7 +1,7 @@
 // ./src/modules/CharacterAddon/Pet.ts
 
 import type Character from '../Character';
-import dol from '../../host/Adapter';
+import dol from '../../host/DoL';
 
 export interface PetOptions {
   mask?: number;
@@ -151,7 +151,9 @@ export abstract class FloatingPet {
       try {
         const data = JSON.parse(localStorage.getItem(this.petConfig.storageKey) || 'null');
         if (typeof data?.left === 'number' && typeof data?.top === 'number') return data;
-      } catch {}
+      } catch (error) {
+        console.warn('[maplebirch] 宠物拖动位置读取失败', error);
+      }
       return null;
     };
     const savePosition = (): void => {

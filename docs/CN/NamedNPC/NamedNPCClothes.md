@@ -1,4 +1,4 @@
-## NPC服装
+# NPC 服装与衣柜
 
 ### 基本介绍
 
@@ -278,9 +278,25 @@ console.log('Luna当前穿着:', currentOutfit);
 
 NPC 服装湿度使用 `dry`（干燥）、`damp`（湿润）、`wet`（潮湿）、`soaked`（湿透）四种语义状态，框架内部对应透明度 `1`、`0.9`、`0.7`、`0.5`。湿度统一作用于 `upper`、`lower`、`under_upper`、`under_lower`，不会使眼镜、首饰或鞋等槽位透明。未配置 `wetness` 时保持原有干燥显示。`wardrobe.wet()` 用于覆盖当前已选服装的湿度；存在多条匹配规则时最后注册的规则优先，未命中时退回 `wardrobe.wear()` 的湿度。
 
-`wardrobe.layer()` 在地点服装之前按条件合并基础模板，适合内衣或固定配饰；模板键也可以由函数动态返回。`wardrobe.put()` 在回调中合并已注册模板。`wardrobe.strip()` 会把指定槽位恢复为 `naked` 模板中的占位数据，不会留下渲染器无法读取的空槽位。地点服装在基础层之后合并，因此泳装等模板自身的 `under_upper`、`under_lower` 不受基础内衣条件影响。
+`wardrobe.layer()` 在地点服装之前按条件合并基础模板，适合内衣或固定配饰；模板键也可以由函数动态返回。`wardrobe.put(clothes, key, slots?)` 在回调中合并已注册模板，可用单个槽位或槽位数组限制合并范围。`wardrobe.apply(clothes, slot, item)` 将一件服装复制到指定槽位。`wardrobe.strip()` 会把指定槽位恢复为 `naked` 模板中的占位数据，不会留下渲染器无法读取的空槽位。地点服装在基础层之后合并，因此泳装等模板自身的 `under_upper`、`under_lower` 不受基础内衣条件影响。
 
 `wardrobe.wear()` 只在当前位置存在有效规则时换装。当前位置没有匹配规则或规则条件不成立时，NPC 会延续上一次成功选中的服装；尚未触发过任何规则时才使用 `naked`。
+
+重复使用的条件可命名组合。`location` 检查 `V.location`，`passage` 检查当前 passage 标题；`hours: [起始, 结束]` 使用 `V.time.hour`，允许跨午夜。第三个参数可补充原版剧情状态等条件。条件会在使用时重新求值，按名称再次调用 `when()` 可取得同一个函数：
+
+```javascript
+const nightStudy = wardrobe.when(
+  'night-study',
+  {
+    location: ['library', 'school'],
+    passage: 'Study',
+    hours: [21, 5]
+  },
+  () => V.weather === 'rain'
+);
+wardrobe.wear('Luna', 'library', 'school_uniform', { when: nightStudy });
+wardrobe.wet('Luna', 'damp', wardrobe.when('night-study'));
+```
 
 第三个参数也可以使用 `[服装键, 权重]` 数组。随机选择只在规则由未触发变为触发时执行一次；连续读取和服装延留期间不会重复随机，规则中断后再次触发时才会重新选择。不存在的服装键、非有限数或小于等于零的权重会被忽略并记录警告。
 

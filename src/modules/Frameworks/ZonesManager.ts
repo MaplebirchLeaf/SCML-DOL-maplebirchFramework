@@ -1,12 +1,11 @@
 // .src/modules/Frameworks/ZonesManager.ts
 
-import { errorMessage } from '../../utils/error';
+import Diagnostics from '../../infra/Diagnostics';
 import type { PassageDataItem } from '@scml/types/sugarcube-2-ModLoader/SC2DataInfoCache';
-import { createlog } from '../../core';
-import type ToolCollection from '../ToolCollection';
-import { specialWidget, defaultData, locationPassage, widgetPassage } from '../../replace';
-import type AddonPlugin from '../AddonPlugin';
-import { applySourcePatch, type SourcePatch } from './SourcePatch';
+import type { MaplebirchCore } from '../../core';
+import type { ScopedLog } from '../../infra/Diagnostics';
+import type AddonPlugin from '../../services/AddonPlugin';
+import { applySourcePatch, type SourcePatch } from '../../host/ModLoader';
 
 export interface ZoneWidgetConfig {
   exclude?: string[];
@@ -37,24 +36,24 @@ export interface CustomLinkGroup {
 export type InitFunction = string | ZoneFunction | InitObject;
 
 export class zonesManager {
-  public readonly log: ReturnType<typeof createlog>;
-  public readonly core: ToolCollection['core'];
+  public readonly log: ScopedLog;
+  public readonly core: MaplebirchCore;
 
   public data: Record<string, ZoneItem[]>;
   public initFunction: InitFunction[] = [];
-  public specialWidget: (string | ZoneFunction)[] = specialWidget;
-  public defaultData: Record<string, string | ZoneFunction> = defaultData;
-  public locationPassage: Record<string, PatchSet[]> = locationPassage;
-  public widgetPassage: Record<string, PatchSet[]> = widgetPassage;
+  public specialWidget: (string | ZoneFunction)[] = [];
+  public defaultData: Record<string, string | ZoneFunction> = {};
+  public locationPassage: Record<string, PatchSet[]> = {};
+  public widgetPassage: Record<string, PatchSet[]> = {};
   public widgethtml = '';
 
   private readonly functions = new Map<string, ZoneFunction>();
   private readonly functionNames = new WeakMap<ZoneFunction, string>();
   private nextFunction = 0;
 
-  public constructor(manager: ToolCollection) {
-    this.log = createlog('zone');
-    this.core = manager.core;
+  public constructor(core: MaplebirchCore) {
+    this.log = core.infra.diagnostics.scoped('zone');
+    this.core = core;
     // prettier-ignore
     this.data = {
       Init                   : [],
@@ -159,7 +158,7 @@ export class zonesManager {
         }
         if (item && typeof item === 'object' && 'func' in item) item.func();
       } catch (error) {
-        this.log(`初始化函数执行失败: ${errorMessage(error)}`, 'ERROR', error);
+        this.log(`初始化函数执行失败: ${Diagnostics.message(error)}`, 'ERROR', error);
       }
     }
   }
@@ -174,12 +173,12 @@ export class zonesManager {
   }
 
   public play(zone: 'CustomLinkZone', passageTitle?: string): CustomLinkGroup[];
-  public play(zone: 'BeforeLinkZone' | 'AfterLinkZone', passageTitle?: string): string;
+  public play(zone: 'State' | 'BeforeLinkZone' | 'AfterLinkZone', passageTitle?: string): string;
   public play(zone: string, passageTitle?: string): string | CustomLinkGroup[];
   public play(zone: string, passageTitle?: string): string | CustomLinkGroup[] {
     const items = this.data[zone];
     if (!items || items.length === 0) return zone === 'CustomLinkZone' ? [] : '';
-    const title = passageTitle ?? this.core.passage?.title ?? '';
+    const title = passageTitle ?? this.core.host.sugarcube.passage?.title ?? '';
     if (zone !== 'CustomLinkZone') return items.map(item => this.render(item as string | ZoneWidgetConfig, title)).join('');
     const groups = new Map<number, CustomLinkZoneItem[]>();
     for (const item of items as CustomLinkZoneItem[]) {
@@ -207,7 +206,7 @@ export class zonesManager {
           const passage = passageData.get(title);
           if (passage && passage.tags.includes('widget') === widget) continue;
           sets.forEach((set, index) =>
-            this.core.addon.diagnostics.recordPatch({
+            this.core.infra.diagnostics.recordPatch({
               kind: 'passage',
               target: title,
               index: index + 1,
@@ -228,7 +227,7 @@ export class zonesManager {
       try {
         this.patchPassage(type, passage, title);
       } catch (error) {
-        const message = errorMessage(error);
+        const message = Diagnostics.message(error);
         this.log(`处理段落 ${title} 时出错: ${message}`, 'ERROR', error);
       }
     }
@@ -343,7 +342,7 @@ export class zonesManager {
     let content = String(passage.content);
     sets.forEach((set, index) => {
       const { content: next, ...result } = applySourcePatch(content, set);
-      this.core.addon.diagnostics.recordPatch({ kind: 'passage', target: title, index: index + 1, ...result });
+      this.core.infra.diagnostics.recordPatch({ kind: 'passage', target: title, index: index + 1, ...result });
       if (result.status !== 'applied') this.log(`补丁 ${title} #${index + 1}: ${result.status}，匹配 ${result.matches} (${result.pattern})`, 'WARN');
       content = next;
     });

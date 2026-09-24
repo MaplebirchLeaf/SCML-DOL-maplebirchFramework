@@ -1,11 +1,11 @@
 // ./src/modules/NamedNPCAddon/NPCSidebarConfig/base_layers.ts
 
 import maplebirch from '../../../core';
-import { loadImage } from '../../../utils/image';
+import ImageLoader from '../../Frameworks/ImageLoader';
 import { kaijuMask, nnpc_sidepart, selected_art } from './functions';
 
 import type { NPCSidebarOptions } from './types';
-import dol from '../../../host/Adapter';
+import dol from '../../../host/DoL';
 
 function hair_mask(headMask: string[], closeUpMask: string, fallbackMask: string | undefined = closeUpMask): string | string[] | undefined {
   const head_masks = headMask.filter(mask => mask !== closeUpMask);
@@ -54,7 +54,7 @@ const base_layers = {
       const nnpc = options.maplebirch.nnpc;
       if (nnpc.model) {
         const path = `img/face/${nnpc.facestyle}/base-head.png`;
-        return loadImage(path) === false ? 'img/body/base-head.png' : path;
+        return ImageLoader.load(path) === false ? 'img/body/base-head.png' : path;
       }
       return selected_art(nnpc)?.parts.head?.img;
     },
@@ -150,7 +150,8 @@ const base_layers = {
     srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
       if (nnpc.arm_right === 'idle') return 'img/body/right-arm-idle-classic.png';
-      return `img/body/right-arm-${nnpc.arm_right}.png`;
+      if (nnpc.arm_right === 'cover' || nnpc.arm_right === 'hold') return `img/body/right-arm-${nnpc.arm_right}.png`;
+      return '';
     },
     showfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;

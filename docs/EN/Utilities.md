@@ -8,7 +8,7 @@ Utilities are shared APIs for mod scripts. They reduce repeated code around:
 - Converting string case.
 - Clamping numbers.
 - Checking image resources.
-- Handling text, JSON, bytes, Base64, and paths.
+- Handling text, JSON, bytes, and Base64.
 
 The framework installs prototype/static helpers during initialization, and also exposes common helpers globally.
 
@@ -236,7 +236,7 @@ Allow `null`:
 ['a', 'b'].either(undefined, true);
 ```
 
-For reproducible random sequences, use [randSystem](ToolCollection/randSystem.md).
+For reproducible random sequences, use [randSystem](Tools/Random.md).
 
 ## convert
 
@@ -299,9 +299,9 @@ if (result) {
 }
 ```
 
-`loadImage()` delegates to `maplebirch.addon.resources.load()`: resolve through ModLoader, then try the original path. It returns the resolved URL, `false`, or a Promise of either; use `await` consistently. The cache retains resolved URLs and shares concurrent requests. Failures retain the legacy sidebar refresh behavior.
+`loadImage()` delegates to `maplebirch.host.modLoader.resources.load()`: resolve through ModLoader, then try the original path. It returns the resolved URL, `false`, or a Promise of either; use `await` consistently. The cache retains resolved URLs and shares concurrent requests. Failures retain the legacy sidebar refresh behavior.
 
-Call `maplebirch.addon.resources.clear(path)` before retrying a cached failure. See [image resources](AddonPlugin.md#image-resources) for existence checks and normalization.
+Call `maplebirch.host.modLoader.resources.clear(path)` before retrying a cached failure. See [image resources](AddonPlugin.md#image-resources) for existence checks and normalization.
 
 ## Bytes and Base64
 
@@ -328,17 +328,15 @@ const buffer = base64ToArrayBuffer(base64);
 | `base64ToBytes(base64)`       | Convert Base64 to bytes                        |
 | `base64ToArrayBuffer(base64)` | Convert Base64 to `ArrayBuffer`                |
 
-## Path and Text Helpers
+## Text and Authentication Helpers
 
 ```javascript
-joinEncodedPath('user name', 'slot 1'); // user%20name/slot%201
 escapeHtmlText('<b>text</b>'); // &lt;b&gt;text&lt;/b&gt;
 ```
 
 | Function                        | Description                                        |
 | :------------------------------ | :------------------------------------------------- |
 | `basicAuth(username, password)` | Generate the Base64 credential part for Basic Auth |
-| `joinEncodedPath(...parts)`     | Join and encode path parts                         |
 | `escapeHtmlText(value)`         | Escape HTML text                                   |
 
 ## widgets

@@ -1,6 +1,8 @@
 // ./src/utils/array.ts
 
-import _ from './shared';
+import ModLoader from '../host/ModLoader';
+
+const _ = ModLoader.getLodash();
 
 export type ContainsMode = 'all' | 'any' | 'none';
 

@@ -13,7 +13,7 @@ maplebirch.dynamic.regTimeEvent(type, eventId, options);
 ## Minimal Example
 
 ```javascript
-maplebirch.dynamic.regTimeEvent('onDay', 'myMod.dailyCheck', {
+maplebirch.dynamic.regTimeEvent('onDay', 'myMod:dailyCheck', {
   cond: data => V.myMod?.enabled,
   action: data => {
     setup.myMod.dailyCheck();

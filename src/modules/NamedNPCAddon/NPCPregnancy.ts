@@ -2,7 +2,7 @@
 
 import type NPCManager from '../NamedNPC';
 import type { NPCData } from '../NamedNPC';
-import dol from '../../host/Adapter';
+import dol from '../../host/DoL';
 
 export type NPCPregnancySpecies = 'human' | 'wolf' | 'wolfboy' | 'wolfgirl' | 'hawk' | 'harpy';
 export type NPCPregnancyOrifice = 'vagina' | 'anus';
@@ -163,9 +163,9 @@ class NPCPregnancy {
 
   public inject(): void {
     if (!this.initialized || !this.available || !Array.isArray(dol.variables.NPCName) || !dol.variables.NPCName.length) return;
-    if (!this.manager.core.SugarCube.Macro.has('npcPregnancyUpdater')) return;
+    if (!this.manager.core.host.sugarcube.require().Macro.has('npcPregnancyUpdater')) return;
     const initialized = new Set((dol.variables.NPCName as NPCData[]).filter(npc => npc.pregnancy?.enabled !== undefined).map(npc => npc.nam));
-    new this.manager.core.SugarCube.Wikifier(document.createDocumentFragment(), '<<npcPregnancyUpdater>>');
+    new (this.manager.core.host.sugarcube.require().Wikifier)(document.createDocumentFragment(), '<<npcPregnancyUpdater>>');
     for (const [name, config] of this.configs) {
       const npc = (dol.variables.NPCName as NPCData[]).find(npc => npc.nam === name);
       if (npc && config.cycle && !this.cycleConfigured(name) && npc.pregnancy?.enabled !== undefined) {
@@ -309,7 +309,7 @@ class NPCPregnancy {
   }
 
   private random(min: number, max: number): number {
-    return min + Math.floor(this.manager.core.SugarCube.State.random() * (max - min + 1));
+    return min + Math.floor(this.manager.core.host.sugarcube.require().State.random() * (max - min + 1));
   }
 }
 

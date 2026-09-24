@@ -3,7 +3,7 @@ import { dts } from 'rolldown-plugin-dts';
 
 export default defineConfig({
   input: {
-    maplebirch: 'src/main.ts'
+    maplebirch: 'src/index.ts'
   },
 
   external: [/^@scml\//, /^@types\//, /^twine-sugarcube(?:\/|$)/, 'howler', 'js-yaml', 'marked'],

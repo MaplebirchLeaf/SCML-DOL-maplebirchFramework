@@ -1,5 +1,10 @@
 # boot.json Configuration
 
+[Documentation index](README.md) · [Getting started](GettingStarted.md)
+
+> [!IMPORTANT]
+> Paths are relative to the mod ZIP root. Verify a minimal `script` entry first; add translations, audio, and NPC resources only as needed.
+
 ## Purpose
 
 Use **`boot.json`** when your mod has fixed resources that can be declared at load time: scripts, translation files, audio folders, UI widgets, or basic NPC resources.
@@ -67,6 +72,17 @@ Custom files:
   "EN": "language/en.yml"
 }
 ```
+
+To split one language across several files, use an ordered array. Later files override duplicate keys:
+
+```json
+"language": {
+  "CN": ["i18n/CN/common.yml", "i18n/CN/npc.yml"],
+  "EN": ["i18n/EN/common.yml", "i18n/EN/npc.yml"]
+}
+```
+
+The object form's `file` field also accepts an array. Files for one language are merged before import; a missing or invalid specified file will not partially replace existing translations. The default `"language": ["CN", "EN"]` merges available JSON, YML, and YAML files in that order. See [Translator](Translator.md) for translation keys and runtime usage.
 
 ## audio
 
@@ -147,23 +163,23 @@ To follow vanilla content settings, use an object matching the shape of `setup.t
 {
   "general": ["A tip that may always appear."],
   "weather": ["A tip that appears with weather content."],
-  "myMod": ["A custom category automatically joins the random pool."]
+  "myMod:tips": ["A custom category automatically joins the random pool."]
 }
 ```
 
-Vanilla categories continue to follow vanilla content settings. New categories are always enabled by default and automatically join the pool built by vanilla `generateTipsList`. Scripts may also call `maplebirch.tool.patch.tips.add('myMod', 'A new tip')`. The framework merges tips after vanilla `init_tips` and ignores duplicate text.
+Vanilla categories continue to follow vanilla content settings. New categories are always enabled by default and automatically join the pool built by vanilla `generateTipsList`. Scripts may also call `maplebirch.tool.patch.tips.add('myMod:tips', 'A new tip')`. The framework merges tips after vanilla `init_tips` and ignores duplicate text.
 
 Inline `tips` string arrays contain tip text. When every entry ends with `.json`, `.yaml`, or `.yml`, they are read as file paths instead.
 
 Related docs:
 
-- [Patch Registration](ToolCollection/Patches.md)
-- [Traits](ToolCollection/Traits.md)
-- [Tips](ToolCollection/Tips.md)
-- [Bodywriting](ToolCollection/Bodywriting.md)
-- [Foodstuff](ToolCollection/Foodstuff.md)
-- [Fishing Extensions](ToolCollection/Fishing.md)
-- [Antiques](ToolCollection/Antiques.md)
+- [Patch Registration](Tools/Patches.md)
+- [Traits](Tools/Traits.md)
+- [Tips](Tools/Tips.md)
+- [Bodywriting](Tools/Bodywriting.md)
+- [Foodstuff](Tools/Foodstuff.md)
+- [Fishing Extensions](Tools/Fishing.md)
+- [Antiques](Tools/Antiques.md)
 
 ## npc
 

@@ -1,3 +1,11 @@
+##### (v.5.0.0 更新日志):
+
+- 重构框架基础设施：`infra` 统一日志、诊断、注册、钩子、生命周期和事件行为；`services` 负责具体服务，SugarCube、ModLoader 与 DoL 宿主访问集中到 `host`。通用 Patch 与 DoL 专属补丁分离。
+- **模组作者需要检查旧接口**：Core 不再直接暴露整套 `idb`、`lang`、`logger` 等服务对象，旧 `ModuleSystem`、`LanguageManager` 等类名与部分路径已移除。优先使用 `maplebirch.on/once/off/after/trigger`、`t/auto`、`define/with`、`register/get`、`wikify` 和 `log`；高级配置再访问 `maplebirch.services`、`maplebirch.infra` 或 `maplebirch.host`。
+- 翻译服务改为 `Translator`，单个语言可按顺序导入多个文件；内置 CN/EN 文本按功能拆分。模块注册统一附带全局诊断日志，状态初始化不再通过生成的 State 宏间接触发。
+- 旧版框架遇到更高版本的现有 IndexedDB 时，按数据库当前版本重新打开并校验必需存储和索引；不降级或清空数据，结构不兼容时仍明确报错。
+- 补齐基础类与服务测试、NPC 怀孕等模组开发文档；类型包与模组 ZIP 收录项目双重许可证，自动校验第三方 notice 与归档内容、可重复性。
+
 ##### (v.4.4.1更新日志):
 
 - 修正 NPC 在战斗中脱除下装后仍显示鞋子的问题。

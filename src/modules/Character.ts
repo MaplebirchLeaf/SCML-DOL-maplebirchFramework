@@ -1,14 +1,15 @@
 // ./src/modules/Character.ts
 
-import { errorMessage } from '../utils/error';
+import Diagnostics from '../infra/Diagnostics';
 import { MacroDefinition } from 'twine-sugarcube';
-import maplebirch, { MaplebirchCore, createlog } from '../core';
+import maplebirch, { MaplebirchCore } from '../core';
+import type { ScopedLog } from '../infra/Diagnostics';
 import { clone, mergefn as mergeFn } from '../utils';
-import AddonPlugin from './AddonPlugin';
-import type { Replacement } from '../utils/twine';
+import type AddonPlugin from '../services/AddonPlugin';
+import type { Replacement } from '../host/ModLoader';
 import Pet from './CharacterAddon/Pet';
 import Transformation from './CharacterAddon/Transformation';
-import dol from '../host/Adapter';
+import dol from '../host/DoL';
 
 interface HairGradientOptions {
   style: string;
@@ -239,7 +240,7 @@ const layers: CanvasLayerMap = {
 };
 
 class Character {
-  public readonly log: ReturnType<typeof createlog>;
+  public readonly log!: ScopedLog;
   public readonly mask = mask;
   public readonly faceStyleMap: Map<string, string[]> = new Map();
   private readonly handlers: ProcessEntry[] = [];
@@ -248,7 +249,6 @@ class Character {
   public readonly transformation: Transformation;
 
   public constructor(readonly core: MaplebirchCore) {
-    this.log = createlog('char');
     this.pet = new Pet(this);
     this.transformation = new Transformation(this);
   }
@@ -443,7 +443,7 @@ class Character {
       try {
         handler(options, model);
       } catch (error) {
-        this.log(`${model}-${type}process 错误: ${errorMessage(error)}`, 'ERROR', error);
+        this.log(`${model}-${type}process 错误: ${Diagnostics.message(error)}`, 'ERROR', error);
       }
     }
   }
@@ -453,7 +453,7 @@ class Character {
     core.on(':language', () => this.faceStyleSetupOption(), 'face style setup options');
     core.once(':storyready', () => {
       this.faceStyleSetupOption();
-      const macro = core.SugarCube.Macro.get('updatesidebarimg') as MacroDefinition | undefined;
+      const macro = core.host.sugarcube.require().Macro.get('updatesidebarimg') as MacroDefinition | undefined;
       if (!macro) return;
       core.tool.macro.define('updatesidebarimg', function (this: any) {
         macro.handler.call(this);
@@ -473,7 +473,5 @@ class Character {
     this.transformation.state();
   }
 }
-
-maplebirch.register('char', Object.seal(new Character(maplebirch)), ['var']);
 
 export default Character;

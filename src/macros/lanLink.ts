@@ -1,9 +1,9 @@
 // ./src/macros/lanLink.ts
 
-import { errorMessage } from '../utils/error';
+import Diagnostics from '../infra/Diagnostics';
 import maplebirch from '../core';
 import { addClasses, appendMacroIcon, bindLanguageUpdate, isStyleArg, readStyle, text, translatedText, type LinkArg, type MacroContext } from './helpers';
-import dol from '../host/Adapter';
+import dol from '../host/DoL';
 
 // <<lanLink>>
 export function _languageLink(this: MacroContext): void {
@@ -40,8 +40,8 @@ export function _languageLink(this: MacroContext): void {
     if (style) $link.attr('style', style);
     if (passageName != null) {
       $link.attr('data-passage', passageName);
-      if (maplebirch.SugarCube.Story.has(passageName)) {
-        if (maplebirch.SugarCube.Config.addVisitedLinkClass && maplebirch.SugarCube.State.hasPlayed(passageName)) $link.addClass('link-visited');
+      if (maplebirch.host.sugarcube.require().Story.has(passageName)) {
+        if (maplebirch.host.sugarcube.require().Config.addVisitedLinkClass && maplebirch.host.sugarcube.require().State.hasPlayed(passageName)) $link.addClass('link-visited');
       } else {
         $link.addClass('link-broken');
       }
@@ -63,8 +63,8 @@ export function _languageLink(this: MacroContext): void {
     $link.ariaClick(
       { namespace: '.macros', role: passageName != null ? 'link' : 'button', one: passageName != null },
       this.createShadowWrapper(
-        content ? () => maplebirch.SugarCube.Wikifier.wikifyEval(content, passageObj) : () => {},
-        passageName != null ? () => maplebirch.SugarCube.Engine.play(passageName) : undefined
+        content ? () => maplebirch.host.sugarcube.require().Wikifier.wikifyEval(content, passageObj) : () => {},
+        passageName != null ? () => maplebirch.host.sugarcube.require().Engine.play(passageName) : undefined
       )
     );
     $container.append($link);
@@ -72,6 +72,6 @@ export function _languageLink(this: MacroContext): void {
     bindLanguageUpdate($container, 'lanLink', update);
   } catch (error) {
     maplebirch.log('<<lanLink>> error', 'ERROR', error);
-    return this.error(`<<lanLink>> error: ${errorMessage(error)}`);
+    return this.error(`<<lanLink>> error: ${Diagnostics.message(error)}`);
   }
 }

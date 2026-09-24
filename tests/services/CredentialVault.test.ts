@@ -1,33 +1,33 @@
 import './runtime';
 import { expect, test } from 'bun:test';
-import type { MaplebirchCore } from '../../src/core';
+import type ModLoader from '../../src/host/ModLoader';
+import Diagnostics from '../../src/infra/Diagnostics';
+import type Emitter from '../../src/infra/Emitter';
+import type IndexedDB from '../../src/services/IndexedDB';
 const { default: CredentialVault } = await import('../../src/services/CredentialVault');
 
 test('cache read and write failures cannot turn a loaded encrypted mod into a failed load', async () => {
   let loads = 0;
   const warnings: string[] = [];
-  const core = {
-    once() {},
-    log(message: string, level: string) {
-      if (level === 'WARN') warnings.push(message);
+  const modloader = {
+    async disabled() {
+      throw new Error('A successfully loaded mod must stay enabled');
     },
-    t: (key: string) => key,
     modUtils: {
+      getLogger: () => ({ warn: (message: string) => warnings.push(message) }),
       async lazyRegisterNewModZipData() {
         loads++;
         return true;
       }
-    },
-    idb: {
-      async withTransaction() {
-        throw new Error('storage unavailable');
-      }
-    },
-    async disabled() {
-      throw new Error('A successfully loaded mod must stay enabled');
     }
-  } as unknown as MaplebirchCore;
-  const result = await new CredentialVault(core).loadCrypt({
+  } as unknown as ModLoader;
+  const idb = {
+    async with() {
+      throw new Error('storage unavailable');
+    }
+  } as unknown as IndexedDB;
+  const events = { once() {} } as unknown as Emitter;
+  const result = await new CredentialVault(idb, modloader, events, new Diagnostics(modloader), key => key).loadCrypt({
     modName: 'example',
     cache: { subject: 'example', key: 'license' },
     password: 'provided password',

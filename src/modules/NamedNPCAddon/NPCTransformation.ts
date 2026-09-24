@@ -3,7 +3,7 @@
 import type NPCManager from '../NamedNPC';
 import type { NPCBodyData, NPCSidebarState } from './NPCSidebarConfig/types';
 import { transformationDefaults } from './NPCSidebarConfig/transformation_layers';
-import dol from '../../host/Adapter';
+import dol from '../../host/DoL';
 
 export interface NPCTransformationState {
   build: number;

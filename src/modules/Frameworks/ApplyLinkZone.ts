@@ -1,6 +1,7 @@
 // ./src/modules/Frameworks/ApplyLinkZone.ts
 
-import maplebirch, { type MaplebirchCore, createlog } from '../../core';
+import maplebirch, { type MaplebirchCore } from '../../core';
+import type { ScopedLog } from '../../infra/Diagnostics';
 interface CustomZone {
   position: number;
   macro: string;
@@ -18,8 +19,6 @@ interface LinkZoneConfig {
   debug: boolean;
 }
 
-const log = createlog('link');
-
 class LinkZoneManager {
   declare public static readonly apply: (config?: Partial<LinkZoneConfig>) => boolean;
   declare public static readonly add: (config: LinkZoneConfig, customZones: CustomZone[]) => void;
@@ -29,12 +28,12 @@ class LinkZoneManager {
   public links: Element[] = [];
   public breakBeforeFirst: ChildNode | null = null;
 
-  public readonly log: ReturnType<typeof createlog>;
+  public readonly log: ScopedLog;
 
   public constructor(
     readonly containerId = 'passage-content',
     readonly linkSelector = '.macro-link',
-    logger: typeof log = log
+    logger: ScopedLog
   ) {
     this.log = logger;
   }
@@ -181,7 +180,7 @@ const applyLinkZone = ((core: MaplebirchCore) => {
     document.getElementById('beforeLinkZone')?.remove();
     document.getElementById('afterLinkZone')?.remove();
     document.querySelectorAll('[data-link-zone-position]').forEach(zone => zone.remove());
-    const manager = new LinkZoneManager(config.containerId, config.linkSelector, log);
+    const manager = new LinkZoneManager(config.containerId, config.linkSelector, core.tool.log);
     const result = manager.applyZones(config, customZones);
     if (result) fillZones(config, customZones);
     config.onAfterApply?.(result, config);
@@ -206,8 +205,8 @@ const applyLinkZone = ((core: MaplebirchCore) => {
     const wiki = $(container).wiki;
     if (typeof wiki === 'function') {
       $(container).wiki(macro);
-    } else if (core.SugarCube?.Wikifier) {
-      new core.SugarCube.Wikifier(container, macro);
+    } else if (core.host.sugarcube.runtime?.Wikifier) {
+      new (core.host.sugarcube.require().Wikifier)(container, macro);
     } else {
       container.innerHTML = macro;
     }
@@ -218,7 +217,7 @@ const applyLinkZone = ((core: MaplebirchCore) => {
       script.replaceWith(replacement);
     });
     html.style.display = html.childNodes.length > 0 ? 'block' : 'none';
-    if (config.debug) log('[link] 添加内容到区域', 'DEBUG', macro);
+    if (config.debug) core.tool.log('[link] 添加内容到区域', 'DEBUG', macro);
   }
 
   Object.defineProperties(LinkZoneManager, {

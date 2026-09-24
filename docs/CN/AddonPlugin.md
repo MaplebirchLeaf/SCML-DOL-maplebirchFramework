@@ -1,11 +1,11 @@
 # ModLoader 接入
 
-`maplebirch.addon` 负责连接 ModLoader，提供同步渲染钩子、图片资源解析和运行诊断。boot 配置见 [boot.json](BootJson.md)，内容构建见 [HTML 工具](ToolCollection/htmlTools.md)。
+通过 `maplebirch.wikify` 注册同步渲染钩子；图片资源由 `maplebirch.host.modLoader.resources` 管理，诊断由 `maplebirch.infra.diagnostics` 统一汇集。boot 配置见 [boot.json](BootJson.md)，内容构建见 [HTML 工具](Tools/Text.md)。
 
 ## 渲染钩子
 
 ```typescript
-maplebirch.addon.wikify('myMod:relationship', {
+maplebirch.wikify('myMod:relationship', {
   beforeWidget(text, name, passageTitle, passage) {
     return text;
   },
@@ -29,14 +29,14 @@ maplebirch.addon.wikify('myMod:relationship', {
 
 回调同步执行，不使用异步事件总线。`before` 必须返回字符串，后续处理器收到前一个处理器的结果。widget 的 passage 信息可能为 `undefined`；ModLoader 配套 SugarCube 的钩子可传入定义 widget 的 passage，不能据此推断玩家当前页面。需要当前页面时读取 `maplebirch.SugarCube.State.passage`。`node` 是当前渲染片段，可能尚未挂载到页面。
 
-在钩子中再次调用 Wikifier 时必须过滤目标，避免重复进入同一个钩子。上游没有公开注销入口，此接口不提供注销或优先级。按 widget 名声明原版适配可以使用 [Patch](ToolCollection/Patches.md)。
+在钩子中再次调用 Wikifier 时必须过滤目标，避免重复进入同一个钩子。上游没有公开注销入口，此接口不提供注销或优先级。按 widget 名声明原版适配可以使用 [Patch](Tools/Patches.md)。
 
-钩子只描述渲染时序。例如含有“领取奖励”链接的 widget 执行完毕时，玩家可能还没点击链接；奖励逻辑必须放在成功处理分支中。需要精确改动分支时使用 [源码适配](ToolCollection/Framework.md#源码适配)，不能把成功结算等同于 `afterWidget`。
+钩子只描述渲染时序。例如含有“领取奖励”链接的 widget 执行完毕时，玩家可能还没点击链接；奖励逻辑必须放在成功处理分支中。需要精确改动分支时使用 [源码适配](Tools/Zones.md#源码适配)，不能把成功结算等同于 `afterWidget`。
 
 ## 图片资源
 
 ```typescript
-const resources = maplebirch.addon.resources;
+const resources = maplebirch.host.modLoader.resources;
 const image = await resources.load('img/myMod/icon.png');
 if (image !== false) document.querySelector<HTMLImageElement>('#myModIcon')!.src = image;
 ```
@@ -55,27 +55,27 @@ if (image !== false) document.querySelector<HTMLImageElement>('#myModIcon')!.src
 ## 依赖与冲突
 
 ```typescript
-const diagnostics = maplebirch.addon.diagnostics;
+const diagnostics = maplebirch.infra.diagnostics;
 const requirement = diagnostics.mod('OtherMod', '>=1.2.0');
 console.log(requirement.status, requirement.version);
-console.log(diagnostics.dependencies());
+console.log(diagnostics.checkDependencies());
 console.table(diagnostics.conflicts);
 ```
 
 `mod(name, range?)` 查询普通已加载 Mod，返回名称、版本、范围和状态：`available`、`missing`、`incompatible`；解析抛错时为 `invalid`，并带 `error`。版本判断使用 ModLoader 的版本算法。省略范围时只判断是否已加载。
 
-`dependencies()` 调用 ModLoader 的完整依赖及加载顺序检查，返回布尔值，详细原因由其日志报告；ModLoader、游戏版本等特殊依赖也应使用这个入口。
+`checkDependencies()` 调用 ModLoader 的完整依赖及加载顺序检查，返回布尔值，详细原因由其日志报告；ModLoader、游戏版本等特殊依赖也应使用这个入口。
 
 `conflicts` 是上游合并冲突的快照，包含 `source`、`dataSource` 和重名的 `passages`、`scripts`、`styles` 数组；`undefined` 表示上游还没有结果。它表示同名资源冲突，不等同于补丁执行失败，也不表示已经定位冲突双方的具体源码。
 
 ## 补丁报告
 
 ```typescript
-const failures = maplebirch.addon.diagnostics.patches.filter(item => item.status !== 'applied');
+const failures = maplebirch.infra.diagnostics.patches.filter(item => item.status !== 'applied');
 console.table(failures);
 ```
 
-框架的 zone 源码适配、`addon.replace()` 和已有 Twine 脚本/样式替换会记录报告。每条包含 `kind`、`target`、`index`、`pattern`、`matches`、`applied`、`status`，必要时带 `expected`、`error`。`index` 是从 1 开始的补丁序号；整体资产或目标检查使用 0。
+框架的 zone 源码适配、`maplebirch.host.modLoader.replace()` 和已有 Twine 脚本/样式替换会记录报告。每条包含 `kind`、`target`、`index`、`pattern`、`matches`、`applied`、`status`，必要时带 `expected`、`error`。`index` 是从 1 开始的补丁序号；整体资产或目标检查使用 0。
 
 | 状态        | 含义                                 |
 | ----------- | ------------------------------------ |

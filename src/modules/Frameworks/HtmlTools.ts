@@ -1,9 +1,10 @@
 // ./src/modules/Frameworks/HtmlTools.ts
 
-import { errorMessage } from '../../utils/error';
-import { createlog, type MaplebirchCore } from '../../core';
+import Diagnostics from '../../infra/Diagnostics';
+import maplebirch, { type MaplebirchCore } from '../../core';
+import type { ScopedLog } from '../../infra/Diagnostics';
 import type { MacroFunction } from './macros';
-import type { MacroContext } from '../../SugarCubeMacros';
+import type { MacroContext } from '../../macros';
 
 export type HtmlRoot = Element | DocumentFragment;
 export interface TextContext {
@@ -92,15 +93,15 @@ class Builder {
 }
 
 class htmlTools {
-  public readonly log: ReturnType<typeof createlog>;
+  public readonly log: ScopedLog;
   private uid = 0;
   private readonly store = new Map<string, TextHandler[]>();
   public constructor(readonly core: MaplebirchCore) {
-    this.log = createlog('text');
+    this.log = maplebirch.infra.diagnostics.scoped('text');
   }
 
-  public get Wikifier(): MaplebirchCore['SugarCube']['Wikifier'] {
-    return this.core.SugarCube.Wikifier;
+  public get Wikifier(): ReturnType<MaplebirchCore['host']['sugarcube']['require']>['Wikifier'] {
+    return this.core.host.sugarcube.require().Wikifier;
   }
 
   public replaceText(oldText: string, newText: string, root: HtmlRoot | null = document.getElementById('passage-content')): number {
@@ -216,7 +217,7 @@ class htmlTools {
         try {
           fn(tools);
         } catch (error) {
-          this.log(`处理器错误 [${key}]: ${errorMessage(error)}`, 'ERROR', error);
+          this.log(`处理器错误 [${key}]: ${Diagnostics.message(error)}`, 'ERROR', error);
         }
       }
     }
@@ -227,7 +228,7 @@ class htmlTools {
     try {
       this.renderInto(macro.output, keys, { ...macro, macro, name: macro.name, args: Array.from(macro.args) });
     } catch (error) {
-      this.log(`渲染到宏输出失败: ${errorMessage(error)}`, 'ERROR', error);
+      this.log(`渲染到宏输出失败: ${Diagnostics.message(error)}`, 'ERROR', error);
     }
   }
 

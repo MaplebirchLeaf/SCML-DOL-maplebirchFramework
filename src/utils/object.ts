@@ -1,6 +1,6 @@
 // ./src/utils/object.ts
 
-import _ from './shared';
+import ModLoader from '../host/ModLoader';
 
 type TypedArrayLike = Int8Array | Uint8Array | Uint8ClampedArray | Int16Array | Uint16Array | Int32Array | Uint32Array | Float32Array | Float64Array | BigInt64Array | BigUint64Array;
 type ObjectData = Record<PropertyKey, unknown>;
@@ -90,11 +90,11 @@ function cloneValue(source: unknown, deep: boolean, proto: boolean, map: WeakMap
 }
 
 export function equal(a: unknown, b: unknown): boolean {
-  return _.isEqual(a, b);
+  return ModLoader.getLodash().isEqual(a, b);
 }
 
 function isPlainObject(value: unknown): value is ObjectData {
-  return _.isPlainObject(value);
+  return ModLoader.getLodash().isPlainObject(value);
 }
 
 function mergeRecursive(target: unknown, source: unknown, mode: MergeMode, filter: MergeFilterFn | null, depth: number, seen: WeakMap<object, unknown>): unknown {

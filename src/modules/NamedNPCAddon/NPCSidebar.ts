@@ -18,9 +18,9 @@ import feet_layers from './NPCSidebarConfig/feet_layers';
 import transformation_layers, { transformationDefaults } from './NPCSidebarConfig/transformation_layers';
 import type { NPCClothesSlot } from './NPCSidebarConfig/types';
 import type NPCManager from '../NamedNPC';
-import DoLPcompat from '../../DoLPcompat';
+import DoLPcompat from '../../compat/DoLPcompat';
 import { FloatingPet, type PetOptions, type PetSettings } from '../CharacterAddon/Pet';
-import dol from '../../host/Adapter';
+import dol from '../../host/DoL';
 
 export interface NPCSidebarBootConfig {
   clothes?: string[];
@@ -176,12 +176,13 @@ function load_all_images(manager: NPCManager) {
     if (!display.has(npc_name)) display.set(npc_name, new Set());
   }
   const paths: string[] = [];
-  for (const modName of manager.core.modUtils.getModListNameNoAlias()) {
+  for (const modName of manager.core.host.modLoader.modUtils.getModListNameNoAlias()) {
     if (modName === 'ModI18N') continue;
     try {
-      const modZip = manager.core.modUtils.getModZip(modName);
+      const modZip = manager.core.host.modLoader.modUtils.getModZip(modName);
       if (modZip) paths.push(...loadFromMod(modZip, []));
-    } catch {
+    } catch (error) {
+      manager.log(`读取 ${modName} 的 NPC 侧边栏图片失败`, 'WARN', error);
       continue;
     }
   }
@@ -219,7 +220,8 @@ function Integrity(clothes: any, slot: NPCClothesSlot) {
   if (typeof fn === 'function') {
     try {
       return fn(clothes, slot);
-    } catch {
+    } catch (error) {
+      maplebirch.npc.log('NPC 服装完整度计算失败', 'WARN', error);
       return clothes.integrity ?? 'full';
     }
   }
@@ -825,7 +827,7 @@ const NPCSidebar = (() => {
       const hair_name: Record<string, string> = {};
       const styles = type === 'sides' ? dol.setup.hairstyles.sides : dol.setup.hairstyles.fringe;
       styles.forEach((style: any) => {
-        const name = maplebirch.modUtils.getModListNameNoAlias().includes('ModI18N') && maplebirch.Language === 'CN' ? style.name_cap : style.name;
+        const name = maplebirch.host.modLoader.modUtils.getModListNameNoAlias().includes('ModI18N') && maplebirch.services.translator.language === 'CN' ? style.name_cap : style.name;
         hair_name[name.convert('title')] = style.variable;
       });
       return hair_name;
@@ -846,7 +848,7 @@ const NPCSidebar = (() => {
       manager.core.char.use(pet_layers('nnpc'), 'npc-pet-nnpc');
       manager.core.char.use(pet_layers('previous'), 'npc-pet-previous');
       manager.core.once(':storyready', () => {
-        const macro = manager.core.SugarCube.Macro.get('updatesidebarimg') as MacroDefinition | undefined;
+        const macro = manager.core.host.sugarcube.require().Macro.get('updatesidebarimg') as MacroDefinition | undefined;
         if (!macro) return;
         manager.core.tool.macro.define('updatesidebarimg', function (this: any) {
           macro.handler.call(this);

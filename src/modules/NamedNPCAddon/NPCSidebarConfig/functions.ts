@@ -4,7 +4,7 @@ import maplebirch from '../../../core';
 import { clone } from '../../../utils';
 
 import type { NPCSidebarOptions, NPCSidebarState, NPCSidebarClothing, NPCClothesSlot } from './types';
-import dol from '../../../host/Adapter';
+import dol from '../../../host/DoL';
 
 type Part = 'face' | 'neck' | 'upper' | 'lower' | 'legs' | 'feet' | 'hands';
 type ClothesType = 'main' | 'acc' | 'detail';
@@ -18,7 +18,8 @@ function clothingIndex(slot: NPCClothesSlot, clothes: NPCSidebarClothing, resolv
   try {
     const index = resolver(slot, clothes);
     return Number.isFinite(index) && index >= 0 ? index : fallback;
-  } catch {
+  } catch (error) {
+    maplebirch.npc.log('NPC 服装索引计算失败', 'WARN', error);
     return fallback;
   }
 }

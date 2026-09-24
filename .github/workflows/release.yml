@@ -26,6 +26,10 @@ jobs:
           fi
 
           VERSION="${TAG_NAME#maplebirch-release-v}"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: release version must be MAJOR.MINOR.PATCH (got: $VERSION)"
+            exit 1
+          fi
           echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
           echo "TAG_NAME=$TAG_NAME" >> "$GITHUB_OUTPUT"
 
@@ -116,14 +120,14 @@ jobs:
             exit 1
           fi
 
-      - name: Build and Package
-        run: bun run build:all
-
       - name: Verify framework
         run: bun run verify
 
       - name: Test services
         run: bun run test:services
+
+      - name: Build and Package
+        run: bun run build:all
 
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
@@ -148,6 +152,15 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: release-assets
+
+      - name: Check downloaded ZIP archives
+        run: |
+          found=0
+          while IFS= read -r -d '' archive; do
+            found=1
+            unzip -tqq "$archive"
+          done < <(find release-assets -name '*.zip' -type f -print0)
+          test "$found" -eq 1
 
       - name: Find Previous Tag
         id: prev_tag
@@ -227,4 +240,5 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: false
+          fail_on_unmatched_files: true
           files: release-assets/**/*.zip

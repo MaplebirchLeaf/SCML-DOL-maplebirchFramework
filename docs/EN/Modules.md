@@ -1,0 +1,185 @@
+# Modules and diagnostics
+
+> [!NOTE]
+> This page is for extending framework modules or investigating load failures. Ordinary content mods can load code through `script` in `boot.json`.
+
+`Modules` manages framework module registration, dependency order, and lifecycle hooks. Most content mods do not need to register framework modules directly; use this only when a mod intentionally extends framework behavior.
+
+Top-level `maplebirch.define()` registers a framework module. Use `maplebirch.idb()` to define an IndexedDB store and `maplebirch.with()` for transactions.
+
+## Registering A Module
+
+```javascript
+maplebirch.define(name, module, dependencies);
+```
+
+| Argument       | Description                                      |
+| :------------- | :----------------------------------------------- |
+| `name`         | Module name                                      |
+| `module`       | Module object, optionally with lifecycle methods |
+| `dependencies` | Optional dependency names                        |
+
+Example:
+
+```javascript
+maplebirch.define('myModule', {
+  Init() {
+    this.log('module initialized', 'INFO');
+  }
+});
+```
+
+With dependencies:
+
+```javascript
+maplebirch.define(
+  'myModule',
+  {
+    Init() {
+      this.log('runs after tool and npc', 'INFO');
+    }
+  },
+  ['tool', 'npc']
+);
+```
+
+The module object can also declare `dependencies`; they are merged with dependencies passed to `define`.
+
+```javascript
+maplebirch.define(
+  'myModule',
+  {
+    dependencies: ['tool'],
+    Init() {}
+  },
+  ['npc']
+);
+```
+
+## Exposed Modules
+
+If a module object has `exposed: true`, it is registered as `EXPOSED` and mounted directly onto `maplebirch[name]`.
+
+```javascript
+maplebirch.define('myApi', {
+  exposed: true,
+  hello() {
+    return 'Hello';
+  }
+});
+
+maplebirch.myApi.hello();
+```
+
+Pure exposed modules without lifecycle methods are mounted as API modules and are not shown as disableable modules in the GUI. If an exposed module also defines lifecycle methods such as `Init`, it still mounts to `maplebirch[name]`, runs through the normal initialization flow, and can be disabled unless it is protected. Registration fails if the target name is already occupied.
+
+Pure exposed modules still follow dependency disabling: disabling a prerequisite also disables its dependent API modules and removes their `maplebirch[name]` properties.
+
+Use `exposed: 'window'` to mount a module at `window[name]`; registration fails on a name collision. The service attaches `this.log(message, level?, ...objects)` to extensible registered modules, feeding the shared `maplebirch.infra.diagnostics` store. Core modules in `meta.core` are mounted early as a group; there is no separate `early` list.
+
+## Reading Modules
+
+```javascript
+const npcModule = maplebirch.get('npc');
+const graph = maplebirch.dependencyGraph;
+```
+
+`get()` returns `undefined` for disabled modules. Registration metadata remains available for the dependency graph and settings UI.
+
+`dependencyGraph` contains dependency and status information for each registered module.
+
+Common fields:
+
+| Field             | Description                                           |
+| :---------------- | :---------------------------------------------------- |
+| `protected`       | Whether this is a protected module                    |
+| `mounted`         | Whether this belongs to the framework core mount list |
+| `exposed`         | Whether it is exposed on the core object or `window`  |
+| `lifecycle`       | Whether it implements lifecycle hooks                 |
+| `dependencies`    | Direct dependencies                                   |
+| `dependents`      | Modules that depend on this module                    |
+| `allDependencies` | Transitive dependencies                               |
+| `state`           | Current module state                                  |
+| `source`          | Source mod name when recorded by the loader           |
+
+## Module States
+
+Current `ModuleState` values:
+
+| State        | Value | Meaning                                                 |
+| :----------- | :---- | :------------------------------------------------------ |
+| `REGISTERED` | `0`   | Registered and waiting for initialization               |
+| `MOUNTED`    | `1`   | Main initialization completed                           |
+| `ERROR`      | `2`   | Initialization failed                                   |
+| `EXPOSED`    | `3`   | Exposed module mounted directly on the framework object |
+| `DISABLED`   | `4`   | Disabled and skipped                                    |
+
+Completing `preInit` does not change the public module state. The module enters `MOUNTED` only after main initialization succeeds.
+
+## Lifecycle Hooks
+
+All hooks are optional.
+
+| Hook         | Timing                                                             | Typical use                               |
+| :----------- | :----------------------------------------------------------------- | :---------------------------------------- |
+| `preInit()`  | After `afterInjectEarlyLoad`, once IndexedDB and logging are ready | Prepare resources, config, or caches      |
+| `Init()`     | During `:passagestart` when normal gameplay begins                 | Main setup with `setup` and `V` available |
+| `loadInit()` | After loading a save                                               | Restore save-dependent state              |
+| `postInit()` | Each passage start after main/load init                            | Refresh passage-scoped behavior           |
+
+Example:
+
+```javascript
+class MyModule {
+  dependencies = ['tool'];
+
+  async preInit() {
+    this.cache = new Map();
+  }
+
+  Init() {
+    this.setup();
+  }
+
+  loadInit() {
+    this.restoreFromSave();
+  }
+
+  postInit() {
+    this.refreshPassageState();
+  }
+
+  setup() {}
+  restoreFromSave() {}
+  refreshPassageState() {}
+}
+
+maplebirch.define('myModule', new MyModule(), ['npc']);
+```
+
+## Dependency Rules
+
+Use `maplebirch.services.gui.setModuleStates({ myModule: false, anotherModule: true })` to update only named modules; pass one key for a single module. Unnamed module states are preserved. If dependency rules would change an unnamed module too, the call rejects until that module is included explicitly. Reload the game after saving for the lifecycle state to change.
+
+- A module initializes after all dependencies are satisfied.
+- Transitive dependencies are collected automatically.
+- Pure `EXPOSED` dependencies are treated as satisfied. Exposed modules with lifecycle methods follow the normal dependency flow.
+- Disabling a module also disables its transitive dependents. If B depends on A and C depends on B, disabling A puts all three in `DISABLED`: lifecycle hooks do not run, queries return `undefined`, and exposed properties are removed.
+- Saved disable settings apply on reload independently of initialization order, including modules with missing dependencies. Modules registered later follow the same settings.
+- If a dependency becomes `ERROR`, dependent modules will not continue initialization.
+- Circular dependencies are detected during registration.
+
+Use mod-prefixed names to avoid collisions with framework modules or other mods.
+
+Late modules receive `preInit()`. If a `preInit()` hook registers children through `modules.with()`, the outer scheduler prepares those children after the parent hook returns, avoiding a wait on the parent itself.
+
+## Inspecting diagnostics
+
+The framework collects logs, module failures, and patch results in one place. `maplebirch.export` is a JSON string property that you can copy when investigating a load problem; there is no need to retrieve a diagnostics object from each module.
+
+```javascript
+console.log(maplebirch.export);
+```
+
+> [!TIP]
+> Inside a module lifecycle method, call `this.log(message, level)` for a module-scoped record. Use `maplebirch.log(message, level)` in ordinary scripts.

@@ -1,12 +1,12 @@
 // ./src/modules/TimeStateWeather/TimeEvents.ts
 
 import { TimeConstants } from '../../constants';
-import { errorMessage } from '../../utils/error';
-import type DynamicManager from '../Dynamic';
-import Event, { type EventOptions } from './Event';
+import Diagnostics from '../../infra/Diagnostics';
+import type DoLDynamic from '../DoL/Dynamic';
+import Event, { type EventOptions } from '../Event';
 import patchDateTime from './DateTime';
 import patchTime, { bindTimeHandlers, vanillaTime } from './Time';
-import dol from '../../host/Adapter';
+import dol from '../../host/DoL';
 
 export type TimeEventType = 'onSec' | 'onMin' | 'onHour' | 'onDay' | 'onWeek' | 'onMonth' | 'onYear' | 'onBefore' | 'onThread' | 'onAfter' | 'onTimeTravel';
 
@@ -98,9 +98,10 @@ class TimeEvent extends Event {
   public constructor(
     id: string,
     public readonly type: TimeEventType,
-    options: TimeEventOptions = {}
+    options: TimeEventOptions,
+    log: DoLDynamic['log']
   ) {
-    super(id, options);
+    super(id, options, log);
     this.action = options.action;
     this.cond = options.cond ?? (() => true);
     this.exact = !!options.exact;
@@ -176,11 +177,11 @@ export class TimeManager {
   private readonly timeEvents: Record<string, Map<string, TimeEvent>> = {};
   private readonly sortedEventsCache: Record<string, TimeEvent[] | null> = {};
 
-  public readonly log: DynamicManager['log'];
+  public readonly log: DoLDynamic['log'];
   public readonly TimeConstants = TimeConstants;
 
-  public constructor(private readonly manager: DynamicManager) {
-    this.log = manager.log;
+  public constructor(private readonly manager: DoLDynamic) {
+    this.log = (...args) => manager.log(...args);
     for (const type of this.eventTypes) {
       this.timeEvents[type] = new Map();
       this.sortedEventsCache[type] = null;
@@ -191,7 +192,7 @@ export class TimeManager {
     return this.timeEvents;
   }
 
-  public init(): void {
+  public Init(): void {
     try {
       bindTimeHandlers(Time, {
         pass: (seconds: number) => this.handleTimePass(seconds),
@@ -199,7 +200,7 @@ export class TimeManager {
       });
       this.log('时间事件系统已激活', 'DEBUG');
     } catch (error) {
-      this.log(`初始化时间事件系统失败: ${errorMessage(error)}`, 'ERROR');
+      this.log(`初始化时间事件系统失败: ${Diagnostics.message(error)}`, 'ERROR');
     }
   }
 
@@ -220,7 +221,7 @@ export class TimeManager {
       this.log(`事件ID已存在: ${type}.${eventId}`, 'WARN');
       return false;
     }
-    this.timeEvents[type].set(eventId, new TimeEvent(eventId, type as TimeEventType, options));
+    this.timeEvents[type].set(eventId, new TimeEvent(eventId, type as TimeEventType, options, this.log));
     this.sortedEventsCache[type] = null;
     this.log(`注册时间事件: ${type}.${eventId}`, 'DEBUG');
     return true;
@@ -246,7 +247,7 @@ export class TimeManager {
       this.handleTimeTravel(this.targetDate(options));
       return true;
     } catch (error) {
-      this.log(`时间跳转失败: ${errorMessage(error)}`, 'ERROR');
+      this.log(`时间跳转失败: ${Diagnostics.message(error)}`, 'ERROR');
       return false;
     }
   }
@@ -419,7 +420,7 @@ export class TimeManager {
       try {
         if (event.tryRun(eventData, accumulatedOnly)) eventsToRemove.push(event.id);
       } catch (error) {
-        this.log(`事件执行错误: ${type}.${event.id} - ${errorMessage(error)}`, 'ERROR');
+        this.log(`事件执行错误: ${type}.${event.id} - ${Diagnostics.message(error)}`, 'ERROR');
       }
     }
     for (const eventId of eventsToRemove) {

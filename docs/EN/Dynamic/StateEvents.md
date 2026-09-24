@@ -19,7 +19,7 @@ maplebirch.dynamic.delStateEvent(type, eventId);
 ## Registering An Event
 
 ```javascript
-maplebirch.dynamic.regStateEvent('gate', 'myMod.forestBandit', {
+maplebirch.dynamic.regStateEvent('gate', 'myMod:forestBandit', {
   output: 'myModForestBandit',
   cond: () => V.location === 'forest' && Time.hour >= 20,
   priority: 10,
@@ -55,7 +55,7 @@ The `output` value is the name of a SugarCube widget:
 ## Append Example
 
 ```javascript
-maplebirch.dynamic.regStateEvent('append', 'myMod.wetHint', {
+maplebirch.dynamic.regStateEvent('append', 'myMod:wetHint', {
   output: 'myModWetHint',
   cond: () => V.wetness > 70,
   priority: 3
@@ -71,7 +71,7 @@ maplebirch.dynamic.regStateEvent('append', 'myMod.wetHint', {
 ## Removing An Event
 
 ```javascript
-maplebirch.dynamic.delStateEvent('gate', 'myMod.forestBandit');
+maplebirch.dynamic.delStateEvent('gate', 'myMod:forestBandit');
 ```
 
 Keep `cond` lightweight because state events are checked automatically during passage rendering.

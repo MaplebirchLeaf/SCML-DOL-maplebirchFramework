@@ -1,6 +1,6 @@
 // ./src/modules/NamedNPCAddon/NPCFluids.ts
 
-import dol from '../../host/Adapter';
+import dol from '../../host/DoL';
 
 export type NPCFluidPart = 'vagina' | 'vaginaoutside' | 'anus' | 'mouth' | 'penis' | 'chest' | 'face' | 'hair' | 'bottom' | 'feet' | 'leftarm' | 'rightarm' | 'neck' | 'thigh' | 'tummy';
 

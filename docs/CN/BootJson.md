@@ -1,6 +1,11 @@
-## boot.json 配置
+# boot.json 配置
 
-### 适用场景
+[文档导航](README.md) · [快速开始](GettingStarted.md)
+
+> [!IMPORTANT]
+> 路径均相对模组 ZIP 根目录。先用最小 `script` 配置确认模组能加载，再按需要增加语言、音频和 NPC 资源。
+
+## 适用场景
 
 当模组需要使用 **`maplebirchFramework`** 的脚本加载、语言导入、音频导入、区域挂载或 NPC 资源注册时，可以在 **`boot.json`** 中配置 **`maplebirchAddon`**。
 
@@ -22,7 +27,7 @@
 
 ---
 
-### 基本结构
+## 基本结构
 
 ```json
 "addonPlugin": [
@@ -125,14 +130,25 @@
 }
 ```
 
+同一语言分多个文件时，用数组并按希望的覆盖顺序排列；后面的文件覆盖前面的同名键：
+
+```json
+"language": {
+  "CN": ["i18n/CN/common.yml", "i18n/CN/npc.yml"],
+  "EN": ["i18n/EN/common.yml", "i18n/EN/npc.yml"]
+}
+```
+
+对象写法中的 `file` 也接受数组。框架会先合并该语言的全部文件，再导入一次；指定文件缺失或无效时不会只导入其中一部分。默认的 `"language": ["CN", "EN"]` 会按 JSON、YML、YAML 顺序合并每种语言现有的默认文件。
+
 脚本中使用：
 
 ```javascript
-maplebirch.t('myMod.text.key');
+maplebirch.t('myMod:text.key');
 maplebirch.auto('Known source text');
 ```
 
-更多说明见 [语言管理](LanguageManager.md)。
+更多说明见 [翻译服务](Translator.md)。
 
 ---
 
@@ -205,7 +221,7 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 }
 ```
 
-更多区域名称和 widget 配置见 [区域管理系统](ToolCollection/Framework.md)。
+更多区域名称和 widget 配置见 [区域管理系统](Tools/Zones.md)。
 
 ---
 
@@ -237,7 +253,7 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 
 `has` 可以写布尔值，也可以写判断表达式。表达式会作为代码执行，只应写可信内容。
 
-更多说明见 [特质注册](ToolCollection/Traits.md)。
+更多说明见 [特质注册](Tools/Traits.md)。
 
 ---
 
@@ -293,23 +309,23 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 {
   "general": ["始终可能出现的小贴士。"],
   "weather": ["启用天气内容时出现的小贴士。"],
-  "myMod": ["自定义分类也会自动加入随机池。"]
+  "myMod:tips": ["自定义分类也会自动加入随机池。"]
 }
 ```
 
-原版分类继续遵循原版内容开关；新增分类默认始终启用，并会自动加入原版 `generateTipsList` 生成的随机池。脚本中也可以调用 `maplebirch.tool.patch.tips.add('myMod', '新的小贴士')`；框架会在原版 `init_tips` 之后合并内容，并自动去除重复文本。
+原版分类继续遵循原版内容开关；新增分类默认始终启用，并会自动加入原版 `generateTipsList` 生成的随机池。脚本中也可以调用 `maplebirch.tool.patch.tips.add('myMod:tips', '新的小贴士')`；框架会在原版 `init_tips` 之后合并内容，并自动去除重复文本。
 
 内联的 `tips` 字符串数组用于提示文本；当所有项均以 `.json`、`.yaml` 或 `.yml` 结尾时，按文件路径读取。
 
 相关文档：
 
-- [Patch 注册](ToolCollection/Patches.md)
-- [特质注册](ToolCollection/Traits.md)
-- [小贴士注册](ToolCollection/Tips.md)
-- [身体文字](ToolCollection/Bodywriting.md)
-- [食物注册](ToolCollection/Foodstuff.md)
-- [钓鱼扩展](ToolCollection/Fishing.md)
-- [古董注册](ToolCollection/Antiques.md)
+- [Patch 注册](Tools/Patches.md)
+- [特质注册](Tools/Traits.md)
+- [小贴士注册](Tools/Tips.md)
+- [身体文字](Tools/Bodywriting.md)
+- [食物注册](Tools/Foodstuff.md)
+- [钓鱼扩展](Tools/Fishing.md)
+- [古董注册](Tools/Antiques.md)
 
 ---
 

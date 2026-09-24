@@ -18,10 +18,11 @@ declare global {
   const SelectCase: Utils['SelectCase'];
   const convert: Utils['convert'];
   const clamp: Utils['clamp'];
-  const loadImage: Utils['loadImage'];
+  const loadImage: typeof types.ImageLoader.load;
 
   interface Window extends Readonly<Utils> {
     readonly maplebirch: typeof instance;
+    readonly loadImage: typeof types.ImageLoader.load;
   }
 }
 
