@@ -1,12 +1,11 @@
 // ./src/modules/Combat/CombatAction.ts
 
 import maplebirch from '../../core';
+import type { ActionType, CombatType } from './CombatTypes';
 
-export const actionTypes = ['leftaction', 'rightaction', 'feetaction', 'mouthaction', 'penisaction', 'vaginaaction', 'anusaction', 'chestaction', 'thighaction'] as const;
-export type ActionType = (typeof actionTypes)[number];
+export { actionTypes, combatTypes } from './CombatTypes';
+export type { ActionType, CombatType } from './CombatTypes';
 export type OptionType = ActionType | 'ask';
-export const combatTypes = ['Default', 'Self', 'Struggle', 'Swarm', 'Vore', 'Machine', 'Tentacle'] as const;
-export type CombatType = (typeof combatTypes)[number];
 export type ActionValue = string | number;
 
 interface Context {
