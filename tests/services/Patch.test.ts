@@ -12,5 +12,8 @@ test('generic patch registrar starts empty and runs registered state handlers in
 
   expect(patch.names()).toEqual(['first', 'second']);
   expect(patch.require<{ id: number }>('first').id).toBe(1);
-  expect(calls).toEqual(['first', 'second']);
+  expect(() => patch.add('first', { api: { id: 3 } })).toThrow('Patch already registered');
+  expect(calls.at(-1)).toContain('first: Error: Patch already registered');
+  expect(patch.names()).toEqual(['first', 'second']);
+  expect(calls.slice(0, 2)).toEqual(['first', 'second']);
 });

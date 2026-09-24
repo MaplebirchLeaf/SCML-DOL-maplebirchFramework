@@ -2,6 +2,8 @@
 
 import { TimeConstants } from '../../constants';
 import Diagnostics from '../../infra/Diagnostics';
+import Catalog from '../../infra/Catalog';
+import Hooks from '../../infra/Hooks';
 import type DoLDynamic from '../DoL/Dynamic';
 import Event, { type EventOptions } from '../Event';
 import patchDateTime from './DateTime';
@@ -173,23 +175,20 @@ class TimeEvent extends Event {
 }
 
 export class TimeManager {
-  private readonly eventTypes: TimeEventType[] = ['onSec', 'onMin', 'onHour', 'onDay', 'onWeek', 'onMonth', 'onYear', 'onBefore', 'onThread', 'onAfter', 'onTimeTravel'];
-  private readonly timeEvents: Record<string, Map<string, TimeEvent>> = {};
-  private readonly sortedEventsCache: Record<string, TimeEvent[] | null> = {};
+  private readonly timeEvents = Object.fromEntries(
+    (['onSec', 'onMin', 'onHour', 'onDay', 'onWeek', 'onMonth', 'onYear', 'onBefore', 'onThread', 'onAfter', 'onTimeTravel'] as const).map(type => [type, new Catalog<string, TimeEvent>()])
+  ) as Record<TimeEventType, Catalog<string, TimeEvent>>;
+  private readonly travelHooks = new Hooks<[TimeData], void>();
 
   public readonly log: DoLDynamic['log'];
   public readonly TimeConstants = TimeConstants;
 
   public constructor(private readonly manager: DoLDynamic) {
     this.log = (...args) => manager.log(...args);
-    for (const type of this.eventTypes) {
-      this.timeEvents[type] = new Map();
-      this.sortedEventsCache[type] = null;
-    }
   }
 
   public get events(): Readonly<Record<string, ReadonlyMap<string, TimeEvent>>> {
-    return this.timeEvents;
+    return Object.fromEntries(Object.entries(this.timeEvents).map(([type, events]) => [type, events.entries]));
   }
 
   public Init(): void {
@@ -213,33 +212,36 @@ export class TimeManager {
   }
 
   public register(type: TimeEventType, eventId: string, options: TimeEventOptions): boolean {
-    if (!this.timeEvents[type]) {
+    const events = this.timeEvents[type];
+    if (!events) {
       this.log(`未知的时间事件类型: ${type}`, 'ERROR');
       return false;
     }
-    if (this.timeEvents[type].has(eventId)) {
+    if (!events.add(eventId, new TimeEvent(eventId, type, options, this.log))) {
       this.log(`事件ID已存在: ${type}.${eventId}`, 'WARN');
       return false;
     }
-    this.timeEvents[type].set(eventId, new TimeEvent(eventId, type as TimeEventType, options, this.log));
-    this.sortedEventsCache[type] = null;
     this.log(`注册时间事件: ${type}.${eventId}`, 'DEBUG');
     return true;
   }
 
   public unregister(type: string, eventId: string): boolean {
-    if (!this.timeEvents[type]) {
+    const events = this.timeEvents[type as TimeEventType];
+    if (!events) {
       this.log(`事件类型不存在: ${type}`, 'WARN');
       return false;
     }
-    const deleted = this.timeEvents[type].delete(eventId);
+    const deleted = events.remove(eventId);
     if (deleted) {
-      this.sortedEventsCache[type] = null;
       this.log(`注销时间事件: ${type}.${eventId}`, 'DEBUG');
       return true;
     }
     this.log(`未找到事件: ${type}.${eventId}`, 'WARN');
     return false;
+  }
+
+  public onTravel(name: string, callback: (data: TimeData) => void): boolean {
+    return this.travelHooks.add(name, callback);
   }
 
   public timeTravel(options: TimeTravelOptions = {}): boolean {
@@ -283,6 +285,7 @@ export class TimeManager {
     Time.setDate(targetDate);
     const currentDate = new window.DateTime(Time.date);
     const eventData = this.timeData(prevDate, currentDate, seconds);
+    void this.manager.core.trigger(':timeChange', eventData);
     this.trigger('onThread', eventData);
     this.triggerUnitEvents(eventData);
     this.trigger('onAfter', eventData);
@@ -293,17 +296,20 @@ export class TimeManager {
     const prevDate = new window.DateTime(Time.date);
     const target = new window.DateTime(targetDate);
     if (target.timeStamp < TimeConstants.MIN_DATE.timeStamp || target.timeStamp > TimeConstants.MAX_DATE.timeStamp) throw new Error(`Invalid time travel target: ${target.timeStamp}`);
-    dol.variables.weatherObj.keypointsArr = [];
-    dol.variables.weatherObj.fogKeypoints = [];
     Time.setDate(target);
-    if (Weather.WeatherGeneration.updateWeather) Weather.WeatherGeneration.updateWeather(target);
-    else Weather.WeatherGeneration.generate(target);
-    Weather.FogGeneration.generateFogKeypoints(dol.variables.weatherObj.keypointsArr);
-    Weather.Observables.checkForUpdate();
-    void this.manager.core.trigger(':onWeather');
-    const currentDate = new window.DateTime(Time.date);
-    const elapsedSeconds = currentDate.timeStamp - prevDate.timeStamp;
-    const eventData = this.timeData(prevDate, currentDate, elapsedSeconds);
+    let currentDate: DateTime;
+    let elapsedSeconds: number;
+    let eventData: TimeData;
+    try {
+      currentDate = new window.DateTime(Time.date);
+      elapsedSeconds = currentDate.timeStamp - prevDate.timeStamp;
+      eventData = this.timeData(prevDate, currentDate, elapsedSeconds);
+      this.travelHooks.execute(eventData);
+    } catch (error) {
+      Time.setDate(prevDate);
+      throw error;
+    }
+    void this.manager.core.trigger(':timeChange', eventData);
     this.trigger('onTimeTravel', {
       ...eventData,
       prev: prevDate,
@@ -408,15 +414,13 @@ export class TimeManager {
   }
 
   private trigger(type: TimeEventType, eventData: TimeData, accumulatedOnly = false): void {
-    const eventMap = this.timeEvents[type];
-    if (!eventMap) {
+    const events = this.timeEvents[type];
+    if (!events) {
       this.log(`事件类型未注册: ${type}`, 'WARN');
       return;
     }
-    if (!this.sortedEventsCache[type]) this.sortedEventsCache[type] = Array.from(eventMap.values()).sort((a, b) => b.priority - a.priority);
-    const events = this.sortedEventsCache[type]!;
     const eventsToRemove: string[] = [];
-    for (const event of events) {
+    for (const event of events.list().sort((a, b) => b.priority - a.priority)) {
       try {
         if (event.tryRun(eventData, accumulatedOnly)) eventsToRemove.push(event.id);
       } catch (error) {
@@ -424,8 +428,7 @@ export class TimeManager {
       }
     }
     for (const eventId of eventsToRemove) {
-      eventMap.delete(eventId);
-      this.sortedEventsCache[type] = null;
+      events.remove(eventId);
       this.log(`移除一次性事件: ${type}.${eventId}`, 'DEBUG');
     }
   }

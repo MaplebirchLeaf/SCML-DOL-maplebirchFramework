@@ -36,6 +36,11 @@ mock.module('../../src/services/GUIControl', () => ({ default: Service }));
 
 const { default: maplebirch } = await import('../../src/core');
 const callbacks = { beforeWikify: (text: string) => text };
+const cloneDescriptor = Object.getOwnPropertyDescriptor(window, 'clone');
+assert.equal(cloneDescriptor?.configurable, true);
+assert.equal(cloneDescriptor?.writable, false);
+Object.defineProperty(window, 'clone', { value: () => 'custom' });
+assert.equal(window.clone({}), 'custom');
 
 assert.deepEqual(
   logs.filter(({ message }) => message.startsWith('框架核心系统创建完成')),

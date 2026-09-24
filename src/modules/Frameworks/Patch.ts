@@ -1,3 +1,5 @@
+import Catalog from '../../infra/Catalog';
+
 export type PatchPhase = 'init' | 'state';
 
 export interface WidgetPatch {
@@ -15,16 +17,18 @@ export interface PatchDefinition<T extends object = object, Flat extends object 
 }
 
 class Patch<Extensions extends Record<string, object> = Record<never, never>> {
-  private readonly entries = new Map<string, PatchDefinition>();
-  private readonly extensionValues = new Map<string, object>();
+  private readonly definitions = new Catalog<string, PatchDefinition>();
 
   public constructor(private readonly report: (name: string, error: unknown) => void) {}
 
   public add<T extends object, Flat extends object = T>(name: string, definition: PatchDefinition<T, Flat>): this & Flat {
-    if (!name.trim() || this.entries.has(name)) throw new Error(`Patch already registered or invalid: ${name}`);
+    if (!name.trim() || this.definitions.has(name)) {
+      const error = new Error(`Patch already registered or invalid: ${name}`);
+      this.report(name, error);
+      throw error;
+    }
     const widgets = Object.fromEntries(Object.entries(definition.widgets ?? {}).map(([widget, hooks]) => [widget, { ...hooks }]));
-    this.entries.set(name, { ...definition, widgets });
-    this.extensionValues.set(name, definition.api);
+    this.definitions.add(name, { ...definition, widgets });
     if (!(name in this)) Object.defineProperty(this, name, { configurable: false, enumerable: true, get: () => definition.api });
     const flat = (definition.legacy ?? definition.api) as Flat;
     for (const key of Object.keys(flat) as Array<keyof Flat & string>) {
@@ -44,27 +48,27 @@ class Patch<Extensions extends Record<string, object> = Record<never, never>> {
   public get<Name extends keyof Extensions>(name: Name): Extensions[Name] | undefined;
   public get<T extends object = object>(name: string): T | undefined;
   public get<T extends object = object>(name: string): T | undefined {
-    return this.extensionValues.get(name) as T | undefined;
+    return this.definitions.get(name)?.api as T | undefined;
   }
 
   public require<Name extends keyof Extensions>(name: Name): Extensions[Name];
   public require<T extends object = object>(name: string): T;
   public require<T extends object = object>(name: string): T {
-    const extension = this.extensionValues.get(name);
+    const extension = this.definitions.get(name)?.api;
     if (!extension) throw new Error(`Patch extension is not registered: ${name}`);
     return extension as T;
   }
 
   public has(name: string): boolean {
-    return this.extensionValues.has(name);
+    return this.definitions.has(name);
   }
 
   public names(): string[] {
-    return [...this.extensionValues.keys()];
+    return [...this.definitions.entries.keys()];
   }
 
   public beforeWidget(widget: string, text: string): string {
-    for (const [name, definition] of this.entries) {
+    for (const [name, definition] of this.definitions.entries) {
       const callback = this.widget(definition, widget)?.before;
       if (callback && this.available(name, definition)) this.run(name, () => (text = callback(text)));
     }
@@ -72,7 +76,7 @@ class Patch<Extensions extends Record<string, object> = Record<never, never>> {
   }
 
   public afterWidget(widget: string, node: DocumentFragment): void {
-    for (const [name, definition] of this.entries) {
+    for (const [name, definition] of this.definitions.entries) {
       const callback = this.widget(definition, widget)?.after;
       if (callback && this.available(name, definition)) this.run(name, () => callback(node));
     }
@@ -99,7 +103,7 @@ class Patch<Extensions extends Record<string, object> = Record<never, never>> {
   }
 
   public apply(phase: PatchPhase): void {
-    for (const [name, definition] of this.entries) {
+    for (const [name, definition] of this.definitions.entries) {
       const callback = definition[phase];
       if (callback && this.available(name, definition)) this.run(name, callback);
     }

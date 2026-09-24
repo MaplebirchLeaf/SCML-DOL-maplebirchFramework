@@ -13,7 +13,7 @@ class Dynamic extends Lifecycle<string, LifecycleTarget> {
   }
 
   public override Init(): void {
-    for (const [name, feature] of this.items) this.executeSync(feature, 'Init', `dynamic:${name}`);
+    for (const [name, feature] of this.items) this.execute(feature, 'Init', `dynamic:${name}`);
   }
 }
 

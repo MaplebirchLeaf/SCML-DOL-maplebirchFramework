@@ -1,4 +1,12 @@
-##### (v.5.0.0 更新日志):
+##### (v.5.0.1更新日志):
+
+- 修正全局诊断与注册表的清理边界：`Diagnostics.reset()` 清空全局诊断，`Catalog.clear()` 只清空本表；模块、钩子和补丁错误继续汇入统一诊断。
+- 时间跳转与天气刷新解耦；刷新失败时恢复原日期和天气关键点。角色处理器只在匹配目标时检查变量，避免无关模型渲染触发额外检查。
+- 钩子和生命周期统一使用 `execute()`；同步阶段拒绝异步回调并记录错误。公开 `window` 工具保持不可直接赋值，但允许通过属性描述符重新配置。
+- **直接使用 infra 的模组需迁移**：`Diagnostics.clear()` 改为 `reset()`；`Hooks.execute()` 现同步返回结果，异步单个钩子使用 `call()`。
+- `Diagnostics` 不再代理 ModLoader 的 `mod()` 与 `checkDependencies()`；依赖判断由模组加载器负责，`conflicts` 快照仍可查询和导出。
+
+##### (v.5.0.0更新日志):
 
 - 重构框架基础设施：`infra` 统一日志、诊断、注册、钩子、生命周期和事件行为；`services` 负责具体服务，SugarCube、ModLoader 与 DoL 宿主访问集中到 `host`。通用 Patch 与 DoL 专属补丁分离。
 - **模组作者需要检查旧接口**：Core 不再直接暴露整套 `idb`、`lang`、`logger` 等服务对象，旧 `ModuleSystem`、`LanguageManager` 等类名与部分路径已移除。优先使用 `maplebirch.on/once/off/after/trigger`、`t/auto`、`define/with`、`register/get`、`wikify` 和 `log`；高级配置再访问 `maplebirch.services`、`maplebirch.infra` 或 `maplebirch.host`。

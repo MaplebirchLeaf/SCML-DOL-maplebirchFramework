@@ -23,14 +23,6 @@ export interface PatchResult {
   error?: string;
 }
 
-export interface ModRequirement {
-  name: string;
-  range?: string;
-  version?: string;
-  status: 'available' | 'missing' | 'incompatible' | 'invalid';
-  error?: string;
-}
-
 export interface ModConflict {
   source: string;
   dataSource: string;
@@ -113,22 +105,6 @@ export class Diagnostics extends Logger {
     Diagnostics.patchResults.clear();
   }
 
-  public mod(name: string, range?: string): ModRequirement {
-    const mod = this.modloader?.modUtils.getMod(name);
-    if (!mod) return { name, range, status: 'missing' };
-    try {
-      const semver = this.modloader!.dependence.getInfiniteSemVerApi();
-      const valid = range === undefined || semver.satisfies(semver.parseVersion(mod.version).version, semver.parseRange(range));
-      return { name, range, version: mod.version, status: valid ? 'available' : 'incompatible' };
-    } catch (error) {
-      return { name, range, version: mod.version, status: 'invalid', error: Diagnostics.message(error) };
-    }
-  }
-
-  public checkDependencies(): boolean {
-    return this.modloader?.dependence.check() ?? false;
-  }
-
   public get conflicts(): ModConflict[] | undefined {
     return this.modloader?.conflict?.map(({ mod, result }) => ({
       source: mod.dataSource,
@@ -140,10 +116,14 @@ export class Diagnostics extends Logger {
   }
 
   public export(): string {
-    return JSON.stringify({ history: Diagnostics.entries, patches: this.patches }, (_key, value) => (value instanceof Error ? { name: value.name, message: value.message } : value), 2);
+    return JSON.stringify(
+      { history: Diagnostics.entries, patches: this.patches, conflicts: this.conflicts },
+      (_key, value) => (value instanceof Error ? { name: value.name, message: value.message } : value),
+      2
+    );
   }
 
-  public clear(): void {
+  public reset(): void {
     Diagnostics.entries.length = 0;
     Diagnostics.patchResults.clear();
   }

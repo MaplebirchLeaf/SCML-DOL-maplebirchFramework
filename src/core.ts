@@ -109,7 +109,7 @@ const MaplebirchCore = class MaplebirchCore {
 
   public constructor(modSC2DataManager: SC2DataManager, modLoaderGui: Gui) {
     prototype();
-    for (const [key, value] of Object.entries(utils.publicUtils)) Object.defineProperty(window, key, { value, enumerable: true, writable: false, configurable: false });
+    for (const [key, value] of Object.entries(utils.publicUtils)) Object.defineProperty(window, key, { value, enumerable: true, writable: false, configurable: true });
     this.host = Object.freeze({ sugarcube: new SugarCube(), modLoader: new ModLoader(modSC2DataManager, modLoaderGui) });
     this.infra = Object.freeze({ diagnostics: Object.seal(this.host.modLoader.diagnostics), events: Object.seal(new Emitter(this.host.modLoader)) });
     const indexedDB = Object.seal(new IndexedDB(this.host.modLoader));

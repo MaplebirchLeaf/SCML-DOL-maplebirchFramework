@@ -121,7 +121,7 @@ describe('ModLoader host', () => {
 
   test('owns source patch diagnostics', () => {
     const host = new ModLoader({} as SC2DataManager, {} as Gui);
-    host.diagnostics.clear();
+    host.diagnostics.reset();
 
     expect(host.replace('alpha beta', [[/beta/, 'gamma']], 'test source')).toBe('alpha gamma');
     expect(host.diagnostics.patches).toEqual([expect.objectContaining({ kind: 'source', target: 'test source', index: 1, matches: 1, applied: 1, status: 'applied' })]);
@@ -129,7 +129,7 @@ describe('ModLoader host', () => {
 
   test('replaces a named Twine asset through the host', () => {
     const host = new ModLoader({} as SC2DataManager, {} as Gui);
-    host.diagnostics.clear();
+    host.diagnostics.reset();
     const originalDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
     const script = { textContent: '/* twine-user-script #3: "maplebirch\\foo.js" */\nold\n' };
     const story = { getElementsByTagName: (type: string) => (type === 'script' ? [script] : []) };
@@ -142,7 +142,7 @@ describe('ModLoader host', () => {
     } finally {
       if (originalDocument) Object.defineProperty(globalThis, 'document', originalDocument);
       else Reflect.deleteProperty(globalThis, 'document');
-      host.diagnostics.clear();
+      host.diagnostics.reset();
     }
   });
 

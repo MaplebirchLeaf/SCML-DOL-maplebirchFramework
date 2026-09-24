@@ -12,11 +12,13 @@ export const lodash = {
 };
 
 mock.module('@/styles/PromptStyle.css', () => ({ default: '' }));
+mock.module('@/styles/MaplebrichStyles.css', () => ({ default: '' }));
 mock.module('../../src/constants', () => ({
   Languages: ['EN', 'CN'],
   Config: {},
   Translations: {},
   version: '4.3.6',
+  TimeConstants: { MIN_DATE: { timeStamp: -1000000 }, MAX_DATE: { timeStamp: 1000000 }, secondsPerMinute: 60, secondsPerHour: 3600, secondsPerDay: 86400 },
   ModuleState: { REGISTERED: 0, MOUNTED: 1, ERROR: 2, EXPOSED: 3, DISABLED: 4, 0: 'REGISTERED', 1: 'MOUNTED', 2: 'ERROR', 3: 'EXPOSED', 4: 'DISABLED' }
 }));
 

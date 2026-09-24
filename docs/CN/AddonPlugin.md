@@ -52,19 +52,12 @@ if (image !== false) document.querySelector<HTMLImageElement>('#myModIcon')!.src
 
 [loadImage](Utilities.md#loadimage) 复用同一个解析器，并保留旧接口的侧边栏刷新行为。
 
-## 依赖与冲突
+## 冲突信息
 
 ```typescript
 const diagnostics = maplebirch.infra.diagnostics;
-const requirement = diagnostics.mod('OtherMod', '>=1.2.0');
-console.log(requirement.status, requirement.version);
-console.log(diagnostics.checkDependencies());
 console.table(diagnostics.conflicts);
 ```
-
-`mod(name, range?)` 查询普通已加载 Mod，返回名称、版本、范围和状态：`available`、`missing`、`incompatible`；解析抛错时为 `invalid`，并带 `error`。版本判断使用 ModLoader 的版本算法。省略范围时只判断是否已加载。
-
-`checkDependencies()` 调用 ModLoader 的完整依赖及加载顺序检查，返回布尔值，详细原因由其日志报告；ModLoader、游戏版本等特殊依赖也应使用这个入口。
 
 `conflicts` 是上游合并冲突的快照，包含 `source`、`dataSource` 和重名的 `passages`、`scripts`、`styles` 数组；`undefined` 表示上游还没有结果。它表示同名资源冲突，不等同于补丁执行失败，也不表示已经定位冲突双方的具体源码。
 

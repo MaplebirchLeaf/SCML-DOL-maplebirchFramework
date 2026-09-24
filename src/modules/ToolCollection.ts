@@ -34,7 +34,7 @@ class ToolCollection {
     this.macro = Object.freeze(new (constructors.macro ?? defineMacros)(this));
     this.text = Object.seal(new htmlTools(core));
     this.zone = Object.seal(new zonesManager(core));
-    this.patch = new Patch((name, error) => core.log(`Patch ${name}: ${Diagnostics.message(error)}`, 'ERROR'));
+    this.patch = new Patch((name, error) => core.infra.diagnostics.record(`Patch ${name}: ${Diagnostics.message(error)}`, 'ERROR', 'patch', error));
   }
 
   public onInit(...widgets: InitFunction[]): void {
