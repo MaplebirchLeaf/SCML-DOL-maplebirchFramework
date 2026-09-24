@@ -27,32 +27,36 @@ export class Lifecycle<Key = string, Target extends LifecycleTarget = LifecycleT
 
   public postInit(): void {}
 
-  public async execute(target: Target, phase: LifecyclePhase, scope = 'lifecycle'): Promise<LifecycleResult> {
+  public execute(target: Target, phase: 'preInit', scope?: string): Promise<LifecycleResult>;
+  public execute(target: Target, phase: Exclude<LifecyclePhase, 'preInit'>, scope?: string): LifecycleResult;
+  public execute(target: Target, phase: LifecyclePhase, scope?: string): LifecycleResult | Promise<LifecycleResult>;
+  public execute(target: Target, phase: LifecyclePhase, scope = 'lifecycle'): LifecycleResult | Promise<LifecycleResult> {
     const hook = target[phase];
-    if (typeof hook !== 'function') return { called: false, ok: true };
-    try {
-      await hook.call(target);
-      return { called: true, ok: true };
-    } catch (error) {
-      this.record(`${phase} failed: ${Diagnostics.message(error)}`, 'ERROR', scope, error);
-      return { called: true, ok: false, error };
+    if (typeof hook !== 'function') {
+      const result: LifecycleResult = { called: false, ok: true };
+      return phase === 'preInit' ? Promise.resolve(result) : result;
     }
-  }
-
-  public executeSync(target: Target, phase: Exclude<LifecyclePhase, 'preInit'>, scope = 'lifecycle'): LifecycleResult {
-    const hook = target[phase];
-    if (typeof hook !== 'function') return { called: false, ok: true };
     try {
       const result: unknown = hook.call(target);
+      if (phase === 'preInit')
+        return Promise.resolve(result).then(
+          () => ({ called: true, ok: true }),
+          error => this.failure(phase, scope, error)
+        );
       if (result != null && typeof (result as PromiseLike<unknown>).then === 'function') {
         void Promise.resolve(result).catch(error => this.record(`${phase} asynchronous task failed: ${Diagnostics.message(error)}`, 'ERROR', scope, error));
         throw new Error(`${phase} 必须同步执行，不能返回 Promise`);
       }
       return { called: true, ok: true };
     } catch (error) {
-      this.record(`${phase} failed: ${Diagnostics.message(error)}`, 'ERROR', scope, error);
-      return { called: true, ok: false, error };
+      const result = this.failure(phase, scope, error);
+      return phase === 'preInit' ? Promise.resolve(result) : result;
     }
+  }
+
+  private failure(phase: LifecyclePhase, scope: string, error: unknown): LifecycleResult {
+    this.record(`${phase} failed: ${Diagnostics.message(error)}`, 'ERROR', scope, error);
+    return { called: true, ok: false, error };
   }
 }
 

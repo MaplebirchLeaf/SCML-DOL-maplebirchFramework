@@ -1,3 +1,4 @@
+import './runtime';
 import { expect, test } from 'bun:test';
 import type { MaplebirchCore } from '../../src/core';
 import OptionEvents from '../../src/modules/Frameworks/OptionEvents';
