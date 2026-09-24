@@ -147,9 +147,9 @@ Example:
 ```javascript
 maplebirch.tool.addTo('Options', 'MyModOptions');
 
-maplebirch.dynamic.regTimeEvent('onDay', 'myMod.dailyCheck', {
+maplebirch.dynamic.regTimeEvent('onDay', 'myMod:dailyCheck', {
   cond: () => V.myMod?.enabled,
-  event: () => '<<run setup.myMod.dailyCheck()>>'
+  action: () => setup.myMod?.dailyCheck?.()
 });
 
 maplebirch.npc.addStats({

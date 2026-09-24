@@ -44,6 +44,8 @@ Your mod must provide `MyModOptions` as a SugarCube widget. `on()` listens for a
 > [!TIP]
 > Prefer short `maplebirch` entry points such as `on()`, `t()`, `define()`, `with()`, `wikify()`, and `log()`. Reach into `services`, `infra`, or `host` only for advanced needs.
 
+Use `myMod:purpose` for your own event IDs, registration names, and translation keys (for example, `myMod:dailyCheck`). `V.myMod` is a variable object name and is not renamed by this convention.
+
 ## 3. Pick a next step
 
 | Goal                             | Guide                                                                                 |

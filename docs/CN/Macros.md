@@ -72,7 +72,7 @@
 创建会随语言刷新文本的按钮。
 
 ```twine
-<<lanButton "myMod.start">>
+<<lanButton "myMod:start">>
   <<goto "StartPassage">>
 <</lanButton>>
 ```
@@ -80,7 +80,7 @@
 支持格式转换和样式参数：
 
 ```twine
-<<lanButton "myMod.save" "upper" "class:gold">>
+<<lanButton "myMod:save" "upper" "class:gold">>
   <<save>>
 <</lanButton>>
 ```
@@ -101,7 +101,7 @@
 创建会随语言刷新文本的链接。
 
 ```twine
-<<lanLink "myMod.goTown" "Town">>
+<<lanLink "myMod:goTown" "Town">>
   前往城镇
 <</lanLink>>
 ```
@@ -109,13 +109,13 @@
 SugarCube 链接语法：
 
 ```twine
-<<lanLink [[myMod.goTown|Town]]>>
+<<lanLink [[myMod:goTown|Town]]>>
 ```
 
 无目标 passage 时，可作为可点击控件使用：
 
 ```twine
-<<lanLink "myMod.close">>
+<<lanLink "myMod:close">>
   <<replace "#panel">><</replace>>
 <</lanLink>>
 ```
@@ -128,16 +128,16 @@ SugarCube 链接语法：
 
 ```twine
 <<lanListbox "$myMod.mode" autoselect>>
-  <<option "myMod.mode.easy" "easy">>
-  <<option "myMod.mode.normal" "normal">>
-  <<option "myMod.mode.hard" "hard">>
+  <<option "myMod:mode.easy" "easy">>
+  <<option "myMod:mode.normal" "normal">>
+  <<option "myMod:mode.hard" "hard">>
 <</lanListbox>>
 ```
 
 `optionsfrom` 可从数组、对象、Map、Set 生成选项：
 
 ```twine
-<<set _options = [["easy", "myMod.mode.easy"], ["hard", "myMod.mode.hard"]]>>
+<<set _options = [["easy", "myMod:mode.easy"], ["hard", "myMod:mode.hard"]]>>
 
 <<lanListbox "$myMod.mode" autoselect>>
   <<optionsfrom _options>>
@@ -158,7 +158,7 @@ SugarCube 链接语法：
 数组写法：
 
 ```twine
-<<set _options = [["easy", "myMod.easy"], ["normal", "myMod.normal"]]>>
+<<set _options = [["easy", "myMod:easy"], ["normal", "myMod:normal"]]>>
 <<radiobuttonsfrom "$myMod.mode" _options>>
 <</radiobuttonsfrom>>
 ```

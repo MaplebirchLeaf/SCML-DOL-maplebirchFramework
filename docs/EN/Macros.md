@@ -41,7 +41,7 @@ Object form:
 ## lanButton
 
 ```twine
-<<lanButton "myMod.start">>
+<<lanButton "myMod:start">>
   <<goto "StartPassage">>
 <</lanButton>>
 ```
@@ -49,7 +49,7 @@ Object form:
 ## lanLink
 
 ```twine
-<<lanLink "myMod.goTown" "Town">>
+<<lanLink "myMod:goTown" "Town">>
   Go to town
 <</lanLink>>
 ```
@@ -57,15 +57,15 @@ Object form:
 SugarCube link syntax:
 
 ```twine
-<<lanLink [[myMod.goTown|Town]]>>
+<<lanLink [[myMod:goTown|Town]]>>
 ```
 
 ## lanListbox
 
 ```twine
 <<lanListbox "$myMod.mode" autoselect>>
-  <<option "myMod.mode.easy" "easy">>
-  <<option "myMod.mode.hard" "hard">>
+  <<option "myMod:mode.easy" "easy">>
+  <<option "myMod:mode.hard" "hard">>
 <</lanListbox>>
 ```
 
@@ -81,7 +81,7 @@ Generate radio buttons from a string or array.
 Array form:
 
 ```twine
-<<set _options = [["easy", "myMod.easy"], ["normal", "myMod.normal"]]>>
+<<set _options = [["easy", "myMod:easy"], ["normal", "myMod:normal"]]>>
 <<radiobuttonsfrom "$myMod.mode" _options>>
 <</radiobuttonsfrom>>
 ```

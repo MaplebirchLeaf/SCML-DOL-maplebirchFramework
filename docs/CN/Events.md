@@ -36,14 +36,14 @@ maplebirch.on(
   () => {
     console.log('passage start');
   },
-  'myMod passage start'
+  'myMod:passage-start'
 );
 ```
 
-`description` 可用于之后移除监听。同一个函数引用重复注册会返回 `false`。
+`description` 可用于之后移除监听。同一个函数引用重复注册会返回 `false`。上述监听在每次 passage 开始时输出一次 `passage start`；注销后不再输出。
 
 ```javascript
-maplebirch.off(':passagestart', 'myMod passage start');
+maplebirch.off(':passagestart', 'myMod:passage-start');
 ```
 
 也可以用函数引用移除：
@@ -137,6 +137,6 @@ maplebirch.on(':onLoad', save => {
 
 ```javascript
 maplebirch.on(':language', () => {
-  $('.my-mod-title').text(maplebirch.t('myMod.title'));
+  $('.my-mod-title').text(maplebirch.t('myMod:title'));
 });
 ```

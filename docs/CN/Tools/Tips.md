@@ -38,7 +38,7 @@ maplebirch.tool.patch.tips.add('general', '第一条模组小贴士。', '第二
 {
   "general": ["始终可能出现的小贴士。"],
   "weather": ["天气内容启用时出现的小贴士。"],
-  "myMod": ["自定义分类会自动加入随机池。"]
+  "myMod:tips": ["自定义分类会自动加入随机池。"]
 }
 ```
 

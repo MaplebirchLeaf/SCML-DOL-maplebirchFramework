@@ -29,7 +29,7 @@ _可通过 `maplebirch.dynamic.Time` 访问。_
 
   ```javascript
   // 注册一个每天触发的事件
-  maplebirch.dynamic.regTimeEvent('onDay', 'dailyCheck', {
+  maplebirch.dynamic.regTimeEvent('onDay', 'myMod:dailyCheck', {
     action: data => {
       // 每天执行的逻辑
       V.dayCounter = (V.dayCounter || 0) + 1;
@@ -43,7 +43,7 @@ _可通过 `maplebirch.dynamic.Time` 访问。_
   });
 
   // 使用快捷接口
-  maplebirch.dynamic.regTimeEvent('onDay', 'dailyCheck', {
+  maplebirch.dynamic.regTimeEvent('onDay', 'myMod:dailyCheck', {
     action: data => {
       V.dayCounter = (V.dayCounter || 0) + 1;
     },
@@ -62,7 +62,7 @@ _可通过 `maplebirch.dynamic.Time` 访问。_
 - **@return**: boolean，表示是否成功注销
 - **@example**:
   ```javascript
-  maplebirch.dynamic.delTimeEvent('onDay', 'dailyCheck');
+  maplebirch.dynamic.delTimeEvent('onDay', 'myMod:dailyCheck');
   ```
 
 #### **时间旅行 (timeTravel)**
@@ -140,7 +140,7 @@ _可通过 `maplebirch.dynamic.Time` 访问。_
 
 ```javascript
 // 注册每日任务刷新事件
-maplebirch.dynamic.regTimeEvent('onDay', 'dailyQuestRefresh', {
+maplebirch.dynamic.regTimeEvent('onDay', 'myMod:dailyQuestRefresh', {
   action: data => {
     // 刷新每日任务
     V.dailyQuests = generateDailyQuests();
@@ -163,7 +163,7 @@ maplebirch.dynamic.regTimeEvent('onDay', 'dailyQuestRefresh', {
 
 ```javascript
 // 注册每累计10小时触发的事件
-maplebirch.dynamic.regTimeEvent('onHour', 'tenHourReward', {
+maplebirch.dynamic.regTimeEvent('onHour', 'myMod:tenHourReward', {
   action: data => {
     // 每累计10小时给予奖励
     const rewardCount = data.triggeredByAccumulator?.count || 1;
@@ -185,7 +185,7 @@ maplebirch.dynamic.regTimeEvent('onHour', 'tenHourReward', {
 
 ```javascript
 // 注册季节性事件
-maplebirch.dynamic.regTimeEvent('onMonth', 'seasonalEvent', {
+maplebirch.dynamic.regTimeEvent('onMonth', 'myMod:seasonalEvent', {
   action: data => {
     const month = data.currentDate.month;
 
@@ -212,7 +212,7 @@ maplebirch.dynamic.regTimeEvent('onMonth', 'seasonalEvent', {
 
 ```javascript
 // 注册时间旅行时触发的事件
-maplebirch.dynamic.regTimeEvent('onTimeTravel', 'timeTravelEffects', {
+maplebirch.dynamic.regTimeEvent('onTimeTravel', 'myMod:timeTravelEffects', {
   action: data => {
     // 根据时间旅行方向应用不同效果
     if (data.direction === 'forward') {
@@ -239,7 +239,7 @@ maplebirch.dynamic.regTimeEvent('onTimeTravel', 'timeTravelEffects', {
 
 ```javascript
 // 注册只在特定条件下触发的时间事件
-maplebirch.dynamic.regTimeEvent('onHour', 'specialConditionEvent', {
+maplebirch.dynamic.regTimeEvent('onHour', 'myMod:specialConditionEvent', {
   action: data => {
     // 特殊事件逻辑
     triggerSpecialEvent();

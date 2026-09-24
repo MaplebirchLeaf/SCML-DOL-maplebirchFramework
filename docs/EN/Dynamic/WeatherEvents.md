@@ -17,7 +17,7 @@ When your file is loaded through the recommended `script` option, the framework 
 ## Registering A Weather Event
 
 ```javascript
-maplebirch.dynamic.regWeatherEvent('myMod.rainyDay', {
+maplebirch.dynamic.regWeatherEvent('myMod:rainyDay', {
   condition: () => Weather.name === 'rain',
   onEnter: () => {
     V.myModRaining = true;
@@ -45,7 +45,7 @@ maplebirch.dynamic.regWeatherEvent('myMod.rainyDay', {
 ## Field Matching
 
 ```javascript
-maplebirch.dynamic.regWeatherEvent('myMod.coldNight', {
+maplebirch.dynamic.regWeatherEvent('myMod:coldNight', {
   weather: ['clear', 'partlyCloudy'],
   temp: { max: 5 },
   hour: { min: 20, max: 6 },

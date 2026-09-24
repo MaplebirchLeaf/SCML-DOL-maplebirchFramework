@@ -44,6 +44,8 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 > [!TIP]
 > 优先用 `maplebirch` 的短入口，例如 `on()`、`t()`、`define()`、`with()`、`wikify()`、`log()`；只在需要高级能力时进入 `services`、`infra` 或 `host`。
 
+为自定义事件、注册项、翻译键等命名时，推荐 `myMod:用途`（例如 `myMod:dailyCheck`）；`V.myMod` 是变量对象名，不按此规则改写。
+
 ## 3. 按用途继续阅读
 
 | 想做什么            | 下一页                                                                     |

@@ -58,23 +58,23 @@ JSON：
 
 ```json
 {
-  "myMod.title": "我的模组",
-  "myMod.enable": "启用",
-  "myMod.disable": "禁用"
+  "myMod:title": "我的模组",
+  "myMod:enable": "启用",
+  "myMod:disable": "禁用"
 }
 ```
 
 YAML：
 
 ```yaml
-myMod.title: '我的模组'
-myMod.enable: '启用'
-myMod.disable: '禁用'
+myMod:title: '我的模组'
+myMod:enable: '启用'
+myMod:disable: '禁用'
 ```
 
 建议翻译键带模组名前缀，避免和其它模组冲突。
 
-同一模组、同一语言的文件按列表顺序覆盖重名键；不同模组之间，后导入的模组优先提供重名键。建议使用 `myMod.category.name` 形式命名，避免意外覆盖。文件内容只支持平铺的文本键值；数字与布尔值会转为文本，嵌套对象不会被导入。
+同一模组、同一语言的文件按列表顺序覆盖重名键；不同模组之间，后导入的模组优先提供重名键。建议使用 `myMod:category.name` 形式命名，避免意外覆盖。文件内容只支持平铺的文本键值；数字与布尔值会转为文本，嵌套对象不会被导入。
 
 ---
 
@@ -83,7 +83,7 @@ myMod.disable: '禁用'
 按翻译键读取当前语言文本。
 
 ```javascript
-maplebirch.t('myMod.title');
+maplebirch.t('myMod:title');
 ```
 
 如果找不到翻译，会返回 `[key]` 形式的占位文本：
@@ -95,7 +95,7 @@ maplebirch.t('missing.key'); // [missing.key]
 第二个参数 `space` 用于英文时追加空格：
 
 ```javascript
-maplebirch.t('myMod.prefix', true);
+maplebirch.t('myMod:prefix', true);
 ```
 
 ---
@@ -131,7 +131,7 @@ maplebirch.on(':language', () => {
 ## 在脚本中手动写入翻译
 
 ```javascript
-maplebirch.services.translator.set('myMod.button.save', {
+maplebirch.services.translator.set('myMod:button.save', {
   CN: '保存',
   EN: 'Save'
 });
@@ -140,8 +140,8 @@ maplebirch.services.translator.set('myMod.button.save', {
 检查翻译键是否存在：
 
 ```javascript
-if (maplebirch.services.translator.has('myMod.button.save')) {
-  console.log(maplebirch.t('myMod.button.save'));
+if (maplebirch.services.translator.has('myMod:button.save')) {
+  console.log(maplebirch.t('myMod:button.save'));
 }
 ```
 
@@ -164,7 +164,8 @@ if (maplebirch.services.translator.has('myMod.button.save')) {
 
 ## 补充说明
 
-- 翻译键建议使用 `modName.category.name` 形式。
+- 翻译键建议使用 `modName:category.name` 形式。
+
 - `t()` 适合明确翻译键，`auto()` 适合已有文本的自动匹配。
 - 语言文件路径以模组压缩包内部路径为准。
 - 切换语言后，如有自定义 DOM 文本，需要监听 `:language` 自行刷新。

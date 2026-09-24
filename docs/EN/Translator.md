@@ -46,18 +46,18 @@ The existing `"CN": { "file": "i18n/cn.yml" }` form still works; `file` may also
 
 ```json
 {
-  "myMod.title": "My Mod",
-  "myMod.enable": "Enable",
-  "myMod.disable": "Disable"
+  "myMod:title": "My Mod",
+  "myMod:enable": "Enable",
+  "myMod:disable": "Disable"
 }
 ```
 
-Within a mod and language, later files override duplicate keys; between mods, later imports take priority. Prefix keys such as `myMod.category.name` to avoid accidental collisions. Files use flat key/value pairs: strings are accepted, numbers and booleans become text, and nested objects are ignored. JSON, YML, and YAML are supported.
+Within a mod and language, later files override duplicate keys; between mods, later imports take priority. Prefix keys such as `myMod:category.name` to avoid accidental collisions. Files use flat key/value pairs: strings are accepted, numbers and booleans become text, and nested objects are ignored. JSON, YML, and YAML are supported.
 
 ## t()
 
 ```javascript
-maplebirch.t('myMod.title');
+maplebirch.t('myMod:title');
 ```
 
 Missing keys return `[key]`.
@@ -65,7 +65,7 @@ Missing keys return `[key]`.
 The optional second argument appends a space after English text:
 
 ```javascript
-maplebirch.t('myMod.prefix', true);
+maplebirch.t('myMod:prefix', true);
 ```
 
 ## auto()
@@ -97,9 +97,9 @@ If your mod writes translated text into its own DOM nodes, refresh those nodes o
 Use this for a few runtime-generated labels; file imports are preferable for larger sets:
 
 ```javascript
-maplebirch.services.translator.set('myMod.button.save', { CN: '保存', EN: 'Save' });
-if (maplebirch.services.translator.has('myMod.button.save')) {
-  console.log(maplebirch.t('myMod.button.save'));
+maplebirch.services.translator.set('myMod:button.save', { CN: '保存', EN: 'Save' });
+if (maplebirch.services.translator.has('myMod:button.save')) {
+  console.log(maplebirch.t('myMod:button.save'));
 }
 ```
 

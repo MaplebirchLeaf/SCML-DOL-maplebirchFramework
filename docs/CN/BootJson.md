@@ -144,7 +144,7 @@
 脚本中使用：
 
 ```javascript
-maplebirch.t('myMod.text.key');
+maplebirch.t('myMod:text.key');
 maplebirch.auto('Known source text');
 ```
 
@@ -309,11 +309,11 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 {
   "general": ["始终可能出现的小贴士。"],
   "weather": ["启用天气内容时出现的小贴士。"],
-  "myMod": ["自定义分类也会自动加入随机池。"]
+  "myMod:tips": ["自定义分类也会自动加入随机池。"]
 }
 ```
 
-原版分类继续遵循原版内容开关；新增分类默认始终启用，并会自动加入原版 `generateTipsList` 生成的随机池。脚本中也可以调用 `maplebirch.tool.patch.tips.add('myMod', '新的小贴士')`；框架会在原版 `init_tips` 之后合并内容，并自动去除重复文本。
+原版分类继续遵循原版内容开关；新增分类默认始终启用，并会自动加入原版 `generateTipsList` 生成的随机池。脚本中也可以调用 `maplebirch.tool.patch.tips.add('myMod:tips', '新的小贴士')`；框架会在原版 `init_tips` 之后合并内容，并自动去除重复文本。
 
 内联的 `tips` 字符串数组用于提示文本；当所有项均以 `.json`、`.yaml` 或 `.yml` 结尾时，按文件路径读取。
 

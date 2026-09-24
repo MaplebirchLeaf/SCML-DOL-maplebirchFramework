@@ -21,7 +21,7 @@ _可通过 `maplebirch.dynamic.Weather` 访问。_
 - **@example**:
   ```javascript
   // 推荐在 your-script.js 中注册
-  maplebirch.dynamic.regWeatherEvent('rainyDay', {
+  maplebirch.dynamic.regWeatherEvent('myMod:rainyDay', {
     condition: () => Weather.name === 'rain',
     onEnter: () => {
       V.isRaining = true;
@@ -43,7 +43,7 @@ _可通过 `maplebirch.dynamic.Weather` 访问。_
 - **@return**: boolean，表示是否成功注销
 - **@example**:
   ```javascript
-  maplebirch.dynamic.delWeatherEvent('rainyDay');
+  maplebirch.dynamic.delWeatherEvent('myMod:rainyDay');
   ```
 
 #### **添加天气图层修改 (addLayer)**
@@ -135,7 +135,7 @@ _可通过 `maplebirch.dynamic.Weather` 访问。_
   });
 
   // 2. 注册天气事件
-  maplebirch.dynamic.regWeatherEvent('acidRainEvent', {
+  maplebirch.dynamic.regWeatherEvent('myMod:acidRainEvent', {
     condition: () => Weather.name === 'acidRain',
     onEnter: () => {
       V.visibility = 0.4;
@@ -168,7 +168,7 @@ _可通过 `maplebirch.dynamic.Weather` 访问。_
   });
 
   // 5. 注册万圣节天气事件
-  maplebirch.dynamic.regWeatherEvent('halloweenFog', {
+  maplebirch.dynamic.regWeatherEvent('myMod:halloweenFog', {
     condition: () => {
       const today = new DateTime(Time.date);
       return today.month === 10 && today.day === 31 && Weather.name === 'fog';
@@ -204,7 +204,7 @@ _可通过 `maplebirch.dynamic.Weather` 访问。_
 
 ```javascript
 // 在 your-script.js 中使用字段匹配
-maplebirch.dynamic.regWeatherEvent('coldNight', {
+maplebirch.dynamic.regWeatherEvent('myMod:coldNight', {
   weather: ['clear', 'partlyCloudy'], // 晴朗或多云
   temp: { max: 5 }, // 温度不高于5度
   hour: { min: 20, max: 6 }, // 晚上8点到早上6点

@@ -38,7 +38,7 @@ It may also be an object matching the shape of `setup.tips`:
 {
   "general": ["A tip that may always appear."],
   "weather": ["A tip that appears with weather content."],
-  "myMod": ["A custom category automatically joins the random pool."]
+  "myMod:tips": ["A custom category automatically joins the random pool."]
 }
 ```
 

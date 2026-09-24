@@ -25,14 +25,14 @@ maplebirch.on(
   () => {
     console.log('passage started');
   },
-  'myMod passage hook'
+  'myMod:passage-hook'
 );
 ```
 
 Remove it:
 
 ```javascript
-maplebirch.off(':passagestart', 'myMod passage hook');
+maplebirch.off(':passagestart', 'myMod:passage-hook');
 ```
 
 ## Custom Events

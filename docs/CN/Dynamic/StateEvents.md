@@ -21,7 +21,7 @@ _可通过 `maplebirch.dynamic.State` 访问。_
 - **@example**:
   ```javascript
   // 注册一个拦截事件
-  maplebirch.dynamic.regStateEvent('gate', 'encounterBandit', {
+  maplebirch.dynamic.regStateEvent('gate', 'myMod:encounterBandit', {
     output: 'banditEncounter',
     cond: () => V.location === 'forest' && V.time === 'night',
     priority: 5,
@@ -38,7 +38,7 @@ _可通过 `maplebirch.dynamic.State` 访问。_
 - **@return**: boolean，表示是否成功注销
 - **@example**:
   ```javascript
-  maplebirch.dynamic.delStateEvent('gate', 'encounterBandit');
+  maplebirch.dynamic.delStateEvent('gate', 'myMod:encounterBandit');
   ```
 
 ---
@@ -78,7 +78,7 @@ _可通过 `maplebirch.dynamic.State` 访问。_
 
 ```javascript
 // 1. 注册事件
-maplebirch.dynamic.regStateEvent('gate', 'forestBandit', {
+maplebirch.dynamic.regStateEvent('gate', 'myMod:forestBandit', {
   output: 'banditEncounter', // 对应下面定义的widget名称
   cond: () => V.location === 'forest',
   priority: 10,
@@ -101,7 +101,7 @@ maplebirch.dynamic.regStateEvent('gate', 'forestBandit', {
 
 ```javascript
 // 1. 注册潮湿状态提示
-maplebirch.dynamic.regStateEvent('append', 'wetStatus', {
+maplebirch.dynamic.regStateEvent('append', 'myMod:wetStatus', {
   output: 'showWetStatus',
   cond: () => V.wetness > 70,
   priority: 3
@@ -119,7 +119,7 @@ maplebirch.dynamic.regStateEvent('append', 'wetStatus', {
 
 ```javascript
 // 1. 注册事件
-maplebirch.dynamic.regStateEvent('gate', 'merchantEvent', {
+maplebirch.dynamic.regStateEvent('gate', 'myMod:merchantEvent', {
   output: 'merchantEncounter',
   cond: () => V.day % 7 === 0,
   priority: 8,
