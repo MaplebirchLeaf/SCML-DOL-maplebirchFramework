@@ -49,4 +49,4 @@ Callouts have distinct meanings: **TIP** recommends a practice, **NOTE** adds co
 - [Cloud save](CloudSave.md): requires player-owned storage; ordinary content mods do not need it.
 
 > [!NOTE]
-> `services`, `infra`, and `host` are advanced entry points. Most mods should use top-level methods such as `maplebirch.on/once/off/after/trigger`, `t/auto`, `idb/define/with`, `wikify`, and `log`.
+> `services`, `infra`, and `host` are advanced entry points. Most mods should use top-level methods such as `maplebirch.on/once/off/after/trigger`, `t/auto`, `idb/define/with`, and `log`.

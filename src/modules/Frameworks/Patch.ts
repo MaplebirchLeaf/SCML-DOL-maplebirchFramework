@@ -2,18 +2,12 @@ import Catalog from '../../infra/Catalog';
 
 export type PatchPhase = 'init' | 'state';
 
-export interface WidgetPatch {
-  before?: (text: string) => string;
-  after?: (node: DocumentFragment) => void;
-}
-
 export interface PatchDefinition<T extends object = object, Flat extends object = T> {
   api: T;
   legacy?: Flat;
   available?: () => boolean;
   init?: () => void;
   state?: () => void;
-  widgets?: Readonly<Record<string, WidgetPatch>>;
 }
 
 class Patch<Extensions extends Record<string, object> = Record<never, never>> {
@@ -27,8 +21,7 @@ class Patch<Extensions extends Record<string, object> = Record<never, never>> {
       this.report(name, error);
       throw error;
     }
-    const widgets = Object.fromEntries(Object.entries(definition.widgets ?? {}).map(([widget, hooks]) => [widget, { ...hooks }]));
-    this.definitions.add(name, { ...definition, widgets });
+    this.definitions.add(name, definition);
     if (!(name in this)) Object.defineProperty(this, name, { configurable: false, enumerable: true, get: () => definition.api });
     const flat = (definition.legacy ?? definition.api) as Flat;
     for (const key of Object.keys(flat) as Array<keyof Flat & string>) {
@@ -65,25 +58,6 @@ class Patch<Extensions extends Record<string, object> = Record<never, never>> {
 
   public names(): string[] {
     return [...this.definitions.entries.keys()];
-  }
-
-  public beforeWidget(widget: string, text: string): string {
-    for (const [name, definition] of this.definitions.entries) {
-      const callback = this.widget(definition, widget)?.before;
-      if (callback && this.available(name, definition)) this.run(name, () => (text = callback(text)));
-    }
-    return text;
-  }
-
-  public afterWidget(widget: string, node: DocumentFragment): void {
-    for (const [name, definition] of this.definitions.entries) {
-      const callback = this.widget(definition, widget)?.after;
-      if (callback && this.available(name, definition)) this.run(name, () => callback(node));
-    }
-  }
-
-  private widget(definition: PatchDefinition, name: string): WidgetPatch | undefined {
-    return definition.widgets && Object.hasOwn(definition.widgets, name) ? definition.widgets[name] : undefined;
   }
 
   private available(name: string, definition: PatchDefinition): boolean {

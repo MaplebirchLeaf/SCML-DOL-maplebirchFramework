@@ -5,7 +5,6 @@ import type { ModBootJson, ModInfo } from '@scml/types/sugarcube-2-ModLoader/Mod
 import type { JSZipLikeReadOnlyInterface } from '@scml/types/sugarcube-2-ModLoader/JSZipLikeReadOnlyInterface';
 import type { ModZipReader } from '@scml/types/sugarcube-2-ModLoader/ModZipReader';
 import type { SC2DataManager } from '@scml/types/sugarcube-2-ModLoader/SC2DataManager';
-import type { WikifyTracerCallback } from '@scml/types/sugarcube-2-ModLoader/WikifyTracer';
 import type { ModUtils } from '@scml/types/sugarcube-2-ModLoader/Utils';
 import type { CryptOptions } from '../services/CredentialVault';
 import MaplebrichStyles from '@/styles/MaplebrichStyles.css';
@@ -106,11 +105,6 @@ export class AddonPlugin extends Hooks<[BootTask], void> {
 
   public get modUtils(): ModUtils {
     return this.modloader!.modUtils;
-  }
-
-  public wikify(name: string, callbacks: WikifyTracerCallback): void {
-    if (!name.trim()) throw new Error('Wikify callback name must not be empty');
-    this.SC2DataManager.getWikifyTracer().addCallback(`maplebirch:${name}`, callbacks);
   }
 
   public hook<T>(name: string, handler: BootHandler<T>): boolean {

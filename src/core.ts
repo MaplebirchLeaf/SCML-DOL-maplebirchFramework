@@ -3,7 +3,6 @@
 import type { Passage } from '@scml/types/sugarcube-2-ModLoader/SugarCube2';
 import type { TwineSugarCube } from '../types/twine-sugarcube';
 import type { SC2DataManager } from '@scml/types/sugarcube-2-ModLoader/SC2DataManager';
-import type { WikifyTracerCallback } from '@scml/types/sugarcube-2-ModLoader/WikifyTracer';
 import type { Gui } from '@scml/types/Mod_LoaderGui/Gui';
 import { author, lastModifiedBy, lastUpdate } from '../package.json';
 import * as marked from 'marked';
@@ -109,7 +108,10 @@ const MaplebirchCore = class MaplebirchCore {
 
   public constructor(modSC2DataManager: SC2DataManager, modLoaderGui: Gui) {
     prototype();
-    for (const [key, value] of Object.entries(utils.publicUtils)) Object.defineProperty(window, key, { value, enumerable: true, writable: false, configurable: true });
+    for (const [key, value] of Object.entries(utils.publicUtils)) {
+      if (Object.getOwnPropertyDescriptor(window, key)?.configurable === false) continue;
+      Object.defineProperty(window, key, { value, enumerable: true, writable: false, configurable: false });
+    }
     this.host = Object.freeze({ sugarcube: new SugarCube(), modLoader: new ModLoader(modSC2DataManager, modLoaderGui) });
     this.infra = Object.freeze({ diagnostics: Object.seal(this.host.modLoader.diagnostics), events: Object.seal(new Emitter(this.host.modLoader)) });
     const indexedDB = Object.seal(new IndexedDB(this.host.modLoader));
@@ -189,6 +191,10 @@ const MaplebirchCore = class MaplebirchCore {
     return this.services.modules.dependencyGraph;
   }
 
+  public get modList(): string[] {
+    return this.services.addonPlugin.modList;
+  }
+
   public on<Name extends keyof CoreEvents>(eventName: Name, callback: EventCallback<CoreEvents[Name]>, description?: string): boolean;
   public on<Name extends string, Args extends unknown[]>(eventName: Name extends keyof CoreEvents ? never : Name, callback: EventCallback<Args>, description?: string): boolean;
   public on<Args extends unknown[]>(eventName: string, callback: EventCallback<Args>, description = ''): boolean {
@@ -219,10 +225,6 @@ const MaplebirchCore = class MaplebirchCore {
 
   public define<T extends object>(name: string, module: T & Module, dependencies: string[] = []): boolean {
     return this.services.modules.register(name, module, dependencies);
-  }
-
-  public wikify(name: string, callbacks: WikifyTracerCallback): void {
-    this.services.addonPlugin.wikify(name, callbacks);
   }
 
   public idb(name: string, options: IDBObjectStoreParameters = { keyPath: 'id' }, indexes: StoreIndex[] = []): boolean {

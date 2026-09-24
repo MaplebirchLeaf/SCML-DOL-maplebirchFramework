@@ -5,13 +5,33 @@ let transaction: { done: Promise<void>; abort(): void; objectStore?(name: string
 let openError: Error | null = null;
 let storesAvailable = true;
 let closed = 0;
+let deleted = 0;
+let rebuildPending = false;
+let oldVersionPending = false;
 let requestedVersions: Array<number | undefined> = [];
 mock.module('idb', () => ({
-  async openDB(_name: string, version?: number) {
+  async openDB(
+    _name: string,
+    version?: number,
+    options?: {
+      upgrade(db: { objectStoreNames: { contains(name: string): boolean }; createObjectStore(name: string): { indexNames: { contains(name: string): boolean }; createIndex(): void } }): void;
+    }
+  ) {
     requestedVersions.push(version);
     if (version !== undefined && openError) throw openError;
+    if (rebuildPending || oldVersionPending) {
+      options?.upgrade({
+        objectStoreNames: { contains: () => storesAvailable },
+        createObjectStore: () => {
+          storesAvailable = true;
+          return { indexNames: { contains: () => true }, createIndex() {} };
+        }
+      });
+      rebuildPending = false;
+      oldVersionPending = false;
+    }
     return {
-      version: 50001,
+      version: version ?? IndexedDB.DATABASE_VERSION,
       objectStoreNames: { contains: () => storesAvailable },
       transaction: () => transaction,
       close() {
@@ -19,7 +39,13 @@ mock.module('idb', () => ({
       }
     };
   },
-  async deleteDB() {}
+  async deleteDB() {
+    deleted++;
+    if (openError?.name === 'VersionError') openError = null;
+    storesAvailable = false;
+    rebuildPending = true;
+    transaction = { done: Promise.resolve(), abort() {}, objectStore: () => ({ indexNames: { contains: () => true } }) };
+  }
 }));
 const { default: IndexedDB } = await import('../../src/services/IndexedDB');
 
@@ -40,13 +66,35 @@ test('announces database readiness at INFO before the saved log level can be rea
   expect(messages).toContainEqual({ message: 'IDB数据库初始化完成', level: 'INFO', scope: 'indexedDB' });
 });
 
-test('opens an existing newer database without downgrading or deleting it', async () => {
+test('rejects schema registration after the database is open', async () => {
+  const service = new IndexedDB();
+  await service.init();
+  expect(() => service.define('late')).toThrow('IDB存储必须在数据库打开前注册: late');
+});
+
+test('upgrades an older database without clearing it', async () => {
   requestedVersions = [];
+  deleted = 0;
+  storesAvailable = false;
+  oldVersionPending = true;
+  transaction = { done: Promise.resolve(), abort() {}, objectStore: () => ({ indexNames: { contains: () => true } }) };
+  const service = new IndexedDB();
+  service.define('settings', { keyPath: 'key' });
+  await service.init();
+  expect(requestedVersions).toEqual([IndexedDB.DATABASE_VERSION]);
+  expect(deleted).toBe(0);
+  expect(storesAvailable).toBe(true);
+});
+
+test('recreates a newer database at the current framework version', async () => {
+  requestedVersions = [];
+  deleted = 0;
   openError = new DOMException('requested version is lower', 'VersionError');
   const service = new IndexedDB();
   try {
     await service.init();
-    expect(requestedVersions).toEqual([IndexedDB.DATABASE_VERSION, undefined]);
+    expect(requestedVersions).toEqual([IndexedDB.DATABASE_VERSION, IndexedDB.DATABASE_VERSION]);
+    expect(deleted).toBe(1);
     expect(await service.init()).toBeUndefined();
     expect(requestedVersions).toHaveLength(2);
   } finally {
@@ -54,27 +102,47 @@ test('opens an existing newer database without downgrading or deleting it', asyn
   }
 });
 
-test('does not bypass schema validation when opening a newer database', async () => {
+test('recreates all registered stores when an existing database is newer', async () => {
   requestedVersions = [];
-  closed = 0;
+  deleted = 0;
   openError = new DOMException('requested version is lower', 'VersionError');
   storesAvailable = false;
   const service = new IndexedDB();
   service.define('settings', { keyPath: 'key' });
   try {
-    await expect(service.init()).rejects.toThrow('IDB缺少存储: settings');
-    expect(requestedVersions).toEqual([IndexedDB.DATABASE_VERSION, undefined]);
-    expect(closed).toBe(1);
+    await service.init();
+    expect(requestedVersions).toEqual([IndexedDB.DATABASE_VERSION, IndexedDB.DATABASE_VERSION]);
+    expect(deleted).toBe(1);
+    expect(storesAvailable).toBe(true);
   } finally {
     openError = null;
     storesAvailable = true;
   }
 });
 
-test('rejects a newer database that lacks a required index', async () => {
+test('recreates a current-version database that lacks a registered store', async () => {
+  requestedVersions = [];
+  deleted = 0;
+  closed = 0;
+  storesAvailable = false;
+  transaction = { done: Promise.resolve(), abort() {}, objectStore: () => ({ indexNames: { contains: () => true } }) };
+  const service = new IndexedDB();
+  service.define('cheats', { keyPath: 'name' });
+  try {
+    await service.init();
+    expect(requestedVersions).toEqual([IndexedDB.DATABASE_VERSION, IndexedDB.DATABASE_VERSION]);
+    expect(closed).toBe(1);
+    expect(deleted).toBe(1);
+    expect(storesAvailable).toBe(true);
+  } finally {
+    storesAvailable = true;
+  }
+});
+
+test('recreates a current-version database that lacks a required index', async () => {
   requestedVersions = [];
   closed = 0;
-  openError = new DOMException('requested version is lower', 'VersionError');
+  deleted = 0;
   transaction = {
     done: Promise.resolve(),
     abort() {},
@@ -83,9 +151,10 @@ test('rejects a newer database that lacks a required index', async () => {
   const service = new IndexedDB();
   service.define('settings', { keyPath: 'key' }, [{ name: 'byKey', keyPath: 'key' }]);
   try {
-    await expect(service.init()).rejects.toThrow('IDB缺少索引: settings.byKey');
-    expect(requestedVersions).toEqual([IndexedDB.DATABASE_VERSION, undefined]);
+    await service.init();
+    expect(requestedVersions).toEqual([IndexedDB.DATABASE_VERSION, IndexedDB.DATABASE_VERSION]);
     expect(closed).toBe(1);
+    expect(deleted).toBe(1);
   } finally {
     openError = null;
   }

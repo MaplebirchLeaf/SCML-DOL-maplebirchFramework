@@ -166,7 +166,7 @@ maplebirch.tool.onInit('MyModInitWidget');
 
 ### 源码适配
 
-没有适用的渲染钩子、需要修改原版内部执行分支时，使用 `maplebirch.tool.inject()`。普通 passage 放在 `locationPassage`，带 widget 标签的 passage 放在 `widgetPassage`。
+需要修改原版内容或内部执行分支时，使用 `maplebirch.tool.inject()`。普通 passage 放在 `locationPassage`，带 widget 标签的 passage 放在 `widgetPassage`。
 
 ```javascript
 maplebirch.tool.inject({

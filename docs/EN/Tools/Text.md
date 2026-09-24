@@ -1,6 +1,6 @@
 # Text and HTML tools
 
-Use `maplebirch.tool.text` to register content, build fragments and edit existing nodes. For widgets, pass the fragment received by the hook. Replacement methods default to the current page's `#passage-content` only when no root is supplied.
+Use `maplebirch.tool.text` to register content, build fragments and edit existing nodes. Pass the page root supplied by an event when editing displayed content. Replacement methods default to the current page's `#passage-content` only when no root is supplied.
 
 ## Entry Point
 
@@ -15,25 +15,25 @@ const text = maplebirch.tool.text;
 text.add(
   'myMod:relationship',
   tools => {
-    const label = tools.context.label;
-    if (typeof label === 'string') tools.text(label, 'gold');
+    tools.text('Relationship details', 'gold');
   },
   'myMod:label'
 );
 
-maplebirch.wikify('myMod:relationship', {
-  afterWidget(_source, name, passageTitle, _passage, node) {
-    if (name !== 'relationshiptext') return;
-    text.renderInto(node, 'myMod:relationship', {
-      widgetName: name,
-      passageTitle,
-      label: 'Relationship details'
-    });
+maplebirch.tool.inject({
+  widgetPassage: {
+    'Widgets Named Npcs': [
+      {
+        src: '<<relationshiptext>>',
+        applyafter: '<<maplebirchTextOutput "myMod:relationship">>',
+        expected: 1
+      }
+    ]
   }
 });
 ```
 
-This appends content after every `relationshiptext` invocation without replacing its source. A real Mod should narrow the target by passage, NPC or display conditions. See [ModLoader Integration](../AddonPlugin.md#render-hooks) for hooks.
+This inserts the text macro after a specific source anchor. Set `expected` to the match count in the target version; a mismatch leaves the passage unchanged and appears in the [patch report](../AddonPlugin.md#patch-reports). A real Mod should narrow the target by passage, NPC or display conditions.
 
 ## Registration and Rendering
 
@@ -73,12 +73,9 @@ The macro accepts strings, string arrays and comma-separated keys:
 ## Editing Existing Content
 
 ```typescript
-maplebirch.wikify('myMod:links', {
-  afterWidget(_source, name, _title, _passage, node) {
-    if (name !== 'myModMenu') return;
-    const link = node.querySelector('a[data-passage="Town"]');
-    if (link) maplebirch.tool.text.renameLink(link, 'Visit town');
-  }
+maplebirch.on(':passagedisplay', (_passage, root) => {
+  const link = root.querySelector('a[data-passage="Town"]');
+  if (link) maplebirch.tool.text.renameLink(link, 'Visit town');
 });
 ```
 

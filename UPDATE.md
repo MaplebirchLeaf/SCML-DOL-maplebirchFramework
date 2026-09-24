@@ -1,3 +1,10 @@
+##### (v.5.0.2更新日志):
+
+- 修复 IndexedDB 遇到更高数据库版本，或同版本数据库缺少已注册存储、索引时无法正常初始化的问题；按当前框架版本清空并重建数据库。**这一恢复过程会清除原数据库中的设置和模组数据。**
+- 修复 DoLP 的变量初始化顺序、战斗 Ask 选项及若干双版本补丁定位。
+- 移除未实际接入 SugarCube 解析过程的 `wikify` 回调接口，古董和小贴士改为有效的源码补丁；默认打包仅生成模组 ZIP，modpack 仍可按需单独生成。
+- `maplebirch.tool.define/defineS` 自动等待 SugarCube 注册宏，并在故事就绪时恢复被覆盖的定义；普通宏无需模组自行监听 `:sugarcube`。补充模组列表兼容入口和相关回归测试。
+
 ##### (v.5.0.1更新日志):
 
 - 修正全局诊断与注册表的清理边界：`Diagnostics.reset()` 清空全局诊断，`Catalog.clear()` 只清空本表；模块、钩子和补丁错误继续汇入统一诊断。
@@ -9,7 +16,7 @@
 ##### (v.5.0.0更新日志):
 
 - 重构框架基础设施：`infra` 统一日志、诊断、注册、钩子、生命周期和事件行为；`services` 负责具体服务，SugarCube、ModLoader 与 DoL 宿主访问集中到 `host`。通用 Patch 与 DoL 专属补丁分离。
-- **模组作者需要检查旧接口**：Core 不再直接暴露整套 `idb`、`lang`、`logger` 等服务对象，旧 `ModuleSystem`、`LanguageManager` 等类名与部分路径已移除。优先使用 `maplebirch.on/once/off/after/trigger`、`t/auto`、`define/with`、`register/get`、`wikify` 和 `log`；高级配置再访问 `maplebirch.services`、`maplebirch.infra` 或 `maplebirch.host`。
+- **模组作者需要检查旧接口**：Core 不再直接暴露整套 `idb`、`lang`、`logger` 等服务对象，旧 `ModuleSystem`、`LanguageManager` 等类名与部分路径已移除。优先使用 `maplebirch.on/once/off/after/trigger`、`t/auto`、`define/with`、`register/get` 和 `log`；高级配置再访问 `maplebirch.services`、`maplebirch.infra` 或 `maplebirch.host`。
 - 翻译服务改为 `Translator`，单个语言可按顺序导入多个文件；内置 CN/EN 文本按功能拆分。模块注册统一附带全局诊断日志，状态初始化不再通过生成的 State 宏间接触发。
 - 旧版框架遇到更高版本的现有 IndexedDB 时，按数据库当前版本重新打开并校验必需存储和索引；不降级或清空数据，结构不兼容时仍明确报错。
 - 补齐基础类与服务测试、NPC 怀孕等模组开发文档；类型包与模组 ZIP 收录项目双重许可证，自动校验第三方 notice 与归档内容、可重复性。

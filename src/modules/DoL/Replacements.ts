@@ -37,6 +37,15 @@ const locationPassage = {
 
 // prettier-ignore
 const widgetPassage = {
+  MuseumAntiques: [
+    { src: '<</widget>>\n\n<<widget "museumPaintingText">>', applybefore: '\t<<run maplebirch.tool.patch.antiques.inject(_museumAntiqueText)>>\n', expected: 1 }
+  ],
+  'Widgets Museum': [
+    { src: '<</widget>>\n\n<<widget "museumtalk">>', applybefore: '\t<<for _maplebirchAntique range Object.keys(maplebirch.tool.patch.antiques.data)>>\n\t\t<<if $museumAntiques.antiques[_maplebirchAntique] is "found">><<museumAntiqueStatus _maplebirchAntique "talk">><</if>>\n\t<</for>>\n', expected: 1 }
+  ],
+  'Widgets Tips': [
+    { src: '<</widget>>\n\n<<widget "printTipsList">>', applybefore: '\t<<run maplebirch.tool.patch.tips.inject(setup.tipsList)>>\n', expected: 1 }
+  ],
   Characteristics: [
     { src: '<<bodywriting>>', applyafter: '\n\n\t<<maplebirchCharaDescription>>' },
     { src: '<</silently>>\n\n\t\t\t<<characteristic-box _purityConfig>>', applybefore: '\t<<maplebirchDegreesBonusDisplay>>\n\t\t\t' },
@@ -80,7 +89,7 @@ const widgetPassage = {
     { srcmatch: /(?:<<NPC_CN_NAME \$NPCName\[_npcId\]\.nam>>——<span style="text-transform: capitalize;"><<print[\s\S]*?>><\/span>|\$NPCName\[_npcId\]\.nam the <span style="text-transform: capitalize;">\$NPCName\[_npcId\]\.title<\/span>|<<NPC_CN_NAME \$NPCName\[_npcId\]\.nam>>——<span style="text-transform: capitalize;"><<print setup\.NPC_CN_TITLE\(\$NPCName\[_npcId\]\.title\)>><\/span>)/, to: '<<= maplebirch.auto($NPCName[_npcId].nam) + (lanSwitch(" the ","——"))>><span style="text-transform: capitalize;"><<= maplebirch.auto($NPCName[_npcId].title)>></span>' },
     { srcmatchgroup: /\[(?:setup\.NPC_CN_NAME\()?_sortedNPCList\[_sortedId](?:\))?\]/g, to: '[maplebirch.auto(_sortedNPCList[_sortedId])]' },
     { srcmatch: /<label>\s*<<radiobutton\s+"\$NPCName\[_npcId\]\.pronoun"\s+"m"\s+autocheck>>[\s\S]*?<\/label>/, applyafter: ' | <label><<radiobutton "$NPCName[_npcId].pronoun" "n" autocheck>><<= maplebirch.t("neutral").convert("title")>></label>' },
-    { srcmatch: /<<if \$debug is 1>>(\s*\|\s*<label>\s*<<radiobutton\s+"\$NPCName\[_npcId\]\.gender"\s+"h"\s+autocheck>>[\s\S]*?<\/label>)\s*<<\/if>>/, to: '$1 | <label><<radiobutton "$NPCName[_npcId].gender" "n" autocheck>><<= maplebirch.t("neither").convert("title")>></label>' },
+    { srcmatch: /(?:<<if \$debug is 1>>)?(\s*\|\s*<label>\s*<<radiobutton\s+"\$NPCName\[_npcId\]\.gender"\s+"h"\s+autocheck>>[\s\S]*?<\/label>)(?:\s*<<\/if>>)?/, to: '$1 | <label><<radiobutton "$NPCName[_npcId].gender" "n" autocheck>><<= maplebirch.t("neither").convert("title")>></label>' },
     { src: '</span>\n\t\t\t<</if>>\n\t\t</div>', applyafter: '\n\t\t<div id="maplebirchNPCHairStyleOptions" class="settingsToggleItemWide"><<maplebirchNPCHairStyleOptions>></div>' },
   ],
   Widgets: [
@@ -100,7 +109,7 @@ const widgetPassage = {
     { src: '<<if $chestaction is "rub">>', applybefore: '<<maplebirchCombatAction "chestaction">>\n\t\t' },
   ],
   'Widgets Actions Speak': [
-    { src: '<<set _askValues to Object.values(_askActions)>>', applyafter: '<<run maplebirch.combat.CombatAction.patchOptions(_askActions, "ask")>><<set _askValues to Object.values(_askActions)>>' }
+    { src: '<<set _askValues to Object.values(_askActions)>>', applyafter: '\n\t\t<<set _askValues = Object.values(maplebirch.combat.CombatAction.patchOptions(_askActions, "ask"))>>' }
   ],
   'Widgets Struggle': [
     { src: '<<widget "struggle_effects">>', applyafter: '\n\t<<maplebirchCombatAction "Struggle" "leftaction" "rightaction" "feetaction" "mouthaction">>' }

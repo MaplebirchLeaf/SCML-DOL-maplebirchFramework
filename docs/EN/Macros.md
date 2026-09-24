@@ -99,7 +99,9 @@ Replace the framework overlay body from inside overlay content.
 ## Custom Macros
 
 ```javascript
-maplebirch.tool.macro.defineS('myModHello', name => {
+maplebirch.tool.defineS('myModHello', name => {
   return `Hello, ${name}`;
 });
 ```
+
+Use `maplebirch.tool.define()` when the handler needs the SugarCube macro context. Both shortcuts retain the arguments of `tool.macro.define()` and `tool.macro.defineS()`. The framework registers definitions when SugarCube becomes available and restores them if vanilla replaces them before story readiness; no `once(':sugarcube')` wrapper is needed. If you need to read and wrap an original macro handler, wait until `:storyready`. The `macro` service remains available for other macro-management methods.

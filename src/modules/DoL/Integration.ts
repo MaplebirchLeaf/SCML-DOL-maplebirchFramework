@@ -6,11 +6,13 @@ import type AddonPlugin from '../../services/AddonPlugin';
 import { patchTimeConstantsAsset, patchDateTimeAsset } from '../TimeStateWeather/DateTime';
 import { patchTimeAsset } from '../TimeStateWeather/Time';
 import ImageLoader from '../Frameworks/ImageLoader';
+import DoLPcompat from '../../compat/DoLPcompat';
 
 class DoLIntegration {
   public constructor(private readonly core: MaplebirchCore) {}
 
   public install(): void {
+    DoLPcompat.install(this.core);
     Object.defineProperty(window, 'loadImage', { value: ImageLoader.load, enumerable: true, writable: false, configurable: false });
     const addon = this.core.services.addonPlugin;
     addon.excludedMods.add('Simple Frameworks');
