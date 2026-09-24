@@ -99,6 +99,24 @@ const widgetPassage = {
     { src: '<<if $penisaction is "rest">>', applybefore: '<<maplebirchCombatAction "penisaction">>\n\t\t' },
     { src: '<<if $chestaction is "rub">>', applybefore: '<<maplebirchCombatAction "chestaction">>\n\t\t' },
   ],
+  'Widgets Actions Speak': [
+    { src: '<<set _askValues to Object.values(_askActions)>>', applyafter: '<<run maplebirch.combat.CombatAction.patchOptions(_askActions, "ask")>><<set _askValues to Object.values(_askActions)>>' }
+  ],
+  'Widgets Struggle': [
+    { src: '<<widget "struggle_effects">>', applyafter: '\n\t<<maplebirchCombatAction "Struggle" "leftaction" "rightaction" "feetaction" "mouthaction">>' }
+  ],
+  'Widgets Swarm Effects': [
+    { src: '<<widget "swarmeffects">>', applyafter: '\n\t<<maplebirchCombatAction "Swarm" "leftaction" "rightaction" "feetaction">>' }
+  ],
+  'Widgets Vore Effects': [
+    { src: '<<widget "voreeffects">>', applyafter: '\n\t<<maplebirchCombatAction "Vore" "leftaction" "rightaction">>' }
+  ],
+  'Machine Effects': [
+    { src: '<<widget "machine_effects">>', applyafter: '\n\t<<maplebirchCombatAction "Machine" "leftaction" "rightaction" "feetaction">>' }
+  ],
+  'Widgets Tentacles': [
+    { src: '<<widget "effectstentacles">>', applyafter: '\n\t<<maplebirchCombatAction "Tentacle" "leftaction" "rightaction" "feetaction" "mouthaction" "penisaction" "vaginaaction" "anusaction" "chestaction">>' }
+  ],
   Traits: [
     { src: '<div id="traitListsSearch">', applybefore: '<<run maplebirch.tool.patch.traits.inject(_traitLists)>>\n\t' }
   ],

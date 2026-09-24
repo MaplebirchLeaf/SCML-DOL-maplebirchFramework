@@ -1,6 +1,6 @@
 import type { MaplebirchCore } from '../core';
 import dol from '../host/DoL';
-import { actionTypes, type ActionType } from '../modules/CombatAddon/CombatAction';
+import { actionTypes, combatTypes, type ActionType, type CombatType } from '../modules/CombatAddon/CombatAction';
 import { _language, _languageSwitch, _languageButton, _languageLink, _languageListbox, _radiobuttonsfrom, _overlayReplace } from '.';
 
 type Updater = () => void;
@@ -160,8 +160,11 @@ class Macros {
     macro.define('maplebirchReplace', (name: string, type: string) => _overlayReplace(name, type));
     macro.define('maplebirchTextOutput', core.tool.text.makeTextOutput());
     macro.define('maplebirchCombatAction', function () {
-      if (!this.args.every((arg): arg is ActionType => (actionTypes as readonly unknown[]).includes(arg))) return this.error('Invalid combat action type.');
-      const effects = core.combat?.CombatAction?.effect?.(...this.args);
+      const [first, ...rest] = this.args;
+      const combatType = typeof first === 'string' && (combatTypes as readonly string[]).includes(first) ? (first as CombatType) : undefined;
+      const actions = combatType ? rest : this.args;
+      if (!actions.every((arg): arg is ActionType => (actionTypes as readonly unknown[]).includes(arg))) return this.error('Invalid combat action type.');
+      const effects = core.combat?.CombatAction?.effect(combatType, ...actions);
       if (effects) this.output.append(core.host.sugarcube.require().Wikifier.wikifyEval(effects));
     });
     macro.defineS('maplebirchFrameworkVersions', () => `<div id='modversions'>Maplebirch Framework v${core.meta.version}|${core.services.addonPlugin.modList.length}</div>`);

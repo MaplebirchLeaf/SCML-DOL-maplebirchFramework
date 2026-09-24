@@ -4301,15 +4301,18 @@ declare class NPCManager {
 //#region src/modules/CombatAddon/CombatAction.d.ts
 declare const actionTypes: readonly ['leftaction', 'rightaction', 'feetaction', 'mouthaction', 'penisaction', 'vaginaaction', 'anusaction', 'chestaction', 'thighaction'];
 type ActionType = (typeof actionTypes)[number];
-type CombatType = 'Default' | 'Self' | 'Struggle' | 'Swarm' | 'Vore' | 'Machine' | 'Tentacle';
+type OptionType = ActionType | 'ask';
+declare const combatTypes: readonly ['Default', 'Self', 'Struggle', 'Swarm', 'Vore', 'Machine', 'Tentacle'];
+type CombatType = (typeof combatTypes)[number];
 type ActionValue = string | number;
 interface Context {
-  actionType?: ActionType;
+  actionType?: OptionType;
   combatType?: CombatType;
   encounterType?: CombatType;
   action?: ActionValue;
   id?: string;
   originalCount?: number;
+  label?: string;
 }
 interface ActionEntry {
   id: string;
@@ -4320,7 +4323,7 @@ interface ActionEntry {
   color: (ctx: Context) => string;
   difficulty: (ctx: Context) => string;
   effect: (ctx: Context) => string;
-  combatType: (ctx: Context) => CombatType;
+  combatType: (ctx: Context) => CombatType | CombatType[];
   order: (ctx: Context) => number;
 }
 interface ActionConfig {
@@ -4332,7 +4335,16 @@ interface ActionConfig {
   color?: string | ((ctx: Context) => string);
   difficulty?: string | ((ctx: Context) => string);
   effect?: string | ((ctx: Context) => string);
-  combatType?: CombatType | ((ctx: Context) => CombatType);
+  combatType?: CombatType | CombatType[] | ((ctx: Context) => CombatType | CombatType[]);
+  order?: number | ((ctx: Context) => number);
+}
+interface ModificationConfig {
+  id: string;
+  actionType: OptionType | OptionType[];
+  value: ActionValue;
+  combatType?: CombatType | CombatType[] | ((ctx: Context) => CombatType | CombatType[]);
+  cond?: (ctx: Context) => boolean;
+  display?: string | ((ctx: Context) => string);
   order?: number | ((ctx: Context) => number);
 }
 interface OptionsTable {
@@ -4340,12 +4352,15 @@ interface OptionsTable {
 }
 declare class CombatActions {
   readonly actions: ActionEntry[];
+  private readonly modifications;
+  private matches;
   reg(...configs: ActionConfig[]): this;
+  modify(...configs: ModificationConfig[]): this;
   private eval;
-  patchOptions(optionsTable: OptionsTable, actionType: ActionType, combatType?: CombatType): OptionsTable;
+  patchOptions(optionsTable: OptionsTable, actionType: OptionType, combatType?: CombatType): OptionsTable;
   color(action: ActionValue, encounterType?: CombatType): string | null;
   difficulty(action: ActionValue, combatType?: CombatType): string | null;
-  effect(...actionTypes: ActionType[]): string;
+  effect(combatType: CombatType | undefined, ...actionTypes: ActionType[]): string;
 }
 //#endregion
 //#region src/modules/Combat.d.ts
