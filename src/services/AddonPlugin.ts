@@ -87,7 +87,7 @@ export class AddonPlugin extends Hooks<[BootTask], void> {
     readonly modules: Modules,
     private readonly services: AddonServices
   ) {
-    super(modloader);
+    super(modloader, 'continue');
     this.info = new Catalog(modloader);
     this.log('框架开始初始化流程', 'INFO');
     this.modUtils.getAddonPluginManager().registerAddonPlugin('maplebirch', 'maplebirchAddon', this);

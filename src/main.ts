@@ -5,7 +5,7 @@ export { Save, type SaveObject } from './host/SugarCube';
 export { default as AddonPlugin, type AddonServices, type BootTask, type BootHandler } from './services/AddonPlugin';
 export { default as Resources } from './host/Resources';
 export { default as Logger, type LogLevel } from './infra/Logger';
-export { default as Diagnostics, type DiagnosticRecord, type PatchResult, type ModRequirement, type ModConflict } from './infra/Diagnostics';
+export { default as Diagnostics, type DiagnosticRecord, type PatchResult, type ModConflict } from './infra/Diagnostics';
 export { default as Catalog } from './infra/Catalog';
 export { default as Hooks, type HookCallback } from './infra/Hooks';
 export { default as Lifecycle, type LifecyclePhase, type LifecycleTarget, type LifecycleResult } from './infra/Lifecycle';

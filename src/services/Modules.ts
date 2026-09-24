@@ -336,7 +336,7 @@ export class Modules extends Lifecycle<string, Module> {
       const module = this.registry.modules.get(name);
       if (!module) continue;
 
-      const result = this.executeSync(module, 'Init', `modules:${name}`);
+      const result = this.execute(module, 'Init', `modules:${name}`);
       if (result.ok) {
         this.registry.states.set(name, ModuleState.MOUNTED);
       } else {
@@ -350,7 +350,7 @@ export class Modules extends Lifecycle<string, Module> {
       if (this.registry.states.get(name) !== ModuleState.MOUNTED) continue;
       const module = this.registry.modules.get(name);
       if (!module) continue;
-      this.executeSync(module, phase, `modules:${name}`);
+      this.execute(module, phase, `modules:${name}`);
     }
     this.write(`${label}完成`, 'DEBUG', 'modules');
   }

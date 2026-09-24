@@ -52,19 +52,12 @@ Concurrent loads of the same path share a request. The cache retains the resolve
 
 [loadImage](Utilities.md#loadimage) uses this resolver and retains its sidebar refresh behavior.
 
-## Dependencies and Conflicts
+## Conflicts
 
 ```typescript
 const diagnostics = maplebirch.infra.diagnostics;
-const requirement = diagnostics.mod('OtherMod', '>=1.2.0');
-console.log(requirement.status, requirement.version);
-console.log(diagnostics.checkDependencies());
 console.table(diagnostics.conflicts);
 ```
-
-`mod(name, range?)` queries an ordinary loaded Mod and returns its name, version, range and status: `available`, `missing` or `incompatible`. Parsing exceptions return `invalid` with `error`. It uses ModLoader's version algorithm; omit the range to check presence only.
-
-`checkDependencies()` delegates complete dependency and load-order validation to ModLoader. It returns a boolean; the loader logs details. Use it for special dependencies such as ModLoader and game versions as well.
 
 `conflicts` snapshots upstream merge results: `source`, `dataSource`, and arrays of colliding `passages`, `scripts` and `styles`. `undefined` means results are unavailable. These are resource-name conflicts, not failed source patches or exact attribution of conflicting source changes.
 

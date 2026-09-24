@@ -1,9 +1,9 @@
 // ./src/modules/Character.ts
 
-import Diagnostics from '../infra/Diagnostics';
 import { MacroDefinition } from 'twine-sugarcube';
 import maplebirch, { MaplebirchCore } from '../core';
 import type { ScopedLog } from '../infra/Diagnostics';
+import Hooks from '../infra/Hooks';
 import { clone, mergefn as mergeFn } from '../utils';
 import type AddonPlugin from '../services/AddonPlugin';
 import type { Replacement } from '../host/ModLoader';
@@ -45,12 +45,6 @@ interface HairGradientPreprocessOptions {
 export type ProcessType = 'pre' | 'post';
 export type ModelTarget<TModel = CanvasModel | CanvasModelOptions> = string | string[] | ((modelName: string, model?: TModel) => boolean);
 export type ProcessHandler = (options: any, model?: CanvasModel) => void;
-
-interface ProcessEntry {
-  type: ProcessType;
-  target: ModelTarget<CanvasModel>;
-  handler: ProcessHandler;
-}
 
 interface LayerEntry {
   target: ModelTarget<CanvasModelOptions>;
@@ -243,12 +237,14 @@ class Character {
   public readonly log!: ScopedLog;
   public readonly mask = mask;
   public readonly faceStyleMap: Map<string, string[]> = new Map();
-  private readonly handlers: ProcessEntry[] = [];
+  private readonly processors: Record<ProcessType, Hooks<[CanvasModelOptionsData, CanvasModel | undefined, () => void], void>>;
+  private nextProcessor = 0;
   private readonly layers: LayerEntry[] = [];
   public readonly pet: Pet;
   public readonly transformation: Transformation;
 
   public constructor(readonly core: MaplebirchCore) {
+    this.processors = { pre: new Hooks(core.host.modLoader, 'continue'), post: new Hooks(core.host.modLoader, 'continue') };
     this.pet = new Pet(this);
     this.transformation = new Transformation(this);
   }
@@ -418,7 +414,13 @@ class Character {
       const type = args[0];
       const handler = args[1];
       const target = args[2] ?? 'main';
-      this.handlers.push({ type, target, handler });
+      this.processors[type].add(`${type}:${++this.nextProcessor}`, (options, model, check) => {
+        const modelName = model?.name || '';
+        if (typeof target === 'function' ? target(modelName, model) : Array.isArray(target) ? target.includes(modelName) : target === modelName) {
+          check();
+          handler(options, model);
+        }
+      });
       return this;
     }
     const layers = guarded(args[0]);
@@ -430,22 +432,14 @@ class Character {
   }
 
   public process(type: ProcessType, options: CanvasModelOptionsData, model?: CanvasModel) {
-    const modelName = model?.name || '';
-    const handlers = this.handlers
-      .filter(({ type: entryType, target }) => {
-        if (entryType !== type) return false;
-        return typeof target === 'function' ? target(modelName, model) : Array.isArray(target) ? target.includes(modelName) : target === modelName;
-      })
-      .map(({ handler }) => handler);
-    if (handlers.length === 0) return;
-    this.core.var.check();
-    for (const handler of handlers) {
-      try {
-        handler(options, model);
-      } catch (error) {
-        this.log(`${model}-${type}process 错误: ${Diagnostics.message(error)}`, 'ERROR', error);
-      }
-    }
+    const hooks = this.processors[type];
+    if (!hooks.entries.size) return;
+    let checked = false;
+    hooks.execute(options, model, () => {
+      if (checked) return;
+      this.core.var.check();
+      checked = true;
+    });
   }
 
   public preInit() {

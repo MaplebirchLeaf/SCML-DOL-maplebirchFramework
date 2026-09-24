@@ -4,6 +4,7 @@ import { append, cover, merge } from '../../utils';
 import type AddonPlugin from '../../services/AddonPlugin';
 import type { Replacement } from '../../host/ModLoader';
 import type DoLDynamic from '../DoL/Dynamic';
+import Catalog from '../../infra/Catalog';
 import Event, { type EventOptions } from '../Event';
 import dol from '../../host/DoL';
 
@@ -130,9 +131,8 @@ class WeatherEvent extends Event {
 }
 
 export class WeatherManager {
-  private readonly weatherEvents: Map<string, WeatherEvent> = new Map();
+  private readonly weatherEvents = new Catalog<string, WeatherEvent>();
   private readonly activeEvents: Set<string> = new Set();
-  private sortedEventsCache: WeatherEvent[] | null = null;
   private readonly Exceptions: WeatherException[] = [];
   private readonly WeatherTypes: WeatherTypeConfig[] = [];
   private readonly layerModifications: Map<string, ModificationConfig[]> = new Map();
@@ -144,12 +144,31 @@ export class WeatherManager {
     this.log = (...args) => manager.log(...args);
     $(document).on(':onWeatherChange', () => this.manager.core.trigger(':onWeather'));
     this.manager.core.on(':onWeather', () => this.checkEvents(), 'weather change');
+    this.manager.Time.onTravel('weather', () => this.refresh());
+  }
+
+  private refresh(): void {
+    const weather = dol.variables.weatherObj;
+    const previousKeypoints = weather.keypointsArr;
+    const previousFogKeypoints = weather.fogKeypoints;
+    weather.keypointsArr = [];
+    weather.fogKeypoints = [];
+    try {
+      if (Weather.WeatherGeneration.updateWeather) Weather.WeatherGeneration.updateWeather(Time.date);
+      else Weather.WeatherGeneration.generate(Time.date);
+      Weather.FogGeneration.generateFogKeypoints(weather.keypointsArr);
+      Weather.Observables.checkForUpdate();
+    } catch (error) {
+      weather.keypointsArr = previousKeypoints;
+      weather.fogKeypoints = previousFogKeypoints;
+      throw error;
+    }
+    void this.manager.core.trigger(':onWeather');
   }
 
   private checkEvents(): void {
-    if (!this.sortedEventsCache) this.sortedEventsCache = Array.from(this.weatherEvents.values()).sort((a, b) => b.priority - a.priority);
     const toRemove: string[] = [];
-    for (const event of this.sortedEventsCache) {
+    for (const event of this.weatherEvents.list().sort((a, b) => b.priority - a.priority)) {
       const wasActive = this.activeEvents.has(event.id);
       const isActive = event.tryMatch();
       if (isActive && !wasActive) {
@@ -162,28 +181,24 @@ export class WeatherManager {
       }
     }
     for (const eventId of toRemove) {
-      this.weatherEvents.delete(eventId);
+      this.weatherEvents.remove(eventId);
       this.activeEvents.delete(eventId);
-      this.sortedEventsCache = null;
       this.log(`移除一次性天气事件: ${eventId}`, 'DEBUG');
     }
   }
 
   public register(eventId: string, options: WeatherEventOptions): boolean {
-    if (this.weatherEvents.has(eventId)) {
+    if (!this.weatherEvents.add(eventId, new WeatherEvent(eventId, options, this.log))) {
       this.log(`天气事件ID已存在: ${eventId}`, 'WARN');
       return false;
     }
-    this.weatherEvents.set(eventId, new WeatherEvent(eventId, options, this.log));
-    this.sortedEventsCache = null;
     this.log(`注册天气事件: ${eventId}`, 'DEBUG');
     return true;
   }
 
   public unregister(eventId: string): boolean {
-    if (this.weatherEvents.delete(eventId)) {
+    if (this.weatherEvents.remove(eventId)) {
       this.activeEvents.delete(eventId);
-      this.sortedEventsCache = null;
       this.log(`注销天气事件: ${eventId}`, 'DEBUG');
       return true;
     }

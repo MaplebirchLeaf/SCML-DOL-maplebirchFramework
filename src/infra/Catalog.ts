@@ -32,6 +32,14 @@ export class Catalog<Key, Value> extends Diagnostics {
   public list(): Value[] {
     return [...this.items.values()];
   }
+
+  public clear(): void {
+    this.items.clear();
+  }
+
+  public get entries(): ReadonlyMap<Key, Value> {
+    return this.items;
+  }
 }
 
 export default Catalog;

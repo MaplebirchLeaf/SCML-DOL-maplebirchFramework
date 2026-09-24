@@ -897,13 +897,6 @@ interface PatchResult {
   expected?: number;
   error?: string;
 }
-interface ModRequirement {
-  name: string;
-  range?: string;
-  version?: string;
-  status: 'available' | 'missing' | 'incompatible' | 'invalid';
-  error?: string;
-}
 interface ModConflict {
   source: string;
   dataSource: string;
@@ -927,11 +920,9 @@ export declare class Diagnostics extends Logger {
   get patches(): PatchResult[];
   recordPatch(result: PatchResult): void;
   clearPatches(): void;
-  mod(name: string, range?: string): ModRequirement;
-  checkDependencies(): boolean;
   get conflicts(): ModConflict[] | undefined;
   export(): string;
-  clear(): void;
+  reset(): void;
 }
 //#endregion
 //#region src/host/Resources.d.ts
@@ -1703,6 +1694,8 @@ export declare class Catalog<Key, Value> extends Diagnostics {
   get(key: Key): Value | undefined;
   has(key: Key): boolean;
   list(): Value[];
+  clear(): void;
+  get entries(): ReadonlyMap<Key, Value>;
 }
 //#endregion
 //#region src/services/IndexedDB.d.ts
@@ -2010,8 +2003,10 @@ export declare class Lifecycle<Key = string, Target extends LifecycleTarget = Li
   Init(): void;
   loadInit(): void;
   postInit(): void;
-  execute(target: Target, phase: LifecyclePhase, scope?: string): Promise<LifecycleResult>;
-  executeSync(target: Target, phase: Exclude<LifecyclePhase, 'preInit'>, scope?: string): LifecycleResult;
+  execute(target: Target, phase: 'preInit', scope?: string): Promise<LifecycleResult>;
+  execute(target: Target, phase: Exclude<LifecyclePhase, 'preInit'>, scope?: string): LifecycleResult;
+  execute(target: Target, phase: LifecyclePhase, scope?: string): LifecycleResult | Promise<LifecycleResult>;
+  private failure;
 }
 //#endregion
 //#region src/services/Modules.d.ts
@@ -2137,12 +2132,15 @@ export declare class GUIControl {
 //#endregion
 //#region src/infra/Hooks.d.ts
 type HookCallback<Args extends unknown[] = unknown[], Result = unknown> = (...args: Args) => Result | Promise<Result>;
+type HookErrorPolicy = 'throw' | 'continue';
 export declare class Hooks<Args extends unknown[] = unknown[], Result = unknown> extends Catalog<string, HookCallback<Args, Result>> {
+  private readonly onError;
   private readonly order;
-  constructor(modloader?: ModLoader);
+  constructor(modloader?: ModLoader, onError?: HookErrorPolicy);
   add(name: string, callback: HookCallback<Args, Result>, order?: number): boolean;
   remove(name: string): boolean;
-  execute(...args: Args): Promise<Awaited<Result>[]>;
+  clear(): void;
+  execute(...args: Args): Result[];
   call(name: string, ...args: Args): Promise<Awaited<Result> | undefined>;
 }
 //#endregion
@@ -2745,8 +2743,7 @@ interface PatchDefinition<T extends object = object, Flat extends object = T> {
 }
 declare class Patch<Extensions extends Record<string, object> = Record<never, never>> {
   private readonly report;
-  private readonly entries;
-  private readonly extensionValues;
+  private readonly definitions;
   constructor(report: (name: string, error: unknown) => void);
   add<T extends object, Flat extends object = T>(name: string, definition: PatchDefinition<T, Flat>): this & Flat;
   get<Name extends keyof Extensions>(name: Name): Extensions[Name] | undefined;
@@ -2911,9 +2908,8 @@ declare class TimeEvent extends Event {
 }
 declare class TimeManager {
   private readonly manager;
-  private readonly eventTypes;
   private readonly timeEvents;
-  private readonly sortedEventsCache;
+  private readonly travelHooks;
   readonly log: DoLDynamic['log'];
   readonly TimeConstants: Readonly<{
     secondsPerDay: 86400;
@@ -2949,6 +2945,7 @@ declare class TimeManager {
   patchTime(TimeObject: typeof Time): void;
   register(type: TimeEventType, eventId: string, options: TimeEventOptions): boolean;
   unregister(type: string, eventId: string): boolean;
+  onTravel(name: string, callback: (data: TimeData) => void): boolean;
   timeTravel(options?: TimeTravelOptions): boolean;
   updateTimeLanguage(choice?: 'JournalTime'): string | boolean;
   private handleTimePass;
@@ -2995,7 +2992,6 @@ declare class WeatherManager {
   private readonly manager;
   private readonly weatherEvents;
   private readonly activeEvents;
-  private sortedEventsCache;
   private readonly Exceptions;
   private readonly WeatherTypes;
   private readonly layerModifications;
@@ -3003,6 +2999,7 @@ declare class WeatherManager {
   private weatherTriggered;
   private readonly log;
   constructor(manager: DoLDynamic);
+  private refresh;
   private checkEvents;
   register(eventId: string, options: WeatherEventOptions): boolean;
   unregister(eventId: string): boolean;
@@ -3518,7 +3515,8 @@ declare class Character {
   readonly log: ScopedLog;
   readonly mask: typeof mask;
   readonly faceStyleMap: Map<string, string[]>;
-  private readonly handlers;
+  private readonly processors;
+  private nextProcessor;
   private readonly layers;
   readonly pet: Pet;
   readonly transformation: Transformation;
@@ -4429,7 +4427,6 @@ export {
   type LogLevel,
   type MaplebirchCore,
   type ModConflict,
-  type ModRequirement,
   type Module,
   type ModulesMeta,
   type PatchResult,

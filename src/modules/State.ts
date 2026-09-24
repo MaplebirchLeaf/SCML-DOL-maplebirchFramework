@@ -1,6 +1,7 @@
 // ./src/modules/State.ts
 
 import type Dynamic from './Dynamic';
+import Catalog from '../infra/Catalog';
 import Event, { type EventOptions } from './Event';
 
 export interface StateEventOptions extends EventOptions {
@@ -87,7 +88,7 @@ class StateEvent extends Event {
 }
 
 export class StateManager {
-  private readonly stateEvents = { gate: new Map<string, StateEvent>(), append: new Map<string, StateEvent>() };
+  private readonly stateEvents = { gate: new Catalog<string, StateEvent>(), append: new Catalog<string, StateEvent>() };
   private readonly log: Dynamic['log'];
 
   public constructor(private readonly manager: Dynamic) {
@@ -95,7 +96,7 @@ export class StateManager {
   }
 
   public get events(): Readonly<Record<'gate' | 'append', ReadonlyMap<string, StateEvent>>> {
-    return this.stateEvents;
+    return { gate: this.stateEvents.gate.entries, append: this.stateEvents.append.entries };
   }
 
   public trigger(type: 'gate' | 'append'): string {
@@ -107,8 +108,7 @@ export class StateManager {
 
   private processGateEvents(passageName?: string): string {
     const gateEvents = this.stateEvents['gate'];
-    if (!gateEvents?.size) return '';
-    const sortedEvents = Array.from(gateEvents.values()).sort((a, b) => b.priority - a.priority);
+    const sortedEvents = gateEvents.list().sort((a, b) => b.priority - a.priority);
     for (const event of sortedEvents) {
       const result = event.tryRun(passageName);
       if (!result) continue;
@@ -120,10 +120,10 @@ export class StateManager {
 
   private processAppendEvents(passageName?: string): string {
     const appendEvents = this.stateEvents['append'];
-    if (!appendEvents?.size) return '';
+    if (!appendEvents.entries.size) return '';
     const outputs: string[] = [];
     const toRemove: string[] = [];
-    const sortedEvents = Array.from(appendEvents.values()).sort((a, b) => b.priority - a.priority);
+    const sortedEvents = appendEvents.list().sort((a, b) => b.priority - a.priority);
     for (const event of sortedEvents) {
       const result = event.tryRun(passageName);
       if (!result) continue;
@@ -139,11 +139,10 @@ export class StateManager {
       this.log(`未知的状态事件类型: ${type}`, 'ERROR');
       return false;
     }
-    if (this.stateEvents[type].has(eventId)) {
+    if (!this.stateEvents[type].add(eventId, new StateEvent(eventId, type, options, this.log))) {
       this.log(`事件ID已存在: ${type}.${eventId}`, 'WARN');
       return false;
     }
-    this.stateEvents[type].set(eventId, new StateEvent(eventId, type, options, this.log));
     this.log(`注册状态事件: ${type}.${eventId}`, 'DEBUG');
     return true;
   }
@@ -153,7 +152,7 @@ export class StateManager {
       this.log(`事件类型不存在: ${type}`, 'WARN');
       return false;
     }
-    if (this.stateEvents[type].delete(eventId)) {
+    if (this.stateEvents[type].remove(eventId)) {
       this.log(`注销状态事件: ${type}.${eventId}`, 'DEBUG');
       return true;
     }
