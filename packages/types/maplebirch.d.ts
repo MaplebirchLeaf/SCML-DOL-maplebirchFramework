@@ -2566,8 +2566,7 @@ declare class defineMacros {
   readonly macros: string[];
   readonly statFunctions: Record<string, StatFunction>;
   private readonly definitions;
-  private sugarcube;
-  private story;
+  private readonly ready;
   constructor(manager: ToolCollection);
   get Macro(): ReturnType<MaplebirchCore['host']['sugarcube']['require']>['Macro'];
   define<Args extends unknown[]>(macroName: string, macroFunction: MacroFunction<Args>, tags?: MacroTags, skipArgs?: SkipArgs, isAsync?: boolean, phase?: MacroPhase): void;

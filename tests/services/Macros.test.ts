@@ -31,7 +31,7 @@ function harness() {
     },
     once: (event: string, callback: () => void) => listeners.set(event, [...(listeners.get(event) ?? []), callback])
   } as unknown as MaplebirchCore;
-  const service = new defineMacros({ core } as ToolCollection);
+  const service = Object.freeze(new defineMacros({ core } as ToolCollection));
   return {
     service,
     registry,

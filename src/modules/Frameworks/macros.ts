@@ -19,17 +19,16 @@ class defineMacros {
   public readonly macros: string[] = [];
   public readonly statFunctions: Record<string, StatFunction> = {};
   private readonly definitions = new Map<string, { definition: MacroDefinition; phase: MacroPhase }>();
-  private sugarcube = false;
-  private story = false;
+  private readonly ready = new Set<MacroPhase>();
 
   public constructor(readonly manager: ToolCollection) {
     this.log = manager.core.infra.diagnostics.scoped('macro');
     manager.core.once(':sugarcube', () => {
-      this.sugarcube = true;
+      this.ready.add('sugarcube');
       this.installAll('sugarcube');
     });
     manager.core.once(':storyready', () => {
-      this.story = true;
+      this.ready.add('storyready');
       this.installAll('storyready');
     });
   }
@@ -63,7 +62,7 @@ class defineMacros {
     const registration = definition as unknown as MacroDefinition;
     this.definitions.set(macroName, { definition: registration, phase });
     if (!this.macros.includes(macroName)) this.macros.push(macroName);
-    if (this.story || (phase === 'sugarcube' && this.sugarcube)) this.install(macroName, registration);
+    if (this.ready.has('storyready') || this.ready.has(phase)) this.install(macroName, registration);
   }
 
   private installAll(phase: MacroPhase): void {
