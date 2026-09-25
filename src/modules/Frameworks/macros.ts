@@ -12,24 +12,33 @@ export type SimpleMacroFunction<Args extends unknown[]> = (this: MacroContext | 
 type StatFunction<Args extends unknown[] = unknown[]> = (...args: Args) => DocumentFragment;
 export type MacroTags = string[] | null | undefined;
 export type SkipArgs = string[] | boolean | null | undefined;
+export type MacroPhase = 'sugarcube' | 'storyready';
 
 class defineMacros {
   public readonly log: ScopedLog;
   public readonly macros: string[] = [];
   public readonly statFunctions: Record<string, StatFunction> = {};
-  private readonly definitions = new Map<string, MacroDefinition>();
+  private readonly definitions = new Map<string, { definition: MacroDefinition; phase: MacroPhase }>();
+  private sugarcube = false;
+  private story = false;
 
   public constructor(readonly manager: ToolCollection) {
     this.log = manager.core.infra.diagnostics.scoped('macro');
-    manager.core.once(':sugarcube', () => this.installAll());
-    manager.core.once(':storyready', () => this.installAll());
+    manager.core.once(':sugarcube', () => {
+      this.sugarcube = true;
+      this.installAll('sugarcube');
+    });
+    manager.core.once(':storyready', () => {
+      this.story = true;
+      this.installAll('storyready');
+    });
   }
 
   public get Macro(): ReturnType<MaplebirchCore['host']['sugarcube']['require']>['Macro'] {
     return this.manager.core.host.sugarcube.require().Macro;
   }
 
-  public define<Args extends unknown[]>(macroName: string, macroFunction: MacroFunction<Args>, tags?: MacroTags, skipArgs?: SkipArgs, isAsync = false): void {
+  public define<Args extends unknown[]>(macroName: string, macroFunction: MacroFunction<Args>, tags?: MacroTags, skipArgs?: SkipArgs, isAsync = false, phase: MacroPhase = 'sugarcube'): void {
     if (!macroName || typeof macroFunction !== 'function') {
       this.log(`宏定义无效: ${macroName}`, 'WARN');
       return;
@@ -52,23 +61,29 @@ class defineMacros {
       }
     };
     const registration = definition as unknown as MacroDefinition;
-    this.definitions.set(macroName, registration);
+    this.definitions.set(macroName, { definition: registration, phase });
     if (!this.macros.includes(macroName)) this.macros.push(macroName);
-    if (this.manager.core.host.sugarcube.runtime) this.install(macroName, registration);
+    if (this.story || (phase === 'sugarcube' && this.sugarcube)) this.install(macroName, registration);
   }
 
-  private installAll(): void {
-    for (const [name, definition] of this.definitions) this.install(name, definition);
+  private installAll(phase: MacroPhase): void {
+    for (const [name, entry] of this.definitions) if (entry.phase === phase) this.install(name, entry.definition);
   }
 
   private install(name: string, definition: MacroDefinition): void {
     const macro = this.Macro;
-    if (macro.get(name) === definition) return;
     if (macro.has(name)) macro.delete(name);
     macro.add(name, definition);
   }
 
-  public defineS<Args extends unknown[]>(macroName: string, macroFunction: SimpleMacroFunction<Args>, tags?: MacroTags, skipArgs?: SkipArgs, maintainContext = false): void {
+  public defineS<Args extends unknown[]>(
+    macroName: string,
+    macroFunction: SimpleMacroFunction<Args>,
+    tags?: MacroTags,
+    skipArgs?: SkipArgs,
+    maintainContext = false,
+    phase: MacroPhase = 'sugarcube'
+  ): void {
     this.define(
       macroName,
       function () {
@@ -78,7 +93,9 @@ class defineMacros {
         $(this.output).wiki(String(result));
       },
       tags,
-      skipArgs
+      skipArgs,
+      false,
+      phase
     );
   }
 
