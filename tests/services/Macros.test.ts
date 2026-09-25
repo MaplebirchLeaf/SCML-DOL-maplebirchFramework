@@ -13,7 +13,10 @@ function harness() {
     has: (name: string) => registry.has(name),
     get: (name: string) => registry.get(name),
     delete: (name: string) => registry.delete(name),
-    add: (name: string, definition: object) => registry.set(name, definition)
+    add: (name: string, definition: object) => {
+      if (registry.has(name)) throw new Error(`cannot clobber existing macro <<${name}>>`);
+      registry.set(name, { ...definition });
+    }
   };
   let ready = false;
   const core = {
@@ -43,30 +46,44 @@ function harness() {
 
 test('defines a new macro at SugarCube readiness without requiring the caller to subscribe', () => {
   const { service, registry, ready, emit } = harness();
-  service.define('myMod:hello', function () {});
-  expect(registry.has('myMod:hello')).toBe(false);
+  service.define('myModHello', function () {});
+  expect(registry.has('myModHello')).toBe(false);
   ready();
   emit(':sugarcube');
-  expect(registry.has('myMod:hello')).toBe(true);
+  expect(registry.has('myModHello')).toBe(true);
 });
 
-test('restores a definition replaced by vanilla before story readiness', () => {
+test('does not occupy a vanilla widget name before story readiness', () => {
   const { service, registry, ready, emit } = harness();
-  service.defineS('myMod:message', () => 'Hello');
+  service.define('transform', function () {}, null, null, false, 'storyready');
   ready();
   emit(':sugarcube');
-  const own = registry.get('myMod:message');
-  registry.set('myMod:message', { handler() {} });
+  expect(registry.has('transform')).toBe(false);
+  const vanilla = { handler() {} };
+  service.Macro.add('transform', vanilla);
   emit(':storyready');
-  expect(registry.get('myMod:message')).toBe(own);
+  expect(registry.get('transform')).not.toEqual(vanilla);
+  expect(registry.has('transform')).toBe(true);
 });
 
-test('defines immediately after SugarCube readiness and keeps an unchanged definition', () => {
+test('does not reapply an early definition at story readiness', () => {
   const { service, registry, ready, emit } = harness();
   ready();
-  service.define('myMod:late', function () {});
-  const own = registry.get('myMod:late');
+  emit(':sugarcube');
+  service.define('myModEarly', function () {});
+  const own = registry.get('myModEarly');
   expect(own).toBeDefined();
   emit(':storyready');
-  expect(registry.get('myMod:late')).toBe(own);
+  expect(registry.get('myModEarly')).toBe(own);
+});
+
+test('replaces a vanilla macro immediately after story readiness', () => {
+  const { service, registry, ready, emit } = harness();
+  ready();
+  emit(':sugarcube');
+  service.Macro.add('transform', { handler() {} });
+  emit(':storyready');
+  const vanilla = registry.get('transform');
+  service.defineS('transform', () => 'new', null, null, false, 'storyready');
+  expect(registry.get('transform')).not.toEqual(vanilla);
 });

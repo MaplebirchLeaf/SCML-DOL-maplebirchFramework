@@ -77,7 +77,7 @@ class Combat {
     };
   }
 
-  private _combatListColor(name: string | number | false, value?: ActionValue, type: CombatType = 'Default') {
+  private _combatListColor(name: string | number | false, value?: ActionValue | null, type: CombatType = 'Default') {
     type = (type || 'Default') as CombatType;
     const rawAction = value ?? (name !== false ? dol.variables[name] : '');
     const action = String(rawAction || '').replace(/\d+/g, '');
@@ -107,7 +107,7 @@ class Combat {
         maplebirch.host.sugarcube.require().Wikifier.wikifyEval(`<<replace #${e.data.name}Difficulty>>${difficultyMacro}<</replace>>`);
         $('#' + e.data.name + 'Select')
           .removeClass('whiteList bratList meekList defList subList')
-          .addClass(combatListColor(e.data.name, undefined, e.data.extra) + 'List');
+          .addClass(combatListColor(e.data.name, null, e.data.extra) + 'List');
       });
     return '';
   }

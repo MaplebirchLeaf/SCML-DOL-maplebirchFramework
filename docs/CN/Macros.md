@@ -208,7 +208,7 @@ maplebirch.tool.define('myModRaw', function () {
 });
 ```
 
-`define()` 和 `defineS()` 沿用 `tool.macro` 的参数与行为，框架会等到 SugarCube 可用时注册，并在故事就绪时恢复被原版覆盖的定义；无需自己包一层 `once(':sugarcube')`。若要读取原版宏的处理器并包装它，仍需等到 `:storyready`。需要 `create()` 等其它宏管理能力时可访问 `maplebirch.tool.macro`。
+`define()` 和 `defineS()` 沿用 `tool.macro` 的参数，默认在 `:sugarcube` 注册**新增宏**，无需自己包一层 `once(':sugarcube')`。替换原版宏时，将最后一个 `phase` 参数设为 `'storyready'`，等原版注册完成后再替换；提前占用原版宏名会让 SugarCube 的原版注册报错。若要读取并包装原版处理器，仍需等到 `:storyready`。需要 `create()` 等其它宏管理能力时可访问 `maplebirch.tool.macro`。
 
 ---
 
