@@ -98,7 +98,7 @@ class Transformation {
         Object.cover(this.buildUpdaters, DoLPcompat.Transformations.BuildUpdaters);
       }
     });
-    manager.core.tool.define('transform', (name: string, change: number) => this._transform(name, change));
+    manager.core.tool.define('transform', (name: string, change: number) => this._transform(name, change), null, null, false, 'storyready');
     manager.core.tool.defineS('transform-hint', (name: string, colour: string) => {
       if (dol.variables.settings?.blindStatsEnabled) return;
       const fragment = document.createDocumentFragment();
@@ -108,8 +108,8 @@ class Transformation {
       fragment.append(' | ', label);
       return fragment;
     });
-    manager.core.tool.define('transformationAlteration', () => this._transformationAlteration());
-    manager.core.tool.define('transformationStateUpdate', () => this._transformationStateUpdate());
+    manager.core.tool.define('transformationAlteration', () => this._transformationAlteration(), null, null, false, 'storyready');
+    manager.core.tool.define('transformationStateUpdate', () => this._transformationStateUpdate(), null, null, false, 'storyready');
   }
 
   private get isDoLP() {

@@ -2559,18 +2559,21 @@ type SimpleMacroFunction<Args extends unknown[]> = (this: MacroContext$1 | null,
 type StatFunction<Args extends unknown[] = unknown[]> = (...args: Args) => DocumentFragment;
 type MacroTags = string[] | null | undefined;
 type SkipArgs = string[] | boolean | null | undefined;
+type MacroPhase = 'sugarcube' | 'storyready';
 declare class defineMacros {
   readonly manager: ToolCollection;
   readonly log: ScopedLog;
   readonly macros: string[];
   readonly statFunctions: Record<string, StatFunction>;
   private readonly definitions;
+  private sugarcube;
+  private story;
   constructor(manager: ToolCollection);
   get Macro(): ReturnType<MaplebirchCore['host']['sugarcube']['require']>['Macro'];
-  define<Args extends unknown[]>(macroName: string, macroFunction: MacroFunction<Args>, tags?: MacroTags, skipArgs?: SkipArgs, isAsync?: boolean): void;
+  define<Args extends unknown[]>(macroName: string, macroFunction: MacroFunction<Args>, tags?: MacroTags, skipArgs?: SkipArgs, isAsync?: boolean, phase?: MacroPhase): void;
   private installAll;
   private install;
-  defineS<Args extends unknown[]>(macroName: string, macroFunction: SimpleMacroFunction<Args>, tags?: MacroTags, skipArgs?: SkipArgs, maintainContext?: boolean): void;
+  defineS<Args extends unknown[]>(macroName: string, macroFunction: SimpleMacroFunction<Args>, tags?: MacroTags, skipArgs?: SkipArgs, maintainContext?: boolean, phase?: MacroPhase): void;
   create<Args extends unknown[]>(name: string, fn: StatFunction<Args>): void;
   callStatFunction(name: string, ...args: unknown[]): DocumentFragment;
 }
@@ -2771,8 +2774,8 @@ declare class ToolCollection {
   readonly patch: Patch;
   constructor(core: MaplebirchCore, constructors?: ToolConstructors);
   onInit(...widgets: InitFunction[]): void;
-  define<Args extends unknown[]>(name: string, fn: MacroFunction<Args>, tags?: MacroTags, skipArgs?: SkipArgs, isAsync?: boolean): void;
-  defineS<Args extends unknown[]>(name: string, fn: SimpleMacroFunction<Args>, tags?: MacroTags, skipArgs?: SkipArgs, maintainContext?: boolean): void;
+  define<Args extends unknown[]>(name: string, fn: MacroFunction<Args>, tags?: MacroTags, skipArgs?: SkipArgs, isAsync?: boolean, phase?: MacroPhase): void;
+  defineS<Args extends unknown[]>(name: string, fn: SimpleMacroFunction<Args>, tags?: MacroTags, skipArgs?: SkipArgs, maintainContext?: boolean, phase?: MacroPhase): void;
   addTo(zone: string, ...widgets: ZoneWidget[]): void;
   inject(...databases: Parameters<zonesManager['inject']>): void;
 }

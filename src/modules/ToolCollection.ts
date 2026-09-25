@@ -3,7 +3,7 @@ import type { ScopedLog } from '../infra/Diagnostics';
 import Console from './Frameworks/ConsoleCheat';
 import migration from './Frameworks/migration';
 import randSystem from './Frameworks/RandSystem';
-import defineMacros, { type MacroFunction, type SimpleMacroFunction, type MacroTags, type SkipArgs } from './Frameworks/macros';
+import defineMacros, { type MacroFunction, type SimpleMacroFunction, type MacroTags, type SkipArgs, type MacroPhase } from './Frameworks/macros';
 import htmlTools from './Frameworks/HtmlTools';
 import { zonesManager, type InitFunction, type ZoneWidget } from './Frameworks/ZonesManager';
 import applyLinkZone from './Frameworks/ApplyLinkZone';
@@ -41,12 +41,12 @@ class ToolCollection {
     this.zone.onInit(...widgets);
   }
 
-  public define<Args extends unknown[]>(name: string, fn: MacroFunction<Args>, tags?: MacroTags, skipArgs?: SkipArgs, isAsync = false): void {
-    this.macro.define(name, fn, tags, skipArgs, isAsync);
+  public define<Args extends unknown[]>(name: string, fn: MacroFunction<Args>, tags?: MacroTags, skipArgs?: SkipArgs, isAsync = false, phase: MacroPhase = 'sugarcube'): void {
+    this.macro.define(name, fn, tags, skipArgs, isAsync, phase);
   }
 
-  public defineS<Args extends unknown[]>(name: string, fn: SimpleMacroFunction<Args>, tags?: MacroTags, skipArgs?: SkipArgs, maintainContext = false): void {
-    this.macro.defineS(name, fn, tags, skipArgs, maintainContext);
+  public defineS<Args extends unknown[]>(name: string, fn: SimpleMacroFunction<Args>, tags?: MacroTags, skipArgs?: SkipArgs, maintainContext = false, phase: MacroPhase = 'sugarcube'): void {
+    this.macro.defineS(name, fn, tags, skipArgs, maintainContext, phase);
   }
 
   public addTo(zone: string, ...widgets: ZoneWidget[]): void {

@@ -155,7 +155,7 @@ export class CloudSave {
   public async download(slot: CloudSaveSlot, targetSlot: CloudSaveSlot = slot): Promise<boolean> {
     this.validateSlot(slot);
     this.validateSlot(targetSlot);
-    const response = await this.request<unknown>(`/saves/${slot}`, undefined, true);
+    const response = await this.request<unknown>(`/saves/${slot}`, {}, true);
     if (response === null) throw new Error(`Remote save slot ${slot} not found.`);
     if (!this.tools.isPlainObject(response)) this.invalidResponse();
     const item = response as Partial<CloudSaveRemoteItem>;
@@ -257,7 +257,7 @@ export class CloudSave {
 
   /** 下载 SugarCube 存档码。 */
   public async downloadCode(): Promise<string> {
-    const response = await this.request<unknown>('/save-code', undefined, true);
+    const response = await this.request<unknown>('/save-code', {}, true);
     if (response === null) throw new Error(this.translate('cloud.save.error.code.remote'));
     if (!this.tools.isPlainObject(response)) this.invalidResponse();
     const item = response as Partial<CloudSaveRemoteCode>;

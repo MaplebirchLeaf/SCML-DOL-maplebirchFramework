@@ -17,11 +17,11 @@ test('tool forwards define and defineS to its macro service with all options', (
   const raw = function () {};
   const simple = (name: string) => `Hello, ${name}`;
 
-  tool.define('myMod:raw', raw, ['body'], ['skip'], true);
-  tool.defineS('myMod:simple', simple, null, false, true);
+  tool.define('myModRaw', raw, ['body'], ['skip'], true);
+  tool.defineS('myModSimple', simple, null, false, true, 'storyready');
 
   expect(calls).toEqual([
-    ['define', 'myMod:raw', raw, ['body'], ['skip'], true],
-    ['defineS', 'myMod:simple', simple, null, false, true]
+    ['define', 'myModRaw', raw, ['body'], ['skip'], true, 'sugarcube'],
+    ['defineS', 'myModSimple', simple, null, false, true, 'storyready']
   ]);
 });

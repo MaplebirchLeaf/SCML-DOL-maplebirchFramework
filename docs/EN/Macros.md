@@ -104,4 +104,4 @@ maplebirch.tool.defineS('myModHello', name => {
 });
 ```
 
-Use `maplebirch.tool.define()` when the handler needs the SugarCube macro context. Both shortcuts retain the arguments of `tool.macro.define()` and `tool.macro.defineS()`. The framework registers definitions when SugarCube becomes available and restores them if vanilla replaces them before story readiness; no `once(':sugarcube')` wrapper is needed. If you need to read and wrap an original macro handler, wait until `:storyready`. The `macro` service remains available for other macro-management methods.
+Use `maplebirch.tool.define()` when the handler needs the SugarCube macro context. Both shortcuts retain the arguments of `tool.macro.define()` and `tool.macro.defineS()`. New macros register at `:sugarcube` by default, without a manual `once(':sugarcube')` wrapper. To replace a vanilla macro, set the final `phase` argument to `'storyready'` so vanilla can register first; claiming its name earlier makes SugarCube reject the vanilla definition. To read and wrap an original handler, still wait until `:storyready`. The `macro` service remains available for other macro-management methods.
