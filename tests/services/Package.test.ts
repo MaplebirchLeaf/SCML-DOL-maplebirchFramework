@@ -32,6 +32,7 @@ async function fixture(): Promise<string> {
   await writeFile(path.join(root, 'LICENSE'), 'MIT project license\n');
   await writeFile(path.join(root, 'LICENSE-CC-BY-NC-SA-4.0'), 'Creative Commons project license\n');
   await writeFile(path.join(root, 'dist', 'inject_early.js'), 'window.test = true;\n');
+  await writeFile(path.join(root, 'dist', 'index.d.ts'), 'export declare const test: true;\n');
   await writeFile(path.join(root, 'dist', 'maplebirch.d.ts'), 'declare const test: true;\n');
   await dependency(root, 'zeta', '1.0.0', { gamma: '3.0.0' });
   await dependency(root, 'alpha', '2.0.0');
@@ -50,12 +51,14 @@ async function dependency(root: string, name: string, version: string, dependenc
 describe('package licenses', () => {
   test('copies both project licenses into the published type package', async () => {
     const root = await fixture();
-    const packageDir = path.join(root, 'packages', 'types');
-    await mkdir(packageDir, { recursive: true });
-    await writeFile(path.join(packageDir, 'package.json'), JSON.stringify({ name: '@example/types', version: '0.0.0' }));
+    const templateDir = path.join(root, 'scripts', 'types-package');
+    await mkdir(templateDir, { recursive: true });
+    await writeFile(path.join(templateDir, 'package.json'), JSON.stringify({ name: '@example/types', version: '0.0.0' }));
+    await writeFile(path.join(templateDir, 'package.d.ts'), "export * from './index';\n");
+    await writeFile(path.join(templateDir, 'README.md'), 'Types package\n');
     await generateTypesPackage(root);
     for (const name of ['LICENSE', 'LICENSE-CC-BY-NC-SA-4.0']) {
-      expect(await readFile(path.join(packageDir, name))).toEqual(await readFile(path.join(root, name)));
+      expect(await readFile(path.join(root, 'dist', name))).toEqual(await readFile(path.join(root, name)));
     }
   });
 
@@ -90,6 +93,7 @@ describe('package licenses', () => {
     const zip = new AdmZip(first);
     expect(zip.getEntries().map(entry => entry.entryName)).toEqual([
       'boot.json',
+      'dist/index.d.ts',
       'dist/inject_early.js',
       'dist/maplebirch.d.ts',
       'LICENSE',

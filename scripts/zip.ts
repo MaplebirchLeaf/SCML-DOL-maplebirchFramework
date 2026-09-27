@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { readPackageJSON } from 'pkg-types';
 import AdmZip from 'adm-zip';
 import { collectThirdPartyNotices } from './notices';
@@ -21,6 +21,16 @@ export interface PackageInfo {
 export interface PackageAsset {
   fileName: string;
   buffer: Buffer;
+}
+
+async function declarationFiles(directory: string, base = directory): Promise<string[]> {
+  const files: string[] = [];
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const filePath = path.join(directory, entry.name);
+    if (entry.isDirectory()) files.push(...(await declarationFiles(filePath, base)));
+    else if (entry.isFile() && entry.name.endsWith('.d.ts')) files.push(path.relative(base, filePath));
+  }
+  return files.sort((first, second) => first.localeCompare(second, 'en'));
 }
 
 export async function resolvePackageInfo(rootDir: string): Promise<PackageInfo> {
@@ -74,15 +84,19 @@ async function packageFiles(rootDir: string): Promise<Map<string, Buffer>> {
     dependenceInfo: scml.dependenceInfo
   };
 
-  return new Map([
+  const files = new Map([
     ['LICENSE', await readFile(path.join(rootDir, 'LICENSE'))],
     ['LICENSE-CC-BY-NC-SA-4.0', await readFile(path.join(rootDir, 'LICENSE-CC-BY-NC-SA-4.0'))],
     ['README.md', await readFile(path.join(rootDir, 'README.md'))],
     ['THIRD_PARTY_NOTICES', notices],
     ['boot.json', Buffer.from(JSON.stringify(boot, null, 2))],
-    ['dist/inject_early.js', await readFile(path.join(distDir, 'inject_early.js'))],
-    ['dist/maplebirch.d.ts', await readFile(path.join(distDir, 'maplebirch.d.ts'))]
+    ['dist/inject_early.js', await readFile(path.join(distDir, 'inject_early.js'))]
   ]);
+
+  const declarations = await declarationFiles(distDir);
+  if (!declarations.includes('maplebirch.d.ts')) throw new Error('dist/maplebirch.d.ts is missing; run bun run types');
+  for (const file of declarations) files.set(`dist/${file}`, await readFile(path.join(distDir, file)));
+  return files;
 }
 
 export async function createZip(rootDir: string): Promise<Buffer> {

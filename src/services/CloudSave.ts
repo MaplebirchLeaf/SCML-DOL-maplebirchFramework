@@ -2,7 +2,7 @@
 
 import Diagnostics from '../infra/Diagnostics';
 import type SugarCube from '../host/SugarCube';
-import type { DolStateMoment, TwineSugarCube } from '../../types/twine-sugarcube';
+import type { DolStateMoment, TwineSugarCube } from '../types/twine-sugarcube';
 import { clone } from '../utils/object';
 
 type CloudSaveSlot = number;

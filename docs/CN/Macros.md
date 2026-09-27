@@ -85,6 +85,12 @@
 <</lanButton>>
 ```
 
+文本也可以写成分段数组。每段独立翻译，中文直接相连，英文以空格连接；`lanLink` 和静态 `lanListbox` 选项同样支持这种写法。
+
+```twine
+<<lanButton ['清除', '缓存'] 'title'>><<run clearCache()>><</lanButton>>
+```
+
 常用参数：
 
 | 参数                           | 说明                         |
@@ -104,6 +110,12 @@
 <<lanLink "myMod:goTown" "Town">>
   前往城镇
 <</lanLink>>
+```
+
+组合已有词条时，把中文片段放在同一个数组参数中。框架会在每次切换语言时重新翻译各段；普通字符串拼接完成后已无法分辨片段。
+
+```twine
+<<lanLink ['清除', '缓存'] 'title'>><<run clearCache()>><</lanLink>>
 ```
 
 SugarCube 链接语法：
@@ -133,6 +145,8 @@ SugarCube 链接语法：
   <<option "myMod:mode.hard" "hard">>
 <</lanListbox>>
 ```
+
+静态选项的标签也可使用分段数组，第二个参数仍是选项值。
 
 `optionsfrom` 可从数组、对象、Map、Set 生成选项：
 

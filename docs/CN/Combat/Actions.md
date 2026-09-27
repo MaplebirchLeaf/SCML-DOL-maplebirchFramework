@@ -65,9 +65,11 @@ maplebirch.combat.CombatAction.reg({
 | `color`        | 否   | 按钮/列表颜色，默认 `white`                           |
 | `difficulty`   | 否   | 按钮旁边的难度或提示文本                              |
 | `combatType`   | 否   | 战斗类型或类型数组，默认 `Default`                    |
-| `order`        | 否   | 排序值，默认 `-4`，越小越靠前                         |
+| `order`        | 否   | 在完整动作列表中的插入位置，默认 `-4`                 |
 
 除 `id`、`actionType` 外，多数字段都支持函数。函数会收到 `ctx` 参数。
+
+`order` 会把模组动作插入原版动作列表：非负数从列表开头按 `0` 计数，负数从列表末尾反向定位。默认 `-4` 会将动作放在原版倒数四项之前；可通过 `ctx.originalCount` 把动作放到原版动作之后。
 
 ## actionType
 

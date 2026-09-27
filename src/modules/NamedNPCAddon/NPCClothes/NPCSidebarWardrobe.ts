@@ -2,7 +2,7 @@
 
 import jsyaml from 'js-yaml';
 import Diagnostics from '../../../infra/Diagnostics';
-import builtinWardrobe from '../../../assets/npc-clothes.yaml';
+import builtinWardrobe from '../../../assets/npc-clothes.yaml?raw';
 import { evaluate, type Condition } from './Condition';
 import type NPCManager from '../../NamedNPC';
 import { clone } from '../../../utils';

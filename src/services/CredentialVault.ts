@@ -5,7 +5,7 @@ import Diagnostics from '../infra/Diagnostics';
 import type Emitter from '../infra/Emitter';
 import type IndexedDB from './IndexedDB';
 import type { InputFileFormat } from '@scml/types/sugarcube-2-ModLoader/JSZipLikeReadOnlyInterface';
-import PromptStyle from '@/styles/PromptStyle.css';
+import PromptStyle from '@/styles/PromptStyle.css?raw';
 import { base64ToArrayBuffer, bytesToBase64, bytesToJson, jsonToBytes, toArrayBuffer } from '../utils/binary';
 import { escapeHtmlText } from '../utils/string';
 

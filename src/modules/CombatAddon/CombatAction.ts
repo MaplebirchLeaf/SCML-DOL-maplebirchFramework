@@ -172,7 +172,20 @@ class CombatActions {
     });
     if (modActions.length === 0 && !changed) return optionsTable;
     modActions.sort((a, b) => a.order - b.order);
-    const result = [...options, ...modActions.map(action => [action.display, action.value] as [string, ActionValue])];
+    const insertions = new Map<number, typeof modActions>();
+    modActions.forEach(action => {
+      // 负数从原版动作末尾反向定位；默认 -4 保留旧版“倒数四项之前”的布局。
+      const order = Number.isInteger(action.order) ? action.order : -4;
+      const target = order < 0 ? Math.min(options.length, Math.max(options.length === 0 ? 0 : 1, options.length + order)) : Math.min(order, options.length);
+      const bucket = insertions.get(target) ?? [];
+      bucket.push(action);
+      insertions.set(target, bucket);
+    });
+    const result: Array<[string, ActionValue]> = [];
+    options.forEach((option, index) => {
+      result.push(...(insertions.get(index) ?? []).map(action => [action.display, action.value] as [string, ActionValue]), option);
+    });
+    result.push(...(insertions.get(options.length) ?? []).map(action => [action.display, action.value] as [string, ActionValue]));
     Object.keys(optionsTable).forEach(key => delete optionsTable[key]);
     result.forEach(([display, value]) => (optionsTable[display] = value));
     return optionsTable;

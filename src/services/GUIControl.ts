@@ -5,7 +5,7 @@ import type { ModSubUiAngularJsModeExportInterface } from '@scml/types/Mod_SubUi
 import type { ModSubUiAngularJsService } from '@scml/types/Mod_LoaderGui/ModSubUiAngularJsService';
 import type ModLoader from '../host/ModLoader';
 import type Emitter from '../infra/Emitter';
-import Gui from '@/twee/Gui.twee';
+import Gui from '@/twee/Gui.twee?raw';
 import { widgets } from '../utils/string';
 import { Config, Languages } from './../constants';
 import type IndexedDB from './IndexedDB';

@@ -1,7 +1,7 @@
 // ./src/core.ts
 
 import type { Passage } from '@scml/types/sugarcube-2-ModLoader/SugarCube2';
-import type { TwineSugarCube } from '../types/twine-sugarcube';
+import type { TwineSugarCube } from './types/twine-sugarcube';
 import type { SC2DataManager } from '@scml/types/sugarcube-2-ModLoader/SC2DataManager';
 import type { Gui } from '@scml/types/Mod_LoaderGui/Gui';
 import { author, lastModifiedBy, lastUpdate } from '../package.json';

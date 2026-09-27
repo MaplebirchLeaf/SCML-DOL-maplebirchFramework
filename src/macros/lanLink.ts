@@ -2,7 +2,7 @@
 
 import Diagnostics from '../infra/Diagnostics';
 import maplebirch from '../core';
-import { addClasses, appendMacroIcon, bindLanguageUpdate, isStyleArg, readStyle, text, translatedText, type LinkArg, type MacroContext } from './helpers';
+import { addClasses, appendMacroIcon, bindLanguageUpdate, isStyleArg, readStyle, sourceText, text, translatedText, type LinkArg, type MacroContext } from './helpers';
 import dol from '../host/DoL';
 
 // <<lanLink>>
@@ -15,11 +15,11 @@ export function _languageLink(this: MacroContext): void {
     const firstArg = this.args[0];
     const { className, style, icon, iconOnly, convertMode } = readStyle(this.args);
     const passageObj = this.passageObj;
-    let source = '';
+    let source: string | readonly string[] = '';
     let passageName: string | null = null;
 
-    if (typeof firstArg === 'string' || typeof firstArg === 'function') {
-      source = text(firstArg);
+    if (typeof firstArg === 'string' || typeof firstArg === 'function' || Array.isArray(firstArg)) {
+      source = Array.isArray(firstArg) ? firstArg.map(text) : text(firstArg);
       for (let i = 1; i < this.args.length; i++) {
         const arg = this.args[i];
         if (typeof arg === 'string' && !isStyleArg(arg)) passageName ??= arg;
@@ -27,15 +27,16 @@ export function _languageLink(this: MacroContext): void {
     } else if (firstArg && typeof firstArg === 'object' && !Array.isArray(firstArg)) {
       const linkArg = firstArg as LinkArg;
       if (!linkArg.text) return this.error('<<lanLink>> link object needs text.');
-      source = text(linkArg.text);
+      source = linkArg.text;
       passageName = linkArg.link || null;
     } else {
       return this.error('<<lanLink>> first argument must be text or a link object.');
     }
-    if (!source) return this.error('<<lanLink>> missing text.');
+    const sourceLabel = sourceText(source);
+    if (!sourceLabel) return this.error('<<lanLink>> missing text.');
 
     const $container = jQuery(document.createElement('span'));
-    const $link = jQuery(document.createElement('a')).addClass('macro-link link-internal').attr('data-translation-key', source);
+    const $link = jQuery(document.createElement('a')).addClass('macro-link link-internal').attr('data-translation-key', sourceLabel);
     addClasses($link, className);
     if (style) $link.attr('style', style);
     if (passageName != null) {

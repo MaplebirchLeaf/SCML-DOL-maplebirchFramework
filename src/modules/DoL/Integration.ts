@@ -19,12 +19,12 @@ class DoLIntegration {
     addon.blockedPassages.add('Downgrade Waiting Room');
     this.configureBeautySelector();
     const events = this.core.infra.events;
-    events.on(':addon:afterEarlyLoad', () => this.filterOriginalImagePack());
-    events.on(':addon:preparePatch', () => this.preparePatch(addon));
-    events.on(':addon:beforePatch', () => this.core.tool.zone.patchModToGame(addon, 'before'));
-    events.on(':addon:patchStart', () => this.patchTimeScripts());
-    events.on(':addon:afterPatch', () => this.core.tool.zone.patchModToGame(addon, 'after'));
-    events.on(':addon:afterPreload', () => this.preloadFaceStyles());
+    events.once(':addon:afterEarlyLoad', () => this.filterOriginalImagePack());
+    events.once(':addon:preparePatch', () => this.preparePatch(addon));
+    events.once(':addon:beforePatch', () => this.core.tool.zone.patchModToGame(addon, 'before'));
+    events.once(':addon:patchStart', () => this.patchTimeScripts());
+    events.once(':addon:afterPatch', () => this.core.tool.zone.patchModToGame(addon, 'after'));
+    events.once(':addon:afterPreload', () => this.preloadFaceStyles());
   }
 
   private filterOriginalImagePack(): void {

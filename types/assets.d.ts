@@ -2,22 +2,22 @@
  * Declare type for bundled text assets.
  * For example: import xxx from "@/twee/example.twee" to import files as raw strings.
  */
-declare module '*.css' {
+declare module '*.css?raw' {
   const content: string;
   export default content;
 }
 
-declare module '*.twee' {
+declare module '*.twee?raw' {
   const content: string;
   export default content;
 }
 
-declare module '*.yaml' {
+declare module '*.yaml?raw' {
   const content: string;
   export default content;
 }
 
-declare module '*.yml' {
+declare module '*.yml?raw' {
   const content: string;
   export default content;
 }

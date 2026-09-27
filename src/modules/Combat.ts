@@ -9,16 +9,40 @@ import dol from '../host/DoL';
 class Combat {
   public readonly log!: ScopedLog;
   public readonly CombatAction = new CombatActions();
+  private readonly pendingDefaults = new WeakMap<OptionsTable, ActionValue>();
 
   public constructor(readonly core: MaplebirchCore) {}
 
   public preInit(): void {
+    this.core.tool.define('assignCombatDefaults', this._assignCombatDefaults());
     this.core.tool.define('generateCombatAction', this._generateCombatAction());
     this.core.tool.define('combatButtonAdjustments', (name: string, extra: CombatType | '' = '') => this._combatButtonAdjustments(name, extra));
   }
 
+  private _assignCombatDefaults() {
+    const pendingDefaults = this.pendingDefaults;
+
+    return function (this: MacroContext, part: string, alwaysRun?: boolean) {
+      const actionType = `${part}action` as ActionType;
+      const defaultActionType = `${actionType}default`;
+      const optionsTable = dol.temporary[actionType] as OptionsTable;
+      const actions = Object.values(optionsTable);
+      if (actions.length === 0) return;
+
+      if (!alwaysRun) pendingDefaults.set(optionsTable, dol.variables[defaultActionType]);
+      else pendingDefaults.delete(optionsTable);
+
+      if (actions.length > 1 && (!actions.includes(dol.variables[defaultActionType]) || alwaysRun)) {
+        const actionsSet = window.DefaultActions.get(dol.variables.defaultsCombatType, dol.variables.defaultsType, actionType);
+        dol.variables[defaultActionType] = actionsSet.find(action => actions.includes(action)) || actions[0];
+      }
+      dol.variables[actionType] = actions.includes(dol.variables[defaultActionType]) ? dol.variables[defaultActionType] : actions[0];
+    };
+  }
+
   private _generateCombatAction() {
     const CombatAction = this.CombatAction;
+    const pendingDefaults = this.pendingDefaults;
     const log = this.log;
     const combatButtonAdjustments = this._combatButtonAdjustments.bind(this);
 
@@ -35,8 +59,19 @@ class Combat {
       } catch (e) {
         log('mod战斗动作对象错误', 'ERROR', e);
       }
+      const rememberedDefault = pendingDefaults.get(optionsTable);
+      pendingDefaults.delete(optionsTable);
+      const optionValues = Object.values(optionsTable);
+      if (rememberedDefault != null && optionValues.includes(rememberedDefault)) {
+        dol.variables[actionType] = rememberedDefault;
+        dol.variables[`${actionType}default`] = rememberedDefault;
+      } else if (optionValues.length > 0 && !optionValues.includes(dol.variables[actionType])) {
+        const defaultActionType = `${actionType}default`;
+        const nextAction = optionValues.includes(dol.variables[defaultActionType]) ? dol.variables[defaultActionType] : optionValues[0];
+        dol.variables[actionType] = nextAction;
+        if (!optionValues.includes(dol.variables[defaultActionType])) dol.variables[defaultActionType] = nextAction;
+      }
       if (['lists', 'limitedLists'].includes(controls)) {
-        const optionValues = Object.values(optionsTable);
         const listSpan = el('span');
         listSpan.id = `${actionType}Select`;
         listSpan.className = `${combatListColor(actionType, optionValues.includes(dol.variables[actionType]) ? dol.variables[actionType] : optionValues[0], combatType)}List flavorText ${dol.temporary.reducedWidths ? 'reducedWidth' : ''}`;
