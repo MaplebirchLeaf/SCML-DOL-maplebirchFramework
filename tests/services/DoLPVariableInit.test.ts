@@ -4,7 +4,7 @@ import type { MaplebirchCore } from '../../src/core';
 import { applySourcePatch, type SourcePatch } from '../../src/host/ModLoader';
 
 for (const name of ['TransformationMirror', 'NPCHairStyleOptions', 'Options', 'Cheats', 'CloudSave']) {
-  mock.module(`@/twee/${name}.twee`, () => ({ default: '' }));
+  mock.module(`@/twee/${name}.twee?raw`, () => ({ default: '' }));
 }
 
 const { default: DoLPcompat } = await import('../../src/compat/DoLPcompat');
@@ -14,7 +14,7 @@ test('initializes DoLP variables immediately before Start invokes modupdate', ()
   let beforePatch: (() => void) | undefined;
   let patches: SourcePatch[] = [];
   const core = {
-    on: (name: string, callback: () => void) => {
+    once: (name: string, callback: () => void) => {
       if (name === ':addon:beforePatch') beforePatch = callback;
     },
     services: { addonPlugin: { SC2DataManager: { getSC2DataInfoAfterPatch: () => ({ passageDataItems: { map: new Map([['Widgets modUpdate', { tags: ['widget'] }]]) } }) } } },
@@ -42,7 +42,7 @@ test('does not register the DoLP widget patch when the passage is absent', () =>
   let beforePatch: (() => void) | undefined;
   let injected = false;
   const core = {
-    on: (_name: string, callback: () => void) => {
+    once: (_name: string, callback: () => void) => {
       beforePatch = callback;
     },
     services: { addonPlugin: { SC2DataManager: { getSC2DataInfoAfterPatch: () => ({ passageDataItems: { map: new Map() } }) } } },

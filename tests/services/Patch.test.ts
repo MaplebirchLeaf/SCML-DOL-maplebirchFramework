@@ -4,7 +4,7 @@ import Patch from '../../src/modules/Frameworks/Patch';
 import { applySourcePatch } from '../../src/host/ModLoader';
 
 for (const name of ['TransformationMirror', 'NPCHairStyleOptions', 'Options', 'Cheats', 'CloudSave']) {
-  mock.module(`@/twee/${name}.twee`, () => ({ default: '' }));
+  mock.module(`@/twee/${name}.twee?raw`, () => ({ default: '' }));
 }
 
 const { widgetPassage } = await import('../../src/modules/DoL/Replacements');
