@@ -2,7 +2,7 @@ import './runtime';
 import { expect, mock, test } from 'bun:test';
 import Emitter from '../../src/infra/Emitter';
 
-mock.module('@/styles/MaplebrichStyles.css', () => ({ default: '' }));
+mock.module('@/styles/MaplebrichStyles.css?raw', () => ({ default: '' }));
 const { default: AddonPlugin } = await import('../../src/services/AddonPlugin');
 
 test('generic addon patch phase lets game adapters run before the SugarCube bridge', async () => {
