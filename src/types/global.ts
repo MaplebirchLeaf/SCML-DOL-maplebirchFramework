@@ -5,17 +5,19 @@ import { BeautySelectorAddon } from '@scml/types/AddonMod_BeautySelector/BeautyS
 import { ImgLoaderHooker } from '@scml/types/Hook_ImgLoader/ImgLoaderHooker';
 import { Gui } from '@scml/types/Mod_LoaderGui/Gui';
 import { ModUtils } from '@scml/types/sugarcube-2-ModLoader/Utils';
-import { _languageSwitch } from '../src/macros';
-import ImageLoader from '../src/modules/Frameworks/ImageLoader';
+import { _languageSwitch } from '../macros';
+import ImageLoader from '../modules/Frameworks/ImageLoader';
+import type { ActionType, ActionValue } from '../modules/CombatAddon/CombatAction';
+import type { NPCChildRecord, NPCPregnancyOrifice, NPCPregnancyRecord, NPCPregnancySpecies, NPCTryConceiveOptions } from '../modules/NamedNPCAddon/NPCPregnancy';
 
 declare global {
   interface Window {
-    readonly modSC2DataManager: SC2DataManager;
-    readonly modGameOriginalImagePack: GameOriginalImagePack;
-    readonly modImgLoaderHooker: ImgLoaderHooker;
-    readonly modLoaderGui: Gui;
-    readonly modUtils: ModUtils;
-    readonly addonBeautySelectorAddon: BeautySelectorAddon;
+    modSC2DataManager: SC2DataManager;
+    modGameOriginalImagePack: GameOriginalImagePack;
+    modImgLoaderHooker: ImgLoaderHooker;
+    modLoaderGui: Gui;
+    modUtils: ModUtils;
+    addonBeautySelectorAddon: BeautySelectorAddon;
     readonly Time: typeof Time;
     DateTime: typeof DateTime;
     closeOverlay(): void;
@@ -25,6 +27,7 @@ declare global {
     readonly V: typeof V;
     readonly C: typeof C;
     readonly T: typeof T;
+    DefaultActions: { get(type: unknown, person: unknown, part: ActionType): ActionValue[] };
     pregnancyDaysEta: typeof pregnancyDaysEta;
     getChildDays: typeof getChildDays;
   }
@@ -67,7 +70,7 @@ declare global {
     Reporter: ErrorsReporter;
   }
 
-  declare const Errors: Errors;
+  const Errors: Errors;
 
   const Weather: { rain: boolean; thunder: boolean; snow: boolean; cloud: boolean; windy: boolean; fog: boolean; [key: string]: any };
   function getFormattedDate(date: any, includeWeekday?: boolean): string;

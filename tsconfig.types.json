@@ -1,11 +1,12 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "rootDir": "./src",
     "noEmit": false,
     "declaration": true,
     "emitDeclarationOnly": true,
     "declarationMap": false
   },
   "include": ["src/**/*.ts", "types/**/*.d.ts"],
-  "exclude": ["node_modules", "dist", "scripts", "cloud-services"]
+  "exclude": ["node_modules", "dist", "scripts"]
 }

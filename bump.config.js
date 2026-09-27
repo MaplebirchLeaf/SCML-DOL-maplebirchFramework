@@ -1,5 +1,5 @@
 export default {
-  files: ['package.json', 'packages/types/package.json'],
+  files: ['package.json'],
   tag: 'maplebirch-release-v%s',
   commit: 'maplebirch-release-v%s',
   push: false

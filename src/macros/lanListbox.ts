@@ -2,7 +2,7 @@
 
 import Diagnostics from '../infra/Diagnostics';
 import maplebirch from '../core';
-import { addClasses, bindLanguageUpdate, macroTranslation, text, type ListboxOption, type MacroContext, type MacroPayload, CONVERT_MODES, type ConvertMode } from './helpers';
+import { addClasses, bindLanguageUpdate, macroTranslation, sourceText, text, type ListboxOption, type MacroContext, type MacroPayload, CONVERT_MODES, type ConvertMode } from './helpers';
 
 function optionsFrom(value: unknown, convertMode: ConvertMode | null, exprIndex: number): ListboxOption[] {
   const result: ListboxOption[] = [];
@@ -31,8 +31,8 @@ function buildOptions(payload: MacroPayload[], allowSelected: boolean): { option
     const args = Array.isArray(item.args) ? item.args : [];
     if (item.name === 'option') {
       if (args.length === 0) return '<<option>> needs arguments.';
-      const label = text(args[0]);
-      const value = args.length > 1 ? args[1] : label;
+      const label = Array.isArray(args[0]) ? args[0].map(text) : text(args[0]);
+      const value = args.length > 1 ? args[1] : sourceText(label);
       options.push({ label, value, type: 'static', convertMode: optionConvertMode(args, 2) });
       if (args.includes('selected')) {
         if (!allowSelected) return 'Cannot use autoselect and selected together.';
@@ -106,12 +106,12 @@ export function _languageListbox(this: MacroContext): void {
     const create = (items: ListboxOption[], index: number) => {
       $select.empty();
       items.forEach((option, i) => {
-        let displayText = macroTranslation(option?.label ?? '', maplebirch) || text(option?.label);
+        let displayText = macroTranslation(option?.label ?? '', maplebirch) || sourceText(option?.label);
         if (option?.convertMode) displayText = displayText.convert(option.convertMode);
         jQuery(document.createElement('option'))
           .val(i)
           .text(displayText)
-          .attr('data-translation-key', option?.label ?? '')
+          .attr('data-translation-key', sourceText(option?.label))
           .attr('data-convert-mode', option?.convertMode ?? '')
           .attr('data-opt-type', option?.type ?? '')
           .attr('data-expr-index', option?.exprIndex ?? -1)

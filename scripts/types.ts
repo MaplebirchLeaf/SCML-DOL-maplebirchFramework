@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { readFile, writeFile } from 'node:fs/promises';
+import { copyFile, readFile, writeFile } from 'node:fs/promises';
 
 interface RootPackage {
   version?: string;
@@ -23,35 +23,27 @@ async function readRootVersion(rootDir: string): Promise<string> {
   return rootPackage.version;
 }
 
-function normalizeDeclarations(content: string): string {
-  return content
-    .replace(
-      /^import\s*\{[^}]*\}\s*from\s*'\.\/(passage|dialog|state|save|wikifier|macro|config|engine|util|browser|story|setting|simpleaudio|uibar|ui|fullscreen|has|l10n|links|loadscreen|scripting|simplestore|template|visibility|debugbar|idb|alert|version|jquery-shim)\.js';\r?\n/gm,
-      ''
-    )
-    .replace(/PassageAPI\$1/g, 'PassageAPI')
-    .replace(/DialogAPI\$1/g, 'DialogAPI');
-}
-
 export async function generateTypesPackage(rootDir: string = defaultRootDir): Promise<void> {
-  const distTypes = path.join(rootDir, 'dist', 'maplebirch.d.ts');
-  const packageDir = path.join(rootDir, 'packages', 'types');
-  const packageJsonPath = path.join(packageDir, 'package.json');
+  const distDir = path.join(rootDir, 'dist');
+  const distEntry = path.join(distDir, 'index.d.ts');
+  const distTypes = path.join(distDir, 'maplebirch.d.ts');
+  const templateDir = path.join(rootDir, 'scripts', 'types-package');
+  const packageJsonPath = path.join(templateDir, 'package.json');
   const version = await readRootVersion(rootDir);
-  const declarations = normalizeDeclarations(await readFile(distTypes, 'utf8'));
+  const declarations = await readFile(distEntry, 'utf8');
   const typesPackage = await readJson<TypesPackage>(packageJsonPath);
 
   typesPackage.version = version;
-
   await Promise.all([
     writeFile(distTypes, declarations),
-    writeFile(path.join(packageDir, 'maplebirch.d.ts'), declarations),
-    writeFile(path.join(packageDir, 'LICENSE'), await readFile(path.join(rootDir, 'LICENSE'))),
-    writeFile(path.join(packageDir, 'LICENSE-CC-BY-NC-SA-4.0'), await readFile(path.join(rootDir, 'LICENSE-CC-BY-NC-SA-4.0'))),
-    writeFile(packageJsonPath, `${JSON.stringify(typesPackage, null, 2)}\n`)
+    copyFile(path.join(templateDir, 'package.d.ts'), path.join(distDir, 'package.d.ts')),
+    copyFile(path.join(templateDir, 'README.md'), path.join(distDir, 'README.md')),
+    copyFile(path.join(rootDir, 'LICENSE'), path.join(distDir, 'LICENSE')),
+    copyFile(path.join(rootDir, 'LICENSE-CC-BY-NC-SA-4.0'), path.join(distDir, 'LICENSE-CC-BY-NC-SA-4.0')),
+    writeFile(path.join(distDir, 'package.json'), `${JSON.stringify(typesPackage, null, 2)}\n`)
   ]);
 
-  console.log(`Types package generated: ${path.relative(rootDir, packageDir)}`);
+  console.log(`Types package generated: ${path.relative(rootDir, distDir)}`);
 }
 
 if (import.meta.main) {

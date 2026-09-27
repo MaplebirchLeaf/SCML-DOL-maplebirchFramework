@@ -46,12 +46,24 @@ Object form:
 <</lanButton>>
 ```
 
+For a label built from existing translations, pass an array of Chinese segments. Each segment is translated again when the language changes; Chinese segments join directly and English segments join with spaces. `lanLink` and static `lanListbox` options support the same form.
+
+```twine
+<<lanButton ['清除', '缓存'] 'title'>><<run clearCache()>><</lanButton>>
+```
+
 ## lanLink
 
 ```twine
 <<lanLink "myMod:goTown" "Town">>
   Go to town
 <</lanLink>>
+```
+
+Use one array argument for composed text. Concatenating strings into a single argument loses the segment boundaries before translation.
+
+```twine
+<<lanLink ['清除', '缓存'] 'title'>><<run clearCache()>><</lanLink>>
 ```
 
 SugarCube link syntax:
@@ -68,6 +80,8 @@ SugarCube link syntax:
   <<option "myMod:mode.hard" "hard">>
 <</lanListbox>>
 ```
+
+Static option labels also accept a segment array; the second argument remains the option value.
 
 ## radiobuttonsfrom
 

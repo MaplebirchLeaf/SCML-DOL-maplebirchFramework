@@ -26,7 +26,6 @@ class LinkZoneManager {
   public firstLink: Element | null = null;
   public lastLink: Element | null = null;
   public links: Element[] = [];
-  public breakBeforeFirst: ChildNode | null = null;
 
   public readonly log: ScopedLog;
 
@@ -42,14 +41,12 @@ class LinkZoneManager {
     this.firstLink = null;
     this.lastLink = null;
     this.links = [];
-    this.breakBeforeFirst = null;
     const container = document.getElementById(this.containerId);
     if (!container) return false;
     this.links = Array.from(container.querySelectorAll(this.linkSelector)).filter(link => this.visible(link));
     if (this.links.length === 0) return false;
     this.firstLink = this.links[0];
     this.lastLink = this.links[this.links.length - 1];
-    this.breakBeforeFirst = this.findBreakBefore(this.firstLink);
     return true;
   }
 
@@ -67,7 +64,8 @@ class LinkZoneManager {
   private applyBefore(config: LinkZoneConfig): void {
     if (!this.firstLink) return;
     const zone = this.zone('beforeLinkZone', config);
-    this.insertAfterBreak(zone, this.breakBeforeFirst, this.firstLink);
+    const { breakNode, start } = this.findBefore(this.firstLink);
+    this.insertAfterBreak(zone, breakNode, start);
     if (config.debug) this.log('应用链接前区域', 'DEBUG', zone);
   }
 
@@ -86,9 +84,9 @@ class LinkZoneManager {
       return;
     }
     const zone = this.zone(null, config);
-    const breakNode = this.findBreakBefore(target);
+    const { breakNode, start } = this.findBefore(target);
     zone.dataset.linkZonePosition = String(position);
-    this.insertAfterBreak(zone, breakNode, target);
+    this.insertAfterBreak(zone, breakNode, start);
     if (config.debug) this.log(`[link] 在位置 ${position} 的链接前插入区域`, 'DEBUG', target);
   }
 
@@ -99,7 +97,7 @@ class LinkZoneManager {
     return zone;
   }
 
-  private insertAfterBreak(zone: HTMLElement, breakNode: ChildNode | null, fallback: Element): void {
+  private insertAfterBreak(zone: HTMLElement, breakNode: ChildNode | null, fallback: ChildNode): void {
     if (!breakNode) {
       fallback.before(zone);
       return;
@@ -122,15 +120,24 @@ class LinkZoneManager {
     breakNode.after(zone, document.createTextNode(text.slice(index + 1)));
   }
 
-  private findBreakBefore(element: Element): ChildNode | null {
-    let node = element.previousSibling;
+  private findBefore(element: Element): { breakNode: ChildNode | null; start: ChildNode } {
+    const container = document.getElementById(this.containerId);
+    let start: ChildNode = element;
 
-    while (node) {
-      if (this.isBreak(node)) return node;
-      node = node.previousSibling;
+    while (start !== container) {
+      const parent = start.parentElement;
+      if (!parent) break;
+      let previous = start.previousSibling;
+      while (previous) {
+        if (this.isBreak(previous)) return { breakNode: previous, start };
+        start = previous;
+        previous = start.previousSibling;
+      }
+      if (parent === container) break;
+      start = parent;
     }
 
-    return null;
+    return { breakNode: null, start };
   }
 
   private isBreak(node: Node): boolean {

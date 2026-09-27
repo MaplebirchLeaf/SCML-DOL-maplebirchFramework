@@ -1,9 +1,9 @@
 import { widgets } from '../../utils';
-import TransformationMirror from '@/twee/TransformationMirror.twee';
-import NPCHairStyleOptions from '@/twee/NPCHairStyleOptions.twee';
-import Options from '@/twee/Options.twee';
-import Cheats from '@/twee/Cheats.twee';
-import CloudSave from '@/twee/CloudSave.twee';
+import TransformationMirror from '@/twee/TransformationMirror.twee?raw';
+import NPCHairStyleOptions from '@/twee/NPCHairStyleOptions.twee?raw';
+import Options from '@/twee/Options.twee?raw';
+import Cheats from '@/twee/Cheats.twee?raw';
+import CloudSave from '@/twee/CloudSave.twee?raw';
 
 const specialWidget = widgets(CloudSave, TransformationMirror, NPCHairStyleOptions);
 

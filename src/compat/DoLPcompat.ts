@@ -373,7 +373,7 @@ class DoLPcompat {
   }
 
   public static install(core: MaplebirchCore): void {
-    core.on(':addon:beforePatch', () => {
+    core.once(':addon:beforePatch', () => {
       const passage = core.services.addonPlugin.SC2DataManager.getSC2DataInfoAfterPatch().passageDataItems.map.get('Widgets modUpdate');
       if (!passage?.tags.includes('widget')) return;
       core.tool.inject({

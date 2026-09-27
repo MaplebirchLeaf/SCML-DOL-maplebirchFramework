@@ -75,10 +75,10 @@ jobs:
 
       - name: Verify types package version
         run: |
-          PKG_VERSION=$(node -p "require('./packages/types/package.json').version")
+          PKG_VERSION=$(node -p "require('./dist/package.json').version")
           TAG_VERSION="${{ steps.release.outputs.VERSION }}"
           if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
-            echo "Error: Types package version mismatch (packages/types/package.json: $PKG_VERSION, tag: $TAG_VERSION)"
+            echo "Error: Types package version mismatch (dist/package.json: $PKG_VERSION, tag: $TAG_VERSION)"
             exit 1
           fi
 
@@ -106,4 +106,4 @@ jobs:
         if: steps.npm_version.outputs.exists != 'true'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish ./packages/types --access public
+        run: npm publish ./dist --access public

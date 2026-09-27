@@ -1,4 +1,4 @@
-import instance, * as types from './maplebirch';
+import instance, * as types from './index';
 
 type Utils = typeof types.utils.publicUtils;
 
@@ -27,4 +27,4 @@ declare global {
 }
 
 export default instance;
-export * from './maplebirch';
+export * from './index';

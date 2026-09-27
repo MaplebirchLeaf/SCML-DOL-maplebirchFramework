@@ -1,6 +1,7 @@
 import './modules/DoL';
 import './compat/SimpleFrameworks';
 import './compat/Prototype';
+import './types/global';
 
 export { default } from './main';
 export * from './main';

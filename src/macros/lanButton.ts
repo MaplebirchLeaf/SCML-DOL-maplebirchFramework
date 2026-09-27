@@ -2,7 +2,7 @@
 
 import Diagnostics from '../infra/Diagnostics';
 import maplebirch from '../core';
-import { addClasses, appendMacroIcon, bindLanguageUpdate, readStyle, text, translatedText, type MacroContext } from './helpers';
+import { addClasses, appendMacroIcon, bindLanguageUpdate, readStyle, sourceText, text, translatedText, type MacroContext } from './helpers';
 
 // <<lanButton>>
 export function _languageButton(this: MacroContext): void {
@@ -10,12 +10,14 @@ export function _languageButton(this: MacroContext): void {
     if (!this.args || this.args.length === 0) return this.error('<<lanButton>> needs at least one argument.');
     const payload = Array.isArray(this.payload) ? this.payload : [];
     const content = (payload[0]?.contents || '').trim();
-    const source = text(this.args[0]);
+    const firstArg = this.args[0];
+    const source = Array.isArray(firstArg) ? firstArg.map(text) : text(firstArg);
     const { className, style, icon, iconOnly, convertMode } = readStyle(this.args);
     const passageObj = this.passageObj;
-    if (!source) return this.error('<<lanButton>> needs a valid text source.');
+    const sourceLabel = sourceText(source);
+    if (!sourceLabel) return this.error('<<lanButton>> needs a valid text source.');
 
-    const $button = jQuery(document.createElement('button')).addClass('macro-button link-internal').attr('data-translation-key', source);
+    const $button = jQuery(document.createElement('button')).addClass('macro-button link-internal').attr('data-translation-key', sourceLabel);
     addClasses($button, className);
     if (style) $button.attr('style', style);
     appendMacroIcon($button, icon);

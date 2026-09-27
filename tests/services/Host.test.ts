@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import type { Gui } from '@scml/types/Mod_LoaderGui/Gui';
 import type { SC2DataManager } from '@scml/types/sugarcube-2-ModLoader/SC2DataManager';
-import type { TwineSugarCube } from '../../types/twine-sugarcube';
+import type { TwineSugarCube } from '../../src/types/twine-sugarcube';
 import { DoL } from '../../src/host/DoL';
 import ModLoader from '../../src/host/ModLoader';
 import SugarCube from '../../src/host/SugarCube';

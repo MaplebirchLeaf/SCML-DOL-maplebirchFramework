@@ -25,7 +25,7 @@ export interface MacroContext extends Omit<SugarCubeMacroContext, 'args' | 'crea
 }
 
 export interface LinkArg {
-  text: string;
+  text: string | readonly string[];
   link?: string;
 }
 
@@ -38,7 +38,7 @@ export interface StyleArgs {
 }
 
 export interface ListboxOption {
-  label: string;
+  label: string | readonly string[];
   value: unknown;
   type: 'static' | 'dynamic';
   exprIndex?: number;
@@ -64,7 +64,15 @@ export function text(value: unknown): string {
   return '';
 }
 
+export function sourceText(value: unknown): string {
+  return Array.isArray(value) ? value.map(text).join('') : text(value);
+}
+
 export function macroTranslation(key: unknown, core: MaplebirchCore = maplebirch): string {
+  if (Array.isArray(key)) {
+    const parts = key.map(part => macroTranslation(part, core)).filter(Boolean);
+    return parts.join(core.services.translator.language === 'CN' ? '' : ' ');
+  }
   const source = text(key);
   if (!source) return '';
   const translation = core.t(source);
@@ -119,7 +127,7 @@ export function isStyleArg(arg: string): boolean {
   return arg === 'icon-only' || arg.startsWith('class:') || arg.startsWith('style:') || arg.startsWith('icon:') || (CONVERT_MODES as readonly string[]).includes(arg);
 }
 
-export function translatedText(source: string, convertMode: ConvertMode | null): string {
+export function translatedText(source: unknown, convertMode: ConvertMode | null): string {
   const value = macroTranslation(source, maplebirch);
   return convertMode ? value.convert(convertMode) : value;
 }

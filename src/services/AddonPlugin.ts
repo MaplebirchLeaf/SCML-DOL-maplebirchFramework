@@ -7,7 +7,7 @@ import type { ModZipReader } from '@scml/types/sugarcube-2-ModLoader/ModZipReade
 import type { SC2DataManager } from '@scml/types/sugarcube-2-ModLoader/SC2DataManager';
 import type { ModUtils } from '@scml/types/sugarcube-2-ModLoader/Utils';
 import type { CryptOptions } from '../services/CredentialVault';
-import MaplebrichStyles from '@/styles/MaplebrichStyles.css';
+import MaplebrichStyles from '@/styles/MaplebrichStyles.css?raw';
 import type ModLoader from '../host/ModLoader';
 import type Resources from '../host/Resources';
 import type SugarCube from '../host/SugarCube';

@@ -65,9 +65,11 @@ When the player selects this action, `$leftaction` becomes `myModQuickStrike`. D
 | `color`        | No       | Button/list color, default `white`                     |
 | `difficulty`   | No       | Difficulty or hint text shown near the action          |
 | `combatType`   | No       | Combat type or array of types, default `Default`       |
-| `order`        | No       | Sort value, default `-4`; lower values appear earlier  |
+| `order`        | No       | Insertion position in the complete list, default `-4`  |
 
 Most fields except `id` and `actionType` may be functions. Functions receive a `ctx` object.
+
+`order` inserts the mod action into the vanilla action list. Non-negative values are zero-based positions from the start, while negative values count back from the end. The default `-4` places the action before the last four vanilla entries. Use `ctx.originalCount` to place an action after the vanilla entries.
 
 ## actionType
 

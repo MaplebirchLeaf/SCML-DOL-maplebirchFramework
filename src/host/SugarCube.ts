@@ -1,7 +1,7 @@
 // ./src/host/SugarCube.ts
 
 import type { Passage } from '@scml/types/sugarcube-2-ModLoader/SugarCube2';
-import type { DolStateAPI, DolStateMoment, TwineSugarCube } from '../../types/twine-sugarcube';
+import type { DolStateAPI, DolStateMoment, TwineSugarCube } from '../types/twine-sugarcube';
 import { clone } from '../utils/object';
 
 export interface SaveObject {

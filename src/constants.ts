@@ -1,17 +1,17 @@
 // .src/constants.ts
 
-import commonCN from '@/assets/translations/CN/Common.yaml';
-import characterCN from '@/assets/translations/CN/Character.yaml';
-import frameworkCN from '@/assets/translations/CN/Framework.yaml';
-import credentialCN from '@/assets/translations/CN/Credential.yaml';
-import cloudSaveCN from '@/assets/translations/CN/CloudSave.yaml';
-import traitsCN from '@/assets/translations/CN/Traits.yaml';
-import commonEN from '@/assets/translations/EN/Common.yaml';
-import characterEN from '@/assets/translations/EN/Character.yaml';
-import frameworkEN from '@/assets/translations/EN/Framework.yaml';
-import credentialEN from '@/assets/translations/EN/Credential.yaml';
-import cloudSaveEN from '@/assets/translations/EN/CloudSave.yaml';
-import traitsEN from '@/assets/translations/EN/Traits.yaml';
+import commonCN from '@/assets/translations/CN/Common.yaml?raw';
+import characterCN from '@/assets/translations/CN/Character.yaml?raw';
+import frameworkCN from '@/assets/translations/CN/Framework.yaml?raw';
+import credentialCN from '@/assets/translations/CN/Credential.yaml?raw';
+import cloudSaveCN from '@/assets/translations/CN/CloudSave.yaml?raw';
+import traitsCN from '@/assets/translations/CN/Traits.yaml?raw';
+import commonEN from '@/assets/translations/EN/Common.yaml?raw';
+import characterEN from '@/assets/translations/EN/Character.yaml?raw';
+import frameworkEN from '@/assets/translations/EN/Framework.yaml?raw';
+import credentialEN from '@/assets/translations/EN/Credential.yaml?raw';
+import cloudSaveEN from '@/assets/translations/EN/CloudSave.yaml?raw';
+import traitsEN from '@/assets/translations/EN/Traits.yaml?raw';
 
 export type LanguageCode = (typeof Languages)[number];
 
