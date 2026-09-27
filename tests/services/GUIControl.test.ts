@@ -6,7 +6,7 @@ import type Emitter from '../../src/infra/Emitter';
 import type Modules from '../../src/services/Modules';
 import type Translator from '../../src/services/Translator';
 
-mock.module('@/twee/Gui.twee', () => ({ default: '' }));
+mock.module('@/twee/Gui.twee?raw', () => ({ default: '' }));
 
 const { default: GUIControl } = await import('../../src/services/GUIControl');
 

@@ -1,9 +1,10 @@
 import './runtime';
-import { expect, test } from 'bun:test';
+import { expect, mock, test } from 'bun:test';
 import type ModLoader from '../../src/host/ModLoader';
 import Diagnostics from '../../src/infra/Diagnostics';
 import type Emitter from '../../src/infra/Emitter';
 import type IndexedDB from '../../src/services/IndexedDB';
+mock.module('@/styles/PromptStyle.css?raw', () => ({ default: '' }));
 const { default: CredentialVault } = await import('../../src/services/CredentialVault');
 
 test('cache read and write failures cannot turn a loaded encrypted mod into a failed load', async () => {
