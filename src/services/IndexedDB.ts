@@ -32,10 +32,24 @@ export class IndexedDB extends Catalog<string, StoreDefinition> {
   }
 
   public define(name: string, options: IDBObjectStoreParameters = { keyPath: 'id' }, indexes: StoreIndex[] = []): boolean {
-    if (this.db || this.opening) throw new Error(`IDB存储必须在数据库打开前注册: ${name}`);
     if (!this.add(name, { options, indexes })) {
       this.write(`存储 ${name} 已注册`, 'WARN', 'indexedDB');
       return false;
+    }
+
+    if (this.db || this.opening) {
+      const pending = this.opening ?? Promise.resolve();
+      const upgrade = pending.then(async () => {
+        this.db?.close();
+        this.db = null;
+        await this.open();
+      });
+      this.opening = upgrade;
+      void upgrade
+        .finally(() => {
+          if (this.opening === upgrade) this.opening = null;
+        })
+        .catch(() => undefined);
     }
 
     this.write(`注册存储: ${name}`, 'DEBUG', 'indexedDB');
@@ -51,15 +65,16 @@ export class IndexedDB extends Catalog<string, StoreDefinition> {
   }
 
   public async init(): Promise<void> {
-    if (this.db) return;
     if (this.opening) return this.opening;
+    if (this.db) return;
 
-    this.opening = this.open();
+    const opening = this.open();
+    this.opening = opening;
 
     try {
-      await this.opening;
+      await opening;
     } finally {
-      this.opening = null;
+      if (this.opening === opening) this.opening = null;
     }
   }
 
@@ -85,9 +100,8 @@ export class IndexedDB extends Catalog<string, StoreDefinition> {
       });
     } catch (error) {
       if (!error || typeof error !== 'object' || !('name' in error) || error.name !== 'VersionError') throw error;
-      await deleteDB(IndexedDB.DATABASE_NAME);
-      this.write(`IDB数据库版本高于当前框架，已清空并按版本 ${IndexedDB.DATABASE_VERSION} 重建`, 'WARN', 'indexedDB');
-      db = await openDB<unknown>(IndexedDB.DATABASE_NAME, IndexedDB.DATABASE_VERSION, { upgrade, blocking });
+      // 动态新增的存储会提高数据库版本，后续加载不能因此清空玩家数据。
+      db = await openDB<unknown>(IndexedDB.DATABASE_NAME, undefined, { blocking });
     }
 
     const missing = async () => {
@@ -107,10 +121,10 @@ export class IndexedDB extends Catalog<string, StoreDefinition> {
 
     let absent = await missing();
     if (absent.stores.length || absent.indexes.length) {
+      const nextVersion = Math.max(db.version + 1, IndexedDB.DATABASE_VERSION);
       db.close();
-      await deleteDB(IndexedDB.DATABASE_NAME);
-      this.write(`IDB数据库缺少存储或索引，已清空并按版本 ${IndexedDB.DATABASE_VERSION} 重建`, 'WARN', 'indexedDB', absent);
-      db = await openDB<unknown>(IndexedDB.DATABASE_NAME, IndexedDB.DATABASE_VERSION, { upgrade, blocking });
+      this.write(`IDB数据库缺少存储或索引，升级至版本 ${nextVersion}`, 'INFO', 'indexedDB', absent);
+      db = await openDB<unknown>(IndexedDB.DATABASE_NAME, nextVersion, { upgrade, blocking });
       absent = await missing();
     }
     if (absent.stores.length || absent.indexes.length) {

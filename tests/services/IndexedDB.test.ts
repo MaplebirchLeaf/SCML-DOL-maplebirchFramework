@@ -14,21 +14,32 @@ mock.module('idb', () => ({
     _name: string,
     version?: number,
     options?: {
-      upgrade(db: { objectStoreNames: { contains(name: string): boolean }; createObjectStore(name: string): { indexNames: { contains(name: string): boolean }; createIndex(): void } }): void;
+      upgrade(
+        db: { objectStoreNames: { contains(name: string): boolean }; createObjectStore(name: string): { indexNames: { contains(name: string): boolean }; createIndex(): void } },
+        oldVersion: number,
+        newVersion: number | null,
+        tx: { objectStore(name: string): { indexNames: { contains(name: string): boolean }; createIndex(): void } }
+      ): void;
     }
   ) {
     requestedVersions.push(version);
-    if (version !== undefined && openError) throw openError;
-    if (rebuildPending || oldVersionPending) {
-      options?.upgrade({
-        objectStoreNames: { contains: () => storesAvailable },
-        createObjectStore: () => {
-          storesAvailable = true;
-          return { indexNames: { contains: () => true }, createIndex() {} };
-        }
-      });
+    if (version === IndexedDB.DATABASE_VERSION && openError) throw openError;
+    if (rebuildPending || oldVersionPending || (version !== undefined && version > IndexedDB.DATABASE_VERSION)) {
+      options?.upgrade(
+        {
+          objectStoreNames: { contains: () => storesAvailable },
+          createObjectStore: () => {
+            storesAvailable = true;
+            return { indexNames: { contains: () => true }, createIndex() {} };
+          }
+        },
+        0,
+        version ?? null,
+        { objectStore: () => ({ indexNames: { contains: () => true }, createIndex() {} }) }
+      );
       rebuildPending = false;
       oldVersionPending = false;
+      if (version !== undefined && version > IndexedDB.DATABASE_VERSION) transaction = { done: Promise.resolve(), abort() {}, objectStore: () => ({ indexNames: { contains: () => true } }) };
     }
     return {
       version: version ?? IndexedDB.DATABASE_VERSION,
@@ -66,10 +77,14 @@ test('announces database readiness at INFO before the saved log level can be rea
   expect(messages).toContainEqual({ message: 'IDB数据库初始化完成', level: 'INFO', scope: 'indexedDB' });
 });
 
-test('rejects schema registration after the database is open', async () => {
+test('upgrades a store registered after the database is open', async () => {
   const service = new IndexedDB();
   await service.init();
-  expect(() => service.define('late')).toThrow('IDB存储必须在数据库打开前注册: late');
+  storesAvailable = false;
+  expect(service.define('late')).toBe(true);
+  await service.init();
+  expect(storesAvailable).toBe(true);
+  storesAvailable = true;
 });
 
 test('upgrades an older database without clearing it', async () => {
@@ -86,15 +101,15 @@ test('upgrades an older database without clearing it', async () => {
   expect(storesAvailable).toBe(true);
 });
 
-test('recreates a newer database at the current framework version', async () => {
+test('opens a newer database without deleting it', async () => {
   requestedVersions = [];
   deleted = 0;
   openError = new DOMException('requested version is lower', 'VersionError');
   const service = new IndexedDB();
   try {
     await service.init();
-    expect(requestedVersions).toEqual([IndexedDB.DATABASE_VERSION, IndexedDB.DATABASE_VERSION]);
-    expect(deleted).toBe(1);
+    expect(requestedVersions).toEqual([IndexedDB.DATABASE_VERSION, undefined]);
+    expect(deleted).toBe(0);
     expect(await service.init()).toBeUndefined();
     expect(requestedVersions).toHaveLength(2);
   } finally {
@@ -102,7 +117,7 @@ test('recreates a newer database at the current framework version', async () => 
   }
 });
 
-test('recreates all registered stores when an existing database is newer', async () => {
+test('adds registered stores to a newer database without deleting it', async () => {
   requestedVersions = [];
   deleted = 0;
   openError = new DOMException('requested version is lower', 'VersionError');
@@ -111,8 +126,8 @@ test('recreates all registered stores when an existing database is newer', async
   service.define('settings', { keyPath: 'key' });
   try {
     await service.init();
-    expect(requestedVersions).toEqual([IndexedDB.DATABASE_VERSION, IndexedDB.DATABASE_VERSION]);
-    expect(deleted).toBe(1);
+    expect(requestedVersions).toEqual([IndexedDB.DATABASE_VERSION, undefined, IndexedDB.DATABASE_VERSION + 1]);
+    expect(deleted).toBe(0);
     expect(storesAvailable).toBe(true);
   } finally {
     openError = null;
@@ -120,7 +135,7 @@ test('recreates all registered stores when an existing database is newer', async
   }
 });
 
-test('recreates a current-version database that lacks a registered store', async () => {
+test('adds a missing store without deleting the database', async () => {
   requestedVersions = [];
   deleted = 0;
   closed = 0;
@@ -130,16 +145,16 @@ test('recreates a current-version database that lacks a registered store', async
   service.define('cheats', { keyPath: 'name' });
   try {
     await service.init();
-    expect(requestedVersions).toEqual([IndexedDB.DATABASE_VERSION, IndexedDB.DATABASE_VERSION]);
+    expect(requestedVersions).toEqual([IndexedDB.DATABASE_VERSION, IndexedDB.DATABASE_VERSION + 1]);
     expect(closed).toBe(1);
-    expect(deleted).toBe(1);
+    expect(deleted).toBe(0);
     expect(storesAvailable).toBe(true);
   } finally {
     storesAvailable = true;
   }
 });
 
-test('recreates a current-version database that lacks a required index', async () => {
+test('adds a missing index without deleting the database', async () => {
   requestedVersions = [];
   closed = 0;
   deleted = 0;
@@ -152,9 +167,9 @@ test('recreates a current-version database that lacks a required index', async (
   service.define('settings', { keyPath: 'key' }, [{ name: 'byKey', keyPath: 'key' }]);
   try {
     await service.init();
-    expect(requestedVersions).toEqual([IndexedDB.DATABASE_VERSION, IndexedDB.DATABASE_VERSION]);
+    expect(requestedVersions).toEqual([IndexedDB.DATABASE_VERSION, IndexedDB.DATABASE_VERSION + 1]);
     expect(closed).toBe(1);
-    expect(deleted).toBe(1);
+    expect(deleted).toBe(0);
   } finally {
     openError = null;
   }
