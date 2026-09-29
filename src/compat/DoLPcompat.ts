@@ -394,8 +394,7 @@ class DoLPcompat {
 
   public static nnpc = {
     showfn: (options: Record<string, any>) => {
-      const nnpc = options.maplebirch!.nnpc!;
-      if (nnpc.show) return false;
+      if (dol.variables.options.maplebirch.npcsidebar.show) return false;
       if (dol.temporary.effects === true) return true;
       return options.show_nnpc === true;
     }
