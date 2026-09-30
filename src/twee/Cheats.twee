@@ -39,7 +39,7 @@
       <<for _modTransformation range $_modTransformations>>
         <<capture _modTransformation>>
           <<set $_config to maplebirch.char.transformation.config.get(_modTransformation)>>
-          <<if $_config?.icon>><<iconUi $_config.icon>><</if>>
+          <<if $_config?.icon>><<= $_config.icon>><</if>>
           <<= maplebirch.t(_modTransformation)>>：
           <<lanLink 'set' 'capitalize'>>
             <<run maplebirch.char.transformation.setTransform(_modTransformation)>>
@@ -59,7 +59,7 @@
       <<for _modTransformation range $_modTransformations>>
         <<capture _modTransformation>>
           <<set $_config to maplebirch.char.transformation.config.get(_modTransformation)>>
-          <<set $_title to $_config?.icon ? `<<iconUi '${$_config.icon}'>> ${maplebirch.t(_modTransformation)}` : maplebirch.t(_modTransformation)>>
+          <<set $_title to $_config?.icon ? `${$_config.icon} ${maplebirch.t(_modTransformation)}` : maplebirch.t(_modTransformation)>>
           <<set $_value to V.maplebirch.transformation[_modTransformation].build ?? 0>>
           <<numberStepper $_title $_value {
             callback: (value) => {

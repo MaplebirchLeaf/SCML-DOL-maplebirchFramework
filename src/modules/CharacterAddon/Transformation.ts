@@ -66,8 +66,13 @@ class Entry {
   public build: number;
   public level: number;
   public update?: number[];
-  public icon?: string;
+  private readonly iconSource?: string;
   public message?: TransformMessage;
+
+  public get icon(): string {
+    const icon = this.iconSource;
+    return icon?.startsWith('<') ? icon : icon ? `<<iconUi '${icon}'>>` : '';
+  }
 
   public constructor(type: string, parts: Part[], traits?: Part[], options?: EntryOptions) {
     this.type = type;
@@ -76,7 +81,7 @@ class Entry {
     this.build = options?.build ?? 100;
     this.level = options?.level ?? 6;
     this.update = options?.update;
-    this.icon = options?.icon;
+    this.iconSource = options?.icon;
     this.message = options?.message;
   }
 }
@@ -523,7 +528,8 @@ class Transformation {
     let highestTf = activeTfs[0];
     for (let i = 1; i < activeTfs.length; i++) if (activeTfs[i].level > highestTf.level) highestTf = activeTfs[i];
     const tfName = highestTf.name;
-    for (const [name, entry] of this.config) if (name === tfName && entry?.icon) return `<<iconUi '${entry.icon}'>>`;
+    const icon = this.config.get(tfName)?.icon;
+    if (icon) return icon;
     return `<<tficon '${tfName}'>>`;
   }
 
