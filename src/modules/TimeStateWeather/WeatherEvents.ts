@@ -255,11 +255,21 @@ export class WeatherManager {
   }
 
   public Init(): void {
-    for (const exception of this.Exceptions) dol.setup.WeatherExceptions.push(exception);
-    this.Exceptions.length = 0;
-    for (const weatherType of this.WeatherTypes)
-      if (!dol.setup.WeatherGeneration.weatherTypes.find((type: any) => type.name === weatherType.name)) dol.setup.WeatherGeneration.weatherTypes.push(weatherType);
-    this.WeatherTypes.length = 0;
+    let exceptions = 0;
+    let types = 0;
+    try {
+      for (const exception of this.Exceptions) {
+        dol.setup.WeatherExceptions.push(exception);
+        exceptions++;
+      }
+      for (const weatherType of this.WeatherTypes) {
+        if (!dol.setup.WeatherGeneration.weatherTypes.find((type: any) => type.name === weatherType.name)) dol.setup.WeatherGeneration.weatherTypes.push(weatherType);
+        types++;
+      }
+    } finally {
+      this.Exceptions.splice(0, exceptions);
+      this.WeatherTypes.splice(0, types);
+    }
     this.log('天气事件系统已激活', 'DEBUG');
   }
 

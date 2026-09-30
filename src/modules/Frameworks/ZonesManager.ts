@@ -194,45 +194,54 @@ export class zonesManager {
   }
 
   public patchModToGame(manager: AddonPlugin, type: 'before' | 'after'): void {
-    const oldSCdata = manager.SC2DataManager.getSC2DataInfoAfterPatch();
-    const SCdata = oldSCdata.cloneSC2DataInfo();
-    const passageData = SCdata.passageDataItems.map;
-    if (type === 'before') {
-      for (const [patches, widget] of [
-        [this.locationPassage, false],
-        [this.widgetPassage, true]
-      ] as const) {
-        for (const [title, sets] of Object.entries(patches)) {
-          const passage = passageData.get(title);
-          if (passage && passage.tags.includes('widget') === widget) continue;
-          sets.forEach((set, index) =>
-            this.core.infra.diagnostics.recordPatch({
-              kind: 'passage',
-              target: title,
-              index: index + 1,
-              pattern: String(set.src ?? set.srcmatch ?? set.srcmatchgroup ?? ''),
-              matches: 0,
-              applied: 0,
-              status: passage ? 'invalid' : 'missing',
-              error: passage ? 'Passage is registered in the wrong patch group' : 'Passage not found'
-            })
-          );
-          this.log(`补丁目标不可用: ${title}`, 'WARN');
+    try {
+      const oldSCdata = manager.SC2DataManager.getSC2DataInfoAfterPatch();
+      const SCdata = oldSCdata.cloneSC2DataInfo();
+      const passageData = SCdata.passageDataItems.map;
+      if (type === 'before') {
+        for (const [patches, widget] of [
+          [this.locationPassage, false],
+          [this.widgetPassage, true]
+        ] as const) {
+          for (const [title, sets] of Object.entries(patches)) {
+            const passage = passageData.get(title);
+            if (passage && passage.tags.includes('widget') === widget) continue;
+            sets.forEach((set, index) =>
+              this.core.infra.diagnostics.recordPatch({
+                kind: 'passage',
+                target: title,
+                index: index + 1,
+                pattern: String(set.src ?? set.srcmatch ?? set.srcmatchgroup ?? ''),
+                matches: 0,
+                applied: 0,
+                status: passage ? 'invalid' : 'missing',
+                error: passage ? 'Passage is registered in the wrong patch group' : 'Passage not found'
+              })
+            );
+            this.log(`补丁目标不可用: ${title}`, 'WARN');
+          }
+        }
+        this.widgetInit(passageData);
+      }
+      for (const [title, passage] of passageData) {
+        try {
+          this.patchPassage(type, passage, title);
+        } catch (error) {
+          const message = Diagnostics.message(error);
+          this.log(`处理段落 ${title} 时出错: ${message}`, 'ERROR', error);
         }
       }
-      this.widgetInit(passageData);
+      SCdata.passageDataItems.back2Array();
+      manager.modUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
+    } finally {
       this.widgethtml = '';
-    }
-    for (const [title, passage] of passageData) {
-      try {
-        this.patchPassage(type, passage, title);
-      } catch (error) {
-        const message = Diagnostics.message(error);
-        this.log(`处理段落 ${title} 时出错: ${message}`, 'ERROR', error);
+      if (type === 'before') {
+        this.specialWidget.length = 0;
+        for (const data of [this.defaultData, this.locationPassage, this.widgetPassage]) {
+          for (const key of Object.keys(data)) delete data[key];
+        }
       }
     }
-    SCdata.passageDataItems.back2Array();
-    manager.modUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
   }
 
   private get widgets(): string {

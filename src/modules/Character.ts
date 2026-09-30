@@ -54,7 +54,6 @@ interface LayerEntry {
 interface LayerUseOptions {
   pet?: boolean;
 }
-const faceImagePaths = new Set<string>();
 
 const maskCache = new Map<string, string>();
 
@@ -281,7 +280,6 @@ class Character {
       const faceIndex = normalized.indexOf('img/face/');
       if (faceIndex < 0) continue;
       const imagePath = normalized.slice(faceIndex);
-      faceImagePaths.add(imagePath);
       const [style, variant, file] = imagePath.slice('img/face/'.length).split('/');
       if (!style || !variant || style === 'masks') continue;
       add(style);

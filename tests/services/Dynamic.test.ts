@@ -121,3 +121,54 @@ test('character pre and post processors retain order and isolate failing hooks',
   character.process('pre', {} as CanvasModelOptionsData, { name: 'other' } as CanvasModel);
   expect(checks).toHaveLength(before);
 });
+
+test('weather initialization releases consumed inputs after a failure and preserves the unfinished queue', () => {
+  const originals = new Map(['setup', 'document', '$'].map(name => [name, Object.getOwnPropertyDescriptor(globalThis, name)]));
+  const exceptions: object[] = [];
+  const weatherTypes: object[] = [];
+  let rejectException = true;
+  let rejectType = false;
+  const secondType = {
+    get name() {
+      if (rejectType) throw new Error('type failed');
+      return 'second';
+    }
+  };
+  Object.defineProperty(globalThis, 'setup', {
+    value: { WeatherExceptions: exceptions, WeatherGeneration: { weatherTypes } },
+    configurable: true
+  });
+  Object.defineProperty(globalThis, 'document', { value: {}, configurable: true });
+  Object.defineProperty(globalThis, '$', { value: () => ({ on() {} }), configurable: true });
+  exceptions.push = (...items) => {
+    if (rejectException && exceptions.length === 1) throw new Error('exception failed');
+    return Array.prototype.push.apply(exceptions, items);
+  };
+  try {
+    const weather = new WeatherManager({ log() {}, core: { on() {} }, Time: { onTravel() {} } } as unknown as DoLDynamic);
+    const queues = weather as unknown as { Exceptions: object[]; WeatherTypes: object[] };
+    weather.addWeatherData({ date: () => ({}) as DateTime, duration: 1, weatherType: 'first' });
+    weather.addWeatherData({ date: () => ({}) as DateTime, duration: 1, weatherType: 'second' });
+    weather.addWeatherData({ name: 'first' } as never);
+    weather.addWeatherData(secondType as never);
+    rejectType = true;
+    expect(() => weather.Init()).toThrow('exception failed');
+    expect(queues.Exceptions).toHaveLength(1);
+    expect(queues.WeatherTypes).toHaveLength(2);
+    rejectException = false;
+    expect(() => weather.Init()).toThrow('type failed');
+    expect(exceptions).toHaveLength(2);
+    expect(queues.Exceptions).toHaveLength(0);
+    expect(queues.WeatherTypes).toEqual([secondType]);
+    rejectType = false;
+    weather.Init();
+    expect(exceptions).toHaveLength(2);
+    expect(weatherTypes).toHaveLength(2);
+    expect(queues.WeatherTypes).toHaveLength(0);
+  } finally {
+    for (const [name, descriptor] of originals) {
+      if (descriptor) Object.defineProperty(globalThis, name, descriptor);
+      else Reflect.deleteProperty(globalThis, name);
+    }
+  }
+});

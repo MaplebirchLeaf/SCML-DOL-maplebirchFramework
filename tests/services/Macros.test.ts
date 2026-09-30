@@ -87,3 +87,38 @@ test('replaces a vanilla macro immediately after story readiness', () => {
   service.defineS('transform', () => 'new', null, null, false, 'storyready');
   expect(registry.get('transform')).not.toEqual(vanilla);
 });
+
+test('releases installed macro definitions while preserving pending phases and duplicate protection', () => {
+  const { service, registry, ready, emit } = harness();
+  const pending = (service as unknown as { definitions: Map<string, unknown> }).definitions;
+  service.define('early', function () {});
+  service.define('late', function () {}, null, null, false, 'storyready');
+  ready();
+  emit(':sugarcube');
+  expect([...pending.keys()]).toEqual(['late']);
+  registry.delete('early');
+  service.create('early', () => ({}) as DocumentFragment);
+  expect(registry.has('early')).toBe(false);
+  emit(':storyready');
+  expect(pending.size).toBe(0);
+  service.define('immediate', function () {});
+  expect(pending.size).toBe(0);
+  expect(registry.has('immediate')).toBe(true);
+});
+
+test('retains a macro definition if SugarCube rejects registration', () => {
+  const { service, ready, emit } = harness();
+  const pending = (service as unknown as { definitions: Map<string, unknown> }).definitions;
+  ready();
+  emit(':sugarcube');
+  const add = service.Macro.add;
+  service.Macro.add = () => {
+    throw new Error('registration failed');
+  };
+  try {
+    expect(() => service.define('retry', function () {})).toThrow('registration failed');
+    expect(pending.has('retry')).toBe(true);
+  } finally {
+    service.Macro.add = add;
+  }
+});

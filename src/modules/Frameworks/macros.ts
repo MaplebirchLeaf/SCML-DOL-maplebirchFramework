@@ -73,6 +73,7 @@ class defineMacros {
     const macro = this.Macro;
     if (macro.has(name)) macro.delete(name);
     macro.add(name, definition);
+    this.definitions.delete(name);
   }
 
   public defineS<Args extends unknown[]>(
@@ -103,7 +104,7 @@ class defineMacros {
       this.log(`状态显示函数无效: ${name}`, 'WARN');
       return;
     }
-    if (this.statFunctions[name] || this.definitions.has(name) || this.manager.core.host.sugarcube.runtime?.Macro.has(name)) {
+    if (this.statFunctions[name] || this.macros.includes(name) || this.manager.core.host.sugarcube.runtime?.Macro.has(name)) {
       this.log(`已存在名为 '${name}' 的函数或宏`, 'WARN');
       return;
     }
