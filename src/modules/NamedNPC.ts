@@ -611,7 +611,14 @@ class NPCManager {
     this.core.services.addonPlugin.hook<NPCBootConfig>('npc', task => this.config(task));
     this.core.tool.onInit(() => this.NamedNPC.proxy(this));
     this.core.tool.onInit(() => this.Pregnancy.init());
-    this.core.on(':variable', () => this.NamedNPC.proxy(this), 'Named NPC Proxy');
+    this.core.on(
+      ':variable',
+      () => {
+        this.NamedNPC.proxy(this);
+        this.Clothes.outfitSets.recover();
+      },
+      'Named NPC Proxy'
+    );
     this.core.on(
       ':language',
       () => {

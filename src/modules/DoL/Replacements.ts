@@ -126,6 +126,9 @@ const widgetPassage = {
   'Widgets Tentacles': [
     { src: '<<widget "effectstentacles">>', applyafter: '\n\t<<maplebirchCombatAction "Tentacle" "leftaction" "rightaction" "feetaction" "mouthaction" "penisaction" "vaginaaction" "anusaction" "chestaction">>' }
   ],
+  'Widgets Abomination': [
+    { src: '<<widget "effectsabomination">>\n\t<<effectsman>>', applyafter: '\n\t<<maplebirchCombatAction "Tentacle" "leftaction" "rightaction" "feetaction" "mouthaction" "penisaction" "vaginaaction" "anusaction" "chestaction">>', expected: 1 }
+  ],
   Traits: [
     { src: '<div id="traitListsSearch">', applybefore: '<<run maplebirch.tool.patch.traits.inject(_traitLists)>>\n\t' }
   ],

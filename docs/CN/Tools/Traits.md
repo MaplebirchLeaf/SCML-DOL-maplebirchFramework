@@ -30,15 +30,29 @@ _可通过 `maplebirch.tool.patch.traits.add()` 访问。_
 
 ### 特质配置对象 (TraitConfig)
 
-| 属性     | 类型             | 说明                                           |
-| :------- | :--------------- | :--------------------------------------------- |
-| `title`  | string           | 特质分类标题                                   |
-| `name`   | string/function  | 特质名称，可以是字符串或返回字符串的函数       |
-| `colour` | string/function  | 特质颜色，可以是字符串或返回字符串的函数       |
-| `has`    | boolean/function | 是否拥有该特质，可以是布尔值或返回布尔值的函数 |
-| `text`   | string/function  | 特质描述文本，可以是字符串或返回字符串的函数   |
+| 属性      | 类型             | 说明                                           |
+| :-------- | :--------------- | :--------------------------------------------- |
+| `title`   | string           | 特质分类标题                                   |
+| `name`    | string/function  | 特质名称，可以是字符串或返回字符串的函数       |
+| `replace` | string/RegExp    | 可选，同分类中要覆盖的原特质名称或匹配正则     |
+| `colour`  | string/function  | 特质颜色，可以是字符串或返回字符串的函数       |
+| `has`     | boolean/function | 是否拥有该特质，可以是布尔值或返回布尔值的函数 |
+| `text`    | string/function  | 特质描述文本，可以是字符串或返回字符串的函数   |
 
 #### **内置分类表**
+
+`replace` 匹配渲染前的名称，字符串精确匹配，正则匹配可用于同时识别中英文原版名称。覆盖时保留原特质的位置。未找到时按新增特质处理。省略时仍按 `name` 覆盖同名条目。该字段用于脚本注册，例如：
+
+```javascript
+maplebirch.tool.patch.traits.add({
+  title: 'General Traits',
+  replace: /^(?:Rite of Promise:|承诺仪式：)/,
+  name: () => lanSwitch('Rite of Promise: ', '承诺仪式：') + maplebirch.auto('Robin'),
+  colour: 'blue',
+  has: () => V.myMod.promised,
+  text: 'A promise recognised by the temple.'
+});
+```
 
 框架会自动将英文分类名翻译为中文：
 

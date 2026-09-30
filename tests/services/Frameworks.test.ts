@@ -7,8 +7,66 @@ import { zonesManager } from '../../src/modules/Frameworks/ZonesManager';
 import Dynamic from '../../src/modules/Dynamic';
 import { StateManager } from '../../src/modules/State';
 import NPCSidebarWardrobe from '../../src/modules/NamedNPCAddon/NPCClothes/NPCSidebarWardrobe';
+import NPCOutfitSets from '../../src/modules/NamedNPCAddon/NPCClothes/NPCOutfitSets';
 import type NPCManager from '../../src/modules/NamedNPC';
 import prototypeUtils from '../../src/compat/Prototype';
+
+test('outfit recovery repairs missing references before generation and preserves registered sets and NPC progress', () => {
+  const originals = new Map(['V', 'T', 'setup', 'document'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  const robin = { nam: 'Robin', love: 80, outfits: ['naked', 'robin_removed'], clothes: { set: 'robin_removed' } };
+  const mixed = { nam: 'Sydney', love: 70, outfits: ['naked', 'removed', 'other_mod'], clothes: { set: 'removed' } };
+  const valid = { nam: 'Kylar', love: 60, outfits: ['naked', 'other_mod'], clothes: { set: 'other_mod', upper: { integrity: 3 } } };
+  const damaged = { nam: 'Whitney', love: 30, outfits: ['naked', 'removed', 'other_mod'], clothes: { set: 'other_mod', upper: { integrity: 4 } } };
+  const snapshot = { fullDescription: 'Robin', outfits: ['removed'], clothes: { set: 'removed' } };
+  const variables = { NPCName: [robin, mixed, valid, damaged], NPCList: [snapshot, valid] };
+  const temporary = { maplebirchOutfitNPC: 'previous' } as Record<string, any>;
+  const registry = ['naked', 'maleDefault', 'other_mod'].map(name => ({ name }));
+  const calls: string[] = [];
+  for (const [key, value] of Object.entries({ V: variables, T: temporary, setup: { npcClothesSets: registry }, document: { createDocumentFragment: () => ({}) } })) {
+    Object.defineProperty(globalThis, key, { value, configurable: true });
+  }
+  const manager = {
+    core: {
+      host: {
+        sugarcube: {
+          require: () => ({
+            Wikifier: class {
+              constructor(_target: unknown, source: string) {
+                const npc = temporary.maplebirchOutfitNPC;
+                calls.push(source);
+                if (source.includes('initNNPCClothes')) npc.outfits = ['naked', 'maleDefault'];
+                expect(npc.outfits?.every((name: string) => registry.some(set => set.name === name)) ?? true).toBe(true);
+                npc.clothes = { set: 'maleDefault' };
+              }
+            }
+          })
+        }
+      }
+    }
+  } as unknown as NPCManager;
+  const sets = new NPCOutfitSets(manager);
+  try {
+    sets.recover();
+    expect(robin).toEqual({ nam: 'Robin', love: 80, outfits: ['naked', 'maleDefault'], clothes: { set: 'maleDefault' } });
+    expect(mixed.outfits).toEqual(['naked', 'maleDefault', 'other_mod']);
+    expect(mixed.love).toBe(70);
+    expect(valid).toEqual({ nam: 'Kylar', love: 60, outfits: ['naked', 'other_mod'], clothes: { set: 'other_mod', upper: { integrity: 3 } } });
+    expect(damaged.clothes).toEqual({ set: 'other_mod', upper: { integrity: 4 } });
+    expect(damaged.outfits).toEqual(['naked', 'maleDefault', 'other_mod']);
+    expect(damaged.love).toBe(30);
+    expect(snapshot.outfits).toBeUndefined();
+    expect(snapshot.clothes.set).toBe('maleDefault');
+    expect(calls).toHaveLength(4);
+    expect(temporary.maplebirchOutfitNPC).toBe('previous');
+    sets.recover();
+    expect(calls).toHaveLength(4);
+  } finally {
+    for (const [key, original] of originals) {
+      if (original) Object.defineProperty(globalThis, key, original);
+      else Reflect.deleteProperty(globalThis, key);
+    }
+  }
+});
 
 test('text stores keep insertion order and ignore duplicate values', () => {
   const store = new TextStore();

@@ -3,6 +3,7 @@
 import Diagnostics from '../../../infra/Diagnostics';
 import type NPCManager from '../../NamedNPC';
 import dol from '../../../host/DoL';
+import { clone } from '../../../utils/object';
 
 interface OutfitPartConfig {
   name: string;
@@ -112,6 +113,42 @@ class NPCOutfitSets {
   public get data(): OutfitSet[] {
     dol.setup.npcClothesSets ??= [];
     return dol.setup.npcClothesSets;
+  }
+
+  public recover(): void {
+    if (!dol.has('variables') || !Array.isArray(dol.setup.npcClothesSets) || !dol.setup.npcClothesSets.length) return;
+    const variables = dol.variables;
+    const sets = new Set(this.data.map(set => set.name));
+    const named = Array.isArray(variables.NPCName) ? variables.NPCName : [];
+    const active = Array.isArray(variables.NPCList) ? variables.NPCList : [];
+    const { Wikifier } = this.manager.core.host.sugarcube.require();
+    for (const npc of new Set([...named, ...active])) {
+      if (!npc || typeof npc !== 'object') continue;
+      const outfits = Array.isArray(npc.outfits) ? npc.outfits.filter((name: string) => sets.has(name)) : undefined;
+      const missingOutfits = outfits && outfits.length !== npc.outfits.length;
+      const missingSet = npc.clothes?.set && !sets.has(npc.clothes.set);
+      if (!missingOutfits && !missingSet) continue;
+      const temporary = dol.temporary;
+      const previous = temporary.maplebirchOutfitNPC;
+      temporary.maplebirchOutfitNPC = npc;
+      try {
+        if (named.includes(npc)) {
+          const clothes = !missingSet && npc.clothes ? clone(npc.clothes) : undefined;
+          new Wikifier(document.createDocumentFragment(), '<<initNNPCClothes _maplebirchOutfitNPC.nam "reset">>');
+          npc.outfits = [...new Set([...(npc.outfits ?? []), ...(outfits ?? [])])];
+          if (clothes) npc.clothes = clothes;
+        } else {
+          if (missingSet) {
+            npc.outfits = undefined;
+            new Wikifier(document.createDocumentFragment(), '<<generateNPCClothes _maplebirchOutfitNPC>>');
+          }
+          npc.outfits = outfits?.length ? outfits : undefined;
+        }
+      } finally {
+        if (previous === undefined) delete temporary.maplebirchOutfitNPC;
+        else temporary.maplebirchOutfitNPC = previous;
+      }
+    }
   }
 
   private create(config: OutfitSetConfig): OutfitSet | undefined {

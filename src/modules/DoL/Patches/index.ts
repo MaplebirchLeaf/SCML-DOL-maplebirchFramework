@@ -48,7 +48,7 @@ function register(core: MaplebirchCore, patch: Patch) {
       api: { data: antiquesData, add: Antiques.add, inject: Antiques.inject },
       legacy: { antiquesData, addAntiques: Antiques.add, injectAntiques: Antiques.inject },
       available: () => dol.has('variables') && isRecord(dol.variables.museumAntiques?.antiques),
-      state: Antiques.syncState
+      state: () => new (core.host.sugarcube.require().Wikifier)(document.createDocumentFragment(), '<<museumAntiqueText>>')
     },
     tips: {
       api: { data: tipsData, add: Tips.add, apply: Tips.apply, inject: Tips.inject },

@@ -398,7 +398,6 @@ export class CredentialVault {
         errorText = this.translate('credential.auth.error.format');
       }
     });
-    // The caller receives the rejection; only the queue tail must recover.
     this.dialogQueue = next.catch(() => undefined);
     return next;
   }

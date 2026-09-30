@@ -22,15 +22,29 @@ maplebirch.tool.patch.traits.add({
 
 ## Trait Config
 
-| Field    | Type             | Description                 |
-| :------- | :--------------- | :-------------------------- |
-| `title`  | string           | Trait category              |
-| `name`   | string/function  | Trait name                  |
-| `colour` | string/function  | Display color               |
-| `has`    | boolean/function | Whether the trait is active |
-| `text`   | string/function  | Description text            |
+| Field     | Type             | Description                                                                 |
+| :-------- | :--------------- | :-------------------------------------------------------------------------- |
+| `title`   | string           | Trait category                                                              |
+| `name`    | string/function  | Trait name                                                                  |
+| `replace` | string/RegExp    | Optional original name or regular expression to replace within the category |
+| `colour`  | string/function  | Display color                                                               |
+| `has`     | boolean/function | Whether the trait is active                                                 |
+| `text`    | string/function  | Description text                                                            |
 
 ## Known Categories
+
+`replace` matches names before rendering and keeps the original position. Strings match exactly, while regular expressions can match both English and Chinese native names. If absent or unmatched, registration retains the existing same-name replacement and append behavior. This field is available through script registration:
+
+```javascript
+maplebirch.tool.patch.traits.add({
+  title: 'General Traits',
+  replace: /^(?:Rite of Promise:|承诺仪式：)/,
+  name: () => lanSwitch('Rite of Promise: ', '承诺仪式：') + maplebirch.auto('Robin'),
+  colour: 'blue',
+  has: () => V.myMod.promised,
+  text: 'A promise recognised by the temple.'
+});
+```
 
 | English category    | Chinese display   |
 | :------------------ | :---------------- |

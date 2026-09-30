@@ -18,6 +18,7 @@ interface Trait {
 export interface TraitConfig {
   title: string;
   name: string | (() => string);
+  replace?: string | RegExp;
   colour: string | (() => string);
   has: boolean | (() => boolean);
   text: string | (() => string);
@@ -44,6 +45,7 @@ class Traits {
       const next: TraitConfig = {
         title: trait.title,
         name: trait.name,
+        replace: trait.replace,
         colour: trait.colour ?? '',
         has: trait.has ?? false,
         text: trait.text ?? ''
@@ -78,7 +80,8 @@ class Traits {
       const categoryIndex = titleMap.get(trait.title);
       if (categoryIndex !== undefined) {
         const entries = result[categoryIndex].traits;
-        const index = entries.findIndex(existing => existing.name === trait.name);
+        const name = rawTrait.replace ?? trait.name;
+        const index = entries.findIndex(existing => existing.name === trait.name || (typeof name === 'string' ? existing.name === name : existing.name.search(name) !== -1));
         if (index < 0) entries.push(item);
         else entries[index] = item;
         continue;
