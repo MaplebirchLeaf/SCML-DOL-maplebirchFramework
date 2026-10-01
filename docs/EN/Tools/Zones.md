@@ -108,3 +108,13 @@ Use one matcher and one operation per entry. `matches` counts candidates; `appli
 | `CustomLinkZone` | Specific link position |
 | `Journal`        | Journal extension      |
 | `MobileStats`    | Mobile stats area      |
+
+### Custom link positions
+
+```javascript
+maplebirch.tool.addTo('CustomLinkZone', [0, 'BeforeFirstLink']);
+maplebirch.tool.addTo('CustomLinkZone', [-1, 'BeforeLastLink']);
+maplebirch.tool.addTo('CustomLinkZone', [-2, 'BeforeSecondLastLink']);
+```
+
+Positions are zero-based. Negative positions count from the end: `-1` targets the last link and `-2` the second-last link. The second tuple item accepts a widget name or configuration object. Content is inserted before the target link. Only visible original `.macro-link` elements count, excluding links inserted into zones. Non-integer and out-of-range positions are skipped. Check the passage order before assuming its final link is an exit.

@@ -95,3 +95,13 @@ test('zone clears generated widget text even when publishing patched passages fa
   expect(zone.widgetPassage).toEqual({});
   expect(zone.widgethtml).toBe('');
 });
+
+test('custom link zones preserve negative positions and passage filters', () => {
+  const { zone } = harness();
+  zone.addTo('CustomLinkZone', [-1, 'lastLink'], { widget: [-2, 'secondLastLink'], passage: 'Home' }, { widget: [-1, 'otherPassage'], passage: 'Other' }, [0, 'firstLink']);
+  expect(zone.play('CustomLinkZone')).toEqual([
+    { position: -2, macro: '<<secondLastLink>>' },
+    { position: -1, macro: '<<lastLink>>' },
+    { position: 0, macro: '<<firstLink>>' }
+  ]);
+});

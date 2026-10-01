@@ -133,9 +133,13 @@ maplebirch.tool.addTo('AfterLinkZone', 'AfterLinksHint');
 ```javascript
 maplebirch.tool.addTo('CustomLinkZone', [0, 'BeforeFirstLink']);
 maplebirch.tool.addTo('CustomLinkZone', [2, 'BeforeThirdLink']);
+maplebirch.tool.addTo('CustomLinkZone', [-1, 'BeforeLastLink']);
+maplebirch.tool.addTo('CustomLinkZone', [-2, 'BeforeSecondLastLink']);
 ```
 
-数组第一项是链接位置索引，从 `0` 开始；第二项是 widget 名称或配置对象。
+数组第一项是链接位置索引，从 `0` 开始。负数从末尾计数，`-1` 表示最后一个链接，`-2` 表示倒数第二个链接。第二项是 widget 名称或配置对象。
+
+索引只计算页面中可见的原有 `.macro-link`，不包括区域中新插入的链接。内容插在目标链接之前。非整数或超出范围的位置不插入内容。返回链接并不一定是页面最后一个链接，使用前需要核对页面顺序。
 
 ---
 

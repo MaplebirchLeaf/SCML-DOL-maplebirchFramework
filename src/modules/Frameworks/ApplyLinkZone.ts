@@ -77,8 +77,9 @@ class LinkZoneManager {
   }
 
   private applyCustom(position: number, config: LinkZoneConfig): void {
-    if (position < 0 || position >= this.links.length) return;
-    const target = this.links[position];
+    const index = position < 0 ? this.links.length + position : position;
+    if (!Number.isInteger(position) || index < 0 || index >= this.links.length) return;
+    const target = this.links[index];
     if (!target) {
       this.log(`[link] 未找到位置 ${position} 的链接`, 'WARN');
       return;
