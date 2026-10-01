@@ -24,6 +24,7 @@ export interface MacroContext extends Omit<SugarCubeMacroContext, 'args' | 'crea
   lanListboxCache?: Record<string, { options: ListboxOption[]; selectedIdx: number }>;
 }
 
+/** Array labels contain literal [EN, CN] text, not translation segments. */
 export interface LinkArg {
   text: string | readonly string[];
   link?: string;
@@ -65,13 +66,16 @@ export function text(value: unknown): string {
 }
 
 export function sourceText(value: unknown): string {
-  return Array.isArray(value) ? value.map(text).join('') : text(value);
+  if (!Array.isArray(value)) return text(value);
+  if (value.length !== 2) throw new Error('Bilingual text requires exactly two entries: [EN, CN].');
+  return text(value[0]) || text(value[1]);
 }
 
 export function macroTranslation(key: unknown, core: MaplebirchCore = maplebirch): string {
   if (Array.isArray(key)) {
-    const parts = key.map(part => macroTranslation(part, core)).filter(Boolean);
-    return parts.join(core.services.translator.language === 'CN' ? '' : ' ');
+    if (key.length !== 2) throw new Error('Bilingual text requires exactly two entries: [EN, CN].');
+    const index = core.services.translator.language === 'CN' ? 1 : 0;
+    return text(key[index]) || text(key[1 - index]);
   }
   const source = text(key);
   if (!source) return '';

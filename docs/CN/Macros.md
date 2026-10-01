@@ -85,10 +85,10 @@
 <</lanButton>>
 ```
 
-文本也可以写成分段数组。每段独立翻译，中文直接相连，英文以空格连接；`lanLink` 和静态 `lanListbox` 选项同样支持这种写法。
+文本数组固定为 `[EN, CN]`，按当前语言直接选择，不查询翻译表。`lanLink` 和静态 `lanListbox` 选项同样支持。数组必须恰好有两项，当前语言文本为空时回退到另一项。
 
 ```twine
-<<lanButton ['清除', '缓存'] 'title'>><<run clearCache()>><</lanButton>>
+<<lanButton ['Clear cache', '清除缓存'] 'title'>><<run clearCache()>><</lanButton>>
 ```
 
 常用参数：
@@ -112,10 +112,10 @@
 <</lanLink>>
 ```
 
-组合已有词条时，把中文片段放在同一个数组参数中。框架会在每次切换语言时重新翻译各段；普通字符串拼接完成后已无法分辨片段。
+一次性链接可直接使用 `[英文, 中文]`，文本保存在 Twee 中，无需注册翻译键。切换语言时链接会刷新。原来的分段数组已移除，需要将每种语言写成完整文本。复用的公共文本仍可使用翻译键。
 
 ```twine
-<<lanLink ['清除', '缓存'] 'title'>><<run clearCache()>><</lanLink>>
+<<lanLink ['Clear cache', '清除缓存'] 'title'>><<run clearCache()>><</lanLink>>
 ```
 
 SugarCube 链接语法：
@@ -146,7 +146,7 @@ SugarCube 链接语法：
 <</lanListbox>>
 ```
 
-静态选项的标签也可使用分段数组，第二个参数仍是选项值。
+静态选项的标签也可使用 `[EN, CN]`，第二个参数仍是选项值。省略选项值时使用英文标签作为稳定值，与当前语言无关。
 
 `optionsfrom` 可从数组、对象、Map、Set 生成选项：
 

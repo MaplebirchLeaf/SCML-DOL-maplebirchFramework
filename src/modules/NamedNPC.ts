@@ -612,14 +612,6 @@ class NPCManager {
     this.core.tool.onInit(() => this.NamedNPC.proxy(this));
     this.core.tool.onInit(() => this.Pregnancy.init());
     this.core.on(
-      ':variable',
-      () => {
-        this.NamedNPC.proxy(this);
-        this.Clothes.outfitSets.recover();
-      },
-      'Named NPC Proxy'
-    );
-    this.core.on(
       ':language',
       () => {
         if (!Array.isArray(dol.variables.NPCName)) return;
@@ -660,6 +652,7 @@ class NPCManager {
     this.NamedNPC.update(this);
     this.NamedNPC.setup(this);
     this.NamedNPC.convert(this);
+    this.Clothes.outfitSets.recover();
     this.Pregnancy.inject();
   }
 
@@ -690,7 +683,6 @@ class NPCManager {
     for (const statName in this.customStats) {
       if (Object.prototype.hasOwnProperty.call(this.customStats, statName)) {
         const customConfig = clone(this.customStats[statName]);
-        // 社交卡片读取当前 NPC 的数值与图像，不在注册时固定这些属性。
         for (const key of ['value', 'name', 'activeIcon', 'inactiveIcon', 'color', 'iconOrientation', 'requirements']) {
           if (typeof customConfig[key] === 'function') customConfig[key] = customConfig[key]();
         }

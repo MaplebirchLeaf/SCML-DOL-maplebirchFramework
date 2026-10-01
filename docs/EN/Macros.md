@@ -46,10 +46,10 @@ Object form:
 <</lanButton>>
 ```
 
-For a label built from existing translations, pass an array of Chinese segments. Each segment is translated again when the language changes; Chinese segments join directly and English segments join with spaces. `lanLink` and static `lanListbox` options support the same form.
+Array labels contain exactly two literal entries, `[EN, CN]`. The current language selects an entry directly without translation lookup. An empty entry falls back to the other language. `lanLink` and static `lanListbox` options support the same form.
 
 ```twine
-<<lanButton ['清除', '缓存'] 'title'>><<run clearCache()>><</lanButton>>
+<<lanButton ['Clear cache', '清除缓存'] 'title'>><<run clearCache()>><</lanButton>>
 ```
 
 ## lanLink
@@ -60,10 +60,10 @@ For a label built from existing translations, pass an array of Chinese segments.
 <</lanLink>>
 ```
 
-Use one array argument for composed text. Concatenating strings into a single argument loses the segment boundaries before translation.
+Use `[EN, CN]` for inline bilingual labels. Text remains in Twee and updates when the language changes. Translation-segment arrays are no longer supported: write a complete label for each language. Shared labels may still use translation keys.
 
 ```twine
-<<lanLink ['清除', '缓存'] 'title'>><<run clearCache()>><</lanLink>>
+<<lanLink ['Clear cache', '清除缓存'] 'title'>><<run clearCache()>><</lanLink>>
 ```
 
 SugarCube link syntax:
@@ -81,7 +81,7 @@ SugarCube link syntax:
 <</lanListbox>>
 ```
 
-Static option labels also accept a segment array; the second argument remains the option value.
+Static option labels also accept `[EN, CN]`; the second argument remains the option value. When omitted, the English label supplies a stable value independent of the current language.
 
 ## radiobuttonsfrom
 
