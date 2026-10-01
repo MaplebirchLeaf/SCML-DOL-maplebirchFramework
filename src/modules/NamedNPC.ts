@@ -690,6 +690,14 @@ class NPCManager {
     for (const statName in this.customStats) {
       if (Object.prototype.hasOwnProperty.call(this.customStats, statName)) {
         const customConfig = clone(this.customStats[statName]);
+        // 社交卡片读取当前 NPC 的数值与图像，不在注册时固定这些属性。
+        for (const key of ['value', 'name', 'activeIcon', 'inactiveIcon', 'color', 'iconOrientation', 'requirements']) {
+          if (typeof customConfig[key] === 'function') customConfig[key] = customConfig[key]();
+        }
+        if (Object.prototype.hasOwnProperty.call(customConfig, 'requirements')) {
+          const overrides = dol.temporary.npcOverrides;
+          overrides[statName] = { requirements: customConfig.requirements, ...overrides[statName] };
+        }
         const position = customConfig.position;
         delete customConfig.position;
         if (statDefaults[statName]) {
