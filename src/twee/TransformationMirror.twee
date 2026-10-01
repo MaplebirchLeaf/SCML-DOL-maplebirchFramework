@@ -14,6 +14,7 @@
 <</widget>>
 
 <<widget 'maplebirchChimeraMirror'>>
+  <<set $_chimeraOptions to _args[0]>>
   <<for $_chimera range maplebirch.char.transformation.chimeras>>
     <<if $_chimeraOptions[$_chimera.name + '_' + $_chimera.part]>>
       <div class='tf-part-item'>
