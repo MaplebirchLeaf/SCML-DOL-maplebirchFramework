@@ -8,12 +8,12 @@
 
 ```json
 {
-  "dependenceInfo": [{ "modName": "maplebirch", "version": ">=5.0.0" }],
+  "dependenceInfo": [{ "modName": "maplebirch", "version": ">=5.2.0" }],
   "addonPlugin": [
     {
       "modName": "maplebirch",
       "addonName": "maplebirchAddon",
-      "modVersion": ">=5.0.0",
+      "modVersion": ">=5.2.0",
       "params": { "script": ["framework.js"] }
     }
   ]
@@ -23,7 +23,7 @@
 > [!IMPORTANT]
 > `framework.js` 是模组 ZIP 内的路径，不是电脑上的绝对路径。依赖版本应改为你的模组实际测试过的最低框架版本。
 
-大多数模组代码写在 `script` 中。只有需要参与框架早期模块扩展时才使用 `module`；完整字段见 [boot.json 配置](BootJson.md)。
+大多数模组代码写在 `script` 中。只有需要参与框架早期模块扩展时才使用 `module`。完整字段见 [boot.json 配置](BootJson.md)。
 
 ## 2. 在脚本中调用公开接口
 
@@ -42,9 +42,9 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 这里的 `MyModOptions` 需由模组提供为 SugarCube widget。`on()` 监听框架事件，`tool.addTo()` 将 widget 加到选项区域。详细用法见[事件](Events.md)与[区域添加](Tools/Zones.md)。
 
 > [!TIP]
-> 优先用 `maplebirch` 的短入口，例如 `on()`、`t()`、`define()`、`with()`、`log()`；只在需要高级能力时进入 `services`、`infra` 或 `host`。
+> 优先用 `maplebirch` 的短入口，例如 `on()`、`t()`、`define()`、`with()`、`log()`。只在需要高级能力时进入 `services`、`infra` 或 `host`。
 
-为自定义事件、注册项、翻译键等命名时，推荐 `myMod:用途`（例如 `myMod:dailyCheck`）；`V.myMod` 是变量对象名，不按此规则改写。
+为自定义事件、注册项、翻译键等命名时，推荐 `myMod:用途`（例如 `myMod:dailyCheck`）。`V.myMod` 是变量对象名，不按此规则改写。
 
 ## 3. 按用途继续阅读
 

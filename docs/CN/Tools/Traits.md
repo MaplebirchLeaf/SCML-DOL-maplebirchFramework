@@ -81,7 +81,7 @@ maplebirch.tool.patch.traits.add({
 {
   "modName": "maplebirch",
   "addonName": "maplebirchAddon",
-  "modVersion": "^需要的框架版本",
+  "modVersion": ">=5.2.0",
   "params": {
     "framework": [
       {
@@ -109,7 +109,7 @@ maplebirch.tool.patch.traits.add({
 
 #### **动态值的配置**
 
-在 `boot.json` 中，`has` 可以写布尔值或 JavaScript 判断表达式；`name`、`colour` 和 `text` 使用普通字符串。需要动态名称、颜色或说明时，使用脚本中的函数配置。
+在 `boot.json` 中，`has` 可以写布尔值或 JavaScript 判断表达式。`name`、`colour` 和 `text` 使用普通字符串。需要动态名称、颜色或说明时，使用脚本中的函数配置。
 
 ```json
 {
@@ -202,7 +202,7 @@ maplebirch.tool.patch.traits.add({
 {
   "modName": "maplebirch",
   "addonName": "maplebirchAddon",
-  "modVersion": "^需要的框架版本",
+  "modVersion": ">=5.2.0",
   "params": {
     "framework": [
       {

@@ -2,7 +2,7 @@
 
 [项目首页](../../README.md) · [English](../EN/README.md)
 
-这份文档按“先运行，再扩展”的顺序组织。只需阅读与你的模组相关的专题；配置字段和返回行为以各专题页为准。
+这份文档按“先运行，再扩展”的顺序组织。只需阅读与你的模组相关的专题。配置字段和返回行为以各专题页为准。
 
 > [!TIP]
 > 第一次使用？从[快速开始](GettingStarted.md)入手，再查阅[boot.json 配置](BootJson.md)。示例优先使用 `maplebirch` 顶层短接口。
@@ -46,7 +46,9 @@
 - [模块与诊断](Modules.md)：需要扩展框架模块或排查加载问题时阅读。
 - [AddonPlugin 接入](AddonPlugin.md)：需要控制加载过程或复用插件能力时阅读。
 - [模组加密](Encryption.md)：只适用于计划发布加密模组的作者。
-- [云存档](CloudSave.md)：玩家自行部署存储端；普通内容模组不需要此功能。
+- [云存档](CloudSave.md)：玩家自行部署存储端。普通内容模组不需要此功能。
 
 > [!NOTE]
 > 专题页中的 `services`、`infra`、`host` 是高级入口。一般模组优先使用 `maplebirch.on/once/off/after/trigger`、`t/auto`、`idb/define/with` 和 `log` 等顶层方法。
+
+- [药片](Tools/Pills.md)

@@ -5,7 +5,39 @@
 转化系统允许模组制作者为游戏添加自定义的形态变化，如兽化、神圣化、恶魔化等。通过此系统，您可以定义角色在不同转化阶段的外观、特性、条件和效果。
 _可通过 `maplebirch.char.transformation.add` 注册。_
 
-转化渲染只作用于原版 PC 的 `main` 画布模型。`pre`、`post` 与 `layers` 都会注册到 `main`，不会自动作用到战斗画布或其它自定义画布。
+顶层 `pre`、`post` 与 `layers` 注册到原版 PC 的 `main` 画布。需要战斗贴图时，在 `combat` 中提供对应配置，框架会注册到 `combatMainPc`。
+
+---
+
+## 共用绘制与融合配置
+
+`layers` 和 `combat.layers` 可以是图层表，也可以是返回图层表的函数。函数在调用 `add` 时执行一次，适合在 `onInit` 中读取已加载的原版图层。
+
+```javascript
+maplebirch.tool.onInit(() => {
+  maplebirch.char.transformation.add('dragon', 'physical', {
+    parts: [
+      { name: 'eyes', tfRequired: 2, label: () => lanSwitch('Eyes', '眼睛') },
+      { name: 'tail', tfRequired: 4, label: () => lanSwitch('Scaled tail', '鳞尾') }
+    ],
+    layers: () => dragonLayers(),
+    combat: { pre: dragonCombatPre, layers: dragonCombatLayers },
+    chimeras: [
+      {
+        name: 'demondragon',
+        part: 'tail',
+        sources: ['dragon', 'demon'],
+        label: () => lanSwitch('Demon dragon tail:', '恶魔龙尾：')
+      }
+    ]
+  });
+});
+```
+
+- 部件的 `label` 可使用文本或函数，仅用于该转化的镜子选项。转化专属名称不会覆盖其他转化的通用名称。
+- `chimeras` 中的 `name` 是融合标识，`part` 是部件名，`sources` 列出参与融合的转化。每个来源的同名部件均可见时，镜子中才显示选项。
+- 框架统一接入原版融合默认值与镜子控件。开关存入 `$chimera[name][part]`，默认开启，保留玩家选择的关闭状态。相同标识可注册多个不同部件。
+- 融合贴图由转化自身的 `pre` 与 `layers` 选择，可沿用原版 `isChimeraEnabled(name, part)` 读取开关。
 
 ---
 
@@ -76,7 +108,7 @@ maplebirch.tool.onInit(() => {
     // 可选：后处理函数
     post: options => {
       if (V.maplebirch?.transformation?.dragon?.level >= 6) {
-        addDragonAura(options.canvas);
+        // 在此刷新模组自有的渲染状态，不要修改 V 中的转化进度。
       }
     },
 
@@ -85,7 +117,7 @@ maplebirch.tool.onInit(() => {
       dragon_horns: {
         srcfn: options => {
           const level = V.maplebirch?.transformation?.dragon?.level || 0;
-          if (level < 1) return null;
+          if (level < 1) return undefined;
           return `img/transformations/dragon/horns_${level}.png`;
         },
         showfn: () => V.maplebirch?.transformation?.dragon?.level >= 1,
@@ -94,7 +126,7 @@ maplebirch.tool.onInit(() => {
       dragon_wings: {
         srcfn: options => {
           const level = V.maplebirch?.transformation?.dragon?.level || 0;
-          if (level < 3) return null;
+          if (level < 3) return undefined;
           return `img/transformations/dragon/wings_${level}.png`;
         },
         showfn: () => V.maplebirch?.transformation?.dragon?.level >= 3,
@@ -131,6 +163,7 @@ maplebirch.tool.onInit(() => {
 - `name`: 部件名称(必须唯一)
 - `tfRequired`: 触发该部件所需的最小等级
 - `default`: 默认值(可选)
+- `label`: 该部件的镜子名称，可使用文本或函数(可选)
 
 ```javascript
 parts: [
@@ -200,11 +233,11 @@ suppressConditions: [
 message: {
   EN: {
     up: ['等级1消息', '等级2消息', '等级3消息', '等级4消息', '等级5消息', '等级6消息'],
-    down: ['等级5->4消息', '等级4->3消息', '等级3->2消息', '等级2->1消息', '等级1->0消息', '完全消失消息']
+    down: ['等级1->0消息', '等级2->1消息', '等级3->2消息', '等级4->3消息', '等级5->4消息', '等级6->5消息']
   },
   CN: {
     up: ['等级1消息', '等级2消息', '等级3消息', '等级4消息', '等级5消息', '等级6消息'],
-    down: ['等级5->4消息', '等级4->3消息', '等级3->2消息', '等级2->1消息', '等级1->0消息', '完全消失消息']
+    down: ['等级1->0消息', '等级2->1消息', '等级3->2消息', '等级4->3消息', '等级5->4消息', '等级6->5消息']
   }
 }
 ```
@@ -322,3 +355,9 @@ maplebirch.char.transformation.add('fire_elemental', 'elemental', {
   }
 });
 ```
+
+## 特质归属与消息索引
+
+同名特质（例如原版 `sharpEyes`）由多个转化共用时，只要任一归属转化达到要求，特质就保持启用。所有归属都失去资格后才关闭，不重复叠加原版加成。注册特质开关不会自动实现技能或伤害效果，具体结算仍需由原版或模组提供。
+
+`up[n - 1]` 对应进入第 n 阶段，`down[n - 1]` 对应从第 n 阶段退出。因此衰退数组也按阶段从低到高排列，不按实际衰退顺序倒排。外观部件开关与特质开关分别存储，渲染时应判断 `isPartEnabled()`，不能只判断等级。

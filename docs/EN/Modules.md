@@ -56,9 +56,48 @@ maplebirch.define(
 );
 ```
 
+## Accessing Custom Modules
+
+Register custom feature modules under their full names and read them with `maplebirch.get(name)`. They do not need `exposed`. Missing or disabled modules return `undefined`, so use an optional chain or check first:
+
+```javascript
+maplebirch.define(
+  'MyModFeature',
+  {
+    enabled: true,
+    Init() {
+      this.log('feature initialized');
+    }
+  },
+  ['tool']
+);
+
+const feature = maplebirch.get('MyModFeature');
+if (feature) console.log(feature.enabled);
+```
+
+TypeScript mods should extend the type package’s `Extensions` interface so `get()` returns their module type:
+
+```typescript
+import type { MaplebirchCore } from '@scml-dol-maplebirch/types';
+
+class MyModFeature {
+  constructor(readonly core: MaplebirchCore) {}
+  enabled = true;
+}
+
+declare module '@scml-dol-maplebirch/types' {
+  interface Extensions {
+    readonly MyModFeature: MyModFeature;
+  }
+}
+```
+
+Core modules such as `tool`, `npc`, and `char` are mounted by the framework and retain their short entry points.
+
 ## Exposed Modules
 
-If a module object has `exposed: true`, it is registered as `EXPOSED` and mounted directly onto `maplebirch[name]`.
+Exposure is optional and normally unnecessary for new feature modules. `exposed: true` mounts the module at `maplebirch[name]`. Only exposed API modules without lifecycle methods enter the `EXPOSED` state.
 
 ```javascript
 maplebirch.define('myApi', {
@@ -132,6 +171,7 @@ Example:
 ```javascript
 class MyModule {
   dependencies = ['tool'];
+  cache = new Map();
 
   async preInit() {
     this.cache = new Map();

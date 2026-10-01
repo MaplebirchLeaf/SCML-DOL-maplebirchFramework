@@ -54,7 +54,7 @@ daily: [
 
 | 字段        | 说明                          |
 | :---------- | :---------------------------- |
-| `id`        | 日程 ID，可选；不填时自动生成 |
+| `id`        | 日程 ID，可选。不填时自动生成 |
 | `condition` | 条件函数，接收增强日期对象    |
 | `location`  | 地点 ID，或返回地点的函数     |
 | `override`  | 是否优先于其它特殊日程        |
@@ -210,6 +210,6 @@ date.isMinuteBetween(0, 30);
 ## 补充说明
 
 - `daily` 只按小时记录地点。
-- `special` 会先排序，再按顺序检查；`override: true` 的日程会排在普通特殊日程前。
+- `special` 会先排序，再按顺序检查。`override: true` 的日程会排在普通特殊日程前。
 - `before`、`after`、`insteadOf` 只对同一个 NPC 的特殊日程排序生效。
 - 如果特殊日程的 `location` 返回另一个 `Schedule`，框架会读取该子日程的 `location`。

@@ -19,7 +19,8 @@ Use `maplebirch.utils` functions when operating on an existing value; array and 
 ```javascript
 const copy = maplebirch.utils.clone(source);
 const same = maplebirch.utils.equal(oldData, newData);
-const ok = tags.contains('beast');
+const labels = ['beast', 'forest'];
+const ok = labels.contains('beast');
 const key = 'My Text'.convert('snake');
 ```
 

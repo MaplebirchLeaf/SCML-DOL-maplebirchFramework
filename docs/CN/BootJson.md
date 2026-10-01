@@ -34,7 +34,7 @@
   {
     "modName": "maplebirch",
     "addonName": "maplebirchAddon",
-    "modVersion": "^需要的框架版本",
+    "modVersion": ">=5.2.0",
     "params": {
       "script": ["framework.js"]
     }
@@ -130,7 +130,7 @@
 }
 ```
 
-同一语言分多个文件时，用数组并按希望的覆盖顺序排列；后面的文件覆盖前面的同名键：
+同一语言分多个文件时，用数组并按希望的覆盖顺序排列。后面的文件覆盖前面的同名键：
 
 ```json
 "language": {
@@ -139,7 +139,7 @@
 }
 ```
 
-对象写法中的 `file` 也接受数组。框架会先合并该语言的全部文件，再导入一次；指定文件缺失或无效时不会只导入其中一部分。默认的 `"language": ["CN", "EN"]` 会按 JSON、YML、YAML 顺序合并每种语言现有的默认文件。
+对象写法中的 `file` 也接受数组。框架会先合并该语言的全部文件，再导入一次。指定文件缺失或无效时不会只导入其中一部分。默认的 `"language": ["CN", "EN"]` 会按 JSON、YML、YAML 顺序合并每种语言现有的默认文件。
 
 脚本中使用：
 
@@ -286,7 +286,7 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 ]
 ```
 
-同一个 **`framework`** 对象可以声明多个数据字段。每个字段都支持文件路径或路径数组；多个文件按顺序读取，内容使用下表中的格式：
+同一个 **`framework`** 对象可以声明多个数据字段。每个字段都支持文件路径或路径数组。多个文件按顺序读取，内容使用下表中的格式：
 
 | 字段                                                   | 内容格式                                      |
 | :----------------------------------------------------- | :-------------------------------------------- |
@@ -295,7 +295,7 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 | `bodywriting`、`foodstuff`、`antiques`、`fish`、`bait` | 以唯一标识为键的对象，或每项包含 `key` 的数组 |
 | `fishingLocations`                                     | 钓点到鱼类权重的对象                          |
 
-这些内容也可以直接内联。按键注册的数据重复时，以后注册的配置为准；`fish`、`bait` 和 `fishingLocations` 对应原版 0.5.12.13 的钓鱼系统。
+这些内容也可以直接内联。按键注册的数据重复时，以后注册的配置为准。`fish`、`bait` 和 `fishingLocations` 对应原版 0.5.12.13 的钓鱼系统。
 
 `tips.json` 可以直接写字符串数组，默认加入原版始终启用的 `general` 分类：
 
@@ -313,9 +313,9 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 }
 ```
 
-原版分类继续遵循原版内容开关；新增分类默认始终启用，并会自动加入原版 `generateTipsList` 生成的随机池。脚本中也可以调用 `maplebirch.tool.patch.tips.add('myMod:tips', '新的小贴士')`；框架会在原版 `init_tips` 之后合并内容，并自动去除重复文本。
+原版分类继续遵循原版内容开关。新增分类默认始终启用，并会自动加入原版 `generateTipsList` 生成的随机池。脚本中也可以调用 `maplebirch.tool.patch.tips.add('myMod:tips', '新的小贴士')`。框架会在原版 `init_tips` 之后合并内容，并自动去除重复文本。
 
-内联的 `tips` 字符串数组用于提示文本；当所有项均以 `.json`、`.yaml` 或 `.yml` 结尾时，按文件路径读取。
+内联的 `tips` 字符串数组用于提示文本。当所有项均以 `.json`、`.yaml` 或 `.yml` 结尾时，按文件路径读取。
 
 相关文档：
 
@@ -420,7 +420,7 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
   {
     "modName": "maplebirch",
     "addonName": "maplebirchAddon",
-    "modVersion": "^需要的框架版本",
+    "modVersion": ">=5.2.0",
     "params": {
       "language": {
         "CN": "language/cn.yml",

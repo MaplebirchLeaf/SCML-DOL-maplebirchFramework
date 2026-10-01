@@ -50,3 +50,5 @@ Callouts have distinct meanings: **TIP** recommends a practice, **NOTE** adds co
 
 > [!NOTE]
 > `services`, `infra`, and `host` are advanced entry points. Most mods should use top-level methods such as `maplebirch.on/once/off/after/trigger`, `t/auto`, `idb/define/with`, and `log`.
+
+- [Pills](Tools/Pills.md)

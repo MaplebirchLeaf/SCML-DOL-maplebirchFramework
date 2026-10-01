@@ -2,13 +2,43 @@
 
 The transformation system lets a mod add custom body transformations, traits, messages, and rendering layers.
 
-Transformation rendering only targets the vanilla PC `main` canvas model. `pre`, `post`, and `layers` are registered to `main`; they do not automatically affect combat canvases or other custom canvas models.
+Top-level `pre`, `post`, and `layers` target the vanilla PC `main` canvas. Supply the corresponding hooks in `combat` to register them to `combatMainPc`.
 
 Register transformations with:
 
 ```javascript
 maplebirch.char.transformation.add(name, type, config);
 ```
+
+## Rendering and Chimeras
+
+`layers` and `combat.layers` accept a layer map or a function returning one. The function runs once during `add`, so register inside `onInit` when the layers depend on the native renderer.
+
+```javascript
+maplebirch.tool.onInit(() => {
+  maplebirch.char.transformation.add('dragon', 'physical', {
+    parts: [
+      { name: 'eyes', tfRequired: 2, label: () => lanSwitch('Eyes', '眼睛') },
+      { name: 'tail', tfRequired: 4, label: () => lanSwitch('Scaled tail', '鳞尾') }
+    ],
+    layers: () => dragonLayers(),
+    combat: { pre: dragonCombatPre, layers: dragonCombatLayers },
+    chimeras: [
+      {
+        name: 'demondragon',
+        part: 'tail',
+        sources: ['dragon', 'demon'],
+        label: () => lanSwitch('Demon dragon tail:', '恶魔龙尾：')
+      }
+    ]
+  });
+});
+```
+
+- A part's optional `label` accepts a string or function and applies only to that transformation's mirror control.
+- Each chimera specifies its `name`, `part`, contributing transformations in `sources`, and display `label`. The mirror shows its control when every source has that part visible.
+- The framework adds native defaults and mirror controls. The toggle lives at `$chimera[name][part]`, defaults to `true`, and preserves a saved `false`. One chimera name can have several distinct parts.
+- Select fusion images in the transformation's own `pre` and `layers`. Read the toggle with the native `isChimeraEnabled(name, part)`.
 
 ## Minimal Example
 
@@ -77,7 +107,7 @@ traits: [
 message: {
   EN: {
     up: ['Level 1 message', 'Level 2 message', 'Level 3 message'],
-    down: ['Level 3 to 2', 'Level 2 to 1', 'Back to normal']
+    down: ['Level 1 to 0', 'Level 2 to 1', 'Level 3 to 2']
   },
   CN: {
     up: ['...', '...', '...'],
@@ -147,3 +177,9 @@ layers: {
   }
 }
 ```
+
+## Shared Traits and Message Indices
+
+Traits with the same name, such as vanilla `sharpEyes`, remain enabled while any owning transformation meets its requirement. They disable only when all owners lose eligibility, without stacking vanilla bonuses. Registering a trait switch does not implement its skill or damage effect. The effect still needs vanilla or mod settlement logic.
+
+`up[n - 1]` describes entering level n, and `down[n - 1]` describes leaving level n. Both arrays are ordered from the lowest level upward. Part visibility and trait switches are stored separately. Rendering should check `isPartEnabled()`, rather than the level alone.

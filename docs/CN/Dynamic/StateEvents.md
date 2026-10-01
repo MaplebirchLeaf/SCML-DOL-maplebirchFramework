@@ -1,183 +1,94 @@
 # 状态事件
 
-### 基本介绍
+状态事件在段落正文开始前（`gate`）或结束后（`append`）自动检查。注册时机是脚本加载或模块 `preInit()`，不要在每次段落渲染时重复注册。
 
-状态事件模块 (`StateEvents`) 是动态管理系统的一部分，用于处理游戏中的状态触发事件。框架会在段落开始(gate)与段落结束(append)时自动检查并触发相应事件，无需手动调用。
-
-_可通过 `maplebirch.dynamic.State` 访问。_
-
----
-
-### gate 的执行顺序
-
-`gate` 默认不截断，适合页首提醒和状态结算。所有命中的非截断事件按优先级执行并收集输出，不会因第一个提醒而跳过后续事件。`forceExit` 为真的候选留到最后处理，仍按优先级选择，第一个实际输出并截断的事件结束当前段落。
-
-截断候选执行前会重新检查条件，避免此前的非截断 `action` 改变状态后仍触发已经失效的事件。`cond` 与函数形式的 `forceExit` 应为无副作用的判断，可被重复检查。需要影响后续事件资格的状态修改放在 `action`，不要依赖尚未渲染的 `output` 宏。
-
-`append` 在页面末尾收集输出，适用于末尾补充和成就结算。页首提醒使用 `gate` 与 `forceExit: false`。替换正文的事件明确设置 `forceExit: true`，只注册 `gate` 不会自动截断正文。
-
----
-
-### 核心功能
-
-#### **注册状态事件 (regStateEvent)**
-
-- 注册一个新的状态事件
-- **@param**:
-  - `type` (string): 事件类型，支持 `'gate'`(拦截)或 `'append'`(追加)
-  - `eventId` (string): 事件唯一标识符
-  - `options` (StateEventOptions): 事件配置选项
-- **@return**: boolean，表示是否成功注册
-- **@example**:
-  ```javascript
-  // 注册一个拦截事件
-  maplebirch.dynamic.regStateEvent('gate', 'myMod:encounterBandit', {
-    output: 'banditEncounter',
-    cond: () => V.location === 'forest' && V.time === 'night',
-    priority: 5,
-    forceExit: true,
-    once: true
-  });
-  ```
-
-### **注销状态事件 (delStateEvent)**
-
-- 注销一个已注册的状态事件
-- **@param**:
-  - `type` (string): 事件类型
-  - `eventId` (string): 事件唯一标识符
-- **@return**: boolean，表示是否成功注销
-- **@example**:
-  ```javascript
-  maplebirch.dynamic.delStateEvent('gate', 'myMod:encounterBandit');
-  ```
-
----
-
-### 事件配置详解
-
-#### **output 参数说明**
-
-- **类型**: string
-- **说明**: _该字符串是您在 SugarCube 中自定义的 widget 宏的名称。当事件触发时，框架会调用对应的 widget 宏。_
-- **Widget 定义示例**:
-  ```javascript
-  <<widget 'banditEncounter'>>
-    你突然听到灌木丛中传来沙沙声...
-    一群盗贼跳了出来！<<link "战斗" "CombatBandit">> | <<link "逃跑" "RunAway">>
-  <</widget>>
-  ```
-
-#### **重要参数**
-
-| 参数            | 类型                | 说明                                         |
-| :-------------- | :------------------ | :------------------------------------------- |
-| `output`        | string              | 触发条件函数，插入目标宏                     |
-| `action`        | function            | 触发条件函数，执行函数内容                   |
-| `cond`          | function            | 触发条件函数，返回布尔值                     |
-| `priority`      | number              | 优先级，数字越大优先级越高                   |
-| `once`          | boolean             | 是否只触发一次                               |
-| `forceExit`     | boolean or function | 是否强制阻断当前段落剩余内容(仅中断事件有效) |
-| `extra.passage` | string[]            | 仅在这些段落中触发                           |
-| `extra.exclude` | string[]            | 在这些段落中不触发                           |
-
----
-
-### 完整使用示例
-
-#### **示例1：拦截事件(包含widget定义)**
+## 使用入口
 
 ```javascript
-// 1. 注册事件
-maplebirch.dynamic.regStateEvent('gate', 'myMod:forestBandit', {
-  output: 'banditEncounter', // 对应下面定义的widget名称
-  cond: () => V.location === 'forest',
-  priority: 10,
+maplebirch.dynamic.regStateEvent('gate', 'myMod:notice', options);
+maplebirch.dynamic.delStateEvent('gate', 'myMod:notice');
+```
+
+注册、注销均返回是否成功。`gate` 和 `append` 分别保存自己的事件，同类事件 ID 不能重复。
+
+## 执行顺序
+
+`gate` 默认不截断。所有命中的非截断事件按优先级从高到低执行 `action` 并收集输出。`forceExit` 为真的候选留到最后，重新检查条件，第一个实际输出并要求截断的事件结束当前正文。没有输出的 `action` 不会单独截断页面。
+
+`cond` 与函数形式的 `forceExit` 应为无副作用的判断，可能被重复检查。影响后续事件资格的状态修改放在 `action`，不要依赖尚未渲染的 `output` 宏。
+
+`append` 在正文末尾收集输出，不用于页首提醒。两类事件都可以只配置 `action`。`once: true` 表示事件触发后从本次运行的注册表移除，不是持久化存档标记。如果提醒只能在该存档显示一次，还应自行记录已读状态。
+
+## 配置字段
+
+| 字段            | 默认        | 说明                                      |
+| :-------------- | :---------- | :---------------------------------------- |
+| `output`        | 无          | 要渲染的 widget 名称，不是任意 Twine 文本 |
+| `action()`      | 无          | 同步执行状态修改                          |
+| `cond()`        | 返回 `true` | 是否具备触发资格                          |
+| `priority`      | `0`         | 数值较大者先执行                          |
+| `once`          | `false`     | 触发后移除本次运行的注册                  |
+| `forceExit`     | `false`     | 布尔值或函数，只对 `gate` 截断有效        |
+| `extra.passage` | 无          | 只在指定标题数组中触发                    |
+| `extra.exclude` | 无          | 排除指定标题数组                          |
+| `extra.match`   | 无          | 用正则匹配 passage 标题                   |
+
+所有范围条件共同生效。条件或动作报错会记录到框架诊断。
+
+## 页首提醒
+
+先在模组的状态初始化中创建 `V.myMod`。脚本注册判断，Twee 定义输出 widget：
+
+```javascript
+maplebirch.dynamic.regStateEvent('gate', 'myMod:notice', {
+  output: 'myModNotice',
+  cond: () => V.myMod?.noticePending === true,
+  action: () => {
+    V.myMod.noticePending = false;
+  },
+  forceExit: false,
+  extra: { exclude: ['Start', 'Start2'] }
+});
+```
+
+```twine
+:: My Mod Notices [widget]
+<<widget 'myModNotice'>>
+  <span class='teal'>你有一件事情需要处理。</span><br><br>
+<</widget>>
+```
+
+## 替换正文的场景
+
+```javascript
+maplebirch.dynamic.regStateEvent('gate', 'myMod:encounter', {
+  output: 'myModEncounter',
+  cond: () => V.myMod?.encounterPending === true,
   forceExit: true,
-  once: false
+  priority: 10,
+  extra: { passage: ['My Mod Road'] }
 });
+```
 
-// 2. 在游戏中的某个位置定义对应的widget
-<<widget 'banditEncounter'>>
-  <div class="encounter">
-    <strong>遭遇盗贼！</strong>
-    <p>一群凶恶的盗贼挡住了你的去路。</p>
-    <<link "战斗" "CombatBandit">>
-    <<link "谈判" "NegotiateBandit">>
-    <<link "逃跑" "RunFromBandit">>
-  </div>
+输出 widget 必须提供完整场景和可用出口。示例的目标 passage 由模组提供，不是原版地点：
+
+```twine
+:: My Mod Encounters [widget]
+<<widget 'myModEncounter'>>
+  有人挡住了去路。<br><br>
+  <<lanLink ['Leave', '离开'] 'My Mod Safe Place'>>
+    <<set $myMod.encounterPending to false>>
+  <</lanLink>>
 <</widget>>
 ```
 
-#### **示例2：追加事件(状态提示)**
+## 页面末尾补充
 
 ```javascript
-// 1. 注册潮湿状态提示
-maplebirch.dynamic.regStateEvent('append', 'myMod:wetStatus', {
-  output: 'showWetStatus',
-  cond: () => V.wetness > 70,
-  priority: 3
+maplebirch.dynamic.regStateEvent('append', 'myMod:footer', {
+  output: 'myModFooter',
+  cond: () => V.myMod?.showFooter === true
 });
-
-// 2. 定义状态提示widget
-<<widget 'showWetStatus'>>
-  <div class="status-overlay wet">
-    你的衣服湿透了，行动变得迟缓。
-  </div>
-<</widget>>
 ```
 
-#### **示例3：带参数的事件widget**
-
-```javascript
-// 1. 注册事件
-maplebirch.dynamic.regStateEvent('gate', 'myMod:merchantEvent', {
-  output: 'merchantEncounter',
-  cond: () => V.day % 7 === 0,
-  priority: 8,
-  once: true
-});
-
-// 2. 带动态内容的widget
-<<widget 'merchantEncounter'>>
-  <<set _merchantName = ['老汤姆', '狡猾的杰克', '流浪商人'][Math.floor(Math.random()*3)]>>
-
-  <div class="merchant">
-    <h3>遇到了_merchantName</h3>
-    <p>"看看我的货物吧，旅行者！"</p>
-
-    <<link "购买药水" "BuyPotion">>
-    <<link "购买武器" "BuyWeapon">>
-    <<link "离开" "ContinueJourney">>
-  </div>
-<</widget>>
-```
-
----
-
-### 事件类型说明
-
-#### **拦截事件 (gate)**
-
-- **触发时机**: 段落开始时自动检查
-- **特点**:
-  - 第一个满足条件的事件触发后立即中断段落执行
-  - 可配置 `forceExit` 强制退出当前段落
-- **Widget 要求**: 应包含完整的场景描述和用户选择
-
-#### **追加事件 (append)**
-
-- **触发时机**: 段落结束时自动检查
-- **特点**:
-  - 可同时触发多个事件
-  - 输出内容会叠加到段落末尾
-- **Widget 要求**: 通常为简洁的状态提示或额外信息
-
----
-
-### 补充说明
-
-1. **Widget 定义**: _必须在游戏中与 `output` 同名的 widget_
-2. **性能考虑**: _widget 内容不应过于复杂，避免影响游戏性能_
-3. **稳定性**: _确保 widget 在各种情况下都能正确显示_
-4. **错误处理**: _如果找不到对应的 widget，框架会记录错误日志_
+页尾补充、特质或成就提示不等于实际结算。购买、领取或完成行动的奖励，应放在已核对的成功分支。

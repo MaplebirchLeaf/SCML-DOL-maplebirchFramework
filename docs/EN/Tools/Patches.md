@@ -59,3 +59,5 @@ Related docs:
 - [Foodstuff](Foodstuff.md)
 - [Fishing Extensions](Fishing.md)
 - [Antiques](Antiques.md)
+
+For medicine drawer integration, see [Pills](Pills.md).

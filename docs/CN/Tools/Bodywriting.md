@@ -14,7 +14,7 @@
 maplebirch.tool.patch.bodywriting.add(key, config);
 ```
 
-删除条目使用 `maplebirch.tool.patch.bodywriting.delete(key)`。注册操作在初始化时统一应用，也可调用 `maplebirch.tool.patch.bodywriting.apply()` 手动应用；删除时会同步移除索引映射。
+删除条目使用 `maplebirch.tool.patch.bodywriting.delete(key)`。注册操作在初始化时统一应用，也可调用 `maplebirch.tool.patch.bodywriting.apply()` 手动应用。删除时会同步移除索引映射。
 
 ---
 
@@ -30,7 +30,7 @@ maplebirch.tool.patch.bodywriting.add('my_mod_mark', {
 });
 ```
 
-`key` 是纹身的唯一标识，建议带模组名前缀。框架会将它写入配置对象和 `setup.bodywriting_namebyindex` 映射；同键配置更新已有条目。
+`key` 是纹身的唯一标识，建议带模组名前缀。框架会将它写入配置对象和 `setup.bodywriting_namebyindex` 映射。同键配置更新已有条目。
 
 ---
 
@@ -50,7 +50,7 @@ maplebirch.tool.patch.bodywriting.add('my_mod_mark', {
 | `sprites`  | 使用的精灵图名称数组       | -      |
 | `index`    | 纹身索引，不填时自动生成   | 自动   |
 
-新增条目未指定 `index` 时，使用当前最大索引之后的值；更新已有条目时沿用原索引。显式指定的索引与其他条目冲突时会报错。
+新增条目未指定 `index` 时，使用当前最大索引之后的值。更新已有条目时沿用原索引。显式指定的索引与其他条目冲突时会报错。
 
 `gender` 可用值：
 

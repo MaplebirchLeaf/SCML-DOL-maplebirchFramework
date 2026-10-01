@@ -3,9 +3,9 @@
 > [!NOTE]
 > 只有需要扩展框架模块或排查加载问题时才需要本页。普通内容模组用 `boot.json` 的 `script` 加载代码即可。
 
-`Modules` 是框架的模块注册、依赖排序与生命周期调度服务。一般内容模组通常不需要直接注册框架模块；只有在你明确要扩展框架内部能力时，才建议使用这一套接口。
+`Modules` 是框架的模块注册、依赖排序与生命周期调度服务。一般内容模组通常不需要直接注册框架模块。只有在你明确要扩展框架内部能力时，才建议使用这一套接口。
 
-顶层 `maplebirch.define()` 注册框架模块；IndexedDB 存储定义使用 `maplebirch.idb()`，事务仍使用 `maplebirch.with()`，两者不要混淆。
+顶层 `maplebirch.define()` 注册框架模块。IndexedDB 存储定义使用 `maplebirch.idb()`，事务仍使用 `maplebirch.with()`，两者不要混淆。
 
 ---
 
@@ -60,9 +60,48 @@ maplebirch.define(
 
 ---
 
+## 访问自定义模块
+
+自定义功能模块推荐用完整名称注册，通过 `maplebirch.get(name)` 取得，不需要 `exposed`。禁用或不存在时返回 `undefined`，使用可选链或先判断：
+
+```javascript
+maplebirch.define(
+  'MyModFeature',
+  {
+    enabled: true,
+    Init() {
+      this.log('feature initialized');
+    }
+  },
+  ['tool']
+);
+
+const feature = maplebirch.get('MyModFeature');
+if (feature) console.log(feature.enabled);
+```
+
+TypeScript 模组应扩展类型包的 `Extensions`，让 `get()` 返回自己的模块类型：
+
+```typescript
+import type { MaplebirchCore } from '@scml-dol-maplebirch/types';
+
+class MyModFeature {
+  constructor(readonly core: MaplebirchCore) {}
+  enabled = true;
+}
+
+declare module '@scml-dol-maplebirch/types' {
+  interface Extensions {
+    readonly MyModFeature: MyModFeature;
+  }
+}
+```
+
+`tool`、`npc`、`char` 等框架核心模块由框架统一挂载，可以继续使用它们的短入口。
+
 ## 暴露模块
 
-如果模块对象带有 `exposed: true`，注册后会被标记为 `EXPOSED`，并直接挂载到 `maplebirch[name]`。
+`exposed` 是可选的直接挂载方式，新功能模块通常不需要。`exposed: true` 将模块挂到 `maplebirch[name]`，只有不含生命周期方法的纯 API 模块才进入 `EXPOSED` 状态。
 
 ```javascript
 maplebirch.define('myApi', {
@@ -75,11 +114,11 @@ maplebirch.define('myApi', {
 maplebirch.myApi.hello();
 ```
 
-没有生命周期方法的纯暴露模块会作为 API 模块直接挂载，不会出现在禁用界面中。若暴露模块同时定义了 `Init` 等生命周期方法，它仍会挂载到 `maplebirch[name]`，并按普通初始化流程执行；只要不是受保护模块，也可以在禁用界面中关闭。若名称已被占用，注册会失败。
+没有生命周期方法的纯暴露模块会作为 API 模块直接挂载，不会出现在禁用界面中。若暴露模块同时定义了 `Init` 等生命周期方法，它仍会挂载到 `maplebirch[name]`，并按普通初始化流程执行。只要不是受保护模块，也可以在禁用界面中关闭。若名称已被占用，注册会失败。
 
 纯暴露模块仍受依赖禁用规则约束：前置模块被禁用时，它也会被禁用，并移除 `maplebirch[name]` 上的暴露属性。
 
-`exposed: 'window'` 可将模块挂到 `window[name]`；名称冲突时注册失败。注册服务会自动为可扩展的模块对象附加 `this.log(message, level?, ...objects)`，诊断集中记录在 `maplebirch.infra.diagnostics`，无需在模块内另建日志器。框架自身的核心模块由 `meta.core` 统一提前挂载；不再有单独的 `early` 列表。
+`exposed: 'window'` 可将模块挂到 `window[name]`。名称冲突时注册失败。注册服务会自动为可扩展的模块对象附加 `this.log(message, level?, ...objects)`，诊断集中记录在 `maplebirch.infra.diagnostics`，无需在模块内另建日志器。框架自身的核心模块由 `meta.core` 统一提前挂载。不再有单独的 `early` 列表。
 
 ---
 
@@ -90,7 +129,7 @@ const npcModule = maplebirch.get('npc');
 const graph = maplebirch.dependencyGraph;
 ```
 
-禁用模块的 `get()` 返回 `undefined`；内部注册信息仍保留，供依赖图与设置界面使用。
+禁用模块的 `get()` 返回 `undefined`。内部注册信息仍保留，供依赖图与设置界面使用。
 
 `dependencyGraph` 会返回每个模块的依赖、被依赖关系、状态、来源和是否为核心挂载模块等信息：
 
@@ -126,7 +165,7 @@ console.log(maplebirch.dependencyGraph.npc);
 | `EXPOSED`    | `3` | 暴露模块，已直接挂载到框架对象 |
 | `DISABLED`   | `4` | 被禁用，跳过初始化             |
 
-预初始化完成不会改变模块状态，而是记录在模块系统内部的 `preInitialized` 集合中；主初始化完成后才会进入 `MOUNTED`。
+预初始化完成不会改变模块状态，而是记录在模块系统内部的 `preInitialized` 集合中。主初始化完成后才会进入 `MOUNTED`。
 
 ---
 
@@ -138,7 +177,7 @@ console.log(maplebirch.dependencyGraph.npc);
 | :----------- | :---------------------------------------------------- | :---------------------------------- |
 | `preInit()`  | `afterInjectEarlyLoad` 后，IndexedDB 与日志准备完成后 | 提前准备资源、配置、缓存            |
 | `Init()`     | 首次进入正常游戏段落的 `:passagestart` 阶段           | 主初始化，此时可使用 `setup` 和 `V` |
-| `loadInit()` | 读档后进入段落时                                      | 恢复和存档相关的状态                |
+| `loadInit()` | SugarCube 读档回调中，临时切换到待载入变量后          | 恢复和存档相关的状态                |
 | `postInit()` | 每次段落开始，主初始化或读档初始化后                  | 刷新段落级逻辑                      |
 
 示例：
@@ -146,6 +185,7 @@ console.log(maplebirch.dependencyGraph.npc);
 ```javascript
 class MyModule {
   dependencies = ['tool'];
+  cache = new Map();
 
   async preInit() {
     this.cache = new Map();
@@ -175,13 +215,13 @@ maplebirch.define('myModule', new MyModule(), ['npc']);
 
 ## 依赖规则
 
-只更新指定模块时，使用 `maplebirch.services.gui.setModuleStates({ myModule: false, anotherModule: true })`；单个模块只需传一个键。它保留未指定模块的状态。若依赖关系会导致未指定模块一起改变，调用会报错，须明确把相关模块加入本次选择。状态写入后仍需重载游戏才会影响模块生命周期。
+只更新指定模块时，使用 `maplebirch.services.gui.setModuleStates({ myModule: false, anotherModule: true })`。单个模块只需传一个键。它保留未指定模块的状态。若依赖关系会导致未指定模块一起改变，调用会报错，须明确把相关模块加入本次选择。状态写入后仍需重载游戏才会影响模块生命周期。
 
 - 模块会在所有依赖满足后再初始化。
 - 依赖会做传递收集，例如 A 依赖 B，B 依赖 C，则 A 会等待 C。
-- 纯 `EXPOSED` 模块会被视为已满足依赖；带生命周期方法的暴露模块按普通依赖流程处理。
+- 纯 `EXPOSED` 模块会被视为已满足依赖。带生命周期方法的暴露模块按普通依赖流程处理。
 - 禁用一个模块会沿依赖链禁用后续依赖模块。例如 B 依赖 A、C 依赖 B，禁用 A 后，B 和 C 都进入 `DISABLED`，不执行生命周期，查询返回 `undefined`，暴露属性也会被移除。
-- 禁用设置在重载时应用，独立于初始化排序；即使模块缺失依赖，也会正确标记禁用。后来注册的依赖模块同样遵守这些设置。
+- 禁用设置在重载时应用，独立于初始化排序。即使模块缺失依赖，也会正确标记禁用。后来注册的依赖模块同样遵守这些设置。
 - 依赖进入 `ERROR` 时，依赖它的模块不会继续初始化。
 - 循环依赖会在注册时被检测并阻止。
 
@@ -192,11 +232,11 @@ maplebirch.define('myModule', new MyModule(), ['npc']);
 - 内容型模组多数情况下应优先使用 `script` 加载普通脚本，而不是注册框架模块。
 - 模块名称建议带模组前缀，避免和框架内置模块或其它模组冲突。
 - 受保护模块不会被禁用界面关闭。
-- 晚注册模块会补做 `preInit()`；在 `preInit()` 内通过 `modules.with()` 注册子模块时，子模块的预初始化由外层调度继续完成，避免等待尚未返回的父模块。
+- 晚注册模块会补做 `preInit()`。在 `preInit()` 内通过 `modules.with()` 注册子模块时，子模块的预初始化由外层调度继续完成，避免等待尚未返回的父模块。
 
 ## 查看诊断
 
-框架统一收集日志、模块错误和补丁结果。排查加载问题时先查看 `maplebirch.export`，它是 JSON 字符串属性，可复制给作者分析；不需要从每个模块单独取诊断对象。
+框架统一收集日志、模块错误和补丁结果。排查加载问题时先查看 `maplebirch.export`，它是 JSON 字符串属性，可复制给作者分析。不需要从每个模块单独取诊断对象。
 
 ```javascript
 console.log(maplebirch.export);

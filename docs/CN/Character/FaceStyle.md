@@ -21,7 +21,7 @@ img/face/
 - `<style>`: 风格（如 `my-style`、`default`）
 - `<variant>`: 变体 / 仪态（如 `default`、`sweet`）
 
-模组加载后（`afterPreload`）框架会遍历所有已装模组，扫描 `img/face/<style>/<variant>/<图>.png` 与 `img/face/<style>/<图>.png` 路径，建立风格与变体选项。`img/face/masks/` 目录会被跳过；`default` 风格下的内置变体（`aloof` / `catty` / `default` / `foxy` / `gloomy` / `sweet`）不会重复加入变体选项。
+模组加载后（`afterPreload`）框架会遍历所有已装模组，扫描 `img/face/<style>/<variant>/<图>.png` 与 `img/face/<style>/<图>.png` 路径，建立风格与变体选项。`img/face/masks/` 目录会被跳过。`default` 风格下的内置变体（`aloof` / `catty` / `default` / `foxy` / `gloomy` / `sweet`）不会重复加入变体选项。
 
 NPC 侧边栏的脸部图层按 `img/face/<facestyle>/<facevariant>/<图>.png`（或 `img/face/<facestyle>/<图>.png`）渲染。
 

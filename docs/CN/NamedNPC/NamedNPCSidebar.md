@@ -33,13 +33,13 @@ img/ui/nnpc/[npc_name]/[gender]/[skin_tone]/[image_name].[png|jpg|gif]
 - `[skin_tone]`: `dark` / `pale`，按侧边栏设置中的皮肤明暗（`skin_type`）动态映射（含 `dark` 时为 `dark`，其余为 `pale`）
 - 目录名兼容 `black_wolf`（snake_case）、`black-wolf`（kebab-case）、`black wolf`（空格）三种形式，自动归一化为 NPC 名称
 
-框架扫描 `img/ui/nnpc` 文件夹时会同时识别上述两种结构；渲染时优先匹配当前 NPC 性别与肤色的深层路径，缺失时自动回退到同名图片的其它可用路径（DOLP 素材中 `fools`、`monster` 等额外目录里的同名图片也能通过回退机制选用）。
+框架扫描 `img/ui/nnpc` 文件夹时会同时识别上述两种结构。渲染时优先匹配当前 NPC 性别与肤色的深层路径，缺失时自动回退到同名图片的其它可用路径（DOLP 素材中 `fools`、`monster` 等额外目录里的同名图片也能通过回退机制选用）。
 
 ---
 
 ### 动态模型发型长度
 
-NPC 各自保存数值字段 `hair_sides_length`（主体）与 `hair_fringe_length`（刘海）。渲染时分别按 `0 / 200 / 400 / 600 / 800 / 1000` 映射为 `short / shoulder / chest / navel / thighs / feet`，`0` 是有效长度。额外背发仅使用主体长度。两个数值各自默认 200；缺失、类型不对或非有限数值时由构造与 NPCUtils 校验恢复默认值，不转换旧字段。修改任一长度不会改变另一项。
+NPC 各自保存数值字段 `hair_sides_length`（主体）与 `hair_fringe_length`（刘海）。渲染时分别按 `0 / 200 / 400 / 600 / 800 / 1000` 映射为 `short / shoulder / chest / navel / thighs / feet`，`0` 是有效长度。额外背发仅使用主体长度。两个数值各自默认 200。缺失、类型不对或非有限数值时由构造与 NPCUtils 校验恢复默认值，不转换旧字段。修改任一长度不会改变另一项。
 
 ```javascript
 Object.assign(C.npc['Ivory Wraith'], {
@@ -65,11 +65,11 @@ maplebirch.npc.fluids.clear('Robin', 'face');
 maplebirch.npc.fluids.clear('Robin');
 ```
 
-可用部位与原版身体液体槽一致：`vagina`、`vaginaoutside`、`anus`、`mouth`、`penis`、`chest`、`face`、`hair`、`bottom`、`feet`、`leftarm`、`rightarm`、`neck`、`thigh`、`tummy`。两种液体各自限制在 `0～5`；渲染时将合计限制在 `0～5`，转换为原版 `drip_*` 与 `cum_*` 参数，不改变保存值。`penis`、`hair`、`bottom`、`vaginaoutside` 没有对应的原版侧边栏体液图层，仅保存数据。
+可用部位与原版身体液体槽一致：`vagina`、`vaginaoutside`、`anus`、`mouth`、`penis`、`chest`、`face`、`hair`、`bottom`、`feet`、`leftarm`、`rightarm`、`neck`、`thigh`、`tummy`。两种液体各自限制在 `0～5`。渲染时将合计限制在 `0～5`，转换为原版 `drip_*` 与 `cum_*` 参数，不改变保存值。`penis`、`hair`、`bottom`、`vaginaoutside` 没有对应的原版侧边栏体液图层，仅保存数据。
 
-`set`、`add`、`reduce` 省略类型时默认操作 `semen`。`clear` 省略类型时清除两种液体，省略部位时清除所有部位；每小时两项各自衰减。旧存档的数字值无法还原来源，自动迁入 `[旧值, 0]`（`goo`），缺少部位自动补 `[0, 0]`。读取单类数值请使用数组下标，读取合计请用 `combined`，不能再把整个部位当作数字。
+`set`、`add`、`reduce` 省略类型时默认操作 `semen`。`clear` 省略类型时清除两种液体，省略部位时清除所有部位。每小时两项各自衰减。旧存档的数字值无法还原来源，自动迁入 `[旧值, 0]`（`goo`），缺少部位自动补 `[0, 0]`。读取单类数值请使用数组下标，读取合计请用 `combined`，不能再把整个部位当作数字。
 
-框架不自动判定高潮或液体来源，调用方负责按剧情更新等级。滴液遮罩会覆盖完整动画精灵图，保留原版滴落间隔；这些等级共用原版体液素材，不区分精液和爱液的外观。
+框架不自动判定高潮或液体来源，调用方负责按剧情更新等级。滴液遮罩会覆盖完整动画精灵图，保留原版滴落间隔。这些等级共用原版体液素材，不区分精液和爱液的外观。
 
 **路径说明**:
 
@@ -96,7 +96,7 @@ img/ui/nnpc/luna/angry.png
 {
   "modName": "maplebirch",
   "addonName": "maplebirchAddon",
-  "modVersion": "^需要的框架版本",
+  "modVersion": ">=5.2.0",
   "params": {
     "npc": {
       "Sidebar": {
@@ -113,7 +113,7 @@ img/ui/nnpc/luna/angry.png
 {
   "modName": "maplebirch",
   "addonName": "maplebirchAddon",
-  "modVersion": "^需要的框架版本",
+  "modVersion": ">=5.2.0",
   "params": {
     "npc": {
       "Sidebar": {
@@ -563,4 +563,4 @@ fantasyMod/
 
 ### 剧情出现条件
 
-侧边栏模型与设置候选列表都以原版 `V.npc` 为依据，仅保留已知命名 NPC。`<<npc "Name">>` 生成、事件结束清空名单后，模型按当前名单选择；服装日程只决定配装，不增加或移除在场人物。
+侧边栏模型与设置候选列表都以原版 `V.npc` 为依据，仅保留已知命名 NPC。`<<npc "Name">>` 生成、事件结束清空名单后，模型按当前名单选择。服装日程只决定配装，不增加或移除在场人物。

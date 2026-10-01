@@ -19,7 +19,7 @@ maplebirch.npc.add(
 );
 ```
 
-注册后可按需使用 [NPC 转化](NamedNPCTransformation.md)、[NPC 怀孕](NamedNPCPregnancy.md)、[NPC 数值](NamedNPCStats.md)、[NPC 日程](NamedNPCSchedule.md)、[NPC 服装](NamedNPCClothes.md)和 [NPC 侧边栏](NamedNPCSidebar.md)；怀孕配置应通过 `maplebirch.npc.Pregnancy.add()` 或 `boot.json` 的 `npc.Pregnancy` 注册，`NPCData.pregnancy` 只保存游戏中的开关与周期状态。
+注册后可按需使用 [NPC 转化](NamedNPCTransformation.md)、[NPC 怀孕](NamedNPCPregnancy.md)、[NPC 数值](NamedNPCStats.md)、[NPC 日程](NamedNPCSchedule.md)、[NPC 服装](NamedNPCClothes.md)和 [NPC 侧边栏](NamedNPCSidebar.md)。怀孕配置应通过 `maplebirch.npc.Pregnancy.add()` 或 `boot.json` 的 `npc.Pregnancy` 注册，`NPCData.pregnancy` 只保存游戏中的开关与周期状态。
 
 ### NPC基础数据 (NPCData)
 
@@ -176,7 +176,7 @@ maplebirch.npc.add(
 {
   "modName": "maplebirch",
   "addonName": "maplebirchAddon",
-  "modVersion": "^需要的框架版本",
+  "modVersion": ">=5.2.0",
   "params": {
     "npc": {
       "NamedNPC": [
@@ -203,7 +203,7 @@ maplebirch.npc.add(
 {
   "modName": "maplebirch",
   "addonName": "maplebirchAddon",
-  "modVersion": "^需要的框架版本",
+  "modVersion": ">=5.2.0",
   "params": {
     "npc": {
       "NamedNPC": [
@@ -314,4 +314,4 @@ maplebirch.npc.add(
 }
 ```
 
-主体头发 `hair_sides_length` 与刘海 `hair_fringe_length` 各自保存数值长度，默认均为 200；缺失、类型不对或非有限数值恢复默认值，不转换旧字段。有效的 0 会保留，修改一项不影响另一项。
+主体头发 `hair_sides_length` 与刘海 `hair_fringe_length` 各自保存数值长度，默认均为 200。缺失、类型不对或非有限数值恢复默认值，不转换旧字段。有效的 0 会保留，修改一项不影响另一项。

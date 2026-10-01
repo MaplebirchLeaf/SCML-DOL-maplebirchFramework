@@ -1,7 +1,7 @@
 # 事件
 
 > [!TIP]
-> 日常脚本使用 `maplebirch.on()`、`once()`、`off()` 和 `after()`；不必直接操作内部事件对象。
+> 日常脚本使用 `maplebirch.on()`、`once()`、`off()` 和 `after()`。不必直接操作内部事件对象。
 
 ## 用来做什么
 
@@ -40,7 +40,7 @@ maplebirch.on(
 );
 ```
 
-`description` 可用于之后移除监听。同一个函数引用重复注册会返回 `false`。上述监听在每次 passage 开始时输出一次 `passage start`；注销后不再输出。
+`description` 可用于之后移除监听。同一个函数引用重复注册会返回 `false`。上述监听在每次 passage 开始时输出一次 `passage start`。注销后不再输出。
 
 ```javascript
 maplebirch.off(':passagestart', 'myMod:passage-start');
@@ -89,7 +89,7 @@ await maplebirch.trigger('myMod:refresh', {
 
 ## after
 
-`after()` 会在指定事件的监听器执行完毕后执行一次。对于 `:sugarcube`、`:idbReady`、`:storyready`、`:modLoaderEnd`、`:language`，框架会保留最近一次参数；事件已完成时，新注册的 `on()`、`once()`、`after()` 会立即收到这些参数。
+`after()` 会在指定事件的监听器执行完毕后执行一次。对于 `:sugarcube`、`:idbReady`、`:storyready`、`:modLoaderEnd`、`:language`，框架会保留最近一次参数。事件已完成时，新注册的 `on()`、`once()`、`after()` 会立即收到这些参数。
 
 ```javascript
 maplebirch.after(':language', () => {
@@ -120,7 +120,7 @@ maplebirch.after(':language', () => {
 
 `:onSave`、`:onLoad` 的回调必须同步执行，SugarCube 不会等待 Promise。框架会报告异步回调并继续执行后续同步监听器。
 
-回调收到的 `save` 包含 `saveObj`、`details`、`V` 和 `use()`。`save.V` 是待保存或待载入的变量；读档回调执行时，全局 `V` 仍是当前游戏状态。
+回调收到的 `save` 包含 `saveObj`、`details`、`V` 和 `use()`。`save.V` 是待保存或待载入的变量。读档回调执行时，全局 `V` 仍是当前游戏状态。
 
 ```javascript
 maplebirch.on(':onLoad', save => {

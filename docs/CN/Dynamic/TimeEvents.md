@@ -21,6 +21,9 @@ _可通过 `maplebirch.dynamic.Time` 访问。_
     - `onWeek`: 每周触发
     - `onMonth`: 每月触发
     - `onYear`: 每年触发
+    - `onBefore`: 原版时间推进前
+    - `onThread`: 时间推进后、单位事件前
+    - `onAfter`: 单位事件后
     - `onTimeTravel`: 时间旅行时触发
   - `eventId` (string): 事件唯一标识符
   - `options` (TimeEventOptions): 事件配置选项
@@ -28,7 +31,7 @@ _可通过 `maplebirch.dynamic.Time` 访问。_
 - **@example**:
 
   ```javascript
-  // 注册一个每天触发的事件
+  // 注册一个日期变化时检查的事件
   maplebirch.dynamic.regTimeEvent('onDay', 'myMod:dailyCheck', {
     action: data => {
       // 每天执行的逻辑
@@ -36,7 +39,7 @@ _可通过 `maplebirch.dynamic.Time` 访问。_
     },
     cond: data => {
       // 只在白天触发
-      return data.currentDate.hour >= 6 && data.currentDate.hour < 18;
+      return data.currentDate?.hour >= 6 && data.currentDate?.hour < 18;
     },
     priority: 5,
     once: false
@@ -47,7 +50,7 @@ _可通过 `maplebirch.dynamic.Time` 访问。_
     action: data => {
       V.dayCounter = (V.dayCounter || 0) + 1;
     },
-    cond: data => data.currentDate.hour >= 6 && data.currentDate.hour < 18,
+    cond: data => data.currentDate?.hour >= 6 && data.currentDate?.hour < 18,
     priority: 5,
     once: false
   });
@@ -151,11 +154,11 @@ maplebirch.dynamic.regTimeEvent('onDay', 'myMod:dailyQuestRefresh', {
   },
   cond: data => {
     // 只在午夜后触发
-    return data.currentDate.hour === 0 && data.currentDate.minute === 0;
+    return data.currentDate?.hour === 0 && data.currentDate?.minute === 0;
   },
   priority: 10,
   once: false,
-  exact: true // 精确在午夜触发
+  exact: true // 跨越日期边界时检查，午夜条件由 cond 判断
 });
 ```
 
@@ -187,7 +190,7 @@ maplebirch.dynamic.regTimeEvent('onHour', 'myMod:tenHourReward', {
 // 注册季节性事件
 maplebirch.dynamic.regTimeEvent('onMonth', 'myMod:seasonalEvent', {
   action: data => {
-    const month = data.currentDate.month;
+    const month = data.currentDate?.month;
 
     if (month === 3 || month === 4) {
       // 春季事件
@@ -202,7 +205,7 @@ maplebirch.dynamic.regTimeEvent('onMonth', 'myMod:seasonalEvent', {
   },
   cond: data => {
     // 只在每月的第一天触发
-    return data.currentDate.day === 1;
+    return data.currentDate?.day === 1;
   },
   priority: 8
 });
@@ -250,9 +253,9 @@ maplebirch.dynamic.regTimeEvent('onHour', 'myMod:specialConditionEvent', {
     // 2. 玩家在特定地点
     // 3. 特定的游戏进度
     return (
-      data.currentDate.weekDay === 5 && // 周五
-      data.currentDate.hour >= 14 &&
-      data.currentDate.hour < 18 && // 下午2点到6点
+      data.currentDate?.weekDay === 5 && // 周五
+      data.currentDate?.hour >= 14 &&
+      data.currentDate?.hour < 18 && // 下午2点到6点
       V.location === 'townSquare' && // 在城镇广场
       V.storyProgress >= 3
     ); // 故事进度至少为3
@@ -293,3 +296,11 @@ maplebirch.dynamic.regTimeEvent('onHour', 'myMod:specialConditionEvent', {
 3. **累积触发**: _使用 `accumulate` 选项时，事件会在累积达到目标值时触发_
 4. **精确触发**: _`exact: true` 的事件只在时间单位变化时触发(如整点、午夜)_
 5. **一次性事件**: _`once: true` 的事件触发后会自动移除_
+
+## 回调数据与跨越时间
+
+`onBefore` 在原版时间推进前执行，只提供 `prevDate`、`prev`、`passed`、`timeStamp`。`onThread` 在时间推进后、单位事件之前执行，`onAfter` 在单位事件之后执行。其他正常推进回调可读取 `prevDate`、`currentDate`、`changes`、`diffSeconds`、`exactPoints`。
+
+一次推进跨越多个小时或多天时，事件收到这次推进的数据，不会自动为每个单位重复调用。批量结算应使用 `changes` 或 `triggeredByAccumulator.count`。`exact: true` 检查是否跨过单位边界，不保证最终停在整点或午夜。不要将它当成精确预约机制。
+
+`once` 与累积计数属于当前运行的事件对象，不写入存档。持久计数需自行保存在模组变量中。

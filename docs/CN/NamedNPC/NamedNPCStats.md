@@ -97,7 +97,7 @@ maplebirch.npc.addStats({
 {
   "modName": "maplebirch",
   "addonName": "maplebirchAddon",
-  "modVersion": "^需要的框架版本",
+  "modVersion": ">=5.2.0",
   "params": {
     "npc": {
       "Stats": {
@@ -119,7 +119,7 @@ maplebirch.npc.addStats({
 {
   "modName": "maplebirch",
   "addonName": "maplebirchAddon",
-  "modVersion": "^需要的框架版本",
+  "modVersion": ">=5.2.0",
   "params": {
     "npc": {
       "Stats": {

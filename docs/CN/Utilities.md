@@ -14,12 +14,13 @@
 
 ## 推荐写法
 
-对已有值操作时，优先使用 `maplebirch.utils` 函数式工具；数组与字符串的实例方法（`contains`/`convert` 等）仍然保留：
+对已有值操作时，优先使用 `maplebirch.utils` 函数式工具。数组与字符串的实例方法（`contains`/`convert` 等）仍然保留：
 
 ```javascript
 const copy = maplebirch.utils.clone(source);
 const same = maplebirch.utils.equal(oldData, newData);
-const ok = tags.contains('beast');
+const labels = ['beast', 'forest'];
+const ok = labels.contains('beast');
 const key = 'My Text'.convert('snake');
 ```
 
@@ -83,7 +84,7 @@ const list = Array.append(base, extra);
 | `Math.clamp(value, min, max, fallback)`             | 限制数值范围                                   |
 | `loadImage(src)`                                    | 检查或加载图片资源                             |
 
-表中 `Object.*`/`Array.*` 是静态方法，`array.*`/`string.*` 是数组/字符串实例方法，均仍可用；`maplebirch.utils.*` 是函数式调用。要判断普通对象是否包含某值，先取 `Object.values(obj)` 再用数组 `contains`。
+表中 `Object.*`/`Array.*` 是静态方法，`array.*`/`string.*` 是数组/字符串实例方法，均仍可用。`maplebirch.utils.*` 是函数式调用。要判断普通对象是否包含某值，先取 `Object.values(obj)` 再用数组 `contains`。
 
 ## clone
 
@@ -288,7 +289,7 @@ Math.clamp(120, 0, 100); // 100
 Math.clamp(undefined, 0, 100, 10); // 10
 ```
 
-`fallback` 只在输入无法转换成有限数字时使用；不传时使用较小边界值。
+`fallback` 只在输入无法转换成有限数字时使用。不传时使用较小边界值。
 
 `min` 和 `max` 可以反过来传，框架会自动取正确区间：
 
@@ -306,9 +307,9 @@ if (result) {
 }
 ```
 
-`loadImage()` 复用 `maplebirch.host.modLoader.resources.load()`：优先解析 ModLoader 图片，未解析到时检查原路径。返回解析地址、`false` 或对应的 Promise；统一使用 `await` 即可。缓存保留解析地址，并合并同路径并发请求。失败时保留旧接口的侧边栏刷新行为。
+`loadImage()` 复用 `maplebirch.host.modLoader.resources.load()`：优先解析 ModLoader 图片，未解析到时检查原路径。返回解析地址、`false` 或对应的 Promise。统一使用 `await` 即可。缓存保留解析地址，并合并同路径并发请求。失败时保留旧接口的侧边栏刷新行为。
 
-使用 `maplebirch.host.modLoader.resources.clear(path)` 清除缓存后重试；存在性查询、路径归一化见 [图片资源](AddonPlugin.md#图片资源)。
+使用 `maplebirch.host.modLoader.resources.clear(path)` 清除缓存后重试。存在性查询、路径归一化见 [图片资源](AddonPlugin.md#图片资源)。
 
 ## 字节与 Base64 工具
 
@@ -370,7 +371,7 @@ const list = widgets(Options, Cheats);
 const result = new SelectCase().case('wolf', '狼').caseIn(['cat', 'dog'], '动物').caseIncludes('NPC', '角色').caseRegex(/^mod:/, '模组').else('未知').match(value);
 ```
 
-字符串和数值条件默认不能混用；需要混合判断时先使用 `casePredicate()`。数值范围要求有限且有序的边界。正则匹配不会改变传入表达式的 `lastIndex`。
+字符串和数值条件默认不能混用。需要混合判断时先使用 `casePredicate()`。数值范围要求有限且有序的边界。正则匹配不会改变传入表达式的 `lastIndex`。
 
 TypeScript 可指定输入、结果和元数据类型：
 

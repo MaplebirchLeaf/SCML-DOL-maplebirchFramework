@@ -24,7 +24,7 @@ Audio files must be listed in **`additionFile`** so ModLoader can provide them. 
 {
   "modName": "maplebirch",
   "addonName": "maplebirchAddon",
-  "modVersion": "^required framework version",
+  "modVersion": ">=5.2.0",
   "params": {
     "audio": ["audio"]
   }

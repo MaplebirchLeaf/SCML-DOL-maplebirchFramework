@@ -4,7 +4,7 @@
 
 ## 修改原版内容
 
-框架不再提供 `maplebirch.wikify()` 渲染拦截：当前宿主虽接受回调注册，却不在 SugarCube 解析时触发。修改 widget 内容应使用 [源码适配](Tools/Zones.md#源码适配) 并设置 `expected`；修改已经显示的页面节点可监听 [`:passagedisplay`](Events.md)。文本工具 Builder 的 `wikify(content)` 只负责解析提供的文本，与渲染拦截无关。
+框架不再提供 `maplebirch.wikify()` 渲染拦截：当前宿主虽接受回调注册，却不在 SugarCube 解析时触发。修改 widget 内容应使用 [源码适配](Tools/Zones.md#源码适配) 并设置 `expected`。修改已经显示的页面节点可监听 [`:passagedisplay`](Events.md)。文本工具 Builder 的 `wikify(content)` 只负责解析提供的文本，与渲染拦截无关。
 
 ## 图片资源
 
@@ -17,11 +17,11 @@ if (image !== false) document.querySelector<HTMLImageElement>('#myModIcon')!.src
 | 方法              | 返回值及行为                                                                                   |
 | ----------------- | ---------------------------------------------------------------------------------------------- |
 | `normalize(path)` | 归一化 Mod 相对路径，保留协议 URL                                                              |
-| `has(path)`       | `true` 存在、`false` 不存在、`undefined` 上游无法判断；不发起图片请求                          |
-| `load(path)`      | 缓存命中返回解析地址或 `false`，否则返回 Promise；先查 ModLoader，未解析到时由浏览器加载原路径 |
+| `has(path)`       | `true` 存在、`false` 不存在、`undefined` 上游无法判断。不发起图片请求                          |
+| `load(path)`      | 缓存命中返回解析地址或 `false`，否则返回 Promise。先查 ModLoader，未解析到时由浏览器加载原路径 |
 | `clear(path?)`    | 清除指定路径或全部缓存，已发出的请求仍会结束，但不会重新写回清除的缓存                         |
 
-同一路径的并发读取共用请求；缓存保存解析后的实际地址，包括 Mod 图片的数据 URL。浏览器回退加载最多等待 15 秒。`has` 反映缓存和资源提供者掌握的情况，提供者返回 false 不代表普通 URL 也无法加载；实际加载应调用 `load`。失败也会缓存，资源变化或需要重试时调用 `clear`；框架在 early-load 完成后自动清理缓存。
+同一路径的并发读取共用请求。缓存保存解析后的实际地址，包括 Mod 图片的数据 URL。浏览器回退加载最多等待 15 秒。`has` 反映缓存和资源提供者掌握的情况，提供者返回 false 不代表普通 URL 也无法加载。实际加载应调用 `load`。失败也会缓存，资源变化或需要重试时调用 `clear`。框架在 early-load 完成后自动清理缓存。
 
 [loadImage](Utilities.md#loadimage) 复用同一个解析器，并保留旧接口的侧边栏刷新行为。
 
@@ -32,7 +32,7 @@ const diagnostics = maplebirch.infra.diagnostics;
 console.table(diagnostics.conflicts);
 ```
 
-`conflicts` 是上游合并冲突的快照，包含 `source`、`dataSource` 和重名的 `passages`、`scripts`、`styles` 数组；`undefined` 表示上游还没有结果。它表示同名资源冲突，不等同于补丁执行失败，也不表示已经定位冲突双方的具体源码。
+`conflicts` 是上游合并冲突的快照，包含 `source`、`dataSource` 和重名的 `passages`、`scripts`、`styles` 数组。`undefined` 表示上游还没有结果。它表示同名资源冲突，不等同于补丁执行失败，也不表示已经定位冲突双方的具体源码。
 
 ## 补丁报告
 
@@ -41,7 +41,7 @@ const failures = maplebirch.infra.diagnostics.patches.filter(item => item.status
 console.table(failures);
 ```
 
-框架的 zone 源码适配、`maplebirch.host.modLoader.replace()` 和已有 Twine 脚本/样式替换会记录报告。每条包含 `kind`、`target`、`index`、`pattern`、`matches`、`applied`、`status`，必要时带 `expected`、`error`。`index` 是从 1 开始的补丁序号；整体资产或目标检查使用 0。
+框架的 zone 源码适配、`maplebirch.host.modLoader.replace()` 和已有 Twine 脚本/样式替换会记录报告。每条包含 `kind`、`target`、`index`、`pattern`、`matches`、`applied`、`status`，必要时带 `expected`、`error`。`index` 是从 1 开始的补丁序号。整体资产或目标检查使用 0。
 
 | 状态        | 含义                                 |
 | ----------- | ------------------------------------ |
@@ -52,4 +52,4 @@ console.table(failures);
 | `mismatch`  | 匹配数量与 `expected` 不符，未替换   |
 | `error`     | 执行失败，原因见 error               |
 
-同一 kind、target、index 保留最近结果；读取返回副本。`clearPatches()` 清空报告。此记录不涵盖第三方直接执行的补丁，也不是完整游戏行为验收。
+同一 kind、target、index 保留最近结果。读取返回副本。`clearPatches()` 清空报告。此记录不涵盖第三方直接执行的补丁，也不是完整游戏行为验收。

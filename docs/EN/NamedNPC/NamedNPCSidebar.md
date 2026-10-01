@@ -70,7 +70,7 @@ Register the NPC image folder in `boot.json`:
 {
   "modName": "maplebirch",
   "addonName": "maplebirchAddon",
-  "modVersion": "^required framework version",
+  "modVersion": ">=5.2.0",
   "params": {
     "npc": {
       "Sidebar": {

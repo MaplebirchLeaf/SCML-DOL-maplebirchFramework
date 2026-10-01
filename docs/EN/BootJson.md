@@ -18,7 +18,7 @@ Put complex conditions and runtime logic in JavaScript files loaded through **`s
   {
     "modName": "maplebirch",
     "addonName": "maplebirchAddon",
-    "modVersion": "^required framework version",
+    "modVersion": ">=5.2.0",
     "params": {
       "script": ["framework.js"]
     }
@@ -234,7 +234,7 @@ Related docs:
   {
     "modName": "maplebirch",
     "addonName": "maplebirchAddon",
-    "modVersion": "^required framework version",
+    "modVersion": ">=5.2.0",
     "params": {
       "language": {
         "CN": "language/cn.yml",

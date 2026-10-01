@@ -13,9 +13,9 @@ maplebirch.tool.patch.fishing.addBait(key, config);
 maplebirch.tool.patch.fishing.configure(location, weights);
 ```
 
-**`key`** 是鱼类或鱼饵的标识，建议带模组名前缀，避免覆盖原版或其它模组的条目。`add()` 和 `configure()` 返回是否接受配置，无效配置返回 `false`；`addBait()` 无返回值。
+**`key`** 是鱼类或鱼饵的标识，建议带模组名前缀，避免覆盖原版或其它模组的条目。`add()` 和 `configure()` 返回是否接受配置，无效配置返回 `false`。`addBait()` 无返回值。
 
-通常在启动脚本中注册，框架会在初始化时合并到 `setup`。读档只补齐缺失的食物库存；捕获记录仍由原版更新。
+通常在启动脚本中注册，框架会在初始化时合并到 `setup`。读档只补齐缺失的食物库存。捕获记录仍由原版更新。
 
 ## 最小示例
 
@@ -50,7 +50,7 @@ maplebirch.tool.patch.fishing.configure('fishingPier', { my_mod_silverfish: 1.2 
 | `preferredBait`     | `foodstuff` 键                                   | `bait_worm` |
 | `cookable`          | 是否可烹饪                                       | `false`     |
 | `isBaitFish`        | 标记饵鱼，同时为对应食物设置鱼饵标记             | -           |
-| `requiresBaitFish`  | 需要饵鱼；为 `true` 时必须提供小游戏配置         | -           |
+| `requiresBaitFish`  | 需要饵鱼。为 `true` 时必须提供小游戏配置         | -           |
 | `minigame`          | `behavior`、`maxStamina`、`armFatigueDifficulty` | -           |
 | `foodstuff`         | 同键食物配置，见 [食物注册](Foodstuff.md)        | -           |
 
@@ -58,7 +58,7 @@ maplebirch.tool.patch.fishing.configure('fishingPier', { my_mod_silverfish: 1.2 
 
 每条注册鱼自动关联同键食物目录，供原版捕获入库使用。图片由 Mod 提供，食物图标默认从 `icon` 去掉 `fish/` 前缀，也可通过 `foodstuff.icon` 指定。
 
-`addBait(key, config)` 接受 [食物配置](Foodstuff.md#常用字段)，自动设置原版 `is_fishing_bait` 标记并共用食物库存。自定义鱼饵使用原版普通食物鱼饵逻辑；原版 `baitfish` 和 `bait_worm` 保留各自的特殊处理。
+`addBait(key, config)` 接受 [食物配置](Foodstuff.md#常用字段)，自动设置原版 `is_fishing_bait` 标记并共用食物库存。自定义鱼饵使用原版普通食物鱼饵逻辑。原版 `baitfish` 和 `bait_worm` 保留各自的特殊处理。
 
 > [!TIP]
 > 如果必须等原版 `setup` 可用后才能决定配置，可在 `maplebirch.tool.onInit()` 中注册，再依次调用 `maplebirch.tool.patch.fishing.apply()` 和 `maplebirch.tool.patch.foodstuff.apply()`。一般的静态配置不需要手动调用 `apply()`。
@@ -85,7 +85,7 @@ fishingBeach / fishingPier / fishingCoastPath / fishingForestLake / fishingMoor
 }
 ```
 
-`fish`、`bait` 支持键值对象或带 `key` 的数组；`fishingLocations` 使用钓点到鱼类权重的对象。文件写法和完整 addon 结构见 [boot.json 配置](../BootJson.md)。
+`fish`、`bait` 支持键值对象或带 `key` 的数组。`fishingLocations` 使用钓点到鱼类权重的对象。文件写法和完整 addon 结构见 [boot.json 配置](../BootJson.md)。
 
 ## 相关文档
 

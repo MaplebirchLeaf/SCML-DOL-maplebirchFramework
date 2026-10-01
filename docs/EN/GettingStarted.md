@@ -8,12 +8,12 @@ Add the following fields to your mod's `boot.json` (only the relevant fields are
 
 ```json
 {
-  "dependenceInfo": [{ "modName": "maplebirch", "version": ">=5.0.0" }],
+  "dependenceInfo": [{ "modName": "maplebirch", "version": ">=5.2.0" }],
   "addonPlugin": [
     {
       "modName": "maplebirch",
       "addonName": "maplebirchAddon",
-      "modVersion": ">=5.0.0",
+      "modVersion": ">=5.2.0",
       "params": { "script": ["framework.js"] }
     }
   ]

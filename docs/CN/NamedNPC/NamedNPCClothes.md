@@ -77,20 +77,22 @@ setup.npcClothesSets = [
 - name: 'Luna' # NPC名称
   body: 'img/npc/luna/body.png' # 身体基础图片
 
-  # 头部图层(可多个，按顺序渲染)
+  # 头部候选（只选择第一个符合条件的图像）
   head:
-    - { img: 'img/npc/luna/hair_back.png', zIndex: 5 }
-    - { img: 'img/npc/luna/face_base.png', zIndex: 10 }
     - {
         img: 'img/npc/luna/hat.png',
         zIndex: 20,
-        cond: "V.weather === 'rain' || V.weather === 'snow'" # 条件显示
+        cond: "Weather.name === 'rain' || Weather.name === 'snow'" # 条件显示
       }
+
+    - { img: 'img/npc/luna/hair_back.png', zIndex: 5 }
+
+  face: 'img/npc/luna/face_base.png'
 
   # 上半身服装图层
   upper:
-    - { img: 'img/npc/luna/top_casual.png', zIndex: 15, cond: "C.npc.Luna.worn.upper.name === 'casual_top'" }
-    - { img: 'img/npc/luna/top_formal.png', zIndex: 15, cond: "C.npc.Luna.worn.upper.name === 'formal_top'" }
+    - { img: 'img/npc/luna/top_casual.png', zIndex: 15, cond: "maplebirch.npc.Clothes.wardrobe.worn('Luna')?.upper?.name === 'casual_top'" }
+    - { img: 'img/npc/luna/top_formal.png', zIndex: 15, cond: "maplebirch.npc.Clothes.wardrobe.worn('Luna')?.upper?.name === 'formal_top'" }
 
   # 下半身服装图层
   lower:
@@ -98,16 +100,16 @@ setup.npcClothesSets = [
 
   # 手部图层
   hands:
-    - { img: 'img/npc/luna/gloves.png', zIndex: 25, cond: ['C.npc.Luna.worn.hands', 'V.temperature < 10'] }
+    - { img: 'img/npc/luna/gloves.png', zIndex: 25, cond: ["maplebirch.npc.Clothes.wardrobe.worn('Luna')?.hands", 'V.temperature < 10'] }
 ```
 
 #### 在 boot.json 中配置
 
 ```json
 {
-  "modName": "fantasyMod",
-  "addonName": "fantasyAddon",
-  "modVersion": "^需要的框架版本",
+  "modName": "maplebirch",
+  "addonName": "maplebirchAddon",
+  "modVersion": ">=5.2.0",
   "params": {
     "npc": {
       "Sidebar": {
@@ -120,29 +122,16 @@ setup.npcClothesSets = [
 
 #### 条件系统
 
+条件支持布尔值、表达式字符串、函数，以及按 AND 计算的条件数组。JSON/YAML 中请写表达式字符串，函数只用于脚本配置。OR 使用表达式中的 `||`，不支持 `$or` 对象。
+
 ```yaml
-# 条件类型示例：
-- img: "path/to/image.png"
-  # 布尔值 - 始终显示
+- img: 'img/npc/luna/hat.png'
+  cond: "Weather.name === 'rain' || Weather.name === 'snow'"
+- img: 'img/npc/luna/hair.png'
   cond: true
-  # 字符串表达式 - 游戏变量判断
-  cond: "V.time.hour >= 18"
-  # 数组 - AND 条件(全部为true时显示)
-  cond: ["C.npc.Luna.mood === 'happy'", "V.weather === 'sunny'"]
-  # 函数 - 动态判断
-  cond: () => C.npc.Luna.magic_affinity >= 50
-  # 复杂条件组合
-  cond: [
-    () => C.npc.Luna.worn.upper.name === 'robe',
-    "V.season === 'winter'",
-    {
-      $or: [
-        "V.location === 'library'",
-        "V.location === 'tower'"
-      ]
-    }
-  ]
 ```
+
+同一部位按顺序选择第一个符合条件的候选图像，不是将数组中的全部图像叠加。请把有条件的候选放在默认图像之前。衣柜状态通过 `maplebirch.npc.Clothes.wardrobe.worn(name)` 读取。
 
 ---
 
@@ -192,9 +181,9 @@ work_uniform:
 
 ```json
 {
-  "modName": "fantasyMod",
-  "addonName": "fantasyAddon",
-  "modVersion": "^需要的框架版本",
+  "modName": "maplebirch",
+  "addonName": "maplebirchAddon",
+  "modVersion": ">=5.2.0",
   "params": {
     "npc": {
       "Sidebar": {
@@ -215,7 +204,7 @@ const wardrobe = maplebirch.npc.Clothes.wardrobe;
 // 1. 加载衣柜配置
 await wardrobe.load('myMod', 'data/wardrobe.yaml');
 
-// 2. 设置 NPC 的基础服装；地点服装可覆盖同名部位
+// 2. 设置 NPC 的基础服装。地点服装可覆盖同名部位
 wardrobe.base('Luna', clothes => {
   clothes.neck = { name: 'collar' };
 });
@@ -233,7 +222,7 @@ wardrobe.wear('Luna', 'school', [
   ['school_uniform_alt', 2]
 ]);
 
-// 湿度属于本次穿着规则，而不是服装模板；整套服装统一使用字符串状态
+// 湿度属于本次穿着规则，而不是服装模板。整套服装统一使用字符串状态
 wardrobe.wear('Luna', 'lake', 'school_uniform', {
   when: () => V.lunaSwimming,
   wetness: 'soaked'
@@ -244,7 +233,7 @@ wardrobe.wear('Luna', 'park', 'casual_outfit', {
   wetness: () => (V.weather === 'rain' ? 'wet' : 'dry')
 });
 
-// 场景湿度覆盖当前已经选中的整套服装；条件不成立时退回 wear 的湿度
+// 场景湿度覆盖当前已经选中的整套服装。条件不成立时退回 wear 的湿度
 wardrobe.wet('Luna', 'soaked', () => passage() === 'Lake Soak');
 
 // 条件基础层，可动态决定使用哪个已注册模板
@@ -266,7 +255,7 @@ wardrobe.wear('Luna', 'bakery', 'work_uniform');
 // 全局默认(当没有其他匹配时)
 wardrobe.wear('Luna', '*', 'casual_outfit');
 
-// 4. 最终动态修改；在地点服装合并后执行
+// 4. 最终动态修改。在地点服装合并后执行
 wardrobe.modify('Luna', (clothes, context) => {
   if (context.location === 'park' && V.weather === 'rain') clothes.head = { name: 'hood' };
 });
@@ -276,13 +265,13 @@ const currentOutfit = wardrobe.worn('Luna');
 console.log('Luna当前穿着:', currentOutfit);
 ```
 
-NPC 服装湿度使用 `dry`（干燥）、`damp`（湿润）、`wet`（潮湿）、`soaked`（湿透）四种语义状态，框架内部对应透明度 `1`、`0.9`、`0.7`、`0.5`。湿度统一作用于 `upper`、`lower`、`under_upper`、`under_lower`，不会使眼镜、首饰或鞋等槽位透明。未配置 `wetness` 时保持原有干燥显示。`wardrobe.wet()` 用于覆盖当前已选服装的湿度；存在多条匹配规则时最后注册的规则优先，未命中时退回 `wardrobe.wear()` 的湿度。
+NPC 服装湿度使用 `dry`（干燥）、`damp`（湿润）、`wet`（潮湿）、`soaked`（湿透）四种语义状态，框架内部对应透明度 `1`、`0.9`、`0.7`、`0.5`。湿度统一作用于 `upper`、`lower`、`under_upper`、`under_lower`，不会使眼镜、首饰或鞋等槽位透明。未配置 `wetness` 时保持原有干燥显示。`wardrobe.wet()` 用于覆盖当前已选服装的湿度。存在多条匹配规则时最后注册的规则优先，未命中时退回 `wardrobe.wear()` 的湿度。
 
-`wardrobe.layer()` 在地点服装之前按条件合并基础模板，适合内衣或固定配饰；模板键也可以由函数动态返回。`wardrobe.put(clothes, key, slots?)` 在回调中合并已注册模板，可用单个槽位或槽位数组限制合并范围。`wardrobe.apply(clothes, slot, item)` 将一件服装复制到指定槽位。`wardrobe.strip()` 会把指定槽位恢复为 `naked` 模板中的占位数据，不会留下渲染器无法读取的空槽位。地点服装在基础层之后合并，因此泳装等模板自身的 `under_upper`、`under_lower` 不受基础内衣条件影响。
+`wardrobe.layer()` 在地点服装之前按条件合并基础模板，适合内衣或固定配饰。模板键也可以由函数动态返回。`wardrobe.put(clothes, key, slots?)` 在回调中合并已注册模板，可用单个槽位或槽位数组限制合并范围。`wardrobe.apply(clothes, slot, item)` 将一件服装复制到指定槽位。`wardrobe.strip()` 会把指定槽位恢复为 `naked` 模板中的占位数据，不会留下渲染器无法读取的空槽位。地点服装在基础层之后合并，因此泳装等模板自身的 `under_upper`、`under_lower` 不受基础内衣条件影响。
 
-`wardrobe.wear()` 只在当前位置存在有效规则时换装。当前位置没有匹配规则或规则条件不成立时，NPC 会延续上一次成功选中的服装；尚未触发过任何规则时才使用 `naked`。
+`wardrobe.wear()` 只在当前位置存在有效规则时换装。当前位置没有匹配规则或规则条件不成立时，NPC 会延续上一次成功选中的服装。尚未触发过任何规则时才使用 `naked`。
 
-重复使用的条件可命名组合。`location` 检查 `V.location`，`passage` 检查当前 passage 标题；`hours: [起始, 结束]` 使用 `V.time.hour`，允许跨午夜。第三个参数可补充原版剧情状态等条件。条件会在使用时重新求值，按名称再次调用 `when()` 可取得同一个函数：
+重复使用的条件可命名组合。`location` 检查 `V.location`，`passage` 检查当前 passage 标题。`hours: [起始, 结束]` 使用 `V.time.hour`，允许跨午夜。第三个参数可补充原版剧情状态等条件。条件会在使用时重新求值，按名称再次调用 `when()` 可取得同一个函数：
 
 ```javascript
 const nightStudy = wardrobe.when(
@@ -298,7 +287,7 @@ wardrobe.wear('Luna', 'library', 'school_uniform', { when: nightStudy });
 wardrobe.wet('Luna', 'damp', wardrobe.when('night-study'));
 ```
 
-第三个参数也可以使用 `[服装键, 权重]` 数组。随机选择只在规则由未触发变为触发时执行一次；连续读取和服装延留期间不会重复随机，规则中断后再次触发时才会重新选择。不存在的服装键、非有限数或小于等于零的权重会被忽略并记录警告。
+第三个参数也可以使用 `[服装键, 权重]` 数组。随机选择只在规则由未触发变为触发时执行一次。连续读取和服装延留期间不会重复随机，规则中断后再次触发时才会重新选择。不存在的服装键、非有限数或小于等于零的权重会被忽略并记录警告。
 
 #### 服装层级示例
 

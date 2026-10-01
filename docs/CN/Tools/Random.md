@@ -4,7 +4,7 @@
 
 `randSystem` 用于创建可复现的随机数生成器。它适合需要保存种子、回放随机结果、回退随机流程或调试随机事件的场景。
 
-如果只是临时取一个普通随机数，可以使用 [工具函数](../Utilities.md) 中的 `random()` 或 `either()`；如果希望 _同一个状态产生同一串结果_，使用 **`maplebirch.tool.rand.create()`**。
+如果只是临时取一个普通随机数，可以使用 [工具函数](../Utilities.md) 中的 `random()` 或 `either()`。如果希望 _同一个状态产生同一串结果_，使用 **`maplebirch.tool.rand.create()`**。
 
 ---
 
@@ -122,7 +122,7 @@ const item = list[rng.int(list.length - 1)];
 
 ### 回退与恢复
 
-`back(steps)` 只移动历史指针；之后再次取随机数，会复用已经生成过的历史结果。
+`back(steps)` 只移动历史指针。之后再次取随机数，会复用已经生成过的历史结果。
 
 ```javascript
 const first = rng.percent();
@@ -155,7 +155,7 @@ V.myMod.rand ??= {};
 const rng = maplebirch.tool.rand.create(V.myMod.rand);
 ```
 
-状态对象包含 `seed`、`history` 和 `index`。如果只保存 `seed`，可以复现从头开始的序列；如果保存完整状态，则可以精确恢复已经走过的随机历史。
+状态对象包含 `seed`、`history` 和 `index`。如果只保存 `seed`，可以复现从头开始的序列。如果保存完整状态，则可以精确恢复已经走过的随机历史。
 
 ---
 
