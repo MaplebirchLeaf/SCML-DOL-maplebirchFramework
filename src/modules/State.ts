@@ -65,8 +65,15 @@ class StateEvent extends Event {
   }
 
   public tryRun(passageName?: string): StateEventResult | null {
-    if (!this.checkPassage(passageName)) return null;
-    if (!this.match()) return null;
+    if (!this.matches(passageName)) return null;
+    return this.run();
+  }
+
+  public matches(passageName?: string): boolean {
+    return this.checkPassage(passageName) && this.match();
+  }
+
+  public run(): StateEventResult {
     this.runAction();
     return {
       hasOutput: !!this.output,
@@ -109,13 +116,30 @@ export class StateManager {
   private processGateEvents(passageName?: string): string {
     const gateEvents = this.stateEvents['gate'];
     const sortedEvents = gateEvents.list().sort((a, b) => b.priority - a.priority);
+    const outputs: string[] = [];
+    const blocking: StateEvent[] = [];
     for (const event of sortedEvents) {
+      if (!event.matches(passageName)) continue;
+      if (event.shouldForceExit()) {
+        blocking.push(event);
+        continue;
+      }
+      const result = event.run();
+      if (result.remove) this.unregister('gate', event.id);
+      if (result.hasOutput && event.output) outputs.push(`<<${event.output}>>`);
+    }
+    for (const event of blocking) {
       const result = event.tryRun(passageName);
       if (!result) continue;
       if (result.remove) this.unregister('gate', event.id);
-      if (result.hasOutput && event.output) return event.shouldForceExit() ? `<<${event.output}>><<exitAll>>` : `<<${event.output}>>`;
+      if (!result.hasOutput || !event.output) continue;
+      outputs.push(`<<${event.output}>>`);
+      if (event.shouldForceExit()) {
+        outputs.push('<<exitAll>>');
+        break;
+      }
     }
-    return '';
+    return outputs.join('');
   }
 
   private processAppendEvents(passageName?: string): string {

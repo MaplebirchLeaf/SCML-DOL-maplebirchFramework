@@ -16,6 +16,14 @@ maplebirch.dynamic.delStateEvent(type, eventId);
 | `gate`   | Passage start | Can interrupt or replace the current passage flow |
 | `append` | Passage end   | Appends extra output after the passage content    |
 
+## Gate Order
+
+Gate events are nonblocking by default. All matching nonblocking gates run in priority order and contribute their output. Blocking candidates run last, in priority order, stopping after the first event that produces output and forces an exit.
+
+A deferred blocking candidate checks its condition again before running, since preceding nonblocking actions may have changed its eligibility. Conditions and function-valued `forceExit` must be side-effect-free and may be evaluated more than once. Put state changes needed by later events in `action`, rather than relying on an output macro that has not rendered yet.
+
+Use `gate` with `forceExit: false` for passage-start reminders. Use `append` for passage-end additions and feat settlement. Events replacing passage content must explicitly set `forceExit: true`.
+
 ## Registering An Event
 
 ```javascript
@@ -23,6 +31,7 @@ maplebirch.dynamic.regStateEvent('gate', 'myMod:forestBandit', {
   output: 'myModForestBandit',
   cond: () => V.location === 'forest' && Time.hour >= 20,
   priority: 10,
+  forceExit: true,
   once: false
 });
 ```

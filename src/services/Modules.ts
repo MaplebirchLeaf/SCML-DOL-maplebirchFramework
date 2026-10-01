@@ -146,7 +146,7 @@ export class Modules extends Lifecycle<string, Module> {
         this.write(`暴露模块 ${name} 挂载到 window 失败: 名称冲突`, 'WARN', 'modules');
         return false;
       }
-      (window as unknown as Record<string, unknown>)[name] = module;
+      Reflect.set(window, name, module);
     }
 
     const state = (exposed || windowExposed) && !lifecycle ? ModuleState.EXPOSED : ModuleState.REGISTERED;
@@ -293,7 +293,7 @@ export class Modules extends Lifecycle<string, Module> {
       this.registry.states.set(name, ModuleState.DISABLED);
       this.preInitialized.delete(name);
       if (core[name] === module) delete core[name];
-      if (typeof window !== 'undefined' && (window as unknown as Record<string, unknown>)[name] === module) delete (window as unknown as Record<string, unknown>)[name];
+      if (typeof window !== 'undefined' && Reflect.get(window, name) === module) Reflect.deleteProperty(window, name);
       this.write(`模块 ${name} 被禁用，跳过初始化`, 'DEBUG', 'modules');
     }
   }

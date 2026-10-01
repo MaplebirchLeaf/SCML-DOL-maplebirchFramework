@@ -8,6 +8,16 @@ _可通过 `maplebirch.dynamic.State` 访问。_
 
 ---
 
+### gate 的执行顺序
+
+`gate` 默认不截断，适合页首提醒和状态结算。所有命中的非截断事件按优先级执行并收集输出，不会因第一个提醒而跳过后续事件。`forceExit` 为真的候选留到最后处理，仍按优先级选择，第一个实际输出并截断的事件结束当前段落。
+
+截断候选执行前会重新检查条件，避免此前的非截断 `action` 改变状态后仍触发已经失效的事件。`cond` 与函数形式的 `forceExit` 应为无副作用的判断，可被重复检查。需要影响后续事件资格的状态修改放在 `action`，不要依赖尚未渲染的 `output` 宏。
+
+`append` 在页面末尾收集输出，适用于末尾补充和成就结算。页首提醒使用 `gate` 与 `forceExit: false`。替换正文的事件明确设置 `forceExit: true`，只注册 `gate` 不会自动截断正文。
+
+---
+
 ### 核心功能
 
 #### **注册状态事件 (regStateEvent)**
@@ -25,6 +35,7 @@ _可通过 `maplebirch.dynamic.State` 访问。_
     output: 'banditEncounter',
     cond: () => V.location === 'forest' && V.time === 'night',
     priority: 5,
+    forceExit: true,
     once: true
   });
   ```
@@ -82,6 +93,7 @@ maplebirch.dynamic.regStateEvent('gate', 'myMod:forestBandit', {
   output: 'banditEncounter', // 对应下面定义的widget名称
   cond: () => V.location === 'forest',
   priority: 10,
+  forceExit: true,
   once: false
 });
 

@@ -20,6 +20,9 @@ declare global {
     addonBeautySelectorAddon: BeautySelectorAddon;
     readonly Time: typeof Time;
     DateTime: typeof DateTime;
+    onTakeClick(name: string, type?: string): void;
+    onAutoTakeClick(name: string, type?: string): void;
+    initPillContextButtons(item: { name: string; type: string }): void;
     closeOverlay(): void;
     updateOptions(): void;
     lanSwitch: typeof _languageSwitch;

@@ -8,11 +8,13 @@ import Bodywriting, { bodywritingData } from './Bodywriting';
 import Foodstuff, { foodstuffData } from './Foodstuff';
 import Antiques, { antiquesData } from './Antiques';
 import Tips, { tipsData } from './Tips';
+import Pills, { pillsData } from './Pills';
 import Fishing, { fishData, fishingLocationData } from './Fishing';
 import { isRecord } from './config';
 import dol from '../../../host/DoL';
 
 function register(core: MaplebirchCore, patch: Patch) {
+  const pills = new Pills();
   const injectTraits = (data: Parameters<typeof Traits.inject>[0]) => Traits.inject(data, text => core.auto(text));
   const definitions = {
     traits: {
@@ -50,6 +52,11 @@ function register(core: MaplebirchCore, patch: Patch) {
       available: () => dol.has('variables') && isRecord(dol.variables.museumAntiques?.antiques),
       state: () => new (core.host.sugarcube.require().Wikifier)(document.createDocumentFragment(), '<<museumAntiqueText>>')
     },
+    pills: {
+      api: { data: pillsData, add: Pills.add },
+      available: () => dol.has('setup') && Array.isArray(dol.setup.pills),
+      init: () => pills.apply()
+    },
     tips: {
       api: { data: tipsData, add: Tips.add, apply: Tips.apply, inject: Tips.inject },
       legacy: { tipsData, addTips: Tips.add, applyTips: Tips.apply, injectTips: Tips.inject },
@@ -65,7 +72,8 @@ function register(core: MaplebirchCore, patch: Patch) {
     .add('fishing', definitions.fishing)
     .add('foodstuff', definitions.foodstuff)
     .add('antiques', definitions.antiques)
-    .add('tips', definitions.tips);
+    .add('tips', definitions.tips)
+    .add('pills', definitions.pills);
   return registered as typeof registered & PatchCatalog;
 }
 
