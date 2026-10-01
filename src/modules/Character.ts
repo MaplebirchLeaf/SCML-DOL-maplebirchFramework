@@ -260,7 +260,8 @@ class Character {
       const modify = passageData.get(file);
       if (!modify?.content) continue;
       const replacements: Replacement[] = [[/setup\.faceStyleOptions\.length gt/g, 'Object.keys(setup.faceStyleOptions).length gte']];
-      if (file === 'Widgets Mirror') replacements.push([/(Object\.keys\(setup\.faceVariantOptions\[\$facestyle\]\)\.length\s+)gt\b/g, '$1gte']);
+      const variants = /(Object\.keys\(setup\.faceVariantOptions\[\$facestyle\]\)\.length\s+)gt\b/g;
+      if (file === 'Widgets Mirror' && variants.test(modify.content)) replacements.push([variants, '$1gte']);
       modify.content = manager.replace(modify.content, replacements, 'FaceStyle');
       passageData.set(file, modify);
     }

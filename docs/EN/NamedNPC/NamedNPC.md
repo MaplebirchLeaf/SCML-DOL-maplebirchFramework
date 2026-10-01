@@ -1,5 +1,7 @@
 # Named NPC
 
+Repeated calls for the same name merge explicitly supplied data and configuration. Existing vanilla NPCs receive those fields without constructor defaults. Unspecified save fields remain unchanged. Each registration is applied once per NPC object, including after loading a save.
+
 ## Purpose
 
 Named NPC registration adds mod NPCs to the framework NPC system. It can define NPC data, options, translations, stats, schedules, clothes, and sidebar display through related modules.

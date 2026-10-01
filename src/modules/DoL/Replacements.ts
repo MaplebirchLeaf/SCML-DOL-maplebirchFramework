@@ -27,8 +27,8 @@ const locationPassage = {
   StoryCaption: [
     { src: '<<questmarker>>', applyafter: '\n\t\t<<maplebirchCaptionDescription>>' },
     { src: '<<allurecaption>>', applybefore: '<<maplebirchStatusBar>>\n\t\t\t' },
-    { src: '<</button>>\n\t\t\t<div class="sidebarButtonSplit">', to: '<</button>>\n\t\t\t<<maplebirchMenuBig>>\n\t\t\t<div class="sidebarButtonSplit">' },
-    { src: '</div>\n\t\t\t<div class="sidebarButtonSplit">', to: '</div>\n\t\t\t<div class="sidebarButtonSplit"><<maplebirchMenuSmall>></div>\n\t\t\t<div class="sidebarButtonSplit">' },
+    { srcmatch: /<<button [^>]+>>\s*<<overlayReplace "social">>\s*<<\/button>>/, applyafter: '\n\t\t\t<<maplebirchMenuBig>>', expected: 1 },
+    { srcmatch: /<<button [^>]+>>\s*<<overlayReplace "gameFeats">>\s*<<\/button>>\s*<\/div>/, applyafter: '\n\t\t\t<div class="sidebarButtonSplit"><<maplebirchMenuSmall>></div>', expected: 1 },
     { src: '<<goo>>', applybefore: '<<maplebirchCaptionAfterDescription>>\n\t\t' },
     { src: '<<if $options.sidebarStats isnot "disabled">>', applybefore: '<<maplebirchHintMobile>>\n\t\t\t' },
     { src: '<<mobileStats>>', applyafter: '\n\t\t\t\t<<maplebirchMobileStats>>' },

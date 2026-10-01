@@ -333,6 +333,15 @@ export const NamedNPC = (core => {
     }
   }
 
+  const appliedData = new WeakMap<object, NPCData>();
+
+  function applyData(manager: NPCManager, npc: NPCData) {
+    const patch = manager.data.get(npc.nam)?.Patch;
+    if (!patch || appliedData.get(npc) === patch) return;
+    merge(npc, clone(patch));
+    appliedData.set(npc, patch);
+  }
+
   function add(manager: NPCManager, npcData: NPCData, config: NPCConfig = {}, translationsData?: TranslationInput): boolean {
     if (!npcData || !npcData.nam) {
       manager.log('提供的NPC数据无效', 'ERROR');
@@ -340,14 +349,14 @@ export const NamedNPC = (core => {
     }
     const npcName = npcData.nam;
     let npcConfig = clone(config);
-    if (manager.data.has(npcName)) {
-      manager.log(`NPC ${npcName} 已存在于mod数据中`, 'ERROR');
-      return false;
-    }
+    const existing = manager.data.get(npcName);
     if (!npcConfig || typeof npcConfig !== 'object') npcConfig = {};
-    if (Object.keys(npcConfig).length === 0) npcConfig.love = { maxValue: 50 };
-    const newNPC = new NamedNPC(manager, clone(npcData));
+    if (!existing && !vanillaList.has(npcName) && Object.keys(npcConfig).length === 0) npcConfig.love = { maxValue: 50 };
+    const patch = existing ? merge(clone(existing.Patch), clone(npcData)) : clone(npcData);
+    const newNPC = existing?.Data ?? new NamedNPC(manager, clone(npcData));
+    if (existing) merge(newNPC, clone(npcData));
     for (const [statName, config] of Object.entries(manager.customStats)) {
+      if (existing && !Object.prototype.hasOwnProperty.call(npcData, statName)) continue;
       Object.defineProperty(newNPC, statName, { value: npcData[statName] ?? config.default ?? 0, writable: true, configurable: true, enumerable: true });
     }
     if (translationsData instanceof Map) {
@@ -355,7 +364,7 @@ export const NamedNPC = (core => {
     } else if (translationsData && typeof translationsData === 'object') {
       for (const key in translationsData) if (Object.prototype.hasOwnProperty.call(translationsData, key)) core.services.translator.set(key, translationsData[key]);
     }
-    manager.data.set(npcName, { Data: newNPC, Config: npcConfig });
+    manager.data.set(npcName, { Data: newNPC, Config: existing ? merge(clone(existing.Config), npcConfig) : npcConfig, Patch: patch });
     manager.log(`成功注入NPC: ${npcName}`, 'DEBUG');
     return true;
   }
@@ -425,10 +434,13 @@ export const NamedNPC = (core => {
 
     for (const [npcName, npcEntry] of manager.data) {
       if (savedNPCNameSet.has(npcName)) {
+        const npc = dol.variables.NPCName.find((entry: NPCData) => entry.nam === npcName);
+        if (npc) applyData(manager, npc);
         skippedCount++;
         continue;
       }
       const npc = clone(npcEntry.Data);
+      appliedData.set(npc, npcEntry.Patch);
       dol.variables.NPCName.push(npc);
       savedNPCNameSet.add(npcName);
       addedCount++;
@@ -539,6 +551,8 @@ export const NamedNPC = (core => {
       Object.keys(npc).forEach(key => {
         if (key !== 'nam' && !Object.prototype.hasOwnProperty.call(newNpc, key)) (newNpc as Record<string, any>)[key] = (npc as Record<string, any>)[key];
       });
+      const patch = appliedData.get(npc);
+      if (patch) appliedData.set(newNpc, patch);
       dol.variables.NPCName[i] = newNpc;
     });
     updateNPCNameList(manager);
@@ -547,6 +561,7 @@ export const NamedNPC = (core => {
   // prettier-ignore
   Object.defineProperties(NamedNPC, {
     add    : { value: add },
+    apply  : { value: applyData },
     get    : { value: updateNPCNameList },
     clear  : { value: clearInvalidNPC },
     update : { value: onUpdate },
@@ -558,6 +573,7 @@ export const NamedNPC = (core => {
   // prettier-ignore
   return NamedNPC as typeof NamedNPC & {
     add    : typeof add;
+    apply  : typeof applyData;
     get    : typeof updateNPCNameList;
     clear  : typeof clearInvalidNPC;
     update : typeof onUpdate;
@@ -569,7 +585,7 @@ export const NamedNPC = (core => {
 
 class NPCManager {
   public readonly log!: ScopedLog;
-  public readonly data = new Map<string, { Data: InstanceType<typeof NamedNPC>; Config: NPCConfig }>();
+  public readonly data = new Map<string, { Data: InstanceType<typeof NamedNPC>; Config: NPCConfig; Patch: NPCData }>();
   public NPCNameList: string[] = [];
 
   public readonly Transformation: NPCTransformation;
@@ -721,6 +737,7 @@ class NPCManager {
       this.log(`初始化NPC自定义属性失败，未找到NPC: ${npcName}`, 'WARN');
       return;
     }
+    this.NamedNPC.apply(this, npc);
     for (const [stat, config] of Object.entries(this.customStats)) npc[stat] ??= config.default ?? 0;
     void this.core.trigger(':npcInit', npcName);
   }
