@@ -181,8 +181,9 @@ class Transformation {
       if (!hooks) continue;
       if (hooks.pre) this.manager.use('pre', hooks.pre, model);
       if (hooks.post) this.manager.use('post', hooks.post, model);
-      const layers = typeof hooks.layers === 'function' ? hooks.layers() : hooks.layers;
-      if (layers) this.manager.use(layers, model, { pet: model === 'main' });
+      const layers = hooks.layers;
+      if (typeof layers === 'function') this.manager.core.tool.onInit(() => this.manager.use(layers(), model, { pet: model === 'main' }));
+      else if (layers) this.manager.use(layers, model, { pet: model === 'main' });
     }
     for (const chimera of options.chimeras ?? []) this.chimeraConfig.set(`${chimera.name}_${chimera.part}`, chimera);
 

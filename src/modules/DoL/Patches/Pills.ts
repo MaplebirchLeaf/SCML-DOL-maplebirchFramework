@@ -9,6 +9,7 @@ export interface PillConfig {
   description: Text;
   warning_label: Text;
   icon?: string;
+  indicators?: string[] | (() => string[]);
   owned: () => number;
   doseTaken: () => number;
   canTake: () => boolean;
@@ -47,6 +48,9 @@ class Pills {
         subtype: name,
         shape: 'pill',
         icon: config.icon ?? 'img/misc/icon/pill-collection.png',
+        get indicators() {
+          return typeof config.indicators === 'function' ? config.indicators() : (config.indicators ?? []);
+        },
         effects: [],
         autoTake: () => false,
         owned: config.owned,
@@ -75,7 +79,10 @@ class Pills {
     };
     host.initPillContextButtons = item => {
       context.call(host, item);
-      if (Object.hasOwn(pillsData, item.name)) document.getElementById('hpi_take_every_morning')?.classList.add('hidden');
+      if (Object.hasOwn(pillsData, item.name)) {
+        document.getElementById('hpi_take_every_morning')?.classList.add('hidden');
+        document.getElementById('hpi_take_pills')?.classList.add('hpi_take_me_single');
+      }
     };
     this.installed = true;
   }

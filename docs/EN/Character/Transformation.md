@@ -12,7 +12,7 @@ maplebirch.char.transformation.add(name, type, config);
 
 ## Rendering and Chimeras
 
-`layers` and `combat.layers` accept a layer map or a function returning one. The function runs once during `add`, so register inside `onInit` when the layers depend on the native renderer.
+`layers` and `combat.layers` accept a layer map or a function returning one. Layer maps register immediately. Functions run during the game's `StoryInit` phase, when native `Renderer.CanvasModels` are available. Transformations and chimera conditions can therefore register in `preInit` before image resources are ready.
 
 ```javascript
 maplebirch.tool.onInit(() => {

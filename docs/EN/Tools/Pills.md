@@ -2,16 +2,19 @@
 
 `maplebirch.tool.patch.pills.add(name, config)` integrates manual tablets with the native medicine drawer. Register during startup. There is no corresponding boot.json data field.
 
-| Field                          | Type                        | Purpose                          |
-| ------------------------------ | --------------------------- | -------------------------------- |
-| `cn_name`                      | Optional string or callback | Chinese name                     |
-| `description`, `warning_label` | String or callback          | Description and label            |
-| `icon`                         | Optional string             | Full image path                  |
-| `owned`, `doseTaken`           | Callbacks returning numbers | Current stock and consumed doses |
-| `canTake`                      | Callback returning boolean  | Additional eligibility           |
-| `take`                         | Callback                    | Apply the dose                   |
+| Field                          | Type                                                 | Purpose                          |
+| ------------------------------ | ---------------------------------------------------- | -------------------------------- |
+| `cn_name`                      | Optional string or callback                          | Chinese name                     |
+| `description`, `warning_label` | String or callback                                   | Description and label            |
+| `icon`                         | Optional string                                      | Full image path                  |
+| `indicators`                   | Optional string array or callback returning an array | Effect hints below the icon      |
+| `owned`, `doseTaken`           | Callbacks returning numbers                          | Current stock and consumed doses |
+| `canTake`                      | Callback returning boolean                           | Additional eligibility           |
+| `take`                         | Callback                                             | Apply the dose                   |
 
 Only stocked tablets appear. Taking one also requires `canTake()`. The framework does not deduct inventory, apply effects, track dependence, or record dose times. The owning mod handles these in `take()` and its save state. Custom tablets cannot use daily automatic dosing. Native pill names must not be reused.
+
+`indicators` supplies HTML hints to the native drawer, such as `<span class="green">- Stress</span>`. Native rendering hides them when blind stats are enabled. These strings only describe effects and do not apply them.
 
 ```javascript
 maplebirch.tool.patch.pills.add('myMod tablets', {

@@ -11,7 +11,7 @@ _可通过 `maplebirch.char.transformation.add` 注册。_
 
 ## 共用绘制与融合配置
 
-`layers` 和 `combat.layers` 可以是图层表，也可以是返回图层表的函数。函数在调用 `add` 时执行一次，适合在 `onInit` 中读取已加载的原版图层。
+`layers` 和 `combat.layers` 可以是图层表，也可以是返回图层表的函数。图层表直接登记，函数延后到游戏的 `StoryInit` 阶段执行，此时可读取已加载的原版 `Renderer.CanvasModels`。因此可在 `preInit` 登记转化和融合条件，不必等图像资源就绪。
 
 ```javascript
 maplebirch.tool.onInit(() => {
