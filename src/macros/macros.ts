@@ -153,8 +153,8 @@ class Macros {
     const macro = core.tool.macro;
     macro.define('language', _language, ['option'], false, false);
     macro.define('lanSwitch', _languageSwitch);
-    macro.define('lanButton', _languageButton, null, false, true);
-    macro.define('lanLink', _languageLink, null, false, true);
+    macro.define('lanButton', _languageButton, null, true, true);
+    macro.define('lanLink', _languageLink, null, true, true);
     macro.define('lanListbox', _languageListbox, ['option', 'optionsfrom'], ['optionsfrom'], true);
     macro.define('radiobuttonsfrom', _radiobuttonsfrom, null, false, true);
     macro.define('maplebirchReplace', (name: string, type: string) => _overlayReplace(name, type));

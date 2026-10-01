@@ -24,6 +24,37 @@ export interface MacroContext extends Omit<SugarCubeMacroContext, 'args' | 'crea
   lanListboxCache?: Record<string, { options: ListboxOption[]; selectedIdx: number }>;
 }
 
+export function parseLanguageArgs(args: MacroArgs): void {
+  if (args.length || args.raw == null) return;
+  const runtime = maplebirch.host.sugarcube.require();
+  const parser = runtime.Wikifier.Parser.get('macro');
+  if (!parser || typeof parser !== 'object' || !('parseArgs' in parser) || typeof parser.parseArgs !== 'function') throw new Error('SugarCube macro argument parser is unavailable.');
+  let raw = args.raw.trimStart();
+  if (raw.startsWith('[') && !raw.startsWith('[[') && !/^\[<?(?:img|>)/i.test(raw)) {
+    let depth = 0;
+    let quote = '';
+    let end = -1;
+    for (let i = 0; i < raw.length; i++) {
+      const char = raw[i];
+      if (quote) {
+        if (char === '\\') i++;
+        else if (char === quote) quote = '';
+      } else if (char === "'" || char === '"' || char === '`') quote = char;
+      else if (char === '[') depth++;
+      else if (char === ']' && --depth === 0) {
+        end = i + 1;
+        break;
+      }
+    }
+    if (end < 0) throw new Error('Unterminated bilingual text array.');
+    const label: unknown = runtime.Scripting.evalTwineScript(`(${raw.slice(0, end)})`);
+    if (!Array.isArray(label) || label.length !== 2 || !label.every(value => typeof value === 'string')) throw new Error('Bilingual text requires exactly two strings: [EN, CN].');
+    args.push(label);
+    raw = raw.slice(end);
+  }
+  args.push(...parser.parseArgs(raw));
+}
+
 /** Array labels contain literal [EN, CN] text, not translation segments. */
 export interface LinkArg {
   text: string | readonly string[];

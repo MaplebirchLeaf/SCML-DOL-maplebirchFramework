@@ -2,11 +2,12 @@
 
 import Diagnostics from '../infra/Diagnostics';
 import maplebirch from '../core';
-import { addClasses, appendMacroIcon, bindLanguageUpdate, readStyle, sourceText, text, translatedText, type MacroContext } from './helpers';
+import { addClasses, appendMacroIcon, bindLanguageUpdate, parseLanguageArgs, readStyle, sourceText, text, translatedText, type MacroContext } from './helpers';
 
 // <<lanButton>>
 export function _languageButton(this: MacroContext): void {
   try {
+    parseLanguageArgs(this.args);
     if (!this.args || this.args.length === 0) return this.error('<<lanButton>> needs at least one argument.');
     const payload = Array.isArray(this.payload) ? this.payload : [];
     const content = (payload[0]?.contents || '').trim();

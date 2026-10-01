@@ -26,6 +26,7 @@ interface Part {
   name: string;
   tfRequired: number;
   default?: string;
+  label?: string | (() => string);
   [key: string]: any;
 }
 
@@ -38,7 +39,20 @@ type TransformHook = (options: any, model?: CanvasModel) => void;
 type TransformMessage = Record<string, { up: string[]; down: string[] }>;
 type TranslationInput = Record<string, Translation> | Map<string, Translation>;
 
-interface EntryOptions {
+interface TransformationHooks {
+  pre?: TransformHook;
+  post?: TransformHook;
+  layers?: CanvasLayerMap | (() => CanvasLayerMap);
+}
+
+interface ChimeraOption {
+  name: string;
+  part: string;
+  sources: readonly string[];
+  label: string | (() => string);
+}
+
+interface EntryOptions extends TransformationHooks {
   build?: number;
   level?: number;
   update?: number[];
@@ -48,9 +62,8 @@ interface EntryOptions {
   decayConditions?: DecayCondition[];
   suppress?: boolean;
   suppressConditions?: SuppressCondition[];
-  pre?: TransformHook;
-  post?: TransformHook;
-  layers?: CanvasLayerMap;
+  combat?: TransformationHooks;
+  chimeras?: ChimeraOption[];
   translations?: TranslationInput;
 }
 
@@ -91,6 +104,7 @@ class Transformation {
     return this.manager.log;
   }
   private config: Map<string, Entry> = new Map();
+  private readonly chimeraConfig = new Map<string, ChimeraOption>();
   public readonly decayConditions: Record<string, DecayCondition[]> = { ...DecayConditions };
   public readonly suppressConditions: Record<string, SuppressCondition[]> = { ...SuppressConditions };
   public readonly buildUpdaters: Record<string, BuildUpdater> = { ...BuildUpdaters };
@@ -160,9 +174,17 @@ class Transformation {
     if (type === 'physical' && options.suppress !== false && !this.suppressConditions[name])
       this.suppressConditions[name] = options.suppressConditions ?? [(sourceName: string) => sourceName !== name];
 
-    if (options.pre) this.manager.use('pre', options.pre, 'main');
-    if (options.post) this.manager.use('post', options.post, 'main');
-    if (options.layers) this.manager.use(options.layers, 'main', { pet: true });
+    for (const [model, hooks] of [
+      ['main', options],
+      ['combatMainPc', options.combat]
+    ] as const) {
+      if (!hooks) continue;
+      if (hooks.pre) this.manager.use('pre', hooks.pre, model);
+      if (hooks.post) this.manager.use('post', hooks.post, model);
+      const layers = typeof hooks.layers === 'function' ? hooks.layers() : hooks.layers;
+      if (layers) this.manager.use(layers, model, { pet: model === 'main' });
+    }
+    for (const chimera of options.chimeras ?? []) this.chimeraConfig.set(`${chimera.name}_${chimera.part}`, chimera);
 
     if (options.translations) {
       const translations = options.translations instanceof Map ? options.translations.entries() : Object.entries(options.translations);
@@ -176,6 +198,28 @@ class Transformation {
     }
 
     return this;
+  }
+
+  public get chimeras() {
+    return [...this.chimeraConfig.values()].map(chimera => ({ ...chimera, label: typeof chimera.label === 'function' ? chimera.label() : chimera.label }));
+  }
+
+  public get chimeraDefaults(): Record<string, Record<string, boolean>> {
+    const defaults: Record<string, Record<string, boolean>> = {};
+    for (const { name, part } of this.chimeraConfig.values()) (defaults[name] ??= {})[part] = true;
+    return defaults;
+  }
+
+  public get chimeraOptions(): Record<string, boolean> {
+    return Object.fromEntries(
+      [...this.chimeraConfig].map(([key, { sources, part }]) => [
+        key,
+        sources.every(source => {
+          const value = dol.variables.transformationParts?.[source]?.[part];
+          return typeof value === 'string' && value !== 'disabled' && value !== 'hidden';
+        })
+      ])
+    );
   }
 
   public inject(): void {
@@ -232,6 +276,10 @@ class Transformation {
         dol.variables.transformationParts.traits ??= {};
         for (const traitName of collectNames(entry.traits)) if (!(traitName in dol.variables.transformationParts.traits)) dol.variables.transformationParts.traits[traitName] = 'disabled';
       }
+    }
+    for (const [name, parts] of Object.entries(this.chimeraDefaults)) {
+      const chimera = (dol.variables.chimera ??= {});
+      chimera[name] = { ...parts, ...chimera[name] };
     }
     this._clear();
   }
@@ -343,6 +391,32 @@ class Transformation {
         dol.variables.transformationParts.traits[trait.name] = 'disabled';
       }
     }
+
+    this.traits();
+  }
+
+  private traits(): void {
+    const managed = new Set([...this.config.values()].flatMap(entry => entry.traits?.map(trait => trait.name) ?? []));
+    const shared = new Map<string, { owners: number; enabled: boolean; value: string }>();
+    for (const transform of dol.setup.transformations ?? []) {
+      for (const trait of transform.traits ?? []) {
+        if (!managed.has(trait.name)) continue;
+        const state = shared.get(trait.name) ?? { owners: 0, enabled: false, value: 'default' };
+        state.owners++;
+        if (transform.level >= trait.tfRequired) {
+          state.enabled = true;
+          state.value = trait.default ?? 'default';
+        }
+        shared.set(trait.name, state);
+      }
+    }
+    const parts = dol.variables.transformationParts?.traits;
+    if (!parts) return;
+    for (const [name, state] of shared) {
+      if (state.owners < 2) continue;
+      if (!state.enabled) parts[name] = 'disabled';
+      else if (parts[name] !== 'hidden') parts[name] = state.value;
+    }
   }
 
   public _transformationAlteration(): void {
@@ -401,6 +475,8 @@ class Transformation {
       if (entry.type === 'physical') continue;
       this.updateTransform(name);
     }
+
+    this.traits();
   }
 
   public _transformationStateUpdate(): void {

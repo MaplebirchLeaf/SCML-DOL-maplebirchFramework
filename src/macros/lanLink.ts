@@ -2,12 +2,13 @@
 
 import Diagnostics from '../infra/Diagnostics';
 import maplebirch from '../core';
-import { addClasses, appendMacroIcon, bindLanguageUpdate, isStyleArg, readStyle, sourceText, text, translatedText, type LinkArg, type MacroContext } from './helpers';
+import { addClasses, appendMacroIcon, bindLanguageUpdate, parseLanguageArgs, isStyleArg, readStyle, sourceText, text, translatedText, type LinkArg, type MacroContext } from './helpers';
 import dol from '../host/DoL';
 
 // <<lanLink>>
 export function _languageLink(this: MacroContext): void {
   try {
+    parseLanguageArgs(this.args);
     if (!this.args || this.args.length === 0) return this.error('<<lanLink>> needs at least one argument.');
     dol.temporary.link = true;
     const payload = Array.isArray(this.payload) ? this.payload : [];

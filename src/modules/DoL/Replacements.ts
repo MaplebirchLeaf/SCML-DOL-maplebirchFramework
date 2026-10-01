@@ -140,6 +140,11 @@ const widgetPassage = {
     { srcmatch: /<<\/if>>(?:\r?\n\t\t|\r?\n\t\r?\n\t)<<if !\[/, to: '<</if>>\n\t\t<<maplebirchTransformationMirror>>\n\t\t<<if ![' },
     { srcmatch: /!\[[^\]]+\]\.every\(\s*transform\s*=>\s*T\[transform\]\.(horns|tail|wings|ears)\s+is\s+"disabled"\s*\)/g, to: "maplebirch.char.transformation.part('$1')" },
     { src: '<<tficon $_icon>>', to: '<<= maplebirch.char.transformation.icon>>' },
+    { src: '<<set $_chimeraEnabled to Object.values($_chimeraOptions)', applybefore: '<<run Object.assign($_chimeraOptions, maplebirch.char.transformation.chimeraOptions)>>\n\t\t\t\t', expected: 1 },
+    { src: '<<if $_chimeraOptions.demoncat_tail>>', applybefore: '<<maplebirchChimeraMirror>>\n\t\t\t\t\t', expected: 1 },
+  ],
+  'Transformation Widgets': [
+    { src: '<<set $chimera = Object.keys(_defaultChimeraConfig).reduce(', applybefore: '<<run Object.assign(_defaultChimeraConfig, maplebirch.char.transformation.chimeraDefaults)>>\n\t', expected: 1 },
   ],
   'Widgets NPCs': [
     { src: '<<if $genderknown.includes($npc[_iii])>>', to: '<<if $genderknown.contains($npc)>>' },

@@ -65,7 +65,7 @@
             callback: (value) => {
               V.maplebirch.transformation[_modTransformation].build = value;
               maplebirch.char.transformation.updateTransform(_modTransformation);
-              Wikifier.wikifyEval('<<updatesidebarimg>>');
+              maplebirch.SugarCube.Wikifier.wikifyEval('<<updatesidebarimg>>');
             },
             max: $_config?.build || 100,
             percentage: false,

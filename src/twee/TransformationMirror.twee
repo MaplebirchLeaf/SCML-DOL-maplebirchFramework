@@ -13,6 +13,21 @@
   <</for>>
 <</widget>>
 
+<<widget 'maplebirchChimeraMirror'>>
+  <<for $_chimera range maplebirch.char.transformation.chimeras>>
+    <<if $_chimeraOptions[$_chimera.name + '_' + $_chimera.part]>>
+      <div class='tf-part-item'>
+        <<= $_chimera.label>>
+        <<set $_chimeraPath to '$chimera.' + $_chimera.name + '.' + $_chimera.part>>
+        <<listbox $_chimeraPath autoselect>>
+          <<option `lanSwitch('Show', '显示')` true>>
+          <<option `lanSwitch('Hide', '隐藏')` false>>
+        <</listbox>>
+      </div>
+    <</if>>
+  <</for>>
+<</widget>>
+
 <<widget 'maplebirchTransformationPartSelect'>>
   <<set $_modTransformation to _args[0]>>
   <<set $_partName to _args[1]>>
@@ -21,7 +36,11 @@
   <<set $_defaultValue to $_partConfig?.default || 'default'>>
   <<set $_varPath to '$transformationParts.' + $_modTransformation + '.' + $_partName>>
   <div class='tf-part-item'>
-    <<= maplebirch.t(String($_partName)).convert('title')>>：
+    <<if $_partConfig?.label>>
+      <<= typeof $_partConfig.label === 'function' ? $_partConfig.label() : $_partConfig.label>>：
+    <<else>>
+      <<= maplebirch.t(String($_partName)).convert('title')>>：
+    <</if>>
     <<lanListbox $_varPath autoselect class:macro-listbox>>
       <<option 'hidden' 'hidden'>>
       <<option 'default' $_defaultValue>>
