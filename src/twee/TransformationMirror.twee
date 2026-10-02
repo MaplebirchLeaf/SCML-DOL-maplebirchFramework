@@ -5,16 +5,20 @@
   <<for $_modTransformation range $_modTransforms>>
     <<set $_config to maplebirch.char.transformation.config.get($_modTransformation)>>
     <<set $_parts to Object.keys($transformationParts[$_modTransformation] || {}).filter(part => $transformationParts[$_modTransformation][part] !== 'disabled')>>
-    <div class='settingsToggleItemWide'>
+    <div class='settingsToggleItem'>
       <<if $_config.icon>><<= $_config.icon>><</if>>
       <span class='gold bold'><<lanSwitch 'Mods: ' '模组：'>><<= maplebirch.t($_modTransformation).convert('title')>></span>
       <<for $_partName range $_parts>><<maplebirchTransformationPartSelect $_modTransformation $_partName>><</for>>
     </div>
   <</for>>
+  <<maplebirchChimeraMirror>>
 <</widget>>
 
 <<widget 'maplebirchChimeraMirror'>>
-  <<set $_chimeraOptions to _args[0]>>
+  <<set $_chimeraOptions to maplebirch.char.transformation.chimeraOptions>>
+  <<if Object.values($_chimeraOptions).some(Boolean)>>
+  <div class='settingsToggleItemWide'>
+    <span class='gold bold'><<lanSwitch 'Mods: Chimera' '模组：融合形态'>></span>
   <<for $_chimera range maplebirch.char.transformation.chimeras>>
     <<if $_chimeraOptions[$_chimera.name + '_' + $_chimera.part]>>
       <div class='tf-part-item'>
@@ -27,6 +31,8 @@
       </div>
     <</if>>
   <</for>>
+  </div>
+  <</if>>
 <</widget>>
 
 <<widget 'maplebirchTransformationPartSelect'>>

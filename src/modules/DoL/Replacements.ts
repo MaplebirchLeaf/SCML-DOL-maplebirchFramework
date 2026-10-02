@@ -137,11 +137,9 @@ const widgetPassage = {
     { src: '<br>\n<</widget>>', applybefore: '<br><hr>\n\t<<maplebirchJournal>>\n' },
   ],
   'Widgets Mirror': [
-    { srcmatch: /<<\/if>>(?:\r?\n\t\t|\r?\n\t\r?\n\t)<<if !\[/, to: '<</if>>\n\t\t<<maplebirchTransformationMirror>>\n\t\t<<if ![' },
+    { srcmatch: /(<<widget ["']mirrorTransformation["']>>(?:(?!<<\/widget>>)[\s\S])*?)(<div class="settingsToggleItemWide no-numberify">)/, to: '$1\n\t<<maplebirchTransformationMirror>>\n$2', expected: 1 },
     { srcmatch: /!\[[^\]]+\]\.every\(\s*transform\s*=>\s*T\[transform\]\.(horns|tail|wings|ears)\s+is\s+"disabled"\s*\)/g, to: "maplebirch.char.transformation.part('$1')" },
     { src: '<<tficon $_icon>>', to: '<<= maplebirch.char.transformation.icon>>' },
-    { src: '<<set $_chimeraEnabled to Object.values($_chimeraOptions)', applybefore: '<<run Object.assign($_chimeraOptions, maplebirch.char.transformation.chimeraOptions)>>\n\t\t\t\t', expected: 1 },
-    { src: '<<if $_chimeraOptions.demoncat_tail>>', applybefore: '<<maplebirchChimeraMirror $_chimeraOptions>>\n\t\t\t\t\t', expected: 1 },
   ],
   'Transformation Widgets': [
     { src: '<<set $chimera = Object.keys(_defaultChimeraConfig).reduce(', applybefore: '<<run Object.assign(_defaultChimeraConfig, maplebirch.char.transformation.chimeraDefaults)>>\n\t', expected: 1 },

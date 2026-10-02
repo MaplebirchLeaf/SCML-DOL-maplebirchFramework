@@ -41,3 +41,18 @@ test('NPC gender option works with and without the vanilla debug guard', () => {
     expect(result.content).not.toContain('<<if $debug is 1>>');
   }
 });
+
+test('mirror extensions use the shared entry without vanilla chimera locals', () => {
+  const patches = widgetPassage['Widgets Mirror'];
+  expect(patches).toHaveLength(3);
+  for (const spacing of ['\n\t\t', '\n\t\n\t']) {
+    let content = `<<widget "mirrorTransformation">><</if>>${spacing}<<if !["demon", "cow"].every(transform => T[transform].horns is "disabled")>><<tficon $_icon>><div class="settingsToggleItemWide no-numberify">Layers</div><</widget>>`;
+    for (const patch of patches) {
+      const result = applySourcePatch(content, patch);
+      expect(result.status).toBe('applied');
+      content = result.content;
+    }
+    expect(content).toContain('<<maplebirchTransformationMirror>>');
+    expect(content).not.toContain('$_chimeraOptions');
+  }
+});

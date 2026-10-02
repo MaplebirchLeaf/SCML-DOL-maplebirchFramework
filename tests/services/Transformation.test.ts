@@ -1,6 +1,7 @@
 import './runtime';
 import { expect, mock, test } from 'bun:test';
 import type Character from '../../src/modules/Character';
+import dol from '../../src/host/DoL';
 
 mock.module('../../src/core', () => ({ default: {} }));
 const { default: Transformation } = await import('../../src/modules/CharacterAddon/Transformation');
@@ -47,6 +48,23 @@ test('transformation layer factories wait for vanilla renderer initialization', 
     ).not.toThrow();
     expect(evaluated).toBe(0);
     expect(transformation.chimeras).toHaveLength(1);
+    const variablesDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'V');
+    Object.defineProperty(globalThis, 'V', { value: { transformationParts: {} }, configurable: true });
+    const originalParts = dol.variables.transformationParts;
+    try {
+      dol.variables.transformationParts = { raven: { wings: 'default' }, angel: { wings: 'default' } } as typeof originalParts;
+      expect(transformation.chimeraOptions.angelraven_wings).toBe(true);
+      for (const value of ['hidden', 'disabled']) {
+        dol.variables.transformationParts.angel.wings = value;
+        expect(transformation.chimeraOptions.angelraven_wings).toBe(false);
+      }
+      dol.variables.transformationParts = {} as typeof originalParts;
+      expect(transformation.chimeraOptions.angelraven_wings).toBe(false);
+    } finally {
+      dol.variables.transformationParts = originalParts;
+      if (variablesDescriptor) Object.defineProperty(globalThis, 'V', variablesDescriptor);
+      else Reflect.deleteProperty(globalThis, 'V');
+    }
     expect(translations.has('raven')).toBe(true);
     expect(calls).toEqual([
       ['pre', pre, 'main'],
