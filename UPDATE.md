@@ -1,3 +1,21 @@
+##### (v.5.2.3更新日志):
+
+- 云存档删除操作增加确认步骤，显示待删除槽位与存档日期，避免直接删除远端存档。
+- 取消删除会恢复原列表并将焦点返回删除按钮；确认后才执行原有远端删除流程。
+- 远端列表沿用原版存档布局：独立的 gold 名称、右侧单行描述和下方小号 teal 日期；删除确认保留完整摘要与存档、上传时间。
+- 移动端下载、删除按钮在存档行内竖直居中；删除确认使用独立按钮布局，避免原版固定左边距导致偏移与溢出。
+- Worker 将列表摘要保存在 R2 对象元数据中，列出槽位时无需下载完整存档，并补齐分页。更新 Worker 后重新上传旧槽位可补齐摘要。
+- 同步中英文文案、部署说明与云存档回归检查。
+
+**English**
+
+- Ask for confirmation before deleting a cloud save, showing the selected slot and save date.
+- Cancel restores the original list and returns focus to the Delete button. The existing remote deletion runs only after confirmation.
+- Follow the native save layout with a separate gold name, a single-line description and a small teal date below. Keep the full summary and both saved and uploaded dates in deletion confirmation.
+- Vertically center Download and Delete within each mobile save row and contain confirmation buttons in their own layout, avoiding the native fixed left margin and overflow.
+- Store listing summaries in R2 object metadata and handle pagination without downloading full saves. Redeploy the Worker and re-upload older slots to populate their summaries.
+- Update Chinese and English labels, deployment documentation and cloud save regression checks.
+
 ##### (v.5.2.2更新日志):
 
 - 修复动态名称特质的替换匹配，保留原版条目位置与其它模组的特质。隐藏特质的名称函数不再提前执行，避免尚未初始化的数据引发报错。
