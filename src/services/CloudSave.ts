@@ -32,6 +32,7 @@ interface CloudSaveCodeRecord {
 interface CloudSaveRemoteItem {
   slot: CloudSaveSlot;
   updatedAt: number;
+  details?: SaveDetails | null;
   payload?: CloudSaveRecord;
 }
 
@@ -147,7 +148,8 @@ export class CloudSave {
 
     return {
       slot,
-      updatedAt: item.updatedAt
+      updatedAt: item.updatedAt,
+      details: item.payload?.details
     };
   }
 
@@ -174,6 +176,7 @@ export class CloudSave {
       if (!this.tools.isPlainObject(value)) this.invalidResponse();
       const item = value as Partial<CloudSaveRemoteItem>;
       if (!this.isSlot(item.slot) || !this.tools.isFinite(item.updatedAt)) this.invalidResponse();
+      if (item.details != null && !this.tools.isPlainObject(item.details)) this.invalidResponse();
     }
     return response as CloudSaveRemoteItem[];
   }
@@ -384,7 +387,14 @@ export class CloudSave {
       list.textContent = this.translate('cloud.save.none');
       return;
     }
-    list.replaceChildren(...items.map(item => this.remoteRow(item)));
+    const header = document.createElement('div');
+    header.className = 'maplebirch-cloud-save-row maplebirch-cloud-save-heading';
+    for (const label of ['#', this.translate('cloud.save.action.download'), this.translate('cloud.save.column.name'), this.translate('cloud.save.column.description'), '']) {
+      const column = document.createElement('span');
+      column.textContent = label;
+      header.append(column);
+    }
+    list.replaceChildren(header, ...items.map(item => this.remoteRow(item)));
   }
 
   private remoteRow(item: CloudSaveRemoteItem): HTMLElement {
@@ -392,9 +402,15 @@ export class CloudSave {
     row.className = 'maplebirch-cloud-save-row';
 
     const slot = document.createElement('span');
-    slot.textContent = String(item.slot);
-    const updated = document.createElement('span');
-    updated.textContent = new Date(item.updatedAt).toLocaleString();
+    slot.textContent = item.slot === 0 ? 'A' : String(item.slot);
+    const name = document.createElement('span');
+    name.className = 'maplebirch-cloud-save-name gold';
+    const metadata = (item.details ?? item.payload?.details)?.metadata;
+    const saveName = typeof metadata?.saveName === 'string' ? metadata.saveName.trim() : '';
+    const saveId = typeof metadata?.saveId === 'string' || typeof metadata?.saveId === 'number' ? String(metadata.saveId) : '';
+    name.textContent = saveName || saveId;
+    name.title = name.textContent;
+    const details = this.remoteDetails(item, true);
     const download = document.createElement('button');
     download.type = 'button';
     download.className = 'saveMenuButton';
@@ -404,9 +420,84 @@ export class CloudSave {
     remove.type = 'button';
     remove.className = 'deleteButton right saveMenuButton';
     remove.textContent = this.translate('cloud.save.action.delete');
-    remove.addEventListener('click', () => void this.panelAction('deleteRemoteSlot', item.slot));
-    row.append(slot, updated, download, remove);
+    remove.addEventListener('click', () => this.confirmRemoteDelete(item, remove));
+    row.append(slot, download, name, details, remove);
     return row;
+  }
+
+  private remoteDetails(item: CloudSaveRemoteItem, compact = false): HTMLElement {
+    const details = item.details ?? item.payload?.details;
+    const name = typeof details?.metadata?.saveName === 'string' ? details.metadata.saveName.trim() : '';
+    const description = typeof details?.title === 'string' ? details.title.trim() : '';
+    const summary = document.createElement('div');
+    summary.className = 'maplebirch-cloud-save-details';
+    if (!compact && name) {
+      const title = document.createElement('strong');
+      title.className = 'gold';
+      title.textContent = name;
+      summary.append(title);
+    }
+    if (compact || !name || description !== name) {
+      const text = document.createElement('span');
+      text.textContent = description || this.translate('cloud.save.description.none');
+      text.title = text.textContent;
+      summary.append(text);
+    }
+    const savedAt = typeof details?.date === 'number' && Number.isFinite(details.date) ? details.date : undefined;
+    const uploadedAt = new Date(item.updatedAt).toLocaleString();
+    if (compact) {
+      const date = document.createElement('small');
+      date.className = 'teal';
+      date.textContent = new Date(savedAt ?? item.updatedAt).toLocaleString();
+      date.title =
+        savedAt === undefined
+          ? `${this.translate('cloud.save.date.uploaded')} ${uploadedAt}`
+          : `${this.translate('cloud.save.date.saved')} ${date.textContent}\n${this.translate('cloud.save.date.uploaded')} ${uploadedAt}`;
+      summary.append(date);
+      return summary;
+    }
+    if (savedAt !== undefined) {
+      const saved = document.createElement('small');
+      saved.className = 'teal';
+      saved.textContent = `${this.translate('cloud.save.date.saved')} ${new Date(savedAt).toLocaleString()}`;
+      summary.append(saved);
+    }
+    const uploaded = document.createElement('small');
+    uploaded.className = 'teal';
+    uploaded.textContent = `${this.translate('cloud.save.date.uploaded')} ${uploadedAt}`;
+    summary.append(uploaded);
+    return summary;
+  }
+
+  private confirmRemoteDelete(item: CloudSaveRemoteItem, trigger: HTMLButtonElement): void {
+    const list = this.panel?.querySelector<HTMLElement>('[data-cloud-save-list]');
+    if (!list || this.busy) return;
+    const rows = Array.from(list.childNodes);
+    const warning = document.createElement('div');
+    warning.className = 'saveBorder maplebirch-cloud-save-confirm';
+    const title = document.createElement('h3');
+    title.className = 'red';
+    title.textContent = this.translate('cloud.save.confirm.delete').replace('{slot}', item.slot === 0 ? this.translate('cloud.save.slot.autosave') : String(item.slot));
+    const details = this.remoteDetails(item);
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'deleteButton saveMenuButton';
+    remove.textContent = this.translate('cloud.save.action.delete');
+    remove.addEventListener('click', () => void this.panelAction('deleteRemoteSlot', item.slot));
+    const cancel = document.createElement('button');
+    cancel.type = 'button';
+    cancel.className = 'saveMenuButton';
+    cancel.textContent = this.translate('cloud.save.action.cancel');
+    cancel.addEventListener('click', () => {
+      list.replaceChildren(...rows);
+      trigger.focus();
+    });
+    const actions = document.createElement('div');
+    actions.className = 'maplebirch-cloud-save-actions';
+    actions.append(remove, cancel);
+    warning.append(title, details, actions);
+    list.replaceChildren(warning);
+    cancel.focus();
   }
 
   private readPanel(panel: HTMLElement): CloudSaveConfig {

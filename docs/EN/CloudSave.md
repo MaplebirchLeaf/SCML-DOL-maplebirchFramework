@@ -62,6 +62,14 @@ All endpoints except `/health` require the `Authorization: Bearer <MAPLEBIRCH_TO
    - **Slots**: pick a local slot and upload; download / delete remote slots (slot 0 is Autosave, 1–200 are manual slots; automatically detects existing local saves and selects the most recent save by default)
    - **Export code**: generate an export code for the current save or a chosen slot and upload it; or download the cloud code and import it by pasting
 
+## Save descriptions and Worker updates
+
+The remote list follows the native save layout: a separate gold name, a single-line description with overflow truncated, and a small teal date below. Names come from `details.metadata.saveName`, with `saveId` used for unnamed saves; descriptions come from `details.title`. The date shows the saved time when available, otherwise the upload time. Hover over it to see its source and upload time. Deletion confirmation shows the full summary and both dates. Older records without descriptions can still be downloaded and deleted.
+
+Redeploy the supplied `cloudflare/worker.ts` to enable this feature. The Worker writes names, descriptions and saved times into R2 object `customMetadata`. The `/saves` list reads these summaries without downloading full game states and handles pagination. See the [R2 Workers API](https://developers.cloudflare.com/r2/api/workers/workers-api-reference/).
+
+After updating the Worker, upload each existing cloud save again from its original local slot to populate its summary. If the local copy is missing, download the old cloud save first, then upload it again. No new bucket or access token is required.
+
 ## Notes
 
 - Deleting a remote slot **cannot be undone**.

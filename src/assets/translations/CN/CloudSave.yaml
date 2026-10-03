@@ -4,6 +4,13 @@
 'cloud.save.action.upload': 上传
 'cloud.save.action.download': 下载
 'cloud.save.action.delete': 删除
+'cloud.save.action.cancel': 取消
+'cloud.save.confirm.delete': '删除存档槽：{slot}？'
+'cloud.save.date.saved': '存档时间：'
+'cloud.save.date.uploaded': '上传时间：'
+'cloud.save.description.none': 未提供存档描述
+'cloud.save.column.name': ID/名称
+'cloud.save.column.description': 描述
 'cloud.save.action.code.current': 获取存档码
 'cloud.save.action.code.export': 导出存档码
 'cloud.save.action.code.upload': 上传存档码

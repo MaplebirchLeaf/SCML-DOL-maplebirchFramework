@@ -4,6 +4,13 @@
 'cloud.save.action.upload': Upload
 'cloud.save.action.download': Download
 'cloud.save.action.delete': Delete
+'cloud.save.action.cancel': Cancel
+'cloud.save.confirm.delete': 'Delete save slot: {slot}?'
+'cloud.save.date.saved': 'Saved:'
+'cloud.save.date.uploaded': 'Uploaded:'
+'cloud.save.description.none': No save description
+'cloud.save.column.name': ID/Name
+'cloud.save.column.description': Description
 'cloud.save.action.code.current': Get Save Code
 'cloud.save.action.code.export': Export Save Code
 'cloud.save.action.code.upload': Upload Code

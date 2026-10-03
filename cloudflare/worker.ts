@@ -82,21 +82,39 @@ async function readJson(request: Request): Promise<unknown> {
 }
 
 async function listSaves(env: Env): Promise<Response> {
-  const result = await env.SAVE_BUCKET.list({
-    prefix: 'slots/'
-  });
-
-  const saves: Array<{ slot: number; updatedAt: number }> = [];
-  for (const object of result.objects) {
-    const match = /^slots\/(\d+)\.json$/.exec(object.key);
-    if (!match) continue;
-    const slot = Number(match[1]);
-    if (!Number.isInteger(slot) || slot < 0 || slot > MAX_SLOT) continue;
-    saves.push({ slot, updatedAt: object.uploaded.getTime() });
-  }
+  const saves: Array<{ slot: number; updatedAt: number; details?: ReturnType<typeof saveDetails> }> = [];
+  let cursor: string | undefined;
+  do {
+    const result = await env.SAVE_BUCKET.list({ prefix: 'slots/', include: ['customMetadata'], cursor });
+    for (const object of result.objects) {
+      const match = /^slots\/(\d+)\.json$/.exec(object.key);
+      if (!match) continue;
+      const slot = Number(match[1]);
+      if (!Number.isInteger(slot) || slot < 0 || slot > MAX_SLOT) continue;
+      const metadata = object.customMetadata;
+      const details = metadata
+        ? saveDetails({ title: metadata.saveTitle, date: metadata.saveDate?.trim() ? Number(metadata.saveDate) : undefined, metadata: { saveName: metadata.saveName, saveId: metadata.saveId } })
+        : undefined;
+      saves.push({ slot, updatedAt: object.uploaded.getTime(), details });
+    }
+    cursor = result.truncated ? result.cursor : undefined;
+  } while (cursor);
   saves.sort((a, b) => a.slot - b.slot);
 
   return json(saves);
+}
+
+function saveDetails(value: unknown): { title?: string; date?: number; metadata?: { saveName?: string; saveId?: string } } {
+  if (!isObject(value)) return {};
+  const details: { title?: string; date?: number; metadata?: { saveName?: string; saveId?: string } } = {};
+  if (typeof value.title === 'string') details.title = value.title.slice(0, 256);
+  if (typeof value.date === 'number' && Number.isFinite(value.date)) details.date = value.date;
+  if (isObject(value.metadata)) {
+    if (typeof value.metadata.saveName === 'string') details.metadata = { saveName: value.metadata.saveName.slice(0, 256) };
+    const saveId = value.metadata.saveId;
+    if (typeof saveId === 'string' || (typeof saveId === 'number' && Number.isFinite(saveId))) details.metadata = { ...details.metadata, saveId: String(saveId).slice(0, 64) };
+  }
+  return details;
 }
 
 async function getStored(bucket: R2Bucket, key: string, notFound: string): Promise<Response> {
@@ -121,10 +139,19 @@ async function putSave(request: Request, env: Env, slot: number): Promise<Respon
     updatedAt: Number(input.updatedAt) || Date.now(),
     payload
   };
-  await env.SAVE_BUCKET.put(`slots/${slot}.json`, JSON.stringify(item));
+  const details = saveDetails(payload.details);
+  await env.SAVE_BUCKET.put(`slots/${slot}.json`, JSON.stringify(item), {
+    customMetadata: {
+      saveTitle: details.title ?? '',
+      saveName: details.metadata?.saveName ?? '',
+      ...(details.metadata?.saveId === undefined ? {} : { saveId: details.metadata.saveId }),
+      ...(details.date === undefined ? {} : { saveDate: String(details.date) })
+    }
+  });
   return json({
     slot,
-    updatedAt: item.updatedAt
+    updatedAt: item.updatedAt,
+    details
   });
 }
 

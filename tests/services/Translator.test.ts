@@ -185,7 +185,7 @@ test('bundled CN and EN sections have matching unique keys', () => {
     keys.set(language, [...seen].sort());
   }
   expect(keys.get('CN')).toEqual(keys.get('EN'));
-  expect(keys.get('CN')).toHaveLength(170);
+  expect(keys.get('CN')).toHaveLength(177);
 });
 
 async function importFile(manager: InstanceType<typeof Translator>, modName: string) {

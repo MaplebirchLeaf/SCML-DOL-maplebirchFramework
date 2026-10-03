@@ -301,24 +301,81 @@ button.saveMenuButton.saves-clear {
   margin-top: 0.5rem;
 }
 
-.maplebirch-cloud-save-row {
+#maplebirch-cloud-save .maplebirch-cloud-save-row {
   display: grid;
-  grid-template-columns: 2rem minmax(0, 1fr) max-content max-content;
+  grid-template-columns: 2rem 4em 5em minmax(0, 1fr) 4em;
   align-items: center;
   justify-content: stretch;
   border-top: 1px solid var(--600);
   padding-top: 0.35rem;
 }
 
-.maplebirch-cloud-save-row > span {
+#maplebirch-cloud-save .maplebirch-cloud-save-row > span {
   display: flex;
   align-items: center;
   min-height: 2.4rem;
 }
 
-.maplebirch-cloud-save-row span:first-child {
+#maplebirch-cloud-save .maplebirch-cloud-save-row > span:first-child {
   min-width: 2rem;
+  justify-content: center;
+}
+
+#maplebirch-cloud-save .maplebirch-cloud-save-row > .maplebirch-cloud-save-name {
+  display: block;
+  min-height: 0;
   color: var(--gold);
+  text-align: center;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  min-width: 0;
+  padding-inline: 0.5rem;
+}
+
+#maplebirch-cloud-save .maplebirch-cloud-save-heading > span {
+  justify-content: center;
+}
+
+#maplebirch-cloud-save .maplebirch-cloud-save-heading > span:nth-child(4) {
+  justify-content: flex-start;
+  padding-inline: 0.5rem;
+}
+
+#maplebirch-cloud-save .maplebirch-cloud-save-row .maplebirch-cloud-save-details > span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+#maplebirch-cloud-save .maplebirch-cloud-save-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0.35rem 0.5rem;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+#maplebirch-cloud-save .maplebirch-cloud-save-details small {
+  color: var(--teal);
+  font-size: 0.8em;
+}
+
+#maplebirch-cloud-save .maplebirch-cloud-save-confirm > .maplebirch-cloud-save-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: min(100%, 18rem);
+  gap: 0.5rem;
+  margin: 0.75rem auto 0;
+}
+
+#maplebirch-cloud-save .maplebirch-cloud-save-confirm .saveMenuButton {
+  float: none;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  text-align: center;
 }
 
 .maplebirch-cloud-save-transfer .saveMenuButton,
@@ -423,9 +480,43 @@ button.saveMenuButton.saves-clear {
     white-space: nowrap;
   }
 
-  .maplebirch-cloud-save-row .saveMenuButton {
+  #maplebirch-cloud-save .maplebirch-cloud-save-row {
+    grid-template-columns: 2rem 4em minmax(0, 1fr) 4em;
+  }
+
+  #maplebirch-cloud-save .maplebirch-cloud-save-row > span:first-child {
+    grid-column: 1;
+    grid-row: 1 / 3;
+  }
+
+  #maplebirch-cloud-save .maplebirch-cloud-save-row .maplebirch-cloud-save-details {
+    grid-column: 3;
+    grid-row: 2;
+  }
+
+  #maplebirch-cloud-save .maplebirch-cloud-save-row .maplebirch-cloud-save-name {
+    grid-column: 3;
+    grid-row: 1;
+    text-align: left;
+  }
+
+  #maplebirch-cloud-save .maplebirch-cloud-save-heading {
+    display: none;
+  }
+
+  #maplebirch-cloud-save .maplebirch-cloud-save-row .saveMenuButton {
     width: auto;
     white-space: nowrap;
+    align-self: center;
+    grid-row: 1 / 3;
+  }
+
+  #maplebirch-cloud-save .maplebirch-cloud-save-row .saveMenuButton:first-of-type {
+    grid-column: 2;
+  }
+
+  #maplebirch-cloud-save .maplebirch-cloud-save-row .deleteButton {
+    grid-column: 4;
   }
 
   .maplebirch-cloud-save-code .maplebirch-cloud-save-actions {
