@@ -6,6 +6,50 @@ import dol from '../../src/host/DoL';
 mock.module('../../src/core', () => ({ default: {} }));
 const { default: Transformation } = await import('../../src/modules/CharacterAddon/Transformation');
 
+test('DoLP ritual growth registers native build updaters and compatibility conditions', () => {
+  const saved = [
+    [globalThis, 'StartConfig'],
+    [globalThis, 'V'],
+    [Object, 'cover'],
+    [Math, 'clamp']
+  ].map(([target, key]) => ({ target: target as object, key: key as string, descriptor: Object.getOwnPropertyDescriptor(target, key as string) }));
+  const ready: (() => void)[] = [];
+  const variables = {
+    bunnybuild: 0,
+    bearbuild: 0,
+    waterdragonbuild: 0,
+    featsBoosts: { upgrades: { adaptiveGenes: 0 } },
+    worn: { neck: { name: 'familiar collar', cursed: 1 } }
+  };
+  try {
+    Object.defineProperty(globalThis, 'StartConfig', { value: { version: '0.5.12.11 DoLP v0.778' }, configurable: true });
+    Object.defineProperty(globalThis, 'V', { value: variables, configurable: true });
+    Object.defineProperty(Object, 'cover', { value: (...sources: object[]) => Object.assign({}, ...sources), configurable: true });
+    Object.defineProperty(Math, 'clamp', { value: (value: number, min: number, max: number) => Math.min(max, Math.max(min, value)), configurable: true });
+    const manager = { core: { once: (_event: string, callback: () => void) => ready.push(callback), tool: { define() {}, defineS() {} } } } as unknown as Character;
+    const transformation = new Transformation(manager);
+    for (const callback of ready) callback();
+    for (const name of ['bunny', 'bear', 'waterdragon'] as const) {
+      expect(typeof transformation.buildUpdaters[name]).toBe('function');
+      expect(transformation.decayConditions[name].length).toBeGreaterThan(0);
+      expect(transformation.suppressConditions[name].length).toBeGreaterThan(0);
+      transformation._transform(name, 1);
+      expect(variables[`${name}build`]).toBe(1);
+      transformation._transform(name, -1);
+      expect(variables[`${name}build`]).toBe(0);
+    }
+    variables.featsBoosts.upgrades.adaptiveGenes = 5;
+    transformation._transform('waterdragon', 5);
+    expect(variables.waterdragonbuild).toBe(5.5);
+    expect(typeof transformation.buildUpdaters.wolf).toBe('function');
+  } finally {
+    for (const { target, key, descriptor } of saved) {
+      if (descriptor) Object.defineProperty(target, key, descriptor);
+      else Reflect.deleteProperty(target, key);
+    }
+  }
+});
+
 test('transformation layer factories wait for vanilla renderer initialization', () => {
   const descriptor = Object.getOwnPropertyDescriptor(window, 'Renderer');
   const init: (() => void)[] = [];

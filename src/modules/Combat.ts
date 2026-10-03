@@ -51,6 +51,11 @@ class Combat {
       const actionType = this.args[1] as ActionType;
       const combatType = (this.args[2] || '') as CombatType;
       const controls = dol.variables.options.combatControls;
+      const separateAction =
+        combatType === 'Struggle' &&
+        ['radio', 'columnRadio'].includes(controls) &&
+        ['leftaction', 'rightaction'].includes(actionType) &&
+        !Object.values(optionsTable).includes(dol.variables[actionType]);
       const frag = document.createDocumentFragment();
       const el = (val: string) => document.createElement(val);
 
@@ -65,7 +70,7 @@ class Combat {
       if (rememberedDefault != null && optionValues.includes(rememberedDefault)) {
         dol.variables[actionType] = rememberedDefault;
         dol.variables[`${actionType}default`] = rememberedDefault;
-      } else if (optionValues.length > 0 && !optionValues.includes(dol.variables[actionType])) {
+      } else if (!separateAction && optionValues.length > 0 && !optionValues.includes(dol.variables[actionType])) {
         const defaultActionType = `${actionType}default`;
         const nextAction = optionValues.includes(dol.variables[defaultActionType]) ? dol.variables[defaultActionType] : optionValues[0];
         dol.variables[actionType] = nextAction;

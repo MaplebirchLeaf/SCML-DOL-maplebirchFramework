@@ -62,6 +62,8 @@ New code should prefer `maplebirch.dynamic.regTimeEvent()`.
 
 `onBefore` runs before vanilla time advancement and only provides `prevDate`, `prev`, `passed`, and `timeStamp`. `onThread` runs after advancement but before unit events. `onAfter` runs after unit events. Normal post-advance callbacks may read `prevDate`, `currentDate`, `changes`, `diffSeconds`, and `exactPoints`.
 
+An `onBefore` callback may change `data.passed` to adjust the number of seconds advanced. Callbacks share this data in priority order, and the framework reads the final value after all callbacks finish. Zero is valid; negative, nonnumeric, or nonfinite values retain the original duration. Vanilla schedules, weather settlement, and subsequent time events all use the accepted duration. This adjustment applies to normal advancement, not time travel.
+
 A pass spanning multiple hours or days supplies data for that pass, rather than automatically invoking the callback once per unit. Use `changes` or `triggeredByAccumulator.count` for bulk settlement. `exact: true` checks whether a unit boundary was crossed. It does not guarantee that the final time is on the hour or at midnight.
 
 One-shot registrations and accumulation counters belong to runtime event objects and are not saved. Store persistent counters in mod variables.

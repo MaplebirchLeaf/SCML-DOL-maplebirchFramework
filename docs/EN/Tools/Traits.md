@@ -33,7 +33,7 @@ maplebirch.tool.patch.traits.add({
 
 ## Known Categories
 
-`replace` matches names before rendering and keeps the original position. Strings match exactly, while regular expressions can match both English and Chinese native names. If absent or unmatched, registration retains the existing same-name replacement and append behavior. This field is available through script registration:
+`replace` matches names before rendering and keeps the original position. Strings match exactly, while regular expressions can match both English and Chinese native names. If absent or unmatched, registration retains the existing same-name replacement and append behavior. If an existing trait has a function as its name, matching reads its return value only while the trait is active. Hidden name functions are left unevaluated. This field is available through script registration:
 
 ```javascript
 maplebirch.tool.patch.traits.add({

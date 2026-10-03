@@ -301,6 +301,8 @@ maplebirch.dynamic.regTimeEvent('onHour', 'myMod:specialConditionEvent', {
 
 `onBefore` 在原版时间推进前执行，只提供 `prevDate`、`prev`、`passed`、`timeStamp`。`onThread` 在时间推进后、单位事件之前执行，`onAfter` 在单位事件之后执行。其他正常推进回调可读取 `prevDate`、`currentDate`、`changes`、`diffSeconds`、`exactPoints`。
 
+`onBefore` 可通过修改 `data.passed` 调整本次推进的秒数。回调按优先级共享这份数据，框架在全部回调结束后采用最终值；零秒有效，负数、非数值和非有限值会保留原始耗时。原版日程、天气结算和后续时间事件均使用最终采用的秒数。此调整只作用于正常时间推进，不作用于时间旅行。
+
 一次推进跨越多个小时或多天时，事件收到这次推进的数据，不会自动为每个单位重复调用。批量结算应使用 `changes` 或 `triggeredByAccumulator.count`。`exact: true` 检查是否跨过单位边界，不保证最终停在整点或午夜。不要将它当成精确预约机制。
 
 `once` 与累积计数属于当前运行的事件对象，不写入存档。持久计数需自行保存在模组变量中。

@@ -9,7 +9,7 @@ export interface TraitCategory {
 }
 
 interface Trait {
-  name: string;
+  name: string | (() => string);
   colour: string;
   has: boolean;
   text: string;
@@ -81,7 +81,11 @@ class Traits {
       if (categoryIndex !== undefined) {
         const entries = result[categoryIndex].traits;
         const name = rawTrait.replace ?? trait.name;
-        const index = entries.findIndex(existing => existing.name === trait.name || (typeof name === 'string' ? existing.name === name : existing.name.search(name) !== -1));
+        const index = entries.findIndex(existing => {
+          if (typeof existing.name === 'function' && !existing.has) return false;
+          const Name = typeof existing.name === 'function' ? existing.name() : existing.name;
+          return Name === trait.name || (typeof name === 'string' ? Name === name : Name.search(name) !== -1);
+        });
         if (index < 0) entries.push(item);
         else entries[index] = item;
         continue;

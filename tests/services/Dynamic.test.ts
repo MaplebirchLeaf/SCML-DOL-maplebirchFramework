@@ -1,14 +1,253 @@
 import './runtime';
 import { expect, mock, test } from 'bun:test';
 import type DoLDynamic from '../../src/modules/DoL/Dynamic';
+import type { TimeData } from '../../src/modules/TimeStateWeather/TimeEvents';
 
 mock.module('../../src/core', () => ({ default: {} }));
 
-const [{ default: Emitter }, { TimeManager }, { WeatherManager }] = await Promise.all([
+const [{ default: Emitter }, { TimeManager }, { WeatherManager }, { vanillaTime }] = await Promise.all([
   import('../../src/infra/Emitter'),
   import('../../src/modules/TimeStateWeather/TimeEvents'),
-  import('../../src/modules/TimeStateWeather/WeatherEvents')
+  import('../../src/modules/TimeStateWeather/WeatherEvents'),
+  import('../../src/modules/TimeStateWeather/Time')
 ]);
+
+class PassingDateTime {
+  public timeStamp: number;
+
+  public constructor(value: number | PassingDateTime) {
+    this.timeStamp = typeof value === 'number' ? value : value.timeStamp;
+  }
+
+  private get calendar(): Date {
+    return new Date(Date.UTC(2026, 11, 31) + this.timeStamp * 1000);
+  }
+
+  public get year(): number {
+    return this.calendar.getUTCFullYear();
+  }
+
+  public get month(): number {
+    return this.calendar.getUTCMonth() + 1;
+  }
+
+  public get day(): number {
+    return this.calendar.getUTCDate();
+  }
+
+  public get hour(): number {
+    return this.calendar.getUTCHours();
+  }
+
+  public get minute(): number {
+    return this.calendar.getUTCMinutes();
+  }
+
+  public get weekDay(): number {
+    return this.calendar.getUTCDay() + 1;
+  }
+
+  public addSeconds(seconds: number): this {
+    this.timeStamp += seconds;
+    return this;
+  }
+
+  public compareWith(other: PassingDateTime): object {
+    return { seconds: other.timeStamp - this.timeStamp };
+  }
+
+  public static isLeapYear(year: number): boolean {
+    return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  }
+}
+
+function withTimePass(
+  action: (
+    time: InstanceType<typeof TimeManager>,
+    clock: { date: PassingDateTime; pass: (seconds: number) => unknown },
+    transport: { passed: number[]; nativeDates: number[]; dates: number[] },
+    changes: TimeData[]
+  ) => void
+): void {
+  const originals = new Map(['V', 'Time'].map(name => [name, Object.getOwnPropertyDescriptor(globalThis, name)]));
+  const originalDateTime = Object.getOwnPropertyDescriptor(window, 'DateTime');
+  const originalHandlers = new Map((['set', 'pass', 'setDate'] as const).map(name => [name, Object.getOwnPropertyDescriptor(vanillaTime, name)]));
+  const transport = { passed: [] as number[], nativeDates: [] as number[], dates: [] as number[] };
+  const changes: TimeData[] = [];
+  const clock = {
+    date: new PassingDateTime(86390),
+    pass(_seconds: number): unknown {
+      return undefined;
+    },
+    setDate(date: PassingDateTime) {
+      transport.dates.push(date.timeStamp);
+      this.date = new PassingDateTime(date);
+      V.timeStamp = date.timeStamp;
+    }
+  };
+  Object.defineProperty(globalThis, 'V', { value: { timeStamp: clock.date.timeStamp }, configurable: true });
+  Object.defineProperty(globalThis, 'Time', { value: clock, configurable: true });
+  Object.defineProperty(window, 'DateTime', { value: PassingDateTime, configurable: true });
+  vanillaTime.setDate = date => {
+    transport.nativeDates.push(date.timeStamp);
+    clock.date = new PassingDateTime(date.timeStamp);
+  };
+  vanillaTime.pass = seconds => {
+    transport.passed.push(seconds);
+    clock.date.addSeconds(seconds);
+    V.timeStamp = clock.date.timeStamp;
+    return `vanilla:${seconds}`;
+  };
+  try {
+    const events = new Emitter();
+    events.on(':timeChange', (data: TimeData) => changes.push(data));
+    const time = new TimeManager({ log() {}, core: { trigger: events.trigger.bind(events) } } as unknown as DoLDynamic);
+    time.Init();
+    action(time, clock, transport, changes);
+  } finally {
+    for (const [name, descriptor] of originals) {
+      if (descriptor) Object.defineProperty(globalThis, name, descriptor);
+      else Reflect.deleteProperty(globalThis, name);
+    }
+    if (originalDateTime) Object.defineProperty(window, 'DateTime', originalDateTime);
+    else Reflect.deleteProperty(window, 'DateTime');
+    for (const [name, descriptor] of originalHandlers) {
+      if (descriptor) Object.defineProperty(vanillaTime, name, descriptor);
+      else Reflect.deleteProperty(vanillaTime, name);
+    }
+  }
+}
+
+test('onBefore shares elapsed seconds by priority and uses the result for transport, boundaries and accumulation', () => {
+  withTimePass((time, clock, transport, changes) => {
+    const before: number[] = [];
+    const thread: TimeData[] = [];
+    const after: TimeData[] = [];
+    const boundaries: string[] = [];
+    const accumulated: [number | undefined, number | undefined][] = [];
+    time.register('onBefore', 'double', {
+      priority: 1,
+      action: data => {
+        before.push(data.passed!);
+        data.passed! *= 2;
+      }
+    });
+    time.register('onBefore', 'add-once', {
+      priority: 2,
+      once: true,
+      action: data => {
+        before.push(data.passed!);
+        data.passed! += 50;
+      }
+    });
+    time.register('onThread', 'thread', {
+      action: data => {
+        thread.push(data);
+      }
+    });
+    time.register('onAfter', 'after', {
+      action: data => {
+        after.push(data);
+      }
+    });
+    for (const type of ['onYear', 'onMonth', 'onDay', 'onHour', 'onMin'] as const)
+      time.register(type, type, {
+        exact: true,
+        action: () => {
+          boundaries.push(type);
+        }
+      });
+    time.register('onWeek', 'two-minutes', {
+      accumulate: { unit: 'min', target: 2 },
+      action: data => {
+        accumulated.push([data.passed, data.triggeredByAccumulator?.count]);
+      }
+    });
+
+    expect(clock.pass(10)).toBe('vanilla:120');
+    expect(before).toEqual([10, 60]);
+    expect(time.events.onBefore.has('add-once')).toBe(false);
+    expect(transport).toEqual({ passed: [120], nativeDates: [86390], dates: [86510] });
+    expect(clock.date.timeStamp).toBe(86510);
+    expect(changes[0]).toMatchObject({
+      passed: 120,
+      diffSeconds: 120,
+      sec: 120,
+      direction: 'forward',
+      prevDate: { timeStamp: 86390 },
+      currentDate: { timeStamp: 86510 },
+      detailedDiff: { seconds: 120 },
+      changes: { sec: 120, min: 2, hour: 0, day: 0, week: 0, month: 1, year: 1 },
+      exactPoints: { min: true, hour: true, day: true, week: false, month: true, year: true }
+    });
+    expect(thread[0]).toBe(changes[0]);
+    expect(after[0]).toBe(changes[0]);
+    expect(boundaries).toEqual(['onYear', 'onMonth', 'onDay', 'onHour', 'onMin']);
+
+    clock.pass(10);
+    clock.pass(50);
+    expect(before).toEqual([10, 60, 10, 50]);
+    expect(transport).toEqual({ passed: [120, 20, 100], nativeDates: [86390, 86510, 86530], dates: [86510, 86530, 86630] });
+    expect(changes.map(data => [data.passed, data.diffSeconds, data.changes?.sec])).toEqual([
+      [120, 120, 120],
+      [20, 20, 20],
+      [100, 100, 100]
+    ]);
+    expect(thread).toEqual(changes);
+    expect(after).toEqual(changes);
+    expect(accumulated).toEqual([
+      [120, 1],
+      [100, 1]
+    ]);
+  });
+});
+
+test.each([
+  [0, 0],
+  [-1, 30],
+  [NaN, 30],
+  [undefined, 30],
+  [Infinity, 30],
+  ['60', 30]
+])('onBefore accepts zero and ignores invalid elapsed seconds: %p', (replacement, expected) => {
+  withTimePass((time, clock, transport, changes) => {
+    const stages: number[] = [];
+    time.register('onBefore', 'replace', {
+      action: data => {
+        data.passed = replacement as number;
+      }
+    });
+    time.register('onThread', 'thread', {
+      action: data => {
+        stages.push(data.passed!);
+      }
+    });
+    time.register('onAfter', 'after', {
+      action: data => {
+        stages.push(data.passed!);
+      }
+    });
+    clock.pass(30);
+    expect(transport).toEqual({ passed: [expected], nativeDates: [86390], dates: [86390 + expected] });
+    expect(changes).toHaveLength(1);
+    expect(changes[0]).toMatchObject({ passed: expected, diffSeconds: expected, changes: { sec: expected } });
+    expect(stages).toEqual([expected, expected]);
+    if (expected === 0) expect(Object.values(changes[0].exactPoints!)).toEqual([false, false, false, false, false, false]);
+  });
+});
+
+test.each([-1, NaN, Infinity, undefined, '30'])('invalid original elapsed seconds do not trigger listeners or transport: %p', input => {
+  withTimePass((time, clock, transport, changes) => {
+    const before = mock(() => {});
+    time.register('onBefore', 'before', { once: true, action: before });
+    expect(clock.pass(input as number)).toBeUndefined();
+    expect(before).not.toHaveBeenCalled();
+    expect(time.events.onBefore.has('before')).toBe(true);
+    expect(transport).toEqual({ passed: [], nativeDates: [], dates: [] });
+    expect(changes).toHaveLength(0);
+    expect(clock.date.timeStamp).toBe(86390);
+  });
+});
 
 test('time travel emits a time event and Weather refreshes itself before the call returns', () => {
   const originals = new Map(['V', 'Time', 'Weather', 'document', '$'].map(name => [name, Object.getOwnPropertyDescriptor(globalThis, name)]));

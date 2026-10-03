@@ -269,13 +269,15 @@ export class TimeManager {
     if (!pass || !setDate) return;
     if (!Number.isFinite(seconds) || seconds < 0) return;
     const prevDate = new window.DateTime(Time.date);
-    const targetDate = new window.DateTime(prevDate).addSeconds(seconds);
-    this.trigger('onBefore', {
+    const beforeData: TimeData = {
       passed: seconds,
       timeStamp: dol.variables.timeStamp,
       prev: prevDate,
       prevDate
-    });
+    };
+    this.trigger('onBefore', beforeData);
+    if (typeof beforeData.passed === 'number' && Number.isFinite(beforeData.passed) && beforeData.passed >= 0) seconds = beforeData.passed;
+    const targetDate = new window.DateTime(prevDate).addSeconds(seconds);
     let passResult: unknown;
     const useVanilla = prevDate.timeStamp >= TimeConstants.MIN_DATE.timeStamp && targetDate.timeStamp >= TimeConstants.MIN_DATE.timeStamp && targetDate.timeStamp <= TimeConstants.MAX_DATE.timeStamp;
     if (useVanilla) {

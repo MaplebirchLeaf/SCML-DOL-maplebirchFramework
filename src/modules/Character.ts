@@ -60,8 +60,8 @@ const maskCache = new Map<string, string>();
 function guarded(layers: CanvasLayerMap): CanvasLayerMap {
   return Object.fromEntries(
     Object.entries(layers).map(([name, layer]) => {
-      if (!layer.showfn) return [name, layer];
       const { showfn, srcfn, src } = layer;
+      if (!showfn || (srcfn ?? src) == null) return [name, layer];
       return [
         name,
         {

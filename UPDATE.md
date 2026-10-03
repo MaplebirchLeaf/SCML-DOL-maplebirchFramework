@@ -1,3 +1,23 @@
+##### (v.5.2.2更新日志):
+
+- 修复动态名称特质的替换匹配，保留原版条目位置与其它模组的特质。隐藏特质的名称函数不再提前执行，避免尚未初始化的数据引发报错。
+- 修复仅修改角色图层显示条件时覆盖原版图片来源函数的问题，保留原版路径计算、接收对象与副作用。
+- 修复 DoLP 转化增长处理器及衰退、抑制条件未合并到框架的问题，恢复兔、熊与水龙等转化的增长和衰退。
+- 修复触手挣扎战斗中单选按钮表覆盖独立手部动作的问题，保留拉扯等动作。完整列表和被模组移除的动作继续按有效选项恢复默认值。
+- 修复自定义 NPC 态度文本未使用的问题，社交卡片现在正确检查 NPC 注册表并调用对应文本宏。
+- 时间事件 `onBefore` 修改的 `data.passed` 现在会应用到本次时间推进。原版日程、天气结算与后续事件使用同一耗时，零秒有效，无效值保留原始耗时。
+- 补充角色图层、战斗动作、转化、特质和时间推进的回归检查，同步更新中英文接口文档。
+
+**English**
+
+- Fix replacement matching for traits with dynamic names while preserving native positions and other mods' traits. Hidden name functions are no longer evaluated before their data is ready.
+- Preserve the native image source function, receiver and side effects when a character layer registration changes only its visibility condition.
+- Fix merging of DoLP transformation growth handlers, decay conditions and suppression conditions, restoring growth and decay for rabbit, bear, water dragon and other supported transformations.
+- Preserve separately rendered hand actions, including pulling, in tentacle struggle radio controls. Complete lists and actions removed by mods still restore a valid default.
+- Fix custom NPC attitude text lookup so social cards check the NPC registry and call the registered text macro.
+- Apply changes to `data.passed` made by `onBefore` time events. Native schedules, weather settlement and subsequent events use the same duration. Zero is valid, while invalid values retain the original duration.
+- Add regression coverage for character layers, combat actions, transformations, traits and time advancement, and update the Chinese and English API documentation.
+
 ##### (v.5.2.1更新日志):
 
 - 转化镜子补丁从五处收束为三处，模组融合选项直接读取框架配置，移除对原版镜子临时变量和融合条件的依赖。

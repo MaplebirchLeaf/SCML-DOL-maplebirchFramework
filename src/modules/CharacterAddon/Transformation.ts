@@ -112,9 +112,9 @@ class Transformation {
   public constructor(private manager: Character) {
     manager.core.once(':storyready', () => {
       if (DoLPcompat.isDoLP) {
-        Object.cover(this.decayConditions, DoLPcompat.Transformations.DecayConditions);
-        Object.cover(this.suppressConditions, DoLPcompat.Transformations.SuppressConditions);
-        Object.cover(this.buildUpdaters, DoLPcompat.Transformations.BuildUpdaters);
+        Object.assign(this.decayConditions, DoLPcompat.Transformations.DecayConditions);
+        Object.assign(this.suppressConditions, DoLPcompat.Transformations.SuppressConditions);
+        Object.assign(this.buildUpdaters, DoLPcompat.Transformations.BuildUpdaters);
       }
     });
     manager.core.tool.define('transform', (name: string, change: number) => this._transform(name, change), null, null, false, 'storyready');
