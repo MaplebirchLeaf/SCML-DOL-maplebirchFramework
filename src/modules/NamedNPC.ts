@@ -546,7 +546,9 @@ export const NamedNPC = (core => {
   function convertNPCs(manager: NPCManager) {
     if (!Array.isArray(dol.variables.NPCName)) return;
     dol.variables.NPCName.forEach((npc, i) => {
-      if (!npc?.nam || npc instanceof NamedNPC) return;
+      if (!npc?.nam) return;
+      for (const [stat, config] of Object.entries(manager.customStats)) if (!Number.isFinite(npc[stat])) npc[stat] = config.default ?? 0;
+      if (npc instanceof NamedNPC) return;
       const newNpc = new NamedNPC(manager, npc);
       Object.keys(npc).forEach(key => {
         if (key !== 'nam' && !Object.prototype.hasOwnProperty.call(newNpc, key)) (newNpc as Record<string, any>)[key] = (npc as Record<string, any>)[key];
@@ -738,7 +740,7 @@ class NPCManager {
       return;
     }
     this.NamedNPC.apply(this, npc);
-    for (const [stat, config] of Object.entries(this.customStats)) npc[stat] ??= config.default ?? 0;
+    for (const [stat, config] of Object.entries(this.customStats)) if (!Number.isFinite(npc[stat])) npc[stat] = config.default ?? 0;
     void this.core.trigger(':npcInit', npcName);
   }
 

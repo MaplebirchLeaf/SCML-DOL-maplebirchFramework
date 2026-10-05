@@ -702,12 +702,15 @@ class NPCPetSlot extends FloatingPet {
 
   public constructor(private readonly slot: 'nnpc' | 'previous') {
     const second = slot === 'previous';
-    super(maplebirch.char, {
-      elementId: `maplebirch-npc-pet-${second ? 'second' : 'first'}`,
-      storageKey: `maplebirch.npc.pet.${second ? 'second' : 'first'}.position`,
-      className: 'maplebirch-npc-pet',
-      fallback: size => ({ left: 16, top: Math.max(0, window.innerHeight - size - (second ? size + 48 : 32)) })
-    });
+    super(
+      { mask: (x, rotation) => maplebirch.char.mask(x, rotation) },
+      {
+        elementId: `maplebirch-npc-pet-${second ? 'second' : 'first'}`,
+        storageKey: `maplebirch.npc.pet.${second ? 'second' : 'first'}.position`,
+        className: 'maplebirch-npc-pet',
+        fallback: size => ({ left: 16, top: Math.max(0, window.innerHeight - size - (second ? size + 48 : 32)) })
+      }
+    );
     this.model_name = `npc-pet-${slot}`;
   }
 
