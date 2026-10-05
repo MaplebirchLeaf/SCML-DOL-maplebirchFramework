@@ -14,14 +14,6 @@ export type TimeEventType = 'onSec' | 'onMin' | 'onHour' | 'onDay' | 'onWeek' | 
 
 type TimeUnit = 'sec' | 'min' | 'hour' | 'day' | 'week' | 'month' | 'year';
 
-const secondsPerUnit: Partial<Record<TimeUnit, number>> = {
-  sec: 1,
-  min: TimeConstants.secondsPerMinute,
-  hour: TimeConstants.secondsPerHour,
-  day: TimeConstants.secondsPerDay,
-  week: TimeConstants.secondsPerDay * 7
-};
-
 interface AccumulateConfig {
   unit: TimeUnit;
   target?: number;
@@ -119,7 +111,10 @@ class TimeEvent extends Event {
 
   private runAccumulated(data: TimeData): boolean {
     const accumulate = this.accumulate!;
-    const seconds = secondsPerUnit[accumulate.unit];
+    const constants = TimeManager.TimeConstants;
+    const seconds = ({ sec: 1, min: constants.secondsPerMinute, hour: constants.secondsPerHour, day: constants.secondsPerDay, week: constants.secondsPerDay * 7 } as Partial<Record<TimeUnit, number>>)[
+      accumulate.unit
+    ];
     const delta = seconds ? Math.abs(data.diffSeconds ?? (data.changes?.[accumulate.unit] ?? 0) * seconds) : (data.changes?.[accumulate.unit] ?? 0);
     if (!Number.isFinite(delta) || delta <= 0) return false;
     this.accumulated += delta;
@@ -178,10 +173,17 @@ export class TimeManager {
   private readonly timeEvents = Object.fromEntries(
     (['onSec', 'onMin', 'onHour', 'onDay', 'onWeek', 'onMonth', 'onYear', 'onBefore', 'onThread', 'onAfter', 'onTimeTravel'] as const).map(type => [type, new Catalog<string, TimeEvent>()])
   ) as Record<TimeEventType, Catalog<string, TimeEvent>>;
+  private time?: TimeAPI;
   private readonly travelHooks = new Hooks<[TimeData], void>();
 
   public readonly log: DoLDynamic['log'];
-  public readonly TimeConstants = TimeConstants;
+  public static get TimeConstants(): typeof TimeConstants {
+    return window.TimeConstants ?? TimeConstants;
+  }
+
+  public get TimeConstants(): typeof TimeConstants {
+    return TimeManager.TimeConstants;
+  }
 
   public constructor(private readonly manager: DoLDynamic) {
     this.log = (...args) => manager.log(...args);
@@ -192,11 +194,14 @@ export class TimeManager {
   }
 
   public Init(): void {
+    if (this.time === Time) return;
     try {
+      patchTime(Time);
       bindTimeHandlers(Time, {
         pass: (seconds: number) => this.handleTimePass(seconds),
         timeTravel: (date: DateTime) => this.handleTimeTravel(date)
       });
+      this.time = Time;
       this.log('时间事件系统已激活', 'DEBUG');
     } catch (error) {
       this.log(`初始化时间事件系统失败: ${Diagnostics.message(error)}`, 'ERROR');
@@ -265,8 +270,7 @@ export class TimeManager {
 
   private handleTimePass(seconds: number): unknown {
     const pass = vanillaTime.pass;
-    const setDate = vanillaTime.setDate;
-    if (!pass || !setDate) return;
+    if (!pass) return;
     if (!Number.isFinite(seconds) || seconds < 0) return;
     const prevDate = new window.DateTime(Time.date);
     const beforeData: TimeData = {
@@ -277,14 +281,7 @@ export class TimeManager {
     };
     this.trigger('onBefore', beforeData);
     if (typeof beforeData.passed === 'number' && Number.isFinite(beforeData.passed) && beforeData.passed >= 0) seconds = beforeData.passed;
-    const targetDate = new window.DateTime(prevDate).addSeconds(seconds);
-    let passResult: unknown;
-    const useVanilla = prevDate.timeStamp >= TimeConstants.MIN_DATE.timeStamp && targetDate.timeStamp >= TimeConstants.MIN_DATE.timeStamp && targetDate.timeStamp <= TimeConstants.MAX_DATE.timeStamp;
-    if (useVanilla) {
-      setDate(prevDate);
-      passResult = pass(seconds);
-    }
-    Time.setDate(targetDate);
+    const passResult = pass(seconds);
     const currentDate = new window.DateTime(Time.date);
     const eventData = this.timeData(prevDate, currentDate, seconds);
     void this.manager.core.trigger(':timeChange', eventData);
@@ -294,20 +291,25 @@ export class TimeManager {
     return passResult;
   }
 
-  private handleTimeTravel(targetDate: DateTime): void {
+  private handleTimeTravel(targetDate: DateTime): unknown {
     const prevDate = new window.DateTime(Time.date);
     const target = new window.DateTime(targetDate);
-    if (target.timeStamp < TimeConstants.MIN_DATE.timeStamp || target.timeStamp > TimeConstants.MAX_DATE.timeStamp) throw new Error(`Invalid time travel target: ${target.timeStamp}`);
-    Time.setDate(target);
+    if (target.timeStamp < this.TimeConstants.MIN_DATE.timeStamp || target.timeStamp > this.TimeConstants.MAX_DATE.timeStamp) throw new Error(`Invalid time travel target: ${target.timeStamp}`);
+    const weather = dol.variables.weatherObj;
+    const keypoints = weather && { keypointsArr: weather.keypointsArr, fogKeypoints: weather.fogKeypoints };
+    let result: unknown;
     let currentDate: DateTime;
     let elapsedSeconds: number;
     let eventData: TimeData;
     try {
+      if (vanillaTime.timeTravel) result = vanillaTime.timeTravel(target);
+      else Time.setDate(target);
       currentDate = new window.DateTime(Time.date);
       elapsedSeconds = currentDate.timeStamp - prevDate.timeStamp;
       eventData = this.timeData(prevDate, currentDate, elapsedSeconds);
       this.travelHooks.execute(eventData);
     } catch (error) {
+      if (keypoints) Object.assign(weather, keypoints);
       Time.setDate(prevDate);
       throw error;
     }
@@ -320,6 +322,7 @@ export class TimeManager {
       direction: elapsedSeconds >= 0 ? 'forward' : 'backward',
       isLeap: window.DateTime.isLeapYear(currentDate.year)
     });
+    return result;
   }
 
   private targetDate(options: TimeTravelOptions): DateTime {
@@ -355,13 +358,14 @@ export class TimeManager {
     const dayCrossed = prevDate.day !== currentDate.day || prevDate.month !== currentDate.month || prevDate.year !== currentDate.year;
     const monthCrossed = prevDate.month !== currentDate.month || prevDate.year !== currentDate.year;
     const yearCrossed = prevDate.year !== currentDate.year;
-    const weekCrossed = Math.floor(prevDate.timeStamp / TimeConstants.secondsPerDay) - prevDate.weekDay !== Math.floor(currentDate.timeStamp / TimeConstants.secondsPerDay) - currentDate.weekDay;
+    const weekCrossed =
+      Math.floor(prevDate.timeStamp / this.TimeConstants.secondsPerDay) - prevDate.weekDay !== Math.floor(currentDate.timeStamp / this.TimeConstants.secondsPerDay) - currentDate.weekDay;
     const changes: Record<TimeUnit, number> = {
       sec: absoluteSeconds,
-      min: Math.floor(absoluteSeconds / TimeConstants.secondsPerMinute),
-      hour: Math.floor(absoluteSeconds / TimeConstants.secondsPerHour),
-      day: Math.floor(absoluteSeconds / TimeConstants.secondsPerDay),
-      week: Math.floor(absoluteSeconds / (TimeConstants.secondsPerDay * 7)),
+      min: Math.floor(absoluteSeconds / this.TimeConstants.secondsPerMinute),
+      hour: Math.floor(absoluteSeconds / this.TimeConstants.secondsPerHour),
+      day: Math.floor(absoluteSeconds / this.TimeConstants.secondsPerDay),
+      week: Math.floor(absoluteSeconds / (this.TimeConstants.secondsPerDay * 7)),
       month: Math.abs((currentYear - prevYear) * 12 + currentDate.month - prevDate.month),
       year: Math.abs(currentYear - prevYear)
     };

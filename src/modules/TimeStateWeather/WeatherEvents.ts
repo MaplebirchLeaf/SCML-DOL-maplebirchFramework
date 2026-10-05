@@ -1,5 +1,6 @@
 // ./src/modules/TimeStateWeather/WeatherEvents.ts
 
+import { vanillaTime } from './Time';
 import { append, cover, merge } from '../../utils';
 import type AddonPlugin from '../../services/AddonPlugin';
 import type { Replacement } from '../../host/ModLoader';
@@ -144,7 +145,11 @@ export class WeatherManager {
     this.log = (...args) => manager.log(...args);
     $(document).on(':onWeatherChange', () => this.manager.core.trigger(':onWeather'));
     this.manager.core.on(':onWeather', () => this.checkEvents(), 'weather change');
-    this.manager.Time.onTravel('weather', () => this.refresh());
+    this.manager.Time.onTravel('weather', () => {
+      if (!vanillaTime.timeTravel) return this.refresh();
+      Weather.Observables.checkForUpdate();
+      void this.manager.core.trigger(':onWeather');
+    });
   }
 
   private refresh(): void {

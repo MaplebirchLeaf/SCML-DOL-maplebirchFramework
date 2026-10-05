@@ -9,8 +9,30 @@ import { _languageSwitch } from '../macros';
 import ImageLoader from '../modules/Frameworks/ImageLoader';
 import type { ActionType, ActionValue } from '../modules/CombatAddon/CombatAction';
 import type { NPCChildRecord, NPCPregnancyOrifice, NPCPregnancyRecord, NPCPregnancySpecies, NPCTryConceiveOptions } from '../modules/NamedNPCAddon/NPCPregnancy';
+import type { TimeConstants as FrameworkTimeConstants } from '../constants';
+import type { DolStateMoment, TwineSugarCube } from './twine-sugarcube';
 
 declare global {
+  interface DoLSaveDetails {
+    date?: number;
+    title?: string;
+    idx?: unknown;
+    metadata?: { saveName?: string; [key: string]: unknown };
+    [key: string]: unknown;
+  }
+
+  interface DoLSaveState {
+    history?: DolStateMoment[];
+    delta?: unknown;
+    [key: string]: unknown;
+  }
+
+  interface DoLSaveDatabase {
+    getItem(slot: number): Promise<{ data?: DoLSaveState } | null | undefined>;
+    getSaveDetails(): Promise<Array<{ slot: number; data?: DoLSaveDetails }> | null | undefined>;
+    setItem(slot: number, save: DoLSaveState, details?: DoLSaveDetails): Promise<boolean | void>;
+  }
+
   interface Window {
     modSC2DataManager: SC2DataManager;
     modGameOriginalImagePack: GameOriginalImagePack;
@@ -19,7 +41,16 @@ declare global {
     modUtils: ModUtils;
     addonBeautySelectorAddon: BeautySelectorAddon;
     readonly Time: typeof Time;
+    readonly TimeConstants?: typeof FrameworkTimeConstants;
     DateTime: typeof DateTime;
+    DoLSave?: {
+      isCompressionEnabled?(): boolean;
+      disableCompression?(): void;
+      enableCompression?(): void;
+    };
+    LZString?: { compressToBase64(value: string): string };
+    Config?: TwineSugarCube['Config'];
+    idb?: DoLSaveDatabase;
     onTakeClick(name: string, type?: string): void;
     onAutoTakeClick(name: string, type?: string): void;
     initPillContextButtons(item: { name: string; type: string }): void;
