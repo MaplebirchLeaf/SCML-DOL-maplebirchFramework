@@ -886,3 +886,439 @@ button.saveMenuButton.saves-clear {
     display: block;
   }
 }
+
+#maplebirch .gui-button-group {
+  display: inline-flex;
+  gap: 0;
+  vertical-align: middle;
+}
+
+#maplebirch .gui-button-group > .theme-button {
+  margin: 0;
+  border-radius: 0;
+}
+
+#maplebirch .gui-button-group > .theme-button + .theme-button {
+  border-left: 0;
+}
+
+#maplebirch .repair-dialog {
+  width: min(46rem, calc(100vw - 2rem));
+  height: min(34rem, calc(100vh - 2rem));
+  height: min(34rem, calc(100dvh - 2rem));
+  box-sizing: border-box;
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--700, #666);
+  background: var(--900, #171717);
+  color: inherit;
+  font-size: 1rem;
+  line-height: 1.4;
+  overflow: hidden;
+}
+
+#maplebirch .repair-dialog[open] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+}
+
+#maplebirch .repair-dialog::backdrop {
+  background: rgb(0 0 0 / 65%);
+}
+
+#maplebirch .repair-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em;
+  padding: 0.5em 0.75em;
+  border-bottom: 1px solid var(--700, #666);
+}
+
+#maplebirch .repair-dialog-header h2 {
+  margin: 0;
+  font-size: 1.1em;
+  line-height: 1.4;
+}
+
+#maplebirch .repair-dialog-nav {
+  display: flex;
+  border-bottom: 1px solid var(--700, #666);
+}
+
+#maplebirch .repair-dialog-nav button {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0.4em 0.5em;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+#maplebirch .repair-dialog-nav button + button {
+  border-left: 1px solid var(--800, #333);
+}
+
+#maplebirch .repair-dialog-nav .selected {
+  border-bottom-color: var(--blue, #4678ed);
+  background: var(--850, #252525);
+}
+
+#maplebirch .repair-dialog-nav button:hover {
+  background: var(--800, #333);
+  text-decoration: underline;
+}
+
+#maplebirch .repair-dialog-nav button:focus-visible,
+#maplebirch .repair-dialog .theme-button:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
+
+#maplebirch .repair-dialog-body {
+  grid-row: 3;
+  min-width: 0;
+  min-height: 0;
+  padding: 0.6em 0.75em;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+#maplebirch .repair-dialog p {
+  margin: 0 0 0.5em;
+  overflow-wrap: anywhere;
+}
+
+#maplebirch .repair-dialog .repair-help {
+  font-size: 0.85em;
+  opacity: 0.8;
+}
+
+#maplebirch .repair-dialog .theme-button {
+  margin: 0;
+  padding: 0.35em 0.7em;
+  border: 1px solid var(--700, #666);
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: 1.4;
+}
+
+#maplebirch .repair-dialog .theme-button:hover:not(:disabled) {
+  background: var(--800, #333);
+  text-decoration: underline;
+}
+
+#maplebirch .repair-dialog .theme-button:active:not(:disabled),
+#maplebirch .repair-dialog-nav button:active {
+  outline: 1px solid currentColor;
+  outline-offset: -1px;
+}
+
+/* 接口配置按标签和控件排列，手机端改为单列。 */
+#maplebirch .repair-api {
+  display: grid;
+  grid-template-columns: 7.5em minmax(0, 1fr);
+  align-content: start;
+  align-items: start;
+  gap: 0.65em 0.75em;
+}
+
+#maplebirch .repair-api > label {
+  margin: 0;
+  padding: 0.4em 0;
+  font-size: 0.9em;
+  line-height: 1.4;
+}
+
+#maplebirch .repair-api > input,
+#maplebirch .repair-api > select,
+#maplebirch .repair-model > input,
+#maplebirch .repair-model > select {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  min-height: 2.2em;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0.35em 0.5em;
+  border: 1px solid var(--650, #555);
+  border-radius: 0;
+  background: var(--950, #111);
+  color: inherit;
+  font: inherit;
+  line-height: 1.4;
+}
+
+#maplebirch .repair-model {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.35em;
+  min-width: 0;
+}
+
+#maplebirch .repair-model .theme-button {
+  padding: 0.35em 0.5em;
+  font-size: 0.85em;
+}
+
+#maplebirch .repair-api .repair-manual {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  margin: 0;
+  padding: 0;
+  font-size: 0.8em;
+}
+
+#maplebirch .repair-manual input {
+  width: auto;
+  margin: 0;
+}
+
+#maplebirch .repair-api > p {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+#maplebirch .repair-source-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5em 0.75em;
+  margin-top: 0.35em;
+}
+
+#maplebirch .repair-source-grid > div {
+  min-width: 0;
+}
+
+#maplebirch .repair-dialog .repair-config-status {
+  font-size: 0.85em;
+}
+
+#maplebirch .repair-dialog .repair-empty {
+  margin-top: 0.75em;
+  color: var(--500, #aaa);
+}
+
+#maplebirch .repair-analysis > h3,
+#maplebirch .repair-overlay h4 {
+  margin: 0 0 0.3em;
+  font-size: 1em;
+}
+
+#maplebirch .repair-summary {
+  white-space: pre-wrap;
+}
+
+#maplebirch .repair-evidence,
+#maplebirch .repair-overlay {
+  margin: 0.35em 0;
+  padding: 0;
+  border-top: 1px solid var(--800, #333);
+}
+
+#maplebirch .repair-dialog details > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+  min-height: 1.9em;
+  margin: 0;
+  padding: 0.3em 0.35em;
+  list-style: none;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+#maplebirch .repair-dialog details > summary::marker {
+  content: '';
+}
+
+#maplebirch .repair-dialog details > summary::-webkit-details-marker {
+  display: none;
+}
+
+#maplebirch .repair-chevron {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 1em;
+  font:
+    0.9em/1 Arial,
+    sans-serif;
+  text-align: center;
+}
+
+#maplebirch .repair-dialog details[open] > summary .repair-chevron {
+  transform: rotate(90deg);
+}
+
+#maplebirch .repair-disclosure-title {
+  min-width: 0;
+}
+
+#maplebirch .repair-disclosure-state {
+  flex-shrink: 0;
+  margin-left: auto;
+  font-size: 0.8em;
+}
+
+#maplebirch .repair-dialog details > summary .repair-collapse,
+#maplebirch .repair-dialog details[open] > summary .repair-expand {
+  display: none;
+}
+
+#maplebirch .repair-dialog details[open] > summary .repair-collapse {
+  display: inline;
+}
+
+#maplebirch .repair-dialog details > summary:hover {
+  background: var(--800, #333);
+}
+
+#maplebirch .repair-dialog details > summary:hover .repair-disclosure-title,
+#maplebirch .repair-dialog details > summary:hover .repair-disclosure-state {
+  text-decoration: underline;
+}
+
+#maplebirch .repair-dialog details > summary:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: -2px;
+}
+
+#maplebirch .repair-dialog details > summary:active {
+  outline: 1px solid currentColor;
+  outline-offset: -1px;
+}
+
+#maplebirch .repair-evidence ul {
+  margin: 0.35em 0;
+  padding-left: 1.3em;
+  font-size: 0.9em;
+}
+
+#maplebirch .repair-evidence li + li {
+  margin-top: 0.25em;
+}
+
+#maplebirch .repair-analysis > details + h3 {
+  margin-top: 0.65em;
+}
+
+#maplebirch .repair-dialog .repair-target-path {
+  margin: 0.2em 0.45em;
+  font: 0.75em/1.4 monospace;
+  opacity: 0.8;
+}
+
+#maplebirch .repair-result {
+  min-height: 3em;
+  max-height: none;
+  margin: 0;
+  padding: 0.45em;
+  border: 1px solid var(--700, #666);
+  background: var(--950, #111);
+  font-size: 0.8em;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow: visible;
+}
+
+#maplebirch .repair-memory-item {
+  padding: 0.5em 0;
+  border-bottom: 1px solid var(--800, #333);
+}
+
+#maplebirch .repair-memory-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1em;
+  margin-bottom: 0.35em;
+}
+
+#maplebirch .repair-memory-heading strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+#maplebirch .repair-memory-heading span {
+  flex-shrink: 0;
+  font-size: 0.85em;
+  color: var(--500, #aaa);
+}
+
+#maplebirch .repair-memory-actions {
+  flex-wrap: wrap;
+}
+
+#maplebirch .repair-memory-error {
+  color: var(--red, #f66);
+  font-size: 0.9em;
+}
+
+#maplebirch .repair-dialog-footer {
+  grid-row: 4;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5em 1em;
+  min-height: 2.4em;
+  padding: 0.45em 0.75em;
+  border-top: 1px solid var(--700, #666);
+}
+
+#maplebirch .repair-dialog-footer [role='status'] {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 0.85em;
+}
+
+#maplebirch .repair-dialog-footer .gui-button-group {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+@media (max-width: 600px) {
+  #maplebirch .repair-dialog {
+    width: calc(100vw - 1rem);
+    height: min(34rem, calc(100vh - 1rem));
+    height: min(34rem, calc(100dvh - 1rem));
+  }
+
+  #maplebirch .repair-dialog-body {
+    padding: 0.5em;
+  }
+
+  #maplebirch .repair-api,
+  #maplebirch .repair-source-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #maplebirch .repair-api > label {
+    padding: 0;
+    margin-bottom: -0.4em;
+  }
+
+  #maplebirch .repair-memory-heading {
+    flex-wrap: wrap;
+    gap: 0.3em;
+  }
+
+  #maplebirch .repair-dialog-footer [role='status'] {
+    flex-basis: 100%;
+  }
+}

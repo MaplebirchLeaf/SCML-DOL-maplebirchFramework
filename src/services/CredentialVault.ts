@@ -1,12 +1,13 @@
 // ./src/services/CredentialVault.ts
 
 import type ModLoader from '../host/ModLoader';
+import Cipher from '../infra/Cipher';
 import Diagnostics from '../infra/Diagnostics';
 import type Emitter from '../infra/Emitter';
 import type IndexedDB from './IndexedDB';
 import type { InputFileFormat } from '@scml/types/sugarcube-2-ModLoader/JSZipLikeReadOnlyInterface';
 import PromptStyle from '@/styles/PromptStyle.css?raw';
-import { base64ToArrayBuffer, bytesToBase64, bytesToJson, jsonToBytes, toArrayBuffer } from '../utils/binary';
+import { base64ToArrayBuffer, bytesToJson, jsonToBytes } from '../utils/binary';
 import { escapeHtmlText } from '../utils/string';
 
 export type CredentialPeriod = 'day' | 'month';
@@ -415,7 +416,7 @@ export class CredentialVault {
   private async loadStorageKey(): Promise<CryptoKey> {
     const existing = (await this.idb.with(CredentialVault.STORE, 'readonly', tx => tx.objectStore(CredentialVault.STORE).get(['meta', 'cryptoKey']))) as CredentialRecord | undefined;
     if (existing?.cryptoKey) return existing.cryptoKey as CryptoKey;
-    const candidate = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    const candidate = await Cipher.generateKey();
     return this.idb.with(CredentialVault.STORE, 'readwrite', async tx => {
       const store = tx.objectStore(CredentialVault.STORE);
       const current = (await store.get(['meta', 'cryptoKey'])) as CredentialRecord | undefined;
@@ -431,32 +432,14 @@ export class CredentialVault {
   }
 
   private async encryptRecord(value: unknown): Promise<{ iv: string; data: string }> {
-    const iv = crypto.getRandomValues(new Uint8Array(12));
-    const encrypted = await crypto.subtle.encrypt(
-      {
-        name: 'AES-GCM',
-        iv: toArrayBuffer(iv)
-      },
-      await this.ensureStorageKey(),
-      toArrayBuffer(jsonToBytes(value))
-    );
-    return {
-      iv: bytesToBase64(iv),
-      data: bytesToBase64(new Uint8Array(encrypted))
-    };
+    const key = await this.ensureStorageKey();
+    return Cipher.encrypt(jsonToBytes(value), key);
   }
 
   private async decryptRecord<T>(record: CredentialRecord): Promise<T | null> {
     if (!record.iv || !record.data) return null;
     try {
-      const decrypted = await crypto.subtle.decrypt(
-        {
-          name: 'AES-GCM',
-          iv: base64ToArrayBuffer(record.iv)
-        },
-        await this.ensureStorageKey(),
-        base64ToArrayBuffer(record.data)
-      );
+      const decrypted = await Cipher.decrypt({ iv: record.iv, data: record.data }, await this.ensureStorageKey());
       return bytesToJson<T>(decrypted);
     } catch (error) {
       this.diagnostics.write(`凭证解密失败: ${Diagnostics.message(error)}`, 'WARN');

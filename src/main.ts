@@ -13,6 +13,7 @@ export { default as Emitter, type EventCallback } from './infra/Emitter';
 export { default as Modules, type Module, type ModulesMeta, type DependencyInfo, type DependencyGraph } from './services/Modules';
 export { default as IndexedDB } from './services/IndexedDB';
 export { default as Translator, type Translation } from './services/Translator';
+export { default as Repair, type RepairMemory } from './services/Repair';
 export { default as GUIControl } from './services/GUIControl';
 export { default as CredentialVault } from './services/CredentialVault';
 export { default as CloudSave, type CloudSaveConfig, type CloudSaveRecord, type CloudSaveRemoteItem, type CloudSaveRemoteCode } from './services/CloudSave';

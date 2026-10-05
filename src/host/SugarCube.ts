@@ -2,6 +2,7 @@
 
 import type { Passage } from '@scml/types/sugarcube-2-ModLoader/SugarCube2';
 import type { DolStateAPI, DolStateMoment, TwineSugarCube } from '../types/twine-sugarcube';
+import type Diagnostics from '../infra/Diagnostics';
 import { clone } from '../utils/object';
 
 export interface SaveObject {
@@ -67,6 +68,28 @@ export class Save {
 export class SugarCube {
   public runtime: TwineSugarCube | undefined;
   public passage: Passage = null!;
+
+  private readonly error = new WeakMap<(...args: unknown[]) => unknown, (...args: unknown[]) => unknown>();
+
+  public captureErrors(handler: (...args: unknown[]) => unknown, diagnostics: Diagnostics): (...args: unknown[]) => unknown {
+    const installed = this.error.get(handler);
+    if (installed) return installed;
+    const passage = () => this.runtime?.State.passage;
+    const wrapper = function (this: unknown, ...args: unknown[]): unknown {
+      try {
+        const location = passage();
+        const message = args[1] == null ? 'unknown error' : String(args[1]);
+        const source = typeof args[2] === 'string' ? args[2] : '';
+        diagnostics.write(`${location ? `(:: ${location}): ` : ''}${message}${source ? `\n${source}` : ''}`, 'ERROR', 'sugarcube');
+      } catch (error) {
+        console.warn('SugarCube 报错采集失败：', error);
+      }
+      return handler.apply(this, args);
+    };
+    this.error.set(handler, wrapper);
+    this.error.set(wrapper, wrapper);
+    return wrapper;
+  }
 
   public require(): TwineSugarCube {
     if (!this.runtime) throw new Error('SugarCube runtime is not ready.');

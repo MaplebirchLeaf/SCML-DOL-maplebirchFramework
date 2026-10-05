@@ -187,6 +187,7 @@ export class AddonPlugin extends Hooks<[BootTask], void> {
   }
 
   public async beforePatchModToGame(): Promise<void> {
+    await this.events.trigger(':addon:repair', this);
     await this.events.trigger(':addon:preparePatch', this);
     await this.process();
     await this.events.trigger(':import');
@@ -198,12 +199,13 @@ export class AddonPlugin extends Hooks<[BootTask], void> {
     this.modloader!.defineTwineAsset(
       'script',
       'maplebirch/sugarcube-bridge.js',
-      `(function(maplebirch){'use strict';maplebirch.host.sugarcube.runtime={Browser,Config,Dialog,Engine,Fullscreen,Has,L10n,Macro,Passage,Save,Scripting,Setting,SimpleAudio,State,Story,UI,UIBar,DebugBar,Util,Visibility,Wikifier,session,settings,setup,storage,version};void maplebirch.trigger(':sugarcube');})(window.maplebirch);`
+      `(function(maplebirch){'use strict';maplebirch.host.sugarcube.runtime={Browser,Config,Dialog,Engine,Fullscreen,Has,L10n,Macro,Passage,Save,Scripting,Setting,SimpleAudio,State,Story,UI,UIBar,DebugBar,Util,Visibility,Wikifier,session,settings,setup,storage,version};if(typeof throwError==='function')throwError=maplebirch.host.sugarcube.captureErrors(throwError,maplebirch.infra.diagnostics);void maplebirch.trigger(':sugarcube');})(window.maplebirch);`
     );
     this.modloader!.defineTwineAsset('style', 'maplebirch-styles.css', MaplebrichStyles);
   }
 
   public async afterPatchModToGame(): Promise<void> {
+    await this.events.trigger(':addon:verify', this);
     await this.events.trigger(':addon:afterPatch', this);
   }
 

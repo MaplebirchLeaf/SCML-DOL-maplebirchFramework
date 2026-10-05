@@ -2,7 +2,7 @@
 
 import Diagnostics from '../infra/Diagnostics';
 import type SugarCube from '../host/SugarCube';
-import type { DolStateMoment, TwineSugarCube } from '../types/twine-sugarcube';
+import type { DolStateMoment } from '../types/twine-sugarcube';
 import { clone } from '../utils/object';
 
 type CloudSaveSlot = number;
@@ -17,8 +17,8 @@ interface CloudSaveConfig {
 
 interface CloudSaveRecord {
   slot: CloudSaveSlot;
-  details: SaveDetails | null;
-  save: SaveState;
+  details: DoLSaveDetails | null;
+  save: DoLSaveState;
   exportedAt: number;
   gameId?: string;
 }
@@ -32,44 +32,13 @@ interface CloudSaveCodeRecord {
 interface CloudSaveRemoteItem {
   slot: CloudSaveSlot;
   updatedAt: number;
-  details?: SaveDetails | null;
+  details?: DoLSaveDetails | null;
   payload?: CloudSaveRecord;
 }
 
 interface CloudSaveRemoteCode {
   updatedAt: number;
   payload?: CloudSaveCodeRecord;
-}
-
-interface SaveDetails {
-  date?: number;
-  title?: string;
-  idx?: unknown;
-  metadata?: { saveName?: string; [key: string]: unknown };
-  [key: string]: unknown;
-}
-
-interface SaveState {
-  history?: DolStateMoment[];
-  delta?: unknown;
-  [key: string]: unknown;
-}
-
-interface DoLSaveDatabase {
-  getItem(slot: CloudSaveSlot): Promise<{ data?: SaveState } | null | undefined>;
-  getSaveDetails(): Promise<Array<{ slot: CloudSaveSlot; data?: SaveDetails }> | null | undefined>;
-  setItem(slot: CloudSaveSlot, save: SaveState, details?: SaveDetails): Promise<boolean | void>;
-}
-
-interface CloudSaveHost {
-  DoLSave?: {
-    isCompressionEnabled?(): boolean;
-    disableCompression?(): void;
-    enableCompression?(): void;
-  };
-  LZString?: { compressToBase64(value: string): string };
-  Config?: TwineSugarCube['Config'];
-  idb?: DoLSaveDatabase;
 }
 
 interface CloudSaveTools {
@@ -193,7 +162,7 @@ export class CloudSave {
   public exportCode(): string {
     const save = this.sugarcube.runtime?.Save;
     if (typeof save?.serialize !== 'function') throw new Error('SugarCube.Save.serialize is not available.');
-    const dolSave = (window as Window & CloudSaveHost).DoLSave;
+    const dolSave = window.DoLSave;
     const compressed = dolSave?.isCompressionEnabled?.() === true;
     if (compressed) dolSave.disableCompression?.();
     try {
@@ -206,10 +175,10 @@ export class CloudSave {
   /** 将指定本地槽位转换为 SugarCube 存档码。 */
   public async exportSlotCode(slot: CloudSaveSlot): Promise<string> {
     const record = await this.exportSlot(slot);
-    const lz = (window as Window & CloudSaveHost).LZString;
+    const lz = window.LZString;
     const runtime = this.sugarcube.runtime;
     const story = runtime?.Story;
-    const config = runtime?.Config ?? (window as Window & CloudSaveHost).Config;
+    const config = runtime?.Config ?? window.Config;
     if (!runtime || !lz?.compressToBase64 || !story?.domId || !config?.saves?.id) throw new Error(this.translate('cloud.save.error.code.tools'));
     const { history, ...state } = this.normalizeSave(record.save);
     const save = {
@@ -581,7 +550,7 @@ export class CloudSave {
   }
 
   /** SugarCube delta 存档还原为完整 history。 */
-  private normalizeSave(save: SaveState): SaveState & { history: DolStateMoment[] } {
+  private normalizeSave(save: DoLSaveState): DoLSaveState & { history: DolStateMoment[] } {
     const state = clone(save);
     if (!state.history && state.delta) {
       const decode = this.sugarcube.runtime?.State?.deltaDecode;
@@ -657,7 +626,7 @@ export class CloudSave {
       if (!Array.isArray(detailsList)) return;
 
       const selected = select.querySelector('optgroup') ? select.value : '';
-      const existingSlots = new Map<number, SaveDetails>();
+      const existingSlots = new Map<number, DoLSaveDetails>();
       let latestSlot: number | null = null;
       let latestDate = 0;
 
@@ -752,7 +721,7 @@ export class CloudSave {
   }
 
   private get saveDB(): DoLSaveDatabase {
-    const db = (window as Window & CloudSaveHost).idb;
+    const db = window.idb;
     if (!db || typeof db.getItem !== 'function' || typeof db.getSaveDetails !== 'function' || typeof db.setItem !== 'function') throw new Error('DoL IndexedDB is not available.');
     return db;
   }

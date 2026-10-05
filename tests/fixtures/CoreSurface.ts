@@ -27,6 +27,7 @@ mock.module('../../src/services/AddonPlugin', () => ({
 mock.module('../../src/services/Translator', () => ({ default: Service }));
 mock.module('../../src/services/CredentialVault', () => ({ default: Service }));
 mock.module('../../src/services/CloudSave', () => ({ default: Service }));
+mock.module('../../src/services/Repair', () => ({ default: Service }));
 mock.module('../../src/services/GUIControl', () => ({ default: Service }));
 
 const hostClamp = () => 7;

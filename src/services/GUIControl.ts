@@ -6,11 +6,14 @@ import type { ModSubUiAngularJsService } from '@scml/types/Mod_LoaderGui/ModSubU
 import type ModLoader from '../host/ModLoader';
 import type Emitter from '../infra/Emitter';
 import Gui from '@/twee/Gui.twee?raw';
+import RepairGui from '@/twee/RepairGui.twee?raw';
 import { widgets } from '../utils/string';
 import { Config, Languages } from './../constants';
 import type IndexedDB from './IndexedDB';
 import Modules from './Modules';
 import type Translator from './Translator';
+import type Repair from './Repair';
+import RepairGUI from './Repair/GUI';
 
 type ModuleType = 'protected' | 'mounted' | 'exposed' | 'module';
 
@@ -58,30 +61,23 @@ interface GuiData {
   disabledModules: ModuleInfo[];
   enabledScripts: string[];
   disabledScripts: string[];
-  text: {
-    Title: string[];
-    DEBUGMODE: string[];
-    DEBUGSTATUS: string[];
-    EnabledSTATUS: string[];
-    DisabledSTATUS: string[];
-    Languages: [string, string][];
-    LanguageSelection: string[];
-    EnableModule: string[];
-    DisableModule: string[];
-    EnableScript: string[];
-    DisableScript: string[];
-    ClearIndexedDB: string[];
-  };
+  text: Pick<
+    typeof Config,
+    'Title' | 'DEBUGSTATUS' | 'EnabledSTATUS' | 'DisabledSTATUS' | 'Languages' | 'LanguageSelection' | 'EnableModule' | 'DisableModule' | 'EnableScript' | 'DisableScript' | 'ClearIndexedDB' | 'Repair'
+  > & { DEBUGMODE: string[] };
 }
 
 interface GuiController {
   data: GuiData;
+  repair: RepairGUI;
   translation(text: string[]): string;
   $onInit(): void;
 }
 
 interface GuiScope {
   $ctrl: GuiController;
+  $applyAsync(): void;
+  $on(event: string, handler: () => void): void;
   t(text: string[]): string;
   languages: Array<{ code: string; readonly name: string }>;
   selectedEnabledModule: number;
@@ -123,7 +119,8 @@ export class GUIControl {
     readonly events: Emitter,
     readonly modules: Modules,
     readonly translator: Translator,
-    private readonly addon: () => ScriptSource | undefined
+    private readonly addon: () => ScriptSource | undefined,
+    private readonly repair: Repair
   ) {
     this.modSubUiAngularJsService = modloader.modLoaderGui.getModSubUiAngularJsService();
     this.events.once(':indexedDB', () => this.idb.define('settings', { keyPath: 'key' }));
@@ -327,7 +324,7 @@ export class GUIControl {
   }
 
   private async whenCreate(Ref: ModSubUiAngularJsModeExportInterface): Promise<void> {
-    const { translator, idb, events, modloader } = this;
+    const { translator, idb, events, modloader, repair } = this;
     const typeLabel = this.typeLabel.bind(this);
     const cascadeModules = this.cascadeModules.bind(this);
     const saveModules = this.saveModules.bind(this);
@@ -338,7 +335,7 @@ export class GUIControl {
         componentName: 'maplebirchControlComponent',
         componentOptions: {
           bindings: { data: '<' },
-          template: widgets(Gui),
+          template: widgets(Gui).replace('<!-- repair-dialog -->', widgets(RepairGui)),
           controller: [
             '$scope',
             function (this: GuiController, $scope: GuiScope) {
@@ -354,6 +351,8 @@ export class GUIControl {
               };
 
               $scope.ClearIndexedDB = () => idb.deleteDatabase();
+              this.repair = new RepairGUI(repair, translator, () => $scope.$applyAsync());
+              $scope.$on('$destroy', () => this.repair.destroy());
 
               this.$onInit = () => {
                 $scope.languages = $scope.$ctrl.data.text.Languages.map((lang: string[]) => ({
@@ -530,7 +529,8 @@ export class GUIControl {
           DisableModule: Config.DisableModule,
           EnableScript: Config.EnableScript,
           DisableScript: Config.DisableScript,
-          ClearIndexedDB: Config.ClearIndexedDB
+          ClearIndexedDB: Config.ClearIndexedDB,
+          Repair: Config.Repair
         }
       }
     });

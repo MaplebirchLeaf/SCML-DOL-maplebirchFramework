@@ -29,6 +29,7 @@
     "fix": "oxlint --fix && oxfmt"
   },
   "dependencies": {
+    "diff": "8.0.4",
     "fflate": "^0.8.3",
     "howler": "^2.2.4",
     "idb": "^8.0.3",

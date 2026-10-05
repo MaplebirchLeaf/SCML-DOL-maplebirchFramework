@@ -21,6 +21,8 @@ import CloudSave from './services/CloudSave';
 import Translator from './services/Translator';
 import Modules, { type Module, type DependencyGraph } from './services/Modules';
 import GUIControl from './services/GUIControl';
+import Repair from './services/Repair';
+import type { RepairZone } from './services/Repair/Targets';
 import AddonPlugin from './services/AddonPlugin';
 
 const renderer = new marked.Renderer();
@@ -80,6 +82,7 @@ export interface FrameworkServices {
   readonly translator: Translator;
   readonly credentialVault: CredentialVault;
   readonly cloudSave: CloudSave;
+  readonly repair: Repair;
   readonly gui: GUIControl;
 }
 
@@ -126,8 +129,9 @@ const MaplebirchCore = class MaplebirchCore {
     const translator = Object.seal(new Translator(indexedDB, this.host.modLoader, this.infra.events, () => this.services.addonPlugin));
     const credentialVault = Object.seal(new CredentialVault(indexedDB, this.host.modLoader, this.infra.events, this.infra.diagnostics, key => this.t(key)));
     const cloudSave = Object.seal(new CloudSave(this.host.sugarcube, key => this.t(key), this.host.modLoader.lodash, this.infra.diagnostics));
-    const gui = Object.seal(new GUIControl(indexedDB, this.host.modLoader, this.infra.events, modules, translator, () => this.services.addonPlugin));
-    this.services = Object.freeze({ indexedDB, modules, addonPlugin, translator, credentialVault, cloudSave, gui });
+    const repair = Object.seal(new Repair(indexedDB, this.host.modLoader, this.infra.events, () => (this as unknown as { tool?: { zone: RepairZone } }).tool?.zone));
+    const gui = Object.seal(new GUIControl(indexedDB, this.host.modLoader, this.infra.events, modules, translator, () => this.services.addonPlugin, repair));
+    this.services = Object.freeze({ indexedDB, modules, addonPlugin, translator, credentialVault, cloudSave, gui, repair });
     this.log(`框架核心系统创建完成(v${MaplebirchCore.meta.version})`, 'INFO');
   }
 

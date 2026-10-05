@@ -1,0 +1,228 @@
+:: Widget [widget]
+
+<dialog
+	id='maplebirch-repair'
+	class='repair-dialog'
+	aria-labelledby='maplebirch-repair-title'
+>
+	<header class='repair-dialog-header'>
+		<h2 id='maplebirch-repair-title'>{{t($ctrl.data.text.Repair.Title)}}</h2>
+		<button type='button' ng-click='$ctrl.repair.close()' class='theme-button'>
+			{{t($ctrl.data.text.Repair.Close)}}
+		</button>
+	</header>
+
+	<nav class='repair-dialog-nav' aria-label='{{t($ctrl.data.text.Repair.Title)}}'>
+		<button
+			type='button'
+			ng-click="$ctrl.repair.tab = 'analysis'"
+			ng-class="{'selected': $ctrl.repair.tab === 'analysis'}"
+			ng-attr-aria-pressed="{{$ctrl.repair.tab === 'analysis'}}"
+		>
+			{{t($ctrl.data.text.Repair.Analyze)}}
+		</button>
+		<button
+			type='button'
+			ng-click="$ctrl.repair.tab = 'connection'"
+			ng-class="{'selected': $ctrl.repair.tab === 'connection'}"
+			ng-attr-aria-pressed="{{$ctrl.repair.tab === 'connection'}}"
+		>
+			{{t($ctrl.data.text.Repair.Connection)}}
+		</button>
+		<button
+			type='button'
+			ng-click="$ctrl.repair.tab = 'memory'"
+			ng-class="{'selected': $ctrl.repair.tab === 'memory'}"
+			ng-attr-aria-pressed="{{$ctrl.repair.tab === 'memory'}}"
+		>
+			{{t($ctrl.data.text.Repair.Memory)}}
+			<span ng-if='$ctrl.repair.memories.length'>({{$ctrl.repair.memories.length}})</span>
+		</button>
+	</nav>
+
+	<section
+		ng-show="$ctrl.repair.tab === 'connection'"
+		class='repair-dialog-body repair-api'
+		aria-label='{{t($ctrl.data.text.Repair.Connection)}}'
+	>
+		<label for='maplebirch-repair-type'>{{t($ctrl.data.text.Repair.ApiType)}}</label>
+		<select
+			id='maplebirch-repair-type'
+			ng-model='$ctrl.repair.connection.apiType'
+			ng-change='$ctrl.repair.changeApi()'
+			ng-disabled='$ctrl.repair.busy'
+		>
+			<option value='openai'>OpenAI Compatible</option>
+			<option value='anthropic'>Anthropic / Claude</option>
+			<option value='gemini'>Google Gemini</option>
+		</select>
+
+		<label for='maplebirch-repair-url'>{{t($ctrl.data.text.Repair.ApiUrl)}}</label>
+		<input
+			id='maplebirch-repair-url'
+			type='text'
+			ng-model='$ctrl.repair.connection.apiUrl'
+			ng-change='$ctrl.repair.changeApi()'
+			ng-disabled='$ctrl.repair.busy'
+			placeholder='https://example.com/v1'
+			autocomplete='off'
+			spellcheck='false'
+		/>
+
+		<label for='maplebirch-repair-key'>{{t($ctrl.data.text.Repair.ApiKey)}}</label>
+		<input
+			id='maplebirch-repair-key'
+			type='password'
+			ng-model='$ctrl.repair.connection.apiKey'
+			ng-change='$ctrl.repair.changeApi()'
+			ng-disabled='$ctrl.repair.busy'
+			autocomplete='off'
+		/>
+
+		<label for='maplebirch-repair-model'>{{t($ctrl.data.text.Repair.Model)}}</label>
+		<div class='repair-model'>
+			<select
+				id='maplebirch-repair-model'
+				ng-if='!$ctrl.repair.manualModel'
+				ng-model='$ctrl.repair.connection.model'
+				ng-options='model for model in $ctrl.repair.models'
+				ng-disabled='$ctrl.repair.busy'
+			>
+				<option value=''>{{t($ctrl.data.text.Repair.SelectModel)}}</option>
+			</select>
+			<input
+				id='maplebirch-repair-model'
+				ng-if='$ctrl.repair.manualModel'
+				type='text'
+				ng-model='$ctrl.repair.connection.model'
+				ng-disabled='$ctrl.repair.busy'
+				autocomplete='off'
+				spellcheck='false'
+			/>
+			<button type='button' ng-click='$ctrl.repair.fetchModels()' ng-disabled='$ctrl.repair.busy' class='theme-button'>
+				{{t($ctrl.data.text.Repair.FetchModels)}}
+			</button>
+			<label class='repair-manual'>
+				<input type='checkbox' ng-model='$ctrl.repair.manualModel' ng-disabled='$ctrl.repair.busy || !$ctrl.repair.models.length' />
+				{{t($ctrl.data.text.Repair.ManualModel)}}
+			</label>
+		</div>
+
+		<p class='repair-config-status'>
+			{{t($ctrl.repair.connectionSaved ? $ctrl.data.text.Repair.ConfigSaved : $ctrl.data.text.Repair.ConfigUnsaved)}}
+		</p>
+		<p class='repair-help'>{{t($ctrl.data.text.Repair.Notice)}}</p>
+	</section>
+
+	<section
+		ng-show="$ctrl.repair.tab === 'analysis'"
+		class='repair-dialog-body repair-analysis'
+		aria-label='{{t($ctrl.data.text.Repair.Analyze)}}'
+	>
+		<p class='repair-help'>{{t($ctrl.data.text.Repair.AnalyzeNotice)}}</p>
+		<p ng-if='!$ctrl.repair.proposal && !$ctrl.repair.reason' class='repair-empty'>{{t($ctrl.data.text.Repair.EmptyAnalysis)}}</p>
+		<p ng-if='$ctrl.repair.reason' class='repair-memory-error' ng-bind='$ctrl.repair.reason'></p>
+		<button
+			type='button'
+			ng-if='!$ctrl.repair.connection.apiUrl || !$ctrl.repair.connection.model'
+			ng-click="$ctrl.repair.tab = 'connection'"
+			class='theme-button'
+		>
+			{{t($ctrl.data.text.Repair.Connection)}}
+		</button>
+
+		<h3 ng-if='$ctrl.repair.proposal'>{{t($ctrl.data.text.Repair.Summary)}}</h3>
+		<p ng-if='$ctrl.repair.proposal' class='repair-summary' ng-bind='$ctrl.repair.proposal.summary'></p>
+		<details ng-if='$ctrl.repair.proposal.evidence.length' class='repair-evidence'>
+			<summary>
+				<span class='repair-chevron' aria-hidden='true'>►</span>
+				<span class='repair-disclosure-title'>{{t($ctrl.data.text.Repair.Evidence)}} ({{$ctrl.repair.proposal.evidence.length}})</span>
+				<span class='repair-disclosure-state'>
+					<span class='repair-expand'>{{t($ctrl.data.text.Repair.Expand)}}</span>
+					<span class='repair-collapse'>{{t($ctrl.data.text.Repair.Collapse)}}</span>
+				</span>
+			</summary>
+			<ul>
+				<li ng-repeat='evidence in $ctrl.repair.proposal.evidence track by $index' ng-bind='evidence'></li>
+			</ul>
+		</details>
+
+		<h3 ng-if='$ctrl.repair.overlays.length'>{{t($ctrl.data.text.Repair.Preview)}}</h3>
+		<details ng-repeat='overlay in $ctrl.repair.overlays track by $index' class='repair-overlay'>
+			<summary>
+				<span class='repair-chevron' aria-hidden='true'>►</span>
+				<span class='repair-disclosure-title'>{{overlay.target.modName}} #{{$index + 1}}</span>
+				<span class='repair-disclosure-state'>
+					<span class='repair-expand'>{{t($ctrl.data.text.Repair.Expand)}}</span>
+					<span class='repair-collapse'>{{t($ctrl.data.text.Repair.Collapse)}}</span>
+				</span>
+			</summary>
+			<p class='repair-target-path' ng-bind='overlay.target.path'></p>
+			<div class='repair-source-grid'>
+				<div>
+					<h4>{{t($ctrl.data.text.Repair.Before)}}</h4>
+                  <pre class='repair-result' ng-bind='overlay.before'></pre>
+                  <pre class='repair-result' ng-if='overlay.replacement' ng-bind='overlay.replacement.before'></pre>
+				</div>
+				<div>
+					<h4>{{t($ctrl.data.text.Repair.After)}}</h4>
+                  <pre class='repair-result' ng-bind='overlay.after'></pre>
+                  <pre class='repair-result' ng-if='overlay.replacement' ng-bind='overlay.replacement.after'></pre>
+				</div>
+			</div>
+		</details>
+	</section>
+
+	<section
+		ng-show="$ctrl.repair.tab === 'memory'"
+		class='repair-dialog-body repair-memory'
+		aria-label='{{t($ctrl.data.text.Repair.Memory)}}'
+	>
+		<p class='repair-help'>{{t($ctrl.data.text.Repair.Reload)}}</p>
+		<p ng-if='!$ctrl.repair.memories.length' class='repair-empty'>{{t($ctrl.data.text.Repair.EmptyMemory)}}</p>
+		<div ng-repeat='memory in $ctrl.repair.memories track by memory.id' class='repair-memory-item'>
+			<div class='repair-memory-heading'>
+				<strong ng-bind='memory.summary'></strong>
+				<span>{{$ctrl.repair.state(memory)}}</span>
+			</div>
+			<p ng-if='memory.error' class='repair-memory-error' ng-bind='memory.error'></p>
+			<div class='repair-memory-actions gui-button-group'>
+				<button type='button' ng-click='$ctrl.repair.toggle(memory)' ng-disabled='$ctrl.repair.busy' class='theme-button'>
+					{{t(memory.enabled ? $ctrl.data.text.Repair.Disable : $ctrl.data.text.Repair.Enable)}}
+				</button>
+				<button
+					type='button'
+					ng-if='memory.state === "trial"'
+					ng-click='$ctrl.repair.confirm(memory)'
+					ng-disabled='$ctrl.repair.busy'
+					class='theme-button'
+				>
+					{{t($ctrl.data.text.Repair.Confirm)}}
+				</button>
+				<button type='button' ng-click='$ctrl.repair.remove(memory)' ng-disabled='$ctrl.repair.busy' class='theme-button'>
+					{{t($ctrl.data.text.Repair.Delete)}}
+				</button>
+			</div>
+		</div>
+	</section>
+
+	<footer class='repair-dialog-footer'>
+		<p role='status' aria-live='polite'>{{t($ctrl.repair.status)}}</p>
+		<div ng-if="$ctrl.repair.tab === 'connection'" class='gui-button-group'>
+			<button type='button' ng-click='$ctrl.repair.saveConnection()' ng-disabled='$ctrl.repair.busy' class='theme-button'>
+				{{t($ctrl.data.text.Repair.Save)}}
+			</button>
+			<button type='button' ng-click='$ctrl.repair.testConnection()' ng-disabled='$ctrl.repair.busy' class='theme-button'>
+				{{t($ctrl.data.text.Repair.Test)}}
+			</button>
+		</div>
+		<div ng-if="$ctrl.repair.tab === 'analysis'" class='gui-button-group'>
+			<button type='button' ng-click='$ctrl.repair.analyze()' ng-disabled='$ctrl.repair.busy' class='theme-button'>
+				{{t($ctrl.data.text.Repair.Analyze)}}
+			</button>
+			<button type='button' ng-if='$ctrl.repair.overlays.length' ng-click='$ctrl.repair.stage()' ng-disabled='$ctrl.repair.busy' class='theme-button'>
+				{{t($ctrl.data.text.Repair.Save)}}
+			</button>
+		</div>
+	</footer>
+</dialog>
