@@ -5,7 +5,7 @@ import Diagnostics from '../../infra/Diagnostics';
 import { compileBooleanExpression } from '../../utils/condition';
 import type { MaplebirchCore } from '../../core';
 import type { BootTask } from '../../services/AddonPlugin';
-import type { zonesManager, ZoneWidgetConfig } from '../Frameworks/ZonesManager';
+import type { ZonesManager, ZoneWidgetConfig } from '../Frameworks/ZonesManager';
 import type { Patches } from './Patches';
 import type { TraitConfig } from './Patches/Traits';
 import type { BodywritingConfig } from './Patches/Bodywriting';
@@ -53,7 +53,7 @@ class FrameworkConfigLoader {
   public constructor(
     private readonly core: MaplebirchCore,
     private readonly patch: Patches,
-    private readonly zone: zonesManager
+    private readonly zone: ZonesManager
   ) {
     const { bodywriting, foodstuff, antiques, fishing } = patch;
     this.handlers = {

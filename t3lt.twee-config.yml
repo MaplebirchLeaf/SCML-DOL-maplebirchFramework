@@ -415,3 +415,5 @@ sugarcube-2:
         - macros
     setupOptions:
       name: setupOptions
+    maplebirchChimeraMirror:
+      name: maplebirchChimeraMirror

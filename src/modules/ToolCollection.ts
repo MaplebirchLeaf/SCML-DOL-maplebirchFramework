@@ -5,7 +5,7 @@ import migration from './Frameworks/migration';
 import randSystem from './Frameworks/RandSystem';
 import defineMacros, { type MacroFunction, type SimpleMacroFunction, type MacroTags, type SkipArgs, type MacroPhase } from './Frameworks/macros';
 import htmlTools from './Frameworks/HtmlTools';
-import { zonesManager, type InitFunction, type ZoneWidget } from './Frameworks/ZonesManager';
+import { ZonesManager, type InitFunction, type ZoneWidget } from './Frameworks/ZonesManager';
 import applyLinkZone from './Frameworks/ApplyLinkZone';
 import Patch from './Frameworks/Patch';
 import Diagnostics from '../infra/Diagnostics';
@@ -22,7 +22,7 @@ class ToolCollection {
   public readonly rand: typeof randSystem = Object.freeze(randSystem);
   public readonly macro: defineMacros;
   public readonly text: htmlTools;
-  public readonly zone: zonesManager;
+  public readonly zone: ZonesManager;
   public readonly link: typeof applyLinkZone = Object.freeze(applyLinkZone);
   public readonly patch: Patch;
 
@@ -33,7 +33,7 @@ class ToolCollection {
     this.console = Object.seal(new (constructors.console ?? Console)(this));
     this.macro = Object.freeze(new (constructors.macro ?? defineMacros)(this)) as defineMacros;
     this.text = Object.seal(new htmlTools(core));
-    this.zone = Object.seal(new zonesManager(core));
+    this.zone = Object.seal(new ZonesManager(core));
     this.patch = new Patch((name, error) => core.infra.diagnostics.record(`Patch ${name}: ${Diagnostics.message(error)}`, 'ERROR', 'patch', error));
   }
 
@@ -53,7 +53,7 @@ class ToolCollection {
     this.zone.addTo(zone, ...widgets);
   }
 
-  public inject(...databases: Parameters<zonesManager['inject']>): void {
+  public inject(...databases: Parameters<ZonesManager['inject']>): void {
     this.zone.inject(...databases);
   }
 }

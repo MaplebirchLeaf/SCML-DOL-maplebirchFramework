@@ -3,7 +3,7 @@ import { expect, test } from 'bun:test';
 import type { MaplebirchCore } from '../../src/core';
 import OptionEvents from '../../src/modules/Frameworks/OptionEvents';
 import TextStore from '../../src/modules/Frameworks/TextStore';
-import { zonesManager } from '../../src/modules/Frameworks/ZonesManager';
+import { ZonesManager } from '../../src/modules/Frameworks/ZonesManager';
 import Dynamic from '../../src/modules/Dynamic';
 import { StateManager } from '../../src/modules/State';
 import NPCSidebarWardrobe from '../../src/modules/NamedNPCAddon/NPCClothes/NPCSidebarWardrobe';
@@ -100,7 +100,7 @@ test('dynamic registers independent capabilities and initializes each through Li
 
 test('zones start without DoL replacement data', () => {
   const core = { infra: { diagnostics: { scoped: () => () => {} } }, host: { sugarcube: { passage: { title: 'Home' } } } } as unknown as MaplebirchCore;
-  const zone = new zonesManager(core);
+  const zone = new ZonesManager(core);
   expect(zone.locationPassage).toEqual({});
   expect(zone.widgetPassage).toEqual({});
   zone.addTo('Header', 'hello');
@@ -110,7 +110,7 @@ test('zones start without DoL replacement data', () => {
 test('zone accepts passage patch registrations', () => {
   prototypeUtils();
   const core = { infra: { diagnostics: { scoped: () => () => {} } }, host: { sugarcube: { passage: { title: 'Home' } } } } as unknown as MaplebirchCore;
-  const zone = new zonesManager(core);
+  const zone = new ZonesManager(core);
   zone.inject({ locationPassage: { Home: [{ src: 'old', to: 'new' }] } });
   expect(zone.locationPassage.Home).toHaveLength(1);
 });

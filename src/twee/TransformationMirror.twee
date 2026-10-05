@@ -19,18 +19,18 @@
   <<if Object.values($_chimeraOptions).some(Boolean)>>
   <div class='settingsToggleItemWide'>
     <span class='gold bold'><<lanSwitch 'Mods: Chimera' '模组：融合形态'>></span>
-  <<for $_chimera range maplebirch.char.transformation.chimeras>>
-    <<if $_chimeraOptions[$_chimera.name + '_' + $_chimera.part]>>
-      <div class='tf-part-item'>
-        <<= $_chimera.label>>
-        <<set $_chimeraPath to '$chimera.' + $_chimera.name + '.' + $_chimera.part>>
-        <<listbox $_chimeraPath autoselect>>
-          <<option `lanSwitch('Show', '显示')` true>>
-          <<option `lanSwitch('Hide', '隐藏')` false>>
-        <</listbox>>
-      </div>
-    <</if>>
-  <</for>>
+    <<for $_chimera range maplebirch.char.transformation.chimeras>>
+      <<if $_chimeraOptions[$_chimera.name + '_' + $_chimera.part]>>
+        <div class='tf-part-item'>
+          <<= $_chimera.label>>
+          <<set $_chimeraPath to '$chimera.' + $_chimera.name + '.' + $_chimera.part>>
+          <<listbox $_chimeraPath autoselect>>
+            <<option `lanSwitch('Show', '显示')` true>>
+            <<option `lanSwitch('Hide', '隐藏')` false>>
+          <</listbox>>
+        </div>
+      <</if>>
+    <</for>>
   </div>
   <</if>>
 <</widget>>

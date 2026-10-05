@@ -4,7 +4,7 @@ import type { PassageDataItem } from '@scml/types/sugarcube-2-ModLoader/SC2DataI
 import type { MaplebirchCore } from '../../src/core';
 import type AddonPlugin from '../../src/services/AddonPlugin';
 import prototypeUtils from '../../src/compat/Prototype';
-import { zonesManager } from '../../src/modules/Frameworks/ZonesManager';
+import { ZonesManager } from '../../src/modules/Frameworks/ZonesManager';
 
 function harness() {
   prototypeUtils();
@@ -12,7 +12,7 @@ function harness() {
     infra: { diagnostics: { scoped: () => () => {}, recordPatch() {} } },
     host: { sugarcube: { passage: { title: 'Home' } } }
   } as unknown as MaplebirchCore;
-  const zone = Object.seal(new zonesManager(core));
+  const zone = Object.seal(new ZonesManager(core));
   let passages = new Map<string, PassageDataItem>([
     ['Home', { id: 1, name: 'Home', tags: [], content: 'old location' }],
     ['Widgets', { id: 2, name: 'Widgets', tags: ['widget'], content: 'old widget' }],

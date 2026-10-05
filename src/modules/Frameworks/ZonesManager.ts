@@ -35,7 +35,14 @@ export interface CustomLinkGroup {
 
 export type InitFunction = string | ZoneFunction | InitObject;
 
-export class zonesManager {
+export class ZonesManager {
+  public static wrapSpecialPassage(content: string, title: string): string {
+    if (title === 'StoryCaption') return content;
+    if (title === 'PassageHeader') return `<div id='passage-header'>\n${content}\n<<maplebirchHeader>>\n</div>`;
+    if (title === 'PassageFooter') return `<div id='passage-footer'>\n<<maplebirchFooter>>\n${content}\n</div>`;
+    return `<div id='passage-content'>\n<<= maplebirch.dynamic.trigger('gate')>>\n${content}\n<div id='append'></div>\n</div>`;
+  }
+
   public readonly log: ScopedLog;
   public readonly core: MaplebirchCore;
 
@@ -95,7 +102,7 @@ export class zonesManager {
     };
   }
 
-  public inject(...databases: Partial<Pick<zonesManager, 'specialWidget' | 'defaultData' | 'locationPassage' | 'widgetPassage'>>[]): void {
+  public inject(...databases: Partial<Pick<ZonesManager, 'specialWidget' | 'defaultData' | 'locationPassage' | 'widgetPassage'>>[]): void {
     for (const db of databases) {
       if (db.specialWidget) this.specialWidget = Array.append(this.specialWidget, db.specialWidget);
       if (db.defaultData) this.defaultData = Object.append(this.defaultData, db.defaultData);
@@ -332,19 +339,6 @@ export class zonesManager {
     return null;
   }
 
-  private wrapSpecialPassage(passage: { content: string }, title: string): void {
-    if (title === 'StoryCaption') return;
-    if (title === 'PassageHeader') {
-      passage.content = `<div id='passage-header'>\n${passage.content}\n<<maplebirchHeader>>\n</div>`;
-      return;
-    }
-    if (title === 'PassageFooter') {
-      passage.content = `<div id='passage-footer'>\n<<maplebirchFooter>>\n${passage.content}\n</div>`;
-      return;
-    }
-    passage.content = `<div id='passage-content'>\n<<= maplebirch.dynamic.trigger('gate')>>\n${passage.content}\n<div id='append'></div>\n</div>`;
-  }
-
   private applyContentPatches(passage: { content: string }, title: string, patchSets: Record<string, PatchSet[]>): void {
     const sets = patchSets[title];
     if (!sets?.length) return;
@@ -364,7 +358,7 @@ export class zonesManager {
       this.applyContentPatches(passage, title, isWidget ? this.widgetPassage : this.locationPassage);
       return;
     }
-    if (!isWidget) this.wrapSpecialPassage(passage, title);
+    if (!isWidget) passage.content = ZonesManager.wrapSpecialPassage(passage.content, title);
   }
 
   private widgetInit(passageData: Map<string, PassageDataItem>): Map<string, PassageDataItem> {
