@@ -178,6 +178,20 @@ Object.defineProperty(DateTime.prototype, 'fractionOfYear', {get() { return 0.31
     assert.throws(() => new DateClass(0, 1, 1), /year/i);
     break;
   }
+  case 'startup': {
+    runInNewContext(patchDateTimeAsset(dateTimeSource), scope);
+    runInNewContext(patchTimeAsset(timeSource), scope);
+    const time = scope.Time as TimeAPI;
+    assert.equal(scope.V.timeStamp, undefined);
+    assert.doesNotThrow(() => time.set());
+    assert.ok(Number.isNaN(time.date.timeStamp));
+    assert.equal(scope.V.timeStamp, undefined);
+    scope.V.timeStamp = 0;
+    time.set();
+    assert.deepEqual(parts(time.date), [2022, 9, 4, 7, 0, 0]);
+    assert.equal(scope.V.timeStamp, 0);
+    break;
+  }
   case 'time': {
     runInNewContext(patchDateTimeAsset(dateTimeSource), scope);
     runInNewContext(patchTimeAsset(timeSource), scope);

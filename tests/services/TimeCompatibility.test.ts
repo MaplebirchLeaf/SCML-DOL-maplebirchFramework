@@ -4,6 +4,7 @@ import path from 'node:path';
 for (const [scenario, description] of [
   ['constants', 'extends the native minimum date while preserving other time constant patches'],
   ['datetime', 'preserves patched AD DateTime behavior and supports dates across the BCE boundary'],
+  ['startup', 'preserves native time initialization before Start creates player variables'],
   ['time', 'keeps native Time closures, methods and calendar getters after framework binding']
 ] as const) {
   test(description, () => {

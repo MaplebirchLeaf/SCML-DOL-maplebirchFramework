@@ -90,7 +90,7 @@ function patchDateTime(BaseDateTime: DateTimeConstructor): DateTimeConstructor {
     }
 
     public fromTimestamp(timestamp: number): this {
-      if (timestamp >= 0) return original.fromTimestamp.value.call(this, timestamp);
+      if (!(timestamp < 0)) return original.fromTimestamp.value.call(this, timestamp);
       if (!Number.isFinite(timestamp)) throw new Error('Invalid timestamp: Timestamp must be finite.');
       timestamp = Math.trunc(timestamp);
       if (timestamp < constants.MIN_DATE.timeStamp || timestamp > constants.MAX_DATE.timeStamp) {

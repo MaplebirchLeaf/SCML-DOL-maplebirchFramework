@@ -1,3 +1,13 @@
+##### (v.5.4.2更新日志):
+
+- 修复玩家变量尚未初始化时的时间启动异常：非负或尚未确定的时间戳沿用原版 `fromTimestamp`，仅负时间戳进入框架的扩展日期处理。
+- 补充 Start 建立玩家变量之前与之后的时间初始化回归检查，保留公元前日期支持。
+
+**English**
+
+- Preserve native `fromTimestamp` handling for nonnegative or not-yet-initialized timestamps during startup. Only negative timestamps use the extended date handling.
+- Add time initialization coverage before and after Start creates player variables, while retaining BCE date support.
+
 ##### (v.5.4.1更新日志):
 
 - 修复游戏启动时尚无当前段落，却执行了限定段落的状态事件。段落包含、排除和正则条件现在均等待有效段落；未限定段落的初始化事件保持可用。
