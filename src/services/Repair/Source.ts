@@ -13,6 +13,50 @@ type ScriptSource = { name: string; content: string; code: string; declarations:
 type ScriptEvidence = NonNullable<RepairContext['scripts']>[number];
 
 export class RepairSources {
+  public static hasReplaceFailure(messages: string[]): boolean {
+    return messages.some(message =>
+      /\[ReplacePatcher\] patchInReplaceParamsItem(?:Twee)?\(\) patch\[[^\]\r\n]+\] cannot find (?:file|passageName|'from'):|applyReplacePatcher\(\) (?:js|css|passage) replace 0:/.test(message)
+    );
+  }
+
+  public static replaceRuleFailed(messages: string[], modName: string, kind: 'twee' | 'js' | 'css', rule: { from: string; fileName?: string; passageName?: string }): boolean {
+    const passage = kind === 'twee';
+    const destination = passage ? rule.passageName : rule.fileName;
+    if (!destination) return false;
+    const prefix = `[ReplacePatcher] ${passage ? 'patchInReplaceParamsItemTwee' : 'patchInReplaceParamsItem'}() patch[${modName}]`;
+    const core = `applyReplacePatcher() ${passage ? 'passage' : kind} replace 0: in [${destination}] of [${rule.from}] positions []`;
+    return messages.some(
+      message =>
+        message.endsWith(`${prefix} cannot find ${passage ? 'passageName' : 'file'}: ${destination}`) ||
+        message.endsWith(`${prefix} cannot find 'from': ${rule.from} in:${destination}`) ||
+        message.endsWith(core)
+    );
+  }
+
+  /** 缺失文件只提供唯一字面匹配的已加载源码，不猜测文件别名。 */
+  public static replaceSources(source: RepairSource | undefined, kind: 'js' | 'css', path: string, find: string): Array<{ name: string; kind: 'js' | 'css'; current: string }> {
+    const records = kind === 'js' ? source?.scriptFileItems : source?.styleFileItems;
+    const entries = records?.map instanceof Map ? records.map : new Map((records?.items || []).map(item => [item.name, item]));
+    const basename = (name: string) => name.split(/[\\/]/).at(-1);
+    const named = [...entries].filter(([name]) => name === path || basename(name) === path);
+    const exact = entries.get(path);
+    if (exact && typeof exact.content === 'string') return [{ name: path, kind, current: exact.content }];
+    if (named.length === 1 && typeof named[0][1].content === 'string') return [{ name: named[0][0], kind, current: named[0][1].content }];
+    if (named.length || !find) return [];
+    let remaining = 16000000;
+    const candidates: Array<{ name: string; kind: 'js' | 'css'; current: string }> = [];
+    for (const [name, item] of entries) {
+      if (typeof item.content !== 'string') continue;
+      remaining -= item.content.length;
+      if (remaining < 0) return [];
+      const index = item.content.indexOf(find);
+      if (index < 0) continue;
+      if (candidates.length || item.content.indexOf(find, index + 1) >= 0) return [];
+      candidates.push({ name, kind, current: item.content });
+    }
+    return candidates;
+  }
+
   /** 仅收集相关原生规则的定义，顺序只在同一补丁器阶段和目标内比较。 */
   public static relatedRules(host: ModLoader, related: (kind: 'twee' | 'js' | 'css', path: string) => boolean): NonNullable<RepairContext['relatedRules']> {
     const rules: NonNullable<RepairContext['relatedRules']> = [];
@@ -44,6 +88,12 @@ export class RepairSources {
                 rules.push({ modName: mod.name, patcher: 'replace-patcher', kind, destination, find: rule.from, replace: rule.to, ...(mainOrdered && nativeIndex && { order }) });
             }
         }
+    for (const { modName, kind, rule, addon } of RepairTargets.replaceRules(host)) {
+      if (!addon) continue;
+      const destination = RepairTargets.replacePath(rule, kind);
+      if (!destination || !rule.from || typeof rule.to !== 'string' || !related(kind, destination)) continue;
+      rules.push({ modName, patcher: 'replace-addon', kind, destination, find: rule.from, replace: rule.to });
+    }
     const standalone = RepairTargets.tweeReplacer(host)?.isLinkerMode === false;
     for (const { mod, rule } of RepairTargets.tweeRules(host)) {
       const key = `twee-replacer\0twee\0${rule.passage}`;

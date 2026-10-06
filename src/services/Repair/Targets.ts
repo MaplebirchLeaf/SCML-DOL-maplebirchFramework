@@ -3,6 +3,7 @@
 import type { ModInfo } from '@scml/types/sugarcube-2-ModLoader/ModLoader';
 import type { PatchInfoItem } from '@scml/types/sugarcube-2-ModLoader/ReplacePatcher';
 import type { ReplaceParams, TweeReplacer, ModBootJsonAddonPluginTweeReplacer } from '@scml/types/Mod_TweeReplacer/TweeReplacer';
+import type { ReplacePatcher as ReplaceAddon, ReplaceParams as AddonParams, ReplaceParamsItem, ReplaceParamsItemTwee } from '@scml/types/Mod_ReplacePatch/ReplacePatcher';
 import type ModLoader from '../../host/ModLoader';
 import type { SourcePatch } from '../../host/ModLoader';
 import { NativeJSON } from './Json';
@@ -13,6 +14,19 @@ interface TweeRuleLocation {
   addon: number;
   index: number;
   rule: ReplaceParams;
+}
+
+type ReplaceRule = (PatchInfoItem | ReplaceParamsItem | ReplaceParamsItemTwee) & { fileName?: string; passageName?: string; all?: boolean };
+
+interface ReplaceRuleLocation {
+  modName: string;
+  kind: 'twee' | 'js' | 'css';
+  index: number;
+  rule: ReplaceRule;
+  path: string;
+  patchFileName?: string;
+  patcher?: ModInfo['replacePatcher'][number];
+  addon?: { patcher: ReplaceAddon; mod: ModInfo; params: AddonParams };
 }
 
 export interface RepairZone {
@@ -32,6 +46,8 @@ export interface RepairHandle {
   rule?: PatchInfoItem;
   anchor?: { title: string; index: number };
   twee?: { patcher: TweeReplacer; mod: ModInfo; rule: ReplaceParams };
+  addon?: { patcher: ReplaceAddon; mod: ModInfo; rule: ReplaceRule; params: AddonParams };
+  binding?: true;
 }
 
 export class RepairTargets {
@@ -45,6 +61,38 @@ export class RepairTargets {
   public static tweeReplacer(host: ModLoader): TweeReplacer | undefined {
     const patcher = (host.modUtils.getMod('TweeReplacer') as ModInfo | undefined)?.modRef as TweeReplacer | undefined;
     if (patcher?.info instanceof Map && typeof patcher.do_patch === 'function') return patcher;
+  }
+
+  private static replaceAddon(host: ModLoader): ReplaceAddon | undefined {
+    const patcher = (host.modUtils.getMod('ReplacePatcher') as ModInfo | undefined)?.modRef as ReplaceAddon | undefined;
+    if (patcher?.info instanceof Map && typeof patcher.do_patch === 'function' && typeof patcher.checkParams === 'function') return patcher;
+  }
+
+  private static *ruleEntries(params: { twee?: ReplaceRule[]; js?: ReplaceRule[]; css?: ReplaceRule[] }): Generator<Pick<ReplaceRuleLocation, 'kind' | 'index' | 'rule'>> {
+    for (const kind of ['twee', 'js', 'css'] as const) {
+      for (const [index, rule] of (params[kind] || []).entries()) yield { kind, index, rule };
+    }
+  }
+
+  // 仅枚举加载器及插件实际使用的内存规则。
+  public static *replaceRules(host: ModLoader, modName?: string): Generator<ReplaceRuleLocation> {
+    const selected = modName ? (host.modUtils.getMod(modName) as ModInfo | undefined) : undefined;
+    for (const mod of modName ? (selected ? [selected] : []) : RepairTargets.loadedMods(host)) {
+      for (const patcher of mod.replacePatcher || []) {
+        for (const entry of RepairTargets.ruleEntries(patcher.patchInfo))
+          yield { modName: mod.name, ...entry, path: `replace|${encodeURIComponent(patcher.patchFileName)}|${entry.kind}|${entry.index}|binding`, patchFileName: patcher.patchFileName, patcher };
+      }
+    }
+    const patcher = RepairTargets.replaceAddon(host);
+    if (!patcher) return;
+    for (const { mod } of patcher.info.values()) {
+      if (modName && mod.name !== modName) continue;
+      const addonIndex = mod.bootJson.addonPlugin?.findIndex(entry => entry.modName === 'ReplacePatcher' && entry.addonName === 'ReplacePatcherAddon') ?? -1;
+      const params = mod.bootJson.addonPlugin?.[addonIndex]?.params;
+      if (!patcher.checkParams(params)) continue;
+      for (const entry of RepairTargets.ruleEntries(params))
+        yield { modName: mod.name, ...entry, path: `replace-addon|${addonIndex}|${entry.kind}|${entry.index}|binding`, addon: { patcher, mod, params } };
+    }
   }
 
   /** 只读已注册 ZIP 的替换正文，后续操作仍只修改内存规则。 */
@@ -152,6 +200,67 @@ export class RepairTargets {
     return NativeJSON.stringify({ to: descriptor.to, applyafter: descriptor.applyafter, applybefore: descriptor.applybefore, expected: descriptor.expected });
   }
 
+  public static replacePath(rule: ReplaceRule, kind: 'twee' | 'js' | 'css'): string | undefined {
+    return kind === 'twee' ? rule.passageName : rule.fileName;
+  }
+
+  public static replaceBinding(rule: ReplaceRule, kind: 'twee' | 'js' | 'css'): string {
+    const path = RepairTargets.replacePath(rule, kind);
+    return NativeJSON.stringify(kind === 'twee' ? { passageName: path, from: rule.from } : { fileName: path, from: rule.from });
+  }
+
+  public static replaceSignature(rule: ReplaceRule): string {
+    return NativeJSON.stringify({ to: rule.to, ...(rule.all !== undefined && { all: rule.all }) });
+  }
+
+  private static bindingHandle(location: ReplaceRuleLocation): RepairHandle {
+    const { rule, kind, patcher, addon } = location;
+    return {
+      read: () => RepairTargets.replaceBinding(rule, kind),
+      write: content => {
+        const value = NativeJSON.parse(content) as Record<string, unknown> | null;
+        const destination = kind === 'twee' ? 'passageName' : 'fileName';
+        const path = value?.[destination];
+        if (
+          !value ||
+          typeof value !== 'object' ||
+          Array.isArray(value) ||
+          Object.keys(value).length !== 2 ||
+          !Object.hasOwn(value, destination) ||
+          !Object.hasOwn(value, 'from') ||
+          typeof path !== 'string' ||
+          !path ||
+          typeof value.from !== 'string' ||
+          !value.from
+        )
+          throw new Error('Invalid ReplacePatcher search binding');
+        Reflect.set(rule, destination, path);
+        rule.from = value.from;
+        if (patcher) RepairTargets.indexReplaceRules(patcher, kind);
+      },
+      get output() {
+        return { kind, path: RepairTargets.replacePath(rule, kind)!, replacement: rule.to };
+      },
+      patcher,
+      rule: patcher ? (rule as PatchInfoItem) : undefined,
+      addon: addon ? { ...addon, rule } : undefined,
+      binding: true
+    };
+  }
+
+  /** 按原生规则顺序重建索引，保留规则与 Map 的引用。 */
+  private static indexReplaceRules(patcher: ModInfo['replacePatcher'][number], kind: 'twee' | 'js' | 'css'): void {
+    const map = patcher.patchInfoMap[kind];
+    map.clear();
+    for (const rule of patcher.patchInfo[kind] || []) {
+      const path = kind === 'twee' ? rule.passageName : rule.fileName;
+      if (!path) continue;
+      const rules = map.get(path);
+      if (rules) rules.push(rule);
+      else map.set(path, [rule]);
+    }
+  }
+
   public static handle(host: ModLoader, target: RepairTarget, anchors?: RepairAnchors): RepairHandle | undefined {
     const mod = host.modUtils.getMod(target.modName) as ModInfo | undefined;
     if (!mod) return;
@@ -207,17 +316,32 @@ export class RepairTargets {
       };
     }
     if (target.kind === 'replace-patcher') {
-      const [prefix, file, kind, index, field] = target.path.split('|');
-      if (prefix !== 'replace' || field !== 'from' || !['js', 'css', 'twee'].includes(kind) || !/^\d+$/.test(index)) return;
+      const [prefix, file, kind, index, field, extra] = target.path.split('|');
+      if (!['replace', 'replace-addon'].includes(prefix) || !['from', 'binding'].includes(field) || !['js', 'css', 'twee'].includes(kind) || !/^\d+$/.test(index) || extra !== undefined) return;
+      if (field === 'binding') {
+        const location = [...RepairTargets.replaceRules(host, target.modName)].find(item => item.path === target.path);
+        if (
+          !location ||
+          typeof location.rule.from !== 'string' ||
+          !location.rule.from ||
+          typeof location.rule.to !== 'string' ||
+          !location.rule.to ||
+          RepairTargets.replaceSignature(location.rule) !== target.signature
+        )
+          return;
+        if (location.patcher && !location.patcher.patchInfoMap[location.kind].get(RepairTargets.replacePath(location.rule, location.kind)!)?.includes(location.rule as PatchInfoItem)) return;
+        return RepairTargets.bindingHandle(location);
+      }
+      if (prefix !== 'replace') return;
       const patchers = mod.replacePatcher.filter(patcher => patcher.patchFileName === decodeURIComponent(file));
       if (patchers.length !== 1) return;
       const patcher = patchers[0];
       const type = kind as 'js' | 'css' | 'twee';
       const rule: PatchInfoItem | undefined = patcher.patchInfo[type]?.[Number(index)];
-      if (!rule || typeof rule.from !== 'string' || typeof rule.to !== 'string' || NativeJSON.stringify({ to: rule.to, fileName: rule.fileName, passageName: rule.passageName }) !== target.signature)
-        return;
+      if (!rule || typeof rule.from !== 'string' || typeof rule.to !== 'string') return;
+      const signature = NativeJSON.stringify({ to: rule.to, fileName: rule.fileName, passageName: rule.passageName });
+      if (signature !== target.signature) return;
       const path = type === 'twee' ? rule.passageName : rule.fileName;
-      // 现有补丁索引引用同一规则对象，仅修改其搜索锚点。
       if (!path || !patcher.patchInfoMap[type].get(path)?.includes(rule)) return;
       return {
         read: () => rule.from,

@@ -12,7 +12,7 @@ import { RepairEngine, type RepairOverlay } from './Repair/Engine';
 import { NativeJSON } from './Repair/Json';
 import { RepairProof, type ReplacePatchProof } from './Repair/Proof';
 import { RepairPrompt } from './Repair/Prompt';
-import { RepairSources } from './Repair/Source';
+import { RepairSources, type RepairSource } from './Repair/Source';
 import { ZonesManager } from '../modules/Frameworks/ZonesManager';
 import { RepairRecipeParser, type RepairContext, type RepairRecipe, type RepairTarget } from './Repair/Recipe';
 import { RepairTargets, type RepairZone, type RepairAnchors, type RepairHandle } from './Repair/Targets';
@@ -298,7 +298,13 @@ export class Repair extends Diagnostics {
     if (!proposal?.overlays.length) throw new Error('No executable repair proposal');
     await RepairEngine.prepare(proposal.recipe, proposal.context, this.resolve);
     const ids = new Set(proposal.recipe.operations.map(operation => operation.targetId));
-    const passages = new Set(proposal.overlays.filter(overlay => overlay.target.kind === 'twee-replacer').map(overlay => (NativeJSON.parse(overlay.after) as { passage: string }).passage));
+    const sourceRepair = proposal.overlays.some(overlay => overlay.target.kind === 'js' || overlay.target.kind === 'twee');
+    const destinations = new Set<string>();
+    for (const overlay of proposal.overlays) {
+      if (overlay.target.kind !== 'twee-replacer' && !(overlay.target.kind === 'replace-patcher' && overlay.target.path.endsWith('|binding'))) continue;
+      const binding = NativeJSON.parse(overlay.after) as { passage?: string; passageName?: string; fileName?: string };
+      destinations.add((binding.passage ?? binding.passageName ?? binding.fileName)!);
+    }
     const { relatedRules: _relatedRules, scripts: _scripts, omittedRules: _omittedRules, ...proposalContext } = proposal.context;
     const context: RepairContext = {
       ...proposalContext,
@@ -306,9 +312,18 @@ export class Repair extends Diagnostics {
       modLoaderLogs: [],
       patches: [],
       conflicts: [],
-      passages: proposal.context.passages?.filter(passage => passages.has(passage.name)).map(({ name, current, excerpts }) => ({ name, current, excerpts })),
+      passages: proposal.context.passages?.filter(passage => sourceRepair || destinations.has(passage.name)).map(({ name, current, excerpts }) => ({ name, current, excerpts })),
+      sources: proposal.context.sources?.filter(source => sourceRepair || destinations.has(source.name)),
+      ...(sourceRepair && proposal.context.scripts && { scripts: proposal.context.scripts }),
       targets: proposal.context.targets.filter(target => ids.has(target.id)).map(({ reference: _reference, ...target }) => target)
     };
+    if (sourceRepair) {
+      for (const target of proposal.context.targets) {
+        if (ids.has(target.id)) continue;
+        if (target.kind === 'js' && !context.sources?.some(source => source.name === target.path)) (context.sources ||= []).push({ name: target.path, kind: 'js', current: target.content });
+        if (target.kind === 'twee' && !context.passages?.some(passage => passage.name === target.path)) (context.passages ||= []).push({ name: target.path, current: target.content });
+      }
+    }
     const record: RepairMemory = {
       id: `memory:${crypto.randomUUID()}`,
       summary: proposal.recipe.summary,
@@ -360,10 +375,97 @@ export class Repair extends Diagnostics {
     await this.put({ ...record, state: 'active', verifiedAt: new Date().toISOString() });
   }
 
+  private static currentPathSource(
+    kind: 'js' | 'twee' | 'css',
+    name: string,
+    current: RepairSource | undefined,
+    mods: ReturnType<typeof RepairTargets.loadedMods>,
+    finalOnly: boolean
+  ): string | undefined {
+    const field = kind === 'js' ? 'scriptFileItems' : kind === 'twee' ? 'passageDataItems' : 'styleFileItems';
+    if (!finalOnly) {
+      const matches = mods.flatMap(mod => mod.cache[field].items.filter(item => item.name === name));
+      if (matches.length) return matches.length === 1 ? matches[0].content : undefined;
+    }
+    return current?.[field].map.get(name)?.content;
+  }
+
+  /** 按已记录的名称重新读取源码，不沿用记忆中的旧正文。 */
+  private livePathContext(context: RepairContext, finalOnly = false): RepairContext {
+    let current: RepairSource | undefined;
+    let mods: ReturnType<typeof RepairTargets.loadedMods> = [];
+    try {
+      current = this.host.modSC2DataManager.getSC2DataInfoAfterPatch();
+    } catch (error) {
+      this.write('Repair current path source unavailable', 'WARN', this.scope, error);
+    }
+    if (!finalOnly) {
+      try {
+        mods = RepairTargets.loadedMods(this.host);
+      } catch (error) {
+        this.write('Repair loaded path sources unavailable', 'WARN', this.scope, error);
+      }
+    }
+    const live: RepairContext = { ...context, targets: [], sources: [], passages: [], scripts: [] };
+    const modified = new Set(context.targets.filter(target => target.kind === 'js' || target.kind === 'twee').map(target => `${target.kind}\0${target.path}`));
+    for (const target of context.targets) {
+      if (target.kind !== 'js' && target.kind !== 'twee') {
+        live.targets.push(target);
+        continue;
+      }
+      // 最终正文已验证存活，仅沿用修改前已有的路径，避免新调用自证。
+      if (finalOnly) {
+        live.targets.push(target);
+        continue;
+      }
+      const content = this.resolve(target);
+      if (content !== undefined) live.targets.push({ ...target, content });
+    }
+    for (const source of context.sources || []) {
+      if (finalOnly && modified.has(`${source.kind}\0${source.name}`)) continue;
+      const content = Repair.currentPathSource(source.kind, source.name, current, mods, finalOnly);
+      if (content !== undefined) live.sources!.push({ name: source.name, kind: source.kind, current: content });
+    }
+    for (const passage of context.passages || []) {
+      if (finalOnly && modified.has(`twee\0${passage.name}`)) continue;
+      const content = Repair.currentPathSource('twee', passage.name, current, mods, finalOnly);
+      if (content !== undefined) live.passages!.push({ name: passage.name, current: content });
+    }
+    for (const script of context.scripts || []) {
+      if (finalOnly && modified.has(`js\0${script.name}`)) continue;
+      const content = Repair.currentPathSource('js', script.name, current, mods, finalOnly);
+      if (content !== undefined) live.scripts!.push({ name: script.name, symbols: [], excerpts: [{ line: 1, content }] });
+    }
+    return live;
+  }
+
+  // 后续同目标整段替换的中间路径不会进入最终正文。
+  private static *pathSteps(steps: NonNullable<RepairMemory['steps']>): Generator<{ recipe: RepairRecipe; context: RepairContext }> {
+    const later = new Map<string, Set<string>>();
+    for (let index = steps.length - 1; index >= 0; index--) {
+      const { recipe, context } = steps[index];
+      const targets = new Map(context.targets.map(target => [target.id, target]));
+      const operations = recipe.operations.filter(operation => {
+        const target = targets.get(operation.targetId);
+        if (!target) return true;
+        const key = Repair.targetKey(target);
+        let finds = later.get(key);
+        const retained = !finds?.has(operation.replace);
+        if (!finds) later.set(key, (finds = new Set()));
+        finds.add(operation.find);
+        return retained;
+      });
+      yield { recipe: { ...recipe, operations }, context };
+    }
+  }
+
   private async prepareMemory(record: RepairMemory): Promise<RepairOverlay[]> {
     const staged = new Map<string, RepairOverlay>();
     const steps = [...(record.steps || []), { recipe: record.recipe, context: record.context }];
     if (steps.length > 17) throw new Error('Repair memory steps limit reached');
+    for (const step of Repair.pathSteps(steps)) {
+      if (RepairRecipeParser.validatePaths(step.recipe, step.context)) RepairRecipeParser.validatePaths(step.recipe, this.livePathContext(step.context));
+    }
     for (const step of steps) {
       const overlays = await RepairEngine.prepare(step.recipe, step.context, target => {
         const previous = staged.get(Repair.targetKey(target));
@@ -476,7 +578,7 @@ export class Repair extends Diagnostics {
             handle = applied.handles[index];
           if (handle.read() !== overlay.after) throw new Error('Another patch changed the repair target');
           if (overlay.replacement && handle.output.replacement !== overlay.replacement.after) throw new Error('Another patch changed the derived replacement');
-          if (handle.twee && !atEnd) continue;
+          if ((handle.twee || handle.addon) && !atEnd) continue;
           const records = handle.output.kind === 'twee' ? final.passageDataItems : handle.output.kind === 'js' ? final.scriptFileItems : final.styleFileItems;
           const content = records.map.get(handle.output.path)?.content;
           if (content === undefined) throw new Error('Repaired output missing');
@@ -492,6 +594,9 @@ export class Repair extends Diagnostics {
           } else if (!survived(overlay.after)) throw new Error('Repaired output was overwritten');
         }
         if (!atEnd) continue;
+        for (const step of Repair.pathSteps([...(applied.record.steps || []), { recipe: applied.record.recipe, context: applied.record.context }])) {
+          if (RepairRecipeParser.validatePaths(step.recipe, step.context)) RepairRecipeParser.validatePaths(step.recipe, this.livePathContext(step.context, true));
+        }
         complete = true;
         const state = applied.record.verifiedAt ? 'active' : 'trial';
         await this.put({ ...applied.record, state, error: undefined });

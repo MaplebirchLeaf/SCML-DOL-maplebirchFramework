@@ -25,6 +25,9 @@ export class RepairEngine {
       if (target.kind === 'twee-replacer') {
         const binding = NativeJSON.parse(after) as { passage: string; findString: string };
         after = NativeJSON.stringify({ passage: binding.passage, findString: binding.findString });
+      } else if (target.kind === 'replace-patcher' && target.path.endsWith('|binding')) {
+        const binding = NativeJSON.parse(after) as { passageName?: string; fileName?: string; from: string };
+        after = NativeJSON.stringify(target.path.split('|')[2] === 'twee' ? { passageName: binding.passageName, from: binding.from } : { fileName: binding.fileName, from: binding.from });
       }
       const { content: _content, ...identity } = target;
       const replacement = RepairRecipeParser.rebase(target, operation.replace);

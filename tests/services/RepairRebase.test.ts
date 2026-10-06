@@ -71,6 +71,30 @@ test('refuses overlapping or adjacent edits instead of choosing one branch', () 
   expect(() => RepairRebase.apply('before\nvalue\nafter', 'before\nmod\nafter', 'before\ncurrent\nafter')).toThrow('overlap');
 });
 
+test('merges independent literal assignments at the same link insertion point', () => {
+  const original = '\t<<link [[继续|Livestock Milking Obey]]>><</link>>';
+  const current = original.replace('<</link>>', '<<set $phase to 0>><</link>>');
+  const replacement = original.replace('<</link>>', '<<set $mmilkfight_phase to 1>><</link>>');
+  expect(RepairRebase.apply(original, replacement, current)).toBe(current.replace('<</link>>', '<<set $mmilkfight_phase to 1>><</link>>'));
+  expect(RepairRebase.apply(original, original.replace('<</link>>', '<<set $flags.mod = true>><</link>>'), current)).toContain('<<set $phase to 0>><<set $flags.mod = true>>');
+});
+
+test('same-point assignments still reject dependent paths and nonliteral expressions', () => {
+  const original = '<<link "Continue">><</link>>';
+  for (const [native, mod] of [
+    ['$phase to 0', '$phase to 1'],
+    ['$flags to null', '$flags.mod to true'],
+    ['$flags.mod to true', '$flags to null'],
+    ['$phase to 0', '$mod to $phase'],
+    ['$phase to 0', '$mod to initialize()'],
+    ['$phase to 0', '$flags.__proto__ to null']
+  ]) {
+    const current = original.replace('<</link>>', `<<set ${native}>><</link>>`);
+    const replacement = original.replace('<</link>>', `<<set ${mod}>><</link>>`);
+    expect(() => RepairRebase.apply(original, replacement, current)).toThrow('overlap');
+  }
+});
+
 test('refuses ambiguous inherited or unchanged context', () => {
   expect(() => RepairRebase.apply('aaa', 'aaaa', 'bbb')).toThrow('Ambiguous inherited');
   const repeated = 'same();\n'.repeat(50) + 'const end = 1;';

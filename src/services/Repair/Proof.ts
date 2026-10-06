@@ -14,6 +14,14 @@ type TweeInfo = Parameters<TweePatcher['do_patch']>[0];
 
 type TweeData = Parameters<TweePatcher['do_patch']>[1];
 
+type AddonPatcher = NonNullable<RepairHandle['addon']>['patcher'];
+
+type AddonInfo = Parameters<AddonPatcher['do_patch']>[0];
+
+type AddonData = Parameters<AddonPatcher['do_patch']>[1];
+
+type AsyncPatcher = Pick<TweePatcher, 'info' | 'do_patch'>;
+
 interface Observation {
   handle: RepairHandle;
   diagnostics: Diagnostics;
@@ -35,11 +43,11 @@ interface PatchObserver {
   subscribers: Set<Observer>;
 }
 
-interface TweeObserver {
-  patcher: TweePatcher;
-  original: TweePatcher['do_patch'];
+interface AsyncObserver {
+  patcher: AsyncPatcher;
+  original: AsyncPatcher['do_patch'];
   descriptor?: PropertyDescriptor;
-  wrapper: TweePatcher['do_patch'];
+  wrapper: AsyncPatcher['do_patch'];
   subscribers: Set<Observer>;
 }
 
@@ -55,17 +63,23 @@ export interface ReplacePatchProof {
 
 export class RepairProof {
   private static observers = new WeakMap<Patcher, PatchObserver>();
-  private static tweeObservers = new WeakMap<TweePatcher, TweeObserver>();
+  private static asyncObservers = new WeakMap<AsyncPatcher, AsyncObserver>();
   private static invocationSequence = 0;
 
   private static warn(observation: Observation, phase: string, error: unknown): void {
-    const { twee, patcher, rule } = observation.handle;
-    const target = twee ? `${twee.mod.name}:${twee.rule.passage}` : `${patcher?.patchFileName || 'ReplacePatcher'}:${rule?.passageName || rule?.fileName || '未知目标'}`;
-    observation.diagnostics.write(`修复${phase}失败：${target}`, 'WARN', 'repair', error);
+    const { twee, patcher, rule, addon } = observation.handle;
+    const owner = twee?.mod.name || addon?.mod.name || patcher?.patchFileName || 'ReplacePatcher';
+    const path = twee?.rule.passage || addon?.rule.passageName || addon?.rule.fileName || rule?.passageName || rule?.fileName || '未知目标';
+    observation.diagnostics.write(`修复${phase}失败：${owner}:${path}`, 'WARN', 'repair', error);
   }
 
   private static records(data: PatchData, handle: RepairHandle) {
     return handle.output.kind === 'twee' ? data.passageDataItems : handle.output.kind === 'js' ? data.scriptFileItems : data.styleFileItems;
+  }
+
+  private static uniqueMatch(content: string, find: string): boolean {
+    const first = content.indexOf(find);
+    return first >= 0 && content.indexOf(find, first + 1) < 0;
   }
 
   private static restoreObserver(observer: PatchObserver): void {
@@ -76,12 +90,38 @@ export class RepairProof {
     if (RepairProof.observers.get(observer.patcher) === observer) RepairProof.observers.delete(observer.patcher);
   }
 
-  private static restoreTweeObserver(observer: TweeObserver): void {
+  private static restoreAsyncObserver(observer: AsyncObserver): void {
     if (observer.patcher.do_patch === observer.wrapper) {
       if (observer.descriptor) Object.defineProperty(observer.patcher, 'do_patch', observer.descriptor);
       else Reflect.deleteProperty(observer.patcher, 'do_patch');
     }
-    if (RepairProof.tweeObservers.get(observer.patcher) === observer) RepairProof.tweeObservers.delete(observer.patcher);
+    if (RepairProof.asyncObservers.get(observer.patcher) === observer) RepairProof.asyncObservers.delete(observer.patcher);
+  }
+
+  private static addonExpectation(data: AddonData, info: AddonInfo, handle: RepairHandle): { output: string; matched: boolean } | undefined {
+    const { addon, output } = handle;
+    if (!addon || addon.mod !== info.mod || addon.patcher.info.get(info.mod.name) !== info) return;
+    const params = info.mod.bootJson.addonPlugin?.find(entry => entry.modName === 'ReplacePatcher' && entry.addonName === 'ReplacePatcherAddon')?.params;
+    if (params !== addon.params || !addon.patcher.checkParams(params)) return;
+    const rules = params[output.kind];
+    if (!rules?.some(rule => rule === addon.rule)) return;
+    const records = RepairProof.records(data, handle);
+    const item = records.map.get(output.path);
+    if (!item || records.items.filter(candidate => candidate.name === output.path).length !== 1) return;
+    let content = item.content;
+    let matched = false;
+    for (const rule of rules) {
+      const path = RepairTargets.replacePath(rule, output.kind);
+      if (!path) return;
+      const destination = output.kind === 'twee' ? records.map.get(path) : records.getByNameWithOrWithoutPath(path);
+      if (destination !== item || !content.includes(rule.from)) continue;
+      if (rule === addon.rule) {
+        if (!RepairProof.uniqueMatch(content, rule.from)) return;
+        matched = true;
+      }
+      content = rule.all ? content.replaceAll(rule.from, rule.to) : content.replace(rule.from, rule.to);
+    }
+    return { output: content, matched };
   }
 
   private static tweeExpectation(data: TweeData, info: TweeInfo, handle: RepairHandle): { output: string; matched: boolean } | undefined {
@@ -101,7 +141,7 @@ export class RepairProof {
       if (!content.includes(current.findString)) continue;
       if (current === twee.rule) {
         // 前序原生规则执行后，再用当前输入核对记忆中的规则。
-        if (content.split(current.findString).length !== 2) return;
+        if (!RepairProof.uniqueMatch(content, current.findString)) return;
         matched = true;
       }
       // 原生 TweeReplacer 使用替换字符串，包含 $ 替换语义。
@@ -110,17 +150,18 @@ export class RepairProof {
     return { output: content, matched };
   }
 
-  private static async observeTwee(observer: TweeObserver, receiver: TweePatcher, info: TweeInfo, data: TweeData): ReturnType<TweePatcher['do_patch']> {
+  private static async observeAsync(observer: AsyncObserver, receiver: AsyncPatcher, info: TweeInfo, data: TweeData): ReturnType<AsyncPatcher['do_patch']> {
     const expected = new Map<Observation, ReturnType<typeof RepairProof.tweeExpectation>>();
     for (const subscriber of observer.subscribers)
       for (const observation of subscriber.observations) {
-        if (receiver !== observer.patcher || observer.patcher.info.get(info.mod.name) !== info || observation.handle.twee?.mod !== info.mod) continue;
+        const owner = observation.handle.twee || observation.handle.addon;
+        if (receiver !== observer.patcher || observer.patcher.info.get(info.mod.name) !== info || owner?.mod !== info.mod) continue;
         observation.matched = false;
         observation.sequence = 0;
         observation.output = undefined;
         observation.attempted = true;
         try {
-          expected.set(observation, receiver === observer.patcher ? RepairProof.tweeExpectation(data, info, observation.handle) : undefined);
+          expected.set(observation, observation.handle.twee ? RepairProof.tweeExpectation(data, info, observation.handle) : RepairProof.addonExpectation(data, info, observation.handle));
         } catch (error) {
           expected.set(observation, undefined);
           RepairProof.warn(observation, '预期计算', error);
@@ -132,8 +173,7 @@ export class RepairProof {
       for (const [observation, expectedOutput] of expected) {
         if (!expectedOutput?.matched) continue;
         try {
-          const output = observation.handle.output;
-          const item = data.passageDataItems.map.get(output.path);
+          const item = RepairProof.records(data, observation.handle).map.get(observation.handle.output.path);
           if (item?.content === expectedOutput.output) {
             observation.matched = true;
             observation.sequence = sequence;
@@ -146,7 +186,7 @@ export class RepairProof {
       return result;
     } finally {
       // 同一原生实例处理多个模组，观察器须保留至订阅的模组执行完毕。
-      if ([...observer.subscribers].every(subscriber => subscriber.observations.every(observation => observation.attempted))) RepairProof.restoreTweeObserver(observer);
+      if ([...observer.subscribers].every(subscriber => subscriber.observations.every(observation => observation.attempted))) RepairProof.restoreAsyncObserver(observer);
     }
   }
 
@@ -162,7 +202,10 @@ export class RepairProof {
       if (typeof current.from !== 'string' || typeof current.to !== 'string') return;
       const position = content.indexOf(current.from);
       if (position < 0) continue;
-      if (current === rule) matched = true;
+      if (current === rule) {
+        if (handle.binding && !RepairProof.uniqueMatch(content, current.from)) return;
+        matched = true;
+      }
       content = content.slice(0, position) + current.to + content.slice(position + current.from.length);
     }
     return { output: content, matched };
@@ -207,7 +250,7 @@ export class RepairProof {
   /** 观察加载器现有补丁器的调用，保留原接收者和方法。 */
   public static observe(handles: RepairHandle[], diagnostics: Diagnostics): ReplacePatchProof {
     const owned = new Map<PatchObserver, Observer>();
-    const ownedTwee = new Map<TweeObserver, Observer>();
+    const ownedAsync = new Map<AsyncObserver, Observer>();
     const observations = new Map<RepairHandle, Observation>();
     const restore = () => {
       for (const [observer, subscriber] of owned) {
@@ -215,36 +258,36 @@ export class RepairProof {
         if (!observer.subscribers.size) RepairProof.restoreObserver(observer);
       }
       owned.clear();
-      for (const [observer, subscriber] of ownedTwee) {
+      for (const [observer, subscriber] of ownedAsync) {
         observer.subscribers.delete(subscriber);
-        if (!observer.subscribers.size) RepairProof.restoreTweeObserver(observer);
+        if (!observer.subscribers.size) RepairProof.restoreAsyncObserver(observer);
       }
-      ownedTwee.clear();
+      ownedAsync.clear();
     };
     try {
       for (const handle of handles) {
-        if (handle.twee) {
-          const patcher = handle.twee.patcher;
-          let observer = RepairProof.tweeObservers.get(patcher);
-          if (!observer || patcher.do_patch !== observer.wrapper) {
-            const created: TweeObserver = {
-              patcher,
-              original: patcher.do_patch,
-              descriptor: Object.getOwnPropertyDescriptor(patcher, 'do_patch'),
-              wrapper: function (this: TweePatcher, info: TweeInfo, data: TweeData) {
-                return RepairProof.observeTwee(created, this, info, data);
+        const nativeAddon = handle.twee?.patcher || handle.addon?.patcher;
+        if (nativeAddon) {
+          let observer = RepairProof.asyncObservers.get(nativeAddon);
+          if (!observer || nativeAddon.do_patch !== observer.wrapper) {
+            const created: AsyncObserver = {
+              patcher: nativeAddon,
+              original: nativeAddon.do_patch,
+              descriptor: Object.getOwnPropertyDescriptor(nativeAddon, 'do_patch'),
+              wrapper: function (this: AsyncPatcher, info: TweeInfo, data: TweeData) {
+                return RepairProof.observeAsync(created, this, info, data);
               },
               subscribers: new Set()
             };
-            patcher.do_patch = created.wrapper;
-            RepairProof.tweeObservers.set(patcher, created);
+            nativeAddon.do_patch = created.wrapper;
+            RepairProof.asyncObservers.set(nativeAddon, created);
             observer = created;
           }
-          let subscriber = ownedTwee.get(observer);
+          let subscriber = ownedAsync.get(observer);
           if (!subscriber) {
             subscriber = { observations: [] };
             observer.subscribers.add(subscriber);
-            ownedTwee.set(observer, subscriber);
+            ownedAsync.set(observer, subscriber);
           }
           const observation = { handle, diagnostics, matched: false, sequence: 0 };
           subscriber.observations.push(observation);

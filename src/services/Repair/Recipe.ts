@@ -33,9 +33,11 @@ export interface RepairContext {
   omittedRules?: number;
   /** 当前脚本的只读定位片段。 */
   scripts?: Array<{ name: string; symbols: string[]; excerpts: Array<{ line: number; column?: number; content: string }> }>;
+  /** 原生补丁目的文件；完整正文留给宿主验证唯一匹配。 */
+  sources?: Array<{ name: string; kind: 'js' | 'css'; current: string; excerpts?: Array<{ offset: number; content: string }> }>;
   relatedRules?: Array<{
     modName: string;
-    patcher: 'replace-patcher' | 'twee-replacer';
+    patcher: 'replace-patcher' | 'replace-addon' | 'twee-replacer';
     kind: 'twee' | 'js' | 'css';
     destination: string;
     find: string;
@@ -215,11 +217,69 @@ export class RepairRecipeParser {
       throw new Error('TweeReplacer anchor splits executable markup');
   }
 
-  /** 可执行源码修复仅允许使用框架提供的属性保护模板。 */
+  private static codePath(value: string): boolean {
+    if (!/^(?:(?:V|T|C|setup|maplebirch|options|npc)(?:\.[A-Za-z_$][\w$]*){1,8}|(?:\$[A-Za-z_]\w*|_[A-Za-z]\w*)(?:\.[A-Za-z_$][\w$]*){0,8})$/.test(value)) return false;
+    return !value.split('.').some((part, index) => ['constructor', 'prototype', '__proto__'].includes(index === 0 ? part.replace(/^[$_]/, '') : part));
+  }
+
+  /** 属性保护与路径迁移共用路径限制。 */
   public static propertyGuard(find: string): string | undefined {
-    if (!/^(?:V|T|setup|maplebirch|options|npc|\$[A-Za-z_]\w*|_[A-Za-z]\w*)(?:\.[A-Za-z_$][\w$]*){2,8}$/.test(find)) return;
-    if (find.split('.').some(part => ['constructor', 'prototype', '__proto__'].includes(part))) return;
+    if (!RepairRecipeParser.codePath(find) || find.split('.').length < 3) return;
     return find.replaceAll('.', '?.');
+  }
+
+  /** Twee 只标记表达式与 script 正文，保留原文坐标。 */
+  private static executableCode(source: string, kind: 'js' | 'twee'): string {
+    const code = Array<string>(source.length).fill(' ');
+    const ranges =
+      kind === 'js'
+        ? [{ start: 0, end: source.length }]
+        : RepairRecipeParser.macroRanges(source).flatMap(region => {
+            if (region.name === 'script') return region.bodyStart !== undefined && region.bodyEnd !== undefined ? [{ start: region.bodyStart, end: region.bodyEnd }] : [];
+            return ['if', 'elseif', 'print', '=', 'switch', 'case', 'set', 'run', 'for'].includes(region.name) ? [{ start: region.expressionStart, end: region.expressionEnd }] : [];
+          });
+    for (const { start, end } of ranges) {
+      const fragment = source.slice(start, end);
+      const offsets = RepairRecipeParser.codeOffsets(fragment);
+      for (let index = 0; index < fragment.length; index++) if (offsets[index]) code[start + index] = fragment[index];
+    }
+    return code.join('');
+  }
+
+  private static completeAccess(source: string, code: string, path: string, start: number): boolean {
+    const end = start + path.length;
+    return code.slice(start, end) === path && !/[$\p{ID_Continue}.?]/u.test(source[start - 1] || '') && !/[$\p{ID_Continue}.?[`]/u.test(source[end] || '');
+  }
+
+  private static *currentCode(context: RepairContext): Generator<{ kind: 'js' | 'twee'; content: string }> {
+    for (const target of context.targets) if (target.kind === 'js' || target.kind === 'twee') yield { kind: target.kind, content: target.content };
+    for (const source of context.sources || []) if (source.kind === 'js') yield { kind: 'js', content: source.current };
+    for (const script of context.scripts || []) for (const excerpt of script.excerpts) yield { kind: 'js', content: excerpt.content };
+    for (const passage of context.passages || []) if (passage.current !== undefined) yield { kind: 'twee', content: passage.current };
+  }
+
+  /** 目的路径须在本次当前源码中以完整代码访问出现。 */
+  private static observedPath(context: RepairContext, path: string): boolean {
+    for (const source of RepairRecipeParser.currentCode(context)) {
+      const positions = RepairRecipeParser.matches(source.content, path);
+      if (!positions.length) continue;
+      const code = RepairRecipeParser.executableCode(source.content, source.kind);
+      if (positions.some(start => RepairRecipeParser.completeAccess(source.content, code, path, start))) return true;
+    }
+    return false;
+  }
+
+  /** 回放只重查路径目的，不提前验证其他模组尚未执行的锚点。 */
+  public static validatePaths(recipe: RepairRecipe, context: RepairContext): boolean {
+    const targets = new Map(context.targets.map(target => [target.id, target]));
+    let renamed = false;
+    for (const operation of recipe.operations) {
+      const target = targets.get(operation.targetId);
+      if (!target || (target.kind !== 'js' && target.kind !== 'twee') || !RepairRecipeParser.codePath(operation.find) || !RepairRecipeParser.codePath(operation.replace)) continue;
+      renamed = true;
+      if (!RepairRecipeParser.observedPath(context, operation.replace)) throw new Error('Replacement path is not observed in current source');
+    }
+    return renamed;
   }
 
   private static matches(content: string, find: string, overlap = false): number[] {
@@ -247,6 +307,41 @@ export class RepairRecipeParser {
 
   private static targetName(id: string): string {
     return /^target-\d+$/.test(id) ? id : 'target';
+  }
+
+  private static validateBinding(target: RepairTarget, operation: RepairOperation, context: RepairContext): void {
+    if (operation.find !== target.content || operation.expectedMatches !== 1) throw new Error('ReplacePatcher repairs update one complete search binding');
+    const [prefix, location, kind, index, field, extra] = target.path.split('|');
+    if (
+      !['replace', 'replace-addon'].includes(prefix) ||
+      !location ||
+      (prefix === 'replace-addon' && !/^\d+$/.test(location)) ||
+      !['twee', 'js', 'css'].includes(kind) ||
+      !/^\d+$/.test(index) ||
+      field !== 'binding' ||
+      extra !== undefined
+    )
+      throw new Error('Invalid ReplacePatcher rule');
+    const value: unknown = NativeJSON.parse(operation.replace);
+    const destination = kind === 'twee' ? 'passageName' : 'fileName';
+    if (
+      !RepairRecipeParser.object(value) ||
+      !RepairRecipeParser.keys(value, [destination, 'from']) ||
+      !RepairRecipeParser.text(value[destination], 256) ||
+      /[\r\n]/.test(value[destination]) ||
+      !RepairRecipeParser.text(value.from, 32000)
+    )
+      throw new Error('Invalid ReplacePatcher search binding');
+    const name = value[destination];
+    const anchor = value.from;
+    const source = kind === 'twee' ? context.passages?.find(source => source.name === name) : context.sources?.find(source => source.kind === kind && source.name === name);
+    if (source?.current === undefined) throw new Error(`ReplacePatcher current source unavailable: ${RepairRecipeParser.targetName(target.id)}`);
+    const matches = RepairRecipeParser.matches(source.current, anchor, true);
+    if (matches.length !== 1) throw new Error(`ReplacePatcher anchor match count: ${RepairRecipeParser.targetName(target.id)} (found ${matches.length}, expected 1)`);
+    if (kind === 'twee') RepairRecipeParser.validateTweeAnchor(source.current, anchor, target.id);
+    if (source.excerpts && !source.excerpts.some(excerpt => excerpt.content.includes(anchor))) throw new Error('ReplacePatcher anchor is outside supplied source excerpts');
+    const before = NativeJSON.parse(target.content) as Record<string, string>;
+    if (before[destination] === value[destination] && before.from === value.from) throw new Error('Unchanged ReplacePatcher search binding');
   }
 
   /** 校验单条操作和当前源码。 */
@@ -280,6 +375,10 @@ export class RepairRecipeParser {
       if (source?.excerpts && !source.excerpts.some(excerpt => excerpt.content.includes(anchor))) throw new Error('TweeReplacer anchor is outside supplied source excerpts');
       return;
     }
+    if (target.kind === 'replace-patcher' && target.path.endsWith('|binding')) {
+      RepairRecipeParser.validateBinding(target, operation, context);
+      return;
+    }
     if (target.kind === 'patch-anchor' || target.kind === 'replace-patcher') {
       // 这些目标仅是搜索文本或锚点字段，不含规则的替换正文。
       if (!replace || Array.from(replace).some(character => character.charCodeAt(0) < 32 && ![9, 10, 13].includes(character.charCodeAt(0)))) throw new Error('Invalid patch anchor');
@@ -302,13 +401,13 @@ export class RepairRecipeParser {
       return;
     }
     const guard = RepairRecipeParser.propertyGuard(find);
-    if (replace === guard) {
-      const offsets = RepairRecipeParser.codeOffsets(target.content);
-      const code = Array.from(target.content, (character, index) => (offsets[index] ? character : ' ')).join('');
+    const rename = RepairRecipeParser.codePath(find) && RepairRecipeParser.codePath(replace);
+    if (replace === guard || rename) {
+      const code = RepairRecipeParser.executableCode(target.content, target.kind);
       for (const start of positions) {
         const end = start + find.length;
-        if (!offsets.slice(start, end).every(Boolean) || /[\w$?.]/.test(target.content[start - 1] || '') || /[\w$.[`]/.test(target.content[end] || ''))
-          throw new Error('Property guard is not a complete code access');
+        if (!RepairRecipeParser.completeAccess(target.content, code, find, start)) throw new Error(`${rename ? 'Repair path' : 'Property guard'} is not a complete code access`);
+        if (rename) continue;
         const following = code.slice(end).trimStart();
         const preceding = code
           .slice(0, start)
@@ -317,13 +416,8 @@ export class RepairRecipeParser {
         if (/^[\]})\s]*(?:=(?!=|>)|(?:\*\*|&&|\|\||\?\?|[+\-*/%&|^])=|\+\+|--|(?:to|range|of|in)\b)/.test(following) || /(?:\bnew|\+\+|--|\[|:|,)\s*$/.test(preceding))
           throw new Error('Property guard cannot modify a write or constructor');
         if (/^(?:\s|\/\*[\s\S]*?\*\/|\/\/[^\n]*(?:\n|$))*`/.test(target.content.slice(end))) throw new Error('Property guard cannot modify a tagged template');
-        if (target.kind === 'twee') {
-          const open = target.content.lastIndexOf('<<', start);
-          const close = open >= 0 ? target.content.indexOf('>>', open) : -1;
-          if (open < 0 || close < end || target.content.slice(open + 2, start).includes('>>')) throw new Error('Twee guards must be inside a macro expression');
-          if (!/^\s*(?:if|elseif|print|=|switch|case|set|run|for)(?:\s|$)/.test(target.content.slice(open + 2, start))) throw new Error('Unsupported Twee expression macro');
-        }
       }
+      if (rename && !RepairRecipeParser.observedPath(context, replace)) throw new Error('Replacement path is not observed in current source');
       return;
     }
     if (target.kind !== 'twee') throw new Error('JS repair requires a framework property guard');

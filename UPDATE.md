@@ -1,3 +1,19 @@
+##### (v.5.4.0更新日志):
+
+- 新增可选的 AI 修复服务，使用用户配置的服务分析补丁失败，提供受限修复方案、审核与验证，保留修复记录。
+- 修复方案支持基于当前源码证据调整补丁锚点与路径，覆盖 ReplacePatcher 与 TweeReplacer 绑定；应用及重放时重新核对实际源码，避免使用过期证据。
+- 收束段落包装逻辑，统一转化镜子的接入方式，保留原版时间样式与其它模组已应用的修改。
+- 修复 NPC 无效状态值与桌面宠物初始化期间的图层读取问题。
+- 补充修复绑定、路径更名、补丁上下文、重放与生命周期回归检查。
+
+**English**
+
+- Add an optional AI repair service using user-configured providers to investigate patch failures, propose constrained repairs, support review and verification, and retain repair records.
+- Support patch anchor and path corrections grounded in current source evidence, including ReplacePatcher and TweeReplacer bindings. Recheck live sources when applying or replaying repairs to avoid stale evidence.
+- Share passage wrapping and align transformation mirror integration while preserving native time styling and changes already applied by other mods.
+- Fix invalid NPC stats and layer access during desktop pet initialization.
+- Add regression coverage for repair bindings, path renames, patch context, replay and lifecycle handling.
+
 ##### (v.5.2.3更新日志):
 
 - 云存档删除操作增加确认步骤，显示待删除槽位与存档日期，避免直接删除远端存档。

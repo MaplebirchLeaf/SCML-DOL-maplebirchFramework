@@ -69,7 +69,29 @@ export class RepairRebase {
       }
     }
     if (edit) edits.push(edit);
-    return edits;
+    return edits.map(edit => RepairRebase.insertion(original, edit));
+  }
+
+  /** 将共享宏起始符后的插入移到完整宏边界。 */
+  private static insertion(source: string, edit: SourceEdit): SourceEdit {
+    if (edit.start !== edit.end || source.slice(edit.start - 2, edit.start) !== '<<' || !edit.text.endsWith('<<')) return edit;
+    const text = '<<' + edit.text.slice(0, -2);
+    return /^<<\s*set\b/.test(text) ? { start: edit.start - 2, end: edit.end - 2, text } : edit;
+  }
+
+  private static assignment(source: string): string | undefined {
+    const match = /^\s*<<\s*set\s+((?:\$[A-Za-z_]\w*|_[A-Za-z]\w*)(?:\.[A-Za-z_$][\w$]*){0,8})\s*(?:to\s+|=\s*)(?:-?\d+(?:\.\d+)?|true|false|null)\s*>>\s*$/.exec(source);
+    if (!match) return;
+    const path = match[1];
+    if (path.split('.').some(part => ['constructor', 'prototype', '__proto__'].includes(part))) return;
+    return path;
+  }
+
+  private static independent(left: SourceEdit, right: SourceEdit): boolean {
+    if (left.start !== left.end || right.start !== right.end || left.start !== right.start) return false;
+    const a = RepairRebase.assignment(left.text);
+    const b = RepairRebase.assignment(right.text);
+    return !!a && !!b && a !== b && !a.startsWith(b + '.') && !b.startsWith(a + '.');
   }
 
   /** 保护宏分隔符和 Unicode 字符边界。 */
@@ -99,16 +121,19 @@ export class RepairRebase {
   }
 
   private static project(original: string, current: string, edit: SourceEdit, changes: SourceEdit[]): SourceEdit {
-    if (changes.some(change => !(edit.end < change.start || change.end < edit.start))) throw new Error('Mod and current source edits overlap');
+    const overlaps = changes.filter(change => !(edit.end < change.start || change.end < edit.start));
+    if (overlaps.length && (overlaps.length !== 1 || !RepairRebase.independent(edit, overlaps[0]))) throw new Error('Mod and current source edits overlap');
+    const insertion = overlaps[0]?.text.replaceAll('\r\n', '\n') || '';
     const preceding = changes.filter(change => change.end < edit.start);
     const following = changes.find(change => edit.end < change.start);
     const left = Math.max(0, edit.start - 64, preceding.length ? preceding.at(-1)!.end + 1 : 0);
     const right = Math.min(original.length, edit.end + 64, following ? following.start - 1 : original.length);
     const anchor = original.slice(left, right);
+    const expected = anchor.slice(0, edit.start - left) + insertion + anchor.slice(edit.start - left);
     const shift = preceding.reduce((offset, change) => offset + change.text.length - (change.end - change.start), 0);
-    if (!RepairRebase.unique(original, anchor) || !RepairRebase.unique(current, anchor) || current.slice(left + shift, right + shift) !== anchor)
+    if (!RepairRebase.unique(original, anchor) || !RepairRebase.unique(current, expected) || current.slice(left + shift, right + shift + insertion.length) !== expected)
       throw new Error('Mod edit has no unique unchanged context');
-    return { start: edit.start + shift, end: edit.end + shift, text: edit.text };
+    return { start: edit.start + shift + insertion.length, end: edit.end + shift + insertion.length, text: edit.text };
   }
 
   /** 从既有模组正文和当前源码派生替换内容。 */

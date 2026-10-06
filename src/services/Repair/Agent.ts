@@ -7,22 +7,9 @@ import { RepairConnection, type RepairConnectionInput, type ConnectionResult } f
 import { RepairPrompt } from './Prompt';
 import { RepairRecipeParser, type RepairContext, type RepairRecipe, type RepairTarget } from './Recipe';
 import { RepairSources, type RepairSource } from './Source';
-import type { ModInfo } from '@scml/types/sugarcube-2-ModLoader/ModLoader';
 
 export class RepairAgent {
   private static readonly CONTEXT_LIMIT = RepairPrompt.MAX_LENGTH - 32000;
-
-  private static *patchRules(modName: string, patcher: ModInfo['replacePatcher'][number]) {
-    for (const kind of ['twee', 'js', 'css'] as const) {
-      for (const [index, rule] of (patcher.patchInfo[kind] || []).entries()) yield { modName, patcher, kind, index, rule };
-    }
-  }
-
-  private static *replaceRules(mods: ModInfo[]) {
-    for (const mod of mods) {
-      for (const patcher of mod.replacePatcher || []) yield* RepairAgent.patchRules(mod.name, patcher);
-    }
-  }
 
   private static tweeRuleFailed(messages: string[], modName: string, rule: { passage: string; findString?: string }): boolean {
     return messages.some(
@@ -104,7 +91,33 @@ export class RepairAgent {
     const named = (name: string | undefined) => !!name && relatedPassages.has(name);
     const rules = allRules.filter(({ mod, rule }) => named(rule.passage) || messages.some(message => RepairSources.sourceMentioned(message, mod.name) && message.includes(rule.findString!)));
     const failedRules = rules.filter(({ mod, rule }) => RepairAgent.tweeRuleFailed(messages, mod.name, rule));
-    const writableMods = failedRules.length ? [] : mods;
+    const replaceRules = [...RepairTargets.replaceRules(host)];
+    const failedReplaceRules = replaceRules.filter(({ modName, kind, rule }) => RepairSources.replaceRuleFailed(messages, modName, kind, rule));
+    const failed = failedRules.length || RepairSources.hasReplaceFailure(messages);
+    const writableMods = failed ? [] : mods;
+    const selectedReplaceRules = failed
+      ? failedReplaceRules
+      : replaceRules.filter(({ kind, rule, patchFileName }) => {
+          const path = kind === 'twee' ? rule.passageName : rule.fileName;
+          return (kind === 'twee' ? named(path) : related(path, kind)) || (related(patchFileName) && messages.some(message => message.includes(rule.from)));
+        });
+    const nativeSources = new Map<string, { name: string; kind: 'js' | 'css'; current: string; searches: string[] }>();
+    for (const { kind, rule } of selectedReplaceRules) {
+      if (kind === 'twee') {
+        if (rule.passageName) relatedPassages.add(rule.passageName);
+        if (current && !current.passageDataItems.map.has(rule.passageName!)) RepairSources.passageCandidates(current, rule.from).forEach(name => relatedPassages.add(name));
+        continue;
+      }
+      const destination = RepairTargets.replacePath(rule, kind);
+      if (!destination) continue;
+      for (const source of RepairSources.replaceSources(current, kind, destination, rule.from)) {
+        if (redact(source.current) !== source.current || redact(source.name) !== source.name) continue;
+        const key = `${kind}\0${source.name}`;
+        const previous = nativeSources.get(key);
+        nativeSources.set(key, { ...source, searches: [...(previous?.searches || []), rule.from] });
+        if (kind === 'js') relatedScripts.add(source.name);
+      }
+    }
     for (const { rule } of rules) {
       relatedPassages.add(rule.passage);
       if (current && !current.passageDataItems.map.has(rule.passage)) RepairSources.passageCandidates(current, rule.findString!).forEach(name => relatedPassages.add(name));
@@ -125,14 +138,6 @@ export class RepairAgent {
         continue;
       }
     }
-    const reference = (kind: 'twee' | 'js' | 'css', path: string | undefined): string | undefined => {
-      if (!path) return;
-      // 段落证据已共享，不为每条规则重复发送源码。
-      if (kind === 'twee') return path;
-      const records = kind === 'js' ? current?.scriptFileItems : current?.styleFileItems;
-      const content = records?.map.get(path)?.content;
-      if (content !== undefined && path.length + content.length + 1 <= 32000 && redact(content) === content) return `${path}\n${content}`;
-    };
     const add = (target: RepairTarget) => {
       if (
         context.targets.length >= 16 ||
@@ -151,9 +156,9 @@ export class RepairAgent {
       remaining -= size;
     };
     // 失效规则优先，其他模组提供只读证据。
-    const selectedRules = failedRules.length ? failedRules : rules;
+    const selectedRules = failed ? failedRules : rules;
     for (const location of selectedRules) {
-      if (context.targets.length >= 16) break;
+      if (context.targets.length >= Math.max(1, 16 - failedReplaceRules.length)) break;
       const { mod, addon, index, rule } = location;
       const content = NativeJSON.stringify({ passage: rule.passage, findString: rule.findString });
       add({
@@ -177,10 +182,21 @@ export class RepairAgent {
       for (const name of names) passageSearches.set(name, [...(passageSearches.get(name) || []), findString]);
     }
     const prioritized = new Set([...rulePassages.values()].flat());
+    for (const { kind, rule } of selectedReplaceRules) {
+      if (kind !== 'twee') continue;
+      const names = current?.passageDataItems.map.has(rule.passageName!) ? [rule.passageName!] : RepairSources.passageCandidates(current, rule.from);
+      for (const name of names) {
+        prioritized.add(name);
+        passageSearches.set(name, [...(passageSearches.get(name) || []), rule.from]);
+      }
+    }
+    const nativeReserve = Math.min(
+      64000,
+      [...nativeSources.values()].reduce((size, source) => size + (source.current.length <= 64000 ? source.current.length : 12000), 0)
+    );
     const supplyCurrent = (passage: NonNullable<RepairContext['passages']>[number], reserve = 0) => {
       const content = current?.passageDataItems.map.get(passage.name)?.content;
       if (typeof content === 'string' && content.length > 64000 && content.length <= 256000 && redact(content) === content) {
-        // 完整正文留作本地校验，接口只发送共享片段。
         const excerpts = RepairSources.passageExcerpts(content, passageSearches.get(passage.name) || []);
         const size = excerpts?.reduce((sum, excerpt) => sum + excerpt.content.length, 0);
         if (excerpts?.length && size !== undefined && size <= 12000 && size <= remaining - reserve) {
@@ -196,9 +212,8 @@ export class RepairAgent {
     };
     for (const name of prioritized) {
       const passage = context.passages?.find(passage => passage.name === name);
-      if (passage) supplyCurrent(passage);
+      if (passage) supplyCurrent(passage, nativeReserve);
     }
-    // 存在源码但本次未能提供时，延后该规则；不能提交没有校验材料的搜索修复。
     context.targets = context.targets.filter(target => {
       const names = rulePassages.get(target)!;
       if (!names.length || names.some(name => context.passages?.some(passage => passage.name === name && passage.current !== undefined))) return true;
@@ -207,25 +222,34 @@ export class RepairAgent {
     });
     if (selectedRules.length > context.targets.length) context.omittedRules = selectedRules.length - context.targets.length;
     context.targets.forEach((target, index) => (target.id = `target-${index + 1}`));
-    for (const passage of context.passages || []) if (!prioritized.has(passage.name)) supplyCurrent(passage, 32000);
-    for (const { modName, patcher, kind, index, rule } of RepairAgent.replaceRules(writableMods)) {
+    const replaceStart = context.targets.length;
+    for (const { modName, path, kind, rule } of selectedReplaceRules) {
       if (context.targets.length >= 16) break;
       if (!rule.from || rule.from.length > 32000 || redact(rule.from) !== rule.from) continue;
-      const path = kind === 'twee' ? rule.passageName : rule.fileName;
-      const sourceRelated = kind === 'twee' ? named(path) : related(path, kind);
-      const relevant = sourceRelated || (related(patcher.patchFileName) && messages.some(message => message.includes(rule.from)));
-      if (!relevant) continue;
+      const content = RepairTargets.replaceBinding(rule, kind);
       add({
         id: '',
         modName,
         kind: 'replace-patcher',
-        signature: NativeJSON.stringify({ to: rule.to, fileName: rule.fileName, passageName: rule.passageName }),
-        path: `replace|${encodeURIComponent(patcher.patchFileName)}|${kind}|${index}|from`,
-        fingerprint: await RepairRecipeParser.fingerprint(rule.from),
-        content: rule.from,
-        reference: reference(kind, path)
+        signature: RepairTargets.replaceSignature(rule),
+        path,
+        fingerprint: await RepairRecipeParser.fingerprint(content),
+        content,
+        reference: kind === 'twee' ? rule.passageName : `${rule.fileName}\nExisting replacement:\n${rule.to}`
       });
     }
+    const omittedReplace = selectedReplaceRules.length - (context.targets.length - replaceStart);
+    if (omittedReplace) context.omittedRules = (context.omittedRules || 0) + omittedReplace;
+    for (const { name, kind, current: content, searches } of nativeSources.values()) {
+      if (content.length > 256000 || redact(content) !== content || redact(name) !== name) continue;
+      const excerpts = content.length > 64000 ? RepairSources.passageExcerpts(content, searches) : undefined;
+      const size = excerpts?.reduce((sum, excerpt) => sum + excerpt.content.length, 0) ?? content.length;
+      if ((!excerpts && content.length > 64000) || size > remaining) continue;
+      (context.sources ||= []).push({ name, kind, current: content, ...(excerpts && { excerpts }) });
+      if (RepairPrompt.content(context).length > RepairAgent.CONTEXT_LIMIT) context.sources.pop();
+      else remaining -= size;
+    }
+    for (const passage of context.passages || []) if (!prioritized.has(passage.name)) supplyCurrent(passage, 32000);
     for (const mod of writableMods) {
       for (const [kind, items] of [
         ['twee', mod.cache.passageDataItems.items],
@@ -247,8 +271,8 @@ export class RepairAgent {
       }
     }
     for (const target of anchorTargets) {
-      if (context.targets.length >= 16 || failedRules.length || !named(target.reference) || redact(target.content) !== target.content) continue;
-      add({ ...target, reference: reference('twee', target.reference) || target.reference });
+      if (context.targets.length >= 16 || failed || !named(target.reference) || redact(target.content) !== target.content) continue;
+      add(target);
     }
     for (const rule of RepairSources.relatedRules(host, (kind, path) => (kind === 'twee' ? named(path) : related(path, kind)))) {
       if (context.relatedRules?.length === 32) break;

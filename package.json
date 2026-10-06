@@ -1,6 +1,6 @@
 {
   "name": "maplebirch",
-  "version": "5.2.3",
+  "version": "5.4.0",
   "private": true,
   "description": "SugarCube2-ModLoader-Degrees of Lewdity-Maplebirch Frameworks",
   "license": "(MIT OR CC-BY-NC-SA-4.0)",
@@ -57,7 +57,7 @@
     "typescript": "^7.0.2"
   },
   "lastModifiedBy": "楓樺葉",
-  "lastUpdate": "2026.10.03",
+  "lastUpdate": "2026.10.06",
   "scml": {
     "nickName": {
       "en": "Maplebirch Frameworks",

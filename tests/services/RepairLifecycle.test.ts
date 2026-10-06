@@ -1089,6 +1089,64 @@ test('staging stores executable targets without transient JS trace evidence', as
   }
 });
 
+test('path repair staging keeps read-only destination evidence and replays without AI', async () => {
+  const state = repairFixture();
+  const source = { id: 0, name: 'old-api.js', content: 'setup.oldHelper();' };
+  const evidence = { id: 1, name: 'current-api.js', content: 'setup.currentHelper = function () { return true; };' };
+  state.mod.cache.scriptFileItems.items.push(source, evidence);
+  state.mod.cache.scriptFileItems.fillMap();
+  const context: RepairContext = {
+    requestId: 'path-repair',
+    mods: ['example'],
+    diagnostics: [],
+    modLoaderLogs: [],
+    patches: [],
+    conflicts: [],
+    targets: await Promise.all(
+      [source, evidence].map(async (item, index) => ({
+        id: `target-${index + 1}`,
+        modName: 'example',
+        kind: 'js' as const,
+        path: item.name,
+        content: item.content,
+        fingerprint: await RepairRecipeParser.fingerprint(item.content)
+      }))
+    )
+  };
+  const recipe: RepairRecipe = {
+    requestId: context.requestId,
+    outcome: 'repair',
+    summary: 'Rename the installed helper access',
+    evidence: [],
+    operations: [{ targetId: 'target-1', find: 'setup.oldHelper', replace: 'setup.currentHelper', expectedMatches: 1, reason: 'Current source defines the renamed helper' }]
+  };
+  const { RepairAgent } = await import('../../src/services/Repair/Agent');
+  const contextSpy = spyOn(RepairAgent, 'context').mockResolvedValue(context);
+  const analyzeSpy = spyOn(RepairAgent, 'analyze').mockResolvedValue({ result: 'success', recipe });
+  Object.assign(state.repair.connection, { apiUrl: 'https://example.test/v1', model: 'model' });
+  try {
+    expect((await state.repair.analyze(new AbortController().signal)).overlays).toHaveLength(1);
+    await state.repair.stage();
+    const [memory] = await state.repair.list();
+    expect(memory.context.targets).toHaveLength(1);
+    expect(memory.context.sources).toEqual([{ name: evidence.name, kind: 'js', current: evidence.content }]);
+    expect(RepairRecipeParser.parse(NativeJSON.stringify(memory.recipe), memory.context)).toEqual(recipe);
+    expect(source.content).toBe('setup.oldHelper();');
+    await state.events.trigger(':addon:repair');
+    expect(source.content).toBe('setup.currentHelper();');
+    state.final.scriptFileItems.items.push({ ...source }, { ...evidence });
+    state.final.scriptFileItems.fillMap();
+    await state.events.trigger(':modLoaderEnd');
+    expect((await state.repair.list())[0].state).toBe('trial');
+    await state.repair.confirm(memory.id);
+    expect((await state.repair.list())[0].state).toBe('active');
+    expect(analyzeSpy).toHaveBeenCalledTimes(1);
+  } finally {
+    contextSpy.mockRestore();
+    analyzeSpy.mockRestore();
+  }
+});
+
 test('analysis retains validation reasons and discards an earlier executable proposal', async () => {
   const state = repairFixture();
   Object.assign(state.repair.connection, { apiUrl: 'https://example.test/v1', model: 'model' });
@@ -1146,5 +1204,196 @@ test('preparation failures expose only fixed reasons and never persist executabl
     contextSpy.mockRestore();
     analyzeSpy.mockRestore();
     prepareSpy.mockRestore();
+  }
+});
+
+async function seedPathRepair(state: ReturnType<typeof repairFixture>) {
+  const source = { id: 1, name: 'old-api.js', content: 'setup.oldHelper();' };
+  const evidence = { id: 2, name: 'current-api.js', content: 'setup.currentHelper = function () { return true; };' };
+  state.mod.cache.scriptFileItems.items.push(source);
+  state.mod.cache.scriptFileItems.fillMap();
+  state.final.scriptFileItems.items.push(evidence);
+  state.final.scriptFileItems.fillMap();
+  const context: RepairContext = {
+    requestId: 'path-memory',
+    mods: ['example'],
+    diagnostics: [],
+    modLoaderLogs: [],
+    patches: [],
+    conflicts: [],
+    sources: [{ name: evidence.name, kind: 'js', current: evidence.content }],
+    targets: [{ id: 'target-1', modName: 'example', kind: 'js', path: source.name, content: source.content, fingerprint: await RepairRecipeParser.fingerprint(source.content) }]
+  };
+  const recipe: RepairRecipe = {
+    requestId: context.requestId,
+    outcome: 'repair',
+    summary: 'Use the current helper',
+    evidence: [],
+    operations: [{ targetId: 'target-1', find: 'setup.oldHelper', replace: 'setup.currentHelper', expectedMatches: 1, reason: 'Current code defines this helper' }]
+  };
+  const memory: RepairMemory = { id: 'memory:path', summary: recipe.summary, state: 'pending', enabled: true, createdAt: '2026-10-06T00:00:00.000Z', recipe, context };
+  state.rows.set(memory.id, structuredClone(memory));
+  return { source, evidence, memory };
+}
+
+test('path memory cannot rely on removed or renamed setup evidence from an earlier load', async () => {
+  const fetchSpy = spyOn(globalThis, 'fetch');
+  try {
+    for (const removed of [false, true]) {
+      const state = repairFixture();
+      const { source, evidence, memory } = await seedPathRepair(state);
+      if (removed) state.final.scriptFileItems.items.length = 0;
+      else evidence.content = 'setup.otherHelper = function () { return true; };';
+      state.final.scriptFileItems.fillMap();
+      await state.events.trigger(':addon:repair');
+      expect(source.content).toBe('setup.oldHelper();');
+      const [record] = await state.repair.list();
+      expect(record.state).toBe('stale');
+      expect(record.enabled).toBe(false);
+      await expect(state.repair.confirm(memory.id)).rejects.toThrow();
+    }
+    expect(fetchSpy).not.toHaveBeenCalled();
+  } finally {
+    fetchSpy.mockRestore();
+  }
+});
+
+test('path memory accepts unrelated current source changes without requesting AI', async () => {
+  const state = repairFixture();
+  const { source, evidence, memory } = await seedPathRepair(state);
+  evidence.content = 'setup.unrelated = 3;\nsetup.currentHelper = function () { return false; };';
+  const fetchSpy = spyOn(globalThis, 'fetch');
+  try {
+    await state.events.trigger(':addon:repair');
+    expect(source.content).toBe('setup.currentHelper();');
+    state.final.scriptFileItems.items.push({ ...source });
+    state.final.scriptFileItems.fillMap();
+    await state.events.trigger(':modLoaderEnd');
+    expect((await state.repair.list())[0].state).toBe('trial');
+    await state.repair.confirm(memory.id);
+    expect((await state.repair.list())[0].state).toBe('active');
+    expect(fetchSpy).not.toHaveBeenCalled();
+  } finally {
+    fetchSpy.mockRestore();
+  }
+});
+
+test('path memory fails when a later patch removes its destination from final source', async () => {
+  const fetchSpy = spyOn(globalThis, 'fetch');
+  try {
+    for (const removed of [false, true]) {
+      const state = repairFixture();
+      const { source, evidence, memory } = await seedPathRepair(state);
+      state.mod.cache.scriptFileItems.items.push({ ...evidence });
+      state.mod.cache.scriptFileItems.fillMap();
+      await state.events.trigger(':addon:repair');
+      expect(source.content).toBe('setup.currentHelper();');
+      if (removed) state.final.scriptFileItems.items.length = 0;
+      else evidence.content = 'setup.otherHelper = function () { return true; };';
+      state.final.scriptFileItems.items.push({ ...source });
+      state.final.scriptFileItems.fillMap();
+      await state.events.trigger(':modLoaderEnd');
+      expect(state.final.scriptFileItems.map.get(source.name)?.content).toBe('setup.currentHelper();');
+      const [record] = await state.repair.list();
+      expect(record.state).toBe('failed');
+      expect(record.enabled).toBe(false);
+      await expect(state.repair.confirm(memory.id)).rejects.toThrow();
+    }
+    expect(fetchSpy).not.toHaveBeenCalled();
+  } finally {
+    fetchSpy.mockRestore();
+  }
+});
+
+test('path memory uses loaded mod definitions before they replace the same native file', async () => {
+  const state = repairFixture();
+  const { source, evidence, memory } = await seedPathRepair(state);
+  state.mod.cache.scriptFileItems.items.push({ ...evidence });
+  state.mod.cache.scriptFileItems.fillMap();
+  evidence.content = 'setup.previousHelper = function () { return true; };';
+  await state.events.trigger(':addon:repair');
+  expect(source.content).toBe('setup.currentHelper();');
+  state.final.scriptFileItems.items = state.mod.cache.scriptFileItems.items.map(item => ({ ...item }));
+  state.final.scriptFileItems.fillMap();
+  await state.events.trigger(':modLoaderEnd');
+  expect((await state.repair.list())[0].state).toBe('trial');
+  await state.repair.confirm(memory.id);
+  expect((await state.repair.list())[0].state).toBe('active');
+});
+
+test('path memory keeps a destination already defined in the repaired file', async () => {
+  const state = repairFixture();
+  const { source, memory } = await seedPathRepair(state);
+  source.content = 'setup.currentHelper = function () { return true; };\nsetup.oldHelper();';
+  memory.context.targets[0].content = source.content;
+  memory.context.targets[0].fingerprint = await RepairRecipeParser.fingerprint(source.content);
+  memory.context.sources = [{ name: source.name, kind: 'js', current: source.content }];
+  state.rows.set(memory.id, structuredClone(memory));
+  state.final.scriptFileItems.items.length = 0;
+  state.final.scriptFileItems.fillMap();
+  await state.events.trigger(':addon:repair');
+  expect(source.content).toBe('setup.currentHelper = function () { return true; };\nsetup.currentHelper();');
+  state.final.scriptFileItems.items.push({ ...source });
+  state.final.scriptFileItems.fillMap();
+  await state.events.trigger(':modLoaderEnd');
+  expect((await state.repair.list())[0].state).toBe('trial');
+  await state.repair.confirm(memory.id);
+  expect((await state.repair.list())[0].state).toBe('active');
+});
+
+async function seedChainedPathRepair(state: ReturnType<typeof repairFixture>, chained = true) {
+  const { source, evidence, memory } = await seedPathRepair(state);
+  if (!chained) source.content += '\nsetup.otherOldHelper();';
+  memory.context.targets[0].content = source.content;
+  memory.context.targets[0].fingerprint = await RepairRecipeParser.fingerprint(source.content);
+  const previous = { recipe: memory.recipe, context: memory.context };
+  const content = source.content.replace('setup.oldHelper', 'setup.currentHelper');
+  const destination = 'setup.latestHelper';
+  evidence.content = `${destination} = function () { return true; };`;
+  memory.context = {
+    ...structuredClone(memory.context),
+    sources: [{ name: evidence.name, kind: 'js', current: evidence.content }],
+    targets: [{ ...memory.context.targets[0], content, fingerprint: await RepairRecipeParser.fingerprint(content) }]
+  };
+  memory.recipe = {
+    ...memory.recipe,
+    operations: [{ ...memory.recipe.operations[0], find: chained ? 'setup.currentHelper' : 'setup.otherOldHelper', replace: destination }]
+  };
+  memory.steps = [previous];
+  state.rows.set(memory.id, structuredClone(memory));
+  return { source, memory };
+}
+
+test('composite path memory ignores an intermediate destination removed by its next rename', async () => {
+  const state = repairFixture();
+  const { source, memory } = await seedChainedPathRepair(state);
+  const fetchSpy = spyOn(globalThis, 'fetch');
+  try {
+    await state.events.trigger(':addon:repair');
+    expect(source.content).toBe('setup.latestHelper();');
+    state.final.scriptFileItems.items.push({ ...source });
+    state.final.scriptFileItems.fillMap();
+    await state.events.trigger(':modLoaderEnd');
+    expect((await state.repair.list())[0].state).toBe('trial');
+    await state.repair.confirm(memory.id);
+    expect((await state.repair.list())[0].state).toBe('active');
+    expect(fetchSpy).not.toHaveBeenCalled();
+  } finally {
+    fetchSpy.mockRestore();
+  }
+});
+
+test('an unrelated later rename cannot cancel an earlier missing destination check', async () => {
+  const state = repairFixture();
+  const { source, memory } = await seedChainedPathRepair(state, false);
+  const fetchSpy = spyOn(globalThis, 'fetch');
+  try {
+    await state.events.trigger(':addon:repair');
+    expect(source.content).toBe('setup.oldHelper();\nsetup.otherOldHelper();');
+    expect((await state.repair.list())[0].state).toBe('stale');
+    await expect(state.repair.confirm(memory.id)).rejects.toThrow();
+    expect(fetchSpy).not.toHaveBeenCalled();
+  } finally {
+    fetchSpy.mockRestore();
   }
 });
