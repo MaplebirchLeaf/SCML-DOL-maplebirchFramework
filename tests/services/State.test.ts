@@ -69,3 +69,30 @@ test('append still collects all outputs and removes only triggered once events',
   expect(events.events.append.has('first')).toBe(false);
   expect(events.events.append.has('skip')).toBe(true);
 });
+
+test('startup skips passage-scoped gates and appends before evaluating conditions', () => {
+  for (const type of ['gate', 'append'] as const) {
+    const manager = { log: () => {}, core: { host: { sugarcube: { passage: undefined as { title: string } | undefined } } } };
+    const events = new StateManager(manager as unknown as ConstructorParameters<typeof StateManager>[0]);
+    let checked = 0;
+    for (const [id, extra] of Object.entries({ include: { passage: ['Bird Tower'] }, exclude: { exclude: ['Bedroom'] }, match: { match: /^Bird Tower$/ } })) {
+      events.register(type, id, {
+        extra,
+        once: true,
+        output: id,
+        cond: () => {
+          checked++;
+          return true;
+        }
+      });
+    }
+    events.register(type, 'global', { output: 'global' });
+    expect(events.trigger(type)).toBe('<<global>>');
+    expect(checked).toBe(0);
+    expect(events.events[type].size).toBe(4);
+    manager.core.host.sugarcube.passage = { title: 'Bird Tower' };
+    expect(events.trigger(type)).toBe('<<include>><<exclude>><<match>><<global>>');
+    expect(checked).toBe(3);
+    expect(events.events[type].size).toBe(1);
+  }
+});

@@ -249,7 +249,7 @@ const petLayers = {
     wolf, cat, cow, bird, fox, angel, fallen, demon,
     writing, drip, cum,
     upper, over_upper, lower, over_lower, under_lower, under_upper,
-    hands, handheld, head, over_head, face, neck, legs, feet
+    hands, handheld, prop, head, over_head, face, neck, legs, feet
   `)
 };
 

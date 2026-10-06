@@ -1,3 +1,15 @@
+##### (v.5.4.1更新日志):
+
+- 修复游戏启动时尚无当前段落，却执行了限定段落的状态事件。段落包含、排除和正则条件现在均等待有效段落；未限定段落的初始化事件保持可用。
+- PC 桌宠保留原版手持道具及其前后、配色图层，恢复钓到的鱼、正在使用的鱼竿和其它手持道具。
+- 补充 gate、append 的启动与正常进页检查，以及原版道具图层检查。
+
+**English**
+
+- Skip passage-scoped state events until a current passage exists, including inclusion, exclusion and regular-expression filters. Unscoped initialization events remain available.
+- Preserve native carried prop layers, accessories and underarm splits in the PC pet, restoring caught fish, active fishing rods and other carried props.
+- Add startup and normal-passage checks for gates and appends, plus native prop layer coverage.
+
 ##### (v.5.4.0更新日志):
 
 - 新增可选的 AI 修复服务，使用用户配置的服务分析补丁失败，提供受限修复方案、审核与验证，保留修复记录。

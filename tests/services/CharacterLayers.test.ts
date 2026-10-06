@@ -86,3 +86,17 @@ test('supplied static layer sources remain guarded by their visibility function'
     });
   }
 });
+
+test('PC pet retains native carried prop layers and excludes scenery and NPC layers', () => {
+  withCharacterLayers((_character, create) => {
+    const fish: LayerConfig = { showfn: options => !!options.prop?.show, srcfn: options => `img/clothes/props/${options.prop.folder}/${options.prop.name}.png` };
+    create({ base: {}, prop: fish, prop_acc: {}, prop_underarm: {}, prop_underarm_acc: {}, water: {}, nnpc: {} });
+    const layers = (Renderer.CanvasModels as Record<string, CanvasModelOptions>).pet.layers;
+    expect(Object.keys(layers)).toEqual(['base', 'prop', 'prop_acc', 'prop_underarm', 'prop_underarm_acc']);
+    expect(layers.prop).toBe(fish);
+    const options = { prop: { show: true, folder: 'fish', name: 'caught_haddock' } };
+    expect(layers.prop.showfn?.(options)).toBe(true);
+    expect(layers.prop.srcfn?.(options)).toBe('img/clothes/props/fish/caught_haddock.png');
+    expect(layers.prop.showfn?.({ prop: { show: false } })).toBe(false);
+  });
+});

@@ -50,8 +50,8 @@ class StateEvent extends Event {
   }
 
   private checkPassage(passageName?: string): boolean {
-    if (!passageName) return true;
     const { passage, exclude, match } = this.extra;
+    if (!passageName) return !passage?.length && !exclude?.length && !match;
     if (passage?.length && !passage.includes(passageName)) return false;
     if (exclude?.length && exclude.includes(passageName)) return false;
     if (match) {
