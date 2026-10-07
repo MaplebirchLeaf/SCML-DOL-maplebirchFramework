@@ -8,7 +8,7 @@ export interface RepairOverlay {
   before: string;
   after: string;
   fingerprint: string;
-  replacement?: { before: string; after: string };
+  replacement?: { before: string; after: string; introduced?: string[] };
 }
 
 export class RepairEngine {
@@ -36,7 +36,7 @@ export class RepairEngine {
         after = NativeJSON.stringify(target.path.split('|')[2] === 'twee' ? { passageName: binding.passageName, from: binding.from } : { fileName: binding.fileName, from: binding.from });
       }
       const { content: _content, ...identity } = target;
-      const replacement = operation.type === 'ast' ? undefined : RepairRecipeParser.rebase(target, operation.replace);
+      const replacement = operation.type === 'ast' ? undefined : RepairRecipeParser.rebase(target, operation.replace, context);
       overlays.push({ target: identity, before, after, fingerprint: await RepairRecipeParser.fingerprint(after), ...(replacement && { replacement }) });
     }
     if (overlays.some(overlay => resolve({ ...overlay.target, content: overlay.before }) !== overlay.before)) throw new Error('Repair inputs changed during preparation');

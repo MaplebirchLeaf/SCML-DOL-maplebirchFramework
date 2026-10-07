@@ -11,7 +11,7 @@
 [![Stars](https://img.shields.io/github/stars/MaplebirchLeaf/SCML-DOL-maplebirchFramework?label=stars)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/stargazers)
 [![Issues](https://img.shields.io/github/issues-raw/MaplebirchLeaf/SCML-DOL-maplebirchFramework?label=issues)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/issues)
 
-**`maplebirchFramework`** 是基于 **_SugarCube 2 ModLoader_**、面向 **_Degrees of Lewdity_** 模组制作者的扩展框架。它提供脚本与资源加载、翻译、音频、区域注入、NPC、角色、战斗和动态事件等公开接口，也提供可选的模组加密与自托管云存档服务。
+**`maplebirchFramework`** 是基于 **_SugarCube 2 ModLoader_**、面向 **_Degrees of Lewdity_** 模组制作者的扩展框架。它提供脚本与资源加载、翻译、音频、区域注入、NPC、角色、战斗和动态事件等公开接口，也提供可选的模组加密、自托管云存档与 [AI 修复](#ai-修复)服务。
 
 框架的使用重点是：**少直接改原版内容，多通过公开接口追加内容。** 如果你的模组要扩展界面、NPC 或游戏事件，或想把多语言、音频和脚本资源纳入统一加载流程，可以将它作为基础依赖。
 
@@ -28,6 +28,7 @@
 - [框架服务](#框架服务)
   - [模组加密](#模组加密)
   - [云存档](#云存档)
+  - [AI 修复](#ai-修复)
 - [推荐写法](#推荐写法)
 - [类型包](#类型包)
 - [模块与功能](#模块与功能)
@@ -114,7 +115,7 @@
 
 ## 框架服务
 
-除模组开发接口外，还有两项**可选服务**：**模组加密**保护发布的模组内容；**云存档**把玩家本地存档同步到玩家自己部署的云端。一般内容模组不必配置它们。
+除模组开发接口外，还有三项**可选服务**：**模组加密**保护发布的模组内容，**云存档**同步到玩家自建云端，**AI 修复**辅助排查错误并保存受限修复方案。按需使用，框架正常运行不依赖 AI。
 
 ### 模组加密
 
@@ -143,6 +144,17 @@
 
 > [!WARNING]
 > 框架不提供公共存档服务器。上传内容是明文 JSON；请使用 HTTPS、足够随机的令牌，并保持 R2 桶私有。令牌默认不持久化，但玩家勾选“在此设备上记住访问令牌”后会保存到浏览器本地存储。详见[云存档文档](docs/CN/CloudSave.md)。
+
+### AI 修复
+
+AI 修复可根据框架诊断、ModLoader 日志和相关源码，生成补丁与变量修复方案。支持 Twee、JS、CSS、TweeReplacer / ReplacePatcher，以及诊断相关存档字段的修复，JS 还可通过受限 AST 定位表达式、语句和代码块，保留其它源码格式。TweeReplacer 还可迁移旧正文中的条件与变量读取，保留模组剧情和当前初始化。
+
+在框架界面启用**调试模式**，点击「AI 修复」，填写自己的 API 地址、Key 和模型。支持 OpenAI 兼容接口、Anthropic 和 Gemini，可获取模型列表或手动填写。测试连接后点击「分析」，查看修改预览，再保存方案、重载并复测，修复成功后在「记忆」中确认。
+
+> [!NOTE]
+> 分析会向你配置的 API 发送诊断、相关源码及诊断相关的存档字段，不上传完整存档，可能产生 API 费用。AI 只提供方案，由框架校验并应用，不保证所有错误都能修复，保存后仍需重载复测。框架正常运行不依赖 AI。
+
+变量修复操作与限制见 [AI 修复说明](docs/CN/AddonPlugin.md#ai-修复的状态权限)。
 
 ## 推荐写法
 

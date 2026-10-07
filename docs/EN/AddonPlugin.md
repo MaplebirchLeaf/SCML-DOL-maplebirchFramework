@@ -56,24 +56,13 @@ The latest result is retained for each kind/target/index. Reads return copies; `
 
 ## AI Repair State Permissions
 
-Register a host state path and schema from the mod's early-load script with `maplebirch.services.repair.allowState(policy)`. `modName` must identify a loaded mod by its canonical name; registered paths cannot overlap. The model cannot register or expand permissions. Unregistered variables are neither sent to the API nor modified. Core injects SugarCube `State.variables`; the service does not depend on DoL globals.
+The framework automatically discovers save fields related to the diagnosis from explicit static `V.foo`, `$foo` or `State.variables` paths in the current error logs and related current source. Authors do not need to register paths, schemas or ownership, and discovery does not distinguish game and mod variables. Core supplies the SugarCube `State.variables` host for reading actual values; the service does not bind to DoL-specific variable names.
 
-```typescript
-maplebirch.services.repair.allowState({
-  modName: 'Your Mod',
-  path: ['ExampleMod', 'progress'],
-  scope: 'mod',
-  schema: {
-    type: 'object',
-    properties: { state: { type: 'string' } },
-    required: ['state']
-  }
-});
-```
+Only targets and bounds supplied for the current analysis may be read or modified. The model cannot add targets or expand their bounds, and it never receives a complete save. Each analysis includes at most 8 state fragments, each limited to 16 KiB and accepting only plain JSON data: objects, arrays, strings, finite numbers, booleans and null. Functions, special objects, cycles and accessors are excluded from requests and repairs. JSON validation checks data and operation bounds; it cannot establish that repaired values have the correct game semantics.
 
-This illustrates the API; declare the complete schema for the actual mod state. Objects accept only fields in `properties`. Schemas support objects, arrays, strings, numbers, booleans, null, `required`, `items` and `enum`. Each fragment is limited to 16 KiB. Only authorized roots mentioned by diagnostics enter an analysis request.
+State operations are `set / delete / rename / copy / merge / fill`, with complete array paths such as `['ExampleMod', 'progress', 'state']`. Both operation and destination paths must remain within the supplied target bounds. `merge` combines recursively; `fill` supplies missing values only, preserving existing false, 0 and null. Whole host state roots, V/setup/window and prototype fields are prohibited, as are expression evaluation and generated code execution.
 
-State operations are `set / delete / rename / copy / merge / fill`, with complete array paths such as `['ExampleMod', 'progress', 'state']`. `merge` combines recursively; `fill` supplies missing values only. Whole one-component mod roots, V/setup/window and prototype fields cannot be overwritten. Game paths require explicit `scope: 'game'`, at least two components and only permit `set / fill`. Legacy `vanilla` values retain the same restrictions and their original signatures. Variable names do not determine game or mod ownership.
+Records using an old repair format are disabled when validation fails. Analyze again to generate a proposal in the current format.
 
 Source operations are `replace / insertBefore / insertAfter / delete`, retaining exact matches, fingerprints, target bindings and existing code restrictions. AI-generated functions are never executed. Correctable format or anchor errors receive at most one feedback attempt through the same API. Permission failures, prohibited code, cancellation and API failures do not retry.
 
@@ -82,5 +71,7 @@ Source operations are `replace / insertBefore / insertAfter / delete`, retaining
 Acorn parses, validates and computes ranges; the engine splices only the original source and reparses the complete containing JS unit. Twee macro ranges are also checked again. The initial subset allows existing identifiers, static properties, JSON, ordinary expressions, existing assignment paths, return, if and blocks. New functions, constructors, dynamic properties and network loading are rejected. Existing calls may only be retained unchanged, without different arguments, duplication or redirection. Twee accepts independently parseable JS macro arguments/script bodies; SugarCube dialects such as `to/is/and` are not converted. CSS, state and patch bindings retain their existing mechanisms. AST recipes remain in memory and are revalidated for location, syntax and permissions during replay.
 
 All targets validate before source overlays apply. State migrations check old values, write and validate synchronously at `:variable`. A repair enters `trial` only after both phases verify; users retest and confirm `active`. Memory lives in `maplebirch/repair` and replays on reload or save loading without AI. Changed targets or permissions disable it. Failure across loading phases restores reversible overlays and state snapshots and requires a reload; previously executed script effects cannot be undone generically. Original ZIPs and installed ModLoader packages remain unchanged.
+
+TweeReplacer bindings may combine `rebase: true` with `expressions: [{ find, replace, expectedMatches: 1 }]`. Rebase first preserves inherited current source, then the engine migrates a complete installed `if/elseif` condition or single `set` RHS. New expressions use ordinary JS operators, observed static reads and literal values, with no calls or macro structure. Introduced temporary roots require unconditional initialization before the anchor. Recheck the actual native input and final output; validate and roll back the body, binding and state changes together.
 
 AST binding and write permissions come from the selected node's original lexical block, excluding unrelated functions and nested blocks. Declaration kinds, expression slots and lexical boundaries must remain valid. Units containing dynamic callees, constructors, dynamic imports, tagged templates or prohibited calls currently reject AST repairs to prevent indirect execution through modified argument variables; other supported Repair mechanisms remain available. Static validation does not establish runtime correctness.

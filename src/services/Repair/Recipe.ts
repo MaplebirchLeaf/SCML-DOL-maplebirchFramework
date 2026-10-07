@@ -4,6 +4,7 @@ import { NativeJSON } from './Json';
 import { RepairRebase } from './Rebase';
 import { RepairState, type RepairStateChange } from './State';
 import RepairAst, { type RepairAstOperation } from './Ast';
+import RepairBody from './Body';
 
 export interface RepairTarget {
   id: string;
@@ -28,14 +29,10 @@ export interface RepairContext {
     original?: string;
     current?: string;
     currentOmitted?: true;
-    /** 长段落只向接口发送相关片段，完整 current 留在宿主用于校验。 */
     excerpts?: Array<{ offset: number; content: string }>;
   }>;
-  /** 本次未发送的相关规则数。 */
   omittedRules?: number;
-  /** 当前脚本的只读定位片段。 */
   scripts?: Array<{ name: string; symbols: string[]; excerpts: Array<{ line: number; column?: number; content: string }> }>;
-  /** 原生补丁目的文件；完整正文留给宿主验证唯一匹配。 */
   sources?: Array<{ name: string; kind: 'js' | 'css'; current: string; excerpts?: Array<{ offset: number; content: string }> }>;
   relatedRules?: Array<{
     modName: string;
@@ -97,7 +94,6 @@ export class RepairRecipeParser {
 
   private static keys = (value: Record<string, unknown>, names: string[]) => Object.keys(value).length === names.length && names.every(name => Object.hasOwn(value, name));
 
-  /** 标记代码位置，排除字面量、注释和含义不明的斜杠表达式。 */
   public static codeOffsets(source: string, mode: 'code' | 'markup' = 'code'): Uint8Array {
     const offsets = new Uint8Array(source.length);
     let index = 0;
@@ -120,7 +116,6 @@ export class RepairRecipeParser {
           const end = source.indexOf('\n', index + 2);
           index = end < 0 ? source.length : end;
         } else {
-          // 不将正则正文或含义不明的除法表达式视为可修改代码。
           let bracket = false;
           for (index++; index < source.length && source[index] !== '\n'; index++) {
             if (source[index] === '\\') index++;
@@ -137,7 +132,6 @@ export class RepairRecipeParser {
     return offsets;
   }
 
-  /** 复用字面量标记寻找结束符，HTML 属性只处理引号，不解释斜杠。 */
   private static quotedEnd(source: string, start: number, delimiter: string, mode: 'code' | 'markup' = 'code'): number {
     let end = source.indexOf(delimiter, start);
     while (end >= 0) {
@@ -148,7 +142,6 @@ export class RepairRecipeParser {
     return -1;
   }
 
-  /** 脚本中的字符串和注释不能冒充结束标签。 */
   private static bodyClose(source: string, start: number, pattern: RegExp): { start: number; end: number } | undefined {
     pattern.lastIndex = start;
     let match: RegExpExecArray | null;
@@ -158,16 +151,18 @@ export class RepairRecipeParser {
     }
   }
 
-  /** 区分外层宏、标签、链接、注释和脚本正文。 */
   private static tweeRegions(source: string): TweeRegion[] {
     const regions: TweeRegion[] = [];
-    const pattern = /<!--|\/%|\/\*|\/\/|\[\[|\[(?:[<>]?img)\[|<<\s*(\/?[A-Za-z_][\w-]*|=)(?=[\s>])|<\/?[A-Za-z][\w:-]*(?=[\s/>])/g;
+    const pattern = /"""|<!--|\/%|\/\*|\/\/|\[\[|\[(?:[<>]?img)\[|<<\s*(\/?[A-Za-z_][\w-]*|=)(?=[\s>])|<\/?[A-Za-z][\w:-]*(?=[\s/>])/g;
     let match: RegExpExecArray | null;
     while ((match = pattern.exec(source))) {
       const start = match.index;
       const token = match[0];
       const region: TweeRegion = { start, end: source.length };
-      if (match[1]) {
+      if (token === '"""') {
+        const close = source.indexOf(token, start + token.length);
+        if (close >= 0) region.end = close + token.length;
+      } else if (match[1]) {
         region.name = match[1];
         region.expressionStart = start + token.length;
         const close = RepairRecipeParser.quotedEnd(source, region.expressionStart, '>>');
@@ -185,7 +180,12 @@ export class RepairRecipeParser {
         const close = RepairRecipeParser.quotedEnd(source, start + token.length, '>', 'markup');
         if (close >= 0) {
           region.end = close + 1;
-          if (/^<(?:script|style)(?=[\s>])/i.test(source.slice(start, region.end))) {
+          if (/^<nowiki\s*>$/i.test(source.slice(start, region.end))) {
+            const closing = /<\/nowiki\s*>/gi;
+            closing.lastIndex = region.end;
+            const match = closing.exec(source);
+            region.end = match ? match.index + match[0].length : source.length;
+          } else if (/^<(?:script|style)(?=[\s>])/i.test(source.slice(start, region.end))) {
             const name = /^<([A-Za-z]+)/.exec(token)![1];
             region.end = RepairRecipeParser.bodyClose(source, region.end, new RegExp(`<\\/${name}\\s*>`, 'gi'))?.end ?? source.length;
           }
@@ -201,7 +201,6 @@ export class RepairRecipeParser {
     return regions;
   }
 
-  /** 宏表达式范围供源码追踪复用；script 的范围同时包含完整正文。 */
   public static macroRanges(source: string): Array<TweeRegion & { name: string; expressionStart: number; expressionEnd: number }> {
     return RepairRecipeParser.tweeRegions(source).filter(
       (region): region is TweeRegion & { name: string; expressionStart: number; expressionEnd: number } =>
@@ -209,7 +208,6 @@ export class RepairRecipeParser {
     );
   }
 
-  /** 锚点必须唯一，且位于完整语法边界。 */
   public static validateTweeAnchor(source: string, anchor: string, id = 'target'): void {
     const matches = RepairRecipeParser.matches(source, anchor, true);
     const name = RepairRecipeParser.targetName(id);
@@ -237,13 +235,11 @@ export class RepairRecipeParser {
     return !value.split('.').some((part, index) => ['constructor', 'prototype', '__proto__'].includes(index === 0 ? part.replace(/^[$_]/, '') : part));
   }
 
-  /** 属性保护与路径迁移共用路径限制。 */
   public static propertyGuard(find: string): string | undefined {
     if (!RepairRecipeParser.codePath(find) || find.split('.').length < 3) return;
     return find.replaceAll('.', '?.');
   }
 
-  /** Twee 只标记表达式与 script 正文，保留原文坐标。 */
   private static executableCode(source: string, kind: 'js' | 'twee'): string {
     const code = Array<string>(source.length).fill(' ');
     const ranges =
@@ -273,7 +269,6 @@ export class RepairRecipeParser {
     for (const passage of context.passages || []) if (passage.current !== undefined) yield { kind: 'twee', content: passage.current };
   }
 
-  /** 目的路径须在本次当前源码中以完整代码访问出现。 */
   private static observedPath(context: RepairContext, path: string): boolean {
     for (const source of RepairRecipeParser.currentCode(context)) {
       const positions = RepairRecipeParser.matches(source.content, path);
@@ -284,7 +279,6 @@ export class RepairRecipeParser {
     return false;
   }
 
-  /** 回放只重查路径目的，不提前验证其他模组尚未执行的锚点。 */
   public static validatePaths(recipe: RepairRecipe, context: RepairContext): boolean {
     const targets = new Map(context.targets.map(target => [target.id, target]));
     let renamed = false;
@@ -309,16 +303,55 @@ export class RepairRecipeParser {
     return positions;
   }
 
-  /** 仅在方案明确请求迁移时，由宿主绑定的既有正文推导。 */
-  public static rebase(target: RepairTarget, replace: string): { before: string; after: string } | undefined {
+  private static inheritedBranch(original: string, before: string, current: string): string | undefined {
+    const oldRanges = RepairRecipeParser.macroRanges(original);
+    const newRanges = RepairRecipeParser.macroRanges(current);
+    const ranges = RepairRecipeParser.macroRanges(before);
+    const old = oldRanges[0],
+      next = newRanges[0],
+      tail = ranges.at(-1);
+    if (
+      oldRanges.length !== 1 ||
+      newRanges.length !== 1 ||
+      old.name !== 'if' ||
+      next.name !== 'if' ||
+      original.trim() !== original.slice(old.start, old.end) ||
+      current.trim() !== current.slice(next.start, next.end)
+    )
+      return;
+    if (!tail || tail.name !== 'elseif' || before.slice(tail.end).trim() || ranges[0]?.name !== 'if' || before.slice(0, ranges[0].start).trim()) return;
+    const condition = original.slice(old.expressionStart, old.expressionEnd).trim();
+    if (
+      before.slice(tail.expressionStart, tail.expressionEnd).trim() !== condition ||
+      ranges.filter(range => ['if', 'elseif'].includes(range.name) && before.slice(range.expressionStart, range.expressionEnd).trim() === condition).length !== 1
+    )
+      return;
+    let depth = 0;
+    for (const range of ranges.slice(0, -1)) {
+      if (range.name === 'if') depth++;
+      else if (range.name === '/if' && --depth < 1) return;
+    }
+    if (depth !== 1) return;
+    return before.slice(0, tail.expressionStart) + current.slice(next.expressionStart, next.expressionEnd) + before.slice(tail.expressionEnd);
+  }
+
+  public static rebase(target: RepairTarget, replace: string, context?: RepairContext): { before: string; after: string; introduced?: string[] } | undefined {
     if (target.kind !== 'twee-replacer') return;
-    const binding = NativeJSON.parse(replace) as { findString: string; rebase?: true };
-    if (!binding.rebase) return;
+    const binding = NativeJSON.parse(replace) as { passage: string; findString: string; rebase?: true; expressions?: unknown };
+    if (!binding.rebase && binding.expressions === undefined) return;
     const original = NativeJSON.parse(target.content) as { findString: string };
     const signature = NativeJSON.parse(target.signature || '{}') as { companion?: { replace?: string }; replacement?: string };
     const before = signature.companion?.replace || signature.replacement;
     if (typeof before !== 'string') throw new Error('Bound replacement source unavailable');
-    return { before, after: RepairRebase.apply(original.findString, before, binding.findString) };
+    const rebased = binding.rebase
+      ? RepairRebase.apply(original.findString, before, binding.findString, () => RepairRecipeParser.inheritedBranch(original.findString, before, binding.findString))
+      : before;
+    if (binding.expressions === undefined) return { before, after: rebased };
+    const source = context?.passages?.find(item => item.name === binding.passage);
+    if (source?.current === undefined) throw new Error('Replacement migration requires current passage source');
+    const reference = source.excerpts ? source.excerpts.map(excerpt => excerpt.content).join('\n') : source.current;
+    const { after, introduced } = RepairBody.apply(before, rebased, binding.expressions, reference, binding.findString, RepairRecipeParser.macroRanges, source.current);
+    return { before, after, introduced };
   }
 
   private static targetName(id: string): string {
@@ -360,7 +393,6 @@ export class RepairRecipeParser {
     if (before[destination] === value[destination] && before.from === value.from) throw new Error('Unchanged ReplacePatcher search binding');
   }
 
-  /** 校验单条操作和当前源码。 */
   private static validateOperation(target: RepairTarget, operation: RepairSourceOperation, context: RepairContext): void {
     if (target.kind === 'state') throw new Error('State repairs require a state operation');
     const { find, replace } = operation;
@@ -376,14 +408,16 @@ export class RepairRecipeParser {
       const value: unknown = NativeJSON.parse(replace);
       if (
         !RepairRecipeParser.object(value) ||
-        !(RepairRecipeParser.keys(value, ['passage', 'findString']) || (RepairRecipeParser.keys(value, ['passage', 'findString', 'rebase']) && value.rebase === true)) ||
+        !RepairRecipeParser.keys(value, ['passage', 'findString', ...(Object.hasOwn(value, 'rebase') ? ['rebase'] : []), ...(Object.hasOwn(value, 'expressions') ? ['expressions'] : [])]) ||
+        (Object.hasOwn(value, 'rebase') && value.rebase !== true) ||
         !RepairRecipeParser.text(value.passage, 256) ||
         !RepairRecipeParser.text(value.findString, 32000) ||
         /[\r\n]/.test(value.passage)
       )
         throw new Error('Invalid TweeReplacer search binding');
-      if (NativeJSON.stringify({ passage: value.passage, findString: value.findString }) === target.content) throw new Error('Unchanged TweeReplacer search binding');
-      RepairRecipeParser.rebase(target, replace);
+      const replacement = RepairRecipeParser.rebase(target, replace, context);
+      if (NativeJSON.stringify({ passage: value.passage, findString: value.findString }) === target.content && (!replacement || replacement.before === replacement.after))
+        throw new Error('Unchanged TweeReplacer search binding');
       const { passage, findString: anchor } = value;
       const source = context.passages?.find(item => item.name === passage);
       const current = source?.current;
@@ -397,7 +431,6 @@ export class RepairRecipeParser {
       return;
     }
     if (target.kind === 'patch-anchor' || target.kind === 'replace-patcher') {
-      // 这些目标仅是搜索文本或锚点字段，不含规则的替换正文。
       if (!replace || Array.from(replace).some(character => character.charCodeAt(0) < 32 && ![9, 10, 13].includes(character.charCodeAt(0)))) throw new Error('Invalid patch anchor');
       return;
     }
@@ -443,20 +476,17 @@ export class RepairRecipeParser {
       throw new Error('Twee text repair overlaps executable markup');
   }
 
-  /** 绑定宿主权限后模拟状态结果，不读取或写入存档。 */
   public static stateResult(target: RepairTarget, changes: RepairStateChange[]): string {
     if (target.kind !== 'state') throw new Error('State operation requires a state target');
     const policy = RepairState.policy(NativeJSON.parse(target.signature || '{}'));
-    if (policy.modName !== target.modName || NativeJSON.stringify(policy.path) !== target.path) throw new Error('Invalid state target identity');
+    if (policy.modName !== target.modName || NativeJSON.stringify(policy.path) !== target.path || NativeJSON.stringify(policy) !== target.signature) throw new Error('Invalid state target identity');
     return RepairState.validate(policy, target.content, changes);
   }
 
-  /** AST 仅计算源码区间，overlay 继续保留原始文本。 */
   public static sourceResult(target: RepairTarget, operation: RepairSourceOperation | RepairAstOperation): string {
     return operation.type === 'ast' ? RepairAst.apply(target, operation, RepairRecipeParser.macroRanges) : target.content.split(operation.find).join(operation.replace);
   }
 
-  /** 筛选操作前，先校验全部结构和绑定。 */
   private static read(json: string, context: RepairContext): { recipe: RepairRecipe; targets: Map<string, RepairTarget>; atomic: boolean } {
     if (json.length > RepairRecipeParser.MAX_LENGTH) throw new Error('Recipe exceeds size limit');
     const recipe: unknown = NativeJSON.parse(json);
@@ -523,16 +553,25 @@ export class RepairRecipeParser {
       const operation = { targetId: value.targetId, find: value.find, replace, expectedMatches: value.expectedMatches, reason: value.reason };
       const target = targets.get(operation.targetId);
       if (!target || !/^sha256:[a-f0-9]{64}$/.test(target.fingerprint)) throw new Error('Unknown or unbound target');
-      // 每个目标仅允许一次修改，确保匹配计数独立、审核明确。
       if (seen.has(target.id)) throw new Error('Duplicate operation target');
       seen.add(target.id);
       if (!Number.isSafeInteger(operation.expectedMatches) || Number(operation.expectedMatches) < 1 || Number(operation.expectedMatches) > 32) throw new Error('Invalid match count');
       operations.push({ ...operation, expectedMatches: Number(operation.expectedMatches) });
     }
-    return { recipe: { ...recipe, operations } as unknown as RepairRecipe, targets, atomic: recipe.operations.some(value => RepairRecipeParser.object(value) && Object.hasOwn(value, 'type')) };
+    const atomic =
+      recipe.operations.some(value => RepairRecipeParser.object(value) && Object.hasOwn(value, 'type')) ||
+      operations.some(operation => {
+        if (operation.type || targets.get(operation.targetId)?.kind !== 'twee-replacer') return false;
+        try {
+          const binding: unknown = NativeJSON.parse(operation.replace);
+          return RepairRecipeParser.object(binding) && Object.hasOwn(binding, 'expressions');
+        } catch {
+          return false;
+        }
+      });
+    return { recipe: { ...recipe, operations } as unknown as RepairRecipe, targets, atomic };
   }
 
-  /** 旧配方分析允许筛选失败项；显式 DSL、存储和回放严格校验。 */
   private static inspect(json: string, context: RepairContext, partial: boolean): { recipe: RepairRecipe; rejected: Array<{ targetId: string; reason: string }> } {
     const { recipe, targets, atomic } = RepairRecipeParser.read(json, context);
     const operations: RepairOperation[] = [];
@@ -550,15 +589,20 @@ export class RepairRecipeParser {
       }
     }
     if (rejected.length && !operations.length) throw new Error(`${rejected[0].targetId}: ${rejected[0].reason}`);
+    const paths: string[][] = [];
+    for (const operation of operations) {
+      if (operation.type !== 'state') continue;
+      const path = NativeJSON.parse(targets.get(operation.targetId)!.path) as string[];
+      if (paths.some(previous => RepairState.overlaps(previous, path))) throw new Error('Overlapping repair state targets');
+      paths.push(path);
+    }
     return { recipe: { ...recipe, operations }, rejected };
   }
 
-  /** 严格解析存储和回放方案。 */
   public static parse(json: string, context: RepairContext): RepairRecipe {
     return RepairRecipeParser.inspect(json, context, false).recipe;
   }
 
-  /** 旧配方分析保留通过项，校验失败原因不写入配方。 */
   public static review(json: string, context: RepairContext): { recipe: RepairRecipe; rejected: Array<{ targetId: string; reason: string }> } {
     return RepairRecipeParser.inspect(json, context, true);
   }

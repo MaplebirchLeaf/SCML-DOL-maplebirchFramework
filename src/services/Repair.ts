@@ -11,6 +11,7 @@ import { RepairAgent } from './Repair/Agent';
 import { RepairEngine, type RepairOverlay } from './Repair/Engine';
 import { NativeJSON } from './Repair/Json';
 import { RepairProof, type ReplacePatchProof } from './Repair/Proof';
+import RepairBody from './Repair/Body';
 import RepairState, { type RepairStatePolicy, type RepairStateHandle } from './Repair/State';
 import { RepairSources, type RepairSource } from './Repair/Source';
 import { ZonesManager } from '../modules/Frameworks/ZonesManager';
@@ -68,6 +69,11 @@ export class Repair extends Diagnostics {
     return `${target.modName}\0${target.kind}\0${target.path}`;
   }
 
+  private static overlaps(left: Pick<RepairTarget, 'modName' | 'kind' | 'path'>, right: Pick<RepairTarget, 'modName' | 'kind' | 'path'>): boolean {
+    if (left.kind === 'state' && right.kind === 'state') return RepairState.overlaps(NativeJSON.parse(left.path) as string[], NativeJSON.parse(right.path) as string[]);
+    return Repair.targetKey(left) === Repair.targetKey(right);
+  }
+
   private static memoryTargets(record: RepairMemory): RepairTarget[] {
     return [...(record.steps || []).flatMap(step => step.context.targets), ...record.context.targets];
   }
@@ -114,7 +120,7 @@ export class Repair extends Diagnostics {
   private readonly applied: AppliedRepair[] = [];
   private readonly verifiedTrials = new Set<string>();
   private readonly sessionRepairs = new Map<string, RepairMemory>();
-  private readonly states = new RepairState();
+  private readonly stateSnapshots = new WeakMap<RepairOverlay, string[]>();
   private readonly memories = new Map<string, AppliedRepair>();
   private readonly revoked = new Set<string>();
   private loaded = false;
@@ -140,52 +146,41 @@ export class Repair extends Diagnostics {
     events.on(':variable', () => this.applyStates());
   }
 
-  /** 模组显式登记可修复的存档片段，模型不能注册权限。 */
-  public allowState(policy: RepairStatePolicy): boolean {
-    try {
-      const trusted = RepairState.policy(policy);
-      if (!this.host.modUtils.getMod(trusted.modName)) throw new Error('State owner is not loaded');
-      const overlaps = this.states.list().some(existing => {
-        const size = Math.min(existing.path.length, trusted.path.length);
-        return existing.path.slice(0, size).every((segment, index) => segment === trusted.path[index]);
-      });
-      if (overlaps) throw new Error('State policy overlaps an existing path');
-      return this.states.register(trusted);
-    } catch (error) {
-      this.write('Repair state permission rejected', 'WARN', this.scope, error);
-      return false;
-    }
-  }
-
   private statePolicy(target: Pick<RepairTarget, 'modName' | 'path' | 'signature'>): RepairStatePolicy {
-    const policy = this.states.get(target.path);
-    if (!policy || policy.modName !== target.modName || NativeJSON.stringify(policy) !== target.signature || !this.host.modUtils.getMod(policy.modName))
-      throw new Error('Repair state permission changed');
+    const policy = RepairState.policy(NativeJSON.parse(target.signature || '{}'));
+    if (policy.modName !== target.modName || NativeJSON.stringify(policy.path) !== target.path || NativeJSON.stringify(policy) !== target.signature || policy.modName !== 'maplebirch')
+      throw new Error('Repair state binding changed');
     return policy;
   }
 
-  private async stateTargets(): Promise<RepairTarget[]> {
+  private async stateTargets(paths: Iterable<string[]>): Promise<RepairTarget[]> {
     const root = this.variables();
     if (!root) return [];
     const targets: RepairTarget[] = [];
-    for (const policy of this.states.list()) {
+    const selected: Array<{ path: string[]; content: string }> = [];
+    for (const candidate of paths) {
       try {
-        if (!this.host.modUtils.getMod(policy.modName)) continue;
-        const content = RepairState.read(policy.path, root);
-        const signature = NativeJSON.stringify(policy);
-        targets.push({
-          id: '',
-          modName: policy.modName,
-          kind: 'state',
-          path: NativeJSON.stringify(policy.path),
-          signature,
-          reference: signature,
-          content,
-          fingerprint: await RepairRecipeParser.fingerprint(content)
-        });
+        const path = RepairState.targetPath(candidate, root);
+        if (selected.some(target => RepairState.overlaps(target.path, path))) continue;
+        selected.push({ path, content: RepairState.read(path, root) });
+        if (selected.length === 8) break;
       } catch (error) {
         this.write('Repair state snapshot unavailable', 'WARN', this.scope, error);
       }
+    }
+    for (const { path, content } of selected) {
+      const policy: RepairStatePolicy = { modName: 'maplebirch', path, scope: 'state' };
+      const signature = NativeJSON.stringify(policy);
+      targets.push({
+        id: '',
+        modName: policy.modName,
+        kind: 'state',
+        path: NativeJSON.stringify(policy.path),
+        signature,
+        reference: signature,
+        content,
+        fingerprint: await RepairRecipeParser.fingerprint(content)
+      });
     }
     return targets;
   }
@@ -220,7 +215,6 @@ export class Repair extends Diagnostics {
         record.secret = { key, ...(await Cipher.encrypt(textToBytes(connection.apiKey), key)) };
         record.connection.apiKey = '';
       }
-      // 加密完成后再开启事务，密钥与密文随配置一起原子保存。
       await this.idb.with(Repair.STORE, 'readwrite', async tx => {
         const store = tx.objectStore(Repair.STORE);
         const current = (await store.get('connection')) as RepairConfig | undefined;
@@ -246,11 +240,6 @@ export class Repair extends Diagnostics {
         config = { ...config, apiKey: new TextDecoder().decode(decrypted) };
         this.storageKey = record.secret.key;
       }
-      // 将旧地址和模型设置迁入此存储，不改动已安装模组数据库。
-      if (!config && this.idb.has('settings')) {
-        const old = await this.idb.with('settings', 'readonly', tx => tx.objectStore('settings').get('RepairConnection'));
-        if (old?.value) config = { ...old.value, apiKey: '' };
-      }
       if (config) {
         const connection = { ...this.connection };
         if (RepairConnection.TYPES.includes(config.apiType!)) connection.apiType = config.apiType;
@@ -258,7 +247,6 @@ export class Repair extends Diagnostics {
         if (!record?.secret) await this.writeConnection(connection);
         Object.assign(this.connection, connection);
         this.savedConnection = connection;
-        if (this.idb.has('settings')) await this.idb.with('settings', 'readwrite', tx => tx.objectStore('settings').delete('RepairConnection'));
       }
       this.loaded = true;
       this.storageFailure = undefined;
@@ -334,7 +322,7 @@ export class Repair extends Diagnostics {
     if (signal.aborted) return { result: 'timeout' };
     await this.saveConnection();
     const input = { ...this.connection };
-    const context = await RepairAgent.context(this.host, input.apiKey, await this.anchorTargets(), this.originalPassages, await this.stateTargets());
+    const context = await RepairAgent.context(this.host, input.apiKey, await this.anchorTargets(), this.originalPassages, paths => this.stateTargets(paths));
     if (signal.aborted) return { result: 'timeout' };
     this.write(`Repair request: ${context.targets.length} targets`);
     const response = await RepairAgent.analyze(input, context, signal, language);
@@ -401,30 +389,26 @@ export class Repair extends Diagnostics {
       recipe: proposal.recipe,
       context
     };
-    const targetKeys = new Set(proposal.overlays.map(overlay => Repair.targetKey(overlay.target)));
-    const inherited = [...this.sessionRepairs.values()].filter(row => Repair.memoryTargets(row).some(target => targetKeys.has(Repair.targetKey(target))));
+    const inherited = [...this.sessionRepairs.values()].filter(row => Repair.memoryTargets(row).some(target => proposal.overlays.some(overlay => Repair.overlaps(target, overlay.target))));
     const steps = inherited.flatMap(row => {
       const states = this.memories.get(row.id)?.stateOverlays ?? this.applied.find(item => item.record.id === row.id)?.stateOverlays ?? [];
-      const replaced = new Set(
-        states
-          .filter(old => proposal.overlays.some(next => next.target.kind === 'state' && Repair.targetKey(next.target) === Repair.targetKey(old.target) && next.before !== old.after))
-          .map(overlay => Repair.targetKey(overlay.target))
-      );
+      const replaced = states.filter(old => proposal.overlays.some(next => next.target.kind === 'state' && Repair.overlaps(next.target, old.target) && !this.stateContinues(old, next)));
       return [...(row.steps || []), { recipe: row.recipe, context: row.context }].flatMap(step => {
         const targets = new Map(step.context.targets.map(target => [target.id, target]));
-        const operations = step.recipe.operations.filter(operation => !replaced.has(Repair.targetKey(targets.get(operation.targetId)!)));
+        const retained = (target: RepairTarget) => target.kind !== 'state' || !replaced.some(old => Repair.overlaps(target, old.target));
+        const operations = step.recipe.operations.filter(operation => retained(targets.get(operation.targetId)!));
         if (!operations.length) return [];
-        return [{ recipe: { ...step.recipe, operations }, context: { ...step.context, targets: step.context.targets.filter(target => !replaced.has(Repair.targetKey(target))) } }];
+        return [{ recipe: { ...step.recipe, operations }, context: { ...step.context, targets: step.context.targets.filter(retained) } }];
       });
     });
     if (steps.length > 16) throw new Error('Repair memory steps limit reached');
     if (steps.length) record.steps = steps;
-    Repair.memoryTargets(record).forEach(target => targetKeys.add(Repair.targetKey(target)));
+    await this.prepareMemory(record, true);
     if (NativeJSON.stringify(record).length > 512000) throw new Error('Repair memory is too large');
     await this.idb.with(Repair.STORE, 'readwrite', async tx => {
       const store = tx.objectStore(Repair.STORE);
       const memories = Repair.memoryRows(await store.getAll());
-      const replaced = memories.filter(row => Repair.memoryTargets(row).some(target => targetKeys.has(Repair.targetKey(target))));
+      const replaced = memories.filter(row => Repair.memoryTargets(row).some(target => Repair.memoryTargets(record).some(next => Repair.overlaps(target, next))));
       if (memories.length - replaced.length >= 100) throw new Error('Repair memory limit reached');
       for (const old of replaced) await store.delete(old.id);
       await store.put(record);
@@ -487,7 +471,6 @@ export class Repair extends Diagnostics {
     return current?.[field].map.get(name)?.content;
   }
 
-  /** 按已记录的名称重新读取源码，不沿用记忆中的旧正文。 */
   private livePathContext(context: RepairContext, finalOnly = false): RepairContext {
     let current: RepairSource | undefined;
     let mods: ReturnType<typeof RepairTargets.loadedMods> = [];
@@ -510,7 +493,6 @@ export class Repair extends Diagnostics {
         live.targets.push(target);
         continue;
       }
-      // 最终正文已验证存活，仅沿用修改前已有的路径，避免新调用自证。
       if (finalOnly) {
         live.targets.push(target);
         continue;
@@ -536,7 +518,6 @@ export class Repair extends Diagnostics {
     return live;
   }
 
-  // 后续同目标整段替换的中间路径不会进入最终正文。
   private static *pathSteps(steps: NonNullable<RepairMemory['steps']>): Generator<{ recipe: RepairRecipe; context: RepairContext }> {
     const later = new Map<string, Set<string>>();
     for (let index = steps.length - 1; index >= 0; index--) {
@@ -557,10 +538,51 @@ export class Repair extends Diagnostics {
     }
   }
 
-  private async prepareMemory(record: RepairMemory): Promise<RepairOverlay[]> {
+  private stateContinues(previous: RepairOverlay, next: RepairOverlay): boolean {
+    try {
+      const before = this.statePolicy(previous.target);
+      const after = this.statePolicy(next.target);
+      if (before.path.length === after.path.length && (Repair.targetKey(previous.target) !== Repair.targetKey(next.target) || previous.target.signature !== next.target.signature)) return false;
+      return before.path.length <= after.path.length
+        ? RepairState.fragment(before, previous.after, after.path) === next.before
+        : RepairState.fragment(after, next.before, before.path) === previous.after;
+    } catch {
+      return false;
+    }
+  }
+
+  private async foldStates(history: RepairOverlay[]): Promise<RepairOverlay> {
+    const anchor = history.reduce((parent, overlay) => (this.statePolicy(overlay.target).path.length < this.statePolicy(parent.target).path.length ? overlay : parent));
+    const index = history.indexOf(anchor);
+    const policy = this.statePolicy(anchor.target);
+    let before = anchor.before;
+    const snapshots = new Set([before]);
+    for (let step = index - 1; step >= 0; step--) {
+      const overlay = history[step];
+      before = RepairState.replaceFragment(policy, before, this.statePolicy(overlay.target).path, overlay.after, overlay.before);
+      snapshots.add(before);
+    }
+    let after = anchor.before;
+    for (const overlay of history.slice(index)) {
+      after = RepairState.replaceFragment(policy, after, this.statePolicy(overlay.target).path, overlay.before, overlay.after);
+      snapshots.add(after);
+    }
+    const folded = { ...anchor, target: { ...anchor.target, fingerprint: await RepairRecipeParser.fingerprint(before) }, before, after, fingerprint: await RepairRecipeParser.fingerprint(after) };
+    if (history.length > 1) this.stateSnapshots.set(folded, [...snapshots]);
+    return folded;
+  }
+
+  private async prepareMemory(record: RepairMemory, stateOnly = false): Promise<RepairOverlay[]> {
     const staged = new Map<string, RepairOverlay>();
-    const steps = [...(record.steps || []), { recipe: record.recipe, context: record.context }];
-    if (steps.length > 17) throw new Error('Repair memory steps limit reached');
+    const originalSteps = [...(record.steps || []), { recipe: record.recipe, context: record.context }];
+    if (originalSteps.length > 17) throw new Error('Repair memory steps limit reached');
+    const steps = originalSteps.flatMap(step => {
+      if (!stateOnly) return [step];
+      const operations = step.recipe.operations.filter(operation => operation.type === 'state');
+      const ids = new Set(operations.map(operation => operation.targetId));
+      return operations.length ? [{ recipe: { ...step.recipe, operations }, context: { ...step.context, targets: step.context.targets.filter(target => ids.has(target.id)) } }] : [];
+    });
+    const history: RepairOverlay[] = [];
     for (const step of Repair.pathSteps(steps)) {
       if (RepairRecipeParser.validatePaths(step.recipe, step.context)) RepairRecipeParser.validatePaths(step.recipe, this.livePathContext(step.context));
     }
@@ -568,25 +590,58 @@ export class Repair extends Diagnostics {
       const overlays = await RepairEngine.prepare(step.recipe, step.context, target => {
         if (target.kind === 'state') this.statePolicy(target);
         const previous = staged.get(Repair.targetKey(target));
-        if (!previous) return target.kind === 'state' ? target.content : this.resolve(target);
+        if (!previous) {
+          if (target.kind !== 'state') return this.resolve(target);
+          const parent = [...staged.values()].find(
+            overlay => overlay.target.kind === 'state' && Repair.overlaps(overlay.target, target) && this.statePolicy(overlay.target).path.length < this.statePolicy(target).path.length
+          );
+          return parent ? RepairState.fragment(this.statePolicy(parent.target), parent.after, this.statePolicy(target).path) : target.content;
+        }
         const signature = previous.replacement ? RepairTargets.companionForBody(previous.target.signature!, previous.replacement.after) : previous.target.signature;
         if (target.signature !== signature) throw new Error('Repair companion changed between memory steps');
         return previous.after;
       });
       for (const overlay of overlays) {
+        if (overlay.target.kind === 'state') {
+          history.push(overlay);
+          const previous = [...staged.values()].filter(item => item.target.kind === 'state' && Repair.overlaps(item.target, overlay.target));
+          const parent = [...previous, overlay].reduce((left, right) => (this.statePolicy(left.target).path.length <= this.statePolicy(right.target).path.length ? left : right));
+          const folded = await this.foldStates(history.filter(item => Repair.overlaps(item.target, parent.target)));
+          for (const item of previous) staged.delete(Repair.targetKey(item.target));
+          staged.set(Repair.targetKey(folded.target), folded);
+          continue;
+        }
         const id = Repair.targetKey(overlay.target);
         const previous = staged.get(id);
         if (!previous) {
           staged.set(id, overlay);
           continue;
         }
-        const replacement = previous.replacement ? { before: previous.replacement.before, after: overlay.replacement?.after ?? previous.replacement.after } : overlay.replacement;
+        const replacement = previous.replacement
+          ? {
+              before: previous.replacement.before,
+              after: overlay.replacement?.after ?? previous.replacement.after,
+              introduced: [...new Set([...(previous.replacement.introduced || []), ...(overlay.replacement?.introduced || [])])]
+            }
+          : overlay.replacement;
+        if (replacement?.introduced) replacement.introduced = RepairBody.filterDependencies(replacement.after, replacement.introduced, RepairRecipeParser.macroRanges);
         staged.set(id, { ...overlay, before: previous.before, target: previous.target, ...(replacement && { replacement }) });
       }
     }
     if ([...staged.values()].some(overlay => overlay.target.kind !== 'state' && this.resolve({ ...overlay.target, content: overlay.before }) !== overlay.before))
       throw new Error('Repair sources changed during preparation');
+    this.validateStateTargets([...staged.values()]);
     return [...staged.values()];
+  }
+
+  private validateStateTargets(overlays: RepairOverlay[], previous: Iterable<AppliedRepair> = []): void {
+    const paths = [...previous].flatMap(applied => applied.stateOverlays.map(overlay => this.statePolicy(overlay.target).path));
+    for (const overlay of overlays) {
+      if (overlay.target.kind !== 'state') continue;
+      const path = this.statePolicy(overlay.target).path;
+      if (paths.some(existing => RepairState.overlaps(existing, path))) throw new Error('Overlapping repair state targets');
+      paths.push(path);
+    }
   }
 
   private async replay(): Promise<void> {
@@ -604,6 +659,7 @@ export class Repair extends Diagnostics {
         try {
           const prepared = await this.prepareMemory(record);
           if (!prepared.length) throw new Error('Empty repair');
+          this.validateStateTargets(prepared, [...this.applied, ...this.memories.values()]);
           const keys = prepared.map(overlay => Repair.targetKey(overlay.target));
           if (keys.some(key => this.busyTargets.has(key))) throw new Error('Conflicting repair targets');
           const stateOverlays = prepared.filter(overlay => overlay.target.kind === 'state');
@@ -611,7 +667,22 @@ export class Repair extends Diagnostics {
           const handles = overlays.map(overlay => RepairTargets.handle(this.host, { ...overlay.target, content: overlay.before }, this.anchors));
           if (handles.some(handle => !handle)) throw new Error('Repair target unavailable');
           const ready = handles as RepairHandle[];
-          const proof = RepairProof.observe(ready, this);
+          let applied: AppliedRepair | undefined;
+          const guard = overlays.some(overlay => overlay.replacement?.introduced?.length)
+            ? {
+                validate: (handle: RepairHandle, source: string) => {
+                  const overlay = overlays[ready.indexOf(handle)];
+                  if (!overlay.replacement?.introduced?.length || !handle.twee) return;
+                  RepairBody.validateScope(source, handle.twee.rule.findString || '', overlay.replacement.introduced, RepairRecipeParser.macroRanges);
+                },
+                rollback: (error: unknown) => {
+                  if (!applied?.record.enabled) return;
+                  this.rollback(applied);
+                  applied.record = { ...applied.record, enabled: false, error: Repair.errorMessage(error) };
+                }
+              }
+            : undefined;
+          const proof = RepairProof.observe(ready, this, guard);
           let written = 0;
           try {
             for (let index = 0; index < overlays.length; index++) {
@@ -630,7 +701,7 @@ export class Repair extends Diagnostics {
             throw error;
           }
           keys.forEach(key => this.busyTargets.add(key));
-          this.applied.push({
+          applied = {
             record,
             overlays,
             handles: ready,
@@ -642,7 +713,8 @@ export class Repair extends Diagnostics {
             sourceVerified: !overlays.length,
             finishing: false,
             stateEpoch: 0
-          });
+          };
+          this.applied.push(applied);
           this.sessionRepairs.set(record.id, record);
         } catch (error) {
           try {
@@ -672,13 +744,18 @@ export class Repair extends Diagnostics {
     }
   }
 
-  /** 状态事件必须同步完成，避免宿主切回当前状态后才写入。 */
   private writeStates(overlays: RepairOverlay[]): RepairStateHandle[] {
     const root = this.variables();
     if (!root) throw new Error('Repair variables are not ready');
     const handles = overlays.map(overlay => RepairState.handle(root, this.statePolicy(overlay.target)));
     const before = handles.map(handle => handle.read());
-    if (before.some((content, index) => content !== overlays[index].before && content !== overlays[index].after)) throw new Error('Repair state fingerprint changed');
+    if (
+      before.some(
+        (content, index) =>
+          content !== overlays[index].before && content !== overlays[index].after && !this.stateSnapshots.get(overlays[index])?.some(snapshot => RepairState.equals(snapshot, content))
+      )
+    )
+      throw new Error('Repair state fingerprint changed');
     try {
       for (let index = 0; index < handles.length; index++) {
         if (before[index] !== overlays[index].after) handles[index].write(overlays[index].after);
@@ -817,6 +894,7 @@ export class Repair extends Diagnostics {
       }
     for (const applied of this.applied.slice()) {
       try {
+        if (!applied.record.enabled) throw new Error(applied.record.error || 'Repair was withdrawn before native patching');
         const final = this.host.modSC2DataManager.getSC2DataInfoAfterPatch();
         for (let index = 0; index < applied.overlays.length; index++) {
           const overlay = applied.overlays[index],
@@ -827,6 +905,13 @@ export class Repair extends Diagnostics {
           const records = handle.output.kind === 'twee' ? final.passageDataItems : handle.output.kind === 'js' ? final.scriptFileItems : final.styleFileItems;
           const content = records.map.get(handle.output.path)?.content;
           if (content === undefined) throw new Error('Repaired output missing');
+          if (atEnd && overlay.replacement?.introduced?.length && handle.twee) {
+            const body = overlay.replacement.after;
+            const start = content.indexOf(body);
+            if (start < 0 || content.indexOf(body, start + 1) >= 0) throw new Error('Migrated replacement output must be unique');
+            const reference = content.slice(0, start) + handle.twee.rule.findString + content.slice(start + body.length);
+            RepairBody.validateScope(reference, handle.twee.rule.findString || '', overlay.replacement.introduced, RepairRecipeParser.macroRanges);
+          }
           const survived = (expected: string | undefined) =>
             expected !== undefined &&
             (content === expected || content === expected + '\n' || (atEnd && handle.output.kind === 'twee' && content === ZonesManager.wrapSpecialPassage(expected, handle.output.path)));

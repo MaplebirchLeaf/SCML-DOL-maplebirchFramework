@@ -29,6 +29,7 @@ interface Observation {
   sequence: number;
   output?: string;
   attempted?: boolean;
+  guard?: { validate(handle: RepairHandle, source: string): void; rollback(error: unknown): void };
 }
 
 interface Observer {
@@ -124,7 +125,7 @@ export class RepairProof {
     return { output: content, matched };
   }
 
-  private static tweeExpectation(data: TweeData, info: TweeInfo, handle: RepairHandle): { output: string; matched: boolean } | undefined {
+  private static tweeExpectation(data: TweeData, info: TweeInfo, handle: RepairHandle, guard?: Observation['guard']): { output: string; matched: boolean } | undefined {
     const { twee, output } = handle;
     if (!twee || twee.mod !== info.mod || twee.patcher.info.get(info.mod.name) !== info) return;
     const addon = info.mod.bootJson.addonPlugin?.find(entry => entry.modName === 'TweeReplacer' && entry.addonName === 'TweeReplacerAddon') as ModBootJsonAddonPluginTweeReplacer | undefined;
@@ -140,11 +141,10 @@ export class RepairProof {
       if (typeof current.findString !== 'string' || !current.findString || !replacement) return;
       if (!content.includes(current.findString)) continue;
       if (current === twee.rule) {
-        // 前序原生规则执行后，再用当前输入核对记忆中的规则。
         if (!RepairProof.uniqueMatch(content, current.findString)) return;
+        guard?.validate(handle, content);
         matched = true;
       }
-      // 原生 TweeReplacer 使用替换字符串，包含 $ 替换语义。
       content = current.all ? content.replaceAll(current.findString, replacement) : content.replace(current.findString, replacement);
     }
     return { output: content, matched };
@@ -161,10 +161,13 @@ export class RepairProof {
         observation.output = undefined;
         observation.attempted = true;
         try {
-          expected.set(observation, observation.handle.twee ? RepairProof.tweeExpectation(data, info, observation.handle) : RepairProof.addonExpectation(data, info, observation.handle));
+          const output = observation.handle.twee ? RepairProof.tweeExpectation(data, info, observation.handle, observation.guard) : RepairProof.addonExpectation(data, info, observation.handle);
+          if (observation.guard && !output?.matched) throw new Error('Migrated rule input cannot be verified');
+          expected.set(observation, output);
         } catch (error) {
           expected.set(observation, undefined);
           RepairProof.warn(observation, '预期计算', error);
+          observation.guard?.rollback(error);
         }
       }
     try {
@@ -185,7 +188,6 @@ export class RepairProof {
       }
       return result;
     } finally {
-      // 同一原生实例处理多个模组，观察器须保留至订阅的模组执行完毕。
       if ([...observer.subscribers].every(subscriber => subscriber.observations.every(observation => observation.attempted))) RepairProof.restoreAsyncObserver(observer);
     }
   }
@@ -247,8 +249,7 @@ export class RepairProof {
     }
   }
 
-  /** 观察加载器现有补丁器的调用，保留原接收者和方法。 */
-  public static observe(handles: RepairHandle[], diagnostics: Diagnostics): ReplacePatchProof {
+  public static observe(handles: RepairHandle[], diagnostics: Diagnostics, guard?: Observation['guard']): ReplacePatchProof {
     const owned = new Map<PatchObserver, Observer>();
     const ownedAsync = new Map<AsyncObserver, Observer>();
     const observations = new Map<RepairHandle, Observation>();
@@ -289,7 +290,7 @@ export class RepairProof {
             observer.subscribers.add(subscriber);
             ownedAsync.set(observer, subscriber);
           }
-          const observation = { handle, diagnostics, matched: false, sequence: 0 };
+          const observation = { handle, diagnostics, matched: false, sequence: 0, guard };
           subscriber.observations.push(observation);
           observations.set(handle, observation);
           continue;

@@ -7,6 +7,7 @@ import { RepairConnection, type RepairConnectionInput, type ConnectionResult } f
 import { RepairPrompt } from './Prompt';
 import { RepairRecipeParser, type RepairContext, type RepairRecipe, type RepairTarget } from './Recipe';
 import { RepairSources, type RepairSource } from './Source';
+import RepairState from './State';
 
 export class RepairAgent {
   private static readonly CONTEXT_LIMIT = RepairPrompt.MAX_LENGTH - 32000;
@@ -17,7 +18,6 @@ export class RepairAgent {
     return value.replace(/Bearer\s+\S+|\bsk-[\w-]+/gi, '[REDACTED]');
   }
 
-  /** 只纠正输出形状和定位误差，权限与安全模板拒绝直接结束。 */
   private static correctable(reason: string, response: string, context: RepairContext): boolean {
     const message = reason.replace(/^(?:target-\d+|target): /, '');
     if (message === 'Invalid repair JSON') return true;
@@ -68,12 +68,39 @@ export class RepairAgent {
     );
   }
 
+  private static *statePaths(messages: string[], current: RepairSource | undefined, passages: Iterable<string>, scripts: RepairContext['scripts']): Generator<string[]> {
+    let remaining = 256000;
+    for (const message of messages) {
+      const content = message.slice(0, Math.min(8000, remaining));
+      remaining -= content.length;
+      yield* RepairState.paths(content, RepairRecipeParser.codeOffsets(content));
+      if (!remaining) return;
+    }
+    for (const script of scripts || []) {
+      for (const excerpt of script.excerpts) {
+        if (excerpt.content.length > remaining) continue;
+        remaining -= excerpt.content.length;
+        yield* RepairState.paths(excerpt.content, RepairRecipeParser.codeOffsets(excerpt.content));
+      }
+    }
+    for (const name of passages) {
+      const content = current?.passageDataItems.map.get(name)?.content;
+      if (!content || content.length > remaining) continue;
+      remaining -= content.length;
+      for (const region of RepairRecipeParser.macroRanges(content)) {
+        const source = region.name === 'script' ? content.slice(region.bodyStart, region.bodyEnd) : content.slice(region.expressionStart, region.expressionEnd);
+        if (!['script', 'if', 'elseif', 'print', '=', 'switch', 'case', 'set', 'run', 'for'].includes(region.name)) continue;
+        yield* RepairState.paths(source, RepairRecipeParser.codeOffsets(source));
+      }
+    }
+  }
+
   public static async context(
     host: ModLoader,
     apiKey: string,
     anchorTargets: RepairTarget[] = [],
     originals: ReadonlyMap<string, string> = new Map(),
-    stateTargets: RepairTarget[] = []
+    stateTargets: RepairTarget[] | ((paths: Iterable<string[]>) => Promise<RepairTarget[]>) = []
   ): Promise<RepairContext> {
     const redact = (value: string) => RepairAgent.redact(value, apiKey);
     const logs = host.diagnostics.history.filter(record => record.level === 'ERROR' || record.level === 'WARN').slice(-60);
@@ -114,13 +141,11 @@ export class RepairAgent {
       conflicts,
       targets: []
     };
-    // 日志含大量转义字符时，仍为源码保留空间。
     while (RepairPrompt.content(context).length > 320000) {
       const lists = [context.diagnostics, context.modLoaderLogs, context.patches, context.conflicts, context.mods];
       const largest = lists.reduce((left, right) => (NativeJSON.stringify(left).length > NativeJSON.stringify(right).length ? left : right));
       largest.shift();
     }
-    // 显示日志截短前，先从完整日志解析名称。
     const messages = RepairSources.diagnosticMessages(host);
     let current: RepairSource | undefined;
     try {
@@ -219,21 +244,6 @@ export class RepairAgent {
       }
       remaining -= size;
     };
-    // 宿主仅提供已授权的小快照，再以日志提及的根状态限定本次发送范围。
-    for (const target of stateTargets) {
-      if (target.kind !== 'state') continue;
-      let path: unknown;
-      try {
-        path = NativeJSON.parse(target.path);
-      } catch {
-        continue;
-      }
-      if (!Array.isArray(path) || !path.length || path.some(part => typeof part !== 'string' || !part)) continue;
-      const root = path[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const mentioned = new RegExp(`(?:^|[^\\p{L}\\p{N}_$.])(?:(?:V|(?:SugarCube\\.)?State\\.variables)\\s*(?:\\?\\.|\\.)\\s*|\\$)?${root}(?![\\p{L}\\p{N}_$])`, 'u');
-      if (messages.some(message => mentioned.test(message))) add(target);
-    }
-    // 失效规则优先，其他模组提供只读证据。
     const selectedRules = failed ? failedRules : rules;
     for (const location of selectedRules) {
       if (context.targets.length >= Math.max(1, 16 - failedReplaceRules.length)) break;
@@ -250,7 +260,6 @@ export class RepairAgent {
         reference: `${rule.passage}\nExisting replacement:\n${RepairTargets.replacement(rule)}`
       });
     }
-    // 规则与段落共享配额，优先保留对应源码。
     const rulePassages = new Map<RepairTarget, string[]>();
     const passageSearches = new Map<string, string[]>();
     for (const target of context.targets) {
@@ -330,6 +339,24 @@ export class RepairAgent {
       if (RepairPrompt.content(context).length > RepairAgent.CONTEXT_LIMIT) context.sources.pop();
       else remaining -= size;
     }
+    const snapshots = typeof stateTargets === 'function' ? await stateTargets(RepairAgent.statePaths(messages, current, relatedPassages, trace.scripts)) : stateTargets;
+    for (const target of snapshots) {
+      if (target.kind !== 'state') continue;
+      if (typeof stateTargets === 'function') {
+        add(target);
+        continue;
+      }
+      let path: unknown;
+      try {
+        path = NativeJSON.parse(target.path);
+      } catch {
+        continue;
+      }
+      if (!Array.isArray(path) || !path.length || path.some(part => typeof part !== 'string' || !part)) continue;
+      const root = path[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const mentioned = new RegExp(`(?:^|[^\\p{L}\\p{N}_$.])(?:(?:V|(?:SugarCube\\.)?State\\.variables)\\s*(?:\\?\\.|\\.)\\s*|\\$)?${root}(?![\\p{L}\\p{N}_$])`, 'u');
+      if (messages.some(message => mentioned.test(message))) add(target);
+    }
     for (const passage of context.passages || []) if (!prioritized.has(passage.name)) supplyCurrent(passage, 32000);
     for (const mod of writableMods) {
       for (const [kind, items] of [
@@ -365,7 +392,6 @@ export class RepairAgent {
       if (RepairPrompt.content(context).length > RepairAgent.CONTEXT_LIMIT) context.relatedRules.pop();
       else remaining -= size;
     }
-    // 含密钥的脚本整份排除。
     for (const script of trace.scripts) {
       const content = current?.scriptFileItems?.map.get(script.name)?.content;
       if (typeof content !== 'string' || redact(content) !== content || redact(script.name) !== script.name) continue;
@@ -375,7 +401,6 @@ export class RepairAgent {
       if (RepairPrompt.content(context).length > RepairAgent.CONTEXT_LIMIT) context.scripts.pop();
       else remaining -= size;
     }
-    // 优先提供当前证据和可执行规则材料，原文仅用于对照。
     for (const passage of context.passages || []) addPassageText(passage, 'original', originals.get(passage.name));
     return context;
   }

@@ -198,12 +198,13 @@ test('simulates a mixed source and state recipe and rejects changed state before
   const { context, recipe } = await fixture();
   const source = 'A red colour.';
   const state = JSON.stringify({ exists: true, value: { count: 'legacy' } });
-  const policy = { modName: 'example', path: ['Example', 'progress'], scope: 'mod', schema: { type: 'object', properties: { count: { type: 'number' } }, required: ['count'] } };
+  const policy = { modName: 'maplebirch', path: ['Example', 'progress'], scope: 'state' };
   context.targets = [
     { ...context.targets[0], id: 'source', kind: 'twee', content: source, fingerprint: await RepairRecipeParser.fingerprint(source) },
     {
       ...context.targets[0],
       id: 'state',
+      modName: policy.modName,
       kind: 'state',
       path: JSON.stringify(policy.path),
       signature: JSON.stringify(policy),

@@ -211,14 +211,16 @@ test('JSON-escaped API keys are removed from correction feedback', async () => {
   }
 });
 
-test('state schema and scope failures stop without correction', async () => {
+test('state JSON and target bounds failures stop without correction', async () => {
   const { context, input, recipe } = analysisFixture();
-  const policy = { modName: 'example', path: ['Example', 'count'], schema: { type: 'number' }, scope: 'mod' };
-  context.targets = [{ ...context.targets[0], kind: 'state', path: NativeJSON.stringify(policy.path), signature: NativeJSON.stringify(policy), content: '{"exists":true,"value":1}' }];
+  const policy = { modName: 'maplebirch', path: ['Example', 'count'], scope: 'state' };
+  context.targets = [
+    { ...context.targets[0], modName: policy.modName, kind: 'state', path: NativeJSON.stringify(policy.path), signature: NativeJSON.stringify(policy), content: '{"exists":true,"value":1}' }
+  ];
   const fetch = spyOn(globalThis, 'fetch');
   try {
     for (const change of [
-      { type: 'set', path: policy.path, value: 'wrong' },
+      { type: 'set', path: policy.path, value: { constructor: 7 } },
       { type: 'set', path: ['Other', 'count'], value: 2 }
     ]) {
       const invalid = { ...recipe, operations: [{ type: 'state', targetId: 'target-1', changes: [change], reason: 'Invalid state result' }] };
@@ -362,16 +364,16 @@ function sourceFixture(messages: string[], original: Record<string, string>, cur
   return { host, mod, vanilla, merged, reads: () => ({ original: originalReads, current: currentReads }) };
 }
 
-function stateTarget(root: string, value: unknown, signature = 'private host policy'): RepairTarget {
+function stateTarget(root: string, value: unknown): RepairTarget {
   return {
     id: '',
-    modName: 'free-attitudes',
+    modName: 'maplebirch',
     kind: 'state',
     path: NativeJSON.stringify([root]),
     fingerprint: `sha256:${'a'.repeat(64)}`,
     content: NativeJSON.stringify({ exists: true, value }),
-    signature,
-    reference: 'Approved state fields: ready must be a boolean.'
+    signature: NativeJSON.stringify({ modName: 'maplebirch', path: [root], scope: 'state' }),
+    reference: 'Bounded state snapshot; changes must contain plain JSON values.'
   };
 }
 
@@ -388,10 +390,10 @@ test('sends only approved state roots mentioned by diagnostics and keeps host po
   ]);
   expect(context.targets.map(target => target.path)).toEqual([NativeJSON.stringify(['RepairState']), NativeJSON.stringify(['OtherState'])]);
   expect(context.targets.map(target => target.id)).toEqual(['target-1', 'target-2']);
-  expect(context.targets[0].signature).toBe('private host policy');
+  expect(context.targets[0].signature).toBe(NativeJSON.stringify({ modName: 'maplebirch', path: ['RepairState'], scope: 'state' }));
   const payload = NativeJSON.parse(RepairPrompt.content(context)) as RepairContext;
   expect(payload.targets[0]).not.toHaveProperty('signature');
-  expect(payload.targets[0].reference).toContain('ready must be a boolean');
+  expect(payload.targets[0].reference).toContain('plain JSON values');
   expect(RepairPrompt.content(context)).not.toContain('private-key');
 });
 
@@ -405,17 +407,67 @@ test('host state references identify approved roots without requiring the DoL V 
   expect(context.targets.map(target => target.path)).toEqual([NativeJSON.stringify(['world']), NativeJSON.stringify(['quests'])]);
 });
 
-test('approved state and source rules share the bounded target batch without mixing their bindings', async () => {
+test('failed source rules retain the bounded target batch before approved state snapshots', async () => {
   const params = Array.from({ length: 20 }, (_, index) => ({ passage: `Target ${index + 1}`, findString: `old anchor ${index + 1}`, replace: `existing replacement ${index + 1}` }));
   const messages = ['V.RepairState.ready is missing', ...params.map(rule => `[TweeReplacer] do_patch() cannot find findString: [free-attitudes] findString:[${rule.findString}] in:[${rule.passage}]`)];
   const current = Object.fromEntries(params.map(rule => [rule.passage, `current ${rule.passage}`]));
   const state = sourceFixture(messages, {}, current, params);
   const context = await RepairAgent.context(state.host, '', [], new Map(), [stateTarget('RepairState', { ready: false })]);
   expect(context.targets).toHaveLength(16);
-  expect(context.targets[0]).toMatchObject({ id: 'target-1', kind: 'state' });
-  expect(context.targets.filter(target => target.kind === 'twee-replacer')).toHaveLength(15);
-  expect(context.omittedRules).toBe(5);
+  expect(context.targets[0]).toMatchObject({ id: 'target-1', kind: 'twee-replacer' });
+  expect(context.targets.filter(target => target.kind === 'twee-replacer')).toHaveLength(16);
+  expect(context.targets.filter(target => target.kind === 'state')).toHaveLength(0);
+  expect(context.omittedRules).toBe(4);
   expect(RepairPrompt.content(context).length).toBeLessThanOrEqual(480000);
+});
+
+test.each([0, 3])('failed patch bindings take priority over discovered state snapshots (%i native rules)', async nativeCount => {
+  const params = Array.from({ length: 12 - nativeCount }, (_, index) => ({ passage: `Target ${index + 1}`, findString: `old anchor ${index + 1}`, replace: `existing replacement ${index + 1}` }));
+  const nativeRules = Array.from({ length: nativeCount }, (_, index) => ({
+    passageName: `Native Target ${index + 1}`,
+    from: `old native anchor ${index + 1}`,
+    to: `existing native replacement ${index + 1}`
+  }));
+  const messages = [
+    ...params.map(rule => `[TweeReplacer] do_patch() cannot find findString: [free-attitudes] findString:[${rule.findString}] in:[${rule.passage}]`),
+    ...nativeRules.map(rule => `[ReplacePatcher] patchInReplaceParamsItemTwee() patch[free-attitudes] cannot find 'from': ${rule.from} in:${rule.passageName}`)
+  ];
+  const current = Object.fromEntries([...params.map(rule => [rule.passage, `current ${rule.passage}`]), ...nativeRules.map(rule => [rule.passageName, `current ${rule.passageName}`])]);
+  const state = sourceFixture(messages, {}, current, params);
+  Object.assign(state.mod, { replacePatcher: [{ patchFileName: 'native.json', patchInfo: { twee: nativeRules } }] });
+  const snapshots = Array.from({ length: 8 }, (_, index) => stateTarget(`ObservedState${index + 1}`, { ready: false }));
+
+  const context = await RepairAgent.context(state.host, '', [], new Map(), async () => snapshots);
+
+  expect(context.targets.filter(target => target.kind === 'twee-replacer')).toHaveLength(12 - nativeCount);
+  expect(context.targets.filter(target => target.kind === 'replace-patcher')).toHaveLength(nativeCount);
+  expect(context.targets.filter(target => target.kind === 'state')).toHaveLength(4);
+  expect(context.targets).toHaveLength(16);
+  expect(context.omittedRules || 0).toBe(0);
+  for (const target of context.targets.filter(target => target.kind === 'twee-replacer' || target.kind === 'replace-patcher')) {
+    const binding = NativeJSON.parse(target.content) as { passage?: string; passageName?: string };
+    expect(context.passages?.find(passage => passage.name === (binding.passage || binding.passageName))?.current).toBeDefined();
+  }
+});
+
+test('failed native source evidence retains its byte budget before discovered state snapshots', async () => {
+  const rule = { fileName: 'native.js', from: 'old native anchor', to: 'existing native replacement' };
+  const message = `applyReplacePatcher() js replace 0: in [${rule.fileName}] of [${rule.from}] positions []`;
+  const state = sourceFixture([message], {}, {});
+  const current = 'const observed = true;'.padEnd(60000, ' ');
+  Object.assign(state.mod, { replacePatcher: [{ patchFileName: 'native.json', patchInfo: { js: [rule] } }] });
+  state.merged.scriptFileItems.items.push({ name: rule.fileName, content: current });
+  state.merged.scriptFileItems.map.set(rule.fileName, { name: rule.fileName, content: current });
+  const snapshots = Array.from({ length: 8 }, (_, index) => stateTarget(`ObservedState${index + 1}`, { data: 's'.repeat(15000) }));
+
+  const context = await RepairAgent.context(state.host, '', [], new Map(), async () => snapshots);
+
+  expect(context.targets.filter(target => target.kind === 'replace-patcher')).toHaveLength(1);
+  expect(context.sources).toContainEqual({ name: rule.fileName, kind: 'js', current });
+  const stateCount = context.targets.filter(target => target.kind === 'state').length;
+  expect(stateCount).toBeGreaterThan(0);
+  expect(stateCount).toBeLessThan(snapshots.length);
+  expect(context.omittedRules || 0).toBe(0);
 });
 
 test('reuses passage candidates across repeated failed searches within one context', async () => {

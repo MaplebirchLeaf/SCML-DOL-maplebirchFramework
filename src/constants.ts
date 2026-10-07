@@ -53,7 +53,7 @@ export const Config = {
     Save           : ['Save', '保存'],
     Test           : ['Test', '测试'],
     Analyze        : ['Analyze', '分析'],
-    AnalyzeNotice  : ['Sends diagnostics, related source and authorized state fragments.', '发送诊断、相关源码与已授权状态片段。'],
+    AnalyzeNotice  : ['Sends diagnostics, related source and state fragments; no complete saves.', '发送诊断、相关源码与变量片段，不含完整存档。'],
     Preview        : ['Repair preview', '修复预览'],
     Before         : ['Before', '修改前'],
     After          : ['After', '修改后'],

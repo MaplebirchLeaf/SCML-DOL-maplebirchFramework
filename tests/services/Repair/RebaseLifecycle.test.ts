@@ -7,6 +7,7 @@ import Repair, { type RepairMemory } from '../../../src/services/Repair';
 import { RepairRecipeParser, type RepairContext, type RepairRecipe } from '../../../src/services/Repair/Recipe';
 import { RepairTargets, type RepairHandle } from '../../../src/services/Repair/Targets';
 import { NativeJSON } from '../../../src/services/Repair/Json';
+import RepairState from '../../../src/services/Repair/State';
 
 type TweePatcher = NonNullable<RepairHandle['twee']>['patcher'];
 type TweeData = Parameters<TweePatcher['do_patch']>[1];
@@ -17,7 +18,16 @@ const currentSearch = '<<set $livestock.milk = 0>>\n<<set $animal = "cow">>';
 const fileBody = oldSearch + '\n<<set $remyLove = true>>';
 const currentBody = currentSearch + '\n<<set $remyLove = true>>';
 
-function fixture(rows = new Map<string, unknown>(), current = currentSearch, search = oldSearch, body = fileBody) {
+const migrationSearch = '/*Alex variables*/';
+const migrationCondition = '(getPregnancyObject().potentialFathers.length is 1 or getPregnancyObject().potentialFathers.length is undefined) and getPregnancyObject().fetus[0].father is "Remy"';
+const migrationSource = 'getPregnancyObject().fetus[0].father';
+const migrationDefinition = '<<set _birth to getLabouringPregnancy("pc")>>';
+const migrationAnchor = '<<set $alex_pregnancy to _birth?.donor is "Alex">>';
+const migrationCurrent = migrationDefinition + '\n' + migrationAnchor;
+const migrationFileBody = `<<if ${migrationCondition}>>\r\n<<set $remy_pregnancy.source to ${migrationSource}>>\r\n<</if>>\r\n${migrationSearch}`;
+const migrationBody = migrationFileBody.replace(migrationCondition, '_birth?.donor === "Remy"').replace(`to ${migrationSource}>>`, 'to _birth?.donor>>').replace(migrationSearch, migrationAnchor);
+
+function fixture(rows = new Map<string, unknown>(), current = currentSearch, search = oldSearch, body = fileBody, variables?: object) {
   const events = new Emitter();
   const stores: string[] = [];
   const warnings: string[] = [];
@@ -72,7 +82,13 @@ function fixture(rows = new Map<string, unknown>(), current = currentSearch, sea
     },
     modSC2DataManager: { getSC2DataInfoAfterPatch: () => final, getSC2DataInfoCache: () => cache(search) }
   } as unknown as ModLoader;
-  const repair = new Repair(idb, host, events);
+  const repair = new Repair(
+    idb,
+    host,
+    events,
+    () => undefined,
+    () => variables
+  );
   return { rows, events, stores, warnings, archive, rule, info, patcher, host, repair, final, item: final.passageDataItems.items[0] };
 }
 
@@ -117,6 +133,68 @@ async function seed(state: ReturnType<typeof fixture>, after = currentSearch, re
   const memory: RepairMemory = { id: `memory:${crypto.randomUUID()}`, summary: recipe.summary, enabled: true, state: 'pending', createdAt: '2026-10-06T00:00:00.000Z', context, recipe };
   state.rows.set(memory.id, structuredClone(memory));
   return memory;
+}
+
+async function seedMigration(state: ReturnType<typeof fixture>): Promise<RepairMemory> {
+  const memory = await seed(state, migrationAnchor, true, migrationSearch);
+  memory.context.passages![0].current = migrationCurrent;
+  memory.recipe.operations[0].replace = NativeJSON.stringify({
+    passage: 'Target',
+    findString: migrationAnchor,
+    rebase: true,
+    expressions: [
+      { find: migrationCondition, replace: '_birth?.donor === "Remy"', expectedMatches: 1 },
+      { find: migrationSource, replace: '_birth?.donor', expectedMatches: 1 }
+    ]
+  });
+  state.rows.set(memory.id, structuredClone(memory));
+  return memory;
+}
+
+async function addSecondBinding(state: ReturnType<typeof fixture>, memory: RepairMemory) {
+  const search = '/*Other variables*/';
+  const anchor = '<<set $other_flag to true>>';
+  const body = '<<set $remyOther to true>>\r\n' + search;
+  const after = body.replace(search, anchor);
+  const rule = { passage: 'Other', findString: search, replace: '', replaceFile: 'other.twee', debug: false, all: false };
+  (state.info.mod.bootJson.addonPlugin![0].params as NonNullable<RepairHandle['twee']>['rule'][]).push(rule);
+  state.archive.set('other.twee', body);
+  const item = { name: 'Other', content: anchor };
+  state.final.passageDataItems.items.push(item);
+  state.final.passageDataItems.map.set(item.name, item);
+  await RepairTargets.prepareRules(state.host);
+  const content = NativeJSON.stringify({ passage: rule.passage, findString: search });
+  const location = RepairTargets.tweeRules(state.host).find(location => location.index === 1)!;
+  memory.context.passages!.push({ name: 'Other', current: anchor });
+  memory.context.targets.push({
+    id: 'target-2',
+    modName: 'Old Remy',
+    kind: 'twee-replacer',
+    path: 'twee-replacer|0|1',
+    content,
+    fingerprint: await RepairRecipeParser.fingerprint(content),
+    signature: RepairTargets.tweeSignature(location)
+  });
+  const binding = NativeJSON.stringify({ passage: 'Other', findString: anchor, rebase: true });
+  memory.recipe.operations.push({ targetId: 'target-2', find: content, replace: binding, expectedMatches: 1, reason: 'Keep the second file feature with its current binding' });
+  state.rows.set(memory.id, structuredClone(memory));
+  return { rule, item, body, after, binding: NativeJSON.stringify({ passage: 'Other', findString: anchor }) };
+}
+
+async function addState(state: ReturnType<typeof fixture>, memory: RepairMemory, variables: object) {
+  const path = ['Example', 'progress'];
+  const content = RepairState.read(path, variables);
+  memory.context.targets.push({
+    id: 'state-1',
+    modName: 'maplebirch',
+    kind: 'state',
+    path: NativeJSON.stringify(path),
+    content,
+    fingerprint: await RepairRecipeParser.fingerprint(content),
+    signature: NativeJSON.stringify({ modName: 'maplebirch', path, scope: 'state' })
+  });
+  memory.recipe.operations.push({ type: 'state', targetId: 'state-1', changes: [{ type: 'set', path: [...path, 'count'], value: 1 }], reason: 'Repair the bound legacy count' });
+  state.rows.set(memory.id, structuredClone(memory));
 }
 
 test('normal loading without repair memory does not decompress replacement files', async () => {
@@ -317,4 +395,168 @@ test('later rule body changes cannot pass loading verification even if native ou
   expect((await state.repair.list())[0].state).toBe('failed');
   await expect(state.repair.confirm(memory.id)).rejects.toThrow();
   expect(state.archive.get('body.twee')).toBe(fileBody);
+});
+
+test('file expression migration becomes trial and active and replays against a fresh registered ZIP without AI', async () => {
+  const state = fixture(undefined, migrationCurrent, migrationSearch, migrationFileBody);
+  const memory = await seedMigration(state);
+  const fetch = spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Migration replay must not call AI'));
+  try {
+    await state.events.trigger(':addon:repair');
+    expect(state.rule).toEqual({ passage: 'Target', findString: migrationAnchor, replace: migrationBody });
+    expect(state.item.content).toBe(migrationCurrent);
+    expect((await state.repair.list())[0].state).toBe('pending');
+    await expect(state.repair.confirm(memory.id)).rejects.toThrow();
+    await native(state);
+    expect(state.item.content).toBe(migrationDefinition + '\n' + migrationBody);
+    expect((await state.repair.list())[0].state).toBe('trial');
+    await state.repair.confirm(memory.id);
+    expect((await state.repair.list())[0].state).toBe('active');
+    expect(state.archive.get('body.twee')).toBe(migrationFileBody);
+    const reload = fixture(state.rows, migrationCurrent, migrationSearch, migrationFileBody);
+    expect(reload.rule).not.toBe(state.rule);
+    expect(reload.rule).toEqual({ passage: 'Target', findString: migrationSearch, replaceFile: 'body.twee' });
+    await reload.events.trigger(':addon:repair');
+    await native(reload);
+    expect(reload.item.content).toBe(migrationDefinition + '\n' + migrationBody);
+    expect((await reload.repair.list())[0].state).toBe('active');
+    expect(reload.archive.get('body.twee')).toBe(migrationFileBody);
+    expect(fetch).not.toHaveBeenCalled();
+  } finally {
+    fetch.mockRestore();
+  }
+});
+
+test('live removal or movement of the temporary initializer retracts the derived file body before native reads it', async () => {
+  for (const current of [migrationAnchor, migrationAnchor + '\n' + migrationDefinition]) {
+    const state = fixture(undefined, current, migrationSearch, migrationFileBody);
+    const memory = await seedMigration(state);
+    const originalRule = structuredClone(state.rule);
+    const read: string[] = [];
+    const original = state.patcher.do_patch;
+    state.patcher.do_patch = async (info, data) => {
+      read.push(state.rule.replace || (await info.modZip.zip.file(state.rule.replaceFile!)!.async('string')));
+      await original.call(state.patcher, info, data);
+    };
+    await state.events.trigger(':addon:repair');
+    expect(state.rule.replace).toBe(migrationBody);
+    await native(state);
+    expect(read).toEqual([migrationFileBody]);
+    expect(state.rule).toEqual(originalRule);
+    expect(state.item.content).toBe(current);
+    expect((state.rows.get(memory.id) as RepairMemory).state).toBe('failed');
+    expect(state.archive.get('body.twee')).toBe(migrationFileBody);
+  }
+});
+
+test('a second native binding failure rolls back both file rules and the state in their shared recipe', async () => {
+  const variables: { Example: { progress: { count: string | number; note: string } } } = { Example: { progress: { count: 'legacy', note: 'keep' } } };
+  const state = fixture(undefined, migrationCurrent, migrationSearch, migrationFileBody, variables);
+  const memory = await seedMigration(state);
+  const second = await addSecondBinding(state, memory);
+  await addState(state, memory, variables);
+  const firstRule = structuredClone(state.rule);
+  const secondRule = structuredClone(second.rule);
+  await state.events.trigger(':addon:repair');
+  expect(state.rule.replace).toBe(migrationBody);
+  expect(second.rule.replace).toBe(second.after);
+  await state.events.trigger(':variable');
+  expect(variables).toEqual({ Example: { progress: { count: 1, note: 'keep' } } });
+  second.item.content = 'Another module removed the selected second anchor.';
+  await state.patcher.do_patch(state.info, state.final as unknown as TweeData);
+  await state.events.trigger(':variable');
+  expect(variables).toEqual({ Example: { progress: { count: 'legacy', note: 'keep' } } });
+  await state.events.trigger(':modLoaderEnd');
+  expect(state.rule).toEqual(firstRule);
+  expect(second.rule).toEqual(secondRule);
+  expect(variables).toEqual({ Example: { progress: { count: 'legacy', note: 'keep' } } });
+  expect(state.archive).toEqual(
+    new Map([
+      ['body.twee', migrationFileBody],
+      ['other.twee', second.body]
+    ])
+  );
+  expect((state.rows.get(memory.id) as RepairMemory).state).toBe('failed');
+});
+
+test('an interrupted second body write restores complete original replaceFile and optional-field shapes', async () => {
+  const variables = { Example: { progress: { count: 'legacy' } } };
+  const state = fixture(undefined, migrationCurrent, migrationSearch, migrationFileBody, variables);
+  const memory = await seedMigration(state);
+  const second = await addSecondBinding(state, memory);
+  await addState(state, memory, variables);
+  const firstRule = structuredClone(state.rule);
+  const secondRule = structuredClone(second.rule);
+  const original = RepairTargets.handle;
+  let interrupted = false;
+  const handle = spyOn(RepairTargets, 'handle').mockImplementation((host, target, anchors) => {
+    const result = original(host, target, anchors);
+    if (!result || target.path !== 'twee-replacer|0|1') return result;
+    const write = result.write.bind(result);
+    result.write = (content, replacement) => {
+      write(content, replacement);
+      if (!interrupted && content === second.binding) {
+        interrupted = true;
+        throw new Error('Second write interrupted after changing the rule fields');
+      }
+    };
+    return result;
+  });
+  try {
+    await state.events.trigger(':addon:repair');
+    expect(interrupted).toBe(true);
+    expect(state.rule).toEqual(firstRule);
+    expect(second.rule).toEqual(secondRule);
+    expect(state.rule).not.toHaveProperty('replace');
+    expect(second.rule).toHaveProperty('replace', '');
+    expect(variables).toEqual({ Example: { progress: { count: 'legacy' } } });
+    expect((state.rows.get(memory.id) as RepairMemory).state).toBe('stale');
+    expect(state.archive).toEqual(
+      new Map([
+        ['body.twee', migrationFileBody],
+        ['other.twee', second.body]
+      ])
+    );
+  } finally {
+    handle.mockRestore();
+  }
+});
+
+test('final migrated output cannot supply its own new reads or temporary initialization as verification evidence', async () => {
+  const body = migrationDefinition + '\n' + migrationFileBody;
+  const state = fixture(undefined, migrationCurrent, migrationSearch, body);
+  const memory = await seedMigration(state);
+  const originalRule = structuredClone(state.rule);
+  await state.events.trigger(':addon:repair');
+  await state.patcher.do_patch(state.info, state.final as unknown as TweeData);
+  const migrated = state.rule.replace!;
+  expect(migrated).toStartWith(migrationDefinition);
+  expect(migrated).toContain('_birth?.donor === "Remy"');
+  state.item.content = migrated;
+  await state.events.trigger(':modLoaderEnd');
+  expect((state.rows.get(memory.id) as RepairMemory).state).toBe('failed');
+  expect((state.rows.get(memory.id) as RepairMemory).error).toContain('temporary is not initialized');
+  expect(state.rule).toEqual(originalRule);
+  expect(state.archive.get('body.twee')).toBe(body);
+});
+
+test('an unobservable preceding regex rule retracts the migration before native code reads the file body', async () => {
+  const state = fixture(undefined, migrationCurrent, migrationSearch, migrationFileBody);
+  const memory = await seedMigration(state);
+  const originalRule = structuredClone(state.rule);
+  const read: string[] = [];
+  const original = state.patcher.do_patch;
+  state.patcher.do_patch = async (info, data) => {
+    read.push(state.rule.replace || (await info.modZip.zip.file(state.rule.replaceFile!)!.async('string')));
+    await original.call(state.patcher, info, data);
+  };
+  await state.events.trigger(':addon:repair');
+  expect(state.rule.replace).toBe(migrationBody);
+  (state.info.mod.bootJson.addonPlugin![0].params as NonNullable<RepairHandle['twee']>['rule'][]).unshift({ passage: 'Target', findRegex: 'Alex', replace: 'Alex' });
+  await native(state);
+  expect(read).toEqual([migrationFileBody]);
+  expect(state.rule).toEqual(originalRule);
+  expect(state.item.content).toBe(migrationCurrent);
+  expect((state.rows.get(memory.id) as RepairMemory).state).toBe('failed');
+  expect(state.archive.get('body.twee')).toBe(migrationFileBody);
 });

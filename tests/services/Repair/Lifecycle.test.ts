@@ -8,8 +8,9 @@ import type ModLoader from '../../../src/host/ModLoader';
 import Repair, { type RepairMemory } from '../../../src/services/Repair';
 import { RepairRecipeParser, type RepairContext, type RepairRecipe } from '../../../src/services/Repair/Recipe';
 import { NativeJSON } from '../../../src/services/Repair/Json';
-import RepairState, { type RepairStatePolicy } from '../../../src/services/Repair/State';
+import RepairState, { type JSONValue, type RepairStateChange, type RepairStatePolicy } from '../../../src/services/Repair/State';
 import { RepairAgent } from '../../../src/services/Repair/Agent';
+import { RepairPrompt } from '../../../src/services/Repair/Prompt';
 import Diagnostics from '../../../src/infra/Diagnostics';
 import { RepairTargets, type RepairZone } from '../../../src/services/Repair/Targets';
 import { applySourcePatch } from '../../../src/host/ModLoader';
@@ -178,10 +179,9 @@ async function seedRepair(rows: Map<string, unknown>): Promise<RepairMemory> {
 }
 
 const statePolicy: RepairStatePolicy = {
-  modName: 'example',
+  modName: 'maplebirch',
   path: ['Example'],
-  scope: 'mod',
-  schema: { type: 'object', properties: { count: { type: 'number' } }, required: ['count'] }
+  scope: 'state'
 };
 
 async function seedStateRepair(rows: Map<string, unknown>, withSource = false, policies = [statePolicy]): Promise<RepairMemory> {
@@ -204,6 +204,18 @@ async function seedStateRepair(rows: Map<string, unknown>, withSource = false, p
     });
     memory.recipe.operations.push({ type: 'state', targetId: id, changes: [{ type: 'set', path: [...policy.path, 'count'], value: 1 }], reason: 'Restore the declared count' });
   }
+  rows.set(memory.id, structuredClone(memory));
+  return memory;
+}
+
+async function seedAutomaticStateRepair(rows: Map<string, unknown>, path: string[], content: string, changes: RepairStateChange[], withSource = false): Promise<RepairMemory> {
+  const policy: RepairStatePolicy = { modName: 'maplebirch', path, scope: 'state' };
+  const memory = await seedStateRepair(rows, withSource, [policy]);
+  const target = memory.context.targets.find(target => target.kind === 'state')!;
+  target.content = content;
+  target.fingerprint = await RepairRecipeParser.fingerprint(content);
+  const operation = memory.recipe.operations.find(operation => operation.type === 'state')!;
+  operation.changes = changes;
   rows.set(memory.id, structuredClone(memory));
   return memory;
 }
@@ -244,7 +256,6 @@ async function seedAstRepair(fixture: ReturnType<typeof astFixture>, policies = 
 
 test('AST and state preparation stages one pending recipe without modifying live targets', async () => {
   const fixture = astFixture();
-  fixture.repair.allowState(statePolicy);
   fixture.variables.current = { Example: { count: 0 } };
   const memory = await seedAstRepair(fixture);
   fixture.rows.delete(memory.id);
@@ -273,7 +284,6 @@ test('AST and state preparation stages one pending recipe without modifying live
 
 test('staging revalidates every AST and state input before writing repair memory', async () => {
   const fixture = astFixture();
-  fixture.repair.allowState(statePolicy);
   fixture.variables.current = { Example: { count: 0 } };
   const memory = await seedAstRepair(fixture);
   fixture.rows.delete(memory.id);
@@ -301,7 +311,6 @@ test('staging revalidates every AST and state input before writing repair memory
 
 test('AST memory verifies both source and state, preserves formatting and replays without AI', async () => {
   const fixture = astFixture();
-  fixture.repair.allowState(statePolicy);
   const memory = await seedAstRepair(fixture);
   const after = astSource.replace('state.value', 'state.value ?? 0');
   const fetch = spyOn(globalThis, 'fetch').mockRejectedValue(new Error('AST memory must not call an API'));
@@ -321,7 +330,6 @@ test('AST memory verifies both source and state, preserves formatting and replay
     expect((fixture.rows.get(memory.id) as RepairMemory).state).toBe('active');
 
     const reload = astFixture(fixture.rows);
-    reload.repair.allowState(statePolicy);
     reload.variables.current = { Example: { count: 0 } };
     await reload.events.trigger(':addon:repair');
     expect(reload.source.content).toBe(after);
@@ -340,8 +348,6 @@ test('AST memory verifies both source and state, preserves formatting and replay
 test('a later state write failure rolls back the AST overlay and all earlier state targets', async () => {
   const fixture = astFixture();
   const otherPolicy = { ...statePolicy, path: ['Other'] };
-  fixture.repair.allowState(statePolicy);
-  fixture.repair.allowState(otherPolicy);
   const original = { count: 0 };
   const root: Record<string, object> = { Example: original };
   Object.defineProperty(root, 'Other', { value: { count: 0 }, enumerable: true, configurable: false, writable: false });
@@ -362,7 +368,6 @@ test('a later state write failure rolls back the AST overlay and all earlier sta
 
 test('failed AST output verification restores state snapshots and the exact original source', async () => {
   const fixture = astFixture();
-  fixture.repair.allowState(statePolicy);
   const original = { count: 0 };
   fixture.variables.current = { Example: original };
   const memory = await seedAstRepair(fixture);
@@ -378,7 +383,6 @@ test('failed AST output verification restores state snapshots and the exact orig
 
 test('changed AST source fingerprints prevent every operation in the mixed memory', async () => {
   const fixture = astFixture();
-  fixture.repair.allowState(statePolicy);
   const memory = await seedAstRepair(fixture);
   const changed = astSource + '// A later package revision.\r\n';
   fixture.source.content = changed;
@@ -391,9 +395,8 @@ test('changed AST source fingerprints prevent every operation in the mixed memor
   await expect(fixture.repair.confirm(memory.id)).rejects.toThrow();
 });
 
-test('state memory waits for variables, confirms, replays without AI and is idempotent across save roots', async () => {
+test('state memory waits for variables, confirms and replays without AI across save roots', async () => {
   const fixture = repairFixture();
-  expect(fixture.repair.allowState(statePolicy)).toBe(true);
   const memory = await seedStateRepair(fixture.rows);
   const fetch = spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Memory must not call an API'));
   try {
@@ -409,7 +412,6 @@ test('state memory waits for variables, confirms, replays without AI and is idem
     await fixture.repair.confirm(memory.id);
 
     const reload = repairFixture(fixture.rows);
-    expect(reload.repair.allowState(statePolicy)).toBe(true);
     await reload.events.trigger(':addon:repair');
     reload.variables.current = { Example: { count: 1 } };
     await reload.events.trigger(':variable');
@@ -428,7 +430,6 @@ test('state memory waits for variables, confirms, replays without AI and is idem
 
 test('a source and state recipe remains pending until both lifecycle phases verify', async () => {
   const fixture = repairFixture();
-  fixture.repair.allowState(statePolicy);
   const memory = await seedStateRepair(fixture.rows, true);
   await fixture.events.trigger(':addon:repair');
   expect(fixture.source.content).toBe('a { color: red; }');
@@ -445,8 +446,6 @@ test('a source and state recipe remains pending until both lifecycle phases veri
 test('a state write failure rolls back earlier state targets and every source overlay', async () => {
   const fixture = repairFixture();
   const otherPolicy = { ...statePolicy, path: ['Other'] };
-  fixture.repair.allowState(statePolicy);
-  fixture.repair.allowState(otherPolicy);
   const original = { count: 0 };
   const root: Record<string, object> = { Example: original };
   Object.defineProperty(root, 'Other', { value: { count: 0 }, enumerable: true, configurable: false, writable: false });
@@ -466,7 +465,6 @@ test('a state write failure rolls back earlier state targets and every source ov
 
 test('failed source proof restores state snapshots as well as cached source', async () => {
   const fixture = repairFixture();
-  fixture.repair.allowState(statePolicy);
   const original = { count: 0 };
   fixture.variables.current = { Example: original };
   const memory = await seedStateRepair(fixture.rows, true);
@@ -482,7 +480,6 @@ test('failed source proof restores state snapshots as well as cached source', as
 
 test('changed state fingerprints reject the whole recipe without changing a different save', async () => {
   const fixture = repairFixture();
-  fixture.repair.allowState(statePolicy);
   const memory = await seedStateRepair(fixture.rows, true);
   await fixture.events.trigger(':addon:repair');
   fixture.variables.current = { Example: { count: 2 } };
@@ -495,7 +492,6 @@ test('changed state fingerprints reject the whole recipe without changing a diff
 
 test('a verified mixed memory is disabled persistently when a later save no longer matches', async () => {
   const fixture = repairFixture();
-  fixture.repair.allowState(statePolicy);
   const memory = await seedStateRepair(fixture.rows, true);
   fixture.variables.current = { Example: { count: 0 } };
   await fixture.events.trigger(':addon:repair');
@@ -513,65 +509,419 @@ test('a verified mixed memory is disabled persistently when a later save no long
   await expect(fixture.repair.confirm(memory.id)).rejects.toThrow();
 });
 
-test('unregistered, overlapping and unknown-owner state permissions cannot grant repair access', async () => {
-  const fixture = repairFixture();
-  expect(fixture.repair.allowState({ ...statePolicy, modName: 'unknown' })).toBe(false);
-  expect(fixture.repair.allowState({ ...statePolicy, path: ['window'] })).toBe(false);
-  expect(fixture.repair.allowState(statePolicy)).toBe(true);
-  expect(fixture.repair.allowState({ ...statePolicy, path: ['Example', 'nested'] })).toBe(false);
-  const fresh = repairFixture();
-  const memory = await seedStateRepair(fresh.rows, true);
-  await fresh.events.trigger(':addon:repair');
-  expect(fresh.source.content).toBe('a { color: reed; }');
-  expect((fresh.rows.get(memory.id) as RepairMemory).state).toBe('stale');
+test('tampered state bindings and unknown owners reject the whole memory before applying source or state', async () => {
+  const mutations = [
+    (target: RepairContext['targets'][number]) => {
+      target.signature = NativeJSON.stringify({ ...statePolicy, modName: 'unknown' });
+    },
+    (target: RepairContext['targets'][number]) => {
+      target.modName = 'unknown';
+      target.signature = NativeJSON.stringify({ ...statePolicy, modName: 'unknown' });
+    },
+    (target: RepairContext['targets'][number]) => {
+      target.signature = NativeJSON.stringify({ ...statePolicy, path: ['window'] });
+    },
+    (target: RepairContext['targets'][number]) => {
+      target.signature = NativeJSON.stringify({ ...statePolicy, path: ['Example', 'nested'] });
+    },
+    (target: RepairContext['targets'][number]) => {
+      target.path = NativeJSON.stringify(['Other']);
+    },
+    (target: RepairContext['targets'][number]) => {
+      target.signature = ` ${target.signature}`;
+    },
+    (target: RepairContext['targets'][number]) => {
+      target.path = ` ${target.path}`;
+    },
+    (target: RepairContext['targets'][number]) => {
+      target.signature = NativeJSON.stringify({ ...statePolicy, arbitrary: true });
+    }
+  ];
+  for (const mutate of mutations) {
+    const fixture = repairFixture();
+    fixture.variables.current = { Example: { count: 0 }, Other: { count: 0 } };
+    const memory = await seedStateRepair(fixture.rows, true);
+    mutate(memory.context.targets.find(target => target.kind === 'state')!);
+    fixture.rows.set(memory.id, structuredClone(memory));
+    await fixture.events.trigger(':addon:repair');
+    await fixture.events.trigger(':variable');
+    expect(fixture.source.content).toBe('a { color: reed; }');
+    expect(fixture.variables.current).toEqual({ Example: { count: 0 }, Other: { count: 0 } });
+    expect(fixture.rows.get(memory.id) as RepairMemory).toMatchObject({ state: 'stale', enabled: false });
+    await expect(fixture.repair.confirm(memory.id)).rejects.toThrow();
+  }
 });
 
 test('repair without a state provider never reads DoL globals', async () => {
   const fixture = repairFixture();
   const events = new Emitter();
-  const repair = new Repair(fixture.idb, fixture.host, events);
-  repair.allowState(statePolicy);
+  new Repair(fixture.idb, fixture.host, events);
   const memory = await seedStateRepair(fixture.rows);
-  const previous = Object.getOwnPropertyDescriptor(globalThis, 'V');
-  let reads = 0;
-  Object.defineProperty(globalThis, 'V', {
-    configurable: true,
-    get: () => {
-      reads++;
-      throw new Error('Repair services cannot depend on DoL globals');
-    }
-  });
+  const names = ['V', 'State', 'SugarCube'];
+  const previous = new Map(names.map(name => [name, Object.getOwnPropertyDescriptor(globalThis, name)]));
+  const reads: string[] = [];
+  for (const name of names)
+    Object.defineProperty(globalThis, name, {
+      configurable: true,
+      get: () => {
+        reads.push(name);
+        throw new Error('Repair services cannot depend on DoL globals');
+      }
+    });
   try {
     await events.trigger(':addon:repair');
     await events.trigger(':variable');
     await new Promise(resolve => setTimeout(resolve, 0));
-    expect(reads).toBe(0);
+    expect(reads).toEqual([]);
     expect((fixture.rows.get(memory.id) as RepairMemory).error).toBe('Repair variables are not ready');
   } finally {
-    if (previous) Object.defineProperty(globalThis, 'V', previous);
-    else Reflect.deleteProperty(globalThis, 'V');
+    for (const [name, descriptor] of previous) {
+      if (descriptor) Object.defineProperty(globalThis, name, descriptor);
+      else Reflect.deleteProperty(globalThis, name);
+    }
   }
 });
 
-test('game and legacy vanilla scopes replay their bound state memories through the host provider', async () => {
-  for (const scope of ['game', 'vanilla'] as const) {
+test('obsolete state formats are disabled without adaptation and cannot block a subsequent current memory', async () => {
+  const schema = { type: 'object', properties: { count: { type: 'number' } }, required: ['count'] };
+  const obsolete = [...['mod', 'game', 'vanilla'].map(scope => ({ modName: 'example', path: ['Example'], scope, schema })), { ...statePolicy, schema }];
+  for (const policy of obsolete) {
     const fixture = repairFixture();
-    const game: RepairStatePolicy = { ...statePolicy, path: ['world', 'progress'], scope };
-    expect(fixture.repair.allowState(game)).toBe(true);
-    const memory = await seedStateRepair(fixture.rows, false, [game]);
-    fixture.variables.current = { world: { progress: { count: 0 } } };
+    fixture.variables.current = { Example: { count: 0 }, Other: { count: 0 } };
+    const memory = await seedStateRepair(fixture.rows, true);
+    memory.id = 'memory:obsolete';
+    const target = memory.context.targets.find(target => target.kind === 'state')!;
+    target.modName = policy.modName;
+    target.signature = NativeJSON.stringify(policy);
+    fixture.rows.delete('memory:1');
+    fixture.rows.set(memory.id, structuredClone(memory));
+    const path = ['Other'];
+    const valid = await seedAutomaticStateRepair(fixture.rows, path, RepairState.read(path, fixture.variables.current), [{ type: 'set', path: [...path, 'count'], value: 1 }]);
+    valid.createdAt = '2026-10-05T00:00:01.000Z';
+    fixture.rows.set(valid.id, structuredClone(valid));
     await fixture.events.trigger(':addon:repair');
     await fixture.events.trigger(':variable');
-    await new Promise(resolve => setTimeout(resolve, 0));
-    expect(fixture.variables.current).toEqual({ world: { progress: { count: 1 } } });
-    expect((fixture.rows.get(memory.id) as RepairMemory).state).toBe('trial');
-    expect(NativeJSON.parse(memory.context.targets[0].signature!)).toMatchObject({ scope });
+    expect(fixture.variables.current).toEqual({ Example: { count: 0 }, Other: { count: 1 } });
+    expect(fixture.source.content).toBe('a { color: reed; }');
+    const rejected = fixture.rows.get(memory.id) as RepairMemory;
+    expect(rejected).toMatchObject({ state: 'stale', enabled: false });
+    expect(rejected.recipe).toEqual(memory.recipe);
+    expect(rejected.context.targets.find(target => target.kind === 'state')!.signature).toBe(target.signature);
+    expect((fixture.rows.get(valid.id) as RepairMemory).state).toBe('trial');
+    await fixture.repair.confirm(valid.id);
+    await expect(fixture.repair.confirm(memory.id)).rejects.toThrow();
   }
+});
+
+test('real diagnostic context binds a small state parent without reading unrelated save getters', async () => {
+  const fixture = repairFixture();
+  const root = { Example: { progress: { count: 'legacy', enabled: false } } };
+  let reads = 0;
+  let enumerations = 0;
+  Object.defineProperty(root, 'unrelated', {
+    enumerable: true,
+    get: () => {
+      reads++;
+      throw new Error('Unrelated save data must not be read');
+    }
+  });
+  fixture.variables.current = new Proxy(root, {
+    ownKeys: target => {
+      enumerations++;
+      return Reflect.ownKeys(target);
+    }
+  });
+  fixture.diagnostics.history.push({ at: 'fixture-time', level: 'WARN', message: 'V.Example.progress.count has an invalid number' });
+  Object.assign(fixture.repair.connection, { apiUrl: 'https://example.test/v1', model: 'model' });
+  let captured: RepairContext | undefined;
+  const agent = spyOn(RepairAgent, 'analyze').mockImplementation(async (_connection, context) => {
+    captured = context;
+    const target = context.targets.find(target => target.kind === 'state')!;
+    return {
+      result: 'success',
+      recipe: {
+        requestId: context.requestId,
+        outcome: 'repair',
+        summary: 'Restore the count',
+        evidence: [],
+        operations: [{ type: 'state', targetId: target.id, changes: [{ type: 'set', path: ['Example', 'progress', 'count'], value: 7 }], reason: 'Repair the diagnosed count' }]
+      }
+    };
+  });
+  try {
+    const proposal = await fixture.repair.analyze(new AbortController().signal);
+    expect(proposal.result).toBe('success');
+    const targets = captured!.targets.filter(target => target.kind === 'state');
+    expect(targets).toHaveLength(1);
+    expect(NativeJSON.parse(targets[0].signature!)).toEqual({ modName: 'maplebirch', path: ['Example', 'progress'], scope: 'state' });
+    expect(NativeJSON.parse(targets[0].content)).toEqual({ exists: true, value: { count: 'legacy', enabled: false } });
+    expect(root.Example.progress.count).toBe('legacy');
+    await fixture.repair.stage();
+    await fixture.events.trigger(':addon:repair');
+    await fixture.events.trigger(':variable');
+    expect(RepairState.read(['Example', 'progress'], root)).toBe(NativeJSON.stringify({ exists: true, value: { count: 7, enabled: false } }));
+    expect(reads).toBe(0);
+    expect(enumerations).toBe(0);
+  } finally {
+    agent.mockRestore();
+  }
+});
+
+test('real passage tracing discovers macro variables and excludes ordinary prose variables', async () => {
+  const fixture = repairFixture();
+  const passage = { id: 0, name: 'Settings', content: '<<if $Example.enabled>>Enabled<</if>> Ordinary prose mentions $Unrelated.' };
+  fixture.final.passageDataItems.items.push(passage);
+  fixture.final.passageDataItems.fillMap();
+  const root = { Example: { enabled: false, other: 'keep' } };
+  let reads = 0;
+  Object.defineProperty(root, 'Unrelated', {
+    enumerable: true,
+    get: () => {
+      reads++;
+      throw new Error('Prose is not a variable access');
+    }
+  });
+  fixture.variables.current = root;
+  fixture.diagnostics.history.push({ at: 'fixture-time', level: 'ERROR', message: 'Error (:: Settings): cannot evaluate the stored condition' });
+  Object.assign(fixture.repair.connection, { apiUrl: 'https://example.test/v1', model: 'model' });
+  let captured: RepairContext | undefined;
+  const agent = spyOn(RepairAgent, 'analyze').mockImplementation(async (_connection, context) => {
+    captured = context;
+    const target = context.targets.find(target => target.kind === 'state')!;
+    return {
+      result: 'success',
+      recipe: {
+        requestId: context.requestId,
+        outcome: 'repair',
+        summary: 'Restore the setting',
+        evidence: [],
+        operations: [{ type: 'state', targetId: target.id, changes: [{ type: 'set', path: ['Example', 'enabled'], value: true }], reason: 'Repair the setting used by the condition' }]
+      }
+    };
+  });
+  try {
+    const proposal = await fixture.repair.analyze(new AbortController().signal);
+    expect(proposal.result).toBe('success');
+    expect(captured!.passages?.map(passage => passage.name)).toContain('Settings');
+    const targets = captured!.targets.filter(target => target.kind === 'state');
+    expect(targets).toHaveLength(1);
+    expect(NativeJSON.parse(targets[0].signature!)).toEqual({ modName: 'maplebirch', path: ['Example'], scope: 'state' });
+    expect(NativeJSON.parse(targets[0].content)).toEqual({ exists: true, value: { enabled: false, other: 'keep' } });
+    expect(reads).toBe(0);
+  } finally {
+    agent.mockRestore();
+  }
+});
+
+test('real diagnostic context excludes quoted and commented paths without enumerating or sending the save root', async () => {
+  const fixture = repairFixture();
+  const root = {
+    Example: { progress: { count: 0 } },
+    Private: { secret: 'do-not-send-private' },
+    Commented: { secret: 'do-not-send-comment' },
+    LineComment: { secret: 'do-not-send-line-comment' },
+    unrelated: 'do-not-send-entire-root'
+  };
+  let enumerations = 0;
+  const accessed: string[] = [];
+  fixture.variables.current = new Proxy(root, {
+    ownKeys: target => {
+      enumerations++;
+      return Reflect.ownKeys(target);
+    },
+    getOwnPropertyDescriptor: (target, key) => {
+      if (['Private', 'Commented', 'LineComment', 'unrelated'].includes(String(key))) accessed.push(String(key));
+      return Reflect.getOwnPropertyDescriptor(target, key);
+    }
+  });
+  fixture.diagnostics.history.push({ at: 'fixture-time', level: 'WARN', message: 'V.Example.progress.count is invalid; "V.Private.secret"; /* V.Commented.secret */\n// V.LineComment.secret' });
+  Object.assign(fixture.repair.connection, { apiUrl: 'https://example.test/v1', model: 'model' });
+  let captured: RepairContext | undefined;
+  const agent = spyOn(RepairAgent, 'analyze').mockImplementation(async (_connection, context) => {
+    captured = context;
+    const target = context.targets.find(target => target.kind === 'state')!;
+    return {
+      result: 'success',
+      recipe: {
+        requestId: context.requestId,
+        outcome: 'repair',
+        summary: 'Restore the diagnosed count',
+        evidence: [],
+        operations: [{ type: 'state', targetId: target.id, changes: [{ type: 'set', path: ['Example', 'progress', 'count'], value: 5 }], reason: 'Only repair the actual variable access' }]
+      }
+    };
+  });
+  try {
+    expect((await fixture.repair.analyze(new AbortController().signal)).result).toBe('success');
+    expect(captured!.targets.filter(target => target.kind === 'state').map(target => NativeJSON.parse(target.path))).toEqual([['Example', 'progress']]);
+    expect(enumerations).toBe(0);
+    expect(accessed).toEqual([]);
+    const sent = RepairPrompt.content(captured!);
+    for (const value of ['do-not-send-private', 'do-not-send-comment', 'do-not-send-line-comment', 'do-not-send-entire-root']) expect(sent).not.toContain(value);
+  } finally {
+    agent.mockRestore();
+  }
+});
+
+test('a diagnostic field name without a variable path does not inspect or send the save root', async () => {
+  const fixture = repairFixture();
+  let enumerations = 0;
+  const descriptors: PropertyKey[] = [];
+  fixture.variables.current = new Proxy(
+    { gradient: 'do-not-send-gradient', secret: 'do-not-send-secret' },
+    {
+      ownKeys: target => {
+        enumerations++;
+        return Reflect.ownKeys(target);
+      },
+      getOwnPropertyDescriptor: (target, key) => {
+        descriptors.push(key);
+        return Reflect.getOwnPropertyDescriptor(target, key);
+      }
+    }
+  );
+  fixture.diagnostics.history.push({ at: 'fixture-time', level: 'ERROR', message: "Cannot read properties of undefined (reading 'gradient')" });
+  Object.assign(fixture.repair.connection, { apiUrl: 'https://example.test/v1', model: 'model' });
+  let captured: RepairContext | undefined;
+  const agent = spyOn(RepairAgent, 'analyze').mockImplementation(async (_connection, context) => {
+    captured = context;
+    return { result: 'success', recipe: { requestId: context.requestId, outcome: 'insufficient-context', summary: 'No complete variable path was observed', evidence: [], operations: [] } };
+  });
+  try {
+    expect((await fixture.repair.analyze(new AbortController().signal)).overlays).toEqual([]);
+    expect(captured!.targets.filter(target => target.kind === 'state')).toEqual([]);
+    expect(enumerations).toBe(0);
+    expect(descriptors).toEqual([]);
+    const sent = RepairPrompt.content(captured!);
+    expect(sent).not.toContain('do-not-send-gradient');
+    expect(sent).not.toContain('do-not-send-secret');
+  } finally {
+    agent.mockRestore();
+  }
+});
+
+test('a later overlapping memory is rejected without rolling back an earlier repair', async () => {
+  const fixture = repairFixture();
+  const root = { Example: { count: 0, progress: { count: 0 } } };
+  fixture.variables.current = root;
+  const first = await seedStateRepair(fixture.rows);
+  first.id = 'memory:parent';
+  first.context.targets[0].content = RepairState.read(statePolicy.path, root);
+  first.context.targets[0].fingerprint = await RepairRecipeParser.fingerprint(first.context.targets[0].content);
+  fixture.rows.delete('memory:1');
+  fixture.rows.set(first.id, structuredClone(first));
+  const path = ['Example', 'progress'];
+  const later = await seedAutomaticStateRepair(fixture.rows, path, RepairState.read(path, root), [{ type: 'set', path: [...path, 'count'], value: 2 }], true);
+  later.id = 'memory:child';
+  later.createdAt = '2026-10-05T00:00:01.000Z';
+  fixture.rows.delete('memory:1');
+  fixture.rows.set(later.id, structuredClone(later));
+  await fixture.events.trigger(':addon:repair');
+  await fixture.events.trigger(':variable');
+  expect(root).toEqual({ Example: { count: 1, progress: { count: 0 } } });
+  expect(fixture.source.content).toBe('a { color: reed; }');
+  expect(fixture.rows.get(later.id) as RepairMemory).toMatchObject({ state: 'stale', enabled: false, error: 'Overlapping repair state targets' });
+  expect((fixture.rows.get(first.id) as RepairMemory).state).toBe('trial');
+  await fixture.repair.confirm(first.id);
+  await fixture.repair.remove(later.id);
+  expect(root).toEqual({ Example: { count: 1, progress: { count: 0 } } });
+  expect((fixture.rows.get(first.id) as RepairMemory).state).toBe('active');
+});
+
+test('automatic state proposals stage and replay repaired types and new JSON fields', async () => {
+  const fixture = repairFixture();
+  const path = ['world', 'progress'];
+  fixture.variables.current = { world: { progress: { count: 'legacy', name: 'keep' } } };
+  const before = RepairState.read(path, fixture.variables.current);
+  const memory = await seedAutomaticStateRepair(fixture.rows, path, before, [
+    { type: 'set', path: [...path, 'count'], value: { fixed: true } },
+    { type: 'merge', path, value: { newField: [1, null] } }
+  ]);
+  fixture.rows.delete(memory.id);
+  Object.assign(fixture.repair.connection, { apiUrl: 'https://example.test/v1', model: 'model' });
+  const context = spyOn(RepairAgent, 'context').mockResolvedValue(memory.context);
+  const analyze = spyOn(RepairAgent, 'analyze').mockResolvedValue({ result: 'success', recipe: memory.recipe });
+  try {
+    const proposal = await fixture.repair.analyze(new AbortController().signal);
+    expect(proposal.overlays).toHaveLength(1);
+    expect(NativeJSON.parse(proposal.overlays![0].after)).toEqual({ exists: true, value: { count: { fixed: true }, name: 'keep', newField: [1, null] } });
+    expect(fixture.variables.current).toEqual({ world: { progress: { count: 'legacy', name: 'keep' } } });
+    await fixture.repair.stage();
+    const [stored] = await fixture.repair.list();
+    expect(NativeJSON.parse(stored.context.targets[0].signature!)).toEqual({ modName: 'maplebirch', path, scope: 'state' });
+    await fixture.events.trigger(':addon:repair');
+    await fixture.events.trigger(':variable');
+    expect(fixture.variables.current).toEqual({ world: { progress: { count: { fixed: true }, name: 'keep', newField: [1, null] } } });
+    expect((await fixture.repair.list())[0].state).toBe('trial');
+  } finally {
+    context.mockRestore();
+    analyze.mockRestore();
+  }
+});
+
+test('automatic state bindings reject another loaded mod or an unknown owner', async () => {
+  for (const modName of ['example', 'unknown']) {
+    const fixture = repairFixture();
+    const path = ['world', 'progress'];
+    fixture.variables.current = { world: { progress: { count: 0 } } };
+    const memory = await seedAutomaticStateRepair(fixture.rows, path, RepairState.read(path, fixture.variables.current), [{ type: 'set', path: [...path, 'count'], value: 1 }], true);
+    const target = memory.context.targets.find(target => target.kind === 'state')!;
+    target.modName = modName;
+    target.signature = NativeJSON.stringify({ modName, path, scope: 'state' });
+    fixture.rows.set(memory.id, structuredClone(memory));
+    await fixture.events.trigger(':addon:repair');
+    await fixture.events.trigger(':variable');
+    expect(fixture.source.content).toBe('a { color: reed; }');
+    expect(fixture.variables.current).toEqual({ world: { progress: { count: 0 } } });
+    expect(fixture.rows.get(memory.id) as RepairMemory).toMatchObject({ state: 'stale', enabled: false });
+  }
+});
+
+test('automatic target deletion confirms and replays without AI on both original and already repaired saves', async () => {
+  const fixture = repairFixture();
+  const path = ['world', 'progress'];
+  fixture.variables.current = { world: { progress: { obsolete: true }, unrelated: 'keep' } };
+  const before = RepairState.read(path, fixture.variables.current);
+  const memory = await seedAutomaticStateRepair(fixture.rows, path, before, [{ type: 'delete', path }]);
+  const fetch = spyOn(globalThis, 'fetch').mockRejectedValue(new Error('State memory must replay without AI'));
+  try {
+    await fixture.events.trigger(':addon:repair');
+    await fixture.events.trigger(':variable');
+    expect(fixture.variables.current).toEqual({ world: { unrelated: 'keep' } });
+    expect((fixture.rows.get(memory.id) as RepairMemory).state).toBe('trial');
+    await fixture.repair.confirm(memory.id);
+    const reload = repairFixture(fixture.rows);
+    await reload.events.trigger(':addon:repair');
+    reload.variables.current = { world: { unrelated: 'keep' } };
+    await reload.events.trigger(':variable');
+    expect((reload.rows.get(memory.id) as RepairMemory).state).toBe('active');
+    reload.variables.current = { world: { progress: { obsolete: true }, unrelated: 'keep' } };
+    await reload.events.trigger(':variable');
+    expect(reload.variables.current).toEqual({ world: { unrelated: 'keep' } });
+    expect(fetch).not.toHaveBeenCalled();
+  } finally {
+    fetch.mockRestore();
+  }
+});
+
+test('failed source proof restores an automatically deleted target with its original identity', async () => {
+  const fixture = repairFixture();
+  const path = ['world', 'progress'];
+  const original = { obsolete: true };
+  fixture.variables.current = { world: { progress: original, unrelated: 'keep' } };
+  const memory = await seedAutomaticStateRepair(fixture.rows, path, RepairState.read(path, fixture.variables.current), [{ type: 'delete', path }], true);
+  await fixture.events.trigger(':addon:repair');
+  await fixture.events.trigger(':variable');
+  expect(fixture.variables.current).toEqual({ world: { unrelated: 'keep' } });
+  await fixture.events.trigger(':addon:verify');
+  expect(fixture.source.content).toBe('a { color: reed; }');
+  expect(fixture.variables.current).toEqual({ world: { progress: original, unrelated: 'keep' } });
+  expect((fixture.variables.current as { world: { progress: object } }).world.progress).toBe(original);
+  expect((fixture.rows.get(memory.id) as RepairMemory).state).toBe('failed');
 });
 
 test('a new state repair replaces a discontinuous old snapshot rather than replaying stale migrations', async () => {
   const fixture = repairFixture();
-  fixture.repair.allowState(statePolicy);
   const old = await seedStateRepair(fixture.rows);
   fixture.variables.current = { Example: { count: 0 } };
   await fixture.events.trigger(':addon:repair');
@@ -596,7 +946,6 @@ test('a new state repair replaces a discontinuous old snapshot rather than repla
     expect(stored.id).not.toBe(old.id);
     expect(stored.steps).toBeUndefined();
     const reload = repairFixture(fixture.rows);
-    reload.repair.allowState(statePolicy);
     reload.variables.current = { Example: { count: 2 } };
     await reload.events.trigger(':addon:repair');
     await reload.events.trigger(':variable');
@@ -609,10 +958,338 @@ test('a new state repair replaces a discontinuous old snapshot rather than repla
   }
 });
 
+test('staging overlapping parent and leaf targets supersedes old state steps while retaining replayable source repairs', async () => {
+  for (const [oldPath, path] of [
+    [
+      ['Example', 'progress'],
+      ['Example', 'progress', 'count']
+    ],
+    [
+      ['Example', 'progress', 'count'],
+      ['Example', 'progress']
+    ]
+  ]) {
+    const fixture = repairFixture();
+    fixture.variables.current = { Example: { progress: { count: 0, sibling: 'keep' } } };
+    const old = await seedAutomaticStateRepair(fixture.rows, oldPath, RepairState.read(oldPath, fixture.variables.current), [{ type: 'set', path: ['Example', 'progress', 'count'], value: 1 }], true);
+    await fixture.events.trigger(':addon:repair');
+    await fixture.events.trigger(':variable');
+    fixture.final.styleFileItems.items[0].content = fixture.source.content;
+    await fixture.events.trigger(':modLoaderEnd');
+    await fixture.repair.confirm(old.id);
+    fixture.variables.current = { Example: { progress: { count: 2, sibling: 'keep' } } };
+    const content = RepairState.read(path, fixture.variables.current);
+    const policy: RepairStatePolicy = { modName: 'maplebirch', path, scope: 'state' };
+    const context: RepairContext = {
+      requestId: 'replacement-state',
+      mods: ['maplebirch'],
+      diagnostics: [],
+      modLoaderLogs: [],
+      patches: [],
+      conflicts: [],
+      targets: [
+        {
+          id: 'state-next',
+          kind: 'state',
+          modName: policy.modName,
+          path: NativeJSON.stringify(path),
+          signature: NativeJSON.stringify(policy),
+          content,
+          fingerprint: await RepairRecipeParser.fingerprint(content)
+        }
+      ]
+    };
+    const recipe: RepairRecipe = {
+      requestId: context.requestId,
+      outcome: 'repair',
+      summary: 'Repair the new state snapshot',
+      evidence: [],
+      operations: [{ type: 'state', targetId: 'state-next', changes: [{ type: 'set', path: ['Example', 'progress', 'count'], value: 3 }], reason: 'Replace the old overlapping migration' }]
+    };
+    Object.assign(fixture.repair.connection, { apiUrl: 'https://example.test/v1', model: 'model' });
+    const contextSpy = spyOn(RepairAgent, 'context').mockResolvedValue(context);
+    const analyzeSpy = spyOn(RepairAgent, 'analyze').mockResolvedValue({ result: 'success', recipe });
+    const fetch = spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Superseding memory must replay without AI'));
+    try {
+      expect((await fixture.repair.analyze(new AbortController().signal)).result).toBe('success');
+      await fixture.repair.stage();
+      const [stored] = await fixture.repair.list();
+      expect(fixture.rows.has(old.id)).toBe(false);
+      expect(await fixture.repair.list()).toHaveLength(1);
+      expect(stored.steps).toHaveLength(1);
+      expect(stored.steps![0].recipe.operations).toEqual(old.recipe.operations.filter(operation => operation.type !== 'state'));
+      expect(stored.steps![0].context.targets.map(target => target.kind)).toEqual(['css']);
+      expect(stored.context.targets.map(target => NativeJSON.parse(target.path))).toEqual([path]);
+      const reload = repairFixture(fixture.rows);
+      reload.variables.current = { Example: { progress: { count: 2, sibling: 'keep' } } };
+      await reload.events.trigger(':addon:repair');
+      expect(reload.source.content).toBe('a { color: red; }');
+      await reload.events.trigger(':variable');
+      expect(reload.variables.current).toEqual({ Example: { progress: { count: 3, sibling: 'keep' } } });
+      reload.final.styleFileItems.items[0].content = reload.source.content;
+      await reload.events.trigger(':modLoaderEnd');
+      expect((await reload.repair.list())[0].state).toBe('trial');
+      await reload.repair.confirm(stored.id);
+      expect((await reload.repair.list())[0].state).toBe('active');
+      expect(fetch).not.toHaveBeenCalled();
+    } finally {
+      contextSpy.mockRestore();
+      analyzeSpy.mockRestore();
+      fetch.mockRestore();
+    }
+  }
+});
+
+test('continuous parent and leaf repairs retain both migrations and replay original, intermediate and final saves without AI', async () => {
+  for (const parentFirst of [false, true]) {
+    const fixture = repairFixture();
+    const parent = ['Example', 'progress'];
+    const leaf = [...parent, 'count'];
+    const oldPath = parentFirst ? parent : leaf;
+    const path = parentFirst ? leaf : parent;
+    const original = { count: 0, label: 'bad' };
+    const intermediate = parentFirst ? { count: 0, label: 'good' } : { count: 1, label: 'bad' };
+    const final = { count: 1, label: 'good' };
+    fixture.variables.current = { Example: { progress: structuredClone(original) } };
+    const firstChange: RepairStateChange = { type: 'set', path: [...parent, parentFirst ? 'label' : 'count'], value: parentFirst ? 'good' : 1 };
+    const old = await seedAutomaticStateRepair(fixture.rows, oldPath, RepairState.read(oldPath, fixture.variables.current), [firstChange], true);
+    await fixture.events.trigger(':addon:repair');
+    await fixture.events.trigger(':variable');
+    fixture.final.styleFileItems.items[0].content = fixture.source.content;
+    await fixture.events.trigger(':modLoaderEnd');
+    await fixture.repair.confirm(old.id);
+    expect(RepairState.read(parent, fixture.variables.current)).toBe(NativeJSON.stringify({ exists: true, value: intermediate }));
+    const content = RepairState.read(path, fixture.variables.current);
+    const policy: RepairStatePolicy = { modName: 'maplebirch', path, scope: 'state' };
+    const context: RepairContext = {
+      requestId: 'continuous-state',
+      mods: ['maplebirch'],
+      diagnostics: [],
+      modLoaderLogs: [],
+      patches: [],
+      conflicts: [],
+      targets: [
+        {
+          id: 'state-next',
+          kind: 'state',
+          modName: policy.modName,
+          path: NativeJSON.stringify(path),
+          signature: NativeJSON.stringify(policy),
+          content,
+          fingerprint: await RepairRecipeParser.fingerprint(content)
+        }
+      ]
+    };
+    const nextChange: RepairStateChange = { type: 'set', path: [...parent, parentFirst ? 'count' : 'label'], value: parentFirst ? 1 : 'good' };
+    const recipe: RepairRecipe = {
+      requestId: context.requestId,
+      outcome: 'repair',
+      summary: 'Complete the continuous state repair',
+      evidence: [],
+      operations: [{ type: 'state', targetId: 'state-next', changes: [nextChange], reason: 'Keep the earlier repair and fix the remaining field' }]
+    };
+    Object.assign(fixture.repair.connection, { apiUrl: 'https://example.test/v1', model: 'model' });
+    const contextSpy = spyOn(RepairAgent, 'context').mockResolvedValue(context);
+    const analyzeSpy = spyOn(RepairAgent, 'analyze').mockResolvedValue({ result: 'success', recipe });
+    const fetch = spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Continuous memory must replay without AI'));
+    try {
+      expect((await fixture.repair.analyze(new AbortController().signal)).result).toBe('success');
+      await fixture.repair.stage();
+      const [stored] = await fixture.repair.list();
+      expect(fixture.rows.has(old.id)).toBe(false);
+      expect(await fixture.repair.list()).toHaveLength(1);
+      const steps = [...(stored.steps || []), { recipe: stored.recipe, context: stored.context }];
+      expect(steps.flatMap(step => step.recipe.operations).filter(operation => !operation.type)).toEqual(old.recipe.operations.filter(operation => !operation.type));
+      expect(steps.flatMap(step => step.context.targets).some(target => target.kind === 'css')).toBe(true);
+      for (const saved of [original, intermediate, final]) {
+        const reload = repairFixture(new Map(fixture.rows));
+        reload.variables.current = { Example: { progress: structuredClone(saved) } };
+        await reload.events.trigger(':addon:repair');
+        expect(reload.source.content).toBe('a { color: red; }');
+        await reload.events.trigger(':variable');
+        expect(reload.variables.current).toEqual({ Example: { progress: final } });
+        reload.final.styleFileItems.items[0].content = reload.source.content;
+        await reload.events.trigger(':modLoaderEnd');
+        expect((await reload.repair.list())[0].state).toBe('trial');
+        await reload.repair.confirm(stored.id);
+        expect((await reload.repair.list())[0].state).toBe('active');
+      }
+      expect(fetch).not.toHaveBeenCalled();
+    } finally {
+      contextSpy.mockRestore();
+      analyzeSpy.mockRestore();
+      fetch.mockRestore();
+    }
+  }
+});
+
+test('same-path state repairs can change JSON types while retaining earlier source and state migrations', async () => {
+  const fixture = repairFixture();
+  fixture.variables.current = { Example: { count: 0 } };
+  const old = await seedStateRepair(fixture.rows, true);
+  await fixture.events.trigger(':addon:repair');
+  await fixture.events.trigger(':variable');
+  fixture.final.styleFileItems.items[0].content = fixture.source.content;
+  await fixture.events.trigger(':modLoaderEnd');
+  await fixture.repair.confirm(old.id);
+  const path = ['Example'];
+  const content = RepairState.read(path, fixture.variables.current);
+  const policy: RepairStatePolicy = { modName: 'maplebirch', path, scope: 'state' };
+  const context: RepairContext = {
+    requestId: 'new-state-binding',
+    mods: ['maplebirch'],
+    diagnostics: [],
+    modLoaderLogs: [],
+    patches: [],
+    conflicts: [],
+    targets: [
+      {
+        id: 'state-next',
+        kind: 'state',
+        modName: policy.modName,
+        path: NativeJSON.stringify(path),
+        signature: NativeJSON.stringify(policy),
+        content,
+        fingerprint: await RepairRecipeParser.fingerprint(content)
+      }
+    ]
+  };
+  const recipe: RepairRecipe = {
+    requestId: context.requestId,
+    outcome: 'repair',
+    summary: 'Repair the diagnosed JSON structure',
+    evidence: [],
+    operations: [{ type: 'state', targetId: 'state-next', changes: [{ type: 'set', path: [...path, 'count'], value: { fixed: true } }], reason: 'The source now requires an object at this field' }]
+  };
+  Object.assign(fixture.repair.connection, { apiUrl: 'https://example.test/v1', model: 'model' });
+  const contextSpy = spyOn(RepairAgent, 'context').mockResolvedValue(context);
+  const analyzeSpy = spyOn(RepairAgent, 'analyze').mockResolvedValue({ result: 'success', recipe });
+  const fetch = spyOn(globalThis, 'fetch').mockRejectedValue(new Error('The replacement binding must replay without AI'));
+  try {
+    expect((await fixture.repair.analyze(new AbortController().signal)).result).toBe('success');
+    await fixture.repair.stage();
+    const [stored] = await fixture.repair.list();
+    expect(await fixture.repair.list()).toHaveLength(1);
+    expect(fixture.rows.has(old.id)).toBe(false);
+    expect(stored.steps).toHaveLength(1);
+    expect(stored.steps![0].recipe.operations).toEqual(old.recipe.operations);
+    expect(stored.steps![0].context.targets.map(target => target.kind)).toEqual(['css', 'state']);
+    expect(NativeJSON.parse(stored.context.targets[0].signature!)).toEqual(policy);
+    for (const count of [0, 1, { fixed: true }]) {
+      const reload = repairFixture(new Map(fixture.rows));
+      reload.variables.current = { Example: { count } };
+      await reload.events.trigger(':addon:repair');
+      expect(reload.source.content).toBe('a { color: red; }');
+      await reload.events.trigger(':variable');
+      expect(reload.variables.current).toEqual({ Example: { count: { fixed: true } } });
+      reload.final.styleFileItems.items[0].content = reload.source.content;
+      await reload.events.trigger(':modLoaderEnd');
+      expect((await reload.repair.list())[0].state).toBe('trial');
+      await reload.repair.confirm(stored.id);
+      expect((await reload.repair.list())[0].state).toBe('active');
+    }
+    expect(fetch).not.toHaveBeenCalled();
+  } finally {
+    contextSpy.mockRestore();
+    analyzeSpy.mockRestore();
+    fetch.mockRestore();
+  }
+});
+
+test('a child deletion followed by a parent repair replays reordered object keys and rejects array, field and value drift', async () => {
+  const fixture = repairFixture();
+  const parent = ['Example', 'progress'];
+  const child = [...parent, 'obsolete'];
+  fixture.variables.current = { Example: { progress: { obsolete: 'old', label: 'bad', list: [1, 2] } } };
+  const old = await seedAutomaticStateRepair(fixture.rows, child, RepairState.read(child, fixture.variables.current), [{ type: 'delete', path: child }], true);
+  await fixture.events.trigger(':addon:repair');
+  await fixture.events.trigger(':variable');
+  fixture.final.styleFileItems.items[0].content = fixture.source.content;
+  await fixture.events.trigger(':modLoaderEnd');
+  await fixture.repair.confirm(old.id);
+  const content = RepairState.read(parent, fixture.variables.current);
+  const policy: RepairStatePolicy = { modName: 'maplebirch', path: parent, scope: 'state' };
+  const context: RepairContext = {
+    requestId: 'deleted-child-parent',
+    mods: ['maplebirch'],
+    diagnostics: [],
+    modLoaderLogs: [],
+    patches: [],
+    conflicts: [],
+    targets: [
+      {
+        id: 'state-next',
+        kind: 'state',
+        modName: policy.modName,
+        path: NativeJSON.stringify(parent),
+        signature: NativeJSON.stringify(policy),
+        content,
+        fingerprint: await RepairRecipeParser.fingerprint(content)
+      }
+    ]
+  };
+  const recipe: RepairRecipe = {
+    requestId: context.requestId,
+    outcome: 'repair',
+    summary: 'Repair the remaining label',
+    evidence: [],
+    operations: [{ type: 'state', targetId: 'state-next', changes: [{ type: 'set', path: [...parent, 'label'], value: 'good' }], reason: 'Keep the deletion and repair the label' }]
+  };
+  Object.assign(fixture.repair.connection, { apiUrl: 'https://example.test/v1', model: 'model' });
+  const contextSpy = spyOn(RepairAgent, 'context').mockResolvedValue(context);
+  const analyzeSpy = spyOn(RepairAgent, 'analyze').mockResolvedValue({ result: 'success', recipe });
+  const fetch = spyOn(globalThis, 'fetch').mockRejectedValue(new Error('The deletion memory must replay without AI'));
+  try {
+    expect((await fixture.repair.analyze(new AbortController().signal)).result).toBe('success');
+    await fixture.repair.stage();
+    const [stored] = await fixture.repair.list();
+    expect(fixture.rows.has(old.id)).toBe(false);
+    expect((stored.steps || []).flatMap(step => step.recipe.operations).some(operation => !operation.type)).toBe(true);
+    const checkpoints = [
+      { obsolete: 'old', list: [1, 2], label: 'bad' },
+      { list: [1, 2], label: 'bad' },
+      { list: [1, 2], label: 'good' }
+    ];
+    for (const saved of checkpoints) {
+      const reload = repairFixture(new Map(fixture.rows));
+      reload.variables.current = { Example: { progress: structuredClone(saved) } };
+      await reload.events.trigger(':addon:repair');
+      expect(reload.source.content).toBe('a { color: red; }');
+      await reload.events.trigger(':variable');
+      expect(reload.variables.current).toEqual({ Example: { progress: { label: 'good', list: [1, 2] } } });
+      reload.final.styleFileItems.items[0].content = reload.source.content;
+      await reload.events.trigger(':modLoaderEnd');
+      expect((await reload.repair.list())[0].state).toBe('trial');
+      await reload.repair.confirm(stored.id);
+      expect((await reload.repair.list())[0].state).toBe('active');
+    }
+    const drifted: JSONValue[] = [
+      { obsolete: 'old', label: 'bad', list: [2, 1] },
+      { obsolete: 'old', label: 'changed', list: [1, 2] },
+      { obsolete: 'old', label: 'bad', list: [1, 2], unexpected: true },
+      { obsolete: 'old', label: 'bad' }
+    ];
+    for (const saved of drifted) {
+      const reload = repairFixture(new Map(fixture.rows));
+      reload.variables.current = { Example: { progress: structuredClone(saved) } };
+      await reload.events.trigger(':addon:repair');
+      await reload.events.trigger(':variable');
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(reload.variables.current).toEqual({ Example: { progress: saved } });
+      expect(reload.source.content).toBe('a { color: reed; }');
+      expect((await reload.repair.list())[0]).toMatchObject({ state: 'failed', enabled: false, error: 'Repair state fingerprint changed' });
+    }
+    expect(fetch).not.toHaveBeenCalled();
+  } finally {
+    contextSpy.mockRestore();
+    analyzeSpy.mockRestore();
+    fetch.mockRestore();
+  }
+});
+
 test('deleted or disabled state memories are neither inherited by new proposals nor reapplied on load', async () => {
   for (const remove of [true, false]) {
     const fixture = repairFixture();
-    fixture.repair.allowState(statePolicy);
     const old = await seedStateRepair(fixture.rows);
     fixture.variables.current = { Example: { count: 0 } };
     await fixture.events.trigger(':addon:repair');
@@ -639,7 +1316,6 @@ test('deleted or disabled state memories are neither inherited by new proposals 
 
 test('verification completing after deletion cannot resurrect the memory or reapply its state', async () => {
   const fixture = repairFixture();
-  fixture.repair.allowState(statePolicy);
   const memory = await seedStateRepair(fixture.rows, true);
   fixture.variables.current = { Example: { count: 0 } };
   await fixture.events.trigger(':addon:repair');
@@ -790,7 +1466,7 @@ test('saving an API key twice uses distinct random IVs', async () => {
   expect(second.connection.apiKey).toBe('');
 });
 
-test('legacy plaintext repair keys migrate to encrypted records during loading', async () => {
+test('plaintext repair keys encrypt when WebCrypto is available during loading', async () => {
   const state = repairFixture();
   const connection = { apiType: 'openai' as const, apiUrl: 'https://example.test/v1', apiKey: 'private-key', model: 'model' };
   state.rows.set('connection', { id: 'connection', connection });
@@ -804,6 +1480,46 @@ test('legacy plaintext repair keys migrate to encrypted records during loading',
   const reload = repairFixture(state.rows);
   await reload.events.trigger(':idbReady');
   expect(reload.repair.connection.apiKey).toBe('private-key');
+});
+
+test('obsolete settings connections are never read, deleted or migrated into repair storage', async () => {
+  for (const configured of [false, true]) {
+    const state = repairFixture();
+    const obsolete = { id: 'RepairConnection', value: { apiType: 'openai', apiUrl: 'https://obsolete.test/v1', apiKey: 'obsolete-private-key', model: 'obsolete-model' } };
+    const settings = new Map([['RepairConnection', obsolete]]);
+    const connection = { ...state.repair.connection, apiUrl: 'https://current.test/v1', model: 'current-model' };
+    const expected = configured ? connection : { ...state.repair.connection };
+    if (configured) state.rows.set('connection', { id: 'connection', connection });
+    const oldTouches: string[] = [];
+    const originalWith = state.idb.with.bind(state.idb);
+    const has = spyOn(state.idb, 'has').mockImplementation(name => name === 'settings');
+    const withSpy = spyOn(state.idb, 'with').mockImplementation(async (...args) => {
+      if (args[0] === 'settings') {
+        oldTouches.push(args[1]);
+        return args[2]({
+          objectStore: () => ({
+            get: async (id: string) => settings.get(id),
+            delete: async (id: string) => settings.delete(id)
+          })
+        } as unknown as Parameters<(typeof args)[2]>[0]);
+      }
+      return originalWith(...args);
+    });
+    try {
+      await state.events.trigger(':idbReady');
+      expect(has).not.toHaveBeenCalled();
+      expect(withSpy.mock.calls.every(([store]) => store === 'repair')).toBe(true);
+      expect(oldTouches).toEqual([]);
+      expect(settings.get('RepairConnection')).toBe(obsolete);
+      expect(state.repair.connection).toEqual(expected);
+      expect(state.rows.has('connection')).toBe(configured);
+      expect(NativeJSON.stringify([...state.rows.values()])).not.toContain('obsolete');
+      expect(state.repair.storageError).toBeUndefined();
+    } finally {
+      has.mockRestore();
+      withSpy.mockRestore();
+    }
+  }
 });
 
 test('new connections retain plaintext compatibility when WebCrypto is unavailable', async () => {

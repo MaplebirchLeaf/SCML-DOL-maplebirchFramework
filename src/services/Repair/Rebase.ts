@@ -16,7 +16,6 @@ export class RepairRebase {
     return !!text && start >= 0 && source.indexOf(text, start + 1) < 0;
   }
 
-  /** CRLF/LF 等价比较，保留原始偏移。 */
   private static inherited(original: string, replacement: string): { start: number; end: number } | undefined {
     const search = original.replaceAll('\r\n', '\n');
     const body = replacement.replaceAll('\r\n', '\n');
@@ -34,7 +33,6 @@ export class RepairRebase {
     return actual;
   }
 
-  /** 未闭合引号和注释一次消费余文，避免重复扫描。 */
   private static tokens(source: string): string[] {
     return (
       source.match(
@@ -43,7 +41,6 @@ export class RepairRebase {
     );
   }
 
-  /** LF 坐标比较，保留新增文本的原始行尾。 */
   private static edits(original: string, updated: string): SourceEdit[] {
     const changes = diffArrays(RepairRebase.tokens(original), RepairRebase.tokens(updated.replaceAll('\r\n', '\n')), { maxEditLength: 2048, timeout: 100 });
     if (!changes) throw new Error('Source differences exceed migration limits');
@@ -72,7 +69,6 @@ export class RepairRebase {
     return edits.map(edit => RepairRebase.insertion(original, edit));
   }
 
-  /** 将共享宏起始符后的插入移到完整宏边界。 */
   private static insertion(source: string, edit: SourceEdit): SourceEdit {
     if (edit.start !== edit.end || source.slice(edit.start - 2, edit.start) !== '<<' || !edit.text.endsWith('<<')) return edit;
     const text = '<<' + edit.text.slice(0, -2);
@@ -94,7 +90,6 @@ export class RepairRebase {
     return !!a && !!b && a !== b && !a.startsWith(b + '.') && !b.startsWith(a + '.');
   }
 
-  /** 保护宏分隔符和 Unicode 字符边界。 */
   private static boundary(source: string, index: number): boolean {
     const before = source[index - 1] || '';
     const after = source[index] || '';
@@ -107,7 +102,6 @@ export class RepairRebase {
     return value;
   }
 
-  /** 检查共享前后缀的分隔符边界。 */
   private static complete(before: string, after: string): boolean {
     let start = 0;
     while (start < before.length && start < after.length && before[start] === after[start]) start++;
@@ -136,18 +130,17 @@ export class RepairRebase {
     return { start: edit.start + shift + insertion.length, end: edit.end + shift + insertion.length, text: edit.text };
   }
 
-  /** 从既有模组正文和当前源码派生替换内容。 */
-  public static apply(originalSearch: string, originalReplacement: string, currentSearch: string): string {
+  public static apply(originalSearch: string, originalReplacement: string, currentSearch: string, inheritedBranch?: () => string | undefined): string {
     const sources = [originalSearch, originalReplacement, currentSearch];
     if (sources.some(value => typeof value !== 'string' || !value || value.length > RepairRebase.limit)) throw new Error('Invalid rebase source');
-    // 排除原生补丁器的替换字符串标记。
     if (sources.some(value => /\$(?:[$&'`\d]|<)/.test(value))) throw new Error('Replacement-string tokens cannot be rebased');
     if (originalSearch === currentSearch || originalSearch === originalReplacement) throw new Error('Rebase requires changed source and an existing mod edit');
 
+    const branch = inheritedBranch?.();
+    if (branch !== undefined) return RepairRebase.result(branch);
+
     const inherited = RepairRebase.inherited(originalSearch, originalReplacement);
-    if (inherited) {
-      return RepairRebase.result(originalReplacement.slice(0, inherited.start) + currentSearch + originalReplacement.slice(inherited.end));
-    }
+    if (inherited) return RepairRebase.result(originalReplacement.slice(0, inherited.start) + currentSearch + originalReplacement.slice(inherited.end));
 
     const original = originalSearch.replaceAll('\r\n', '\n');
     const current = currentSearch.replaceAll('\r\n', '\n');

@@ -1,3 +1,21 @@
+##### (v.5.4.3更新日志):
+
+- 扩展 AI Repair 的多目标方案：源码支持替换、插入与删除，变量支持 `set / delete / rename / copy / merge / fill`。从错误日志和相关当前源码的明确静态路径自动发现诊断相关存档字段，取消作者路径、schema 与所属模组登记门槛，不区分游戏原版与模组变量，服务层通过宿主读取实际值，不绑定 DoL 变量名。
+- 新增受限 AST 源码修复，唯一定位表达式、语句与代码块，只修改原始源码的局部区间并重新解析。Twee 仅处理内嵌 JS，保留未修改区域格式，拒绝歧义、无效语法、动态执行与网络加载等禁止操作。
+- 支持 TweeReplacer 正文表达式迁移，修正旧条件与赋值右侧，同时保留继承源码、剧情文本与状态对象，回放时重新核对临时变量初始化。
+- 复用指纹、目标绑定、Overlay、回滚与修复记忆流程，多目标方案先完整校验再应用，重载后复测并手动确认。已保存方案无需再次请求 AI，目标或权限变化后停用，不修改原始 ZIP 或已安装模组包。
+- 分析等待延长至 15 分钟，支持取消，区分上下文超限、输出截断与响应错误，并保留一次受限纠错反馈。API 与存储失败不影响框架正常加载。
+- 补齐中英文 README 的 AI 修复说明，整理测试目录并让 CI 运行全量测试，覆盖 AST 定位、危险代码拒绝、内嵌 JS、多目标回滚与记忆重放。
+
+**English**
+
+- Extend AI Repair proposals across multiple source targets and state repairs. Source operations support replacement, insertion and deletion; state operations support `set / delete / rename / copy / merge / fill`. Automatically discover diagnosis-related save fields from explicit static paths in error logs and related current source, removing author path, schema and ownership registration requirements without distinguishing game and mod variables. Actual values come from the host rather than DoL-specific variable names.
+- Add constrained AST repair with unique expression, statement and block selection, local source edits and reparsing. Twee support is limited to embedded JS, preserving untouched formatting. Reject ambiguous targets, invalid syntax, dynamic execution, network loading and other prohibited operations.
+- Support TweeReplacer body expression migrations for obsolete conditions and assignment RHS values, retaining inherited source, narrative and state shape, with initialization checks during replay.
+- Reuse fingerprints, target bindings, Overlays, rollback and repair memories. Validate every target before application, then reload, retest and confirm. Replay saved proposals without calling AI; changed targets or permissions disable old repairs. Original ZIPs and installed mod packages remain unchanged.
+- Increase analysis timeout to 15 minutes and support cancellation. Distinguish context limits, truncated output and invalid responses, retaining one constrained correction attempt. API and storage failures do not block normal framework loading.
+- Add bilingual README guidance, organize test suites and run all tests in CI. Cover AST selection, prohibited code, embedded JS, multi-target rollback and memory replay.
+
 ##### (v.5.4.2更新日志):
 
 - 修复玩家变量尚未初始化时的时间启动异常：非负或尚未确定的时间戳沿用原版 `fromTimestamp`，仅负时间戳进入框架的扩展日期处理。

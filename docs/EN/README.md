@@ -45,6 +45,7 @@ Callouts have distinct meanings: **TIP** recommends a practice, **NOTE** adds co
 
 - [Modules and diagnostics](Modules.md): for framework extensions or investigating load failures.
 - [AddonPlugin integration](AddonPlugin.md): for custom loading behavior or plugin-level capabilities.
+- [AI Repair](../../README.EN.md#ai-repair): player configuration, previews and repair memories; [state targets and limits](AddonPlugin.md#ai-repair-state-permissions) explain automatically discovered save fields and operation bounds.
 - [Mod encryption](Encryption.md): for authors publishing encrypted mods.
 - [Cloud save](CloudSave.md): requires player-owned storage; ordinary content mods do not need it.
 

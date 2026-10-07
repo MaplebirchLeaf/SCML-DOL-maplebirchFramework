@@ -56,30 +56,21 @@ console.table(failures);
 
 ## AI 修复的状态权限
 
-模组在 early-load 注册脚本中，用 `maplebirch.services.repair.allowState(policy)` 登记可修复的宿主状态路径与 schema。状态读取由 core 注入 SugarCube 的 `State.variables`，服务层不依赖 DoL 的全局 `V`。`modName` 必须是已加载模组的正式名称，路径不能重叠；模型不能自行登记或扩大权限。没有登记的变量不会发送给 API，也不能被修改。
+框架从本次错误日志和相关当前源码中的 `V.foo`、`$foo` 或 `State.variables` 明确静态路径，自动发现诊断相关的存档字段。无需模组作者登记路径、schema 或所属模组，也不区分游戏原版与模组变量。实际值由 core 注入的 SugarCube `State.variables` 宿主读取，服务层不绑定 DoL 变量名。
 
-```typescript
-maplebirch.services.repair.allowState({
-  modName: 'Your Mod',
-  path: ['ExampleMod', 'progress'],
-  scope: 'mod',
-  schema: {
-    type: 'object',
-    properties: { state: { type: 'string' } },
-    required: ['state']
-  }
-});
-```
+只有本次分析提供的目标及其范围可读取和修改，模型不能新增目标或扩大范围，也不会获得完整存档。每次最多 8 个状态片段，每个限 16 KiB，只接受普通 JSON 数据：对象、数组、字符串、有限数字、布尔和 null。函数、特殊对象、循环引用和访问器不进入请求或修复。JSON 校验只验证数据与操作边界，不能保证修复值符合游戏语义。
 
-这是接口示例，请按模组实际结构声明完整 schema。对象只接受 `properties` 中的字段；支持对象、数组、字符串、数字、布尔、null，以及 `required`、`items`、`enum`。状态片段限 16 KiB。仅当诊断涉及已授权的变量根时，该片段才加入分析请求。
+状态 DSL 支持 `set / delete / rename / copy / merge / fill`，使用完整数组路径，如 `['ExampleMod', 'progress', 'state']`，操作路径和目标路径都必须留在本次提供的范围内。`merge` 递归合并，`fill` 仅填缺失值，保留已有的 false、0 和 null。禁止操作整个宿主状态根、V/setup/window 或原型字段，也不能求值表达式或执行生成代码。
 
-状态 DSL 支持 `set / delete / rename / copy / merge / fill`，使用完整数组路径，如 `['ExampleMod', 'progress', 'state']`。`merge` 递归合并，`fill` 仅填缺失值。禁止覆盖整个单段模组根或 V/setup/window，以及原型字段。游戏原版路径必须明确注册 `scope: 'game'`、至少两段，且仅允许 `set / fill`。旧 `vanilla` 值按相同权限兼容，签名保持原值。变量名不用于推断所属游戏或模组。
+旧格式修复记录校验失败后会停用，重新分析即可生成当前格式的方案。
 
 源码 DSL 支持 `replace / insertBefore / insertAfter / delete`，继续使用精确匹配、指纹、目标绑定与已有代码限制。AI 不能生成函数执行。可纠正的格式或锚点错误最多向同一接口反馈一次；越权、禁止的代码、取消及接口失败不重试。
 
 `type: 'ast'` 可对已绑定的 JS 或 Twee 内嵌 JS 做表达式、语句、代码块替换，以及语句前后插入、完整语句删除。`selector: { nodeType, source }` 使用 ESTree 类型和观察到的完整节点源码，忽略空白与注释后必须唯一匹配。`action` 为 `replaceExpression / replaceStatement / replaceBlock / insertBefore / insertAfter / deleteStatement`；除删除外，`code` 是新片段。不接受偏移或匹配数量来消除歧义。
 
 AST 使用 Acorn 解析、校验及计算区间，最终只 splice 原始源码；完整 JS 单位重新解析，Twee 的宏范围也重新检查。首版允许既有变量、静态属性、JSON、普通表达式、原有赋值路径、return、if、block；禁止新增函数、构造器、动态属性与网络加载。已有调用只能原样保留，不能修改参数、增加次数或重定向调用。Twee 仅处理可独立解析的 JS 宏参数与 script 正文，不转换 `to/is/and` 等 SugarCube 方言。CSS、状态及补丁绑定不使用 AST。AST 配方保留在记忆中，重放仍重查定位、语法和权限。
+
+TweeReplacer 绑定可同时带 `rebase: true` 和 `expressions: [{ find, replace, expectedMatches: 1 }]`：先保留当前继承源码，再迁移既有正文的完整 `if/elseif` 条件或单个 `set` 右侧。新表达式只接受有当前目标源码依据的静态读取与字面量，使用普通 JS 运算符，不生成调用或宏结构。新增临时变量必须在锚点之前无条件初始化，原生插件执行前与最终验证时重新核对。正文、绑定和同方案状态操作共同校验与回滚。
 
 同一方案的目标先完整校验，再应用源码 Overlay；状态迁移在同步 `:variable` 事件中检查旧值、写入和校验。全部验证成功后进入 `trial`，复测后手动确认 `active`。记忆保存在 `maplebirch/repair`，重载和读档无需调用 AI；目标或权限变化时停用。跨加载阶段失败会恢复可回滚的 Overlay 和状态快照，要求重载；已执行的脚本副作用不能通用撤销。原始 ZIP 和 ModLoader 安装包不修改。
 

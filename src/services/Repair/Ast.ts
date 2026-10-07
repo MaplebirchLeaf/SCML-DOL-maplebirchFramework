@@ -103,6 +103,19 @@ export default class RepairAst {
     'EmptyStatement'
   ]);
   private static readonly ROOTS = new Set(['V', 'T', 'C', 'setup', 'maplebirch', 'State', 'Story', 'SugarCube']);
+  private static readonly OPERATORS: Record<string, string> = {
+    is: '===',
+    isnot: '!==',
+    eq: '==',
+    neq: '!=',
+    gt: '>',
+    gte: '>=',
+    lt: '<',
+    lte: '<=',
+    and: '&&',
+    or: '||',
+    not: '!'
+  };
 
   private static *walk(root: AnyNode, scoped = false): Generator<AstEntry> {
     const pending: AstEntry[] = [{ node: root }];
@@ -122,7 +135,7 @@ export default class RepairAst {
     }
   }
 
-  private static tree(source: string, expression: boolean): AnyNode {
+  private static parseTree(source: string, expression: boolean): AnyNode {
     try {
       return parse(expression ? `(${source})` : source, RepairAst.OPTIONS);
     } catch {
@@ -130,7 +143,6 @@ export default class RepairAst {
     }
   }
 
-  /** 只忽略空白和注释，保留操作符、可选链及字面量语义。 */
   private static signature(source: string): string {
     try {
       return NativeJSON.stringify([...tokenizer(source, RepairAst.OPTIONS)].map(token => [token.type.label, source.slice(token.start, token.end)]));
@@ -142,7 +154,7 @@ export default class RepairAst {
   private static *units(target: RepairTarget, ranges: MacroRange[]): Generator<AstUnit> {
     if (target.kind === 'js') {
       if (target.content.length > 256000) throw new Error('AST source exceeds size limit');
-      yield { start: 0, end: target.content.length, expression: false, source: target.content, tree: RepairAst.tree(target.content, false) };
+      yield { start: 0, end: target.content.length, expression: false, source: target.content, tree: RepairAst.parseTree(target.content, false) };
       return;
     }
     if (target.kind !== 'twee') throw new Error('AST operation requires a JS or Twee target');
@@ -154,10 +166,9 @@ export default class RepairAst {
       if (start === undefined || end === undefined) continue;
       const source = target.content.slice(start, end);
       const expression = !script && !['set', 'run'].includes(range.name);
-      // 不能解析的 SugarCube 方言不进入 AST，其他独立 JS 区域仍可定位。
       let tree: AnyNode;
       try {
-        tree = RepairAst.tree(source, expression);
+        tree = RepairAst.parseTree(source, expression);
       } catch {
         continue;
       }
@@ -165,14 +176,14 @@ export default class RepairAst {
     }
   }
 
-  private static expression(entry: AstEntry): boolean {
+  private static isExpression(entry: AstEntry): boolean {
     if (entry.key === 'key' || entry.key === 'id' || entry.key === 'params' || entry.key === 'label') return false;
     if (entry.node.type === 'Identifier')
       return !['id', 'params', 'label'].includes(entry.key || '') && !(entry.key === 'property' && entry.parent?.type === 'MemberExpression') && !(entry.key === 'key');
     return entry.node.type === 'Literal' || entry.node.type.endsWith('Expression');
   }
 
-  private static statement(node: AnyNode): boolean {
+  private static isStatement(node: AnyNode): boolean {
     return (node.type.endsWith('Statement') && node.type !== 'BlockStatement') || node.type === 'VariableDeclaration';
   }
 
@@ -184,14 +195,97 @@ export default class RepairAst {
     return root && `${root}.${node.property.name}`;
   }
 
+  private static normalizeOperators(source: string): string {
+    const tokens = RepairAst.tokenize(source);
+    let result = source;
+    for (let index = tokens.length - 1; index >= 0; index--) {
+      const token = tokens[index];
+      if (token.type.label !== 'name' || ['.', '?.', ':'].includes(tokens[index - 1]?.type.label)) continue;
+      const replacement = RepairAst.OPERATORS[source.slice(token.start, token.end)];
+      if (replacement) result = result.slice(0, token.start) + replacement + result.slice(token.end);
+    }
+    return result;
+  }
+
+  private static readPath(entry: AstEntry): string | undefined {
+    const { node, parent, key } = entry;
+    if (!['Identifier', 'MemberExpression'].includes(node.type)) return;
+    if (parent?.type === 'MemberExpression' && (key === 'object' || key === 'property')) return;
+    if (parent?.type === 'CallExpression' && key === 'callee') return;
+    if (parent?.type === 'AssignmentExpression' && key === 'left') return;
+    if (['key', 'id', 'params', 'label'].includes(key || '')) return;
+    const path = RepairAst.path(node);
+    if (!path || RepairAst.ROOTS.has(path) || path.split('.').some(part => RepairAst.UNSAFE.has(part))) return;
+    return path;
+  }
+
+  private static parseExpression(source: string): AnyNode {
+    const tree = RepairAst.parseTree(source, true);
+    if (tree.type !== 'Program' || tree.body.length !== 1 || tree.body[0].type !== 'ExpressionStatement') throw new Error('Repair requires one complete expression');
+    const expression = tree.body[0].expression;
+    if (expression.type !== 'ParenthesizedExpression' || expression.start !== 0 || expression.end !== source.length + 2) throw new Error('Repair requires one complete expression');
+    return tree;
+  }
+
+  public static collectEvidence(source: string, twine = false): { paths: Set<string>; literals: Set<string> } {
+    const paths = new Set<string>();
+    const literals = new Set<string>();
+    let tree: AnyNode;
+    try {
+      tree = RepairAst.parseExpression(twine ? RepairAst.normalizeOperators(source) : source);
+    } catch {
+      return { paths, literals };
+    }
+    for (const entry of RepairAst.walk(tree)) {
+      const path = RepairAst.readPath(entry);
+      if (path) paths.add(path);
+      const { node } = entry;
+      if (node.type === 'Literal' && !node.regex && !node.bigint) literals.add(NativeJSON.stringify(node.value));
+    }
+    return { paths, literals };
+  }
+
+  public static validateExpression(source: string, evidence: { paths: Set<string>; literals: Set<string> }): string[] {
+    RepairAst.tokenize(source);
+    const tree = RepairAst.parseExpression(source);
+    const paths = new Set<string>();
+    for (const entry of RepairAst.walk(tree)) {
+      const { node, parent, key } = entry;
+      if (['Program', 'ExpressionStatement'].includes(node.type)) continue;
+      if (
+        !['Identifier', 'Literal', 'ParenthesizedExpression', 'ChainExpression', 'MemberExpression', 'UnaryExpression', 'BinaryExpression', 'LogicalExpression', 'ConditionalExpression'].includes(
+          node.type
+        )
+      )
+        throw new Error(`Unsupported repair expression syntax: ${node.type}`);
+      if (node.type === 'Identifier' && RepairAst.UNSAFE.has(node.name)) throw new Error('Unsafe repair expression identifier');
+      if (node.type === 'MemberExpression' && (node.computed || node.property.type !== 'Identifier' || !RepairAst.path(node))) throw new Error('Repair expression requires static access');
+      if (node.type === 'UnaryExpression' && !['!', '+', '-', '~', 'typeof', 'void'].includes(node.operator)) throw new Error('Unsafe repair expression unary operation');
+      if (node.type === 'Literal') {
+        if (node.regex || node.bigint || (typeof node.value === 'number' && !Number.isFinite(node.value)) || !evidence.literals.has(NativeJSON.stringify(node.value)))
+          throw new Error('Repair expression literal is not observed');
+        if (typeof node.value === 'string' && /(?:https?:\/\/|javascript:|data:|blob:|file:|^\/\/|<\/?(?:script|iframe|object|embed)\b)/i.test(node.value))
+          throw new Error('Repair expression cannot load executable content');
+      }
+      const path = RepairAst.readPath(entry);
+      if (path === 'undefined') continue;
+      if (path) {
+        if (!evidence.paths.has(path)) throw new Error(`Repair expression path is not observed: ${path}`);
+        paths.add(path);
+      } else if (node.type === 'Identifier' && !(parent?.type === 'MemberExpression' && (key === 'property' || key === 'object'))) {
+        throw new Error('Repair expression cannot access a host root');
+      }
+    }
+    return [...paths];
+  }
+
   private static overlap(node: AnyNode, start: number, end: number): boolean {
     return start === end ? node.start < start && node.end > start : node.start < end && node.end > start;
   }
 
-  /** 插入片段须自成完整语句，不能借原文闭合括号或声明。 */
   private static insertion(code: string): void {
     const prefix = 'function __repair__(){\n';
-    const tree = RepairAst.tree(`${prefix}${code}\n}`, false);
+    const tree = RepairAst.parseTree(`${prefix}${code}\n}`, false);
     if (tree.type !== 'Program' || tree.body.length !== 1 || tree.body[0].type !== 'FunctionDeclaration') throw new Error('AST insertion must be complete statements');
     const body = tree.body[0].body;
     if (
@@ -204,7 +298,7 @@ export default class RepairAst {
       throw new Error('AST insertion must be complete statements');
   }
 
-  private static lexical(code: string): Token[] {
+  private static tokenize(code: string): Token[] {
     let closed = true;
     let tokens: Token[];
     try {
@@ -223,10 +317,8 @@ export default class RepairAst {
     return tokens;
   }
 
-  /** 生成内容仅使用既有变量、静态访问和普通控制流；调用必须完整保留。 */
   private static validate(unit: AstUnit, tree: AnyNode, selected: AnyNode, start: number, end: number): void {
     const all = [...RepairAst.walk(unit.tree)];
-    // 权限只取选中节点所在的最小词法块，不借用别的函数或子块的绑定。
     const scope =
       all
         .filter(({ node }) => ['Program', 'BlockStatement'].includes(node.type) && node.start <= selected.start && node.end >= selected.end)
@@ -345,7 +437,7 @@ export default class RepairAst {
     const { unit, entry } = candidates[0];
     const expression = operation.action === 'replaceExpression';
     const block = operation.action === 'replaceBlock';
-    if (expression ? !RepairAst.expression(entry) : block ? entry.node.type !== 'BlockStatement' : !RepairAst.statement(entry.node)) throw new Error('AST action does not match node kind');
+    if (expression ? !RepairAst.isExpression(entry) : block ? entry.node.type !== 'BlockStatement' : !RepairAst.isStatement(entry.node)) throw new Error('AST action does not match node kind');
     const list = (entry.key === 'body' && ['Program', 'BlockStatement'].includes(entry.parent?.type || '')) || (entry.key === 'consequent' && entry.parent?.type === 'SwitchCase');
     if (['insertBefore', 'insertAfter', 'deleteStatement'].includes(operation.action) && !list) throw new Error('AST statement requires a body list');
     const offset = Number(unit.expression);
@@ -354,13 +446,12 @@ export default class RepairAst {
     if (operation.action === 'insertBefore') end = start;
     if (operation.action === 'insertAfter') start = end;
     const code = operation.code || '';
-    const tokens = RepairAst.lexical(code);
+    const tokens = RepairAst.tokenize(code);
     if (operation.action === 'insertBefore' || operation.action === 'insertAfter') RepairAst.insertion(code);
     if (target.kind === 'twee' && /<<|>>/.test(code)) throw new Error('AST code cannot change Twee boundaries');
     const source = unit.source.slice(0, start) + code + unit.source.slice(end);
     if (source === unit.source) throw new Error('Unchanged AST operation');
-    const tree = RepairAst.tree(source, unit.expression);
-    // 保留原始树作为权限依据，修改后的文本只用于 parse 和区间审计。
+    const tree = RepairAst.parseTree(source, unit.expression);
     RepairAst.validate(unit, tree, entry.node, start, start + code.length);
     const beforeCalls = new Map<string, number>();
     for (const { node } of RepairAst.walk(unit.tree))
@@ -382,7 +473,7 @@ export default class RepairAst {
         candidate =>
           candidate.key === entry.key &&
           candidate.parent?.type === entry.parent?.type &&
-          (expression ? RepairAst.expression(candidate) : block ? candidate.node.type === 'BlockStatement' : RepairAst.statement(candidate.node))
+          (expression ? RepairAst.isExpression(candidate) : block ? candidate.node.type === 'BlockStatement' : RepairAst.isStatement(candidate.node))
       )
     )
       throw new Error('AST replacement must be one complete node');
@@ -391,7 +482,6 @@ export default class RepairAst {
     const after = target.content.slice(0, absoluteStart) + code + target.content.slice(absoluteEnd);
     if (target.kind === 'twee') {
       const delta = code.length - (end - start);
-      // 含引号或注释的替换也必须留在同一个 JS 区域内。
       const updated = scan(after);
       if (
         updated.length !== ranges.length ||

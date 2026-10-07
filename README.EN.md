@@ -11,7 +11,7 @@
 [![Stars](https://img.shields.io/github/stars/MaplebirchLeaf/SCML-DOL-maplebirchFramework?label=stars)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/stargazers)
 [![Issues](https://img.shields.io/github/issues-raw/MaplebirchLeaf/SCML-DOL-maplebirchFramework?label=issues)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/issues)
 
-**`maplebirchFramework`** is a **_SugarCube 2 ModLoader_** extension framework for **_Degrees of Lewdity_** mod authors. It provides public APIs for scripts and resources, translations, audio, UI zones, NPCs, characters, combat, and dynamic events, alongside optional mod encryption and self-hosted cloud saves.
+**`maplebirchFramework`** is a **_SugarCube 2 ModLoader_** extension framework for **_Degrees of Lewdity_** mod authors. It provides public APIs for scripts and resources, translations, audio, UI zones, NPCs, characters, combat, and dynamic events, alongside optional mod encryption, self-hosted cloud saves and [AI Repair](#ai-repair).
 
 Its guiding idea is simple: **extend the game through public interfaces instead of replacing large pieces of vanilla content.** Use it when your mod needs to add UI or NPC content, react to game events, or load scripts, translations, and audio in a consistent way.
 
@@ -28,6 +28,7 @@ Its guiding idea is simple: **extend the game through public interfaces instead 
 - [Framework Services](#framework-services)
   - [Mod Encryption](#mod-encryption)
   - [Cloud Save](#cloud-save)
+  - [AI Repair](#ai-repair)
 - [Recommended Structure](#recommended-structure)
 - [Type Package](#type-package)
 - [Documentation](#documentation)
@@ -93,7 +94,7 @@ Use **`maplebirchAddon`** to load JavaScript files that depend on the framework:
 
 ## Framework Services
 
-The framework also offers two **optional services**. **Mod Encryption** protects distributed mod content; **Cloud Save** syncs a player's local saves to infrastructure they control. Ordinary content mods need neither.
+The framework also offers three **optional services**: **Mod Encryption** protects distributed content, **Cloud Save** uses player-owned infrastructure, and **AI Repair** investigates errors and saves constrained repair proposals. Normal framework loading does not depend on AI.
 
 ### Mod Encryption
 
@@ -122,6 +123,17 @@ Cloud Save syncs DoL's local IndexedDB slots and save export codes to a **player
 
 > [!WARNING]
 > The framework does not provide a public save server. Uploaded records are plain JSON: use HTTPS, a strong random token, and a private R2 bucket. The token is not persisted by default, but the in-game “Remember access token on this device” option stores it in browser local storage. See [Cloud Save](docs/EN/CloudSave.md).
+
+### AI Repair
+
+AI Repair uses framework diagnostics, ModLoader logs and related source to propose patch and state repairs. It supports Twee, JS, CSS, TweeReplacer / ReplacePatcher rules and repairs to save fields related to the diagnosis. Constrained AST selection also supports JS expressions, statements and blocks while preserving other source formatting. TweeReplacer can also migrate obsolete body conditions and variable reads while preserving mod narrative and current initialization.
+
+Enable **Debug Mode** in the framework panel and select **AI Repair**. Enter your own API URL, key and model. OpenAI-compatible APIs, Anthropic and Gemini are supported; fetch a model list or enter one manually. Test the connection, select **Analyze**, review the changes, then save, reload and retest. Confirm a successful fix in **Memory**.
+
+> [!NOTE]
+> Analysis sends diagnostics, related source and save fields related to the diagnosis to your configured API, excluding complete saves; API fees may apply. AI proposes changes that the framework validates and applies. Not every error can be repaired, so reload and retest after saving. Normal framework loading does not depend on AI.
+
+See [AI Repair](docs/EN/AddonPlugin.md#ai-repair-state-permissions) for supported state operations and limits.
 
 ## Recommended Structure
 

@@ -1,22 +1,12 @@
 // ./src/services/Repair/State.ts
 
-import Catalog from '../../infra/Catalog';
-import Diagnostics from '../../infra/Diagnostics';
 import { NativeJSON } from './Json';
 
 export type JSONValue = null | string | number | boolean | JSONValue[] | { [key: string]: JSONValue };
-export interface RepairStateSchema {
-  type: 'object' | 'array' | 'string' | 'number' | 'boolean' | 'null';
-  properties?: Record<string, RepairStateSchema>;
-  required?: string[];
-  items?: RepairStateSchema;
-  enum?: JSONValue[];
-}
 export interface RepairStatePolicy {
   modName: string;
   path: string[];
-  schema: RepairStateSchema;
-  scope: 'mod' | 'game' | 'vanilla';
+  scope: 'state';
 }
 export interface RepairStateChange {
   type: 'set' | 'delete' | 'rename' | 'copy' | 'merge' | 'fill';
@@ -35,35 +25,106 @@ interface Envelope {
 }
 type Slot = { parent: Record<string, unknown>; key: string; descriptor?: PropertyDescriptor; after?: PropertyDescriptor };
 
-export class RepairState extends Catalog<string, RepairStatePolicy> {
+export class RepairState {
   private static readonly MAX = 16384;
   private static readonly DEPTH = 32;
   private static readonly unsafe = new Set(['__proto__', 'prototype', 'constructor', 'V', 'T', 'C', 'setup', 'window', 'globalThis', 'State', 'Story', 'Renderer']);
 
-  public register(policy: RepairStatePolicy): boolean {
-    try {
-      const trusted = RepairState.policy(policy);
-      const freeze = (value: object): void => {
-        for (const nested of Object.values(value)) if (nested && typeof nested === 'object') freeze(nested);
-        Object.freeze(value);
-      };
-      freeze(trusted);
-      return super.add(NativeJSON.stringify(trusted.path), trusted);
-    } catch (error) {
-      this.write(`State policy registration rejected: ${Diagnostics.message(error)}`, 'WARN', 'repair', error);
-      return false;
+  public static policy(value: unknown): RepairStatePolicy {
+    const policy = RepairState.detach(value) as unknown as RepairStatePolicy;
+    RepairState.keys(policy, ['modName', 'path', 'scope']);
+    if (typeof policy.modName !== 'string' || !policy.modName.trim() || policy.modName.length > 128 || policy.scope !== 'state') throw new Error('Invalid state policy');
+    RepairState.path(policy.path);
+    return policy;
+  }
+
+  public static *paths(source: string, offsets?: Uint8Array): Generator<string[]> {
+    const identifier = /^[$_\p{ID_Start}][$_\p{ID_Continue}]*/u;
+    for (const match of source.matchAll(/(?<![$_\p{ID_Continue}.])(?:\$(?=[$_\p{ID_Start}])|V\b|(?:SugarCube\s*\.\s*)?State\s*\.\s*variables\b)/gu)) {
+      if (offsets && !offsets[match.index]) continue;
+      let previous = match.index - 1;
+      while (previous >= 0 && (/\s/.test(source[previous]) || (offsets && !offsets[previous]))) previous--;
+      if (source[previous] === '.') continue;
+      let index = match.index + match[0].length;
+      const path: string[] = [];
+      if (match[0] === '$') {
+        const root = source.slice(index).match(identifier)!;
+        path.push(root[0]);
+        index += root[0].length;
+      }
+      let dynamic = false;
+      while (path.length <= RepairState.DEPTH) {
+        const tail = source.slice(index);
+        const dot = tail.match(/^\s*(?:\?\.(?!\s*\[)|\.)\s*/);
+        if (dot) {
+          const segment = tail.slice(dot[0].length).match(identifier);
+          if (!segment) {
+            dynamic = true;
+            break;
+          }
+          path.push(segment[0]);
+          index += dot[0].length + segment[0].length;
+          continue;
+        }
+        const bracket = tail.match(/^\s*(?:\?\.)?\[\s*(?:"([^"\\]*)"|'([^'\\]*)'|(0|[1-9]\d*))\s*\]/);
+        if (bracket) {
+          path.push(bracket[1] ?? bracket[2] ?? bracket[3]);
+          index += bracket[0].length;
+          continue;
+        }
+        dynamic = /^\s*(?:(?:\?\.)?\[|\/[/*])/.test(tail);
+        break;
+      }
+      if (!dynamic && RepairState.validPath(path)) yield path;
     }
   }
 
-  /** 权限只由宿主注册，模型不能扩大路径或改写 schema。 */
-  public static policy(value: unknown): RepairStatePolicy {
-    const policy = RepairState.detach(value) as unknown as RepairStatePolicy;
-    RepairState.keys(policy, ['modName', 'path', 'schema', 'scope']);
-    if (typeof policy.modName !== 'string' || !policy.modName.trim() || policy.modName.length > 128 || !['mod', 'game', 'vanilla'].includes(policy.scope)) throw new Error('Invalid state policy');
-    RepairState.path(policy.path);
-    if (policy.scope !== 'mod' && policy.path.length < 2) throw new Error('Game state requires an explicit nested path');
-    RepairState.schema(policy.schema);
-    return policy;
+  public static targetPath(path: string[], root: object): string[] {
+    RepairState.path(path);
+    let current: unknown = root;
+    for (const [index, segment] of path.entries()) {
+      RepairState.container(current);
+      const descriptor = Object.getOwnPropertyDescriptor(current, segment);
+      if (descriptor && !Object.hasOwn(descriptor, 'value')) throw new Error('State path cannot contain accessors');
+      const prefix = path.slice(0, index + 1);
+      if (!descriptor || descriptor.value === undefined || (index < path.length - 1 && !RepairState.object(descriptor.value) && !Array.isArray(descriptor.value))) {
+        RepairState.read(prefix, root);
+        return prefix;
+      }
+      current = descriptor.value;
+    }
+    RepairState.read(path, root);
+    if (path.length > 1) {
+      const parent = path.slice(0, -1);
+      try {
+        RepairState.read(parent, root);
+        return parent;
+      } catch {
+        return path;
+      }
+    }
+    return path;
+  }
+
+  public static overlaps(left: string[], right: string[]): boolean {
+    return RepairState.inside(left, right) || RepairState.inside(right, left);
+  }
+
+  public static fragment(policyValue: RepairStatePolicy, content: string, path: string[]): string {
+    const policy = RepairState.policy(policyValue);
+    RepairState.path(path);
+    if (!RepairState.inside(path, policy.path)) throw new Error('State fragment escapes its target');
+    return RepairState.read(['value', ...path.slice(policy.path.length)], RepairState.envelope(content));
+  }
+
+  public static replaceFragment(policyValue: RepairStatePolicy, content: string, path: string[], expected: string, replacement: string): string {
+    const policy = RepairState.policy(policyValue);
+    if (RepairState.fragment(policy, content, path) !== expected) throw new Error('Repair state fragment changed');
+    const before = RepairState.envelope(expected);
+    const next = RepairState.envelope(replacement);
+    if (path.length === policy.path.length) return RepairState.encode(next);
+    if (!next.exists && !before.exists) return content;
+    return RepairState.validate(policy, content, [next.exists ? { type: 'set', path, value: next.value! } : { type: 'delete', path }]);
   }
 
   public static changes(value: unknown): RepairStateChange[] {
@@ -87,11 +148,8 @@ export class RepairState extends Catalog<string, RepairStatePolicy> {
     for (const change of changes) {
       for (const path of [change.path, ...(change.to ? [change.to] : [])]) {
         if (!RepairState.inside(path, policy.path)) throw new Error('State change escapes its policy');
-        if (policy.scope === 'mod' && path.length === 1 && (path !== change.path || !['merge', 'fill'].includes(change.type))) throw new Error('Cannot replace a complete mod root');
       }
-      if (policy.scope !== 'mod' && !['set', 'fill'].includes(change.type)) throw new Error('Game state permits only set and fill');
       const relative = change.path.slice(policy.path.length);
-      if (!relative.length && change.type === 'delete') throw new Error('Cannot delete the policy root');
       if (!state.exists && !relative.length) state.exists = true;
       if (!state.exists) {
         state.exists = true;
@@ -103,6 +161,7 @@ export class RepairState extends Catalog<string, RepairStatePolicy> {
       else if (change.type === 'delete') {
         if (!slot.descriptor) throw new Error('State source is missing');
         RepairState.remove(slot);
+        if (!relative.length) state.exists = false;
       } else if (change.to) {
         if (!slot.descriptor || RepairState.inside(change.path, change.to) || RepairState.inside(change.to, change.path)) throw new Error('Invalid state move');
         const destination = RepairState.slot(state, ['value', ...change.to.slice(policy.path.length)], true);
@@ -110,28 +169,20 @@ export class RepairState extends Catalog<string, RepairStatePolicy> {
         RepairState.put(destination, RepairState.detach(current));
         if (change.type === 'rename') RepairState.remove(slot);
       } else {
-        const schema = relative.reduce<RepairStateSchema | undefined>(
-          (schema, segment) => (schema?.type === 'array' ? schema.items : schema?.properties && Object.hasOwn(schema.properties, segment) ? schema.properties[segment] : undefined),
-          policy.schema
-        );
-        if (!schema) throw new Error('Unknown state field');
         if (change.type === 'fill' && !RepairState.object(change.value)) {
-          if (policy.scope === 'mod' && change.path.length === 1) throw new Error('Cannot replace a complete mod root');
           if (current === undefined) RepairState.put(slot, change.value);
         } else {
-          if (schema.type !== 'object' || !RepairState.object(change.value)) throw new Error('State merge requires an object schema and value');
+          if (!RepairState.object(change.value)) throw new Error('State merge requires an object value');
           const next = current === undefined ? {} : current;
           if (!RepairState.object(next)) throw new Error('State merge requires an object');
-          RepairState.merge(next, change.value, schema, change.type === 'fill');
+          RepairState.merge(next, change.value, change.type === 'fill');
           RepairState.put(slot, next);
         }
       }
     }
-    if (state.exists) RepairState.check(state.value, policy.schema);
     return RepairState.encode(state);
   }
 
-  /** 只读自身数据属性，不执行 getter，也不访问授权树外的数据。 */
   public static read(path: string[], root: object): string {
     RepairState.path(path);
     let current: unknown = root;
@@ -149,7 +200,7 @@ export class RepairState extends Catalog<string, RepairStatePolicy> {
 
   public static handle(root: object, policyValue: RepairStatePolicy): RepairStateHandle {
     const policy = RepairState.policy(policyValue);
-    const before = RepairState.envelope(RepairState.read(policy.path, root));
+    RepairState.read(policy.path, root);
     const snapshots: Slot[] = [];
     const rollback = (): void => {
       for (const { parent, key, descriptor } of [...snapshots].reverse()) {
@@ -162,10 +213,9 @@ export class RepairState extends Catalog<string, RepairStatePolicy> {
       read: () => RepairState.read(policy.path, root),
       write: content => {
         const next = RepairState.envelope(content);
-        if (next.exists) RepairState.check(next.value, policy.schema);
-        else if (before.exists) throw new Error('Cannot delete the policy root');
         try {
           const slot = RepairState.slot(root, policy.path, next.exists, snapshots);
+          if (!next.exists && Array.isArray(slot.parent)) throw new Error('State array deletion requires its parent target');
           if (!snapshots.some(saved => saved.parent === slot.parent && saved.key === slot.key)) snapshots.push(slot);
           if (next.exists) RepairState.put(slot, next.value);
           else RepairState.remove(slot);
@@ -176,7 +226,6 @@ export class RepairState extends Catalog<string, RepairStatePolicy> {
         }
       },
       restore: () => {
-        // 跨存档切换后，等值的新对象也不能视为本次写入的槽。
         for (const { parent, key, after } of snapshots) {
           const current = Object.getOwnPropertyDescriptor(parent, key);
           if (
@@ -200,8 +249,12 @@ export class RepairState extends Catalog<string, RepairStatePolicy> {
   }
 
   private static path(value: unknown): asserts value is string[] {
-    if (!Array.isArray(value) || Object.getPrototypeOf(value) !== Array.prototype || !value.length || value.length > RepairState.DEPTH) throw new Error('Invalid state path');
-    if (Reflect.ownKeys(value).some(key => key !== 'length' && (typeof key !== 'string' || !/^(0|[1-9]\d*)$/.test(key) || Number(key) >= value.length))) throw new Error('Invalid state path fields');
+    if (!RepairState.validPath(value)) throw new Error('Invalid state path');
+  }
+
+  private static validPath(value: unknown): value is string[] {
+    if (!Array.isArray(value) || Object.getPrototypeOf(value) !== Array.prototype || !value.length || value.length > RepairState.DEPTH) return false;
+    if (Reflect.ownKeys(value).some(key => key !== 'length' && (typeof key !== 'string' || !/^(0|[1-9]\d*)$/.test(key) || Number(key) >= value.length))) return false;
     for (let index = 0; index < value.length; index++) {
       const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
       const segment = descriptor?.value;
@@ -214,8 +267,9 @@ export class RepairState extends Catalog<string, RepairStatePolicy> {
         ['.', '..'].includes(segment) ||
         RepairState.unsafe.has(segment)
       )
-        throw new Error('Invalid state path');
+        return false;
     }
+    return true;
   }
 
   private static inside(path: string[], root: string[]): boolean {
@@ -265,46 +319,14 @@ export class RepairState extends Catalog<string, RepairStatePolicy> {
     return envelope;
   }
 
-  private static schema(schema: RepairStateSchema): void {
-    if (!schema || !['object', 'array', 'string', 'number', 'boolean', 'null'].includes(schema.type)) throw new Error('Invalid state schema type');
-    RepairState.keys(schema, ['type'], ['enum', ...(schema.type === 'object' ? ['properties', 'required'] : schema.type === 'array' ? ['items'] : [])]);
-    if (schema.type === 'object') {
-      if (schema.properties !== undefined && !RepairState.object(schema.properties)) throw new Error('Invalid state schema properties');
-      for (const child of Object.values(schema.properties ?? {})) RepairState.schema(child);
-      if (
-        schema.required !== undefined &&
-        (!Array.isArray(schema.required) ||
-          new Set(schema.required).size !== schema.required.length ||
-          schema.required.some(key => typeof key !== 'string' || !Object.hasOwn(schema.properties ?? {}, key)))
-      )
-        throw new Error('Invalid required state fields');
-    }
-    if (schema.type === 'array') RepairState.schema(schema.items!);
-    if (schema.enum !== undefined) {
-      if (!Array.isArray(schema.enum) || !schema.enum.length) throw new Error('Invalid state enum');
-      for (const item of schema.enum) RepairState.check(item, { ...schema, enum: undefined });
-    }
-  }
-
-  private static equal(left: unknown, right: unknown): boolean {
-    if (left === right) return true;
-    if (!left || !right || typeof left !== 'object' || typeof right !== 'object' || Array.isArray(left) !== Array.isArray(right)) return false;
-    const keys = Object.keys(left);
-    return keys.length === Object.keys(right).length && keys.every(key => Object.hasOwn(right, key) && RepairState.equal(Reflect.get(left, key), Reflect.get(right, key)));
-  }
-
-  private static check(value: unknown, schema: RepairStateSchema): void {
-    const type = value === null ? 'null' : Array.isArray(value) ? 'array' : typeof value;
-    if (type !== schema.type || (schema.enum && !schema.enum.some(item => RepairState.equal(item, value)))) throw new Error('State value does not match its schema');
-    if (schema.type === 'object') {
-      const record = value as Record<string, unknown>;
-      if (schema.required?.some(key => !Object.hasOwn(record, key))) throw new Error('Required state field is missing');
-      for (const [key, item] of Object.entries(record)) {
-        const child = schema.properties && Object.hasOwn(schema.properties, key) ? schema.properties[key] : undefined;
-        if (!child) throw new Error('Unknown state field');
-        RepairState.check(item, child);
-      }
-    } else if (schema.type === 'array') for (const item of value as unknown[]) RepairState.check(item, schema.items!);
+  public static equals(left: string, right: string): boolean {
+    const compare = (a: unknown, b: unknown): boolean => {
+      if (a === b) return true;
+      if (!a || !b || typeof a !== 'object' || typeof b !== 'object' || Array.isArray(a) !== Array.isArray(b)) return false;
+      const keys = Object.keys(a);
+      return keys.length === Object.keys(b).length && keys.every(key => Object.hasOwn(b, key) && compare(Reflect.get(a, key), Reflect.get(b, key)));
+    };
+    return compare(RepairState.envelope(left), RepairState.envelope(right));
   }
 
   private static slot(root: object, path: string[], create: boolean, snapshots?: Slot[]): Slot {
@@ -336,12 +358,10 @@ export class RepairState extends Catalog<string, RepairStatePolicy> {
     else if (!Reflect.deleteProperty(slot.parent, slot.key)) throw new Error('State delete failed');
   }
 
-  private static merge(target: Record<string, unknown>, patch: Record<string, unknown>, schema: RepairStateSchema, fill: boolean): void {
+  private static merge(target: Record<string, unknown>, patch: Record<string, unknown>, fill: boolean): void {
     for (const [key, value] of Object.entries(patch)) {
-      const child = schema.properties && Object.hasOwn(schema.properties, key) ? schema.properties[key] : undefined;
-      if (!child) throw new Error('Unknown state merge field');
       const previous = Object.hasOwn(target, key) ? target[key] : undefined;
-      if (RepairState.object(value) && RepairState.object(previous)) RepairState.merge(previous, value, child, fill);
+      if (RepairState.object(value) && RepairState.object(previous)) RepairState.merge(previous, value, fill);
       else if (!fill || previous === undefined) Object.defineProperty(target, key, { value, writable: true, enumerable: true, configurable: true });
     }
   }

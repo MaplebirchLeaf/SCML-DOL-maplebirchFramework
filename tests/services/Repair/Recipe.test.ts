@@ -429,10 +429,11 @@ test('source insertion and deletion keep executable, native binding and field re
     expect(() => RepairRecipeParser.parse(JSON.stringify({ ...proposal(), operations: [operation] }), context)).toThrow();
 });
 
-test('state operations bind their policy identity and validate the complete resulting object', () => {
-  const policy = { modName: 'example', path: ['Example', 'progress'], scope: 'mod', schema: { type: 'object', properties: { count: { type: 'number' } }, required: ['count'] } };
+test('state operations bind their target identity and validate bounded JSON changes', () => {
+  const policy = { modName: 'maplebirch', path: ['Example', 'progress'], scope: 'state' };
   const target = {
     ...context.targets[0],
+    modName: policy.modName,
     kind: 'state' as const,
     path: JSON.stringify(policy.path),
     signature: JSON.stringify(policy),
@@ -449,7 +450,7 @@ test('state operations bind their policy identity and validate the complete resu
   ])
     expect(() => RepairRecipeParser.parse(JSON.stringify(recipe), { ...state, targets: [changed] })).toThrow();
   for (const changes of [
-    [{ type: 'set', path: ['Example', 'progress', 'count'], value: 'wrong' }],
+    [{ type: 'set', path: ['Example', 'progress', 'count'], value: { constructor: 7 } }],
     [{ type: 'set', path: ['Other', 'progress', 'count'], value: 7 }],
     [{ type: 'set', path: ['Example', 'progress', 'count'], value: 7, unsafe: true }]
   ])
@@ -469,8 +470,17 @@ test('review keeps explicit and mixed recipes atomic when one target fails valid
   };
   expect(() => RepairRecipeParser.review(JSON.stringify(typed), mixed)).toThrow('framework property guard');
 
-  const policy = { modName: 'example', path: ['Example', 'count'], scope: 'mod', schema: { type: 'number' } };
-  const target = { ...second, kind: 'state' as const, path: JSON.stringify(policy.path), signature: JSON.stringify(policy), content: JSON.stringify({ exists: true, value: 1 }) };
-  const state = { type: 'state', targetId: target.id, changes: [{ type: 'set', path: policy.path, value: 'wrong' }], reason: 'Invalid result' };
-  expect(() => RepairRecipeParser.review(JSON.stringify({ ...proposal(), operations: [proposal().operations[0], state] }), { ...context, targets: [...context.targets, target] })).toThrow('schema');
+  const policy = { modName: 'maplebirch', path: ['Example', 'count'], scope: 'state' };
+  const target = {
+    ...second,
+    modName: policy.modName,
+    kind: 'state' as const,
+    path: JSON.stringify(policy.path),
+    signature: JSON.stringify(policy),
+    content: JSON.stringify({ exists: true, value: 1 })
+  };
+  const state = { type: 'state', targetId: target.id, changes: [{ type: 'set', path: ['Other', 'count'], value: 2 }], reason: 'Reject an unbound state field' };
+  expect(() => RepairRecipeParser.review(JSON.stringify({ ...proposal(), operations: [proposal().operations[0], state] }), { ...context, targets: [...context.targets, target] })).toThrow(
+    'State change escapes its policy'
+  );
 });
