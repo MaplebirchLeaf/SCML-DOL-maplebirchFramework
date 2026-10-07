@@ -77,4 +77,10 @@ maplebirch.services.repair.allowState({
 
 源码 DSL 支持 `replace / insertBefore / insertAfter / delete`，继续使用精确匹配、指纹、目标绑定与已有代码限制。AI 不能生成函数执行。可纠正的格式或锚点错误最多向同一接口反馈一次；越权、禁止的代码、取消及接口失败不重试。
 
+`type: 'ast'` 可对已绑定的 JS 或 Twee 内嵌 JS 做表达式、语句、代码块替换，以及语句前后插入、完整语句删除。`selector: { nodeType, source }` 使用 ESTree 类型和观察到的完整节点源码，忽略空白与注释后必须唯一匹配。`action` 为 `replaceExpression / replaceStatement / replaceBlock / insertBefore / insertAfter / deleteStatement`；除删除外，`code` 是新片段。不接受偏移或匹配数量来消除歧义。
+
+AST 使用 Acorn 解析、校验及计算区间，最终只 splice 原始源码；完整 JS 单位重新解析，Twee 的宏范围也重新检查。首版允许既有变量、静态属性、JSON、普通表达式、原有赋值路径、return、if、block；禁止新增函数、构造器、动态属性与网络加载。已有调用只能原样保留，不能修改参数、增加次数或重定向调用。Twee 仅处理可独立解析的 JS 宏参数与 script 正文，不转换 `to/is/and` 等 SugarCube 方言。CSS、状态及补丁绑定不使用 AST。AST 配方保留在记忆中，重放仍重查定位、语法和权限。
+
 同一方案的目标先完整校验，再应用源码 Overlay；状态迁移在同步 `:variable` 事件中检查旧值、写入和校验。全部验证成功后进入 `trial`，复测后手动确认 `active`。记忆保存在 `maplebirch/repair`，重载和读档无需调用 AI；目标或权限变化时停用。跨加载阶段失败会恢复可回滚的 Overlay 和状态快照，要求重载；已执行的脚本副作用不能通用撤销。原始 ZIP 和 ModLoader 安装包不修改。
+
+AST 的绑定与赋值权限来自选中节点所在的原始词法块，不借用其他函数或子块的同名变量。声明类型、表达式所在的语法槽位及片段词法边界必须保持有效。含动态调用目标、构造器、动态 import、标签模板或禁用调用的 JS 单位暂不接受 AST 修复，避免通过修改参数变量间接执行代码；仍可使用其他已支持的 Repair 机制。静态校验通过不等同于运行行为已验证。

@@ -21,7 +21,7 @@ export class RepairAgent {
   private static correctable(reason: string, response: string, context: RepairContext): boolean {
     const message = reason.replace(/^(?:target-\d+|target): /, '');
     if (message === 'Invalid repair JSON') return true;
-    const shape = /^Invalid (?:recipe fields|recipe identity|recipe explanation|recipe operations|operation fields|operation text|match count)$/.test(message);
+    const shape = /^Invalid (?:recipe fields|recipe identity|recipe explanation|recipe operations|operation fields|operation text|match count|AST operation fields|AST operation text)$/.test(message);
     const binding =
       /^(?:Invalid (?:TweeReplacer|ReplacePatcher) search binding|(?:TweeReplacer|ReplacePatcher) repairs update one complete search binding|Unchanged (?:TweeReplacer|ReplacePatcher) search binding)$/.test(
         message
@@ -37,10 +37,15 @@ export class RepairAgent {
     if (message === 'Invalid recipe identity' && recipe.outcome !== undefined && !['repair', 'insufficient-context'].includes(String(recipe.outcome))) return false;
     for (const operation of Array.isArray(recipe.operations) ? recipe.operations : []) {
       if (!operation || typeof operation !== 'object' || Array.isArray(operation)) continue;
-      if (operation.type !== undefined && !['replace', 'insertBefore', 'insertAfter', 'delete', 'state'].includes(operation.type)) return false;
+      if (operation.type !== undefined && !['replace', 'insertBefore', 'insertAfter', 'delete', 'state', 'ast'].includes(operation.type)) return false;
       const target = context.targets.find(target => target.id === operation.targetId);
       if (operation.targetId !== undefined && !target) return false;
-      const fields = operation.type === 'state' || target?.kind === 'state' ? ['type', 'targetId', 'changes', 'reason'] : ['type', 'targetId', 'find', 'replace', 'expectedMatches', 'reason'];
+      const fields =
+        operation.type === 'ast'
+          ? ['type', 'targetId', 'action', 'selector', 'code', 'reason']
+          : operation.type === 'state' || target?.kind === 'state'
+            ? ['type', 'targetId', 'changes', 'reason']
+            : ['type', 'targetId', 'find', 'replace', 'expectedMatches', 'reason'];
       if (Object.keys(operation).some(key => !fields.includes(key))) return false;
       if (binding && typeof operation.replace === 'string' && (target?.kind === 'twee-replacer' || (target?.kind === 'replace-patcher' && target.path.endsWith('|binding')))) {
         let value: Record<string, unknown> | null;

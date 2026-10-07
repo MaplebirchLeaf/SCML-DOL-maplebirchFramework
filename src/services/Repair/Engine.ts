@@ -27,7 +27,7 @@ export class RepairEngine {
         overlays.push({ target: identity, before, after, fingerprint: await RepairRecipeParser.fingerprint(after) });
         continue;
       }
-      let after = before.split(operation.find).join(operation.replace);
+      let after = RepairRecipeParser.sourceResult(target, operation);
       if (target.kind === 'twee-replacer') {
         const binding = NativeJSON.parse(after) as { passage: string; findString: string };
         after = NativeJSON.stringify({ passage: binding.passage, findString: binding.findString });
@@ -36,7 +36,7 @@ export class RepairEngine {
         after = NativeJSON.stringify(target.path.split('|')[2] === 'twee' ? { passageName: binding.passageName, from: binding.from } : { fileName: binding.fileName, from: binding.from });
       }
       const { content: _content, ...identity } = target;
-      const replacement = RepairRecipeParser.rebase(target, operation.replace);
+      const replacement = operation.type === 'ast' ? undefined : RepairRecipeParser.rebase(target, operation.replace);
       overlays.push({ target: identity, before, after, fingerprint: await RepairRecipeParser.fingerprint(after), ...(replacement && { replacement }) });
     }
     if (overlays.some(overlay => resolve({ ...overlay.target, content: overlay.before }) !== overlay.before)) throw new Error('Repair inputs changed during preparation');

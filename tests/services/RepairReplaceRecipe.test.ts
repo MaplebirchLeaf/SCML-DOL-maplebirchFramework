@@ -53,7 +53,7 @@ test.each(['js', 'css', 'twee'] as const)('prepares atomic %s destination repair
   expect(overlay.target.signature).toBe(context.targets[0].signature!);
   expect(overlay.replacement).toBeUndefined();
   const operation = recipe.operations[0];
-  if (operation.type === 'state') throw new Error('Expected a source repair');
+  if (operation.type) throw new Error('Expected a literal source repair');
   expect(context.targets[0].content).toBe(operation.find);
 });
 

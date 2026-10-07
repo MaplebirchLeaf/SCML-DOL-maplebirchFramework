@@ -543,7 +543,7 @@ export class Repair extends Diagnostics {
       const { recipe, context } = steps[index];
       const targets = new Map(context.targets.map(target => [target.id, target]));
       const operations = recipe.operations.filter(operation => {
-        if ('type' in operation && operation.type === 'state') return true;
+        if (operation.type) return true;
         const target = targets.get(operation.targetId);
         if (!target) return true;
         const key = Repair.targetKey(target);

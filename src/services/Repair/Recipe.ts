@@ -3,6 +3,7 @@
 import { NativeJSON } from './Json';
 import { RepairRebase } from './Rebase';
 import { RepairState, type RepairStateChange } from './State';
+import RepairAst, { type RepairAstOperation } from './Ast';
 
 export interface RepairTarget {
   id: string;
@@ -75,7 +76,7 @@ interface RepairStateOperation {
   expectedMatches?: never;
 }
 
-type RepairOperation = RepairSourceOperation | RepairStateOperation;
+type RepairOperation = RepairSourceOperation | RepairStateOperation | RepairAstOperation;
 
 interface TweeRegion {
   start: number;
@@ -288,7 +289,7 @@ export class RepairRecipeParser {
     const targets = new Map(context.targets.map(target => [target.id, target]));
     let renamed = false;
     for (const operation of recipe.operations) {
-      if (operation.type === 'state') continue;
+      if (operation.type) continue;
       const target = targets.get(operation.targetId);
       if (!target || (target.kind !== 'js' && target.kind !== 'twee') || !RepairRecipeParser.codePath(operation.find) || !RepairRecipeParser.codePath(operation.replace)) continue;
       renamed = true;
@@ -450,6 +451,11 @@ export class RepairRecipeParser {
     return RepairState.validate(policy, target.content, changes);
   }
 
+  /** AST 仅计算源码区间，overlay 继续保留原始文本。 */
+  public static sourceResult(target: RepairTarget, operation: RepairSourceOperation | RepairAstOperation): string {
+    return operation.type === 'ast' ? RepairAst.apply(target, operation, RepairRecipeParser.macroRanges) : target.content.split(operation.find).join(operation.replace);
+  }
+
   /** 筛选操作前，先校验全部结构和绑定。 */
   private static read(json: string, context: RepairContext): { recipe: RepairRecipe; targets: Map<string, RepairTarget>; atomic: boolean } {
     if (json.length > RepairRecipeParser.MAX_LENGTH) throw new Error('Recipe exceeds size limit');
@@ -466,6 +472,30 @@ export class RepairRecipeParser {
     const operations: RepairOperation[] = [];
     for (const value of recipe.operations) {
       if (!RepairRecipeParser.object(value)) throw new Error('Invalid operation fields');
+      if (value.type === 'ast') {
+        const fields = ['type', 'targetId', 'action', 'selector', 'reason', ...(value.action !== 'deleteStatement' ? ['code'] : [])];
+        if (
+          !RepairRecipeParser.keys(value, fields) ||
+          !RepairAst.ACTIONS.includes(value.action as RepairAstOperation['action']) ||
+          !RepairRecipeParser.object(value.selector) ||
+          !RepairRecipeParser.keys(value.selector, ['nodeType', 'source'])
+        )
+          throw new Error('Invalid AST operation fields');
+        if (
+          !RepairRecipeParser.text(value.targetId, 200) ||
+          !RepairRecipeParser.text(value.reason, 2000) ||
+          !RepairRecipeParser.text(value.selector.nodeType, 80) ||
+          !RepairRecipeParser.text(value.selector.source, 32000) ||
+          (value.action !== 'deleteStatement' && !RepairRecipeParser.text(value.code, 32000))
+        )
+          throw new Error('Invalid AST operation text');
+        const target = targets.get(value.targetId);
+        if (!target || !/^sha256:[a-f0-9]{64}$/.test(target.fingerprint)) throw new Error('Unknown or unbound target');
+        if (seen.has(target.id)) throw new Error('Duplicate operation target');
+        seen.add(target.id);
+        operations.push(value as unknown as RepairAstOperation);
+        continue;
+      }
       if (value.type === 'state') {
         if (!RepairRecipeParser.keys(value, ['type', 'targetId', 'changes', 'reason'])) throw new Error('Invalid operation fields');
         if (!RepairRecipeParser.text(value.targetId, 200) || !RepairRecipeParser.text(value.reason, 2000)) throw new Error('Invalid operation text');
@@ -510,6 +540,7 @@ export class RepairRecipeParser {
     for (const operation of recipe.operations) {
       try {
         if (operation.type === 'state') RepairRecipeParser.stateResult(targets.get(operation.targetId)!, operation.changes);
+        else if (operation.type === 'ast') RepairRecipeParser.sourceResult(targets.get(operation.targetId)!, operation);
         else RepairRecipeParser.validateOperation(targets.get(operation.targetId)!, operation, context);
         operations.push(operation);
       } catch (error) {

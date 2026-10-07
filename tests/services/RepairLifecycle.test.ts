@@ -208,6 +208,189 @@ async function seedStateRepair(rows: Map<string, unknown>, withSource = false, p
   return memory;
 }
 
+const astSource = '\t// Keep this header.\r\nfunction read(){ return state.value; }\r\n// Keep this footer.\r\n';
+
+function astFixture(rows = new Map<string, unknown>()) {
+  const fixture = repairFixture(rows);
+  const source = { id: 0, name: 'script.js', content: astSource };
+  fixture.mod.cache.scriptFileItems.items.push(source);
+  fixture.mod.cache.scriptFileItems.fillMap();
+  fixture.final.scriptFileItems.items.push({ ...source });
+  fixture.final.scriptFileItems.fillMap();
+  return { ...fixture, source };
+}
+
+async function seedAstRepair(fixture: ReturnType<typeof astFixture>, policies = [statePolicy]): Promise<RepairMemory> {
+  const memory = await seedStateRepair(fixture.rows, false, policies);
+  memory.context.targets.push({
+    id: 'js-1',
+    modName: 'example',
+    kind: 'js',
+    path: fixture.source.name,
+    content: fixture.source.content,
+    fingerprint: await RepairRecipeParser.fingerprint(fixture.source.content)
+  });
+  memory.recipe.operations.push({
+    type: 'ast',
+    targetId: 'js-1',
+    action: 'replaceExpression',
+    selector: { nodeType: 'MemberExpression', source: 'state.value' },
+    code: 'state.value ?? 0',
+    reason: 'Restore the missing value fallback'
+  });
+  fixture.rows.set(memory.id, structuredClone(memory));
+  return memory;
+}
+
+test('AST and state preparation stages one pending recipe without modifying live targets', async () => {
+  const fixture = astFixture();
+  fixture.repair.allowState(statePolicy);
+  fixture.variables.current = { Example: { count: 0 } };
+  const memory = await seedAstRepair(fixture);
+  fixture.rows.delete(memory.id);
+  Object.assign(fixture.repair.connection, { apiUrl: 'https://example.test/v1', model: 'model' });
+  const contextSpy = spyOn(RepairAgent, 'context').mockResolvedValue(memory.context);
+  const analyzeSpy = spyOn(RepairAgent, 'analyze').mockResolvedValue({ result: 'success', recipe: memory.recipe });
+  try {
+    const result = await fixture.repair.analyze(new AbortController().signal);
+    expect(result.result).toBe('success');
+    expect(result.overlays).toHaveLength(2);
+    expect(result.overlays?.find(overlay => overlay.target.kind === 'js')).toMatchObject({ before: astSource, after: astSource.replace('state.value', 'state.value ?? 0') });
+    expect(fixture.source.content).toBe(astSource);
+    expect(fixture.variables.current).toEqual({ Example: { count: 0 } });
+    await fixture.repair.stage();
+    const [stored] = await fixture.repair.list();
+    expect(stored.state).toBe('pending');
+    expect(stored.recipe.operations).toEqual(memory.recipe.operations);
+    expect(stored.recipe.operations.find(operation => operation.type === 'ast')).not.toHaveProperty('find');
+    expect(fixture.source.content).toBe(astSource);
+    expect(fixture.variables.current).toEqual({ Example: { count: 0 } });
+  } finally {
+    contextSpy.mockRestore();
+    analyzeSpy.mockRestore();
+  }
+});
+
+test('staging revalidates every AST and state input before writing repair memory', async () => {
+  const fixture = astFixture();
+  fixture.repair.allowState(statePolicy);
+  fixture.variables.current = { Example: { count: 0 } };
+  const memory = await seedAstRepair(fixture);
+  fixture.rows.delete(memory.id);
+  Object.assign(fixture.repair.connection, { apiUrl: 'https://example.test/v1', model: 'model' });
+  const contextSpy = spyOn(RepairAgent, 'context').mockResolvedValue(memory.context);
+  const analyzeSpy = spyOn(RepairAgent, 'analyze').mockResolvedValue({ result: 'success', recipe: memory.recipe });
+  try {
+    expect((await fixture.repair.analyze(new AbortController().signal)).result).toBe('success');
+    fixture.variables.current = { Example: { count: 2 } };
+    await expect(fixture.repair.stage()).rejects.toThrow('Repair target changed: state-0');
+    expect(await fixture.repair.list()).toEqual([]);
+    expect(fixture.source.content).toBe(astSource);
+    expect(fixture.variables.current).toEqual({ Example: { count: 2 } });
+    fixture.variables.current = { Example: { count: 0 } };
+    fixture.source.content += '// Changed after preview.\r\n';
+    await expect(fixture.repair.stage()).rejects.toThrow('Repair target changed: js-1');
+    expect(await fixture.repair.list()).toEqual([]);
+    expect(fixture.source.content).toBe(astSource + '// Changed after preview.\r\n');
+    expect(fixture.variables.current).toEqual({ Example: { count: 0 } });
+  } finally {
+    contextSpy.mockRestore();
+    analyzeSpy.mockRestore();
+  }
+});
+
+test('AST memory verifies both source and state, preserves formatting and replays without AI', async () => {
+  const fixture = astFixture();
+  fixture.repair.allowState(statePolicy);
+  const memory = await seedAstRepair(fixture);
+  const after = astSource.replace('state.value', 'state.value ?? 0');
+  const fetch = spyOn(globalThis, 'fetch').mockRejectedValue(new Error('AST memory must not call an API'));
+  try {
+    await fixture.events.trigger(':addon:repair');
+    expect(fixture.source.content).toBe(after);
+    fixture.final.scriptFileItems.map.get('script.js')!.content = after + '\n';
+    await fixture.events.trigger(':modLoaderEnd');
+    expect((fixture.rows.get(memory.id) as RepairMemory).state).toBe('pending');
+    await expect(fixture.repair.confirm(memory.id)).rejects.toThrow();
+    fixture.variables.current = { Example: { count: 0 } };
+    await fixture.events.trigger(':variable');
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(fixture.variables.current).toEqual({ Example: { count: 1 } });
+    expect((fixture.rows.get(memory.id) as RepairMemory).state).toBe('trial');
+    await fixture.repair.confirm(memory.id);
+    expect((fixture.rows.get(memory.id) as RepairMemory).state).toBe('active');
+
+    const reload = astFixture(fixture.rows);
+    reload.repair.allowState(statePolicy);
+    reload.variables.current = { Example: { count: 0 } };
+    await reload.events.trigger(':addon:repair');
+    expect(reload.source.content).toBe(after);
+    await reload.events.trigger(':variable');
+    reload.final.scriptFileItems.map.get('script.js')!.content = after + '\n';
+    await reload.events.trigger(':modLoaderEnd');
+    expect(reload.variables.current).toEqual({ Example: { count: 1 } });
+    expect((reload.rows.get(memory.id) as RepairMemory).state).toBe('active');
+    expect((reload.rows.get(memory.id) as RepairMemory).recipe.operations).toEqual(memory.recipe.operations);
+    expect(fetch).not.toHaveBeenCalled();
+  } finally {
+    fetch.mockRestore();
+  }
+});
+
+test('a later state write failure rolls back the AST overlay and all earlier state targets', async () => {
+  const fixture = astFixture();
+  const otherPolicy = { ...statePolicy, path: ['Other'] };
+  fixture.repair.allowState(statePolicy);
+  fixture.repair.allowState(otherPolicy);
+  const original = { count: 0 };
+  const root: Record<string, object> = { Example: original };
+  Object.defineProperty(root, 'Other', { value: { count: 0 }, enumerable: true, configurable: false, writable: false });
+  const descriptor = Object.getOwnPropertyDescriptor(root, 'Other');
+  fixture.variables.current = root;
+  const memory = await seedAstRepair(fixture, [statePolicy, otherPolicy]);
+  await fixture.events.trigger(':addon:repair');
+  expect(fixture.source.content).toBe(astSource.replace('state.value', 'state.value ?? 0'));
+  await fixture.events.trigger(':variable');
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(fixture.source.content).toBe(astSource);
+  expect(root.Example).toBe(original);
+  expect(root).toEqual({ Example: { count: 0 }, Other: { count: 0 } });
+  expect(Object.getOwnPropertyDescriptor(root, 'Other')).toEqual(descriptor);
+  expect((fixture.rows.get(memory.id) as RepairMemory).state).toBe('failed');
+  await expect(fixture.repair.confirm(memory.id)).rejects.toThrow();
+});
+
+test('failed AST output verification restores state snapshots and the exact original source', async () => {
+  const fixture = astFixture();
+  fixture.repair.allowState(statePolicy);
+  const original = { count: 0 };
+  fixture.variables.current = { Example: original };
+  const memory = await seedAstRepair(fixture);
+  await fixture.events.trigger(':addon:repair');
+  await fixture.events.trigger(':variable');
+  expect(fixture.variables.current).toEqual({ Example: { count: 1 } });
+  await fixture.events.trigger(':addon:verify');
+  expect(fixture.source.content).toBe(astSource);
+  expect(fixture.variables.current).toEqual({ Example: { count: 0 } });
+  expect((fixture.variables.current as { Example: object }).Example).toBe(original);
+  expect((fixture.rows.get(memory.id) as RepairMemory).state).toBe('failed');
+});
+
+test('changed AST source fingerprints prevent every operation in the mixed memory', async () => {
+  const fixture = astFixture();
+  fixture.repair.allowState(statePolicy);
+  const memory = await seedAstRepair(fixture);
+  const changed = astSource + '// A later package revision.\r\n';
+  fixture.source.content = changed;
+  fixture.variables.current = { Example: { count: 0 } };
+  await fixture.events.trigger(':addon:repair');
+  await fixture.events.trigger(':variable');
+  expect(fixture.source.content).toBe(changed);
+  expect(fixture.variables.current).toEqual({ Example: { count: 0 } });
+  expect(fixture.rows.get(memory.id) as RepairMemory).toMatchObject({ state: 'stale', enabled: false });
+  await expect(fixture.repair.confirm(memory.id)).rejects.toThrow();
+});
+
 test('state memory waits for variables, confirms, replays without AI and is idempotent across save roots', async () => {
   const fixture = repairFixture();
   expect(fixture.repair.allowState(statePolicy)).toBe(true);
@@ -1685,7 +1868,7 @@ async function seedChainedPathRepair(state: ReturnType<typeof repairFixture>, ch
   memory.recipe = {
     ...memory.recipe,
     operations: memory.recipe.operations.map(operation => {
-      if (operation.type === 'state') throw new Error('Expected source operation');
+      if (operation.type) throw new Error('Expected literal source operation');
       return { ...operation, find: chained ? 'setup.currentHelper' : 'setup.otherOldHelper', replace: destination };
     })
   };
