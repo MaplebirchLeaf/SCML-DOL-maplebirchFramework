@@ -70,8 +70,8 @@ jobs:
       - name: Verify framework
         run: bun run verify
 
-      - name: Test services
-        run: bun run test:services
+      - name: Run tests
+        run: bun run test
 
       - name: Verify types package version
         run: |

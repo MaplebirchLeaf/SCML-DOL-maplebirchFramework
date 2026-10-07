@@ -1,4 +1,4 @@
-import './runtime';
+import '../support/runtime';
 import { expect, mock, test } from 'bun:test';
 import type ModLoader from '../../src/host/ModLoader';
 import Diagnostics from '../../src/infra/Diagnostics';

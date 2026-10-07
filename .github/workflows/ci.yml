@@ -26,8 +26,8 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Verify framework
         run: bun run verify
-      - name: Test services
-        run: bun run test:services
+      - name: Run tests
+        run: bun run test
       - name: Build framework
         run: bun run build
       - name: Build types package

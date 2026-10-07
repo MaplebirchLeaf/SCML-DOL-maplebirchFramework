@@ -1,4 +1,4 @@
-import './runtime';
+import '../support/runtime';
 import { expect, mock, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import jsyaml from 'js-yaml';

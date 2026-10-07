@@ -1,6 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { mock } from 'bun:test';
-import { lodash } from '../services/runtime';
+import { lodash } from '../support/runtime';
 
 const logs: Array<{ message: string; level: string }> = [];
 const diagnostics = { write: (message: string, level: string) => logs.push({ message, level }), export: () => '' };

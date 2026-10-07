@@ -1,4 +1,4 @@
-import './runtime';
+import '../support/runtime';
 import { expect, mock, spyOn, test } from 'bun:test';
 import type IndexedDB from '../../src/services/IndexedDB';
 import type ModLoader from '../../src/host/ModLoader';

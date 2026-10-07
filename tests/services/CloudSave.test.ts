@@ -1,4 +1,4 @@
-import { lodash } from './runtime';
+import { lodash } from '../support/runtime';
 import { expect, test } from 'bun:test';
 import type { CloudSaveRecord, CloudSaveRemoteItem } from '../../src/services/CloudSave';
 import SugarCube from '../../src/host/SugarCube';

@@ -1,4 +1,4 @@
-import './runtime';
+import '../support/runtime';
 import { expect, mock, test } from 'bun:test';
 
 let transaction: { done: Promise<void>; abort(): void; objectStore?(name: string): { indexNames: { contains(name: string): boolean } } };

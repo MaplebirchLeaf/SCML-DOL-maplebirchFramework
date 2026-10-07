@@ -1,4 +1,4 @@
-import './runtime';
+import '../support/runtime';
 import { describe, expect, test } from 'bun:test';
 import type ModLoader from '../../src/host/ModLoader';
 import type IndexedDB from '../../src/services/IndexedDB';

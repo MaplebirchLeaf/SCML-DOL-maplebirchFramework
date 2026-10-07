@@ -1,6 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { mock } from 'bun:test';
-import '../services/runtime';
+import '../support/runtime';
 import type NPCManager from '../../src/modules/NamedNPC';
 
 mock.module('../../src/core', () => ({ default: { services: { translator: { language: 'EN' } } } }));

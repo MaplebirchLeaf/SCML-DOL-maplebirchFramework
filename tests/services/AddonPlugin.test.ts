@@ -1,4 +1,4 @@
-import './runtime';
+import '../support/runtime';
 import { expect, mock, test } from 'bun:test';
 import Emitter from '../../src/infra/Emitter';
 
