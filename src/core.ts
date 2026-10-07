@@ -129,7 +129,15 @@ const MaplebirchCore = class MaplebirchCore {
     const translator = Object.seal(new Translator(indexedDB, this.host.modLoader, this.infra.events, () => this.services.addonPlugin));
     const credentialVault = Object.seal(new CredentialVault(indexedDB, this.host.modLoader, this.infra.events, this.infra.diagnostics, key => this.t(key)));
     const cloudSave = Object.seal(new CloudSave(this.host.sugarcube, key => this.t(key), this.host.modLoader.lodash, this.infra.diagnostics));
-    const repair = Object.seal(new Repair(indexedDB, this.host.modLoader, this.infra.events, () => (this as unknown as { tool?: { zone: RepairZone } }).tool?.zone));
+    const repair = Object.seal(
+      new Repair(
+        indexedDB,
+        this.host.modLoader,
+        this.infra.events,
+        () => (this as unknown as { tool?: { zone: RepairZone } }).tool?.zone,
+        () => this.host.sugarcube.runtime?.State.variables
+      )
+    );
     const gui = Object.seal(new GUIControl(indexedDB, this.host.modLoader, this.infra.events, modules, translator, () => this.services.addonPlugin, repair));
     this.services = Object.freeze({ indexedDB, modules, addonPlugin, translator, credentialVault, cloudSave, gui, repair });
     this.log(`框架核心系统创建完成(v${MaplebirchCore.meta.version})`, 'INFO');

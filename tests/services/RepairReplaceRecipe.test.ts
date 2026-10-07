@@ -52,7 +52,9 @@ test.each(['js', 'css', 'twee'] as const)('prepares atomic %s destination repair
   expect(overlay.after).toBe(NativeJSON.stringify({ [field]: 'current-source', from }));
   expect(overlay.target.signature).toBe(context.targets[0].signature!);
   expect(overlay.replacement).toBeUndefined();
-  expect(context.targets[0].content).toBe(recipe.operations[0].find);
+  const operation = recipe.operations[0];
+  if (operation.type === 'state') throw new Error('Expected a source repair');
+  expect(context.targets[0].content).toBe(operation.find);
 });
 
 test('binding repairs require observed unique destination source and reject generated body fields', async () => {

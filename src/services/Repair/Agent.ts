@@ -11,6 +11,50 @@ import { RepairSources, type RepairSource } from './Source';
 export class RepairAgent {
   private static readonly CONTEXT_LIMIT = RepairPrompt.MAX_LENGTH - 32000;
 
+  private static redact(value: string, apiKey: string): string {
+    const key = apiKey.trim();
+    for (const encoded of key ? new Set([key, NativeJSON.stringify(key).slice(1, -1)]) : []) value = value.split(encoded).join('[REDACTED]');
+    return value.replace(/Bearer\s+\S+|\bsk-[\w-]+/gi, '[REDACTED]');
+  }
+
+  /** 只纠正输出形状和定位误差，权限与安全模板拒绝直接结束。 */
+  private static correctable(reason: string, response: string, context: RepairContext): boolean {
+    const message = reason.replace(/^(?:target-\d+|target): /, '');
+    if (message === 'Invalid repair JSON') return true;
+    const shape = /^Invalid (?:recipe fields|recipe identity|recipe explanation|recipe operations|operation fields|operation text|match count)$/.test(message);
+    const binding =
+      /^(?:Invalid (?:TweeReplacer|ReplacePatcher) search binding|(?:TweeReplacer|ReplacePatcher) repairs update one complete search binding|Unchanged (?:TweeReplacer|ReplacePatcher) search binding)$/.test(
+        message
+      );
+    const anchor =
+      /^(?:Empty repair search:|Unchanged repair operation:|Repair search match count:|TweeReplacer anchor (?:not found:|is ambiguous:|splits (?:a source token|executable markup)$|is outside supplied source excerpts$)|ReplacePatcher anchor (?:match count:|is outside supplied source excerpts$))/.test(
+        message
+      );
+    if (!shape && !binding && !anchor) return false;
+    const recipe = NativeJSON.parse(response) as Record<string, unknown> | null;
+    if (!recipe || typeof recipe !== 'object' || Array.isArray(recipe)) return shape;
+    if (Object.keys(recipe).some(key => !['requestId', 'outcome', 'summary', 'evidence', 'operations'].includes(key))) return false;
+    if (message === 'Invalid recipe identity' && recipe.outcome !== undefined && !['repair', 'insufficient-context'].includes(String(recipe.outcome))) return false;
+    for (const operation of Array.isArray(recipe.operations) ? recipe.operations : []) {
+      if (!operation || typeof operation !== 'object' || Array.isArray(operation)) continue;
+      if (operation.type !== undefined && !['replace', 'insertBefore', 'insertAfter', 'delete', 'state'].includes(operation.type)) return false;
+      const target = context.targets.find(target => target.id === operation.targetId);
+      if (operation.targetId !== undefined && !target) return false;
+      const fields = operation.type === 'state' || target?.kind === 'state' ? ['type', 'targetId', 'changes', 'reason'] : ['type', 'targetId', 'find', 'replace', 'expectedMatches', 'reason'];
+      if (Object.keys(operation).some(key => !fields.includes(key))) return false;
+      if (binding && typeof operation.replace === 'string' && (target?.kind === 'twee-replacer' || (target?.kind === 'replace-patcher' && target.path.endsWith('|binding')))) {
+        let value: Record<string, unknown> | null;
+        try {
+          value = NativeJSON.parse(operation.replace) as Record<string, unknown> | null;
+        } catch {
+          continue;
+        }
+        if (value && typeof value === 'object' && Object.keys(value).some(key => !['passage', 'findString', 'passageName', 'fileName', 'from', 'rebase'].includes(key))) return false;
+      }
+    }
+    return true;
+  }
+
   private static tweeRuleFailed(messages: string[], modName: string, rule: { passage: string; findString?: string }): boolean {
     return messages.some(
       message =>
@@ -19,8 +63,14 @@ export class RepairAgent {
     );
   }
 
-  public static async context(host: ModLoader, apiKey: string, anchorTargets: RepairTarget[] = [], originals: ReadonlyMap<string, string> = new Map()): Promise<RepairContext> {
-    const redact = (value: string) => (apiKey ? value.split(apiKey).join('[REDACTED]') : value).replace(/Bearer\s+\S+|\bsk-[\w-]+/gi, '[REDACTED]');
+  public static async context(
+    host: ModLoader,
+    apiKey: string,
+    anchorTargets: RepairTarget[] = [],
+    originals: ReadonlyMap<string, string> = new Map(),
+    stateTargets: RepairTarget[] = []
+  ): Promise<RepairContext> {
+    const redact = (value: string) => RepairAgent.redact(value, apiKey);
     const logs = host.diagnostics.history.filter(record => record.level === 'ERROR' || record.level === 'WARN').slice(-60);
     const diagnostics = logs.map(record => ({
       at: record.at,
@@ -73,6 +123,15 @@ export class RepairAgent {
     } catch (error) {
       host.diagnostics.write('Repair current source unavailable', 'WARN', 'repair', error);
     }
+    const candidateCache = new Map<string, string[]>();
+    const passageCandidates = (find: string) => {
+      let candidates = candidateCache.get(find);
+      if (!candidates) {
+        candidates = RepairSources.passageCandidates(current, find);
+        candidateCache.set(find, candidates);
+      }
+      return candidates;
+    };
     await RepairTargets.prepareRules(host);
     const allRules = RepairTargets.tweeRules(host);
     const knownPassages = new Set([
@@ -105,7 +164,7 @@ export class RepairAgent {
     for (const { kind, rule } of selectedReplaceRules) {
       if (kind === 'twee') {
         if (rule.passageName) relatedPassages.add(rule.passageName);
-        if (current && !current.passageDataItems.map.has(rule.passageName!)) RepairSources.passageCandidates(current, rule.from).forEach(name => relatedPassages.add(name));
+        if (current && !current.passageDataItems.map.has(rule.passageName!)) passageCandidates(rule.from).forEach(name => relatedPassages.add(name));
         continue;
       }
       const destination = RepairTargets.replacePath(rule, kind);
@@ -120,7 +179,7 @@ export class RepairAgent {
     }
     for (const { rule } of rules) {
       relatedPassages.add(rule.passage);
-      if (current && !current.passageDataItems.map.has(rule.passage)) RepairSources.passageCandidates(current, rule.findString!).forEach(name => relatedPassages.add(name));
+      if (current && !current.passageDataItems.map.has(rule.passage)) passageCandidates(rule.findString!).forEach(name => relatedPassages.add(name));
     }
     let remaining = 160000;
     const addPassageText = (passage: NonNullable<RepairContext['passages']>[number], field: 'current' | 'original', content: string | undefined, reserve = 0) => {
@@ -155,6 +214,20 @@ export class RepairAgent {
       }
       remaining -= size;
     };
+    // 宿主仅提供已授权的小快照，再以日志提及的根状态限定本次发送范围。
+    for (const target of stateTargets) {
+      if (target.kind !== 'state') continue;
+      let path: unknown;
+      try {
+        path = NativeJSON.parse(target.path);
+      } catch {
+        continue;
+      }
+      if (!Array.isArray(path) || !path.length || path.some(part => typeof part !== 'string' || !part)) continue;
+      const root = path[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const mentioned = new RegExp(`(?:^|[^\\p{L}\\p{N}_$.])(?:(?:V|(?:SugarCube\\.)?State\\.variables)\\s*(?:\\?\\.|\\.)\\s*|\\$)?${root}(?![\\p{L}\\p{N}_$])`, 'u');
+      if (messages.some(message => mentioned.test(message))) add(target);
+    }
     // 失效规则优先，其他模组提供只读证据。
     const selectedRules = failed ? failedRules : rules;
     for (const location of selectedRules) {
@@ -176,15 +249,16 @@ export class RepairAgent {
     const rulePassages = new Map<RepairTarget, string[]>();
     const passageSearches = new Map<string, string[]>();
     for (const target of context.targets) {
+      if (target.kind !== 'twee-replacer') continue;
       const { passage, findString } = NativeJSON.parse(target.content) as { passage: string; findString: string };
-      const names = current?.passageDataItems.map.has(passage) ? [passage] : RepairSources.passageCandidates(current, findString);
+      const names = current?.passageDataItems.map.has(passage) ? [passage] : passageCandidates(findString);
       rulePassages.set(target, names);
       for (const name of names) passageSearches.set(name, [...(passageSearches.get(name) || []), findString]);
     }
     const prioritized = new Set([...rulePassages.values()].flat());
     for (const { kind, rule } of selectedReplaceRules) {
       if (kind !== 'twee') continue;
-      const names = current?.passageDataItems.map.has(rule.passageName!) ? [rule.passageName!] : RepairSources.passageCandidates(current, rule.from);
+      const names = current?.passageDataItems.map.has(rule.passageName!) ? [rule.passageName!] : passageCandidates(rule.from);
       for (const name of names) {
         prioritized.add(name);
         passageSearches.set(name, [...(passageSearches.get(name) || []), rule.from]);
@@ -215,12 +289,14 @@ export class RepairAgent {
       if (passage) supplyCurrent(passage, nativeReserve);
     }
     context.targets = context.targets.filter(target => {
+      if (target.kind !== 'twee-replacer') return true;
       const names = rulePassages.get(target)!;
       if (!names.length || names.some(name => context.passages?.some(passage => passage.name === name && passage.current !== undefined))) return true;
       remaining += target.content.length + (target.reference?.length || 0);
       return false;
     });
-    if (selectedRules.length > context.targets.length) context.omittedRules = selectedRules.length - context.targets.length;
+    const suppliedRules = context.targets.filter(target => target.kind === 'twee-replacer').length;
+    if (selectedRules.length > suppliedRules) context.omittedRules = selectedRules.length - suppliedRules;
     context.targets.forEach((target, index) => (target.id = `target-${index + 1}`));
     const replaceStart = context.targets.length;
     for (const { modName, path, kind, rule } of selectedReplaceRules) {
@@ -305,15 +381,25 @@ export class RepairAgent {
     signal: AbortSignal,
     language: 'EN' | 'CN' = 'EN'
   ): Promise<{ result: ConnectionResult | 'preflight'; recipe?: RepairRecipe; reason?: string }> {
-    const response = await RepairConnection.complete(input, RepairPrompt.messages(context, language), signal);
-    if (response.result !== 'success' || !response.content) return { result: response.result, ...(response.reason && { reason: response.reason }) };
-    try {
-      const { recipe, rejected } = RepairRecipeParser.review(response.content, context);
-      const reason = rejected.map(item => `${item.targetId}: ${item.reason}`).join('; ');
-      return { result: 'success', recipe, ...(reason && { reason: `${language === 'CN' ? '已跳过' : 'Skipped'} ${reason}` }) };
-    } catch (error) {
-      if (error instanceof SyntaxError) return { result: 'response', reason: 'Invalid repair JSON' };
-      return { result: 'preflight', reason: error instanceof Error ? error.message : 'Repair validation failed' };
+    if (signal.aborted) return { result: 'timeout' };
+    const messages = RepairPrompt.messages(context, language);
+    let corrected = false;
+    while (true) {
+      if (signal.aborted) return { result: 'timeout' };
+      const response = await RepairConnection.complete(input, messages, signal);
+      if (signal.aborted) return { result: 'timeout' };
+      if (response.result !== 'success' || !response.content) return { result: response.result, ...(response.reason && { reason: response.reason }) };
+      try {
+        const { recipe, rejected } = RepairRecipeParser.review(response.content, context);
+        const reason = RepairAgent.redact(rejected.map(item => `${item.targetId}: ${item.reason}`).join('; '), input.apiKey);
+        return { result: 'success', recipe, ...(reason && { reason: `${language === 'CN' ? '已跳过' : 'Skipped'} ${reason}` }) };
+      } catch (error) {
+        const result = error instanceof SyntaxError ? 'response' : 'preflight';
+        const reason = RepairAgent.redact(error instanceof SyntaxError ? 'Invalid repair JSON' : error instanceof Error ? error.message : 'Repair validation failed', input.apiKey).slice(0, 2000);
+        if (corrected || !RepairAgent.correctable(reason, response.content, context)) return { result, reason };
+        corrected = true;
+        messages.push(RepairPrompt.correction(RepairAgent.redact(response.content, input.apiKey), reason));
+      }
     }
   }
 }

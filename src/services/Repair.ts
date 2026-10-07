@@ -11,7 +11,7 @@ import { RepairAgent } from './Repair/Agent';
 import { RepairEngine, type RepairOverlay } from './Repair/Engine';
 import { NativeJSON } from './Repair/Json';
 import { RepairProof, type ReplacePatchProof } from './Repair/Proof';
-import { RepairPrompt } from './Repair/Prompt';
+import RepairState, { type RepairStatePolicy, type RepairStateHandle } from './Repair/State';
 import { RepairSources, type RepairSource } from './Repair/Source';
 import { ZonesManager } from '../modules/Frameworks/ZonesManager';
 import { RepairRecipeParser, type RepairContext, type RepairRecipe, type RepairTarget } from './Repair/Recipe';
@@ -54,6 +54,13 @@ interface AppliedRepair {
   handles: RepairHandle[];
   proof: ReplacePatchProof;
   anchorOutputs: Map<RepairHandle, string>;
+  stateOverlays: RepairOverlay[];
+  stateHandles: RepairStateHandle[];
+  sourceVerified: boolean;
+  stateVerified: boolean;
+  finishing: boolean;
+  stateEpoch: number;
+  stateRoot?: object;
 }
 
 export class Repair extends Diagnostics {
@@ -107,16 +114,21 @@ export class Repair extends Diagnostics {
   private readonly applied: AppliedRepair[] = [];
   private readonly verifiedTrials = new Set<string>();
   private readonly sessionRepairs = new Map<string, RepairMemory>();
+  private readonly states = new RepairState();
+  private readonly memories = new Map<string, AppliedRepair>();
+  private readonly revoked = new Set<string>();
   private loaded = false;
   private readonly busyTargets = new Set<string>();
   private anchors: RepairAnchors = new Map();
   private originalPassages: ReadonlyMap<string, string> = new Map();
+  private stateEpoch = 0;
 
   public constructor(
     private readonly idb: IndexedDB,
     private readonly host: ModLoader,
     events: Emitter,
-    private readonly zone: () => RepairZone | undefined = () => undefined
+    private readonly zone: () => RepairZone | undefined = () => undefined,
+    private readonly variables: () => object | undefined = () => undefined
   ) {
     super(host, 'repair');
     events.once(':indexedDB', () => idb.define(Repair.STORE, { keyPath: 'id' }));
@@ -125,6 +137,57 @@ export class Repair extends Diagnostics {
     events.after(':addon:beforePatch', () => this.captureAnchorOutputs());
     events.once(':addon:verify', () => this.verify());
     events.once(':modLoaderEnd', () => this.verify(true));
+    events.on(':variable', () => this.applyStates());
+  }
+
+  /** 模组显式登记可修复的存档片段，模型不能注册权限。 */
+  public allowState(policy: RepairStatePolicy): boolean {
+    try {
+      const trusted = RepairState.policy(policy);
+      if (!this.host.modUtils.getMod(trusted.modName)) throw new Error('State owner is not loaded');
+      const overlaps = this.states.list().some(existing => {
+        const size = Math.min(existing.path.length, trusted.path.length);
+        return existing.path.slice(0, size).every((segment, index) => segment === trusted.path[index]);
+      });
+      if (overlaps) throw new Error('State policy overlaps an existing path');
+      return this.states.register(trusted);
+    } catch (error) {
+      this.write('Repair state permission rejected', 'WARN', this.scope, error);
+      return false;
+    }
+  }
+
+  private statePolicy(target: Pick<RepairTarget, 'modName' | 'path' | 'signature'>): RepairStatePolicy {
+    const policy = this.states.get(target.path);
+    if (!policy || policy.modName !== target.modName || NativeJSON.stringify(policy) !== target.signature || !this.host.modUtils.getMod(policy.modName))
+      throw new Error('Repair state permission changed');
+    return policy;
+  }
+
+  private async stateTargets(): Promise<RepairTarget[]> {
+    const root = this.variables();
+    if (!root) return [];
+    const targets: RepairTarget[] = [];
+    for (const policy of this.states.list()) {
+      try {
+        if (!this.host.modUtils.getMod(policy.modName)) continue;
+        const content = RepairState.read(policy.path, root);
+        const signature = NativeJSON.stringify(policy);
+        targets.push({
+          id: '',
+          modName: policy.modName,
+          kind: 'state',
+          path: NativeJSON.stringify(policy.path),
+          signature,
+          reference: signature,
+          content,
+          fingerprint: await RepairRecipeParser.fingerprint(content)
+        });
+      } catch (error) {
+        this.write('Repair state snapshot unavailable', 'WARN', this.scope, error);
+      }
+    }
+    return targets;
   }
 
   private static errorMessage(error: unknown): string {
@@ -240,7 +303,12 @@ export class Repair extends Diagnostics {
     return response;
   }
 
-  private resolve = (target: RepairTarget) => RepairTargets.handle(this.host, target, this.anchors)?.read();
+  private resolve = (target: RepairTarget): string | undefined => {
+    if (target.kind !== 'state') return RepairTargets.handle(this.host, target, this.anchors)?.read();
+    const policy = this.statePolicy(target);
+    const root = this.variables();
+    return root && RepairState.read(policy.path, root);
+  };
 
   private async anchorTargets(): Promise<RepairTarget[]> {
     if (!this.host.modUtils.getMod('maplebirch')) return [];
@@ -266,9 +334,9 @@ export class Repair extends Diagnostics {
     if (signal.aborted) return { result: 'timeout' };
     await this.saveConnection();
     const input = { ...this.connection };
-    const context = await RepairAgent.context(this.host, input.apiKey, await this.anchorTargets(), this.originalPassages);
+    const context = await RepairAgent.context(this.host, input.apiKey, await this.anchorTargets(), this.originalPassages, await this.stateTargets());
     if (signal.aborted) return { result: 'timeout' };
-    this.write(`Repair request: ${RepairPrompt.messages(context, language).reduce((size, message) => size + message.content.length, 0)} characters, ${context.targets.length} targets`);
+    this.write(`Repair request: ${context.targets.length} targets`);
     const response = await RepairAgent.analyze(input, context, signal, language);
     if (!signal.aborted && (response.result !== 'success' || response.reason)) this.write(`Repair analysis: ${response.result}${response.reason ? ` (${response.reason})` : ''}`, 'WARN');
     if (signal.aborted) return { result: 'timeout' };
@@ -335,7 +403,20 @@ export class Repair extends Diagnostics {
     };
     const targetKeys = new Set(proposal.overlays.map(overlay => Repair.targetKey(overlay.target)));
     const inherited = [...this.sessionRepairs.values()].filter(row => Repair.memoryTargets(row).some(target => targetKeys.has(Repair.targetKey(target))));
-    const steps = inherited.flatMap(row => [...(row.steps || []), { recipe: row.recipe, context: row.context }]);
+    const steps = inherited.flatMap(row => {
+      const states = this.memories.get(row.id)?.stateOverlays ?? this.applied.find(item => item.record.id === row.id)?.stateOverlays ?? [];
+      const replaced = new Set(
+        states
+          .filter(old => proposal.overlays.some(next => next.target.kind === 'state' && Repair.targetKey(next.target) === Repair.targetKey(old.target) && next.before !== old.after))
+          .map(overlay => Repair.targetKey(overlay.target))
+      );
+      return [...(row.steps || []), { recipe: row.recipe, context: row.context }].flatMap(step => {
+        const targets = new Map(step.context.targets.map(target => [target.id, target]));
+        const operations = step.recipe.operations.filter(operation => !replaced.has(Repair.targetKey(targets.get(operation.targetId)!)));
+        if (!operations.length) return [];
+        return [{ recipe: { ...step.recipe, operations }, context: { ...step.context, targets: step.context.targets.filter(target => !replaced.has(Repair.targetKey(target))) } }];
+      });
+    });
     if (steps.length > 16) throw new Error('Repair memory steps limit reached');
     if (steps.length) record.steps = steps;
     Repair.memoryTargets(record).forEach(target => targetKeys.add(Repair.targetKey(target)));
@@ -353,7 +434,8 @@ export class Repair extends Diagnostics {
 
   private async get(id: string): Promise<RepairMemory> {
     if (!id.startsWith('memory:')) throw new Error('Invalid repair record');
-    const record = (await this.list()).find(row => row.id === id);
+    const row = await this.idb.with(Repair.STORE, 'readonly', tx => tx.objectStore(Repair.STORE).get(id));
+    const record = Repair.memoryRows([row])[0];
     if (!record) throw new Error('Repair record missing');
     return record;
   }
@@ -361,12 +443,27 @@ export class Repair extends Diagnostics {
   public async setEnabled(id: string, enabled: boolean): Promise<void> {
     const record = await this.get(id);
     await this.put({ ...record, enabled, state: enabled ? (record.verifiedAt ? 'active' : 'pending') : 'disabled', error: undefined });
+    if (!enabled) this.forget(id);
   }
 
   public async remove(id: string): Promise<void> {
     await this.get(id);
     await this.idb.with(Repair.STORE, 'readwrite', tx => tx.objectStore(Repair.STORE).delete(id));
     this.verifiedTrials.delete(id);
+    this.forget(id);
+  }
+
+  private forget(id: string): void {
+    this.revoked.add(id);
+    this.sessionRepairs.delete(id);
+    this.memories.delete(id);
+    const pending = this.applied.find(item => item.record.id === id);
+    if (pending) {
+      pending.record.enabled = false;
+      pending.proof.restore();
+      for (const overlay of [...pending.overlays, ...pending.stateOverlays]) this.busyTargets.delete(Repair.targetKey(overlay.target));
+      this.discard(pending);
+    }
   }
 
   public async confirm(id: string): Promise<void> {
@@ -446,6 +543,7 @@ export class Repair extends Diagnostics {
       const { recipe, context } = steps[index];
       const targets = new Map(context.targets.map(target => [target.id, target]));
       const operations = recipe.operations.filter(operation => {
+        if ('type' in operation && operation.type === 'state') return true;
         const target = targets.get(operation.targetId);
         if (!target) return true;
         const key = Repair.targetKey(target);
@@ -468,8 +566,9 @@ export class Repair extends Diagnostics {
     }
     for (const step of steps) {
       const overlays = await RepairEngine.prepare(step.recipe, step.context, target => {
+        if (target.kind === 'state') this.statePolicy(target);
         const previous = staged.get(Repair.targetKey(target));
-        if (!previous) return this.resolve(target);
+        if (!previous) return target.kind === 'state' ? target.content : this.resolve(target);
         const signature = previous.replacement ? RepairTargets.companionForBody(previous.target.signature!, previous.replacement.after) : previous.target.signature;
         if (target.signature !== signature) throw new Error('Repair companion changed between memory steps');
         return previous.after;
@@ -485,7 +584,8 @@ export class Repair extends Diagnostics {
         staged.set(id, { ...overlay, before: previous.before, target: previous.target, ...(replacement && { replacement }) });
       }
     }
-    if ([...staged.values()].some(overlay => this.resolve({ ...overlay.target, content: overlay.before }) !== overlay.before)) throw new Error('Repair sources changed during preparation');
+    if ([...staged.values()].some(overlay => overlay.target.kind !== 'state' && this.resolve({ ...overlay.target, content: overlay.before }) !== overlay.before))
+      throw new Error('Repair sources changed during preparation');
     return [...staged.values()];
   }
 
@@ -502,10 +602,12 @@ export class Repair extends Diagnostics {
       for (const record of memories) {
         if (!record.enabled || !['pending', 'trial', 'active'].includes(record.state)) continue;
         try {
-          const overlays = await this.prepareMemory(record);
-          if (!overlays.length) throw new Error('Empty repair');
-          const keys = overlays.map(overlay => Repair.targetKey(overlay.target));
+          const prepared = await this.prepareMemory(record);
+          if (!prepared.length) throw new Error('Empty repair');
+          const keys = prepared.map(overlay => Repair.targetKey(overlay.target));
           if (keys.some(key => this.busyTargets.has(key))) throw new Error('Conflicting repair targets');
+          const stateOverlays = prepared.filter(overlay => overlay.target.kind === 'state');
+          const overlays = prepared.filter(overlay => overlay.target.kind !== 'state');
           const handles = overlays.map(overlay => RepairTargets.handle(this.host, { ...overlay.target, content: overlay.before }, this.anchors));
           if (handles.some(handle => !handle)) throw new Error('Repair target unavailable');
           const ready = handles as RepairHandle[];
@@ -528,7 +630,19 @@ export class Repair extends Diagnostics {
             throw error;
           }
           keys.forEach(key => this.busyTargets.add(key));
-          this.applied.push({ record, overlays, handles: ready, proof, anchorOutputs: new Map() });
+          this.applied.push({
+            record,
+            overlays,
+            handles: ready,
+            proof,
+            anchorOutputs: new Map(),
+            stateOverlays,
+            stateHandles: [],
+            stateVerified: !stateOverlays.length,
+            sourceVerified: !overlays.length,
+            finishing: false,
+            stateEpoch: 0
+          });
           this.sessionRepairs.set(record.id, record);
         } catch (error) {
           try {
@@ -558,8 +672,140 @@ export class Repair extends Diagnostics {
     }
   }
 
+  /** 状态事件必须同步完成，避免宿主切回当前状态后才写入。 */
+  private writeStates(overlays: RepairOverlay[]): RepairStateHandle[] {
+    const root = this.variables();
+    if (!root) throw new Error('Repair variables are not ready');
+    const handles = overlays.map(overlay => RepairState.handle(root, this.statePolicy(overlay.target)));
+    const before = handles.map(handle => handle.read());
+    if (before.some((content, index) => content !== overlays[index].before && content !== overlays[index].after)) throw new Error('Repair state fingerprint changed');
+    try {
+      for (let index = 0; index < handles.length; index++) {
+        if (before[index] !== overlays[index].after) handles[index].write(overlays[index].after);
+      }
+      if (handles.some((handle, index) => handle.read() !== overlays[index].after)) throw new Error('Repair state verification failed');
+      return handles;
+    } catch (error) {
+      for (const handle of [...handles].reverse()) {
+        try {
+          handle.restore();
+        } catch (rollbackError) {
+          this.write('Repair state rollback failed', 'WARN', this.scope, rollbackError);
+        }
+      }
+      throw error;
+    }
+  }
+
+  private applyStates(): void {
+    this.stateEpoch++;
+    for (const applied of this.applied.slice()) {
+      if (!applied.record.enabled || !applied.stateOverlays.length) continue;
+      try {
+        applied.stateHandles = [];
+        applied.stateVerified = false;
+        applied.stateEpoch = this.stateEpoch;
+        applied.stateRoot = this.variables();
+        applied.stateHandles = this.writeStates(applied.stateOverlays);
+        applied.stateVerified = true;
+        if (applied.sourceVerified) void this.finish(applied);
+      } catch (error) {
+        this.rollback(applied);
+        this.discard(applied);
+        void this.fail(applied.record, error);
+      }
+    }
+    for (const memory of this.memories.values()) {
+      try {
+        this.writeStates(memory.stateOverlays);
+      } catch (error) {
+        this.rollback(memory);
+        void this.fail(memory.record, error);
+      }
+    }
+  }
+
+  private rollback(applied: AppliedRepair): void {
+    applied.proof.restore();
+    if (applied.stateEpoch === this.stateEpoch && applied.stateRoot === this.variables()) {
+      for (let index = applied.stateHandles.length - 1; index >= 0; index--) {
+        try {
+          const handle = applied.stateHandles[index];
+          if (handle.read() === applied.stateOverlays[index].after) handle.restore();
+          else this.write('Repair state changed after application; reload required', 'WARN');
+        } catch (error) {
+          this.write('Repair state rollback failed', 'WARN', this.scope, error);
+        }
+      }
+    }
+    for (let index = applied.handles.length - 1; index >= 0; index--) {
+      try {
+        const overlay = applied.overlays[index];
+        const handle = applied.handles[index];
+        if (handle.read() === overlay.after && (!overlay.replacement || handle.output.replacement === overlay.replacement.after)) handle.write(overlay.before, overlay.replacement?.before);
+        else this.write('Repair source changed after application; reload required', 'WARN');
+      } catch (error) {
+        this.write('Repair source rollback failed; reload required', 'WARN', this.scope, error);
+      }
+    }
+    this.sessionRepairs.delete(applied.record.id);
+    this.memories.delete(applied.record.id);
+    this.verifiedTrials.delete(applied.record.id);
+    for (const overlay of [...applied.overlays, ...applied.stateOverlays]) this.busyTargets.delete(Repair.targetKey(overlay.target));
+  }
+
+  private discard(applied: AppliedRepair): void {
+    const index = this.applied.indexOf(applied);
+    if (index !== -1) this.applied.splice(index, 1);
+  }
+
+  private async fail(record: RepairMemory, error: unknown): Promise<void> {
+    try {
+      await this.updateMemory(record, { state: 'failed', enabled: false, error: Repair.errorMessage(error) });
+    } catch (storageError) {
+      this.write(`Repair failed status could not be saved: ${record.id}`, 'WARN', this.scope, storageError);
+    }
+    this.write(`Repair verification failed: ${record.id}; reload required`, 'WARN', this.scope, error);
+  }
+
+  private async updateMemory(record: RepairMemory, change: Partial<RepairMemory>): Promise<boolean> {
+    try {
+      const updated = await this.idb.with(Repair.STORE, 'readwrite', async tx => {
+        const store = tx.objectStore(Repair.STORE);
+        const current = Repair.memoryRows([await store.get(record.id)])[0];
+        if (!current?.enabled || this.revoked.has(record.id)) return false;
+        await store.put({ ...current, ...change });
+        return true;
+      });
+      this.storageFailure = undefined;
+      return updated;
+    } catch (error) {
+      this.storageFailure = Repair.errorMessage(error);
+      throw error;
+    }
+  }
+
+  private async finish(applied: AppliedRepair): Promise<void> {
+    if (applied.finishing) return;
+    applied.finishing = true;
+    try {
+      const state = applied.record.verifiedAt ? 'active' : 'trial';
+      const updated = await this.updateMemory(applied.record, { state, error: undefined });
+      if (!updated || this.revoked.has(applied.record.id)) return;
+      if (state === 'trial') this.verifiedTrials.add(applied.record.id);
+      if (applied.stateOverlays.length) this.memories.set(applied.record.id, applied);
+      applied.proof.restore();
+      applied.stateHandles = [];
+    } catch (error) {
+      this.rollback(applied);
+      await this.fail(applied.record, error);
+    } finally {
+      applied.proof.restore();
+      this.discard(applied);
+    }
+  }
+
   private async verify(atEnd = false): Promise<void> {
-    const completed = new Set<AppliedRepair>();
     const patchOutputs = new Map<string, { sequence: number; content: string }>();
     for (const applied of this.applied)
       for (const handle of applied.handles) {
@@ -569,8 +815,7 @@ export class Repair extends Diagnostics {
         const sequence = applied.proof.sequence(handle);
         if (!patchOutputs.has(key) || sequence > patchOutputs.get(key)!.sequence) patchOutputs.set(key, { sequence, content });
       }
-    for (const applied of this.applied) {
-      let complete = false;
+    for (const applied of this.applied.slice()) {
       try {
         const final = this.host.modSC2DataManager.getSC2DataInfoAfterPatch();
         for (let index = 0; index < applied.overlays.length; index++) {
@@ -597,26 +842,14 @@ export class Repair extends Diagnostics {
         for (const step of Repair.pathSteps([...(applied.record.steps || []), { recipe: applied.record.recipe, context: applied.record.context }])) {
           if (RepairRecipeParser.validatePaths(step.recipe, step.context)) RepairRecipeParser.validatePaths(step.recipe, this.livePathContext(step.context, true));
         }
-        complete = true;
-        const state = applied.record.verifiedAt ? 'active' : 'trial';
-        await this.put({ ...applied.record, state, error: undefined });
-        if (state === 'trial') this.verifiedTrials.add(applied.record.id);
+        applied.sourceVerified = true;
+        if (applied.stateVerified) await this.finish(applied);
       } catch (error) {
-        complete = true;
-        try {
-          await this.put({ ...applied.record, state: 'failed', enabled: false, error: Repair.errorMessage(error) });
-        } catch (error) {
-          this.write(`Repair failed status could not be saved: ${applied.record.id}`, 'WARN', this.scope, error);
-        }
-        this.write(`Repair verification failed: ${applied.record.id}`, 'WARN', this.scope, error);
-      } finally {
-        if (complete) {
-          applied.proof.restore();
-          completed.add(applied);
-        }
+        this.rollback(applied);
+        this.discard(applied);
+        await this.fail(applied.record, error);
       }
     }
-    for (let index = this.applied.length - 1; index >= 0; index--) if (completed.has(this.applied[index])) this.applied.splice(index, 1);
   }
 }
 

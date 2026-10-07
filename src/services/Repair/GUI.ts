@@ -11,7 +11,7 @@ import type { RepairRecipe } from './Recipe';
 type RepairStatus = keyof typeof Config.RepairStatus;
 
 export default class RepairGUI {
-  private static readonly ANALYSIS_TIMEOUT = 300000;
+  private static readonly ANALYSIS_TIMEOUT = 900000;
 
   public readonly connection: RepairConnectionInput;
   public tab: 'analysis' | 'connection' | 'memory' = 'analysis';

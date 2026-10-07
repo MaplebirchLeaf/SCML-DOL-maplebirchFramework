@@ -53,3 +53,28 @@ Framework zone patches, `maplebirch.host.modLoader.replace()` and replacement of
 | `error`     | Execution failed; see error                              |
 
 The latest result is retained for each kind/target/index. Reads return copies; `clearPatches()` clears the reports. Third-party patches executed directly are outside this record, and reports do not replace game behavior validation.
+
+## AI Repair State Permissions
+
+Register a host state path and schema from the mod's early-load script with `maplebirch.services.repair.allowState(policy)`. `modName` must identify a loaded mod by its canonical name; registered paths cannot overlap. The model cannot register or expand permissions. Unregistered variables are neither sent to the API nor modified. Core injects SugarCube `State.variables`; the service does not depend on DoL globals.
+
+```typescript
+maplebirch.services.repair.allowState({
+  modName: 'Your Mod',
+  path: ['ExampleMod', 'progress'],
+  scope: 'mod',
+  schema: {
+    type: 'object',
+    properties: { state: { type: 'string' } },
+    required: ['state']
+  }
+});
+```
+
+This illustrates the API; declare the complete schema for the actual mod state. Objects accept only fields in `properties`. Schemas support objects, arrays, strings, numbers, booleans, null, `required`, `items` and `enum`. Each fragment is limited to 16 KiB. Only authorized roots mentioned by diagnostics enter an analysis request.
+
+State operations are `set / delete / rename / copy / merge / fill`, with complete array paths such as `['ExampleMod', 'progress', 'state']`. `merge` combines recursively; `fill` supplies missing values only. Whole one-component mod roots, V/setup/window and prototype fields cannot be overwritten. Game paths require explicit `scope: 'game'`, at least two components and only permit `set / fill`. Legacy `vanilla` values retain the same restrictions and their original signatures. Variable names do not determine game or mod ownership.
+
+Source operations are `replace / insertBefore / insertAfter / delete`, retaining exact matches, fingerprints, target bindings and existing code restrictions. AI-generated functions are never executed. Correctable format or anchor errors receive at most one feedback attempt through the same API. Permission failures, prohibited code, cancellation and API failures do not retry.
+
+All targets validate before source overlays apply. State migrations check old values, write and validate synchronously at `:variable`. A repair enters `trial` only after both phases verify; users retest and confirm `active`. Memory lives in `maplebirch/repair` and replays on reload or save loading without AI. Changed targets or permissions disable it. Failure across loading phases restores reversible overlays and state snapshots and requires a reload; previously executed script effects cannot be undone generically. Original ZIPs and installed ModLoader packages remain unchanged.

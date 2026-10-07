@@ -168,3 +168,58 @@ test('revalidates stored executable operations instead of trusting prior accepta
   recipe.operations[0].replace = 'fetch("https://example.invalid")';
   await expect(RepairEngine.prepare(recipe, context, () => context.targets[0].content)).rejects.toThrow('framework property guard');
 });
+
+test('prepares bounded insertion and deletion across multiple targets without changing their inputs', async () => {
+  const { context, recipe } = await fixture();
+  const contents = ['A red colour.', 'A blue colour.', 'A pale colour.', 'a { width: 10px; }'];
+  context.targets = await Promise.all(
+    contents.map(async (content, index) => ({
+      ...context.targets[0],
+      id: `target-${index + 1}`,
+      kind: index === 3 ? ('css' as const) : ('twee' as const),
+      path: `source-${index}`,
+      content,
+      fingerprint: await RepairRecipeParser.fingerprint(content)
+    }))
+  );
+  const operations = [
+    { type: 'insertBefore', targetId: 'target-1', find: 'red', replace: 'very ', expectedMatches: 1, reason: 'Clarify the text' },
+    { type: 'insertAfter', targetId: 'target-2', find: 'blue', replace: ' today', expectedMatches: 1, reason: 'Clarify the text' },
+    { type: 'delete', targetId: 'target-3', find: 'pale ', expectedMatches: 1, reason: 'Remove stale text' },
+    { type: 'replace', targetId: 'target-4', find: '10', replace: '20', expectedMatches: 1, reason: 'Correct the declaration value' }
+  ];
+  const normalized = RepairRecipeParser.parse(JSON.stringify({ ...recipe, operations }), context);
+  const overlays = await RepairEngine.prepare(normalized, context, target => context.targets.find(source => source.id === target.id)?.content);
+  expect(overlays.map(overlay => overlay.after)).toEqual(['A very red colour.', 'A blue today colour.', 'A colour.', 'a { width: 20px; }']);
+  expect(context.targets.map(target => target.content)).toEqual(contents);
+});
+
+test('simulates a mixed source and state recipe and rejects changed state before returning overlays', async () => {
+  const { context, recipe } = await fixture();
+  const source = 'A red colour.';
+  const state = JSON.stringify({ exists: true, value: { count: 'legacy' } });
+  const policy = { modName: 'example', path: ['Example', 'progress'], scope: 'mod', schema: { type: 'object', properties: { count: { type: 'number' } }, required: ['count'] } };
+  context.targets = [
+    { ...context.targets[0], id: 'source', kind: 'twee', content: source, fingerprint: await RepairRecipeParser.fingerprint(source) },
+    {
+      ...context.targets[0],
+      id: 'state',
+      kind: 'state',
+      path: JSON.stringify(policy.path),
+      signature: JSON.stringify(policy),
+      content: state,
+      fingerprint: await RepairRecipeParser.fingerprint(state)
+    }
+  ];
+  recipe.operations = [
+    { targetId: 'source', find: 'red', replace: 'blue', expectedMatches: 1, reason: 'Clarify the text' },
+    { type: 'state', targetId: 'state', changes: [{ type: 'set', path: [...policy.path, 'count'], value: 7 }], reason: 'Repair the legacy type' }
+  ];
+  const resolve = (target: (typeof context.targets)[number]) => (target.kind === 'state' ? state : source);
+  const overlays = await RepairEngine.prepare(recipe, context, resolve);
+  expect(overlays.map(overlay => overlay.after)).toEqual(['A blue colour.', JSON.stringify({ exists: true, value: { count: 7 } })]);
+  expect(context.targets.map(target => target.content)).toEqual([source, state]);
+  await expect(RepairEngine.prepare(recipe, context, target => (target.kind === 'state' ? JSON.stringify({ exists: true, value: { count: 1 } }) : source))).rejects.toThrow(
+    'Repair target changed: state'
+  );
+});

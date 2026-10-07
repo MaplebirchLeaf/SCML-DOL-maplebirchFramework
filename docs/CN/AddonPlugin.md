@@ -53,3 +53,28 @@ console.table(failures);
 | `error`     | 执行失败，原因见 error               |
 
 同一 kind、target、index 保留最近结果。读取返回副本。`clearPatches()` 清空报告。此记录不涵盖第三方直接执行的补丁，也不是完整游戏行为验收。
+
+## AI 修复的状态权限
+
+模组在 early-load 注册脚本中，用 `maplebirch.services.repair.allowState(policy)` 登记可修复的宿主状态路径与 schema。状态读取由 core 注入 SugarCube 的 `State.variables`，服务层不依赖 DoL 的全局 `V`。`modName` 必须是已加载模组的正式名称，路径不能重叠；模型不能自行登记或扩大权限。没有登记的变量不会发送给 API，也不能被修改。
+
+```typescript
+maplebirch.services.repair.allowState({
+  modName: 'Your Mod',
+  path: ['ExampleMod', 'progress'],
+  scope: 'mod',
+  schema: {
+    type: 'object',
+    properties: { state: { type: 'string' } },
+    required: ['state']
+  }
+});
+```
+
+这是接口示例，请按模组实际结构声明完整 schema。对象只接受 `properties` 中的字段；支持对象、数组、字符串、数字、布尔、null，以及 `required`、`items`、`enum`。状态片段限 16 KiB。仅当诊断涉及已授权的变量根时，该片段才加入分析请求。
+
+状态 DSL 支持 `set / delete / rename / copy / merge / fill`，使用完整数组路径，如 `['ExampleMod', 'progress', 'state']`。`merge` 递归合并，`fill` 仅填缺失值。禁止覆盖整个单段模组根或 V/setup/window，以及原型字段。游戏原版路径必须明确注册 `scope: 'game'`、至少两段，且仅允许 `set / fill`。旧 `vanilla` 值按相同权限兼容，签名保持原值。变量名不用于推断所属游戏或模组。
+
+源码 DSL 支持 `replace / insertBefore / insertAfter / delete`，继续使用精确匹配、指纹、目标绑定与已有代码限制。AI 不能生成函数执行。可纠正的格式或锚点错误最多向同一接口反馈一次；越权、禁止的代码、取消及接口失败不重试。
+
+同一方案的目标先完整校验，再应用源码 Overlay；状态迁移在同步 `:variable` 事件中检查旧值、写入和校验。全部验证成功后进入 `trial`，复测后手动确认 `active`。记忆保存在 `maplebirch/repair`，重载和读档无需调用 AI；目标或权限变化时停用。跨加载阶段失败会恢复可回滚的 Overlay 和状态快照，要求重载；已执行的脚本副作用不能通用撤销。原始 ZIP 和 ModLoader 安装包不修改。

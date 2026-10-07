@@ -8,6 +8,8 @@ import type ModLoader from '../../src/host/ModLoader';
 import Repair, { type RepairMemory } from '../../src/services/Repair';
 import { RepairRecipeParser, type RepairContext, type RepairRecipe } from '../../src/services/Repair/Recipe';
 import { NativeJSON } from '../../src/services/Repair/Json';
+import RepairState, { type RepairStatePolicy } from '../../src/services/Repair/State';
+import { RepairAgent } from '../../src/services/Repair/Agent';
 import Diagnostics from '../../src/infra/Diagnostics';
 import { RepairTargets, type RepairZone } from '../../src/services/Repair/Targets';
 import { applySourcePatch } from '../../src/host/ModLoader';
@@ -142,8 +144,15 @@ function repairFixture(rows = new Map<string, unknown>(), zone?: RepairZone) {
     },
     modSC2DataManager: { getSC2DataInfoAfterPatch: () => final, getSC2DataInfoCache: emptyCache }
   } as unknown as ModLoader;
-  const repair = new Repair(idb, host, events, () => zone);
-  return { repair, events, rows, source, final, storeNames, writes, mod, idb, host, diagnostics, failedWrites };
+  const variables: { current?: object } = {};
+  const repair = new Repair(
+    idb,
+    host,
+    events,
+    () => zone,
+    () => variables.current
+  );
+  return { repair, events, rows, source, final, storeNames, writes, mod, idb, host, diagnostics, failedWrites, variables };
 }
 
 async function seedRepair(rows: Map<string, unknown>): Promise<RepairMemory> {
@@ -167,6 +176,323 @@ async function seedRepair(rows: Map<string, unknown>): Promise<RepairMemory> {
   rows.set(memory.id, structuredClone(memory));
   return memory;
 }
+
+const statePolicy: RepairStatePolicy = {
+  modName: 'example',
+  path: ['Example'],
+  scope: 'mod',
+  schema: { type: 'object', properties: { count: { type: 'number' } }, required: ['count'] }
+};
+
+async function seedStateRepair(rows: Map<string, unknown>, withSource = false, policies = [statePolicy]): Promise<RepairMemory> {
+  const memory = await seedRepair(rows);
+  if (!withSource) {
+    memory.context.targets = [];
+    memory.recipe.operations = [];
+  }
+  for (const [index, policy] of policies.entries()) {
+    const content = NativeJSON.stringify({ exists: true, value: { count: 0 } });
+    const id = `state-${index}`;
+    memory.context.targets.push({
+      id,
+      kind: 'state',
+      modName: policy.modName,
+      path: NativeJSON.stringify(policy.path),
+      signature: NativeJSON.stringify(policy),
+      content,
+      fingerprint: await RepairRecipeParser.fingerprint(content)
+    });
+    memory.recipe.operations.push({ type: 'state', targetId: id, changes: [{ type: 'set', path: [...policy.path, 'count'], value: 1 }], reason: 'Restore the declared count' });
+  }
+  rows.set(memory.id, structuredClone(memory));
+  return memory;
+}
+
+test('state memory waits for variables, confirms, replays without AI and is idempotent across save roots', async () => {
+  const fixture = repairFixture();
+  expect(fixture.repair.allowState(statePolicy)).toBe(true);
+  const memory = await seedStateRepair(fixture.rows);
+  const fetch = spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Memory must not call an API'));
+  try {
+    await fixture.events.trigger(':addon:repair');
+    await fixture.events.trigger(':modLoaderEnd');
+    expect((fixture.rows.get(memory.id) as RepairMemory).state).toBe('pending');
+    fixture.variables.current = { Example: { count: 0 } };
+    const event = fixture.events.trigger(':variable');
+    expect(fixture.variables.current).toEqual({ Example: { count: 1 } });
+    await event;
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect((fixture.rows.get(memory.id) as RepairMemory).state).toBe('trial');
+    await fixture.repair.confirm(memory.id);
+
+    const reload = repairFixture(fixture.rows);
+    expect(reload.repair.allowState(statePolicy)).toBe(true);
+    await reload.events.trigger(':addon:repair');
+    reload.variables.current = { Example: { count: 1 } };
+    await reload.events.trigger(':variable');
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect((reload.rows.get(memory.id) as RepairMemory).state).toBe('active');
+    const firstSave = reload.variables.current;
+    reload.variables.current = { Example: { count: 0 } };
+    await reload.events.trigger(':variable');
+    expect(reload.variables.current).toEqual({ Example: { count: 1 } });
+    expect(firstSave).toEqual({ Example: { count: 1 } });
+    expect(fetch).not.toHaveBeenCalled();
+  } finally {
+    fetch.mockRestore();
+  }
+});
+
+test('a source and state recipe remains pending until both lifecycle phases verify', async () => {
+  const fixture = repairFixture();
+  fixture.repair.allowState(statePolicy);
+  const memory = await seedStateRepair(fixture.rows, true);
+  await fixture.events.trigger(':addon:repair');
+  expect(fixture.source.content).toBe('a { color: red; }');
+  fixture.final.styleFileItems.items[0].content = fixture.source.content;
+  await fixture.events.trigger(':modLoaderEnd');
+  expect((fixture.rows.get(memory.id) as RepairMemory).state).toBe('pending');
+  fixture.variables.current = { Example: { count: 0 } };
+  await fixture.events.trigger(':variable');
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(fixture.variables.current).toEqual({ Example: { count: 1 } });
+  expect((fixture.rows.get(memory.id) as RepairMemory).state).toBe('trial');
+});
+
+test('a state write failure rolls back earlier state targets and every source overlay', async () => {
+  const fixture = repairFixture();
+  const otherPolicy = { ...statePolicy, path: ['Other'] };
+  fixture.repair.allowState(statePolicy);
+  fixture.repair.allowState(otherPolicy);
+  const original = { count: 0 };
+  const root: Record<string, object> = { Example: original };
+  Object.defineProperty(root, 'Other', { value: { count: 0 }, enumerable: true, configurable: false, writable: false });
+  const descriptor = Object.getOwnPropertyDescriptor(root, 'Other');
+  fixture.variables.current = root;
+  const memory = await seedStateRepair(fixture.rows, true, [statePolicy, otherPolicy]);
+  await fixture.events.trigger(':addon:repair');
+  await fixture.events.trigger(':variable');
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(root.Example).toBe(original);
+  expect(root).toEqual({ Example: { count: 0 }, Other: { count: 0 } });
+  expect(Object.getOwnPropertyDescriptor(root, 'Other')).toEqual(descriptor);
+  expect(fixture.source.content).toBe('a { color: reed; }');
+  expect((fixture.rows.get(memory.id) as RepairMemory).state).toBe('failed');
+  await expect(fixture.repair.confirm(memory.id)).rejects.toThrow();
+});
+
+test('failed source proof restores state snapshots as well as cached source', async () => {
+  const fixture = repairFixture();
+  fixture.repair.allowState(statePolicy);
+  const original = { count: 0 };
+  fixture.variables.current = { Example: original };
+  const memory = await seedStateRepair(fixture.rows, true);
+  await fixture.events.trigger(':addon:repair');
+  await fixture.events.trigger(':variable');
+  expect(fixture.variables.current).toEqual({ Example: { count: 1 } });
+  await fixture.events.trigger(':addon:verify');
+  expect(fixture.variables.current).toEqual({ Example: { count: 0 } });
+  expect((fixture.variables.current as { Example: object }).Example).toBe(original);
+  expect(fixture.source.content).toBe('a { color: reed; }');
+  expect((fixture.rows.get(memory.id) as RepairMemory).state).toBe('failed');
+});
+
+test('changed state fingerprints reject the whole recipe without changing a different save', async () => {
+  const fixture = repairFixture();
+  fixture.repair.allowState(statePolicy);
+  const memory = await seedStateRepair(fixture.rows, true);
+  await fixture.events.trigger(':addon:repair');
+  fixture.variables.current = { Example: { count: 2 } };
+  await fixture.events.trigger(':variable');
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(fixture.variables.current).toEqual({ Example: { count: 2 } });
+  expect(fixture.source.content).toBe('a { color: reed; }');
+  expect((fixture.rows.get(memory.id) as RepairMemory).error).toBe('Repair state fingerprint changed');
+});
+
+test('a verified mixed memory is disabled persistently when a later save no longer matches', async () => {
+  const fixture = repairFixture();
+  fixture.repair.allowState(statePolicy);
+  const memory = await seedStateRepair(fixture.rows, true);
+  fixture.variables.current = { Example: { count: 0 } };
+  await fixture.events.trigger(':addon:repair');
+  await fixture.events.trigger(':variable');
+  fixture.final.styleFileItems.items[0].content = fixture.source.content;
+  await fixture.events.trigger(':modLoaderEnd');
+  await fixture.repair.confirm(memory.id);
+  fixture.variables.current = { Example: { count: 2 } };
+  await fixture.events.trigger(':variable');
+  await new Promise(resolve => setTimeout(resolve, 0));
+  expect(fixture.variables.current).toEqual({ Example: { count: 2 } });
+  expect(fixture.source.content).toBe('a { color: reed; }');
+  expect((fixture.rows.get(memory.id) as RepairMemory).enabled).toBe(false);
+  expect((fixture.rows.get(memory.id) as RepairMemory).state).toBe('failed');
+  await expect(fixture.repair.confirm(memory.id)).rejects.toThrow();
+});
+
+test('unregistered, overlapping and unknown-owner state permissions cannot grant repair access', async () => {
+  const fixture = repairFixture();
+  expect(fixture.repair.allowState({ ...statePolicy, modName: 'unknown' })).toBe(false);
+  expect(fixture.repair.allowState({ ...statePolicy, path: ['window'] })).toBe(false);
+  expect(fixture.repair.allowState(statePolicy)).toBe(true);
+  expect(fixture.repair.allowState({ ...statePolicy, path: ['Example', 'nested'] })).toBe(false);
+  const fresh = repairFixture();
+  const memory = await seedStateRepair(fresh.rows, true);
+  await fresh.events.trigger(':addon:repair');
+  expect(fresh.source.content).toBe('a { color: reed; }');
+  expect((fresh.rows.get(memory.id) as RepairMemory).state).toBe('stale');
+});
+
+test('repair without a state provider never reads DoL globals', async () => {
+  const fixture = repairFixture();
+  const events = new Emitter();
+  const repair = new Repair(fixture.idb, fixture.host, events);
+  repair.allowState(statePolicy);
+  const memory = await seedStateRepair(fixture.rows);
+  const previous = Object.getOwnPropertyDescriptor(globalThis, 'V');
+  let reads = 0;
+  Object.defineProperty(globalThis, 'V', {
+    configurable: true,
+    get: () => {
+      reads++;
+      throw new Error('Repair services cannot depend on DoL globals');
+    }
+  });
+  try {
+    await events.trigger(':addon:repair');
+    await events.trigger(':variable');
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(reads).toBe(0);
+    expect((fixture.rows.get(memory.id) as RepairMemory).error).toBe('Repair variables are not ready');
+  } finally {
+    if (previous) Object.defineProperty(globalThis, 'V', previous);
+    else Reflect.deleteProperty(globalThis, 'V');
+  }
+});
+
+test('game and legacy vanilla scopes replay their bound state memories through the host provider', async () => {
+  for (const scope of ['game', 'vanilla'] as const) {
+    const fixture = repairFixture();
+    const game: RepairStatePolicy = { ...statePolicy, path: ['world', 'progress'], scope };
+    expect(fixture.repair.allowState(game)).toBe(true);
+    const memory = await seedStateRepair(fixture.rows, false, [game]);
+    fixture.variables.current = { world: { progress: { count: 0 } } };
+    await fixture.events.trigger(':addon:repair');
+    await fixture.events.trigger(':variable');
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(fixture.variables.current).toEqual({ world: { progress: { count: 1 } } });
+    expect((fixture.rows.get(memory.id) as RepairMemory).state).toBe('trial');
+    expect(NativeJSON.parse(memory.context.targets[0].signature!)).toMatchObject({ scope });
+  }
+});
+
+test('a new state repair replaces a discontinuous old snapshot rather than replaying stale migrations', async () => {
+  const fixture = repairFixture();
+  fixture.repair.allowState(statePolicy);
+  const old = await seedStateRepair(fixture.rows);
+  fixture.variables.current = { Example: { count: 0 } };
+  await fixture.events.trigger(':addon:repair');
+  await fixture.events.trigger(':variable');
+  await new Promise(resolve => setTimeout(resolve, 0));
+  await fixture.repair.confirm(old.id);
+  fixture.variables.current = { Example: { count: 2 } };
+  const content = RepairState.read(statePolicy.path, fixture.variables.current);
+  const context = structuredClone(old.context);
+  context.targets[0] = { ...context.targets[0], content, fingerprint: await RepairRecipeParser.fingerprint(content) };
+  const recipe: RepairRecipe = {
+    ...old.recipe,
+    operations: [{ type: 'state', targetId: 'state-0', changes: [{ type: 'set', path: ['Example', 'count'], value: 3 }], reason: 'Fix the newly observed state' }]
+  };
+  Object.assign(fixture.repair.connection, { apiUrl: 'https://example.test/v1', model: 'model' });
+  const contextSpy = spyOn(RepairAgent, 'context').mockResolvedValue(context);
+  const analyzeSpy = spyOn(RepairAgent, 'analyze').mockResolvedValue({ result: 'success', recipe });
+  try {
+    expect((await fixture.repair.analyze(new AbortController().signal)).result).toBe('success');
+    await fixture.repair.stage();
+    const [stored] = await fixture.repair.list();
+    expect(stored.id).not.toBe(old.id);
+    expect(stored.steps).toBeUndefined();
+    const reload = repairFixture(fixture.rows);
+    reload.repair.allowState(statePolicy);
+    reload.variables.current = { Example: { count: 2 } };
+    await reload.events.trigger(':addon:repair');
+    await reload.events.trigger(':variable');
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(reload.variables.current).toEqual({ Example: { count: 3 } });
+    expect((await reload.repair.list())[0].state).toBe('trial');
+  } finally {
+    contextSpy.mockRestore();
+    analyzeSpy.mockRestore();
+  }
+});
+
+test('deleted or disabled state memories are neither inherited by new proposals nor reapplied on load', async () => {
+  for (const remove of [true, false]) {
+    const fixture = repairFixture();
+    fixture.repair.allowState(statePolicy);
+    const old = await seedStateRepair(fixture.rows);
+    fixture.variables.current = { Example: { count: 0 } };
+    await fixture.events.trigger(':addon:repair');
+    await fixture.events.trigger(':variable');
+    await new Promise(resolve => setTimeout(resolve, 0));
+    if (remove) await fixture.repair.remove(old.id);
+    else await fixture.repair.setEnabled(old.id, false);
+    fixture.variables.current = { Example: { count: 0 } };
+    await fixture.events.trigger(':variable');
+    expect(fixture.variables.current).toEqual({ Example: { count: 0 } });
+    Object.assign(fixture.repair.connection, { apiUrl: 'https://example.test/v1', model: 'model' });
+    const contextSpy = spyOn(RepairAgent, 'context').mockResolvedValue(old.context);
+    const analyzeSpy = spyOn(RepairAgent, 'analyze').mockResolvedValue({ result: 'success', recipe: old.recipe });
+    try {
+      expect((await fixture.repair.analyze(new AbortController().signal)).result).toBe('success');
+      await fixture.repair.stage();
+      expect((await fixture.repair.list())[0].steps).toBeUndefined();
+    } finally {
+      contextSpy.mockRestore();
+      analyzeSpy.mockRestore();
+    }
+  }
+});
+
+test('verification completing after deletion cannot resurrect the memory or reapply its state', async () => {
+  const fixture = repairFixture();
+  fixture.repair.allowState(statePolicy);
+  const memory = await seedStateRepair(fixture.rows, true);
+  fixture.variables.current = { Example: { count: 0 } };
+  await fixture.events.trigger(':addon:repair');
+  await fixture.events.trigger(':variable');
+  fixture.final.styleFileItems.items[0].content = fixture.source.content;
+  const originalWith = fixture.idb.with.bind(fixture.idb);
+  let release!: () => void;
+  let start!: () => void;
+  const started = new Promise<void>(resolve => {
+    start = resolve;
+  });
+  const blocked = new Promise<void>(resolve => {
+    release = resolve;
+  });
+  const withSpy = spyOn(fixture.idb, 'with').mockImplementationOnce(async (...args) => {
+    const result = await originalWith(...args);
+    start();
+    await blocked;
+    return result;
+  });
+  try {
+    const verification = fixture.events.trigger(':modLoaderEnd');
+    await started;
+    await fixture.repair.remove(memory.id);
+    release();
+    await verification;
+    expect(fixture.rows.has(memory.id)).toBe(false);
+    fixture.variables.current = { Example: { count: 0 } };
+    await fixture.events.trigger(':variable');
+    expect(fixture.variables.current).toEqual({ Example: { count: 0 } });
+    await expect(fixture.repair.confirm(memory.id)).rejects.toThrow();
+  } finally {
+    release();
+    withSpy.mockRestore();
+  }
+});
 
 test('pending repair verifies as a trial, user confirms memory and reload replays without an API', async () => {
   const fixture = repairFixture();
@@ -936,7 +1262,8 @@ test('an early verified CSS repair fails when a late module overwrites the style
   await state.events.trigger(':modLoaderEnd');
   expect((await state.repair.list())[0].state).toBe('failed');
   expect((await state.repair.list())[0].enabled).toBe(false);
-  expect(state.source.content).toBe('a { color: red; }');
+  expect(state.source.content).toBe('a { color: reed; }');
+  expect(state.final.styleFileItems.map.get('style.css')!.content).toBe('a { color: blue; }');
 });
 
 test('a framework passage wrapper can retain the complete early verified output until loading ends', async () => {
@@ -1357,7 +1684,10 @@ async function seedChainedPathRepair(state: ReturnType<typeof repairFixture>, ch
   };
   memory.recipe = {
     ...memory.recipe,
-    operations: [{ ...memory.recipe.operations[0], find: chained ? 'setup.currentHelper' : 'setup.otherOldHelper', replace: destination }]
+    operations: memory.recipe.operations.map(operation => {
+      if (operation.type === 'state') throw new Error('Expected source operation');
+      return { ...operation, find: chained ? 'setup.currentHelper' : 'setup.otherOldHelper', replace: destination };
+    })
   };
   memory.steps = [previous];
   state.rows.set(memory.id, structuredClone(memory));

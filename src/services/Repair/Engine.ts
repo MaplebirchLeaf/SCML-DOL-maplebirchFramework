@@ -21,6 +21,12 @@ export class RepairEngine {
       const target = targets.get(operation.targetId)!;
       const before = resolve(target);
       if (before === undefined || before !== target.content || (await RepairRecipeParser.fingerprint(before)) !== target.fingerprint) throw new Error(`Repair target changed: ${target.id}`);
+      if (operation.type === 'state') {
+        const after = RepairRecipeParser.stateResult(target, operation.changes);
+        const { content: _content, ...identity } = target;
+        overlays.push({ target: identity, before, after, fingerprint: await RepairRecipeParser.fingerprint(after) });
+        continue;
+      }
       let after = before.split(operation.find).join(operation.replace);
       if (target.kind === 'twee-replacer') {
         const binding = NativeJSON.parse(after) as { passage: string; findString: string };

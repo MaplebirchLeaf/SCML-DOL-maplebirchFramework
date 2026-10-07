@@ -388,3 +388,89 @@ test('does not allow CSS or Twee replacements to introduce executable markup', (
   for (const content of ['<<print "reed">>', '<span title="reed">Text</span>', '[[reed]]', '<script>reed</script>', '<<script>>reed<</script>>'])
     expect(() => RepairRecipeParser.parse(JSON.stringify(proposal()), { ...source, targets: [{ ...source.targets[0], content }] })).toThrow();
 });
+
+test('plain text repairs cannot edit macros after quoted delimiters or unfinished markup', () => {
+  const edit = { ...proposal(), operations: [{ ...proposal().operations[0], find: 'true', replace: 'alert(1)' }] };
+  for (const content of ['<<if ">>" && true>>Visible<</if>>', '<<print ">> true">>', '<span title="> true">Text</span>', '<<if true', '<script>true']) {
+    const source = { ...context, targets: [{ ...context.targets[0], kind: 'twee' as const, content }] };
+    expect(() => RepairRecipeParser.parse(JSON.stringify(edit), source)).toThrow('overlaps executable markup');
+  }
+});
+
+test('explicit source operations normalize to the existing bounded replacement recipe', () => {
+  const source = { ...context, targets: [{ ...context.targets[0], kind: 'twee' as const, content: 'A colour is reed.' }] };
+  const operation = proposal().operations[0];
+  for (const [type, replacement, normalized] of [
+    ['replace', 'red', 'red'],
+    ['insertBefore', 'very ', 'very reed'],
+    ['insertAfter', ' today', 'reed today'],
+    ['delete', undefined, '']
+  ] as const) {
+    const { replace: _replace, ...fields } = operation;
+    const edit = { ...proposal(), operations: [{ ...fields, type, ...(replacement !== undefined && { replace: replacement }) }] };
+    expect(RepairRecipeParser.parse(JSON.stringify(edit), source).operations).toEqual([{ ...operation, replace: normalized }]);
+  }
+});
+
+test('source insertion and deletion keep executable, native binding and field restrictions', () => {
+  const operation = { ...proposal().operations[0], find: 'V.player.virginity' };
+  const js = { ...context, targets: [{ ...context.targets[0], kind: 'js' as const, content: 'const value = V.player.virginity;' }] };
+  for (const type of ['insertBefore', 'insertAfter', 'delete'] as const) {
+    const { replace: _replace, ...fields } = operation;
+    const edit = { ...proposal(), operations: [{ ...fields, type, ...(type !== 'delete' && { replace: 'alert(1);' }) }] };
+    expect(() => RepairRecipeParser.parse(JSON.stringify(edit), js)).toThrow();
+  }
+  for (const operation of [
+    { ...proposal().operations[0], type: 'execute' },
+    { ...proposal().operations[0], type: 'delete' },
+    { ...proposal().operations[0], type: 'insertAfter', replace: '' },
+    { ...proposal().operations[0], type: 'replace', unsafe: true }
+  ])
+    expect(() => RepairRecipeParser.parse(JSON.stringify({ ...proposal(), operations: [operation] }), context)).toThrow();
+});
+
+test('state operations bind their policy identity and validate the complete resulting object', () => {
+  const policy = { modName: 'example', path: ['Example', 'progress'], scope: 'mod', schema: { type: 'object', properties: { count: { type: 'number' } }, required: ['count'] } };
+  const target = {
+    ...context.targets[0],
+    kind: 'state' as const,
+    path: JSON.stringify(policy.path),
+    signature: JSON.stringify(policy),
+    content: JSON.stringify({ exists: true, value: { count: 'legacy' } })
+  };
+  const state = { ...context, targets: [target] };
+  const operation = { type: 'state' as const, targetId: target.id, changes: [{ type: 'set' as const, path: ['Example', 'progress', 'count'], value: 7 }], reason: 'Repair the legacy type' };
+  const recipe = { ...proposal(), operations: [operation] };
+  expect(RepairRecipeParser.parse(JSON.stringify(recipe), state).operations).toEqual([operation]);
+  for (const changed of [
+    { ...target, modName: 'other' },
+    { ...target, path: JSON.stringify(['Other', 'progress']) },
+    { ...target, kind: 'css' as const }
+  ])
+    expect(() => RepairRecipeParser.parse(JSON.stringify(recipe), { ...state, targets: [changed] })).toThrow();
+  for (const changes of [
+    [{ type: 'set', path: ['Example', 'progress', 'count'], value: 'wrong' }],
+    [{ type: 'set', path: ['Other', 'progress', 'count'], value: 7 }],
+    [{ type: 'set', path: ['Example', 'progress', 'count'], value: 7, unsafe: true }]
+  ])
+    expect(() => RepairRecipeParser.parse(JSON.stringify({ ...recipe, operations: [{ ...operation, changes }] }), state)).toThrow();
+  expect(() => RepairRecipeParser.parse(JSON.stringify({ ...recipe, operations: [{ ...operation, find: 'legacy' }] }), state)).toThrow('Invalid operation fields');
+});
+
+test('review keeps explicit and mixed recipes atomic when one target fails validation', () => {
+  const second = { ...context.targets[0], id: 'target-2', kind: 'js' as const, content: 'const value = true;' };
+  const mixed = { ...context, targets: [...context.targets, second] };
+  const typed = {
+    ...proposal(),
+    operations: [
+      { ...proposal().operations[0], type: 'replace' },
+      { ...proposal().operations[0], targetId: 'target-2', find: 'true', replace: 'alert(1)' }
+    ]
+  };
+  expect(() => RepairRecipeParser.review(JSON.stringify(typed), mixed)).toThrow('framework property guard');
+
+  const policy = { modName: 'example', path: ['Example', 'count'], scope: 'mod', schema: { type: 'number' } };
+  const target = { ...second, kind: 'state' as const, path: JSON.stringify(policy.path), signature: JSON.stringify(policy), content: JSON.stringify({ exists: true, value: 1 }) };
+  const state = { type: 'state', targetId: target.id, changes: [{ type: 'set', path: policy.path, value: 'wrong' }], reason: 'Invalid result' };
+  expect(() => RepairRecipeParser.review(JSON.stringify({ ...proposal(), operations: [proposal().operations[0], state] }), { ...context, targets: [...context.targets, target] })).toThrow('schema');
+});

@@ -5,7 +5,7 @@ import { NativeJSON } from '../../src/services/Repair/Json';
 import { RepairRecipeParser } from '../../src/services/Repair/Recipe';
 import { RepairSources } from '../../src/services/Repair/Source';
 import { RepairPrompt } from '../../src/services/Repair/Prompt';
-import type { RepairContext, RepairRecipe } from '../../src/services/Repair/Recipe';
+import type { RepairContext, RepairRecipe, RepairTarget } from '../../src/services/Repair/Recipe';
 
 test('analysis distinguishes malformed JSON from valid JSON rejected by repair validation', async () => {
   const context: RepairContext = {
@@ -26,6 +26,7 @@ test('analysis distinguishes malformed JSON from valid JSON rejected by repair v
     fetch.mockResolvedValueOnce(Response.json({ choices: [{ message: { content: '' } }] }));
     expect(await RepairAgent.analyze(input, context, signal)).toEqual({ result: 'response', reason: 'API response contains no text' });
     fetch.mockResolvedValueOnce(Response.json({ choices: [{ message: { content: '{"private response detail":' } }] }));
+    fetch.mockResolvedValueOnce(Response.json({ choices: [{ message: { content: '{"private response detail":' } }] }));
     expect(await RepairAgent.analyze(input, context, signal)).toEqual({ result: 'response', reason: 'Invalid repair JSON' });
     const unsafe: RepairRecipe = {
       requestId: context.requestId,
@@ -37,6 +38,195 @@ test('analysis distinguishes malformed JSON from valid JSON rejected by repair v
     fetch.mockResolvedValueOnce(Response.json({ choices: [{ message: { content: NativeJSON.stringify(unsafe) } }] }));
     expect(await RepairAgent.analyze(input, context, signal)).toEqual({ result: 'preflight', reason: 'target-1: CSS repair must be a local declaration value' });
     expect(context.targets[0].content).toBe('.item { color: reed; }');
+  } finally {
+    fetch.mockRestore();
+  }
+});
+
+function analysisFixture() {
+  const context: RepairContext = {
+    requestId: 'correction-1',
+    mods: ['example'],
+    diagnostics: [],
+    modLoaderLogs: [],
+    patches: [],
+    conflicts: [],
+    targets: [{ id: 'target-1', modName: 'example', kind: 'css', path: 'style.css', fingerprint: `sha256:${'a'.repeat(64)}`, content: '.item { color: reed; }' }]
+  };
+  const input = { apiUrl: 'https://example.test/v1', apiKey: 'private-key', model: 'model' };
+  const recipe: RepairRecipe = {
+    requestId: context.requestId,
+    outcome: 'repair',
+    summary: 'Correct the colour',
+    evidence: [],
+    operations: [{ targetId: 'target-1', find: 'reed', replace: 'red', expectedMatches: 1, reason: 'Correct the typo' }]
+  };
+  return { context, input, recipe };
+}
+
+test('a valid first proposal uses one API request', async () => {
+  const { context, input, recipe } = analysisFixture();
+  const fetch = spyOn(globalThis, 'fetch').mockResolvedValueOnce(Response.json({ choices: [{ message: { content: NativeJSON.stringify(recipe) } }] }));
+  try {
+    expect(await RepairAgent.analyze(input, context, new AbortController().signal)).toEqual({ result: 'success', recipe });
+    expect(fetch).toHaveBeenCalledTimes(1);
+  } finally {
+    fetch.mockRestore();
+  }
+});
+
+test.each(['openai', 'anthropic', 'gemini'] as const)('one correction round retains the same %s context, DSL and cancellation signal', async apiType => {
+  const { context, input, recipe } = analysisFixture();
+  const signal = new AbortController().signal;
+  const invalid = { ...recipe, summary: input.apiKey, operations: [{ ...recipe.operations[0], expectedMatches: 2 }] };
+  const contents = [NativeJSON.stringify(invalid), NativeJSON.stringify(recipe)];
+  const requests: Array<{ body: Record<string, unknown>; signal: RequestInit['signal'] }> = [];
+  const fetch = spyOn(globalThis, 'fetch').mockImplementation(
+    Object.assign(
+      async (_url: RequestInfo | URL, init?: RequestInit) => {
+        requests.push({ body: NativeJSON.parse(String(init?.body)) as Record<string, unknown>, signal: init?.signal });
+        const content = contents.shift();
+        return Response.json(
+          apiType === 'anthropic'
+            ? { content: [{ type: 'text', text: content }] }
+            : apiType === 'gemini'
+              ? { candidates: [{ content: { parts: [{ text: content }] } }] }
+              : { choices: [{ message: { content } }] }
+        );
+      },
+      { preconnect: globalThis.fetch.preconnect }
+    )
+  );
+  try {
+    expect(await RepairAgent.analyze({ ...input, apiType }, context, signal)).toEqual({ result: 'success', recipe });
+    expect(requests).toHaveLength(2);
+    expect(requests.map(request => request.signal)).toEqual([signal, signal]);
+    const messages = (body: Record<string, unknown>) => (apiType === 'gemini' ? (body.contents as Array<{ parts: Array<{ text: string }> }>) : (body.messages as Array<{ content: string }>));
+    const first = messages(requests[0].body),
+      second = messages(requests[1].body);
+    expect(second.slice(0, first.length)).toEqual(first);
+    const feedback = NativeJSON.stringify(second.at(-1));
+    expect(feedback).toContain('Repair search match count');
+    expect(feedback).toContain('previousResponse');
+    expect(feedback).not.toContain(input.apiKey);
+  } finally {
+    fetch.mockRestore();
+  }
+});
+
+test('two invalid proposals stop after the correction round with a deterministic preflight reason', async () => {
+  const { context, input, recipe } = analysisFixture();
+  const invalid = { ...recipe, operations: [{ ...recipe.operations[0], expectedMatches: 2 }] };
+  const fetch = spyOn(globalThis, 'fetch').mockImplementation(
+    Object.assign(async () => Response.json({ choices: [{ message: { content: NativeJSON.stringify(invalid) } }] }), { preconnect: globalThis.fetch.preconnect })
+  );
+  try {
+    expect(await RepairAgent.analyze(input, context, new AbortController().signal)).toEqual({ result: 'preflight', reason: 'target-1: Repair search match count: target-1 (found 1, expected 2)' });
+    expect(fetch).toHaveBeenCalledTimes(2);
+  } finally {
+    fetch.mockRestore();
+  }
+});
+
+test('permission and code safety failures stop without a correction request', async () => {
+  const { context, input, recipe } = analysisFixture();
+  const fetch = spyOn(globalThis, 'fetch');
+  try {
+    for (const invalid of [
+      { ...recipe, operations: [{ ...recipe.operations[0], targetId: 'unknown' }] },
+      { ...recipe, operations: [{ ...recipe.operations[0], replace: 'url(https://example.invalid)' }] },
+      { ...recipe, operations: [{ ...recipe.operations[0], unsafe: true }] }
+    ]) {
+      fetch.mockClear();
+      fetch.mockResolvedValueOnce(Response.json({ choices: [{ message: { content: NativeJSON.stringify(invalid) } }] }));
+      expect((await RepairAgent.analyze(input, context, new AbortController().signal)).result).toBe('preflight');
+      expect(fetch).toHaveBeenCalledTimes(1);
+    }
+  } finally {
+    fetch.mockRestore();
+  }
+});
+
+test('API failures and cancellation cannot start a correction request', async () => {
+  const { context, input } = analysisFixture();
+  const fetch = spyOn(globalThis, 'fetch');
+  try {
+    fetch.mockRejectedValueOnce(new Error(input.apiKey));
+    expect(await RepairAgent.analyze(input, context, new AbortController().signal)).toEqual({ result: 'network' });
+    expect(fetch).toHaveBeenCalledTimes(1);
+    fetch.mockClear();
+    const controller = new AbortController();
+    fetch.mockImplementationOnce(
+      Object.assign(
+        async () => {
+          controller.abort();
+          return Response.json({ choices: [{ message: { content: '{invalid' } }] });
+        },
+        { preconnect: globalThis.fetch.preconnect }
+      )
+    );
+    expect(await RepairAgent.analyze(input, context, controller.signal)).toEqual({ result: 'timeout' });
+    expect(fetch).toHaveBeenCalledTimes(1);
+    fetch.mockClear();
+    expect(await RepairAgent.analyze(input, context, controller.signal)).toEqual({ result: 'timeout' });
+    expect(fetch).toHaveBeenCalledTimes(0);
+  } finally {
+    fetch.mockRestore();
+  }
+});
+
+test('correction feedback stays bounded and explicitly marks a truncated response', () => {
+  const correction = RepairPrompt.correction('"'.repeat(100000), 'Invalid repair JSON');
+  const content = NativeJSON.parse(correction.content) as { validationError: string; previousResponse: string; previousResponseTruncated: boolean };
+  expect(correction.content.length).toBeLessThanOrEqual(32000);
+  expect(content.previousResponseTruncated).toBe(true);
+  expect(content.previousResponse.length).toBeLessThan(100000);
+  expect(content.validationError).toBe('Invalid repair JSON');
+});
+
+test('JSON-escaped API keys are removed from correction feedback', async () => {
+  const { context, recipe } = analysisFixture();
+  const input = { ...analysisFixture().input, apiKey: 'private"key\\value' };
+  const invalid = { ...recipe, summary: input.apiKey, operations: [{ ...recipe.operations[0], expectedMatches: 2 }] };
+  const bodies: string[] = [];
+  const contents = [NativeJSON.stringify(invalid), NativeJSON.stringify(recipe)];
+  const fetch = spyOn(globalThis, 'fetch').mockImplementation(
+    Object.assign(
+      async (_url: RequestInfo | URL, init?: RequestInit) => {
+        bodies.push(String(init?.body));
+        return Response.json({ choices: [{ message: { content: contents.shift() } }] });
+      },
+      { preconnect: globalThis.fetch.preconnect }
+    )
+  );
+  try {
+    expect((await RepairAgent.analyze(input, context, new AbortController().signal)).result).toBe('success');
+    const request = NativeJSON.parse(bodies[1]) as { messages: Array<{ content: string }> };
+    const correction = NativeJSON.parse(request.messages.at(-1)!.content) as { previousResponse: string };
+    expect(correction.previousResponse).toContain('[REDACTED]');
+    expect(correction.previousResponse).not.toContain(input.apiKey);
+    expect(correction.previousResponse).not.toContain(NativeJSON.stringify(input.apiKey).slice(1, -1));
+  } finally {
+    fetch.mockRestore();
+  }
+});
+
+test('state schema and scope failures stop without correction', async () => {
+  const { context, input, recipe } = analysisFixture();
+  const policy = { modName: 'example', path: ['Example', 'count'], schema: { type: 'number' }, scope: 'mod' };
+  context.targets = [{ ...context.targets[0], kind: 'state', path: NativeJSON.stringify(policy.path), signature: NativeJSON.stringify(policy), content: '{"exists":true,"value":1}' }];
+  const fetch = spyOn(globalThis, 'fetch');
+  try {
+    for (const change of [
+      { type: 'set', path: policy.path, value: 'wrong' },
+      { type: 'set', path: ['Other', 'count'], value: 2 }
+    ]) {
+      const invalid = { ...recipe, operations: [{ type: 'state', targetId: 'target-1', changes: [change], reason: 'Invalid state result' }] };
+      fetch.mockClear();
+      fetch.mockResolvedValueOnce(Response.json({ choices: [{ message: { content: NativeJSON.stringify(invalid) } }] }));
+      expect((await RepairAgent.analyze(input, context, new AbortController().signal)).result).toBe('preflight');
+      expect(fetch).toHaveBeenCalledTimes(1);
+    }
   } finally {
     fetch.mockRestore();
   }
@@ -171,6 +361,76 @@ function sourceFixture(messages: string[], original: Record<string, string>, cur
   } as unknown as ModLoader;
   return { host, mod, vanilla, merged, reads: () => ({ original: originalReads, current: currentReads }) };
 }
+
+function stateTarget(root: string, value: unknown, signature = 'private host policy'): RepairTarget {
+  return {
+    id: '',
+    modName: 'free-attitudes',
+    kind: 'state',
+    path: NativeJSON.stringify([root]),
+    fingerprint: `sha256:${'a'.repeat(64)}`,
+    content: NativeJSON.stringify({ exists: true, value }),
+    signature,
+    reference: 'Approved state fields: ready must be a boolean.'
+  };
+}
+
+test('sends only approved state roots mentioned by diagnostics and keeps host policies private', async () => {
+  const state = sourceFixture(['V.RepairState.ready is missing; $OtherState.ready is invalid; V.Unrelated.Nested is unavailable'], {}, {});
+  const context = await RepairAgent.context(state.host, 'private-key', [], new Map(), [
+    stateTarget('RepairState', { ready: false }),
+    stateTarget('OtherState', { ready: true }),
+    stateTarget('RepairStateExtra', { ready: false }),
+    stateTarget('Nested', { ready: false }),
+    stateTarget('Unmentioned', { ready: false }),
+    stateTarget('RepairState', { ready: false, credential: 'private-key' }),
+    { ...stateTarget('RepairState', { ready: false }), path: 'invalid JSON' }
+  ]);
+  expect(context.targets.map(target => target.path)).toEqual([NativeJSON.stringify(['RepairState']), NativeJSON.stringify(['OtherState'])]);
+  expect(context.targets.map(target => target.id)).toEqual(['target-1', 'target-2']);
+  expect(context.targets[0].signature).toBe('private host policy');
+  const payload = NativeJSON.parse(RepairPrompt.content(context)) as RepairContext;
+  expect(payload.targets[0]).not.toHaveProperty('signature');
+  expect(payload.targets[0].reference).toContain('ready must be a boolean');
+  expect(RepairPrompt.content(context)).not.toContain('private-key');
+});
+
+test('host state references identify approved roots without requiring the DoL V alias', async () => {
+  const state = sourceFixture(['State.variables.world.progress is missing; SugarCube.State.variables.quests.ready is invalid; State.variables.other.Nested is unavailable'], {}, {});
+  const context = await RepairAgent.context(state.host, '', [], new Map(), [
+    stateTarget('world', { progress: false }),
+    stateTarget('quests', { ready: false }),
+    stateTarget('Nested', { ready: false })
+  ]);
+  expect(context.targets.map(target => target.path)).toEqual([NativeJSON.stringify(['world']), NativeJSON.stringify(['quests'])]);
+});
+
+test('approved state and source rules share the bounded target batch without mixing their bindings', async () => {
+  const params = Array.from({ length: 20 }, (_, index) => ({ passage: `Target ${index + 1}`, findString: `old anchor ${index + 1}`, replace: `existing replacement ${index + 1}` }));
+  const messages = ['V.RepairState.ready is missing', ...params.map(rule => `[TweeReplacer] do_patch() cannot find findString: [free-attitudes] findString:[${rule.findString}] in:[${rule.passage}]`)];
+  const current = Object.fromEntries(params.map(rule => [rule.passage, `current ${rule.passage}`]));
+  const state = sourceFixture(messages, {}, current, params);
+  const context = await RepairAgent.context(state.host, '', [], new Map(), [stateTarget('RepairState', { ready: false })]);
+  expect(context.targets).toHaveLength(16);
+  expect(context.targets[0]).toMatchObject({ id: 'target-1', kind: 'state' });
+  expect(context.targets.filter(target => target.kind === 'twee-replacer')).toHaveLength(15);
+  expect(context.omittedRules).toBe(5);
+  expect(RepairPrompt.content(context).length).toBeLessThanOrEqual(480000);
+});
+
+test('reuses passage candidates across repeated failed searches within one context', async () => {
+  const params = Array.from({ length: 3 }, (_, index) => ({ passage: 'Old Passage', findString: 'shared unique anchor', replace: `replacement ${index}` }));
+  const state = sourceFixture(['[TweeReplacer] do_patch() cannot find passage: [free-attitudes] [Old Passage]'], {}, { 'New Passage': 'before shared unique anchor after' }, params);
+  const candidates = spyOn(RepairSources, 'passageCandidates');
+  try {
+    const context = await RepairAgent.context(state.host, '');
+    expect(context.targets).toHaveLength(3);
+    expect(candidates).toHaveBeenCalledTimes(1);
+    expect(context.passages).toContainEqual({ name: 'New Passage', current: 'before shared unique anchor after' });
+  } finally {
+    candidates.mockRestore();
+  }
+});
 
 test('exact passage names are resolved from full errors before log display truncation', async () => {
   const state = sourceFixture(

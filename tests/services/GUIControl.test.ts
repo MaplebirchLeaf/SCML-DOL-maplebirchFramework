@@ -93,7 +93,7 @@ Object.assign(Config, {
     analyzing: ['Analyzing'],
     completed: ['Done'],
     preflight: ['Repair validation failed'],
-    analysisTimeout: ['Analysis timed out (300s).'],
+    analysisTimeout: ['Analysis timed out (15min).'],
     loadingModels: ['Loading models'],
     cancelled: ['Cancelled']
   }
@@ -177,7 +177,7 @@ test('Repair GUI closing cancels a request and discards its late result', async 
   expect(state.gui.busy).toBe(false);
 });
 
-test('Repair GUI allows 300 seconds for analysis and retains the 20-second model timeout', async () => {
+test('Repair GUI allows 15 minutes for analysis and retains the 20-second model timeout', async () => {
   const state = repairFixture();
   const timer = spyOn(globalThis, 'setTimeout');
   let pending: Promise<void> | undefined;
@@ -188,7 +188,7 @@ test('Repair GUI allows 300 seconds for analysis and retains the 20-second model
     state.gui.reason = 'Previous validation failure';
     pending = state.gui.analyze();
     const [expire, delay] = timer.mock.calls[0];
-    expect(delay).toBe(300000);
+    expect(delay).toBe(900000);
     if (typeof expire !== 'function') throw new Error('Expected a timer callback');
     expire();
     state.complete({ result: 'preflight', reason: 'Late validation failure' });

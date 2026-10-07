@@ -2,11 +2,12 @@
 
 import { NativeJSON } from './Json';
 import { RepairRebase } from './Rebase';
+import { RepairState, type RepairStateChange } from './State';
 
 export interface RepairTarget {
   id: string;
   modName: string;
-  kind: 'twee' | 'js' | 'css' | 'patch-anchor' | 'replace-patcher' | 'twee-replacer';
+  kind: 'twee' | 'js' | 'css' | 'patch-anchor' | 'replace-patcher' | 'twee-replacer' | 'state';
   path: string;
   fingerprint: string;
   content: string;
@@ -55,13 +56,26 @@ export interface RepairRecipe {
   operations: RepairOperation[];
 }
 
-interface RepairOperation {
+interface RepairSourceOperation {
+  type?: never;
   targetId: string;
   find: string;
   replace: string;
   expectedMatches: number;
   reason: string;
 }
+
+interface RepairStateOperation {
+  type: 'state';
+  targetId: string;
+  changes: RepairStateChange[];
+  reason: string;
+  find?: never;
+  replace?: never;
+  expectedMatches?: never;
+}
+
+type RepairOperation = RepairSourceOperation | RepairStateOperation;
 
 interface TweeRegion {
   start: number;
@@ -274,6 +288,7 @@ export class RepairRecipeParser {
     const targets = new Map(context.targets.map(target => [target.id, target]));
     let renamed = false;
     for (const operation of recipe.operations) {
+      if (operation.type === 'state') continue;
       const target = targets.get(operation.targetId);
       if (!target || (target.kind !== 'js' && target.kind !== 'twee') || !RepairRecipeParser.codePath(operation.find) || !RepairRecipeParser.codePath(operation.replace)) continue;
       renamed = true;
@@ -309,7 +324,7 @@ export class RepairRecipeParser {
     return /^target-\d+$/.test(id) ? id : 'target';
   }
 
-  private static validateBinding(target: RepairTarget, operation: RepairOperation, context: RepairContext): void {
+  private static validateBinding(target: RepairTarget, operation: RepairSourceOperation, context: RepairContext): void {
     if (operation.find !== target.content || operation.expectedMatches !== 1) throw new Error('ReplacePatcher repairs update one complete search binding');
     const [prefix, location, kind, index, field, extra] = target.path.split('|');
     if (
@@ -345,7 +360,8 @@ export class RepairRecipeParser {
   }
 
   /** 校验单条操作和当前源码。 */
-  private static validateOperation(target: RepairTarget, operation: RepairOperation, context: RepairContext): void {
+  private static validateOperation(target: RepairTarget, operation: RepairSourceOperation, context: RepairContext): void {
+    if (target.kind === 'state') throw new Error('State repairs require a state operation');
     const { find, replace } = operation;
     const name = RepairRecipeParser.targetName(target.id);
     if (!find) throw new Error(`Empty repair search: ${name}`);
@@ -422,14 +438,20 @@ export class RepairRecipeParser {
     }
     if (target.kind !== 'twee') throw new Error('JS repair requires a framework property guard');
     if (/[<>[\]{}$&`\\]|_[A-Za-z]/.test(find + replace)) throw new Error('Twee repair must be plain text or a framework property guard');
-    const blocked = /<<script(?:\s[^>]*)?>>[\s\S]*?(?:<<\/script>>|$)|<<[\s\S]*?>>|<(?:script|style)\b[\s\S]*?(?:<\/(?:script|style)\s*>|$)|<[^>]*>|\[\[[\s\S]*?\]\]/gi;
-    for (const region of target.content.matchAll(blocked)) {
-      if (positions.some(start => start < region.index + region[0].length && start + find.length > region.index)) throw new Error('Twee text repair overlaps executable markup');
-    }
+    if (RepairRecipeParser.tweeRegions(target.content).some(region => positions.some(start => start < region.end && start + find.length > region.start)))
+      throw new Error('Twee text repair overlaps executable markup');
+  }
+
+  /** 绑定宿主权限后模拟状态结果，不读取或写入存档。 */
+  public static stateResult(target: RepairTarget, changes: RepairStateChange[]): string {
+    if (target.kind !== 'state') throw new Error('State operation requires a state target');
+    const policy = RepairState.policy(NativeJSON.parse(target.signature || '{}'));
+    if (policy.modName !== target.modName || NativeJSON.stringify(policy.path) !== target.path) throw new Error('Invalid state target identity');
+    return RepairState.validate(policy, target.content, changes);
   }
 
   /** 筛选操作前，先校验全部结构和绑定。 */
-  private static read(json: string, context: RepairContext): { recipe: RepairRecipe; targets: Map<string, RepairTarget> } {
+  private static read(json: string, context: RepairContext): { recipe: RepairRecipe; targets: Map<string, RepairTarget>; atomic: boolean } {
     if (json.length > RepairRecipeParser.MAX_LENGTH) throw new Error('Recipe exceeds size limit');
     const recipe: unknown = NativeJSON.parse(json);
     if (!RepairRecipeParser.object(recipe) || !RepairRecipeParser.keys(recipe, ['requestId', 'outcome', 'summary', 'evidence', 'operations'])) throw new Error('Invalid recipe fields');
@@ -441,37 +463,57 @@ export class RepairRecipeParser {
     const targets = new Map(context.targets.map(target => [target.id, target]));
     if (targets.size !== context.targets.length) throw new Error('Duplicate context targets');
     const seen = new Set<string>();
-    for (const operation of recipe.operations) {
-      if (!RepairRecipeParser.object(operation) || !RepairRecipeParser.keys(operation, ['targetId', 'find', 'replace', 'expectedMatches', 'reason'])) throw new Error('Invalid operation fields');
+    const operations: RepairOperation[] = [];
+    for (const value of recipe.operations) {
+      if (!RepairRecipeParser.object(value)) throw new Error('Invalid operation fields');
+      if (value.type === 'state') {
+        if (!RepairRecipeParser.keys(value, ['type', 'targetId', 'changes', 'reason'])) throw new Error('Invalid operation fields');
+        if (!RepairRecipeParser.text(value.targetId, 200) || !RepairRecipeParser.text(value.reason, 2000)) throw new Error('Invalid operation text');
+        const target = targets.get(value.targetId);
+        if (!target || !/^sha256:[a-f0-9]{64}$/.test(target.fingerprint)) throw new Error('Unknown or unbound target');
+        if (seen.has(target.id)) throw new Error('Duplicate operation target');
+        seen.add(target.id);
+        operations.push({ type: 'state', targetId: value.targetId, changes: RepairState.changes(value.changes), reason: value.reason });
+        continue;
+      }
+      const typed = Object.hasOwn(value, 'type');
+      const type = typed ? value.type : 'replace';
+      const fields = ['targetId', 'find', 'expectedMatches', 'reason', ...(type !== 'delete' ? ['replace'] : []), ...(typed ? ['type'] : [])];
+      if (!['replace', 'insertBefore', 'insertAfter', 'delete'].includes(String(type)) || !RepairRecipeParser.keys(value, fields)) throw new Error('Invalid operation fields');
       if (
-        !RepairRecipeParser.text(operation.targetId, 200) ||
-        !RepairRecipeParser.text(operation.find, 32000) ||
-        typeof operation.replace !== 'string' ||
-        operation.replace.length > 32000 ||
-        !RepairRecipeParser.text(operation.reason, 2000)
+        !RepairRecipeParser.text(value.targetId, 200) ||
+        !RepairRecipeParser.text(value.find, 32000) ||
+        (type !== 'delete' && (typeof value.replace !== 'string' || value.replace.length > 32000)) ||
+        ((type === 'insertBefore' || type === 'insertAfter') && !value.replace) ||
+        !RepairRecipeParser.text(value.reason, 2000)
       )
         throw new Error('Invalid operation text');
+      const replace = type === 'delete' ? '' : type === 'insertBefore' ? value.replace + value.find : type === 'insertAfter' ? value.find + value.replace : (value.replace as string);
+      if (replace.length > 32000) throw new Error('Invalid operation text');
+      const operation = { targetId: value.targetId, find: value.find, replace, expectedMatches: value.expectedMatches, reason: value.reason };
       const target = targets.get(operation.targetId);
       if (!target || !/^sha256:[a-f0-9]{64}$/.test(target.fingerprint)) throw new Error('Unknown or unbound target');
       // 每个目标仅允许一次修改，确保匹配计数独立、审核明确。
       if (seen.has(target.id)) throw new Error('Duplicate operation target');
       seen.add(target.id);
       if (!Number.isSafeInteger(operation.expectedMatches) || Number(operation.expectedMatches) < 1 || Number(operation.expectedMatches) > 32) throw new Error('Invalid match count');
+      operations.push({ ...operation, expectedMatches: Number(operation.expectedMatches) });
     }
-    return { recipe: recipe as unknown as RepairRecipe, targets };
+    return { recipe: { ...recipe, operations } as unknown as RepairRecipe, targets, atomic: recipe.operations.some(value => RepairRecipeParser.object(value) && Object.hasOwn(value, 'type')) };
   }
 
-  /** 分析允许筛选失败项；存储和回放严格校验。 */
+  /** 旧配方分析允许筛选失败项；显式 DSL、存储和回放严格校验。 */
   private static inspect(json: string, context: RepairContext, partial: boolean): { recipe: RepairRecipe; rejected: Array<{ targetId: string; reason: string }> } {
-    const { recipe, targets } = RepairRecipeParser.read(json, context);
+    const { recipe, targets, atomic } = RepairRecipeParser.read(json, context);
     const operations: RepairOperation[] = [];
     const rejected: Array<{ targetId: string; reason: string }> = [];
     for (const operation of recipe.operations) {
       try {
-        RepairRecipeParser.validateOperation(targets.get(operation.targetId)!, operation, context);
+        if (operation.type === 'state') RepairRecipeParser.stateResult(targets.get(operation.targetId)!, operation.changes);
+        else RepairRecipeParser.validateOperation(targets.get(operation.targetId)!, operation, context);
         operations.push(operation);
       } catch (error) {
-        if (!partial) throw error;
+        if (!partial || atomic) throw error;
         const reason = error instanceof SyntaxError ? 'Invalid repair binding JSON' : error instanceof Error ? error.message : 'Repair validation failed';
         rejected.push({ targetId: RepairRecipeParser.targetName(operation.targetId), reason });
       }
@@ -485,7 +527,7 @@ export class RepairRecipeParser {
     return RepairRecipeParser.inspect(json, context, false).recipe;
   }
 
-  /** 分析保留通过项，校验失败原因不写入配方。 */
+  /** 旧配方分析保留通过项，校验失败原因不写入配方。 */
   public static review(json: string, context: RepairContext): { recipe: RepairRecipe; rejected: Array<{ targetId: string; reason: string }> } {
     return RepairRecipeParser.inspect(json, context, true);
   }
