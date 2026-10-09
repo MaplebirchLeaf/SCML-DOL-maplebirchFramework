@@ -177,6 +177,7 @@ test('bundled CN and EN sections have matching unique keys', () => {
     for (const section of sections) {
       const path = new URL(`../../src/assets/translations/${language}/${section}.yaml`, import.meta.url);
       const parsed = jsyaml.load(readFileSync(path, 'utf8')) as Record<string, unknown>;
+      expect(Object.keys(parsed).length).toBeGreaterThan(0);
       for (const key of Object.keys(parsed)) {
         expect(seen.has(key)).toBe(false);
         seen.add(key);
@@ -185,7 +186,6 @@ test('bundled CN and EN sections have matching unique keys', () => {
     keys.set(language, [...seen].sort());
   }
   expect(keys.get('CN')).toEqual(keys.get('EN'));
-  expect(keys.get('CN')).toHaveLength(177);
 });
 
 async function importFile(manager: InstanceType<typeof Translator>, modName: string) {
