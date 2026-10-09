@@ -13,15 +13,6 @@
 'clear': clear
 'character': character
 'panel': panel
-'previous': previous
-'next': next
-'playback': playback
-'pause': pause
-'stop': stop
-'resume': resume
-'loop mode': loop mode
-'volume': volume
-'cache': cache
 'mobile client': mobile client
 'desktop client': desktop client
 'disable': disable
