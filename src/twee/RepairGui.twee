@@ -195,7 +195,7 @@
 					ng-if='memory.state === "trial"'
 					ng-click='$ctrl.repair.confirm(memory)'
 					ng-disabled='$ctrl.repair.busy'
-					class='theme-button'
+					class='theme-button repair-primary'
 				>
 					{{t($ctrl.data.text.Repair.Confirm)}}
 				</button>
@@ -209,7 +209,7 @@
 	<footer class='repair-dialog-footer'>
 		<p role='status' aria-live='polite'>{{t($ctrl.repair.status)}}</p>
 		<div ng-if="$ctrl.repair.tab === 'connection'" class='gui-button-group'>
-			<button type='button' ng-click='$ctrl.repair.saveConnection()' ng-disabled='$ctrl.repair.busy' class='theme-button'>
+			<button type='button' ng-click='$ctrl.repair.saveConnection()' ng-disabled='$ctrl.repair.busy' class='theme-button repair-primary'>
 				{{t($ctrl.data.text.Repair.Save)}}
 			</button>
 			<button type='button' ng-click='$ctrl.repair.testConnection()' ng-disabled='$ctrl.repair.busy' class='theme-button'>
@@ -217,10 +217,10 @@
 			</button>
 		</div>
 		<div ng-if="$ctrl.repair.tab === 'analysis'" class='gui-button-group'>
-			<button type='button' ng-click='$ctrl.repair.analyze()' ng-disabled='$ctrl.repair.busy' class='theme-button'>
+			<button type='button' ng-click='$ctrl.repair.analyze()' ng-disabled='$ctrl.repair.busy' class='theme-button repair-primary'>
 				{{t($ctrl.data.text.Repair.Analyze)}}
 			</button>
-			<button type='button' ng-if='$ctrl.repair.overlays.length' ng-click='$ctrl.repair.stage()' ng-disabled='$ctrl.repair.busy' class='theme-button'>
+			<button type='button' ng-if='$ctrl.repair.overlays.length' ng-click='$ctrl.repair.stage()' ng-disabled='$ctrl.repair.busy' class='theme-button repair-primary'>
 				{{t($ctrl.data.text.Repair.Save)}}
 			</button>
 		</div>

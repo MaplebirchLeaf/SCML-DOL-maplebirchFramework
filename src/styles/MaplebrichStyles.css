@@ -904,16 +904,17 @@ button.saveMenuButton.saves-clear {
 
 #maplebirch .repair-dialog {
   width: min(46rem, calc(100vw - 2rem));
-  height: min(34rem, calc(100vh - 2rem));
-  height: min(34rem, calc(100dvh - 2rem));
+  height: auto;
+  max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem);
   box-sizing: border-box;
   margin: auto;
   padding: 0;
   border: 1px solid var(--700, #666);
-  background: var(--900, #171717);
+  background: #222;
   color: inherit;
   font-size: 1rem;
-  line-height: 1.4;
+  line-height: 1.5;
   overflow: hidden;
 }
 
@@ -932,7 +933,8 @@ button.saveMenuButton.saves-clear {
   align-items: center;
   justify-content: space-between;
   gap: 1em;
-  padding: 0.5em 0.75em;
+  padding: 0.65em 1em;
+  background: #333;
   border-bottom: 1px solid var(--700, #666);
 }
 
@@ -944,7 +946,8 @@ button.saveMenuButton.saves-clear {
 
 #maplebirch .repair-dialog-nav {
   display: flex;
-  border-bottom: 1px solid var(--700, #666);
+  background: #2b2b2b;
+  border-bottom: 1px solid #444;
 }
 
 #maplebirch .repair-dialog-nav button {
@@ -962,12 +965,12 @@ button.saveMenuButton.saves-clear {
 }
 
 #maplebirch .repair-dialog-nav button + button {
-  border-left: 1px solid var(--800, #333);
+  border-left: 1px solid #383838;
 }
 
 #maplebirch .repair-dialog-nav .selected {
   border-bottom-color: var(--blue, #4678ed);
-  background: var(--850, #252525);
+  background: #383838;
 }
 
 #maplebirch .repair-dialog-nav button:hover {
@@ -985,7 +988,9 @@ button.saveMenuButton.saves-clear {
   grid-row: 3;
   min-width: 0;
   min-height: 0;
-  padding: 0.6em 0.75em;
+  padding: 1em;
+  max-height: 28rem;
+  scrollbar-gutter: stable;
   overflow: auto;
   overscroll-behavior: contain;
 }
@@ -1005,9 +1010,10 @@ button.saveMenuButton.saves-clear {
   padding: 0.35em 0.7em;
   border: 1px solid var(--700, #666);
   border-radius: 0;
-  background: transparent;
+  background: #303030;
   color: inherit;
   font: inherit;
+  min-height: 2.2em;
   line-height: 1.4;
 }
 
@@ -1106,13 +1112,15 @@ button.saveMenuButton.saves-clear {
 }
 
 #maplebirch .repair-dialog .repair-empty {
-  margin-top: 0.75em;
+  margin: 0;
+  padding: 2.5em 0;
+  text-align: center;
   color: var(--500, #aaa);
 }
 
 #maplebirch .repair-analysis > h3,
 #maplebirch .repair-overlay h4 {
-  margin: 0 0 0.3em;
+  margin: 0.75em 0 0.5em;
   font-size: 1em;
 }
 
@@ -1133,7 +1141,7 @@ button.saveMenuButton.saves-clear {
   gap: 0.45em;
   min-height: 1.9em;
   margin: 0;
-  padding: 0.3em 0.35em;
+  padding: 0.5em;
   list-style: none;
   cursor: pointer;
   overflow-wrap: anywhere;
@@ -1275,7 +1283,8 @@ button.saveMenuButton.saves-clear {
   flex-wrap: wrap;
   gap: 0.5em 1em;
   min-height: 2.4em;
-  padding: 0.45em 0.75em;
+  padding: 0.65em 1em;
+  background: #2b2b2b;
   border-top: 1px solid var(--700, #666);
 }
 
@@ -1292,11 +1301,42 @@ button.saveMenuButton.saves-clear {
   margin-left: auto;
 }
 
+#maplebirch .repair-dialog .repair-primary {
+  border-color: #426ed0;
+  background: #365fc5;
+  color: #fff;
+}
+
+#maplebirch .repair-dialog .repair-primary:hover:not(:disabled) {
+  background: #426ed0;
+}
+
+#maplebirch .repair-dialog button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+#maplebirch .repair-dialog details[open] {
+  background: #292929;
+}
+
+#maplebirch .repair-dialog details[open] > summary {
+  background: #333;
+}
+
+#maplebirch .repair-source-grid {
+  padding: 0.5em;
+}
+
+#maplebirch .repair-evidence ul {
+  padding: 0.5em 1em 0.75em 2em;
+}
+
 @media (max-width: 600px) {
   #maplebirch .repair-dialog {
     width: calc(100vw - 1rem);
-    height: min(34rem, calc(100vh - 1rem));
-    height: min(34rem, calc(100dvh - 1rem));
+    max-height: calc(100vh - 1rem);
+    max-height: calc(100dvh - 1rem);
   }
 
   #maplebirch .repair-dialog-body {
