@@ -430,9 +430,9 @@ function setup_body_data(options: NPCSidebarOptions, nnpc: Record<string, any>, 
   const filters = options.filters!;
   const bodydata = nnpc.bodydata ?? npcData.bodydata ?? {};
   const clothes = nnpc.clothes;
-  const npc = Array.isArray(dol.variables.NPCName) ? dol.variables.NPCName.find((npc: { nam?: string; name?: string }) => (npc.nam ?? npc.name) === nnpc.name) : undefined;
-
-  nnpc.lust = Math.clamp(npc?.lust ?? 0, 0, 100);
+  const npc = dol.characters.npc[nnpc.name];
+  const combat_lust = dol.variables.combat === 1 && combat_npc(nnpc.name) && dol.variables.enemyarousalmax > 0 ? ((dol.variables.enemyarousal ?? 0) / dol.variables.enemyarousalmax) * 100 : 0;
+  nnpc.lust = Math.clamp(Math.max(npc?.lust ?? 0, combat_lust), 0, 100);
 
   nnpc.breasts = !clothes.upper.type?.includes('naked') || !clothes.under_upper.type?.includes('naked') ? 'cleavage' : 'default';
   nnpc.breast_size = [0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 5, 5, 6][Math.round(bodydata.breastsize ?? 0)] ?? 0;
