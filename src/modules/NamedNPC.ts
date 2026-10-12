@@ -12,7 +12,7 @@ import NPCFluids from './NamedNPCAddon/NPCFluids';
 import NPCTransformation, { type NPCTransformationConfig } from './NamedNPCAddon/NPCTransformation';
 import NPCPregnancy, { type NPCPregnancyConfig, type NPCPregnancyState } from './NamedNPCAddon/NPCPregnancy';
 import { bodyDefaults, setupNPCData, isPossible } from './NamedNPCAddon/NPCUtils';
-import { clone, merge } from '../utils';
+import { clamp, clone, merge } from '../utils';
 import dol from '../host/DoL';
 
 type LanguageCode = 'CN' | 'EN';
@@ -304,7 +304,7 @@ export const NamedNPC = (core => {
         EN: ['testicles', 'balls']
       } as const;
       const pick = (value: unknown): string => (Array.isArray(value) ? (value.either() as string) : ((value ?? '') as string));
-      const cached = (key: string, factory: () => string): string => (cache[key] ??= factory());
+      const cached = (key: string, factory: () => string): string => (cache[key] ||= factory());
       const Part = (part: keyof typeof bodyPartMap, index: number): string => pick((bodyPartMap[part][lang] ?? [])[index]);
       const Suffix = (suffixMap: Record<LanguageCode, readonly string[]>): string => pick(suffixMap[lang]);
       const Combined = (key: string, part: keyof typeof bodyPartMap, index: number, suffixMap: Record<LanguageCode, readonly string[]>): string =>
@@ -313,8 +313,8 @@ export const NamedNPC = (core => {
           const suffix = Suffix(suffixMap);
           return prefix ? `${prefix}${suffix}` : suffix;
         });
-      if ((this.penis === 'clothed' && this.penissize > 0) || this.penisdesc === 'penis') {
-        const sizeIndex = this.penissize - 1;
+      if ((this.penis === 'clothed' && this.penissize > 0) || this.penisdesc === 'penis' || (!this.penisdesc && this.penis !== 'none' && this.penissize > 0)) {
+        const sizeIndex = clamp(this.penissize, 1, bodyPartMap.penis[lang].length) - 1;
         this.penisdesc = cached(`penis_${lang}_${this.penissize}`, () => Part('penis', sizeIndex));
       }
       const breastIndex = (this.vagina === 'clothed' && this.breastsize > 0) || this.breastdesc === 'breasts' ? this.breastsize - 1 : 0;
