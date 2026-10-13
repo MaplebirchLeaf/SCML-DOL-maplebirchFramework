@@ -224,7 +224,7 @@ const applyLinkZone = ((core: MaplebirchCore) => {
       replacement.textContent = script.textContent;
       script.replaceWith(replacement);
     });
-    html.style.display = html.childNodes.length > 0 ? 'block' : 'none';
+    html.style.display = html.childElementCount > 0 || html.textContent?.trim() ? 'block' : 'none';
     if (config.debug) core.tool.log('[link] 添加内容到区域', 'DEBUG', macro);
   }
 
