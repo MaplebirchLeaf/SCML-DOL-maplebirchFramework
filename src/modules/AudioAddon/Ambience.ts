@@ -22,6 +22,7 @@ class Ambience {
     const targetVolume = this.clamp(volume);
     const duration = this.duration(fadeMs);
     if (this.active?.key === key) {
+      this.request++;
       this.setVolume(targetVolume, duration);
       return true;
     }

@@ -83,6 +83,7 @@ class Audio {
   private readonly eventListeners = new Map<string, Set<AudioEventHandler>>();
   private readonly cache = new Map<string, Map<string, CacheEntry>>();
   private readonly pendingLoads = new Map<string, Promise<CacheEntry>>();
+  private readonly modVolumes = new Map<string, number>();
 
   private activePlaylist: Playlist | null = null;
   private currentTrack: Track | null = null;
@@ -442,6 +443,16 @@ class Audio {
     this.emit('volumechange', volume);
   }
 
+  /** Set a mod's music multiplier without changing the master volume. */
+  public setModVolume(modName: string, value: number): void {
+    const volume = Number.isFinite(value) ? Math.clamp(value, 0, 1) : 0;
+    if ((this.modVolumes.get(modName) ?? 1) === volume) return;
+    if (volume === 1) this.modVolumes.delete(modName);
+    else this.modVolumes.set(modName, volume);
+    if (this.currentTrack?.modName === modName) this.currentHowl?.volume(this.outputVolume);
+    this.emit('modvolumechange', modName, volume);
+  }
+
   public get PlayMode(): PlayModeType {
     return this.activePlaylist?.playMode || PlayMode.LOOP_ALL;
   }
@@ -731,7 +742,8 @@ class Audio {
   }
 
   private get outputVolume(): number {
-    return this.muted ? 0 : this.volume;
+    const modName = (this.currentTrack ?? this.loadingTrack)?.modName;
+    return this.muted ? 0 : this.volume * (modName ? (this.modVolumes.get(modName) ?? 1) : 1);
   }
 
   private startProgressTimer(): void {
