@@ -6,6 +6,9 @@
 - 复用指纹、目标绑定、Overlay、回滚与修复记忆流程，多目标方案先完整校验再应用，重载后复测并手动确认。已保存方案无需再次请求 AI，目标或权限变化后停用，不修改原始 ZIP 或已安装模组包。
 - 分析等待延长至 15 分钟，支持取消，区分上下文超限、输出截断与响应错误，并保留一次受限纠错反馈。API 与存储失败不影响框架正常加载。
 - 补齐中英文 README 的 AI 修复说明，整理测试目录并让 CI 运行全量测试，覆盖 AST 定位、危险代码拒绝、内嵌 JS、多目标回滚与记忆重放。
+- 音乐新增独立的模组音量倍率，保留总音量和静音控制；环境音重新选择当前曲目时取消旧加载请求，避免延迟音轨覆盖新场景。
+- NPC 尺寸描述超出描述表时保留原有身体数据；侧栏结合遭遇性奋值与角色欲望选择状态图层。
+- 空白或仅含注释的 LinkZone 不再产生空区域，实际文本与元素仍正常显示。
 
 **English**
 
@@ -15,6 +18,9 @@
 - Reuse fingerprints, target bindings, Overlays, rollback and repair memories. Validate every target before application, then reload, retest and confirm. Replay saved proposals without calling AI; changed targets or permissions disable old repairs. Original ZIPs and installed mod packages remain unchanged.
 - Increase analysis timeout to 15 minutes and support cancellation. Distinguish context limits, truncated output and invalid responses, retaining one constrained correction attempt. API and storage failures do not block normal framework loading.
 - Add bilingual README guidance, organize test suites and run all tests in CI. Cover AST selection, prohibited code, embedded JS, multi-target rollback and memory replay.
+- Add per-mod music volume while preserving master volume and mute. Cancel stale ambience loads when the current loop is selected again, preventing delayed audio from replacing the latest scene.
+- Preserve NPC anatomy when a size exceeds the description table. Include encounter arousal and NPC lust when selecting sidebar state layers.
+- Hide empty or comment-only LinkZones while retaining real text and elements.
 
 ##### (v.5.4.2更新日志):
 
