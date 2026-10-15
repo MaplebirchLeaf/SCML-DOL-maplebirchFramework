@@ -81,8 +81,14 @@ function layerFilters(slot: NPCClothesSlot, type: ClothesType, clothes: NPCSideb
   return [];
 }
 
-function kaijuMask(options: NPCSidebarOptions): string | undefined {
+function kaiju_mask(options: NPCSidebarOptions): string | undefined {
   if (options.maplebirch.nnpc.clothes?.over_upper?.name === 'kaiju costume') return 'img/clothes/over-upper/kaiju/mask.png';
+}
+
+function sidebar_mask(options: NPCSidebarOptions, mask?: CanvasLayerMaskSrc): CanvasLayerMaskSrc {
+  const clip = options.maplebirch.nnpc.close_up_mask;
+  const masks = (Array.isArray(mask) ? mask : [mask]).filter((item): item is CanvasLayerMask => item != null && item !== clip);
+  return masks.length ? [{ path: clip, convert: true }, ...masks] : clip;
 }
 
 function selected_art(nnpc: NPCSidebarState) {
@@ -118,8 +124,8 @@ function clothes_basic(slot: NPCClothesSlot, overrides: LayerConfig = {}) {
   return {
     masksrcfn: (options: NPCSidebarOptions) => {
       if (!slot.startsWith('over_')) {
-        const mask = kaijuMask(options);
-        if (mask) return mask;
+        const mask = kaiju_mask(options);
+        if (mask) return [options.maplebirch.nnpc.close_up_mask, mask];
       }
       if (typeof masksrcfn === 'function') return masksrcfn(options);
       return options.maplebirch.nnpc.close_up_mask;
@@ -577,7 +583,8 @@ export {
   isAltPosition,
   clothingZIndex,
   previousFilterName,
-  kaijuMask,
+  kaiju_mask,
+  sidebar_mask,
   selected_art,
   nnpc_sidepart,
   clothes_basic,

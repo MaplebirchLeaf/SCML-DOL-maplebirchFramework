@@ -1,7 +1,7 @@
 // ./src/modules/NamedNPCAddon/NPCSidebarConfig/transformation_layers.ts
 
 import maplebirch from '../../../core';
-import { kaijuMask } from './functions';
+import { kaiju_mask, sidebar_mask } from './functions';
 
 import type { NPCSidebarOptions } from './types';
 
@@ -18,12 +18,13 @@ function filters(type: string, part: string, hair = true) {
 }
 
 function basic(overrides: LayerConfig = {}) {
+  const { masksrcfn, ...layerOverrides } = overrides;
   return {
     animation: 'idle',
     dxfn: (options: NPCSidebarOptions) => nnpc(options).dxfn,
     dyfn: (options: NPCSidebarOptions) => nnpc(options).dyfn,
-    masksrcfn: (options: NPCSidebarOptions) => kaijuMask(options) || nnpc(options).close_up_mask,
-    ...overrides
+    masksrcfn: (options: NPCSidebarOptions) => sidebar_mask(options, masksrcfn ? masksrcfn(options) : kaiju_mask(options)),
+    ...layerOverrides
   };
 }
 
@@ -62,9 +63,9 @@ function wings(side: 'left' | 'right', type: string, hair: boolean) {
     },
     masksrcfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
-      const costume = kaijuMask(options);
+      const costume = kaiju_mask(options);
       if (costume) return costume;
-      return data[`${type}_wing_${side}`] === 'cover' ? data.close_up_mask : [data.close_up_mask, `img/face/masks/${side}.png`];
+      return data[`${type}_wing_${side}`] === 'cover' ? undefined : `img/face/masks/${side}.png`;
     }
   });
 }
@@ -114,7 +115,7 @@ function ears(type: string, hair: boolean, overrides: LayerConfig = {}) {
     filtersfn: filters(type, 'ears', hair),
     masksrcfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
-      return kaijuMask(options) || (!data.hide_head_acc ? data.head_mask : undefined);
+      return kaiju_mask(options) || (!data.hide_head_acc ? data.head_mask : undefined);
     },
     zfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
@@ -130,7 +131,7 @@ function horns(type: string, offset = 0) {
     filtersfn: filters(type, 'horns'),
     masksrcfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
-      return kaijuMask(options) || (data[`${type}_horns_layer`] === 'front' ? data.close_up_mask : data.head_mask);
+      return kaiju_mask(options) || (data[`${type}_horns_layer`] === 'front' ? undefined : data.head_mask);
     },
     zfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
@@ -204,11 +205,11 @@ const transformation_layers = {
   nnpc_cow_horns: horns('cow', 1),
   nnpc_cow_ear_left: ears('cow', true, {
     zfn: (options: NPCSidebarOptions) => z('horns') + nnpc(options).position,
-    masksrcfn: (options: NPCSidebarOptions) => kaijuMask(options) || [nnpc(options).close_up_mask, 'img/face/masks/left.png']
+    masksrcfn: (options: NPCSidebarOptions) => kaiju_mask(options) || 'img/face/masks/left.png'
   }),
   nnpc_cow_ear_right: ears('cow', true, {
     zfn: (options: NPCSidebarOptions) => z('ears') + 0.5 + nnpc(options).position,
-    masksrcfn: (options: NPCSidebarOptions) => kaijuMask(options) || [nnpc(options).close_up_mask, 'img/face/masks/right.png']
+    masksrcfn: (options: NPCSidebarOptions) => kaiju_mask(options) || 'img/face/masks/right.png'
   }),
   nnpc_cow_tag: ears('cow', false, { src: 'img/transformations/cow/ears/tag.png', srcfn: undefined, filtersfn: () => [], zfn: (options: NPCSidebarOptions) => z('facewear') + nnpc(options).position }),
   nnpc_cow_tail: tail('cow', true),
@@ -220,7 +221,9 @@ const transformation_layers = {
     zfn: (options: NPCSidebarOptions) => z('irisacc') + nnpc(options).position,
     masksrcfn: (options: NPCSidebarOptions) => {
       const data = nnpc(options);
-      return kaijuMask(options) || [data.close_up_mask, { path: `img/face/${data.facestyle}/${data.facevariant}/iris.png`, convert: true }];
+      const iris = { path: `img/face/${data.facestyle}/${data.facevariant}/iris.png`, convert: true };
+      const costume = kaiju_mask(options);
+      return costume ? [iris, costume] : iris;
     }
   }),
   nnpc_bird_malar: part('bird', 'feathers', 'malar'),

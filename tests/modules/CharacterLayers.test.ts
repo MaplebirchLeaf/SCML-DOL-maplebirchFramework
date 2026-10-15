@@ -6,10 +6,10 @@ mock.module('../../src/core', () => ({ default: {} }));
 
 const { default: Character } = await import('../../src/modules/Character');
 
-function withCharacterLayers(run: (character: InstanceType<typeof Character>, create: (layers: CanvasLayerMap) => CanvasModel) => void): void {
+function withCharacterLayers(run: (character: InstanceType<typeof Character>, create: (layers: CanvasLayerMap, name?: string) => CanvasModel) => void): void {
   const originalRenderer = Object.getOwnPropertyDescriptor(globalThis, 'Renderer');
   Object.defineProperty(globalThis, 'Renderer', { value: { CanvasModels: {} }, configurable: true });
-  const core = { host: { modLoader: undefined }, once() {}, tool: { define() {}, defineS() {} } } as unknown as MaplebirchCore;
+  const core = { host: { modLoader: undefined }, on() {}, once() {}, var: { check() {} }, tool: { define() {}, defineS() {} } } as unknown as MaplebirchCore;
   const character = new Character(core);
   class BaseModel {
     public readonly name: string;
@@ -25,7 +25,7 @@ function withCharacterLayers(run: (character: InstanceType<typeof Character>, cr
   }
   try {
     const PatchedModel = character.patchCanvasModel(BaseModel as unknown as CanvasModelConstructor);
-    run(character, layers => new PatchedModel({ name: 'main', width: 256, height: 256, layers }));
+    run(character, (layers, name = 'main') => new PatchedModel({ name, width: 256, height: 256, layers }));
   } finally {
     if (originalRenderer) Object.defineProperty(globalThis, 'Renderer', originalRenderer);
     else Reflect.deleteProperty(globalThis, 'Renderer');
@@ -98,5 +98,159 @@ test('PC pet retains native carried prop layers and excludes scenery and NPC lay
     expect(layers.prop.showfn?.(options)).toBe(true);
     expect(layers.prop.srcfn?.(options)).toBe('img/clothes/props/fish/caught_haddock.png');
     expect(layers.prop.showfn?.({ prop: { show: false } })).toBe(false);
+  });
+});
+
+test('NPC hair retains sidebar clipping together with headwear masks', async () => {
+  const { default: layers } = await import('../../src/modules/NamedNPCAddon/NPCSidebarConfig/base_layers');
+  for (const name of ['nnpc_hair_sides', 'nnpc_hair_fringe', 'nnpc_hair_extra'] as const) {
+    const options: any = { maplebirch: { nnpc: { close_up_mask: 'sidebar-mask', head_mask: ['sidebar-mask', 'nun-mask'], clothes: { over_upper: {} } } } };
+    expect(layers[name].masksrcfn(options)).toEqual([{ path: 'sidebar-mask', convert: true }, 'nun-mask']);
+    options.maplebirch.nnpc.head_mask = ['sidebar-mask'];
+    expect(layers[name].masksrcfn(options)).toBe('sidebar-mask');
+  }
+});
+
+test('NPC costume and fringe fallback masks also retain sidebar clipping', async () => {
+  const { default: layers } = await import('../../src/modules/NamedNPCAddon/NPCSidebarConfig/base_layers');
+  const options: any = { maplebirch: { nnpc: { close_up_mask: 'sidebar-mask', head_mask: ['sidebar-mask'], fringe_mask_src: 'fringe-mask', clothes: { over_upper: { name: 'kaiju costume' } } } } };
+  for (const name of ['nnpc_hair_sides', 'nnpc_hair_fringe', 'nnpc_hair_extra'] as const) {
+    expect(layers[name].masksrcfn(options)).toEqual([{ path: 'sidebar-mask', convert: true }, 'img/clothes/over-upper/kaiju/mask.png']);
+  }
+  options.maplebirch.nnpc.clothes.over_upper.name = 'naked';
+  expect(layers.nnpc_hair_fringe.masksrcfn(options)).toEqual([{ path: 'sidebar-mask', convert: true }, 'fringe-mask']);
+});
+
+test('NPC clothing retains sidebar clipping with costume and handheld masks', async () => {
+  const { clothes_basic } = await import('../../src/modules/NamedNPCAddon/NPCSidebarConfig/functions');
+  const { default: layers } = await import('../../src/modules/NamedNPCAddon/NPCSidebarConfig/head_layers');
+  const options: any = { maplebirch: { nnpc: { close_up_mask: 'sidebar-mask', clothes: { over_upper: { name: 'kaiju costume' }, handheld: { mask_img: 1, variable: 'parasol' } } } } };
+  expect(clothes_basic('upper').masksrcfn(options)).toEqual(['sidebar-mask', 'img/clothes/over-upper/kaiju/mask.png']);
+  options.maplebirch.nnpc.clothes.over_upper.name = 'naked';
+  for (const name of ['nnpc_head_main', 'nnpc_head_acc', 'nnpc_head_detail', 'nnpc_head_back', 'nnpc_head_back_acc'] as const) {
+    expect(layers[name].masksrcfn?.(options)).toEqual(['sidebar-mask', 'img/clothes/handheld/parasol/mask.png']);
+  }
+});
+
+test('NPC transformation masks intersect sidebar clipping with wing sides and headwear', async () => {
+  const { default: layers } = await import('../../src/modules/NamedNPCAddon/NPCSidebarConfig/transformation_layers');
+  const options: any = { maplebirch: { nnpc: { close_up_mask: 'sidebar-mask', head_mask: ['sidebar-mask', 'headwear-mask'], clothes: { over_upper: {} } } } };
+  for (const type of ['angel', 'fallen', 'bird'] as const) {
+    for (const side of ['left', 'right'] as const) {
+      const layer = layers[`nnpc_${type}_wings_${side}`];
+      expect(layer.masksrcfn(options)).toEqual([{ path: 'sidebar-mask', convert: true }, `img/face/masks/${side}.png`]);
+      options.maplebirch.nnpc[`${type}_wing_${side}`] = 'cover';
+      expect(layer.masksrcfn(options)).toBe('sidebar-mask');
+    }
+  }
+  for (const name of ['nnpc_wolf_ears', 'nnpc_cat_ears', 'nnpc_fox_ears', 'nnpc_cow_horns', 'nnpc_demon_horns'] as const) {
+    expect(layers[name].masksrcfn(options)).toEqual([{ path: 'sidebar-mask', convert: true }, 'headwear-mask']);
+  }
+  options.maplebirch.nnpc.hide_head_acc = true;
+  expect(layers.nnpc_wolf_ears.masksrcfn(options)).toBe('sidebar-mask');
+  options.maplebirch.nnpc.cow_horns_layer = 'front';
+  expect(layers.nnpc_cow_horns.masksrcfn(options)).toBe('sidebar-mask');
+  for (const side of ['left', 'right'] as const) {
+    expect(layers[`nnpc_cow_ear_${side}`].masksrcfn(options)).toEqual([{ path: 'sidebar-mask', convert: true }, `img/face/masks/${side}.png`]);
+  }
+});
+
+test('NPC costume masks preserve sidebar clipping and bird iris shape', async () => {
+  const { default: transformations } = await import('../../src/modules/NamedNPCAddon/NPCSidebarConfig/transformation_layers');
+  const { default: fluids } = await import('../../src/modules/NamedNPCAddon/NPCSidebarConfig/fluids_layers');
+  const options: any = { maplebirch: { nnpc: { close_up_mask: 'sidebar-mask', facestyle: 'default', facevariant: 'classic', clothes: { over_upper: { name: 'kaiju costume' } } } } };
+  for (const layer of [...Object.values(transformations), ...Object.values(fluids)]) {
+    const masks = layer.masksrcfn(options);
+    expect(masks).toContainEqual({ path: 'sidebar-mask', convert: true });
+    expect(masks).toContain('img/clothes/over-upper/kaiju/mask.png');
+  }
+  expect(transformations.nnpc_bird_eyes.masksrcfn(options)).toContainEqual({ path: 'img/face/default/classic/iris.png', convert: true });
+});
+
+test('PC hair keeps both colour partitions under headwear and costume masks', () => {
+  withCharacterLayers((character, create) => {
+    character.preInit();
+    const layers = create({ hair_sides: { src: 'hair' }, hair_fringe: { src: 'fringe' } }).layers;
+    const options: any = {
+      show_hair: true,
+      hair_sides_type: 'neat',
+      hair_fringe_type: 'middlepart',
+      hair_colour_style: 'gradient',
+      hair_fringe_colour_style: 'gradient',
+      headMask: ['hat-mask', 'umbrella-mask'],
+      maplebirch: { char: { mask_src: 'body-clip', mask_src_close_up: 'portrait-clip' } },
+      worn: { over_upper: { setup: {} } }
+    };
+    for (const part of ['sides', 'fringe']) {
+      const body = layers[`hair_${part}`];
+      const portrait = layers[`hair_${part}_close_up`];
+      expect(portrait.showfn?.(options)).toBe(true);
+      expect(body.masksrcfn?.(options)).toEqual([{ path: 'body-clip', convert: true }, 'hat-mask', 'umbrella-mask']);
+      expect(portrait.masksrcfn?.(options)).toEqual([{ path: 'portrait-clip', convert: true }, 'hat-mask', 'umbrella-mask']);
+      options.worn.over_upper.setup.name = 'kaiju costume';
+      expect(body.masksrcfn?.(options)).toEqual([{ path: 'body-clip', convert: true }, 'img/clothes/over-upper/kaiju/mask.png']);
+      expect(portrait.masksrcfn?.(options)).toEqual([{ path: 'portrait-clip', convert: true }, 'img/clothes/over-upper/kaiju/mask.png']);
+      options.worn.over_upper.setup.name = 'naked';
+    }
+    expect(layers.hair_sides_close_up.filtersfn?.(options)).toEqual(['hair_close_up']);
+    expect(layers.hair_fringe_close_up.filtersfn?.(options)).toEqual(['hair_fringe_close_up']);
+    options.show_hair = false;
+    expect(layers.hair_sides_close_up.showfn?.(options)).toBe(false);
+    expect(layers.hair_fringe_close_up.showfn?.(options)).toBe(false);
+  });
+});
+
+test('PC hair retains unmasked and hairstyle-specific fallback behaviour', () => {
+  withCharacterLayers((character, create) => {
+    character.preInit();
+    const layers = create({ hair_sides: { src: 'hair' }, hair_fringe: { src: 'fringe' } }).layers;
+    const options: any = {
+      show_hair: true,
+      hair_fringe_type: 'fro',
+      headMask: [],
+      maplebirch: { char: { mask_src: 'body-clip', mask_src_close_up: 'portrait-clip' } }
+    };
+    expect(layers.hair_sides.masksrcfn?.(options)).toBe('body-clip');
+    expect(layers.hair_sides_close_up.masksrcfn?.(options)).toBe('portrait-clip');
+    expect(layers.hair_fringe.masksrcfn?.(options)).toBe('body-clip');
+    options.fringe_mask_src = 'fro-mask';
+    expect(layers.hair_fringe.masksrcfn?.(options)).toEqual([{ path: 'body-clip', convert: true }, 'fro-mask']);
+    expect(layers.hair_fringe_close_up.masksrcfn?.(options)).toEqual([{ path: 'portrait-clip', convert: true }, 'fro-mask']);
+    expect(layers.hair_fringe_close_up.showfn?.(options)).toBe(true);
+  });
+});
+
+test('PC pet executes explicitly targeted processors without main-only processors or layers', () => {
+  withCharacterLayers((character, create) => {
+    const calls: string[] = [];
+    character.use('pre', () => calls.push('main'), 'main');
+    character.use('pre', () => calls.push('pet'), character.pet.modelName);
+    character.use({ main_only: { src: 'main.png' } }, 'main');
+    create({}).preprocess({});
+    expect(calls).toEqual(['main']);
+    const pet = create({ native_pet: { src: 'pet.png' } }, character.pet.modelName);
+    pet.preprocess({});
+    expect(calls).toEqual(['main', 'pet']);
+    expect(Object.keys(pet.layers)).toEqual(['native_pet']);
+  });
+});
+
+test('PC back hair and pet hair combine headwear without portrait partition clipping', () => {
+  withCharacterLayers((character, create) => {
+    character.preInit();
+    const main = create({ hair_sides: { src: 'hair' }, hair_fringe: { src: 'fringe' }, hair_extra: { src: 'back' } });
+    const pet = (Renderer.CanvasModels as Record<string, CanvasModelOptions>).pet.layers;
+    const options: any = {
+      headMask: ['hat-mask', 'umbrella-mask'],
+      maplebirch: { char: { mask_src: 'body-clip', mask_src_close_up: 'portrait-clip' } }
+    };
+    const expected = [{ path: 'hat-mask', convert: true }, 'umbrella-mask'];
+    expect(main.layers.hair_extra.masksrcfn?.(options)).toEqual(expected);
+    for (const name of ['hair_sides', 'hair_fringe', 'hair_extra']) expect(pet[name].masksrcfn?.(options)).toEqual(expected);
+    expect(pet.hair_sides_close_up).toBeUndefined();
+    options.headMask = [];
+    expect(pet.hair_sides.masksrcfn?.(options)).toBeUndefined();
+    options.fringe_mask_src = 'fro-mask';
+    expect(pet.hair_fringe.masksrcfn?.(options)).toBe('fro-mask');
   });
 });

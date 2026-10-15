@@ -1,15 +1,15 @@
 // ./src/modules/NamedNPCAddon/NPCSidebarConfig/head_layers.ts
 
-import { gray_suffix, clothes_layer, clothes_back, clothes_back_acc, kaijuMask, isAltPosition } from './functions';
+import { gray_suffix, clothes_layer, clothes_back, clothes_back_acc, kaiju_mask, isAltPosition } from './functions';
 
 import type { NPCSidebarOptions } from './types';
 
 function headMask(options: NPCSidebarOptions, back = false) {
   const nnpc = options.maplebirch.nnpc;
-  const costume = kaijuMask(options);
-  if (costume) return costume;
+  const costume = kaiju_mask(options);
+  if (costume) return [nnpc.close_up_mask, costume];
   const handheld = nnpc.clothes.handheld;
-  if (handheld?.mask_img === 1) return `img/clothes/handheld/${handheld.variable}/mask.png`;
+  if (handheld?.mask_img === 1) return [nnpc.close_up_mask, `img/clothes/handheld/${handheld.variable}/mask.png`];
   return back ? nnpc.head_mask : nnpc.close_up_mask;
 }
 

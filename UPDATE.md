@@ -1,3 +1,17 @@
+##### (v.5.4.6更新日志):
+
+- 修复 NPC 头发、转化、头饰和污渍的复合遮罩，侧栏裁切可与帽子、手持物、怪兽服及局部遮罩同时生效。
+- PC 立绘与特写保留各自的发色渐变，戴帽、撑伞时不再取消特写分区；补齐后发和桌宠的多遮罩处理。
+- PC 桌宠支持显式指定的角色预处理器，主模型处理器和分区图层仍按各自目标运行。
+- 补充遮罩与桌宠回归检查，并用原版渲染器验证两帧裁切结果。
+
+**English**
+
+- Combine NPC hair, transformation, headwear and fluid masks with sidebar clipping, retaining hats, handheld items, costumes and local masks together.
+- Keep separate hair gradients for the PC model and close-up while wearing hats or holding umbrellas. Cover back hair and pet mask combinations as well.
+- Run explicitly targeted character processors for the PC pet while retaining model-specific processor and layer selection.
+- Add mask and pet regression coverage and verify both sprite frames with the native renderer.
+
 ##### (v.5.4.5更新日志):
 
 - 修复环境音的 Blob 加载被原版内容安全策略（CSP）拦截、反复报错且无法播放的问题，改为读取音频包后在内存中解码。

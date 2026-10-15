@@ -1,7 +1,7 @@
 // ./src/modules/NamedNPCAddon/NPCSidebarConfig/fluids_layers.ts
 
 import maplebirch from '../../../core';
-import { kaijuMask } from './functions';
+import { kaiju_mask, sidebar_mask } from './functions';
 
 import type { NPCSidebarOptions, NPCSidebarState } from './types';
 
@@ -20,7 +20,7 @@ function face_uncovered(nnpc: NPCSidebarState) {
 function cum_layer(file: string, prop: string, z: (nnpc: NPCSidebarState) => number, show?: (nnpc: NPCSidebarState) => boolean) {
   return {
     masksrcfn: (options: NPCSidebarOptions) => {
-      return kaijuMask(options) || options.maplebirch.nnpc.close_up_mask;
+      return sidebar_mask(options, kaiju_mask(options));
     },
     srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;

@@ -183,21 +183,35 @@ function kaiju_mask(options: HairGradientPreprocessOptions): string | undefined 
   if (options.worn?.over_upper?.setup?.name === 'kaiju costume') return 'img/clothes/over-upper/kaiju/mask.png';
 }
 
+function hair_mask(options: HairGradientPreprocessOptions, part: 'sides' | 'fringe' = 'sides', clip?: string): CanvasLayerMaskSrc {
+  const native = kaiju_mask(options) || (options.headMask?.length ? options.headMask : part === 'fringe' ? options.fringe_mask_src : undefined);
+  const masks = native ? (Array.isArray(native) ? [...native] : [native]) : [];
+  if (clip) masks.unshift(clip);
+  return masks.length > 1 ? [{ path: masks[0], convert: true }, ...masks.slice(1)] : masks[0];
+}
+
+const hair_layers: CanvasLayerMap = {
+  hair_sides: { masksrcfn: options => hair_mask(options) },
+  hair_fringe: { masksrcfn: options => hair_mask(options, 'fringe') },
+  hair_extra: { masksrcfn: options => hair_mask(options) }
+};
+
 const layers: CanvasLayerMap = {
+  ...hair_layers,
   hair_sides: {
     masksrcfn(options: HairGradientPreprocessOptions) {
-      return kaiju_mask(options) || (options.headMask?.length ? options.headMask : options.maplebirch?.char?.mask_src);
+      return hair_mask(options, 'sides', options.maplebirch?.char?.mask_src);
     }
   },
   hair_sides_close_up: {
     masksrcfn(options: HairGradientPreprocessOptions) {
-      return kaiju_mask(options) || options.maplebirch?.char?.mask_src_close_up;
+      return hair_mask(options, 'sides', options.maplebirch?.char?.mask_src_close_up);
     },
     srcfn(options: HairGradientPreprocessOptions) {
       return `img/hair/sides/${options.hair_sides_type}/${options.hair_sides_length}.png`;
     },
     showfn(options: HairGradientPreprocessOptions) {
-      return !!options.show_hair && !!options.hair_sides_type && !options.headMask?.length;
+      return !!options.show_hair && !!options.hair_sides_type;
     },
     zfn(options: HairGradientPreprocessOptions) {
       return options.hair_sides_position === 'front' ? maplebirch.char.ZIndices.hair_forward : maplebirch.char.ZIndices.backhair;
@@ -209,18 +223,18 @@ const layers: CanvasLayerMap = {
   },
   hair_fringe: {
     masksrcfn(options: HairGradientPreprocessOptions) {
-      return kaiju_mask(options) || (options.headMask?.length ? options.headMask : options.fringe_mask_src || options.maplebirch?.char?.mask_src);
+      return hair_mask(options, 'fringe', options.maplebirch?.char?.mask_src);
     }
   },
   hair_fringe_close_up: {
     masksrcfn(options: HairGradientPreprocessOptions) {
-      return kaiju_mask(options) || options.maplebirch?.char?.mask_src_close_up;
+      return hair_mask(options, 'fringe', options.maplebirch?.char?.mask_src_close_up);
     },
     srcfn(options: HairGradientPreprocessOptions) {
       return `img/hair/fringe/${options.hair_fringe_type}/${options.hair_fringe_length}.png`;
     },
     showfn(options: HairGradientPreprocessOptions) {
-      return !!options.show_hair && !!options.hair_fringe_type && !options.headMask?.length && !options.fringe_mask_src;
+      return !!options.show_hair && !!options.hair_fringe_type;
     },
     zfn() {
       return maplebirch.char.ZIndices.front_hair;
@@ -385,9 +399,9 @@ class Character {
       model.layerList = Object.values(model.layers);
     };
     const patchModel = (model: CanvasModel) => {
-      if (model.name === pet.modelName) return model;
       patchProcess(model);
-      patchCachedLayers(model);
+      // 桌宠只执行显式面向它的处理器，图层仍由 Pet.capture 独立收集。
+      if (model.name !== pet.modelName) patchCachedLayers(model);
       return model;
     };
     return class PatchedCanvasModel extends BaseCanvasModel {
@@ -456,6 +470,7 @@ class Character {
     core.on(':passageend', () => void pet.sync());
     this.use('pre', preprocess, 'main');
     this.use(layers, 'main');
+    this.pet.use(hair_layers);
   }
 
   public Init(): void {

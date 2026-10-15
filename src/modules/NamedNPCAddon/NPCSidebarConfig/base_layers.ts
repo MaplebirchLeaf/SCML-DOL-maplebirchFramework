@@ -2,15 +2,10 @@
 
 import maplebirch from '../../../core';
 import ImageLoader from '../../Frameworks/ImageLoader';
-import { kaijuMask, nnpc_sidepart, selected_art } from './functions';
+import { kaiju_mask, sidebar_mask, nnpc_sidepart, selected_art } from './functions';
 
 import type { NPCSidebarOptions } from './types';
 import dol from '../../../host/DoL';
-
-function hair_mask(headMask: string[], closeUpMask: string, fallbackMask: string | undefined = closeUpMask): string | string[] | undefined {
-  const head_masks = headMask.filter(mask => mask !== closeUpMask);
-  return head_masks.length ? head_masks : fallbackMask;
-}
 
 const base_layers = {
   nnpc_body: {
@@ -436,7 +431,7 @@ const base_layers = {
   nnpc_hair_sides: {
     masksrcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
-      return kaijuMask(options) || hair_mask(nnpc.head_mask, nnpc.close_up_mask);
+      return sidebar_mask(options, kaiju_mask(options) || nnpc.head_mask);
     },
     srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
@@ -463,10 +458,8 @@ const base_layers = {
   nnpc_hair_fringe: {
     masksrcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
-      const costumeMask = kaijuMask(options);
-      if (costumeMask) return costumeMask;
-
-      return hair_mask(nnpc.head_mask, nnpc.close_up_mask, nnpc.fringe_mask_src || nnpc.close_up_mask);
+      const headMask = nnpc.head_mask.some(mask => mask !== nnpc.close_up_mask) ? nnpc.head_mask : nnpc.fringe_mask_src || undefined;
+      return sidebar_mask(options, kaiju_mask(options) || headMask);
     },
     srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
@@ -492,7 +485,7 @@ const base_layers = {
   nnpc_hair_extra: {
     masksrcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
-      return kaijuMask(options) || hair_mask(nnpc.head_mask, nnpc.close_up_mask);
+      return sidebar_mask(options, kaiju_mask(options) || nnpc.head_mask);
     },
     srcfn: (options: NPCSidebarOptions) => {
       const nnpc = options.maplebirch.nnpc;
