@@ -1,3 +1,15 @@
+##### (v.5.4.4更新日志):
+
+- 修复环境音被浏览器拦截或意外中断后无法恢复的问题，解锁后重试当前音轨。
+- 等待音频解锁时复用同一播放请求，避免连续翻页叠播或积压音量渐变；切换场景、关闭后不再恢复旧音轨。
+- 补充同曲恢复、浏览器解锁、音量调整和场景切换的回归检查。
+
+**English**
+
+- Recover the current ambience after browser playback restrictions or an unexpected interruption.
+- Reuse a pending playback request while waiting for audio unlock, preventing duplicate loops and queued fades during repeated page changes. Do not revive old tracks after a scene change or stop.
+- Add regression coverage for loop recovery, audio unlock, volume changes and scene transitions.
+
 ##### (v.5.4.3更新日志):
 
 - 扩展 AI Repair 的多目标方案：源码支持替换、插入与删除，变量支持 `set / delete / rename / copy / merge / fill`。从错误日志和相关当前源码的明确静态路径自动发现诊断相关存档字段，取消作者路径、schema 与所属模组登记门槛，不区分游戏原版与模组变量，服务层通过宿主读取实际值，不绑定 DoL 变量名。

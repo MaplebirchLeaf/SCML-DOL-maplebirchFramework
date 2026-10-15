@@ -5,6 +5,8 @@ interface Loop {
   key: string;
   howl: Howl;
   url: string;
+  id?: number;
+  pending: boolean;
 }
 
 class Ambience {
@@ -23,6 +25,7 @@ class Ambience {
     const duration = this.duration(fadeMs);
     if (this.active?.key === key) {
       this.request++;
+      this.resume(this.active);
       this.setVolume(targetVolume, duration);
       return true;
     }
@@ -36,6 +39,10 @@ class Ambience {
     const url = URL.createObjectURL(new Blob([buffer], { type: `audio/${format}` }));
     let loading: Howl | undefined;
     let howl: Howl;
+    const settled = () => {
+      const active = this.active;
+      if (active && active.howl === loading) active.pending = false;
+    };
     try {
       howl = await new Promise<Howl>((resolve, reject) => {
         loading = this.create({
@@ -44,7 +51,13 @@ class Ambience {
           loop: true,
           volume: 0,
           onload: () => resolve(loading!),
-          onloaderror: (_id, error) => reject(error)
+          onloaderror: (_id, error) => reject(error),
+          onplay: settled,
+          onplayerror: settled,
+          onunlock: () => {
+            const active = this.active;
+            if (active && active.howl === loading) this.resume(active);
+          }
         });
       });
     } catch (error) {
@@ -52,14 +65,14 @@ class Ambience {
       URL.revokeObjectURL(url);
       throw error;
     }
-    const next = { key, howl, url };
+    const next: Loop = { key, howl, url, pending: false };
     if (request !== this.request) {
       this.dispose(next);
       return false;
     }
     const previous = this.active;
     try {
-      howl.play();
+      this.resume(next);
       if (duration) howl.fade(0, targetVolume, duration);
       else howl.volume(targetVolume);
     } catch (error) {
@@ -74,7 +87,7 @@ class Ambience {
   public setVolume(volume: number, fadeMs = 100): void {
     if (!this.active) return;
     const target = this.clamp(volume);
-    const duration = this.duration(fadeMs);
+    const duration = this.active.pending ? 0 : this.duration(fadeMs);
     if (duration) this.active.howl.fade(this.active.howl.volume(), target, duration);
     else this.active.howl.volume(target);
   }
@@ -84,6 +97,17 @@ class Ambience {
     const current = this.active;
     this.active = null;
     if (current) this.fadeOut(current, this.duration(fadeMs));
+  }
+
+  private resume(loop: Loop): void {
+    if (loop.pending || loop.howl.playing()) return;
+    loop.pending = true;
+    try {
+      loop.id = loop.howl.play(loop.id);
+    } catch (error) {
+      loop.pending = false;
+      throw error;
+    }
   }
 
   private fadeOut(loop: Loop, duration: number): void {
