@@ -1,10 +1,10 @@
 import { Howl, type HowlOptions } from 'howler';
 import type ModLoader from '../../host/ModLoader';
+import { bytesToBase64 } from '../../utils/binary';
 
 interface Loop {
   key: string;
   howl: Howl;
-  url: string;
   id?: number;
   pending: boolean;
 }
@@ -35,8 +35,7 @@ class Ambience {
     const bytes = await file.async('uint8array');
     if (request !== this.request) return false;
     const format = path.split('.').pop()?.toLowerCase() ?? '';
-    const buffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
-    const url = URL.createObjectURL(new Blob([buffer], { type: `audio/${format}` }));
+    const src = `data:audio/${format};base64,${bytesToBase64(bytes)}`;
     let loading: Howl | undefined;
     let howl: Howl;
     const settled = () => {
@@ -46,7 +45,7 @@ class Ambience {
     try {
       howl = await new Promise<Howl>((resolve, reject) => {
         loading = this.create({
-          src: [url],
+          src: [src],
           format: [format],
           loop: true,
           volume: 0,
@@ -62,10 +61,9 @@ class Ambience {
       });
     } catch (error) {
       loading?.unload();
-      URL.revokeObjectURL(url);
       throw error;
     }
-    const next: Loop = { key, howl, url, pending: false };
+    const next: Loop = { key, howl, pending: false };
     if (request !== this.request) {
       this.dispose(next);
       return false;
@@ -124,7 +122,6 @@ class Ambience {
   private dispose(loop: Loop): void {
     loop.howl.stop();
     loop.howl.unload();
-    URL.revokeObjectURL(loop.url);
   }
 
   private clamp(volume: number): number {

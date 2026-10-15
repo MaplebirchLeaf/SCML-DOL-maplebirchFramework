@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test';
 import type { Howl, HowlOptions } from 'howler';
 import type ModLoader from '../../src/host/ModLoader';
 import Ambience from '../../src/modules/AudioAddon/Ambience';
+import { bytesToBase64 } from '../../src/utils/binary';
 
 class FakeHowl {
   public readonly fades: Array<[number, number, number]> = [];
@@ -12,7 +13,7 @@ class FakeHowl {
   public playCalls = 0;
   private level: number;
 
-  public constructor(private readonly options: HowlOptions) {
+  public constructor(public readonly options: HowlOptions) {
     this.level = options.volume ?? 1;
     queueMicrotask(() => options.onload?.(1));
   }
@@ -87,20 +88,46 @@ class TestAmbience extends Ambience {
   }
 }
 
-test('ambience loads an optional mod ZIP track and crossfades without a raw AudioContext', async () => {
+test('ambience decodes ZIP bytes in memory without creating blob URLs', async () => {
   const originalCreate = URL.createObjectURL;
   const originalRevoke = URL.revokeObjectURL;
-  const revoked: string[] = [];
-  let urls = 0;
-  URL.createObjectURL = () => `blob:test-${++urls}`;
-  URL.revokeObjectURL = url => void revoked.push(url);
+  const bytes = new Uint8Array([11, 0, 127, 128, 255, 12]).subarray(1, 5);
+  const modloader = {
+    modLoader: { getModZip: () => ({ zip: { file: () => ({ async: async () => bytes }) } }) }
+  } as unknown as ModLoader;
+  const channel = new TestAmbience(modloader);
+  URL.createObjectURL = () => {
+    throw new Error('Game CSP blocks blob audio requests');
+  };
+  URL.revokeObjectURL = () => {
+    throw new Error('In-memory audio must not manage blob URLs');
+  };
   try {
-    const modloader = {
-      modLoader: {
-        getModZip: () => ({ zip: { file: (path: string) => (path.endsWith('.ogg') ? { async: async () => new Uint8Array([1, 2, 3]) } : null) } })
-      }
-    } as unknown as ModLoader;
-    const channel = new TestAmbience(modloader);
+    expect(await channel.play('audio-pack', 'audio/rain.ogg', 0.3, 0)).toBe(true);
+    const options = channel.sounds[0].options;
+    expect(options.src).toEqual([`data:audio/ogg;base64,${bytesToBase64(bytes)}`]);
+    expect(options.src).toEqual(['data:audio/ogg;base64,AH+A/w==']);
+    const source = (options.src as string[])[0];
+    expect(Uint8Array.from(atob(source.split(',')[1]), character => character.charCodeAt(0))).toEqual(bytes);
+    expect(options.format).toEqual(['ogg']);
+    expect(options.loop).toBe(true);
+    channel.stop(0);
+    expect(channel.sounds[0].disposed).toBe(true);
+  } finally {
+    URL.createObjectURL = originalCreate;
+    URL.revokeObjectURL = originalRevoke;
+    channel.stop(0);
+  }
+});
+
+test('ambience loads an optional mod ZIP track and crossfades without a raw AudioContext', async () => {
+  const modloader = {
+    modLoader: {
+      getModZip: () => ({ zip: { file: (path: string) => (path.endsWith('.ogg') ? { async: async () => new Uint8Array([1, 2, 3]) } : null) } })
+    }
+  } as unknown as ModLoader;
+  const channel = new TestAmbience(modloader);
+  try {
     expect(await channel.play('audio-pack', 'audio/rain.ogg', 0.3, 0)).toBe(true);
     expect(channel.sounds[0].played).toBe(true);
     expect(channel.sounds[0].volume()).toBe(0.3);
@@ -112,14 +139,11 @@ test('ambience loads an optional mod ZIP track and crossfades without a raw Audi
     expect(channel.sounds[0].fades).toContainEqual([0.5, 0, 5]);
     await Bun.sleep(10);
     expect(channel.sounds[0].disposed).toBe(true);
-    expect(revoked).toContain('blob:test-1');
     channel.stop(0);
     expect(channel.sounds[1].disposed).toBe(true);
-    expect(revoked).toContain('blob:test-2');
     expect(await channel.play('audio-pack', 'audio/missing.mp3')).toBe(false);
   } finally {
-    URL.createObjectURL = originalCreate;
-    URL.revokeObjectURL = originalRevoke;
+    channel.stop(0);
   }
 });
 

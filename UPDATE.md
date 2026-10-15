@@ -1,3 +1,15 @@
+##### (v.5.4.5更新日志):
+
+- 修复环境音的 Blob 加载被原版内容安全策略（CSP）拦截、反复报错且无法播放的问题，改为读取音频包后在内存中解码。
+- 保留环境音循环、渐变、音量、恢复和场景切换；无需修改游戏 CSP。
+- 补充无 Blob 请求的回归检查，并使用实际发行代码在原版 CSP 下验证雨声与雷雨。
+
+**English**
+
+- Fix ambience failing to load under the game's Content Security Policy (CSP). Decode audio pack bytes in memory instead of requesting Blob URLs.
+- Retain looping, fades, volume, recovery and scene transitions without changing the game's CSP.
+- Add regression coverage without Blob requests and verify rain and thunderstorms using emitted release code under the original CSP.
+
 ##### (v.5.4.4更新日志):
 
 - 修复环境音被浏览器拦截或意外中断后无法恢复的问题，解锁后重试当前音轨。
