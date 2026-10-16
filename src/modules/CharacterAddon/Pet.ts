@@ -311,7 +311,9 @@ class Pet extends FloatingPet {
     if (!mainModel?.layers || models[PET.model]) return;
 
     const layers = Object.fromEntries(Object.entries(mainModel.layers).filter(([name]) => isPetLayer(name))) as CanvasLayerMap;
-    for (const petLayerMap of this.layers) { for (const [name, layer] of Object.entries(petLayerMap)) layers[name] = { ...layers[name], ...layer }; } 
+    for (const petLayerMap of this.layers) {
+      for (const [name, layer] of Object.entries(petLayerMap)) layers[name] = { ...layers[name], ...layer };
+    }
 
     models[PET.model] = {
       ...mainModel,

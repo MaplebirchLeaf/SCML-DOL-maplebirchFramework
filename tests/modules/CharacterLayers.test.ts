@@ -254,3 +254,32 @@ test('PC back hair and pet hair combine headwear without portrait partition clip
     expect(pet.hair_fringe.masksrcfn?.(options)).toBe('fro-mask');
   });
 });
+
+test('PC pet hair mask patches preserve native image sources and rendering properties', () => {
+  withCharacterLayers((character, create) => {
+    character.preInit();
+    const native: LayerConfig = {
+      srcfn: () => 'img/hair/native.png',
+      showfn: options => !!options.show_hair,
+      filtersfn: () => ['hair'],
+      animation: 'idle',
+      masksrcfn: () => 'native-mask'
+    };
+    create({ hair_sides: native, hair_fringe: native, hair_extra: native });
+    const layers = (Renderer.CanvasModels as Record<string, CanvasModelOptions>).pet.layers;
+    for (const name of ['hair_sides', 'hair_fringe', 'hair_extra']) {
+      const layer = layers[name];
+      expect(layer).not.toBe(native);
+      expect(layer.srcfn).toBe(native.srcfn);
+      expect(layer.srcfn?.({})).toBe('img/hair/native.png');
+      expect(layer.showfn).toBe(native.showfn);
+      expect(layer.showfn?.({ show_hair: true })).toBe(true);
+      expect(layer.showfn?.({ show_hair: false })).toBe(false);
+      expect(layer.filtersfn).toBe(native.filtersfn);
+      expect(layer.filtersfn?.({})).toEqual(['hair']);
+      expect(layer.animation).toBe('idle');
+      expect(layer.masksrcfn?.({ headMask: ['hat-mask'] })).toBe('hat-mask');
+    }
+    expect(native.masksrcfn?.({})).toBe('native-mask');
+  });
+});
