@@ -1,3 +1,13 @@
+##### (v.5.4.7更新日志):
+
+- 修复 PC 桌宠头发不显示：遮罩扩展按图层属性合并，保留原始图片来源、显示条件、染色与动画配置。
+- 补充三个头发图层的回归检查，验证遮罩覆盖不会修改原始图层。
+
+**English**
+
+- Fix missing PC pet hair by merging mask overrides into each layer while preserving native image sources, visibility, filters and animation.
+- Add regression coverage for all three hair layers and verify that mask overrides leave the original layer unchanged.
+
 ##### (v.5.4.6更新日志):
 
 - 修复 NPC 头发、转化、头饰和污渍的复合遮罩，侧栏裁切可与帽子、手持物、怪兽服及局部遮罩同时生效。
