@@ -77,6 +77,27 @@ switch (process.argv[2]) {
     assert.equal(options().top.newer, true);
     break;
   }
+  case 'settings': {
+    const ready = listeners.get(':storyready');
+    assert.equal(typeof ready, 'function');
+    state = { options: { sidebarStats: 'all' } };
+    ready!();
+    assert.equal(options().relationcount, 4);
+    assert.equal(options().character.pet.scale, 1);
+    assert.equal(options().character.mask, 0);
+    assert.equal(options().npcsidebar.pet.mask, 25);
+    assert.equal(options().Example.effectsEnabled, true);
+    assert.equal(state.options.sidebarStats, 'all');
+    state = oldState();
+    ready!();
+    assert.equal(options().Example.enabled, false);
+    assert.equal(options().Example.volume, 0);
+    assert.equal(options().Example.nested.hint, true);
+    const existing = options();
+    ready!();
+    assert.equal(options(), existing);
+    break;
+  }
   case 'startup': {
     state = oldState();
     variables.Init();

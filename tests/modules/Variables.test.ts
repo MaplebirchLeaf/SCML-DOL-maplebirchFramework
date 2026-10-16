@@ -3,6 +3,7 @@ import path from 'node:path';
 
 for (const [scenario, description] of [
   ['registration', 'fills all option registration forms without replacing player values'],
+  ['settings', 'fills options on storyready before title-screen settings are opened'],
   ['startup', 'fills options before initial state migrations and variable listeners'],
   ['load', 'fills loaded options while retaining false, zero, null and empty arrays'],
   ['history', 'fills options on historical moments without replacing existing objects'],

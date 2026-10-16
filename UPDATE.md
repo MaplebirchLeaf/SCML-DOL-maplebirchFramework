@@ -1,3 +1,11 @@
+##### (v.5.4.11更新日志):
+
+- 在 storyready 阶段补齐框架与模组选项，修复开始页滑块默认值未定义、无法读取 character 配置的报错，保留已有设置。
+
+**English**
+
+- Fill framework and mod option defaults on storyready. Fix undefined slider defaults and missing character settings on the title screen while retaining existing preferences.
+
 ##### (v.5.4.10更新日志):
 
 - 增加可供模组启用的动物转化共存条件，让原版与自定义动物转化共同成长，并停止相互抑制与自然衰退。

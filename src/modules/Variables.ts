@@ -137,6 +137,7 @@ class Variables {
     this.migration = new this.tool.migration();
     this.options = new Options();
     dataUpdate(this.migration);
+    this.core.once(':storyready', () => this.check());
     this.core.on(':rest-options', () => this.check());
   }
 
