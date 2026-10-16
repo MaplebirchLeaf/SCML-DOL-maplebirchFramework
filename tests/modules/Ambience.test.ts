@@ -13,9 +13,12 @@ class FakeHowl {
   public playCalls = 0;
   private level: number;
 
-  public constructor(public readonly options: HowlOptions) {
+  public constructor(
+    public readonly options: HowlOptions,
+    load = true
+  ) {
     this.level = options.volume ?? 1;
-    queueMicrotask(() => options.onload?.(1));
+    if (load) queueMicrotask(() => options.onload?.(1));
   }
 
   public play(): number {
@@ -70,15 +73,21 @@ class FakeHowl {
     this.disposed = true;
     return this;
   }
+
+  public off(): this {
+    return this;
+  }
 }
 
 class TestAmbience extends Ambience {
   public readonly sounds: FakeHowl[] = [];
   public blockNext = false;
   public waitNext = false;
+  public holdNextLoad = false;
 
   protected override create(options: HowlOptions): Howl {
-    const sound = new FakeHowl(options);
+    const sound = new FakeHowl(options, !this.holdNextLoad);
+    this.holdNextLoad = false;
     sound.blocked = this.blockNext;
     sound.awaitingResume = this.waitNext;
     this.blockNext = false;
@@ -274,4 +283,104 @@ test('stopping ambience cancels a ZIP read before playback starts', async () => 
   resolveBytes(new Uint8Array([1, 2, 3]));
   expect(await playing).toBe(false);
   expect(channel.sounds).toHaveLength(0);
+});
+
+test('environment and weather layers refresh independently and stop by layer', async () => {
+  const channel = createChannel();
+  try {
+    expect(await channel.play('pack', 'audio/sea.ogg', 0.3, 0, 'environment')).toBe(true);
+    expect(await channel.play('pack', 'audio/rain.ogg', 0.4, 0, 'weather')).toBe(true);
+    expect(await channel.play('pack', 'audio/sea.ogg', 0.5, 0, 'environment')).toBe(true);
+    expect(channel.sounds).toHaveLength(2);
+    expect(channel.sounds.every(sound => sound.playCalls === 1 && sound.played)).toBe(true);
+    channel.setVolume(0.2, 0, 'weather');
+    expect(channel.sounds[0].volume()).toBe(0.5);
+    expect(channel.sounds[1].volume()).toBe(0.2);
+    channel.stop(0, 'weather');
+    expect(channel.sounds[0].disposed).toBe(false);
+    expect(channel.sounds[1].disposed).toBe(true);
+    expect(await channel.play('pack', 'audio/wind.ogg', 0.2, 0, 'weather')).toBe(true);
+  } finally {
+    channel.stop(0);
+    expect(channel.sounds.every(sound => sound.disposed)).toBe(true);
+  }
+});
+
+test('ambience limits active layers and fading tails', async () => {
+  const channel = createChannel();
+  try {
+    for (let layer = 0; layer < 4; layer++) expect(await channel.play('pack', 'audio/rain.ogg', 0.3, 0, String(layer))).toBe(true);
+    expect(await channel.play('pack', 'audio/wind.ogg', 0.3, 0, 'fifth')).toBe(false);
+    for (let track = 0; track < 6; track++) await channel.play('pack', `audio/${track}.ogg`, 0.3, 1000, '0');
+    expect(channel.sounds.filter(sound => !sound.disposed)).toHaveLength(8);
+  } finally {
+    channel.stop(0);
+    expect(channel.sounds.every(sound => sound.disposed)).toBe(true);
+  }
+});
+
+test('stopping one ambience layer immediately also clears its fading tails', async () => {
+  const channel = createChannel();
+  try {
+    await channel.play('pack', 'audio/rain.ogg', 0.3, 0, 'weather');
+    await channel.play('pack', 'audio/sea.ogg', 0.3, 0, 'place');
+    await channel.play('pack', 'audio/wind.ogg', 0.3, 1000, 'weather');
+    channel.stop(0, 'weather');
+    expect(channel.sounds.map(sound => sound.disposed)).toEqual([true, false, true]);
+  } finally {
+    channel.stop(0);
+  }
+});
+
+test('stopping one ambience layer cancels its pending read without cancelling another layer', async () => {
+  let resolveBytes!: (bytes: Uint8Array) => void;
+  const bytes = new Promise<Uint8Array>(resolve => (resolveBytes = resolve));
+  const modloader = {
+    modLoader: { getModZip: () => ({ zip: { file: (path: string) => ({ async: () => (path.includes('rain') ? bytes : Promise.resolve(new Uint8Array([1]))) }) } }) }
+  } as unknown as ModLoader;
+  const channel = new TestAmbience(modloader);
+  try {
+    const rain = channel.play('pack', 'audio/rain.ogg', 0.2, 0, 'weather');
+    await channel.play('pack', 'audio/sea.ogg', 0.3, 0, 'environment');
+    channel.stop(0, 'weather');
+    resolveBytes(new Uint8Array([1]));
+    expect(await rain).toBe(false);
+    expect(channel.sounds).toHaveLength(1);
+    expect(channel.sounds[0].playing()).toBe(true);
+  } finally {
+    channel.stop(0);
+  }
+});
+
+test('replacing an ambience layer releases its pending decoder before starting the next track', async () => {
+  const channel = createChannel();
+  channel.holdNextLoad = true;
+  try {
+    const old = channel.play('pack', 'audio/old.ogg', 0.2, 0, 'weather');
+    await Bun.sleep(0);
+    expect(channel.sounds).toHaveLength(1);
+    expect(await channel.play('pack', 'audio/new.ogg', 0.2, 0, 'weather')).toBe(true);
+    expect(await old).toBe(false);
+    expect(channel.sounds[0].disposed).toBe(true);
+    expect(channel.sounds[1].playing()).toBe(true);
+  } finally {
+    channel.stop(0);
+  }
+});
+
+test('a failed ambience ZIP read releases its reserved layer', async () => {
+  const modloader = {
+    modLoader: {
+      getModZip: () => ({
+        zip: { file: (path: string) => ({ async: () => (path.includes('bad') ? Promise.reject(new Error('read failed')) : Promise.resolve(new Uint8Array([1]))) }) }
+      })
+    }
+  } as unknown as ModLoader;
+  const channel = new TestAmbience(modloader);
+  try {
+    await expect(channel.play('pack', 'audio/bad.ogg', 0.2, 0, 'bad')).rejects.toThrow('read failed');
+    for (let i = 0; i < 4; i++) expect(await channel.play('pack', 'audio/rain.ogg', 0.2, 0, String(i))).toBe(true);
+  } finally {
+    channel.stop(0);
+  }
 });

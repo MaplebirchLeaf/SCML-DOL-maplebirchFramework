@@ -17,6 +17,23 @@ await maplebirch.trigger(eventName, ...args);
 maplebirch.after(eventName, callback);
 ```
 
+### DOM controls
+
+`on()` receives lifecycle events forwarded by the framework and custom events sent with `trigger()`. Controls handle DOM events such as input `change` and link `click`.
+
+For a Twee interface you own, its container can refresh through `onchange`. To read state before a native link executes, use the passage lifecycle to attach a capture listener to the current content:
+
+```javascript
+function capture(event) {
+  // Read state before this action executes.
+}
+maplebirch.on(':passagerender', (_passage, content) => {
+  content.addEventListener('click', capture, true);
+});
+```
+
+The listener can be collected with the old content instead of remaining on `document`. Registering the same function on the same node again does not add another listener.
+
 ## Example
 
 ```javascript

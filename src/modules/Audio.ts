@@ -1,12 +1,14 @@
 // ./src/modules/Audio.ts
 
-import maplebirch, { MaplebirchCore } from '../core';
+import type { MaplebirchCore } from '../core';
 import type { ScopedLog } from '../infra/Diagnostics';
-import { Howler } from 'howler';
-import AudioBufferPlayer from './AudioAddon/AudioBufferPlayer';
+import { Howler, type Howl, type HowlOptions } from 'howler';
+import { bytesToBase64 } from '../utils/binary';
 import Playlist, { PlayMode, type PlayModeType } from './AudioAddon/Playlist';
 import Track from './AudioAddon/Track';
 import Ambience from './AudioAddon/Ambience';
+import Effects from './AudioAddon/Effects';
+import Sound from './AudioAddon/Sound';
 
 const PlayState = {
   IDLE: 'idle',
@@ -50,8 +52,13 @@ interface AudioRecord {
 }
 
 interface CacheEntry {
-  howl: AudioBufferPlayer;
+  howl: Howl;
   format: AudioFormat;
+}
+
+interface PendingLoad {
+  promise: Promise<CacheEntry>;
+  cancel(): void;
 }
 
 interface AudioProgress {
@@ -75,6 +82,7 @@ interface AudioSnapshot {
 class Audio {
   public readonly log!: ScopedLog;
   public readonly ambience: Ambience;
+  public readonly effects: Effects;
 
   private readonly STORE = 'audio';
 
@@ -82,13 +90,15 @@ class Audio {
   private readonly playlistLoads = new Map<string, Promise<Playlist>>();
   private readonly eventListeners = new Map<string, Set<AudioEventHandler>>();
   private readonly cache = new Map<string, Map<string, CacheEntry>>();
-  private readonly pendingLoads = new Map<string, Promise<CacheEntry>>();
+  private readonly pendingLoads = new Map<string, PendingLoad>();
   private readonly modVolumes = new Map<string, number>();
 
   private activePlaylist: Playlist | null = null;
   private currentTrack: Track | null = null;
   private loadingTrack: Track | null = null;
-  private currentHowl: AudioBufferPlayer | null = null;
+  private currentHowl: Howl | null = null;
+  private currentSoundId: number | null = null;
+  private currentStarted = false;
   private state: PlayStateType = PlayState.IDLE;
   private volume = 1;
   private muted = false;
@@ -103,6 +113,7 @@ class Audio {
 
   public constructor(readonly core: MaplebirchCore) {
     this.ambience = Object.seal(new Ambience(core.host.modLoader));
+    this.effects = Object.seal(new Effects(core.host.modLoader, () => !this.muted && this.volume > 0));
     Howler.mute(this.muted);
     Howler.volume(this.volume);
     this.core.once(':indexedDB', () => this.initDB());
@@ -150,31 +161,41 @@ class Audio {
     this.on(event, wrapper);
   }
 
+  protected create(options: HowlOptions): Howl {
+    if (!Howler.usingWebAudio) throw new Error('WebAudio is not available');
+    return new Sound(options);
+  }
+
   public async play(track: Track): Promise<boolean> {
     const requestId = ++this.playRequestId;
     try {
+      if (this.loadingTrack) this.cancelLoad(this.loadingTrack.modName, this.loadingTrack.audioName);
       this.stopCurrent(false);
       this.state = PlayState.LOADING;
       this.loadingTrack = track;
       this.emit('loading', track);
+      if (requestId !== this.playRequestId) return false;
       const { howl } = await this.load(track);
       if (requestId !== this.playRequestId) return false;
       if (this.cache.get(track.modName)?.get(track.audioName)?.howl !== howl) throw new Error(`音频加载已取消: ${track.modName}/${track.audioName}`);
       this.currentTrack = track;
       this.loadingTrack = null;
       this.currentHowl = howl;
-      howl.volume(this.outputVolume);
-      howl.play();
+      this.currentStarted = false;
+      howl.volume(this.trackVolume);
+      this.currentSoundId = howl.play();
       this.state = PlayState.PLAYING;
       this.startProgressTimer();
       this.emit('play', track);
       return true;
     } catch (error) {
       if (requestId === this.playRequestId) {
+        this.currentHowl = null;
+        this.currentSoundId = null;
+        this.unloadCache(track.modName, track.audioName);
         this.state = PlayState.IDLE;
         this.currentTrack = null;
         this.loadingTrack = null;
-        this.currentHowl = null;
         this.stopProgressTimer();
         this.emit('error', error, track);
         this.log(`播放失败: ${track.modName}/${track.audioName}`, 'ERROR', error);
@@ -185,7 +206,12 @@ class Audio {
 
   public pause(): boolean {
     if (!this.currentHowl || this.state !== PlayState.PLAYING) return false;
-    this.currentHowl.pause();
+    if (this.currentStarted) this.currentHowl.pause();
+    else {
+      this.currentHowl = null;
+      this.currentSoundId = null;
+      this.unloadCache(this.currentTrack!.modName, this.currentTrack!.audioName);
+    }
     this.state = PlayState.PAUSED;
     this.stopProgressTimer();
     this.emit('pause', this.currentTrack);
@@ -193,8 +219,18 @@ class Audio {
   }
 
   public resume(): boolean {
-    if (!this.currentHowl || this.state !== PlayState.PAUSED) return false;
-    this.currentHowl.play();
+    if (!this.currentTrack || this.state !== PlayState.PAUSED) return false;
+    if (!this.currentHowl) {
+      void this.play(this.currentTrack);
+      return true;
+    }
+    this.currentStarted = false;
+    try {
+      this.currentSoundId = this.currentHowl.play();
+    } catch (error) {
+      this.handlePlaybackError(this.currentHowl, this.currentTrack, error);
+      return false;
+    }
     this.state = PlayState.PLAYING;
     this.startProgressTimer();
     this.emit('resume', this.currentTrack);
@@ -203,6 +239,7 @@ class Audio {
 
   public stop(): boolean {
     this.playRequestId++;
+    if (this.loadingTrack) this.cancelLoad(this.loadingTrack.modName, this.loadingTrack.audioName);
     this.loadingTrack = null;
     return this.stopCurrent(true);
   }
@@ -262,14 +299,16 @@ class Audio {
       if (this.playlistLoads.get(modName) !== task) return playlist;
       playlist.clear();
       playlist.add(
-        records.map(record => {
-          const track = new Track(record.audioName, record.modName, {
-            title: record.value.title,
-            artist: record.value.artist
-          });
-          track.format = record.value.format;
-          return track;
-        })
+        records
+          .filter(record => !/^(?:ambience|sfx|voice)\//i.test(record.audioName))
+          .map(record => {
+            const track = new Track(record.audioName, record.modName, {
+              title: record.value.title,
+              artist: record.value.artist
+            });
+            track.format = record.value.format;
+            return track;
+          })
       );
       return playlist;
     });
@@ -299,7 +338,7 @@ class Audio {
   public async import(modName: string, audioFolder = 'audio'): Promise<boolean> {
     const folder = audioFolder.replace(/^\/+|\/+$/g, '');
     const prefix = `${folder}/`;
-    const modZip = maplebirch.host.modLoader.modLoader?.getModZip(modName);
+    const modZip = this.core.host.modLoader.modLoader?.getModZip(modName);
     if (!modZip?.modInfo?.bootJson?.additionFile) return false;
     const audioFiles: Array<{
       path: string;
@@ -390,6 +429,7 @@ class Audio {
 
   public clearCache(): void {
     this.stop();
+    for (const pending of this.pendingLoads.values()) pending.cancel();
     this.pendingLoads.clear();
     for (const modCache of this.cache.values()) for (const entry of modCache.values()) this.release(entry);
     this.cache.clear();
@@ -397,7 +437,8 @@ class Audio {
   }
 
   public destroy(): void {
-    this.stop();
+    this.ambience.stop(0);
+    this.effects.destroy();
     this.clearCache();
     for (const timer of this.progressBindings.values()) clearInterval(timer);
     this.progressBindings.clear();
@@ -425,8 +466,9 @@ class Audio {
   public set Mute(value: boolean) {
     if (this.muted === value) return;
     this.muted = value;
+    if (value) this.effects.stop();
     Howler.mute(value);
-    this.currentHowl?.volume(this.outputVolume);
+    this.currentHowl?.volume(this.trackVolume);
     this.emit('mutechange', value);
   }
 
@@ -438,8 +480,9 @@ class Audio {
     const volume = Math.clamp(value, 0, 1);
     if (this.volume === volume) return;
     this.volume = volume;
+    if (!volume) this.effects.stop();
     Howler.volume(volume);
-    this.currentHowl?.volume(this.outputVolume);
+    this.currentHowl?.volume(this.trackVolume);
     this.emit('volumechange', volume);
   }
 
@@ -449,7 +492,7 @@ class Audio {
     if ((this.modVolumes.get(modName) ?? 1) === volume) return;
     if (volume === 1) this.modVolumes.delete(modName);
     else this.modVolumes.set(modName, volume);
-    if (this.currentTrack?.modName === modName) this.currentHowl?.volume(this.outputVolume);
+    if (this.currentTrack?.modName === modName) this.currentHowl?.volume(this.trackVolume);
     this.emit('modvolumechange', modName, volume);
   }
 
@@ -591,14 +634,16 @@ class Audio {
     for (const [modName, modRecords] of groups) {
       const playlist = new Playlist(modName);
       playlist.add(
-        modRecords.map(record => {
-          const track = new Track(record.audioName, record.modName, {
-            title: record.value.title,
-            artist: record.value.artist
-          });
-          track.format = record.value.format;
-          return track;
-        })
+        modRecords
+          .filter(record => !/^(?:ambience|sfx|voice)\//i.test(record.audioName))
+          .map(record => {
+            const track = new Track(record.audioName, record.modName, {
+              title: record.value.title,
+              artist: record.value.artist
+            });
+            track.format = record.value.format;
+            return track;
+          })
       );
       this.playlists.set(modName, playlist);
     }
@@ -610,35 +655,65 @@ class Audio {
       const key = JSON.stringify([track.modName, track.audioName]);
       let pending = this.pendingLoads.get(key);
       if (!pending) {
-        const task: Promise<CacheEntry> = Promise.resolve().then(async () => {
-          const record = await this.core.with([this.STORE], 'readonly', async tx => await tx.objectStore(this.STORE).get([track.modName, track.audioName]));
-          if (this.pendingLoads.get(key) !== task) throw new Error(`音频加载已取消: ${track.modName}/${track.audioName}`);
-          if (!record) throw new Error(`音频不存在: ${track.modName}/${track.audioName}`);
-          const { arrayBuffer, format } = (record as AudioRecord).value;
-          const context = Howler.ctx as AudioContext | undefined;
-          if (!context) throw new Error('WebAudio context is not available');
-          const buffer = await context.decodeAudioData(arrayBuffer.slice(0));
-          // A cleared or replaced task must not recreate an unloaded cache entry.
-          if (this.pendingLoads.get(key) !== task) throw new Error(`音频加载已取消: ${track.modName}/${track.audioName}`);
-          const loaded: CacheEntry = {
-            howl: new AudioBufferPlayer(context, buffer, this.outputVolume, () => this.handleTrackEnd(track)),
-            format
-          };
-          this.cacheAudio(track.modName, track.audioName, loaded);
-          return loaded;
-        });
+        let loading: Howl | undefined;
+        let cancel: (() => void) | undefined;
+        const task: PendingLoad = {
+          promise: null!,
+          cancel: () => {
+            cancel?.();
+            loading?.off();
+            loading?.unload();
+          }
+        };
+        task.promise = Promise.resolve()
+          .then(async () => {
+            const record = await this.core.with([this.STORE], 'readonly', async tx => await tx.objectStore(this.STORE).get([track.modName, track.audioName]));
+            if (this.pendingLoads.get(key) !== task) throw new Error(`音频加载已取消: ${track.modName}/${track.audioName}`);
+            if (!record) throw new Error(`音频不存在: ${track.modName}/${track.audioName}`);
+            const { arrayBuffer, format } = (record as AudioRecord).value;
+            const howl = await new Promise<Howl>((resolve, reject) => {
+              cancel = () => reject(new Error(`音频加载已取消: ${track.modName}/${track.audioName}`));
+              loading = this.create({
+                src: [`data:audio/${format};base64,${bytesToBase64(new Uint8Array(arrayBuffer))}`],
+                format: [format],
+                volume: this.trackVolume,
+                pool: 1,
+                onload: () => resolve(loading!),
+                onloaderror: (_id, error) => reject(error),
+                onplay: id => {
+                  if (this.currentHowl === loading && this.currentSoundId === id) this.currentStarted = true;
+                },
+                onplayerror: (id, error) => {
+                  if (this.currentHowl === loading && this.currentSoundId === id) this.handlePlaybackError(loading!, track, error);
+                },
+                onend: id => {
+                  if (this.currentHowl === loading && this.currentSoundId === id) this.handleTrackEnd(track);
+                }
+              });
+            });
+            // A cleared or replaced task must not recreate an unloaded cache entry.
+            if (this.pendingLoads.get(key) !== task) throw new Error(`音频加载已取消: ${track.modName}/${track.audioName}`);
+            const loaded: CacheEntry = { howl, format };
+            this.cacheAudio(track.modName, track.audioName, loaded);
+            return loaded;
+          })
+          .catch(error => {
+            loading?.off();
+            loading?.unload();
+            throw error;
+          });
         this.pendingLoads.set(key, task);
         pending = task;
       }
       try {
-        entry = await pending;
+        entry = await pending.promise;
       } finally {
         if (this.pendingLoads.get(key) === pending) this.pendingLoads.delete(key);
       }
     }
     track.format = entry.format;
     track.duration = entry.howl.duration();
-    entry.howl.volume(this.outputVolume);
+    entry.howl.volume(this.trackVolume);
     return entry;
   }
 
@@ -693,7 +768,7 @@ class Audio {
   }
 
   private unloadCache(modName: string, audioName: string): void {
-    this.pendingLoads.delete(JSON.stringify([modName, audioName]));
+    this.cancelLoad(modName, audioName);
     const modCache = this.cache.get(modName);
     const entry = modCache?.get(audioName);
     if (!modCache || !entry) return;
@@ -726,14 +801,26 @@ class Audio {
   }
 
   private release(entry: CacheEntry): void {
-    entry.howl?.unload?.();
+    entry.howl.off();
+    entry.howl.unload();
+  }
+
+  private cancelLoad(modName: string, audioName: string): void {
+    const key = JSON.stringify([modName, audioName]);
+    const pending = this.pendingLoads.get(key);
+    this.pendingLoads.delete(key);
+    pending?.cancel();
   }
 
   private stopCurrent(emitEvent: boolean): boolean {
-    if (!this.currentHowl && this.state !== PlayState.LOADING) return false;
+    if (!this.currentHowl && !this.currentTrack && this.state !== PlayState.LOADING) return false;
     const track = this.currentTrack;
-    this.currentHowl?.stop?.();
+    const howl = this.currentHowl;
     this.currentHowl = null;
+    this.currentSoundId = null;
+    if (howl && this.currentStarted) howl.stop();
+    else if (howl && track) this.unloadCache(track.modName, track.audioName);
+    this.currentStarted = false;
     this.currentTrack = null;
     this.state = PlayState.STOPPED;
     this.stopProgressTimer();
@@ -741,9 +828,10 @@ class Audio {
     return true;
   }
 
-  private get outputVolume(): number {
+  // Howler applies the master volume and mute once for every channel.
+  private get trackVolume(): number {
     const modName = (this.currentTrack ?? this.loadingTrack)?.modName;
-    return this.muted ? 0 : this.volume * (modName ? (this.modVolumes.get(modName) ?? 1) : 1);
+    return modName ? (this.modVolumes.get(modName) ?? 1) : 1;
   }
 
   private startProgressTimer(): void {
@@ -764,19 +852,35 @@ class Audio {
   private handleTrackEnd(track: Track): void {
     const isCurrent = this.currentTrack?.modName === track.modName && this.currentTrack.audioName === track.audioName;
     if (!isCurrent) return;
+    const requestId = this.playRequestId;
+    const howl = this.currentHowl;
+    const soundId = this.currentSoundId;
     this.stopProgressTimer();
     this.emit('end', track);
+    if (requestId !== this.playRequestId || this.currentHowl !== howl || this.currentSoundId !== soundId || this.state !== PlayState.PLAYING) return;
     if (!this.autoNext) {
       this.state = PlayState.STOPPED;
       return;
     }
     void this.next().then(success => {
-      const stillSameTrack = this.currentTrack?.modName === track.modName && this.currentTrack.audioName === track.audioName;
-      if (!success && stillSameTrack) {
+      if (!success && requestId === this.playRequestId && this.currentHowl === howl && this.currentSoundId === soundId && this.state === PlayState.PLAYING) {
         this.state = PlayState.STOPPED;
         this.emit('stop', track);
       }
     });
+  }
+
+  private handlePlaybackError(howl: Howl, track: Track, error: unknown): void {
+    if (this.currentHowl !== howl) return;
+    this.currentHowl = null;
+    this.currentSoundId = null;
+    this.currentTrack = null;
+    this.currentStarted = false;
+    this.state = PlayState.IDLE;
+    this.unloadCache(track.modName, track.audioName);
+    this.stopProgressTimer();
+    this.emit('error', error, track);
+    this.log(`播放失败: ${track.modName}/${track.audioName}`, 'ERROR', error);
   }
 
   private dispatch(eventData: AudioEventData): void {

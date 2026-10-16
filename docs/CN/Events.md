@@ -26,6 +26,23 @@ await maplebirch.trigger(eventName, ...args);
 maplebirch.after(eventName, callback);
 ```
 
+### DOM 控件
+
+`on()` 接收框架已转发的生命周期事件和 `trigger()` 发出的自定义事件。输入框的 `change`、链接的 `click` 等 DOM 事件仍由控件处理。
+
+自有 Twee 界面的刷新可以放在容器的 `onchange` 中。需要在原版链接执行前读取状态时，可通过 passage 生命周期给当前内容绑定捕获监听，避免长期监听整个 `document`：
+
+```javascript
+function capture(event) {
+  // 读取本次动作执行前的状态。
+}
+maplebirch.on(':passagerender', (_passage, content) => {
+  content.addEventListener('click', capture, true);
+});
+```
+
+旧内容移除后，其 DOM 监听可随节点回收。同一函数在同一节点上重复绑定不会增加监听次数。
+
 ---
 
 ## 监听事件
