@@ -7,6 +7,16 @@ _可通过 `maplebirch.char.transformation.add` 注册。_
 
 顶层 `pre`、`post` 与 `layers` 注册到原版 PC 的 `main` 画布。需要战斗贴图时，在 `combat` 中提供对应配置，框架会注册到 `combatMainPc`。
 
+## 动物转化共存
+
+模组可添加运行时条件，允许原版与框架注册的 `physical` 转化共同成长：
+
+```javascript
+maplebirch.char.transformation.coexistConditions.push(() => myModule.hasCoexistTrait);
+```
+
+任一条件返回 `true` 时，`coexist` 为真。每次成长结算会逐项检查动物转化，保留各自的门槛和成长来源，同时跳过相互抑制与自然衰退。明确扣除点数或清除转化的行为仍然有效，神圣转化不受此开关影响。未注册条件或所有条件为假时，保留默认规则。眷属项圈自身的效果不变。
+
 ---
 
 ## 共用绘制与融合配置

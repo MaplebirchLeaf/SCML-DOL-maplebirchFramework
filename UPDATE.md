@@ -1,3 +1,13 @@
+##### (v.5.4.10更新日志):
+
+- 增加可供模组启用的动物转化共存条件，让原版与自定义动物转化共同成长，并停止相互抑制与自然衰退。
+- 共存效果仍遵守各自的成长门槛，未启用时保留原版规则。
+
+**English**
+
+- Add opt-in animal transformation coexistence for native and registered forms, with concurrent growth and protection from mutual suppression and natural decay.
+- Preserve individual growth requirements and the default rules when coexistence is inactive.
+
 ##### (v.5.4.9更新日志):
 
 - 支持地点与天气环境音分层、独立音效通道，音量和播放开关分别管理。

@@ -241,3 +241,123 @@ test('static transformation layers remain immediately available', () => {
   new Transformation(manager).add('fish', 'physical', { parts: [], layers });
   expect(calls).toEqual([[layers, 'main', { pet: true }]]);
 });
+
+test('coexistence grows every animal independently and leaves default selection unchanged', () => {
+  const saved = ['V', 'setup', 'StartConfig'].map(key => ({ key, descriptor: Object.getOwnPropertyDescriptor(globalThis, key) }));
+  const variables = {
+    settings: { transformDivineEnabled: false, transformAnimalEnabled: true },
+    wolfgirl: 0,
+    cat: 0,
+    cow: 0,
+    harpy: 0,
+    fox: 0,
+    wolfbuild: 10,
+    catbuild: 10,
+    cowbuild: 10,
+    birdbuild: 10,
+    foxbuild: 10,
+    maplebirch: { transformation: { raven: { level: 0, build: 5 }, horse: { level: 0, build: 0 } } },
+    transformationParts: {},
+    timeMessages: []
+  };
+  try {
+    Object.defineProperty(globalThis, 'StartConfig', { value: { version: '0.5.12.13' }, configurable: true });
+    Object.defineProperty(globalThis, 'V', { value: variables, configurable: true });
+    Object.defineProperty(globalThis, 'setup', { value: { transformations: [] }, configurable: true });
+    const transformation = new Transformation({ core: { once() {}, tool: { define() {}, defineS() {} } } } as unknown as Character);
+    transformation.add('raven', 'physical', { parts: [], update: [5, 20], level: 2 });
+    transformation.add('horse', 'physical', { parts: [], update: [5, 20], level: 2 });
+    const calls: string[] = [];
+    transformation.wikifier = ((name: string) => {
+      calls.push(name);
+    }) as typeof transformation.wikifier;
+    transformation._transformationAlteration();
+    expect(calls).toEqual([]); // Tied growth without an existing form does not select a winner.
+    let enabled = true;
+    transformation.coexistConditions.push(() => enabled);
+    transformation._transformationAlteration();
+    expect(calls).toEqual(['wolfTransform', 'catTransform', 'cowTransform', 'harpyTransform', 'foxTransform']);
+    expect(variables.maplebirch.transformation.raven.level).toBe(1);
+    expect(variables.maplebirch.transformation.horse.level).toBe(0);
+    transformation._transformationAlteration();
+    expect(variables.maplebirch.transformation.raven.level).toBe(1); // The next threshold still applies.
+    enabled = false;
+    variables.wolfgirl = 2;
+    calls.length = 0;
+    transformation._transformationAlteration();
+    expect(calls).toEqual(['wolfTransform']);
+    variables.settings.transformAnimalEnabled = false;
+    enabled = true;
+    calls.length = 0;
+    transformation._transformationAlteration();
+    expect(calls).toEqual([]);
+  } finally {
+    for (const { key, descriptor } of saved) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else Reflect.deleteProperty(globalThis, key);
+    }
+  }
+});
+
+test('coexistence protects growth from suppression and decay but not explicit loss', () => {
+  const saved = ['V', 'setup', 'StartConfig'].map(key => ({ key, descriptor: Object.getOwnPropertyDescriptor(globalThis, key) }));
+  const variables = {
+    settings: { transformAnimalEnabled: false, transformDivineEnabled: false },
+    worn: { neck: { name: 'naked', cursed: 0 } },
+    wolfgirl: 0,
+    cat: 0,
+    cow: 0,
+    harpy: 0,
+    fox: 0,
+    angel: 0,
+    fallenangel: 0,
+    demon: 0,
+    wolfbuild: 10,
+    catbuild: 10,
+    cowbuild: 0,
+    birdbuild: 0,
+    foxbuild: 0,
+    maplebirch: { transformation: {} },
+    transformationParts: {},
+    specialTransform: 0
+  };
+  try {
+    Object.defineProperty(globalThis, 'StartConfig', { value: { version: '0.5.12.13' }, configurable: true });
+    Object.defineProperty(globalThis, 'V', { value: variables, configurable: true });
+    Object.defineProperty(globalThis, 'setup', { value: { transformations: [] }, configurable: true });
+    const transformation = new Transformation({ core: { once() {}, tool: { define() {}, defineS() {} } } } as unknown as Character);
+    for (const key of Object.keys(transformation.suppressConditions)) delete transformation.suppressConditions[key];
+    for (const key of Object.keys(transformation.decayConditions)) delete transformation.decayConditions[key];
+    transformation.suppressConditions.wolf = [() => true];
+    transformation.suppressConditions.cat = [() => true];
+    transformation.decayConditions.cat = [() => true];
+    transformation.buildUpdaters.wolf = change => {
+      variables.wolfbuild += change;
+    };
+    transformation.buildUpdaters.cat = change => {
+      variables.catbuild += change;
+    };
+    let enabled = true;
+    transformation.coexistConditions.push(() => enabled);
+    transformation._transform('wolf', 2);
+    expect(variables.catbuild).toBe(10);
+    transformation._transformationStateUpdate();
+    expect(variables.catbuild).toBe(10);
+    transformation._transform('cat', -2);
+    expect(variables.catbuild).toBe(8);
+    enabled = false;
+    transformation._transform('wolf', 2);
+    expect(variables.catbuild).toBe(6);
+    transformation._transformationStateUpdate();
+    expect(variables.catbuild).toBe(5);
+    variables.worn.neck = { name: 'familiar collar', cursed: 1 };
+    transformation._transform('wolf', 2);
+    transformation._transformationStateUpdate();
+    expect(variables.catbuild).toBe(5);
+  } finally {
+    for (const { key, descriptor } of saved) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else Reflect.deleteProperty(globalThis, key);
+    }
+  }
+});

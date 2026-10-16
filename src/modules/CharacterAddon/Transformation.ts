@@ -108,6 +108,7 @@ class Transformation {
   public readonly decayConditions: Record<string, DecayCondition[]> = { ...DecayConditions };
   public readonly suppressConditions: Record<string, SuppressCondition[]> = { ...SuppressConditions };
   public readonly buildUpdaters: Record<string, BuildUpdater> = { ...BuildUpdaters };
+  public readonly coexistConditions: Array<() => boolean> = [];
 
   public constructor(private manager: Character) {
     manager.core.once(':storyready', () => {
@@ -133,6 +134,10 @@ class Transformation {
 
   private get isDoLP() {
     return DoLPcompat.isDoLP;
+  }
+
+  public get coexist(): boolean {
+    return this.coexistConditions.some(condition => condition());
   }
 
   private get animalTransforms() {
@@ -316,7 +321,8 @@ class Transformation {
       if (config && data) data.build = Math.clamp(data.build + change, 0, config.build);
     }
 
-    if (Object.hasOwn(this.suppressConditions, name) && change > 0 && !(dol.variables.worn.neck.name === 'familiar collar' && dol.variables.worn.neck.cursed === 1)) this.suppress(name, change);
+    if (Object.hasOwn(this.suppressConditions, name) && change > 0 && !this.coexist && !(dol.variables.worn.neck.name === 'familiar collar' && dol.variables.worn.neck.cursed === 1))
+      this.suppress(name, change);
   }
 
   public updateTransform(name: string): void {
@@ -421,27 +427,21 @@ class Transformation {
         });
       }
 
-      const maxLevel = Math.max(...transforms.map(transform => transform.level));
-      let selected: { name: string; level: number; build: number } | null = null;
-
-      if (maxLevel > 0) {
-        selected = transforms.find(transform => transform.level === maxLevel) || null;
-      } else {
+      let active = transforms;
+      if (!this.coexist) {
+        const maxLevel = Math.max(...transforms.map(transform => transform.level));
         const maxBuild = Math.max(...transforms.map(transform => transform.build));
-
-        if (maxBuild >= 5) {
-          const highest = transforms.filter(transform => transform.build === maxBuild);
-          if (highest.length === 1) selected = highest[0];
-        }
+        const highest = maxLevel > 0 ? transforms.filter(transform => transform.level === maxLevel) : transforms.filter(transform => transform.build >= 5 && transform.build === maxBuild);
+        active = maxLevel > 0 || highest.length === 1 ? highest.slice(0, 1) : [];
       }
 
-      if (selected) {
-        const vanilla: Record<string, [string, number]> = Object.fromEntries(Object.entries(this.animalMacros).map(([name, [macro, level]]) => [name, [macro, level()]]));
-        if (vanilla[selected.name]) {
-          const [macro, level] = vanilla[selected.name];
+      const vanilla: Record<string, [string, number]> = Object.fromEntries(Object.entries(this.animalMacros).map(([name, [macro, level]]) => [name, [macro, level()]]));
+      for (const transform of active) {
+        if (vanilla[transform.name]) {
+          const [macro, level] = vanilla[transform.name];
           this.wikifier(macro, level);
         } else {
-          this.updateTransform(selected.name);
+          this.updateTransform(transform.name);
         }
       }
     }
@@ -455,7 +455,7 @@ class Transformation {
   }
 
   public _transformationStateUpdate(): void {
-    if (!(dol.variables.worn.neck.name === 'familiar collar' && dol.variables.worn.neck.cursed === 1)) {
+    if (!this.coexist && !(dol.variables.worn.neck.name === 'familiar collar' && dol.variables.worn.neck.cursed === 1)) {
       Object.entries(this.decayConditions).forEach(([_animal, conditions]) => {
         if (conditions.every(condition => condition())) this._transform(_animal, -1);
       });

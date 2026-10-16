@@ -142,6 +142,7 @@ const widgetPassage = {
     { src: '<<tficon $_icon>>', to: '<<= maplebirch.char.transformation.icon>>' },
   ],
   'Transformation Widgets': [
+    { src: '$physicalTransform isnot 1', to: '($physicalTransform isnot 1 or maplebirch.char.transformation.coexist)', expected: 1 },
     { src: '<<set $chimera = Object.keys(_defaultChimeraConfig).reduce(', applybefore: '<<run Object.assign(_defaultChimeraConfig, maplebirch.char.transformation.chimeraDefaults)>>\n\t', expected: 1 },
   ],
   'Widgets NPCs': [

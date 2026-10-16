@@ -183,3 +183,13 @@ layers: {
 Traits with the same name, such as vanilla `sharpEyes`, remain enabled while any owning transformation meets its requirement. They disable only when all owners lose eligibility, without stacking vanilla bonuses. Registering a trait switch does not implement its skill or damage effect. The effect still needs vanilla or mod settlement logic.
 
 `up[n - 1]` describes entering level n, and `down[n - 1]` describes leaving level n. Both arrays are ordered from the lowest level upward. Part visibility and trait switches are stored separately. Rendering should check `isPartEnabled()`, rather than the level alone.
+
+## Animal transformation coexistence
+
+Mods can register runtime conditions that let native and framework-registered `physical` transformations grow together:
+
+```javascript
+maplebirch.char.transformation.coexistConditions.push(() => myModule.hasCoexistTrait);
+```
+
+`coexist` is true when any condition returns `true`. Each update checks every animal form against its own growth thresholds, while skipping mutual suppression and natural decay. Explicit point losses and transformation removal still apply. Divine transformations are unaffected. With no active condition, the default rules apply. The familiar collar retains its existing behaviour.
