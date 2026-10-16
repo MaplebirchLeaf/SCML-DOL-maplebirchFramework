@@ -1,3 +1,15 @@
+##### (v.5.4.8更新日志):
+
+- 修正社交栏状态格数的少一格问题，设置明确为最少预留格数，已有状态超过设置时仍全部显示。
+- 修复多行状态格的边框，移除每次点击按钮时无效的延迟样式刷新。
+- 整理中文文档与注释中的标点。
+
+**English**
+
+- Fix social stat padding reserving one fewer slot than configured. Clarify that the setting reserves a minimum and never hides additional existing stats.
+- Correct borders across multiple stat rows and remove redundant delayed style updates on button clicks.
+- Clean up punctuation in Chinese documentation and comments.
+
 ##### (v.5.4.7更新日志):
 
 - 修复 PC 桌宠头发不显示：遮罩扩展按图层属性合并，保留原始图片来源、显示条件、染色与动画配置。
