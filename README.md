@@ -16,7 +16,7 @@
 框架的使用重点是：**少直接改原版内容，多通过公开接口追加内容。** 如果你的模组要扩展界面、NPC 或游戏事件，或想把多语言、音频和脚本资源纳入统一加载流程，可以将它作为基础依赖。
 
 > [!TIP]
-> 初次使用，先读[快速开始](docs/CN/GettingStarted.md)；需要查具体字段或功能时，再进入[模组制作者文档](docs/CN/README.md)。本页保留项目介绍与常见用法，不要求从头读完所有专题。
+> 初次使用，先读[快速开始](docs/CN/GettingStarted.md)，需要查具体字段或功能时，再进入[模组制作者文档](docs/CN/README.md)。本页保留项目介绍与常见用法，不要求从头读完所有专题。
 
 ---
 
@@ -59,7 +59,7 @@
 - 通过自建 Cloudflare Worker 与私有 R2 桶同步本地槽位和存档导出码。
 - 使用 `maplebirch.utils.clone(source)`、`Object.merge()`、`list.contains()`、`list.either()`、`Math.clamp()` 等常用工具函数。
 
-**按模组类型选择入口：** 内容模组可从 [NPC 管理][NamedNPCAdd]、[动态事件][StateEvents]、[区域管理][Framework] 和[翻译][Translator]开始；UI 或工具模组可从 [boot.json][BootJson]、[SugarCube 宏][SugarCubeMacro]、[文本工具][HtmlTools]开始；角色外观和战斗内容可查[角色图层][CharacterLayer]、[转化管理][Transformation]、[战斗行动][CombatActions]。
+**按模组类型选择入口：** 内容模组可从 [NPC 管理][NamedNPCAdd]、[动态事件][StateEvents]、[区域管理][Framework] 和[翻译][Translator]开始，UI 或工具模组可从 [boot.json][BootJson]、[SugarCube 宏][SugarCubeMacro]、[文本工具][HtmlTools]开始，角色外观和战斗内容可查[角色图层][CharacterLayer]、[转化管理][Transformation]、[战斗行动][CombatActions]。
 
 详细功能用法请参考下方 [模块与功能](#模块与功能) 中的说明文档。对于过早版本的游戏，可以考虑使用 [简易框架](https://github.com/emicoto/SCMLSimpleFramework)。
 
@@ -83,7 +83,7 @@
 版本范围请按你的模组实际使用的框架功能填写。README 中不固定写死某个版本，是为了避免框架更新后示例变成过期信息。
 
 > [!IMPORTANT]
-> `@scml-dol-maplebirch/types` 只提供编辑器补全；玩家仍须加载框架本体。依赖版本请以你实际测试的最低版本为准。
+> `@scml-dol-maplebirch/types` 只提供编辑器补全，玩家仍须加载框架本体。依赖版本请以你实际测试的最低版本为准。
 
 ## 脚本加载
 
@@ -104,7 +104,7 @@
 
 **大多数模组只需 `script`。** 只有需要在框架模块注册阶段执行的代码，才放入 `module`。
 
-**`script`** 的定位是普通模组脚本入口，适合注册 NPC、事件、区域 widget、战斗按钮、角色图层等内容。**`module`** 的执行时机更早，主要给需要扩展框架模块系统的代码使用；_如果你不确定是否需要它，通常就是不需要_。
+**`script`** 的定位是普通模组脚本入口，适合注册 NPC、事件、区域 widget、战斗按钮、角色图层等内容。**`module`** 的执行时机更早，主要给需要扩展框架模块系统的代码使用，_如果你不确定是否需要它，通常就是不需要_。
 
 ```json
 "params": {
@@ -119,11 +119,11 @@
 
 ### 模组加密
 
-框架本体不加密。需要发布加密模组时，可使用配套工具生成加密壳；框架的 `CredentialVault` 在加载阶段验证凭证，并在解密成功后交由 ModLoader 加载。
+框架本体不加密。需要发布加密模组时，可使用配套工具生成加密壳，框架的 `CredentialVault` 在加载阶段验证凭证，并在解密成功后交由 ModLoader 加载。
 
 配套工具：[DOL Mod Protection Tools](https://github.com/MaplebirchLeaf/dol-mod-protection-tools)
 
-玩家首次加载时输入凭证；验证失败或关闭输入界面时，框架会禁用该加密模组。加密包的生成步骤、文件布局和发布要求以[配套工具说明](https://github.com/MaplebirchLeaf/dol-mod-protection-tools)为准。
+玩家首次加载时输入凭证，验证失败或关闭输入界面时，框架会禁用该加密模组。加密包的生成步骤、文件布局和发布要求以[配套工具说明](https://github.com/MaplebirchLeaf/dol-mod-protection-tools)为准。
 
 框架验证时使用的 `auth.json` 至少包含公钥标识与公钥：
 
@@ -143,7 +143,7 @@
 云存档可把 DoL 的本地 IndexedDB 槽位和存档导出码同步到**玩家自己部署**的 Cloudflare Worker + R2。游戏设置中会增加「云存档」标签页，填写 Worker 地址与访问令牌后即可上传、下载或删除远端槽位。
 
 > [!WARNING]
-> 框架不提供公共存档服务器。上传内容是明文 JSON；请使用 HTTPS、足够随机的令牌，并保持 R2 桶私有。令牌默认不持久化，但玩家勾选“在此设备上记住访问令牌”后会保存到浏览器本地存储。详见[云存档文档](docs/CN/CloudSave.md)。
+> 框架不提供公共存档服务器。上传内容是明文 JSON，请使用 HTTPS、足够随机的令牌，并保持 R2 桶私有。令牌默认不持久化，但玩家勾选“在此设备上记住访问令牌”后会保存到浏览器本地存储。详见[云存档文档](docs/CN/CloudSave.md)。
 
 ### AI 修复
 
@@ -209,7 +209,7 @@ setup.myMod.initCombat?.();
 
 - 配置类内容优先写入 `boot.json`，如语言、音频、区域 widget、基础 NPC 资源。
 - 需要条件判断、函数逻辑、复杂注册时写入 JavaScript 文件。
-- 普通模组脚本使用 `script`；确实需要更早执行并参与框架模块扩展时再使用 `module`。
+- 普通模组脚本使用 `script`，确实需要更早执行并参与框架模块扩展时再使用 `module`。
 - 命名时尽量带上模组前缀，例如 `myMod.dailyCheck`、`myModTrust`，减少与其它模组冲突。
 - 文本、按钮和选项说明尽量使用语言文件或语言宏管理，避免以后补多语言时到处查找硬编码文本。
 
@@ -232,11 +232,11 @@ npm install -D @scml-dol-maplebirch/types
 }
 ```
 
-这个包只提供类型声明，不包含框架运行时代码；玩家仍然需要在 ModLoader 中加载 `maplebirchFramework` 本体。类型包版本建议与模组依赖的框架版本保持接近。
+这个包只提供类型声明，不包含框架运行时代码，玩家仍然需要在 ModLoader 中加载 `maplebirchFramework` 本体。类型包版本建议与模组依赖的框架版本保持接近。
 
 ## 模块与功能
 
-以下文档主要面向模组作者。完整的按任务导航见[中文文档目录](docs/CN/README.md)；下面保留各功能的直达链接。
+以下文档主要面向模组作者。完整的按任务导航见[中文文档目录](docs/CN/README.md)，下面保留各功能的直达链接。
 
 如果你是第一次使用框架，建议按这个顺序阅读：
 
@@ -286,7 +286,7 @@ npm install -D @scml-dol-maplebirch/types
 
 ## boot.json 配置
 
-**`maplebirchAddon`** 可通过配置处理常见资源和功能。此处是配置速览；字段细节与多语言文件拆分方式请查[boot.json 配置][BootJson]。
+**`maplebirchAddon`** 可通过配置处理常见资源和功能。此处是配置速览，字段细节与多语言文件拆分方式请查[boot.json 配置][BootJson]。
 
 最小配置只需要声明脚本。按需增加其它字段，不必复制空的 `npc`、`framework` 等配置：
 
@@ -305,7 +305,7 @@ npm install -D @scml-dol-maplebirch/types
 
 | 参数        | 用途                                                |
 | :---------- | :-------------------------------------------------- |
-| `language`  | 导入 `CN` / `EN` 翻译；同一语言可按顺序指定多个文件 |
+| `language`  | 导入 `CN` / `EN` 翻译，同一语言可按顺序指定多个文件 |
 | `audio`     | 导入模组 ZIP 内的音频目录                           |
 | `framework` | 添加区域 widget，注册 DoL 内容扩展                  |
 | `npc`       | 注册 NPC、状态、侧边栏、转化及怀孕配置              |
@@ -315,7 +315,7 @@ npm install -D @scml-dol-maplebirch/types
 更完整的配置说明见 [boot.json 配置][BootJson]。
 
 > [!NOTE]
-> 音频文件还须在模组 `boot.json` 的 `additionFile` 中列出；只设置 `params.audio` 不会把文件打进模组包。
+> 音频文件还须在模组 `boot.json` 的 `additionFile` 中列出，只设置 `params.audio` 不会把文件打进模组包。
 
 ## 反馈与讨论
 

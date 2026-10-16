@@ -64,7 +64,7 @@
 
 ## 存档描述与 Worker 更新
 
-远端列表沿用原版存档布局：名称独立显示为 `gold`，右侧描述保持单行，超长内容省略；下方日期使用小号 `teal`。名称读取 `details.metadata.saveName`，未命名时显示 `saveId`，描述读取 `details.title`。日期优先显示存档时间，缺失时显示上传时间；悬停日期可查看时间来源及上传时间。删除确认显示完整摘要与两种时间。没有描述的旧记录仍可下载和删除。
+远端列表沿用原版存档布局：名称独立显示为 `gold`，右侧描述保持单行，超长内容省略，下方日期使用小号 `teal`。名称读取 `details.metadata.saveName`，未命名时显示 `saveId`，描述读取 `details.title`。日期优先显示存档时间，缺失时显示上传时间，悬停日期可查看时间来源及上传时间。删除确认显示完整摘要与两种时间。没有描述的旧记录仍可下载和删除。
 
 此功能需要重新部署仓库中的 `cloudflare/worker.ts`。Worker 将名称、描述与存档时间写入 R2 对象的 `customMetadata`，`/saves` 列表只读取这些摘要，不下载完整游戏状态，并处理列表分页。参考 [R2 Workers API](https://developers.cloudflare.com/r2/api/workers/workers-api-reference/)。
 

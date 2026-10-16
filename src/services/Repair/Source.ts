@@ -350,7 +350,7 @@ export class RepairSources {
       if (!reported.has(symbol) && declarations.length !== 1) continue;
       declarations.forEach(declaration => selected.add(declaration));
     }
-    // 只有唯一函数声明才扩展静态调用者；同名函数不能据此确认调用关系。
+    // 只有唯一函数声明才扩展静态调用者，同名函数不能据此确认调用关系。
     const roots = [...selected].filter(declaration => declaration.callable && definitions.get(declaration.name)?.length === 1 && (!reported.size || reported.has(declaration.name)));
     if (roots.length) {
       const names = roots.map(root => root.name.replaceAll('$', '\\$')).join('|');

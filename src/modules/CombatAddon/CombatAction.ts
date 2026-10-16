@@ -174,7 +174,7 @@ class CombatActions {
     modActions.sort((a, b) => a.order - b.order);
     const insertions = new Map<number, typeof modActions>();
     modActions.forEach(action => {
-      // 负数从原版动作末尾反向定位；默认 -4 保留旧版“倒数四项之前”的布局。
+      // 负数从原版动作末尾反向定位，默认 -4 保留旧版“倒数四项之前”的布局。
       const order = Number.isInteger(action.order) ? action.order : -4;
       const target = order < 0 ? Math.min(options.length, Math.max(options.length === 0 ? 0 : 1, options.length + order)) : Math.min(order, options.length);
       const bucket = insertions.get(target) ?? [];
