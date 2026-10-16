@@ -176,7 +176,8 @@ test('option events install once and wait until module pre-initialization comple
     const events = new OptionEvents(core);
     events.install();
     events.install();
-    expect(handlers.size).toBe(9);
+    expect(handlers.size).toBe(8);
+    expect(handlers.has('.link-internal.macro-button')).toBe(false);
     const refresh = handlers.get('select[name="lanListbox-optionsmaplebirchnpcsidebarnnpc"]')!;
     refresh();
     expect(wiki).toEqual([]);

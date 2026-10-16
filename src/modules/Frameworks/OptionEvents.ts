@@ -2,7 +2,6 @@ import type { MaplebirchCore } from '../../core';
 import dol from '../../host/DoL';
 
 class OptionEvents {
-  private relationTimer: ReturnType<typeof setTimeout> | null = null;
   private installed = false;
 
   public constructor(private readonly core: MaplebirchCore) {}
@@ -29,7 +28,6 @@ class OptionEvents {
     $(document).on('change', 'select[name="lanListbox-optionsmaplebirchcharactercloseupselect"]', () => this.refreshOptions());
     $(document).on('change', 'input[name*="optionsmaplebirchcharacterpet"]', () => this.updatePet());
     $(document).on('change', 'input[name*="optionsmaplebirchnpcsidebarpet"]', () => this.updateSidebar());
-    $(document).on('click', '.link-internal.macro-button', () => this.updateRelation());
   }
 
   private get ready(): boolean {
@@ -65,19 +63,6 @@ class OptionEvents {
     } catch (error) {
       this.report('Pet canvas update error:', error);
     }
-  }
-
-  private updateRelation(): void {
-    if (!this.ready) return;
-    if (this.relationTimer) clearTimeout(this.relationTimer);
-    this.relationTimer = setTimeout(() => {
-      try {
-        const count = (dol.variables.options.maplebirch?.relationcount ?? 4) - 2;
-        document.querySelectorAll('.relation-stat-list').forEach(list => (list as HTMLElement).style.setProperty('--maplebirch-relation-count', count.toString()));
-      } catch (error) {
-        this.report('关系数量样式刷新错误:', error);
-      }
-    }, 100);
   }
 }
 

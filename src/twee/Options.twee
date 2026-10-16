@@ -12,9 +12,9 @@
     </div>
 
     <div class='settingsToggleItemWide maplebirch-relationcount-slider'><label>
-      <span class='gold'><<lanSwitch 'Total Number Of Social Status Displays' '社交栏状态显示总数'>></span>
-      <<numberslider '$options.maplebirch.relationcount' $options.maplebirch.relationcount 2 10 2 { value: v => `${v}${lanSwitch(' types','种')}`}>>
-      <span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Adjust the total number of status displays for Primary Relationships NPCs in the SOCIAL bar.' '调整社交栏中主要关系NPC的状态显示总数。'>></span>">(?)</span>
+      <span class='gold'><<lanSwitch 'Minimum Social Stat Slots' '社交栏最少状态格数'>></span>
+      <<numberslider '$options.maplebirch.relationcount' $options.maplebirch.relationcount 2 10 2 { value: v => `${v}${lanSwitch(' slots','格')}`}>>
+      <span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Reserve this many stat slots for each NPC in Primary Relationships. Additional existing stats remain visible; unused slots are left empty.' '为主要关系中的每位NPC至少预留这些状态格。已有状态超过设置时仍全部显示，不足时补空格。'>></span>">(?)</span>
     </label></div>
 
     <div class='settingsToggleItem'><label>

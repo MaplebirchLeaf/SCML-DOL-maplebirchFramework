@@ -96,7 +96,7 @@ const widgetPassage = {
     { src: 'T.getStatConfig = function(stat) {', applybefore: 'maplebirch.npc.applyStatDefaults(statDefaults);\n\t\t\t' },
     { srcmatchgroup: /\t_npcData.nam|\t<<NPC_CN_NAME _npcData.nam>>/g, to: '\t<<= maplebirch.auto(_npcData.nam)>>' },
     { srcmatchgroup: /(?:<<print\s*_npcData\.title(?:\.replace\([^)]+\))+>>|<<print setup\.NPC_CN_TITLE\(_npcData\.title\)>>|The _npcData\.title)/g, to: '<<= (lanSwitch("The ","")) + maplebirch.auto(_npcData.title)>>' },
-    { srcmatchgroup: /<<for _j to \$_statCount; _j lt 3; _j\+\+>>/g, to: '<<for _j to $_statCount; _j lt (($options.maplebirch?.relationcount ?? 4) - 1); _j++>>' },
+    { srcmatchgroup: /<<for _j to \$_statCount; _j lt 3; _j\+\+>>/g, to: '<<for _j to $_statCount; _j lt ($options.maplebirch?.relationcount ?? 4); _j++>>' },
   ],
   'Widgets Effects Man': [
     { src: '<<if $leftaction is "lefthandholdkeep" and $rightaction is "righthandholdkeep">>', applybefore: '<<maplebirchCombatAction "leftaction" "rightaction">>\n\t\t' },

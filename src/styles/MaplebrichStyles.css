@@ -850,12 +850,13 @@ button.saveMenuButton.saves-clear {
 }
 
 /* 社交栏NPC状态 */
-.relation-stat-list {
-  --maplebirch-relation-count: 2;
+.relation-stat-list:not(.quick-stats) > .relation-stat-block {
+  border-bottom: solid 1px var(--750);
 }
 
-.relation-stat-list > :nth-child(-n + var(--maplebirch-relation-count)) {
-  border-bottom: solid 1px var(--750);
+.relation-stat-list:not(.quick-stats) > .relation-stat-block:last-child,
+.relation-stat-list:not(.quick-stats) > .relation-stat-block:nth-last-child(2):nth-child(odd) {
+  border-bottom: 0;
 }
 
 .maplebirch-relationcount-slider label {
