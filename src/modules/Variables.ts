@@ -4,7 +4,7 @@ import { version } from '../constants';
 import maplebirch, { MaplebirchCore } from '../core';
 import type { ScopedLog } from '../infra/Diagnostics';
 import migration from './Frameworks/migration';
-import { clone } from '../utils';
+import { clone, mergefn as mergeFn } from '../utils';
 import Diagnostics from '../infra/Diagnostics';
 import dol from '../host/DoL';
 
@@ -22,6 +22,11 @@ function dataUpdate(migration: migration): void {
 
 type OptionsData = Record<string, any>;
 
+function fillOptions(options: OptionsData, defaults: OptionsData): OptionsData {
+  const { isPlainObject } = maplebirch.host.modLoader.lodash;
+  return mergeFn(options, (_key, value, _depth, current) => current === undefined || (isPlainObject(value) && isPlainObject(current)), clone(defaults));
+}
+
 class Options {
   public define(...args: any[]) {
     const options = ((dol.variables.options ??= {}).maplebirch ??= {}) as OptionsData;
@@ -30,35 +35,14 @@ class Options {
     if (typeof defaults !== 'object') {
       const key = args[0];
       Variables.add(key, defaults);
-      options[key] ??= clone(defaults);
+      fillOptions(options, { [key]: defaults });
       return options[key];
     }
 
-    if (args.length) {
-      for (const key of args) {
-        if (key in defaults) {
-          const value = defaults[key];
-          Variables.add(key, value);
-          if (maplebirch.host.modLoader.lodash.isPlainObject(value) && maplebirch.host.modLoader.lodash.isPlainObject(options[key])) {
-            options[key] = Object.merge(clone(value), options[key]);
-          } else {
-            options[key] ??= clone(value);
-          }
-          continue;
-        }
-        Variables.add(key, defaults);
-        options[key] = Object.merge(clone(defaults), options[key] ?? {});
-      }
-      return options;
-    }
-
-    for (const [key, value] of Object.entries(defaults)) {
+    const entries = args.length ? args.map(key => [key, key in defaults ? defaults[key] : defaults]) : Object.entries(defaults);
+    for (const [key, value] of entries) {
       Variables.add(key, value);
-      if (maplebirch.host.modLoader.lodash.isPlainObject(value) && maplebirch.host.modLoader.lodash.isPlainObject(options[key])) {
-        options[key] = Object.merge(clone(value), options[key]);
-      } else {
-        options[key] ??= clone(value);
-      }
+      fillOptions(options, { [key]: value });
     }
 
     return options;
@@ -97,7 +81,7 @@ class Variables {
   public static add(key: string, value: any): void {
     const current = this.moduleOptions[key];
     if (maplebirch.host.modLoader.lodash.isPlainObject(value) && maplebirch.host.modLoader.lodash.isPlainObject(current)) {
-      this.moduleOptions[key] = Object.merge(clone(value), current);
+      fillOptions(current, value);
       return;
     }
     this.moduleOptions[key] = clone(value);
@@ -153,7 +137,6 @@ class Variables {
     this.migration = new this.tool.migration();
     this.options = new Options();
     dataUpdate(this.migration);
-    this.core.once(':passageend', () => this.check());
     this.core.on(':rest-options', () => this.check());
   }
 
@@ -168,6 +151,7 @@ class Variables {
 
       if (action === 'reset') {
         localStorage.removeItem(Variables.OPTIONS_STORAGE_KEY);
+        dol.variables.options ??= {};
         dol.variables.options.maplebirch = clone(Variables.options);
         return null;
       }
@@ -178,6 +162,7 @@ class Variables {
       const saved = this.core.host.modLoader.lodash.isPlainObject(parsed) ? parsed : null;
 
       if (action === 'restore' && saved) {
+        dol.variables.options ??= {};
         dol.variables.options.maplebirch = saved;
         this.check();
       }
@@ -192,7 +177,7 @@ class Variables {
   public check() {
     dol.variables.options ??= {};
     const current = this.core.host.modLoader.lodash.isPlainObject(dol.variables.options.maplebirch) ? dol.variables.options.maplebirch : this.optionsStorage('load');
-    dol.variables.options.maplebirch = Object.merge(clone(Variables.options), current ?? {});
+    dol.variables.options.maplebirch = fillOptions(current ?? {}, Variables.options);
   }
 
   public Init(): void {
@@ -202,6 +187,7 @@ class Variables {
     } catch (error) {
       this.log(`出现错误：${Diagnostics.message(error)}`, 'ERROR');
     } finally {
+      this.check();
       this.migration.run(dol.variables.maplebirch, this.version);
       this.run();
     }
@@ -219,6 +205,7 @@ class Variables {
   }
 
   public postInit() {
+    this.check();
     if (dol.variables.maplebirch?.version !== this.version) this.migration.run(dol.variables.maplebirch, this.version);
   }
 

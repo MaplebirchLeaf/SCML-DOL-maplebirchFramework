@@ -286,38 +286,12 @@ class Transformation {
   }
 
   private _clear(): void {
-    const valid = {
-      names: new Set<string>(),
-      traits: new Set<string>()
-    };
-
-    if (Array.isArray(dol.setup.transformations)) {
-      dol.setup.transformations.forEach((tf: { name?: any; traits?: Array<{ name: any }> }) => {
-        if (tf?.name) valid.names.add(tf.name === 'fallenangel' ? 'fallenAngel' : tf.name);
-        tf?.traits?.forEach((trait: { name: any }) => trait?.name && valid.traits.add(trait.name));
-      });
-    }
-
+    const state = dol.variables.maplebirch?.transformation;
+    if (!state) return;
+    const valid = { names: new Set(this.config.keys()), traits: new Set<string>() };
+    if (Array.isArray(dol.setup.transformations)) for (const tf of dol.setup.transformations) if (tf?.name) valid.names.add(tf.name === 'fallenangel' ? 'fallenAngel' : tf.name);
     if (this.isDoLP) DoLPcompat.Transformations.extend(valid);
-
-    if (dol.variables.maplebirch?.transformation) {
-      Object.keys(dol.variables.maplebirch.transformation).forEach(name => {
-        if (!valid.names.has(name)) delete dol.variables.maplebirch.transformation[name];
-      });
-    }
-
-    if (dol.variables.transformationParts) {
-      Object.keys(dol.variables.transformationParts).forEach(name => {
-        if (name === 'traits') return;
-        if (!valid.names.has(name)) delete dol.variables.transformationParts[name];
-      });
-
-      if (dol.variables.transformationParts.traits) {
-        Object.keys(dol.variables.transformationParts.traits).forEach(trait => {
-          if (!valid.traits.has(trait)) delete dol.variables.transformationParts.traits[trait];
-        });
-      }
-    }
+    for (const name of Object.keys(state)) if (!valid.names.has(name)) delete state[name];
   }
 
   private suppress(name: string, change: number): void {

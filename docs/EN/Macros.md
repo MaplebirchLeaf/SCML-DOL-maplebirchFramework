@@ -128,6 +128,18 @@ Translation keys, variables, backtick expressions, and SugarCube link markup rem
 
 Only `lanLink` and `lanButton` handle leading bilingual arrays themselves. All other arguments use the native parser, and global SugarCube syntax is unchanged. Variables and expressions are evaluated when the control is created. Redraw the control to pick up later variable changes. Language changes refresh the labels on existing controls.
 
+### Display macros in labels
+
+Labels in `lanLink` and `lanButton` can contain display macros such as `<<him>>`, `<<nnpc_him "Robin">>` and `<<print _name>>` directly, without an intermediate text variable:
+
+```twine
+<<lanLink ['Ask <<him>> to stay', '请<<him>>留下'] 'My Mod Stay'>><</lanLink>>
+```
+
+The native parser resolves label macros to text when the control is created. Bilingual arrays and loaded dictionary translations retain the pronouns and variable values from that moment. Changing language does not rerun those display macros. Case conversion runs afterwards. Icons and styles still use their own arguments, and plain labels keep their previous display behaviour.
+
+Use labels for display only. Assignments, time changes and other actions belong in the click body. Keep `capture` where a loop or widget's click body depends on local variables.
+
 ## lanListbox
 
 Create a multilingual listbox. The first argument is a quoted variable name. Option values are separate from display labels.

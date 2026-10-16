@@ -1,3 +1,19 @@
+##### (v.5.4.9更新日志):
+
+- 支持地点与天气环境音分层、独立音效通道，音量和播放开关分别管理。
+- lanLink 与 lanButton 支持解析标签中的显示宏，切换语言时保留原人物上下文，点击内容仍在点击时执行。
+- 框架在初始化、读档和历史回溯时补齐缺失选项，保留玩家已有设置。
+- 修复 Header 空回调引起的未定义输出，补齐中英文原版的三组宏名差异。
+- 头发特写图层继承原模型配置，并保留其它模组注册的原版转化状态。
+
+**English**
+
+- Add layered location and weather ambience with a separate effects channel and independent controls.
+- Parse display macros in lanLink and lanButton labels while retaining the original character context across language changes and keeping click handlers deferred.
+- Fill missing options before initialization, loaded scenes and historical moments without replacing player settings.
+- Fix undefined output from void Header callbacks and bridge three native widget naming differences between English and Chinese.
+- Inherit native hair layer settings for close-ups and preserve native transformation state registered by other mods.
+
 ##### (v.5.4.8更新日志):
 
 - 修正社交栏状态格数的少一格问题，设置明确为最少预留格数，已有状态超过设置时仍全部显示。

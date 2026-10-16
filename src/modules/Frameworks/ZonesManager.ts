@@ -174,9 +174,9 @@ export class ZonesManager {
     const fn = this.functions.get(name);
     if (!fn) {
       this.log(`区域函数不存在: ${name}`, 'WARN');
-      return;
+      return '';
     }
-    return fn();
+    return fn() ?? '';
   }
 
   public play(zone: 'CustomLinkZone', passageTitle?: string): CustomLinkGroup[];
@@ -280,7 +280,7 @@ export class ZonesManager {
 
   private defaultContent(zone: string): string {
     const value = this.defaultData[zone];
-    if (typeof value === 'function') return `${value()}\n\t`;
+    if (typeof value === 'function') return `${value() ?? ''}\n\t`;
     if (typeof value === 'string') return `${value}\n\t`;
     return '';
   }

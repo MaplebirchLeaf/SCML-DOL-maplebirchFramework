@@ -6,6 +6,101 @@ import dol from '../../src/host/DoL';
 mock.module('../../src/core', () => ({ default: {} }));
 const { default: Transformation } = await import('../../src/modules/CharacterAddon/Transformation');
 
+test('refresh and load preserve native and foreign transformation parts and traits', () => {
+  const saved = ['V', 'setup', 'StartConfig'].map(key => ({ key, descriptor: Object.getOwnPropertyDescriptor(globalThis, key) }));
+  const parts = {
+    cat: { ears: 'hidden', tail: 'classic' },
+    waterdragon: { ears: 'default', horns: 'curved', tail: 'hidden' },
+    traits: { native: 'default', foreign: 'hidden' }
+  };
+  const variables = { maplebirch: { transformation: {} }, transformationParts: structuredClone(parts) };
+  const setup = { transformations: [{ name: 'cat', traits: [{ name: 'native' }] }] };
+  const manager = { core: { once() {}, tool: { define() {}, defineS() {} } } } as unknown as Character;
+  try {
+    Object.defineProperty(globalThis, 'StartConfig', { value: { version: '0.5.12.13 New World 0.1.9.17' }, configurable: true });
+    Object.defineProperty(globalThis, 'V', { value: variables, configurable: true });
+    Object.defineProperty(globalThis, 'setup', { value: setup, configurable: true });
+    const transformation = new Transformation(manager);
+    transformation.inject();
+    transformation.state();
+    expect(variables.transformationParts).toEqual(parts);
+    setup.transformations = [];
+    transformation.state();
+    expect(variables.transformationParts).toEqual(parts);
+  } finally {
+    for (const { key, descriptor } of saved) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else Reflect.deleteProperty(globalThis, key);
+    }
+  }
+});
+
+test('registered transformations retain saved choices before the native table is ready', () => {
+  const saved = ['V', 'setup', 'StartConfig'].map(key => ({ key, descriptor: Object.getOwnPropertyDescriptor(globalThis, key) }));
+  const variables: {
+    maplebirch: { transformation: Record<string, { level: number; build: number }> };
+    transformationParts: Record<string, Record<string, string>>;
+  } = {
+    maplebirch: { transformation: { raven: { level: 6, build: 150 }, retired: { level: 3, build: 50 } } },
+    transformationParts: { raven: { wings: 'hidden', tail: 'custom' }, traits: { feathered: 'hidden' } }
+  };
+  const manager = { core: { once() {}, tool: { define() {}, defineS() {} } } } as unknown as Character;
+  try {
+    Object.defineProperty(globalThis, 'StartConfig', { value: { version: '0.5.12.13' }, configurable: true });
+    Object.defineProperty(globalThis, 'V', { value: variables, configurable: true });
+    Object.defineProperty(globalThis, 'setup', { value: { transformations: [] }, configurable: true });
+    const transformation = new Transformation(manager);
+    transformation.add('raven', 'physical', {
+      parts: [
+        { name: 'wings', tfRequired: 6 },
+        { name: 'tail', tfRequired: 4 },
+        { name: 'ears', tfRequired: 2 }
+      ],
+      traits: [{ name: 'feathered', tfRequired: 3 }]
+    });
+    transformation.state();
+    transformation.state();
+    expect(variables.maplebirch.transformation).toEqual({ raven: { level: 6, build: 150 } });
+    expect(variables.transformationParts).toEqual({ raven: { wings: 'hidden', tail: 'custom', ears: 'disabled' }, traits: { feathered: 'hidden' } });
+  } finally {
+    for (const { key, descriptor } of saved) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else Reflect.deleteProperty(globalThis, key);
+    }
+  }
+});
+
+test('DoLP compatibility retains legacy state, native parts and trait choices across loads', () => {
+  const saved = ['V', 'setup', 'StartConfig'].map(key => ({ key, descriptor: Object.getOwnPropertyDescriptor(globalThis, key) }));
+  const parts = {
+    waterdragon: { ears: 'hidden', horns: 'curved', tail: 'default' },
+    kitsune: { tail: 'hidden' },
+    traits: { sharpEyes: 'hidden', aquatic: 'default', activeTF: 'hidden' }
+  };
+  const legacy = { level: 6, build: 100 };
+  const variables = { maplebirch: { transformation: { waterdragon: legacy } }, transformationParts: structuredClone(parts), waterdragon: 6, waterdragonbuild: 100 };
+  const manager = { core: { once() {}, tool: { define() {}, defineS() {} } } } as unknown as Character;
+  try {
+    Object.defineProperty(globalThis, 'StartConfig', { value: { version: '0.5.12.13 DoLP v0.778' }, configurable: true });
+    Object.defineProperty(globalThis, 'V', { value: variables, configurable: true });
+    Object.defineProperty(globalThis, 'setup', { value: { transformations: [] }, configurable: true });
+    const transformation = new Transformation(manager);
+    transformation.state();
+    expect(variables.maplebirch.transformation.waterdragon).toBe(legacy);
+    transformation.inject();
+    transformation.state();
+    expect(variables.transformationParts).toEqual(parts);
+    expect(dol.setup.transformations.some((tf: { name: string }) => tf.name === 'waterdragon')).toBe(true);
+    expect(variables.waterdragon).toBe(6);
+    expect(variables.waterdragonbuild).toBe(100);
+  } finally {
+    for (const { key, descriptor } of saved) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else Reflect.deleteProperty(globalThis, key);
+    }
+  }
+});
+
 test('DoLP ritual growth registers native build updaters and compatibility conditions', () => {
   const saved = [
     [globalThis, 'StartConfig'],

@@ -95,6 +95,20 @@ declare module '@scml-dol-maplebirch/types' {
 
 Core modules such as `tool`, `npc`, and `char` are mounted by the framework and retain their short entry points.
 
+## Default options
+
+Register default options in the module's `preInit()`:
+
+```javascript
+maplebirch.var.options.define('MyModFeature', {
+  enabled: true,
+  volume: 0.5,
+  display: { hints: true }
+});
+```
+
+Options live in `V.options.maplebirch.MyModFeature`. The framework fills missing or `undefined` keys during initialization and before displaying loaded scenes or historical moments, including nested options. Existing `false`, `0`, `null`, custom arrays and unregistered keys are retained. Default objects do not share references with player settings. Mods do not need to fill defaults whenever their settings page is drawn.
+
 ## Exposed Modules
 
 Exposure is optional and normally unnecessary for new feature modules. `exposed: true` mounts the module at `maplebirch[name]`. Only exposed API modules without lifecycle methods enter the `EXPOSED` state.

@@ -6,12 +6,16 @@ mock.module('../../src/core', () => ({ default: {} }));
 
 const { default: Character } = await import('../../src/modules/Character');
 
-function withCharacterLayers(run: (character: InstanceType<typeof Character>, create: (layers: CanvasLayerMap, name?: string) => CanvasModel) => void): void {
+function withCharacterLayers(run: (character: InstanceType<typeof Character>, create: (layers: CanvasLayerMap, name?: string, cached?: boolean) => CanvasModel) => void): void {
   const originalRenderer = Object.getOwnPropertyDescriptor(globalThis, 'Renderer');
   Object.defineProperty(globalThis, 'Renderer', { value: { CanvasModels: {} }, configurable: true });
   const core = { host: { modLoader: undefined }, on() {}, once() {}, var: { check() {} }, tool: { define() {}, defineS() {} } } as unknown as MaplebirchCore;
   const character = new Character(core);
+  let cached: CanvasModel;
   class BaseModel {
+    public static create(): CanvasModel {
+      return cached;
+    }
     public readonly name: string;
     public readonly layers: CanvasLayerMap;
     public readonly layerList: LayerConfig[];
@@ -25,7 +29,12 @@ function withCharacterLayers(run: (character: InstanceType<typeof Character>, cr
   }
   try {
     const PatchedModel = character.patchCanvasModel(BaseModel as unknown as CanvasModelConstructor);
-    run(character, (layers, name = 'main') => new PatchedModel({ name, width: 256, height: 256, layers }));
+    run(character, (layers, name = 'main', existing = false) => {
+      const options = { name, width: 256, height: 256, layers };
+      if (!existing) return new PatchedModel(options);
+      cached = new BaseModel(options) as unknown as CanvasModel;
+      return PatchedModel.create(name);
+    });
   } finally {
     if (originalRenderer) Object.defineProperty(globalThis, 'Renderer', originalRenderer);
     else Reflect.deleteProperty(globalThis, 'Renderer');
@@ -170,7 +179,10 @@ test('NPC costume masks preserve sidebar clipping and bird iris shape', async ()
 test('PC hair keeps both colour partitions under headwear and costume masks', () => {
   withCharacterLayers((character, create) => {
     character.preInit();
-    const layers = create({ hair_sides: { src: 'hair' }, hair_fringe: { src: 'fringe' } }).layers;
+    const layers = create({
+      hair_sides: { src: 'hair', showfn: options => !!options.show_hair && !!options.hair_sides_type },
+      hair_fringe: { src: 'fringe', showfn: options => !!options.show_hair && !!options.hair_fringe_type }
+    }).layers;
     const options: any = {
       show_hair: true,
       hair_sides_type: 'neat',
@@ -194,16 +206,48 @@ test('PC hair keeps both colour partitions under headwear and costume masks', ()
     }
     expect(layers.hair_sides_close_up.filtersfn?.(options)).toEqual(['hair_close_up']);
     expect(layers.hair_fringe_close_up.filtersfn?.(options)).toEqual(['hair_fringe_close_up']);
+    options.hair_colour_style = 'solid';
+    expect(layers.hair_sides_close_up.filtersfn?.(options)).toEqual(['hair']);
+    expect(layers.hair_fringe_close_up.filtersfn?.(options)).toEqual(['hair_fringe_close_up']);
     options.show_hair = false;
     expect(layers.hair_sides_close_up.showfn?.(options)).toBe(false);
     expect(layers.hair_fringe_close_up.showfn?.(options)).toBe(false);
   });
 });
 
+test('split hair retains native sources and ordering relative to transformation ears', () => {
+  for (const cached of [false, true])
+    withCharacterLayers((character, create) => {
+      character.preInit();
+      const nativeHair: LayerConfig = {
+        src: 'native-hair',
+        srcfn(options) {
+          return `${this.src}/${options.hair_sides_type === 'crude' ? 'short' : options.hair_sides_length}.png`;
+        },
+        zfn: () => 10
+      };
+      const ears: LayerConfig = { src: 'ears', zfn: options => ({ back: 10, middle: 20, front: 40 })[options.position as 'back' | 'middle' | 'front'] };
+      const model = create({ hair_sides: nativeHair, hair_fringe: { src: 'fringe', z: 30 }, tf_ears: ears }, 'main', cached);
+      const layers = model.layers;
+      expect(layers.hair_sides_close_up.srcfn?.({ hair_sides_type: 'crude', hair_sides_length: 'feet' })).toBe('native-hair/short.png');
+      expect(layers.hair_sides_close_up.zfn).toBe(nativeHair.zfn);
+      for (const position of ['back', 'middle', 'front']) {
+        const ordered = model.layerList
+          .map(layer => ({ layer, z: layer.zfn ? layer.zfn({ position }) : (layer.z ?? 0) }))
+          .sort((a, b) => a.z - b.z)
+          .map(({ layer }) => layer);
+        expect(ordered.indexOf(layers.hair_sides_close_up) < ordered.indexOf(layers.tf_ears)).toBe(ordered.indexOf(layers.hair_sides) < ordered.indexOf(layers.tf_ears));
+      }
+    });
+});
+
 test('PC hair retains unmasked and hairstyle-specific fallback behaviour', () => {
   withCharacterLayers((character, create) => {
     character.preInit();
-    const layers = create({ hair_sides: { src: 'hair' }, hair_fringe: { src: 'fringe' } }).layers;
+    const layers = create({
+      hair_sides: { src: 'hair', showfn: options => !!options.show_hair && !!options.hair_sides_type },
+      hair_fringe: { src: 'fringe', showfn: options => !!options.show_hair && !!options.hair_fringe_type }
+    }).layers;
     const options: any = {
       show_hair: true,
       hair_fringe_type: 'fro',

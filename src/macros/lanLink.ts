@@ -2,7 +2,7 @@
 
 import Diagnostics from '../infra/Diagnostics';
 import maplebirch from '../core';
-import { addClasses, appendMacroIcon, bindLanguageUpdate, parseLanguageArgs, isStyleArg, readStyle, sourceText, text, translatedText, type LinkArg, type MacroContext } from './helpers';
+import { addClasses, appendMacroIcon, bindLanguageUpdate, parseLanguageArgs, isStyleArg, readStyle, sourceText, text, labelText, type LinkArg, type MacroContext } from './helpers';
 import dol from '../host/DoL';
 
 // <<lanLink>>
@@ -53,8 +53,9 @@ export function _languageLink(this: MacroContext): void {
 
     const textNode = iconOnly ? null : document.createTextNode('');
     if (textNode) $link.append(textNode);
+    const label = labelText(source, convertMode);
     const update = () => {
-      const linkText = translatedText(source, convertMode);
+      const linkText = label();
       $link.attr('aria-label', linkText);
       if (iconOnly) $link.attr('title', linkText);
       else $link.removeAttr('title');

@@ -96,6 +96,8 @@ maplebirch.tool.addTo('Information', () => {
 
 函数适合简单动态文本。复杂 UI 更推荐写成 SugarCube widget。
 
+函数也可以只更新状态而不返回内容。返回 `undefined` 或 `null` 时，该区域不输出文字。
+
 #### 配置对象
 
 配置对象用于控制显示范围：

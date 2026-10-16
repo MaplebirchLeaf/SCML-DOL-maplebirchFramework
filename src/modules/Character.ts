@@ -207,19 +207,9 @@ const layers: CanvasLayerMap = {
     masksrcfn(options: HairGradientPreprocessOptions) {
       return hair_mask(options, 'sides', options.maplebirch?.char?.mask_src_close_up);
     },
-    srcfn(options: HairGradientPreprocessOptions) {
-      return `img/hair/sides/${options.hair_sides_type}/${options.hair_sides_length}.png`;
-    },
-    showfn(options: HairGradientPreprocessOptions) {
-      return !!options.show_hair && !!options.hair_sides_type;
-    },
-    zfn(options: HairGradientPreprocessOptions) {
-      return options.hair_sides_position === 'front' ? maplebirch.char.ZIndices.hair_forward : maplebirch.char.ZIndices.backhair;
-    },
     filtersfn(options: { hair_colour_style: string }) {
       return options.hair_colour_style === 'gradient' ? ['hair_close_up'] : ['hair'];
-    },
-    animation: 'idle'
+    }
   },
   hair_fringe: {
     masksrcfn(options: HairGradientPreprocessOptions) {
@@ -230,19 +220,9 @@ const layers: CanvasLayerMap = {
     masksrcfn(options: HairGradientPreprocessOptions) {
       return hair_mask(options, 'fringe', options.maplebirch?.char?.mask_src_close_up);
     },
-    srcfn(options: HairGradientPreprocessOptions) {
-      return `img/hair/fringe/${options.hair_fringe_type}/${options.hair_fringe_length}.png`;
-    },
-    showfn(options: HairGradientPreprocessOptions) {
-      return !!options.show_hair && !!options.hair_fringe_type;
-    },
-    zfn() {
-      return maplebirch.char.ZIndices.front_hair;
-    },
     filtersfn(options: { hair_fringe_colour_style: string }) {
       return options.hair_fringe_colour_style === 'gradient' ? ['hair_fringe_close_up'] : ['hair_fringe'];
-    },
-    animation: 'idle'
+    }
   }
 };
 
@@ -351,8 +331,21 @@ class Character {
     manager.modUtils.replaceFollowSC2DataInfo(SCdata, oldSCdata);
   }
 
+  private splitHairLayers(layers: CanvasLayerMap): CanvasLayerMap {
+    const result: CanvasLayerMap = {};
+    for (const [name, layer] of Object.entries(layers)) {
+      if (['hair_sides_close_up', 'hair_fringe_close_up'].includes(name) && layers[name.replace('_close_up', '')]) continue;
+      result[name] = layer;
+      if (!['hair_sides', 'hair_fringe'].includes(name)) continue;
+      const closeUp = `${name}_close_up`;
+      if (layers[closeUp]) result[closeUp] = { ...layer, ...layers[closeUp] };
+    }
+    return result;
+  }
+
   public patchCanvasModel<T extends CanvasModelConstructor>(BaseCanvasModel: T): T {
     const layerEntries = this.layers;
+    const splitHairLayers = this.splitHairLayers.bind(this);
     const runProcess = this.process.bind(this);
     const pet = this.pet;
     const patchFlag = Symbol('maplebirchProcessPatched');
@@ -366,7 +359,7 @@ class Character {
       if (!matchedLayers.length) return options;
       let patchedLayers = clone(options.layers);
       for (const layers of matchedLayers) patchedLayers = mergeFn(patchedLayers, (_key: any, value: any, depth: number) => depth <= 3 && value != null, layers);
-      return { ...options, layers: patchedLayers };
+      return { ...options, layers: splitHairLayers(patchedLayers) };
     };
     const patchProcess = (model: CanvasModel) => {
       const patched = model as CanvasModel & { [patchFlag]?: true };
@@ -387,6 +380,8 @@ class Character {
       const missing: CanvasLayerMap = {};
       for (const entry of modelLayers(model.name, model)) for (const [name, layer] of Object.entries(entry)) if (!model.layers?.[name]) missing[name] = layer;
       if (!Object.keys(missing).length) return;
+      const ordered = splitHairLayers({ ...model.layers, ...missing });
+      for (const name of Object.keys(missing)) missing[name] = ordered[name];
       const initialized = new BaseCanvasModel({
         name: model.name,
         width: model.width,
@@ -396,7 +391,7 @@ class Character {
         layers: missing
       } as CanvasModelOptions);
       Object.assign(model.layers, initialized.layers);
-      model.layerList = Object.values(model.layers);
+      model.layerList = Object.keys(ordered).map(name => model.layers[name]);
     };
     const patchModel = (model: CanvasModel) => {
       patchProcess(model);

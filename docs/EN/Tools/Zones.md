@@ -50,6 +50,8 @@ maplebirch.tool.addTo('Information', () => {
 });
 ```
 
+Functions may update state without returning content. Returning `undefined` or `null` produces no text in the zone.
+
 Conditional config:
 
 ```javascript

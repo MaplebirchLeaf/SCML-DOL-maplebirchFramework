@@ -99,6 +99,20 @@ declare module '@scml-dol-maplebirch/types' {
 
 `tool`、`npc`、`char` 等框架核心模块由框架统一挂载，可以继续使用它们的短入口。
 
+## 选项默认值
+
+在模块的 `preInit()` 中登记默认选项：
+
+```javascript
+maplebirch.var.options.define('MyModFeature', {
+  enabled: true,
+  volume: 0.5,
+  display: { hints: true }
+});
+```
+
+选项保存在 `V.options.maplebirch.MyModFeature`。框架在初始化、读档和历史状态显示前补齐缺少或值为 `undefined` 的键，包括嵌套选项。已有的 `false`、`0`、`null`、自定义数组及未登记的键都会保留，默认对象不会与玩家设置共享引用。模组无需在每次绘制设置页时自行补默认值。
+
 ## 暴露模块
 
 `exposed` 是可选的直接挂载方式，新功能模块通常不需要。`exposed: true` 将模块挂到 `maplebirch[name]`，只有不含生命周期方法的纯 API 模块才进入 `EXPOSED` 状态。

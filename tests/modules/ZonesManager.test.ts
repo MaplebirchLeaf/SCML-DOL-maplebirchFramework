@@ -83,6 +83,49 @@ test('zone releases patch inputs when special widget generation throws', () => {
   expect(passage('Home').content).toBe('old location');
 });
 
+test('zone callbacks can change state without producing output', () => {
+  const { zone } = harness();
+  let calls = 0;
+  zone.addTo('Header', () => {
+    calls++;
+  });
+  zone.addTo(
+    'Header',
+    () => null,
+    () => false,
+    () => 0,
+    () => 'header text'
+  );
+  expect(zone.play('Header')).toContain('maplebirch.tool.zone.call');
+  expect(calls).toBe(0);
+  expect(zone.call('maplebirch:zone:1')).toBe('');
+  expect(calls).toBe(1);
+  expect(zone.call('maplebirch:zone:2')).toBe('');
+  expect(zone.call('maplebirch:zone:3')).toBe(false);
+  expect(zone.call('maplebirch:zone:4')).toBe(0);
+  expect(zone.call('maplebirch:zone:5')).toBe('header text');
+  expect(zone.call('missing')).toBe('');
+});
+
+test('void default callbacks do not generate literal undefined in widgets', () => {
+  const { zone, addon, passage } = harness();
+  let calls = 0;
+  zone.inject({
+    defaultData: {
+      Header: () => {
+        calls++;
+      },
+      Footer: () => null
+    }
+  });
+  zone.patchModToGame(addon, 'before');
+  expect(calls).toBe(1);
+  const source = passage('Maplebirch Frameworks Widgets').content;
+  expect(source).not.toContain('undefined');
+  expect(source).not.toContain('null');
+  expect(source).toContain("<<widget 'maplebirchHeader'>>");
+});
+
 test('zone clears generated widget text even when publishing patched passages fails', () => {
   const { zone, addon, manager } = harness();
   manager.modUtils.replaceFollowSC2DataInfo = () => {

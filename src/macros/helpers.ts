@@ -167,6 +167,38 @@ export function translatedText(source: unknown, convertMode: ConvertMode | null)
   return convertMode ? value.convert(convertMode) : value;
 }
 
+export function labelText(source: string | readonly string[], convertMode: ConvertMode | null): () => string {
+  const labels = new Map<string, string>();
+  const render = (value: string): string => {
+    if (!value.includes('<<')) return value;
+    if (labels.has(value)) return labels.get(value)!;
+    const output = document.createDocumentFragment();
+    new (maplebirch.host.sugarcube.require().Wikifier)(output, value, { profile: 'core' });
+    const error = output.querySelector('.error');
+    if (error) throw new Error(error.textContent || 'Invalid label macro.');
+    const result = output.textContent || '';
+    labels.set(value, result);
+    return result;
+  };
+  const translator = maplebirch.services.translator;
+  const language = translator.language;
+  const variants = new Set<string>();
+  // 只切换翻译查找，先恢复原语言，再在同一人物上下文中解析标签。
+  try {
+    for (const code of maplebirch.meta.Languages) {
+      translator.language = code;
+      variants.add(macroTranslation(source, maplebirch));
+    }
+  } finally {
+    translator.language = language;
+  }
+  for (const value of variants) render(value);
+  return () => {
+    const value = render(macroTranslation(source, maplebirch));
+    return convertMode ? value.convert(convertMode) : value;
+  };
+}
+
 export function appendMacroIcon($target: JQuery, icon: string): void {
   if (icon) $target.append(jQuery(document.createElement('img')).attr({ src: icon, alt: '' }));
 }

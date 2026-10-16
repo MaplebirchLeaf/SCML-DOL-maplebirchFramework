@@ -2,7 +2,7 @@
 
 import Diagnostics from '../infra/Diagnostics';
 import maplebirch from '../core';
-import { addClasses, appendMacroIcon, bindLanguageUpdate, parseLanguageArgs, readStyle, sourceText, text, translatedText, type MacroContext } from './helpers';
+import { addClasses, appendMacroIcon, bindLanguageUpdate, parseLanguageArgs, readStyle, sourceText, text, labelText, type MacroContext } from './helpers';
 
 // <<lanButton>>
 export function _languageButton(this: MacroContext): void {
@@ -25,8 +25,9 @@ export function _languageButton(this: MacroContext): void {
 
     const textNode = iconOnly ? null : document.createTextNode('');
     if (textNode) $button.append(textNode);
+    const label = labelText(source, convertMode);
     const update = () => {
-      const buttonText = translatedText(source, convertMode);
+      const buttonText = label();
       $button.attr('aria-label', buttonText);
       if (iconOnly) $button.attr('title', buttonText);
       else $button.removeAttr('title');

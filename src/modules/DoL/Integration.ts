@@ -13,6 +13,18 @@ class DoLIntegration {
 
   public install(): void {
     DoLPcompat.install(this.core);
+    this.core.tool.onInit(() => {
+      const macros = this.core.SugarCube.Macro;
+      // 中英文原版的个别 widget 名称不同，只补不存在的别名。
+      for (const [english, chinese] of [
+        ['childInteractedWith', 'childInteratedWith'],
+        ['schoolSkillGeneral', 'schoolskillgeneral'],
+        ['whitneyOptions', 'whitneyoptions']
+      ]) {
+        if (macros.has(english) && !macros.has(chinese)) macros.add(chinese, english);
+        else if (macros.has(chinese) && !macros.has(english)) macros.add(english, chinese);
+      }
+    });
     Object.defineProperty(window, 'loadImage', { value: ImageLoader.load, enumerable: true, writable: false, configurable: false });
     const addon = this.core.services.addonPlugin;
     addon.excludedMods.add('Simple Frameworks');

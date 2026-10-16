@@ -8,7 +8,7 @@ mock.module('../../src/core', () => ({ default: {} }));
 mock.module('../../src/host/DoL', () => ({ default: dol }));
 mock.module('../../src/constants', () => ({ version: 'test' }));
 mock.module('../../src/modules/Frameworks/migration', () => ({ default: class {} }));
-mock.module('../../src/utils', () => ({ clone: structuredClone }));
+mock.module('../../src/utils', () => ({ clone: structuredClone, mergefn: () => {} }));
 
 const { default: Variables } = await import('../../src/modules/Variables');
 const variables = Object.create(Variables.prototype) as InstanceType<typeof Variables>;
@@ -48,7 +48,7 @@ Object.defineProperty(globalThis, 'document', { value: { createDocumentFragment:
 Object.defineProperty(globalThis, '$', { value: { wiki: () => calls.push('legacyWiki') }, configurable: true });
 
 variables.Init();
-assert.deepEqual(calls, ['migration', 'patch:state', 'event::variable', 'zone:State', 'render:<<customState>>']);
+assert.deepEqual(calls, ['check', 'migration', 'patch:state', 'event::variable', 'zone:State', 'render:<<customState>>']);
 
 calls.length = 0;
 variables.loadInit();
