@@ -101,6 +101,26 @@ test('DoLP compatibility retains legacy state, native parts and trait choices ac
   }
 });
 
+test('NewWorld compatibility injects animal and history transforms', () => {
+  const saved = ['V', 'setup', 'StartConfig', 'Transformations'].map(key => ({ key, descriptor: Object.getOwnPropertyDescriptor(globalThis, key) }));
+  const variables = { maplebirch: {}, transformationParts: {} };
+  const manager = { core: { once() {}, tool: { define() {}, defineS() {} } } } as unknown as Character;
+  try {
+    Object.defineProperty(globalThis, 'StartConfig', { value: { version: '0.5.12.13 New World 0.1.9.17' }, configurable: true });
+    Object.defineProperty(globalThis, 'V', { value: variables, configurable: true });
+    Object.defineProperty(globalThis, 'setup', { value: { transformations: [] }, configurable: true });
+    const transformation = new Transformation(manager);
+    transformation.inject();
+    expect(dol.setup.transformations.some((tf: { name: string }) => tf.name === 'dragon')).toBe(true);
+    expect(dol.setup.transformations.some((tf: { name: string }) => tf.name === 'bee')).toBe(true);
+  } finally {
+    for (const { key, descriptor } of saved) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else Reflect.deleteProperty(globalThis, key);
+    }
+  }
+});
+
 test('DoLP ritual growth registers native build updaters and compatibility conditions', () => {
   const saved = [
     [globalThis, 'StartConfig'],

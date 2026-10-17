@@ -64,6 +64,10 @@ declare global {
     DefaultActions: { get(type: unknown, person: unknown, part: ActionType): ActionValue[] };
     pregnancyDaysEta: typeof pregnancyDaysEta;
     getChildDays: typeof getChildDays;
+    Transformations?: {
+      defaults?: Record<string, { colour?: { h: number; s: number; l: number } }>;
+      [key: string]: unknown;
+    };
   }
 
   const lanSwitch: typeof _languageSwitch;

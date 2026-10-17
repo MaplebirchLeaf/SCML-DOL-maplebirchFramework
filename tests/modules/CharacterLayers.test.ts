@@ -327,3 +327,31 @@ test('PC pet hair mask patches preserve native image sources and rendering prope
     expect(native.masksrcfn?.({})).toBe('native-mask');
   });
 });
+
+test('Character patchProcess executes before hook before vanillaPre', () => {
+  withCharacterLayers(character => {
+    const order: string[] = [];
+    character.use('before', () => {
+      order.push('before');
+    });
+    character.use('pre', () => {
+      order.push('pre');
+    });
+
+    class MockBaseModel {
+      public readonly name = 'main';
+      public readonly layers = {};
+      public readonly layerList = [];
+      public preprocess() {
+        order.push('vanillaPre');
+      }
+      public postprocess() {}
+    }
+
+    const Patched = character.patchCanvasModel(MockBaseModel as unknown as CanvasModelConstructor);
+    const model = new Patched({ name: 'main', width: 256, height: 256, layers: {} });
+    model.preprocess({ filters: {} } as unknown as CanvasModelOptionsData);
+
+    expect(order).toEqual(['before', 'vanillaPre', 'pre']);
+  });
+});

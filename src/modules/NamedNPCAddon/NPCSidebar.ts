@@ -18,7 +18,7 @@ import feet_layers from './NPCSidebarConfig/feet_layers';
 import transformation_layers, { transformationDefaults } from './NPCSidebarConfig/transformation_layers';
 import type { NPCClothesSlot } from './NPCSidebarConfig/types';
 import type NPCManager from '../NamedNPC';
-import DoLPcompat from '../../compat/DoLPcompat';
+import DoLP from '../../compat/DoLP';
 import { FloatingPet, type PetOptions, type PetSettings } from '../CharacterAddon/Pet';
 import dol from '../../host/DoL';
 
@@ -839,7 +839,7 @@ const NPCSidebar = (() => {
     public static init(manager: NPCManager) {
       manager.core.once(':storyready', () => {
         init_drip_mask();
-        if (DoLPcompat.isDoLP) manager.core.char.use({ nnpc: DoLPcompat.nnpc }, 'main');
+        if (DoLP.isDoLP) manager.core.char.use({ nnpc: DoLP.nnpc }, 'main');
         load_all_images(manager);
         for (const npc_name of manager.NPCNameList) {
           if (!display.has(npc_name)) display.set(npc_name, new Set());

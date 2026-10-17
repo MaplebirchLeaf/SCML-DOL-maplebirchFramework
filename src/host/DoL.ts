@@ -70,7 +70,7 @@ export class DoL implements DoLHost {
   }
 
   public get gameVersion(): string {
-    return StartConfig.version;
+    return typeof StartConfig !== 'undefined' ? StartConfig.version : '';
   }
 
   public has(name: DoLGlobalName): boolean {

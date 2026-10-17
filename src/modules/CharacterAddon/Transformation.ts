@@ -19,7 +19,9 @@ import {
   type SuppressCondition,
   type BuildUpdater
 } from './TransformationConfig';
-import DoLPcompat from '../../compat/DoLPcompat';
+import DoLP from '../../compat/DoLP';
+import DoLX from '../../compat/DoLX';
+import NewWorld from '../../compat/NewWorld';
 import dol from '../../host/DoL';
 
 interface Part {
@@ -112,10 +114,15 @@ class Transformation {
 
   public constructor(private manager: Character) {
     manager.core.once(':storyready', () => {
-      if (DoLPcompat.isDoLP) {
-        Object.assign(this.decayConditions, DoLPcompat.Transformations.DecayConditions);
-        Object.assign(this.suppressConditions, DoLPcompat.Transformations.SuppressConditions);
-        Object.assign(this.buildUpdaters, DoLPcompat.Transformations.BuildUpdaters);
+      if (DoLP.isDoLP) {
+        Object.assign(this.decayConditions, DoLP.Transformations.DecayConditions);
+        Object.assign(this.suppressConditions, DoLP.Transformations.SuppressConditions);
+        Object.assign(this.buildUpdaters, DoLP.Transformations.BuildUpdaters);
+      }
+      if (NewWorld.isNewWorld) {
+        Object.assign(this.decayConditions, NewWorld.Transformations.DecayConditions);
+        Object.assign(this.suppressConditions, NewWorld.Transformations.SuppressConditions);
+        Object.assign(this.buildUpdaters, NewWorld.Transformations.BuildUpdaters);
       }
     });
     manager.core.tool.define('transform', (name: string, change: number) => this._transform(name, change), null, null, false, 'storyready');
@@ -133,7 +140,15 @@ class Transformation {
   }
 
   private get isDoLP() {
-    return DoLPcompat.isDoLP;
+    return DoLP.isDoLP;
+  }
+
+  private get isDoLX() {
+    return DoLX.isDoLX;
+  }
+
+  private get isNewWorld() {
+    return NewWorld.isNewWorld;
   }
 
   public get coexist(): boolean {
@@ -141,15 +156,24 @@ class Transformation {
   }
 
   private get animalTransforms() {
-    return this.isDoLP ? [...AnimalTransforms, ...DoLPcompat.Transformations.AnimalTransforms] : AnimalTransforms;
+    let transforms = AnimalTransforms;
+    if (this.isDoLP) transforms = [...transforms, ...DoLP.Transformations.AnimalTransforms];
+    if (this.isNewWorld) transforms = [...transforms, ...NewWorld.Transformations.AnimalTransforms];
+    return transforms;
   }
 
   private get animalMacros(): NativeMacroMap {
-    return this.isDoLP ? (Object.cover({}, AnimalMacros, DoLPcompat.Transformations.AnimalMacros) as NativeMacroMap) : AnimalMacros;
+    let macros = AnimalMacros;
+    if (this.isDoLP) macros = Object.cover({}, macros, DoLP.Transformations.AnimalMacros) as NativeMacroMap;
+    if (this.isNewWorld) macros = Object.cover({}, macros, NewWorld.Transformations.AnimalMacros) as NativeMacroMap;
+    return macros;
   }
 
   private get historyTransforms() {
-    return this.isDoLP ? [...HistoryTransforms, ...DoLPcompat.Transformations.HistoryTransforms] : HistoryTransforms;
+    let history = HistoryTransforms;
+    if (this.isDoLP) history = [...history, ...DoLP.Transformations.HistoryTransforms];
+    if (this.isNewWorld) history = [...history, ...NewWorld.Transformations.HistoryTransforms];
+    return history;
   }
 
   public wikifier(widget: string, ...args: any[]): any {
@@ -263,7 +287,10 @@ class Transformation {
     }
 
     const transformations = [...base, ...injected.filter(tf => !baseNames.has(tf.name))];
-    dol.setup.transformations = this.isDoLP ? DoLPcompat.Transformations.merge(transformations) : transformations;
+    let merged = transformations;
+    if (this.isDoLP) merged = DoLP.Transformations.merge(merged);
+    if (this.isNewWorld) merged = NewWorld.Transformations.merge(merged);
+    dol.setup.transformations = merged;
   }
 
   public state(): void {
@@ -295,7 +322,9 @@ class Transformation {
     if (!state) return;
     const valid = { names: new Set(this.config.keys()), traits: new Set<string>() };
     if (Array.isArray(dol.setup.transformations)) for (const tf of dol.setup.transformations) if (tf?.name) valid.names.add(tf.name === 'fallenangel' ? 'fallenAngel' : tf.name);
-    if (this.isDoLP) DoLPcompat.Transformations.extend(valid);
+    if (this.isDoLP) DoLP.Transformations.extend(valid);
+    if (this.isDoLX) DoLX.extend(valid);
+    if (this.isNewWorld) NewWorld.Transformations.extend(valid);
     for (const name of Object.keys(state)) if (!valid.names.has(name)) delete state[name];
   }
 
@@ -310,7 +339,7 @@ class Transformation {
   public _transform(name: string, change: number): void {
     if (!change) return;
 
-    if (this.isDoLP) change = DoLPcompat.Transformations.change(change);
+    if (this.isDoLP) change = DoLP.Transformations.change(change);
 
     const updater = this.buildUpdaters[name];
     if (updater) {
@@ -461,7 +490,7 @@ class Transformation {
       });
     }
 
-    if (this.isDoLP) DoLPcompat.Transformations.composite();
+    if (this.isDoLP) DoLP.Transformations.composite();
 
     if (dol.variables.wolfgirl >= 6) this.wikifier('def', 5);
 

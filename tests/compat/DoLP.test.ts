@@ -7,8 +7,51 @@ for (const name of ['TransformationMirror', 'NPCHairStyleOptions', 'Options', 'C
   mock.module(`@/twee/${name}.twee?raw`, () => ({ default: '' }));
 }
 
-const { default: DoLPcompat } = await import('../../src/compat/DoLPcompat');
+const { default: DoLP } = await import('../../src/compat/DoLP');
 const { widgetPassage } = await import('../../src/modules/DoL/Replacements');
+
+test('DoLP detection via StartConfig version', () => {
+  const savedStartConfig = Object.getOwnPropertyDescriptor(globalThis, 'StartConfig');
+
+  try {
+    Object.defineProperty(globalThis, 'StartConfig', {
+      value: { version: '0.5.12.13 DoLP v0.778' },
+      configurable: true
+    });
+    expect(DoLP.isDoLP).toBe(true);
+
+    Object.defineProperty(globalThis, 'StartConfig', {
+      value: { version: '0.5.12.13' },
+      configurable: true
+    });
+    expect(DoLP.isDoLP).toBe(false);
+  } finally {
+    if (savedStartConfig) Object.defineProperty(globalThis, 'StartConfig', savedStartConfig);
+    else Reflect.deleteProperty(globalThis, 'StartConfig');
+  }
+});
+
+test('DoLP transformations metadata, merge and extend', () => {
+  const animalTransforms = DoLP.Transformations.AnimalTransforms;
+  expect(animalTransforms.some(tf => tf.name === 'waterdragon')).toBe(true);
+  expect(animalTransforms.some(tf => tf.name === 'bear')).toBe(true);
+
+  const animalMacros = DoLP.Transformations.AnimalMacros;
+  expect(animalMacros).toHaveProperty('waterdragon');
+
+  const historyTransforms = DoLP.Transformations.HistoryTransforms;
+  expect(historyTransforms.some(h => h.name === 'waterdragon')).toBe(true);
+
+  const valid = { names: new Set<string>(), traits: new Set<string>() };
+  DoLP.Transformations.extend(valid);
+  expect(valid.names.has('waterdragon')).toBe(true);
+  expect(valid.names.has('kitsune')).toBe(true);
+  expect(valid.traits.has('sharpEyes')).toBe(true);
+
+  const merged = DoLP.Transformations.merge([{ name: 'wolf' }]);
+  expect(merged.some(tf => tf.name === 'waterdragon')).toBe(true);
+  expect(merged.some(tf => tf.name === 'kitsune')).toBe(true);
+});
 
 test('initializes DoLP variables immediately before Start invokes modupdate', () => {
   let beforePatch: (() => void) | undefined;
@@ -24,7 +67,7 @@ test('initializes DoLP variables immediately before Start invokes modupdate', ()
       }
     }
   } as unknown as MaplebirchCore;
-  DoLPcompat.install(core);
+  DoLP.install(core);
   expect(beforePatch).toBeDefined();
   beforePatch!();
   expect(patches).toHaveLength(1);
@@ -52,7 +95,7 @@ test('does not register the DoLP widget patch when the passage is absent', () =>
       }
     }
   } as unknown as MaplebirchCore;
-  DoLPcompat.install(core);
+  DoLP.install(core);
   beforePatch!();
   expect(injected).toBe(false);
 });

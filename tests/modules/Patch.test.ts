@@ -114,14 +114,15 @@ test('antique restoration preserves newer active progress and antiques registere
   const metadata = { name: 'Active antique', hint: '', museum: '', journal: '', icon: '' };
   const variables = {
     maplebirch: { inactiveAntiques: { active: { status: 'found', hint: true }, absent: { status: 'talk', hint: false } } } as Record<string, any>,
-    museumAntiques: { antiques: { active: 'museum', other: 'found' }, museumCount: 7, maxCount: 2 }
+    museumAntiques: { antiques: { active: 'museum', other: 'found' }, museumCount: 7, maxCount: 2 },
+    museumAntiqueJournalHints: undefined as string[] | undefined
   };
   Object.defineProperty(globalThis, 'V', { value: variables, configurable: true });
   try {
     Antiques.inject({ active: metadata, other: metadata });
     expect(variables.museumAntiques).toEqual({ antiques: { active: 'museum', other: 'found' }, museumCount: 7, maxCount: 2 });
     expect(variables.maplebirch.inactiveAntiques).toEqual({ absent: { status: 'talk', hint: false } });
-    expect((variables as any).museumAntiqueJournalHints).toEqual(['active']);
+    expect(variables.museumAntiqueJournalHints).toEqual(['active']);
   } finally {
     if (original) Object.defineProperty(globalThis, 'V', original);
     else Reflect.deleteProperty(globalThis, 'V');

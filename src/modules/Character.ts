@@ -42,7 +42,7 @@ interface HairGradientPreprocessOptions {
   [key: string]: any;
 }
 
-export type ProcessType = 'pre' | 'post';
+export type ProcessType = 'before' | 'pre' | 'post';
 export type ModelTarget<TModel = CanvasModel | CanvasModelOptions> = string | string[] | ((modelName: string, model?: TModel) => boolean);
 export type ProcessHandler = (options: any, model?: CanvasModel) => void;
 
@@ -237,7 +237,11 @@ class Character {
   public readonly transformation: Transformation;
 
   public constructor(readonly core: MaplebirchCore) {
-    this.processors = { pre: new Hooks(core.host.modLoader, 'continue'), post: new Hooks(core.host.modLoader, 'continue') };
+    this.processors = {
+      before: new Hooks(core.host.modLoader, 'continue'),
+      pre: new Hooks(core.host.modLoader, 'continue'),
+      post: new Hooks(core.host.modLoader, 'continue')
+    };
     this.pet = new Pet(this);
     this.transformation = new Transformation(this);
   }
@@ -368,6 +372,7 @@ class Character {
       const vanillaPre = model.preprocess;
       const vanillaPost = model.postprocess;
       model.preprocess = (processOptions: CanvasModelOptionsData) => {
+        runProcess('before', processOptions, model);
         vanillaPre.call(model, processOptions);
         runProcess('pre', processOptions, model);
       };

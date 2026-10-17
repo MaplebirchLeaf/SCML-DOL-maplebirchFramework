@@ -6,13 +6,17 @@ import type AddonPlugin from '../../services/AddonPlugin';
 import { patchTimeConstantsAsset, patchDateTimeAsset } from '../TimeStateWeather/DateTime';
 import { patchTimeAsset } from '../TimeStateWeather/Time';
 import ImageLoader from '../Frameworks/ImageLoader';
-import DoLPcompat from '../../compat/DoLPcompat';
+import DoLP from '../../compat/DoLP';
+import DoLX from '../../compat/DoLX';
+import NewWorld from '../../compat/NewWorld';
 
 class DoLIntegration {
   public constructor(private readonly core: MaplebirchCore) {}
 
   public install(): void {
-    DoLPcompat.install(this.core);
+    DoLP.install(this.core);
+    DoLX.install(this.core);
+    NewWorld.install(this.core);
     this.core.tool.onInit(() => {
       const macros = this.core.SugarCube.Macro;
       // 中英文原版的个别 widget 名称不同，只补不存在的别名。

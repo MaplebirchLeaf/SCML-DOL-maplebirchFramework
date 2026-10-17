@@ -10,3 +10,6 @@ export type { CoreModules } from './modules/DoL/types';
 export { default as DoLDynamic } from './modules/DoL/Dynamic';
 export { default as DoLToolCollection } from './modules/DoL/ToolCollection';
 export { default as ImageLoader } from './modules/Frameworks/ImageLoader';
+export { default as DoLP } from './compat/DoLP';
+export { default as DoLX } from './compat/DoLX';
+export { default as NewWorld } from './compat/NewWorld';
