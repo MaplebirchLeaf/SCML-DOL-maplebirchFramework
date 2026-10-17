@@ -1,3 +1,17 @@
+##### (v.5.4.12更新日志):
+
+- 兼容层重构与增强：新增 New World、DoLX 全面兼容层，重构 DoLP 适配模块。
+- 修复 New World 在新开档 Start2 页面渲染立绘时因转化属性未定义导致的 `wings_colour` 报错崩溃，自动补全 23 种新转化的属性包与滤镜默认色彩。
+- Character 模块引入 `'before'` 生命周期钩子，实现核心模块与特定 Mod 的彻底解耦，在原版预处理前自动执行环境守卫。
+- 整理优化测试体系：将兼容性测试细化拆分为 DoLP、DoLX、NewWorld 独立测试套件，全面清除类型断言与冗余判断。
+
+**English**
+
+- Compat Layer Refactoring & Expansion: Add full compatibility for New World and DoLX, refactor DoLP integration.
+- Fix New World crash on fresh game Start2 passage caused by undefined transformation properties (`wings_colour`), automatically pre-populating property bags and default colors for all 23 transformations.
+- Introduce `'before'` lifecycle hook in Character module, decoupling core logic from third-party mods while guarding host variables prior to model preprocessing.
+- Test Suite Optimization: Modularize compat tests into dedicated suites for DoLP, DoLX, and NewWorld, eliminating loose type assertions.
+
 ##### (v.5.4.11更新日志):
 
 - 在 storyready 阶段补齐框架与模组选项，修复开始页滑块默认值未定义、无法读取 character 配置的报错，保留已有设置。
