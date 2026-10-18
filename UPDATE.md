@@ -1,3 +1,13 @@
+##### (v.5.4.15更新日志):
+
+- 修复模组双语链接未优先跳转强制事件的问题，避免误执行原选项动作或覆盖事件跳转。
+- 修复铁人模式下模组链接动作的状态写入，并保留跳转前的页面与侧栏滚动位置。
+
+**English**
+
+- Make forced events take priority when using bilingual mod links, preventing unintended option effects or lost event navigation.
+- Restore Ironman-compatible mod link actions and preserve page and sidebar scroll positions during navigation.
+
 ##### (v.5.4.14更新日志):
 
 - 修复自动生成人物描述在切换语言后仍保留旧语言的问题，保留自定义描述与人物原有属性。
