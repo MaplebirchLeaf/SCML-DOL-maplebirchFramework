@@ -34,6 +34,9 @@ declare global {
   }
 
   interface Window {
+    ironmanFlag?: boolean;
+    scrollUIBar?: number | null;
+    scrollMain?: number;
     modSC2DataManager: SC2DataManager;
     modGameOriginalImagePack: GameOriginalImagePack;
     modImgLoaderHooker: ImgLoaderHooker;

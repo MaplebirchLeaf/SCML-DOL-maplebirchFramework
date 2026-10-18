@@ -16,7 +16,6 @@ export function _languageLink(this: MacroContext): void {
     const firstArg = this.args[0];
     const { className, style, icon, iconOnly, convertMode } = readStyle(this.args);
     const passageObj = this.passageObj;
-    const nativeWindow = window as Window & { ironmanFlag?: boolean; scrollUIBar?: number | null; scrollMain?: number };
     let source: string | readonly string[] = '';
     let passageName: string | null = null;
 
@@ -67,17 +66,15 @@ export function _languageLink(this: MacroContext): void {
     $link.ariaClick(
       { namespace: '.macros', role: passageName != null ? 'link' : 'button', one: passageName != null },
       this.createShadowWrapper(
-        content
-          ? () => {
-              if (passageName != null && dol.variables.nextPassage) return;
-              nativeWindow.ironmanFlag = true;
-              try {
-                maplebirch.host.sugarcube.require().Wikifier.wikifyEval(content, passageObj);
-              } finally {
-                delete nativeWindow.ironmanFlag;
-              }
-            }
-          : () => {},
+        () => {
+          if (!content || (passageName != null && dol.variables.nextPassage)) return;
+          window.ironmanFlag = true;
+          try {
+            maplebirch.host.sugarcube.require().Wikifier.wikifyEval(content, passageObj);
+          } finally {
+            delete window.ironmanFlag;
+          }
+        },
         passageName != null
           ? () => {
               const variables = dol.variables;
@@ -87,8 +84,8 @@ export function _languageLink(this: MacroContext): void {
                 delete variables.nextPassage;
               }
               const sidebar = document.querySelector<HTMLElement>('#storyCaptionDiv');
-              nativeWindow.scrollUIBar = sidebar?.scrollTop ?? null;
-              nativeWindow.scrollMain = document.scrollingElement?.scrollTop ?? 0;
+              window.scrollUIBar = sidebar?.scrollTop ?? null;
+              window.scrollMain = document.scrollingElement?.scrollTop ?? 0;
               maplebirch.host.sugarcube.require().Engine.play(destination);
             }
           : undefined
