@@ -1,3 +1,19 @@
+##### (v.5.4.13更新日志):
+
+- 修复开始页设置与 NPC 侧栏的初始化时序，补齐缺失默认值并保留已有设置。
+- 增加 PC、NPC 桌宠共用的锁定开关，修复排队渲染读取过期设置的问题。
+- 整理转化与兼容层的衔接，保留原版及其它模组拥有的数据。
+- 为新增或覆盖的地点补齐天气默认值，避免雾效、雨效读取缺项。
+- 自定义 NPC 状态名称随语言正确显示，保留模组对人物头衔的控制。
+
+**English**
+
+- Fix title-screen options and NPC sidebar initialization, filling missing defaults while retaining saved preferences.
+- Add a shared lock option for PC and NPC pets, and prevent queued renders from using stale settings.
+- Refine transformation and compatibility integration while preserving data owned by vanilla or other mods.
+- Supply weather defaults for added or replaced locations, preventing missing-field errors in fog and rain effects.
+- Translate custom NPC stat labels correctly while leaving character titles under the registering mod's control.
+
 ##### (v.5.4.12更新日志):
 
 - 兼容层重构与增强：新增 New World、DoLX 全面兼容层，重构 DoLP 适配模块。
