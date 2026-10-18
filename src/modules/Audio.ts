@@ -298,18 +298,7 @@ class Audio {
       const records = await this.readRecords(modName);
       if (this.playlistLoads.get(modName) !== task) return playlist;
       playlist.clear();
-      playlist.add(
-        records
-          .filter(record => !/^(?:ambience|sfx|voice)\//i.test(record.audioName))
-          .map(record => {
-            const track = new Track(record.audioName, record.modName, {
-              title: record.value.title,
-              artist: record.value.artist
-            });
-            track.format = record.value.format;
-            return track;
-          })
-      );
+      playlist.add(this.musicTracks(records));
       return playlist;
     });
     this.playlistLoads.set(modName, task);
@@ -633,18 +622,7 @@ class Audio {
     }
     for (const [modName, modRecords] of groups) {
       const playlist = new Playlist(modName);
-      playlist.add(
-        modRecords
-          .filter(record => !/^(?:ambience|sfx|voice)\//i.test(record.audioName))
-          .map(record => {
-            const track = new Track(record.audioName, record.modName, {
-              title: record.value.title,
-              artist: record.value.artist
-            });
-            track.format = record.value.format;
-            return track;
-          })
-      );
+      playlist.add(this.musicTracks(modRecords));
       this.playlists.set(modName, playlist);
     }
   }
@@ -736,6 +714,19 @@ class Audio {
       this.log(`存储音频失败: ${modName}/${audioName}`, 'ERROR', error);
       return false;
     }
+  }
+
+  private musicTracks(records: AudioRecord[]): Track[] {
+    return records
+      .filter(record => !/^(?:ambience|sfx|voice)\//i.test(record.audioName))
+      .map(record => {
+        const track = new Track(record.audioName, record.modName, {
+          title: record.value.title,
+          artist: record.value.artist
+        });
+        track.format = record.value.format;
+        return track;
+      });
   }
 
   private async readRecords(modName?: string): Promise<AudioRecord[]> {
