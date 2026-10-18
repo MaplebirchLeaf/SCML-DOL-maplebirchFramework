@@ -16,6 +16,7 @@ export function _languageLink(this: MacroContext): void {
     const firstArg = this.args[0];
     const { className, style, icon, iconOnly, convertMode } = readStyle(this.args);
     const passageObj = this.passageObj;
+    const nativeWindow = window as Window & { ironmanFlag?: boolean; scrollUIBar?: number | null; scrollMain?: number };
     let source: string | readonly string[] = '';
     let passageName: string | null = null;
 
@@ -66,8 +67,31 @@ export function _languageLink(this: MacroContext): void {
     $link.ariaClick(
       { namespace: '.macros', role: passageName != null ? 'link' : 'button', one: passageName != null },
       this.createShadowWrapper(
-        content ? () => maplebirch.host.sugarcube.require().Wikifier.wikifyEval(content, passageObj) : () => {},
-        passageName != null ? () => maplebirch.host.sugarcube.require().Engine.play(passageName) : undefined
+        content
+          ? () => {
+              if (passageName != null && dol.variables.nextPassage) return;
+              nativeWindow.ironmanFlag = true;
+              try {
+                maplebirch.host.sugarcube.require().Wikifier.wikifyEval(content, passageObj);
+              } finally {
+                delete nativeWindow.ironmanFlag;
+              }
+            }
+          : () => {},
+        passageName != null
+          ? () => {
+              const variables = dol.variables;
+              const destination = variables.nextPassage || passageName;
+              if (variables.nextPassage) {
+                variables.nextPassageIntended = passageName;
+                delete variables.nextPassage;
+              }
+              const sidebar = document.querySelector<HTMLElement>('#storyCaptionDiv');
+              nativeWindow.scrollUIBar = sidebar?.scrollTop ?? null;
+              nativeWindow.scrollMain = document.scrollingElement?.scrollTop ?? 0;
+              maplebirch.host.sugarcube.require().Engine.play(destination);
+            }
+          : undefined
       )
     );
     $container.append($link);
