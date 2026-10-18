@@ -1,3 +1,13 @@
+##### (v.5.5.0更新日志):
+
+- 整理双语链接的跳转处理与全局类型声明，保留强制事件优先级和铁人模式行为。
+- 统一音乐歌单初始化与按需加载的音轨筛选，环境音、音效和语音仍独立处理。
+
+**English**
+
+- Simplify bilingual link navigation and global declarations while preserving forced-event priority and Ironman behaviour.
+- Share track selection between initial and on-demand music playlists, keeping ambience, effects and voices separate.
+
 ##### (v.5.4.15更新日志):
 
 - 修复模组双语链接未优先跳转强制事件的问题，避免误执行原选项动作或覆盖事件跳转。
