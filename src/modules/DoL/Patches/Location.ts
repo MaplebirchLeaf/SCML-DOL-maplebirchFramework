@@ -75,7 +75,20 @@ class Location {
       const current = dol.setup.LocationImages[locationId] || {};
       if (update.overwrite || !dol.setup.LocationImages[locationId]) {
         const { customMapping: _mapping, ...config } = clone(update.config);
-        dol.setup.LocationImages[locationId] = { folder: 'default', base: {}, ...config };
+        dol.setup.LocationImages[locationId] = coverFn(
+          {
+            folder: 'default',
+            base: {},
+            weather: {
+              fogDistributionCurve: 1,
+              rainSplashEnabled: false,
+              fogEnabled: false,
+              groundBounds: { splashes: { top: 0, bottom: 0 }, fog: { top: 0, bottom: 0 } }
+            }
+          },
+          (_key, value) => value !== undefined,
+          config
+        );
       } else {
         dol.setup.LocationImages[locationId] = coverFn(current, mergeLocation, clone(update.config));
       }

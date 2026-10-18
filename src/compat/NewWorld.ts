@@ -1,6 +1,7 @@
 // ./src/compat/NewWorld.ts
 
 import type { MaplebirchCore } from '../core';
+import type Transformation from '../modules/CharacterAddon/Transformation';
 import type { BuildUpdater, DecayCondition, NativeHistoryEntry, NativeMacroMap, NativeTransformState, SuppressCondition } from '../modules/CharacterAddon/TransformationConfig';
 import dol from '../host/DoL';
 
@@ -21,6 +22,22 @@ interface SetupTransformation {
 }
 
 class NewWorldTransformations {
+  public static install(transformation: Transformation): void {
+    transformation.animalTransforms.push(...this.AnimalTransforms);
+    transformation.historyTransforms.push(...this.HistoryTransforms);
+    Object.assign(transformation.animalMacros, this.AnimalMacros);
+    Object.assign(transformation.decayConditions, this.DecayConditions);
+    Object.assign(transformation.suppressConditions, this.SuppressConditions);
+    Object.assign(transformation.buildUpdaters, this.BuildUpdaters);
+    transformation.hooks.setup.add('NewWorld', context => {
+      context.transformations = this.merge(context.transformations);
+    });
+    transformation.hooks.clear.add('NewWorld', valid => this.extend(valid));
+    transformation.hooks.change.add('NewWorld', () => {
+      if (dol.variables.physicalTransform === 1 || dol.variables.specialTransform === 1) dol.variables.permanentTransform = 1;
+    });
+  }
+
   // prettier-ignore
   public static readonly PreservedTraits = [
     'fangs', 'sharpEyes', 'dragonEyes', 'dragonTongue', 'mateForLife', 'chase',
@@ -72,7 +89,7 @@ class NewWorldTransformations {
     { name: 'sheep',   level: () => dol.variables.sheep,   max: 6 },
     { name: 'deer',    level: () => dol.variables.deer,    max: 6 },
     { name: 'bear',    level: () => dol.variables.bear,    max: 6 },
-    { name: 'lizard',  level: () => dol.variables.lizard,  max: 6 },
+    { name: 'lizard',  level: () => dol.variables.lizard,  max: 3 },
     { name: 'dolphin', level: () => dol.variables.dolphin, max: 6 },
     { name: 'dog',     level: () => dol.variables.dog,     max: 6 },
     { name: 'fish',    level: () => dol.variables.fish,    max: 6 },
@@ -224,11 +241,11 @@ class NewWorldTransformations {
       type: 'physicalTransform',
       parts: [
         { name: 'eyes', tfRequired: 1 },
-        { name: 'tail', tfRequired: 6 }
+        { name: 'tail', tfRequired: 3 }
       ],
       traits: [
         { name: 'fangs', tfRequired: 2 },
-        { name: 'lungs', tfRequired: 6 }
+        { name: 'lungs', tfRequired: 3 }
       ]
     },
 
@@ -373,7 +390,8 @@ class NewWorldTransformations {
 
 class NewWorld {
   public static get isNewWorld(): boolean {
-    return String(dol.gameVersion ?? '').includes('New World') || typeof window.Transformations?.defaults === 'object';
+    const defaults = window.Transformations?.defaults;
+    return String(dol.gameVersion ?? '').includes('New World') || !!(defaults?.fae && defaults?.dragon);
   }
 
   public static readonly Transformations = NewWorldTransformations;
@@ -427,6 +445,9 @@ class NewWorld {
   }
 
   public static install(core: MaplebirchCore): void {
+    core.once(':storyready', () => {
+      if (this.isNewWorld) this.Transformations.install(core.char.transformation);
+    });
     if (!NewWorld.isNewWorld) return;
     core.on(':variable', () => NewWorld.guard());
     core.char.use(

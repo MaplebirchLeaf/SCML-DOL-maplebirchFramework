@@ -682,6 +682,9 @@ class NPCManager {
       if (modConfig && Object.keys(modConfig).length > 0) {
         const configClone = clone(modConfig);
         ['loveAlias', 'loveInterest', 'romance'].forEach(key => delete configClone[key]);
+        for (const stat of Object.values(configClone)) {
+          if (stat && typeof stat === 'object' && 'name' in stat && typeof stat.name === 'string') stat.name = this.core.services.translator.auto(stat.name);
+        }
         if (Config[npcName]) {
           Config[npcName] = merge(Config[npcName], configClone);
           this.log(`合并NPC配置: ${npcName}`, 'DEBUG');

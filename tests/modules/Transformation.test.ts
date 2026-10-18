@@ -2,6 +2,8 @@ import '../support/runtime';
 import { expect, mock, test } from 'bun:test';
 import type Character from '../../src/modules/Character';
 import dol from '../../src/host/DoL';
+import DoLP from '../../src/compat/DoLP';
+import NewWorld from '../../src/compat/NewWorld';
 
 mock.module('../../src/core', () => ({ default: {} }));
 const { default: Transformation } = await import('../../src/modules/CharacterAddon/Transformation');
@@ -85,6 +87,7 @@ test('DoLP compatibility retains legacy state, native parts and trait choices ac
     Object.defineProperty(globalThis, 'V', { value: variables, configurable: true });
     Object.defineProperty(globalThis, 'setup', { value: { transformations: [] }, configurable: true });
     const transformation = new Transformation(manager);
+    DoLP.Transformations.install(transformation);
     transformation.state();
     expect(variables.maplebirch.transformation.waterdragon).toBe(legacy);
     transformation.inject();
@@ -110,6 +113,7 @@ test('NewWorld compatibility injects animal and history transforms', () => {
     Object.defineProperty(globalThis, 'V', { value: variables, configurable: true });
     Object.defineProperty(globalThis, 'setup', { value: { transformations: [] }, configurable: true });
     const transformation = new Transformation(manager);
+    NewWorld.Transformations.install(transformation);
     transformation.inject();
     expect(dol.setup.transformations.some((tf: { name: string }) => tf.name === 'dragon')).toBe(true);
     expect(dol.setup.transformations.some((tf: { name: string }) => tf.name === 'bee')).toBe(true);
@@ -121,14 +125,12 @@ test('NewWorld compatibility injects animal and history transforms', () => {
   }
 });
 
-test('DoLP ritual growth registers native build updaters and compatibility conditions', () => {
+test('DoLP ritual growth uses registered native build updaters and compatibility conditions', () => {
   const saved = [
     [globalThis, 'StartConfig'],
     [globalThis, 'V'],
-    [Object, 'cover'],
     [Math, 'clamp']
   ].map(([target, key]) => ({ target: target as object, key: key as string, descriptor: Object.getOwnPropertyDescriptor(target, key as string) }));
-  const ready: (() => void)[] = [];
   const variables = {
     bunnybuild: 0,
     bearbuild: 0,
@@ -139,11 +141,10 @@ test('DoLP ritual growth registers native build updaters and compatibility condi
   try {
     Object.defineProperty(globalThis, 'StartConfig', { value: { version: '0.5.12.11 DoLP v0.778' }, configurable: true });
     Object.defineProperty(globalThis, 'V', { value: variables, configurable: true });
-    Object.defineProperty(Object, 'cover', { value: (...sources: object[]) => Object.assign({}, ...sources), configurable: true });
     Object.defineProperty(Math, 'clamp', { value: (value: number, min: number, max: number) => Math.min(max, Math.max(min, value)), configurable: true });
-    const manager = { core: { once: (_event: string, callback: () => void) => ready.push(callback), tool: { define() {}, defineS() {} } } } as unknown as Character;
+    const manager = { core: { once() {}, tool: { define() {}, defineS() {} } } } as unknown as Character;
     const transformation = new Transformation(manager);
-    for (const callback of ready) callback();
+    DoLP.Transformations.install(transformation);
     for (const name of ['bunny', 'bear', 'waterdragon'] as const) {
       expect(typeof transformation.buildUpdaters[name]).toBe('function');
       expect(transformation.decayConditions[name].length).toBeGreaterThan(0);

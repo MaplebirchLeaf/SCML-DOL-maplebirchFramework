@@ -11,10 +11,15 @@
       <<lanButton 'restore saved settings' 'title' 'class:gold'>><<run maplebirch.var.optionsStorage('restore')>><<run maplebirch.trigger(':rest-options')>><<replace #customOverlayContent>><<maplebirchOptions>><</replace>><</lanButton>>
     </div>
 
-    <div class='settingsToggleItemWide maplebirch-relationcount-slider'><label>
+    <div class='settingsToggleItem maplebirch-relationcount-slider'><label>
       <span class='gold'><<lanSwitch 'Minimum Social Stat Slots' '社交栏最少状态格数'>></span>
       <<numberslider '$options.maplebirch.relationcount' $options.maplebirch.relationcount 2 10 2 { value: v => `${v}${lanSwitch(' slots','格')}`}>>
       <span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Reserve this many stat slots for each NPC in Primary Relationships. Additional existing stats remain visible; unused slots are left empty.' '为主要关系中的每位NPC至少预留这些状态格。已有状态超过设置时仍全部显示，不足时补空格。'>></span>">(?)</span>
+    </label></div>
+
+    <div class='settingsToggleItem'><label>
+      <<checkbox '$options.maplebirch.petLocked' false true autocheck>><<lanSwitch 'Lock Pets' '锁定桌宠'>>
+      <span class='tooltip-anchor linkBlue' tooltip="<span class='teal'><<lanSwitch 'Lock PC and NPC pets in place and let clicks pass through. Uncheck to drag them again.' '同时锁定PC与NPC桌宠，并让点击穿透。取消勾选后可重新拖动。'>></span>">(?)</span>
     </label></div>
 
     <div class='settingsToggleItem'><label>

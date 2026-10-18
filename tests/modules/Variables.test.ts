@@ -21,3 +21,10 @@ test('keeps state widget execution after options and migration', () => {
   const result = Bun.spawnSync({ cmd: [process.execPath, path.join(import.meta.dir, '../fixtures/VariablesState.ts')], cwd: path.join(import.meta.dir, '../..') });
   expect({ exitCode: result.exitCode, output: result.stderr.toString() + result.stdout.toString() }).toEqual({ exitCode: 0, output: '' });
 });
+
+for (const scenario of ['startup', 'late']) {
+  test(`initializes NPC sidebar settings on the active state during ${scenario}`, () => {
+    const result = Bun.spawnSync({ cmd: [process.execPath, path.join(import.meta.dir, '../fixtures/NPCSidebarStartup.ts'), scenario], cwd: path.join(import.meta.dir, '../..') });
+    expect({ exitCode: result.exitCode, output: result.stderr.toString() + result.stdout.toString() }).toEqual({ exitCode: 0, output: '' });
+  });
+}

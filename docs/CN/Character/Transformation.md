@@ -19,6 +19,30 @@ maplebirch.char.transformation.coexistConditions.push(() => myModule.hasCoexistT
 
 ---
 
+## 兼容钩子
+
+分支适配可在 `:storyready` 中注册，通过 `maplebirch.char.transformation.hooks` 接入结算流程。钩子使用框架已有的 `Hooks`，支持 `add(name, callback, order)` 与 `remove(name)`，回调必须同步执行。
+
+| 钩子     | 参数与时机                                                                             |
+| -------- | -------------------------------------------------------------------------------------- |
+| `change` | 修改点数前，读取 `context.name`，调整 `context.change`                                 |
+| `update` | `(stage, transformation)`，依次为衰退前 `before`、衰退后成长前 `alter`、成长后 `after` |
+| `divine` | 调整原版选择结果 `context.widget`，值为 `[宏名, 等级]`，设为 `undefined` 则跳过        |
+| `setup`  | 合并或替换 `context.transformations`，每次初始化都会执行                               |
+| `clear`  | 清理状态前，将需要保留的名称加入 `valid.names`                                         |
+
+```javascript
+maplebirch.once(':storyready', () => {
+  maplebirch.char.transformation.hooks.change.add('my-mod', context => {
+    if (context.name === 'cat' && context.change > 0 && V.myMod?.growthBoost) context.change *= 2;
+  });
+});
+```
+
+兼容层可直接补充 `animalTransforms`、`animalMacros`、`historyTransforms` 及现有的点数、衰退和抑制配置。`protectConditions` 中任一条件为真时，跳过被动衰退和相互抑制，明确扣除点数仍然有效。注册应执行一次，`setup` 回调应避免重复添加条目。
+
+---
+
 ## 共用绘制与融合配置
 
 `layers` 和 `combat.layers` 可以是图层表，也可以是返回图层表的函数。图层表直接登记，函数延后到游戏的 `StoryInit` 阶段执行，此时可读取已加载的原版 `Renderer.CanvasModels`。因此可在 `preInit` 登记转化和融合条件，不必等图像资源就绪。

@@ -84,6 +84,7 @@ switch (process.argv[2]) {
     ready!();
     assert.equal(options().relationcount, 4);
     assert.equal(options().character.pet.scale, 1);
+    assert.equal(options().petLocked, false);
     assert.equal(options().character.mask, 0);
     assert.equal(options().npcsidebar.pet.mask, 25);
     assert.equal(options().Example.effectsEnabled, true);
@@ -94,8 +95,10 @@ switch (process.argv[2]) {
     assert.equal(options().Example.volume, 0);
     assert.equal(options().Example.nested.hint, true);
     const existing = options();
+    existing.petLocked = true;
     ready!();
     assert.equal(options(), existing);
+    assert.equal(options().petLocked, true);
     break;
   }
   case 'startup': {

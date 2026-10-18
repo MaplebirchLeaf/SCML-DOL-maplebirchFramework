@@ -10,6 +10,28 @@ Register transformations with:
 maplebirch.char.transformation.add(name, type, config);
 ```
 
+## Compatibility Hooks
+
+Register branch adapters during `:storyready` through `maplebirch.char.transformation.hooks`. These use the existing `Hooks` API: `add(name, callback, order)` and `remove(name)`. Callbacks must be synchronous.
+
+| Hook     | Arguments and timing                                                                                        |
+| -------- | ----------------------------------------------------------------------------------------------------------- |
+| `change` | Before changing points, read `context.name` and adjust `context.change`                                     |
+| `update` | `(stage, transformation)`: `before` decay, `alter` between decay and growth, `after` growth                 |
+| `divine` | Adjust the native selection in `context.widget`, a `[macro, level]` tuple, or set it to `undefined` to skip |
+| `setup`  | Merge or replace `context.transformations` on each initialization                                           |
+| `clear`  | Add names to `valid.names` before stored state is cleaned up                                                |
+
+```javascript
+maplebirch.once(':storyready', () => {
+  maplebirch.char.transformation.hooks.change.add('my-mod', context => {
+    if (context.name === 'cat' && context.change > 0 && V.myMod?.growthBoost) context.change *= 2;
+  });
+});
+```
+
+Adapters can extend `animalTransforms`, `animalMacros`, `historyTransforms`, and the existing build, decay, and suppression tables. Any true condition in `protectConditions` prevents passive decay and mutual suppression. Explicit point loss still applies. Register adapters once and keep `setup` callbacks from adding duplicate entries.
+
 ## Rendering and Chimeras
 
 `layers` and `combat.layers` accept a layer map or a function returning one. Layer maps register immediately. Functions run during the game's `StoryInit` phase, when native `Renderer.CanvasModels` are available. Transformations and chimera conditions can therefore register in `preInit` before image resources are ready.

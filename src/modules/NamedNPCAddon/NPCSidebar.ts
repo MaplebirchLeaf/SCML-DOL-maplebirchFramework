@@ -784,7 +784,7 @@ class NPCPet {
       if (this.syncing) return;
       this.syncing = true;
       try {
-        this.render(settings);
+        this.render();
       } finally {
         this.syncing = false;
       }
@@ -792,13 +792,20 @@ class NPCPet {
     return true;
   }
 
-  private render(settings: PetSettings): void {
+  private render(): void {
+    const stored = dol.variables.options;
+    const sidebar = stored?.maplebirch?.npcsidebar;
+    const settings = sidebar?.pet;
+    if (!settings?.enabled) {
+      this.pets.forEach(pet => pet.unmount());
+      return;
+    }
     const source = ((dol.renderer.CanvasModelCaches?.main?.sidebar as CanvasModel | undefined)?.options ?? dol.renderer.CanvasModels.main.defaultOptions()) as CanvasModelOptionsData;
     const pet_source = { ...source, filters: { ...source.filters }, maplebirch: { ...source.maplebirch, nnpc: {} } };
     preprocess(pet_source);
-    const options: PetOptions = { ...settings, animated: !!dol.variables.options.sidebarAnimations, floating: true };
+    const options: PetOptions = { ...settings, locked: !!stored?.maplebirch?.petLocked, animated: !!stored?.sidebarAnimations, floating: true };
     this.pets[0].render(pet_source, options);
-    if (dol.variables.options.maplebirch.npcsidebar.second_model) this.pets[1].render(pet_source, options);
+    if (sidebar.second_model) this.pets[1].render(pet_source, options);
     else this.pets[1].unmount();
   }
 
@@ -838,6 +845,7 @@ const NPCSidebar = (() => {
 
     public static init(manager: NPCManager) {
       manager.core.once(':storyready', () => {
+        manager.core.var.check();
         init_drip_mask();
         if (DoLP.isDoLP) manager.core.char.use({ nnpc: DoLP.nnpc }, 'main');
         load_all_images(manager);

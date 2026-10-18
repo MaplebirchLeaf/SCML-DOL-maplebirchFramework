@@ -43,9 +43,12 @@ Common config fields:
 | `emissive`      | Emissive layer config                        |
 | `reflective`    | Reflective layer config                      |
 | `layerTop`      | Top layer config                             |
+| `weather`       | Fog, rain splashes and ground boundaries     |
 | `customMapping` | Custom location mapping                      |
 
 Keep `condition` functions focused on checks. Avoid changing game state inside location conditions.
+
+`folder` is relative to vanilla `img/misc/locations/`, and image layer elements need an `image` filename. New or overwritten locations receive defaults for missing weather fields: fog and rain splashes are disabled, the fog distribution curve is `1`, and both ground boundaries have `top` and `bottom` set to `0`. Partial weather and boundary objects keep explicit values and receive only missing defaults. Ordinary updates to existing locations do not reset vanilla weather settings.
 
 Options:
 
@@ -78,14 +81,26 @@ Without `layer` and `element`, the configuration is merged into the location. Re
 
 ```javascript
 maplebirch.tool.patch.location.configure('old_ruins', {
-  folder: 'locations/old_ruins',
+  folder: 'old-ruins',
   base: {
     default: {
-      condition: () => true
+      condition: () => true,
+      image: 'base.png'
+    }
+  },
+  weather: {
+    rainSplashEnabled: true,
+    fogEnabled: true,
+    fogDistributionCurve: 1.2,
+    groundBounds: {
+      splashes: { top: 7, bottom: 0 },
+      fog: { top: 15, bottom: 0 }
     }
   }
 });
 ```
+
+Ground boundaries count upward in pixels from `0` at the bottom of the image. Set the corresponding ranges to match the location image when enabling fog or splashes.
 
 ## Overwrite A Location
 
@@ -93,12 +108,14 @@ maplebirch.tool.patch.location.configure('old_ruins', {
 maplebirch.tool.patch.location.configure(
   'old_ruins',
   {
-    folder: 'locations/ruins_remastered',
+    folder: 'ruins-remastered',
     base: {
       main: {
-        condition: () => true
+        condition: () => true,
+        image: 'base.png'
       }
-    }
+    },
+    weather: { rainSplashEnabled: false, fogEnabled: false }
   },
   {
     overwrite: true

@@ -1,6 +1,7 @@
 // ./src/compat/DoLP.ts
 
 import type { MaplebirchCore } from '../core';
+import type Transformation from '../modules/CharacterAddon/Transformation';
 import type { BuildUpdater, DecayCondition, NativeHistoryEntry, NativeMacroMap, NativeTransformState, SuppressCondition } from '../modules/CharacterAddon/TransformationConfig';
 import dol from '../host/DoL';
 
@@ -26,6 +27,28 @@ interface TransformationPatch {
 }
 
 class DoLPTransformations {
+  public static install(transformation: Transformation): void {
+    transformation.animalTransforms.push(...this.AnimalTransforms);
+    transformation.historyTransforms.push(...this.HistoryTransforms);
+    Object.assign(transformation.animalMacros, this.AnimalMacros);
+    Object.assign(transformation.decayConditions, this.DecayConditions);
+    Object.assign(transformation.suppressConditions, this.SuppressConditions);
+    Object.assign(transformation.buildUpdaters, this.BuildUpdaters);
+    transformation.hooks.setup.add('DoLP', context => {
+      context.transformations = this.merge(context.transformations);
+    });
+    transformation.hooks.clear.add('DoLP', valid => this.extend(valid));
+    transformation.hooks.change.add('DoLP', context => {
+      context.change = this.change(context.change);
+    });
+    transformation.hooks.divine.add('DoLP', context => {
+      if (!context.widget && dol.variables.transformationParts.traits.activeTF === 'fallenAngel') context.widget = ['fallenButNotOut', dol.variables.fallenangel];
+    });
+    transformation.hooks.update.add('DoLP', stage => {
+      if (stage === 'alter') this.composite();
+    });
+  }
+
   public static active(name: string, part: string): boolean {
     const value = dol.variables.transformationParts?.[name]?.[part];
     return value !== undefined && value !== 'disabled' && value !== 'hidden';
@@ -40,9 +63,9 @@ class DoLPTransformations {
 
   // prettier-ignore
   public static readonly AnimalTransforms: NativeTransformState[] = [
-    { name: 'waterdragon', level: () => dol.variables.waterdragon, build: () => dol.variables.waterdragonbuild }, // 水龙转化 (Water Dragon)
     { name: 'bear',        level: () => dol.variables.bear,        build: () => dol.variables.bearbuild },        // 熊转化 (Bear)
-    { name: 'bunny',       level: () => dol.variables.bunny,       build: () => dol.variables.bunnybuild }        // 兔转化 (Bunny)
+    { name: 'bunny',       level: () => dol.variables.bunny,       build: () => dol.variables.bunnybuild },       // 兔转化 (Bunny)
+    { name: 'waterdragon', level: () => dol.variables.waterdragon, build: () => dol.variables.waterdragonbuild }  // 水龙转化 (Water Dragon)
   ];
 
   // prettier-ignore
@@ -316,6 +339,9 @@ class DoLP {
   }
 
   public static install(core: MaplebirchCore): void {
+    core.once(':storyready', () => {
+      if (this.isDoLP) this.Transformations.install(core.char.transformation);
+    });
     core.once(':addon:beforePatch', () => {
       const passage = core.services.addonPlugin.SC2DataManager.getSC2DataInfoAfterPatch().passageDataItems.map.get('Widgets modUpdate');
       if (!passage?.tags.includes('widget')) return;

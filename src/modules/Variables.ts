@@ -121,6 +121,7 @@ class Variables {
         display      : {}
       },
       relationcount: 4,
+      petLocked: false,
 
       ...clone(this.moduleOptions)
     };

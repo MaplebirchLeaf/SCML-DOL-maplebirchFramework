@@ -28,6 +28,15 @@ class OptionEvents {
     $(document).on('change', 'select[name="lanListbox-optionsmaplebirchcharactercloseupselect"]', () => this.refreshOptions());
     $(document).on('change', 'input[name*="optionsmaplebirchcharacterpet"]', () => this.updatePet());
     $(document).on('change', 'input[name*="optionsmaplebirchnpcsidebarpet"]', () => this.updateSidebar());
+    $(document).on('change', 'input[name*="optionsmaplebirchpetlocked"]', () => {
+      if (!this.ready) return;
+      this.updatePet();
+      try {
+        this.core.npc.Sidebar.pet.sync();
+      } catch (error) {
+        this.report('NPC pet canvas update error:', error);
+      }
+    });
   }
 
   private get ready(): boolean {

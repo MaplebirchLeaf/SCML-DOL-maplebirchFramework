@@ -55,9 +55,12 @@ maplebirch.tool.patch.location.configure(
 | `emissive`      | 自发光层                     |
 | `reflective`    | 反射层                       |
 | `layerTop`      | 顶层                         |
+| `weather`       | 雾、雨滴飞溅和地面边界       |
 | `customMapping` | 自定义地点映射               |
 
 `condition` 中只做判断，避免修改游戏状态。
+
+`folder` 相对于原版 `img/misc/locations/`，图层元素需要提供 `image` 文件名。新增或覆盖地点时，未填写的天气字段会补为：关闭雾和雨滴飞溅、雾分布曲线为 `1`、两种地面边界的 `top` 和 `bottom` 均为 `0`。部分填写 `weather` 或边界时，也只补缺少的字段；普通合并已有地点不会重置原版天气配置。
 
 ### options
 
@@ -109,14 +112,26 @@ maplebirch.tool.patch.location.configure(
 
 ```javascript
 maplebirch.tool.patch.location.configure('old_ruins', {
-  folder: 'locations/old_ruins',
+  folder: 'old-ruins',
   base: {
     default: {
-      condition: () => true
+      condition: () => true,
+      image: 'base.png'
+    }
+  },
+  weather: {
+    rainSplashEnabled: true,
+    fogEnabled: true,
+    fogDistributionCurve: 1.2,
+    groundBounds: {
+      splashes: { top: 7, bottom: 0 },
+      fog: { top: 15, bottom: 0 }
     }
   }
 });
 ```
+
+地面边界以图片底部为 `0`，按像素向上计数。启用雾或飞溅时，应按地点图片填写对应范围。
 
 ---
 
@@ -128,12 +143,14 @@ maplebirch.tool.patch.location.configure('old_ruins', {
 maplebirch.tool.patch.location.configure(
   'old_ruins',
   {
-    folder: 'locations/ruins_remastered',
+    folder: 'ruins-remastered',
     base: {
       main: {
-        condition: () => true
+        condition: () => true,
+        image: 'base.png'
       }
-    }
+    },
+    weather: { rainSplashEnabled: false, fogEnabled: false }
   },
   {
     overwrite: true

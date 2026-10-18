@@ -8,6 +8,7 @@ export interface PetOptions {
   rotation?: number;
   animated?: boolean;
   floating?: boolean;
+  locked?: boolean;
   scale?: number;
 }
 
@@ -40,6 +41,7 @@ const DEFAULT_OPTIONS: Required<PetOptions> = {
   rotation: 0,
   animated: false,
   floating: true,
+  locked: false,
   scale: 1
 };
 
@@ -58,7 +60,7 @@ export abstract class FloatingPet {
   protected model?: CanvasModel;
   protected container?: HTMLElement;
   protected options: Required<PetOptions> = { ...DEFAULT_OPTIONS };
-  private cleanupDrag?: () => void;
+  private cleanupFloating?: () => void;
 
   protected constructor(
     protected readonly host: PetHost,
@@ -71,6 +73,7 @@ export abstract class FloatingPet {
       rotation: Math.clamp(options.rotation ?? this.options.rotation, -90, 90),
       animated: options.animated ?? this.options.animated,
       floating: options.floating ?? this.options.floating,
+      locked: options.locked ?? this.options.locked,
       scale: Math.clamp(options.scale ?? this.options.scale, SCALE_RANGE.min, SCALE_RANGE.max)
     };
     return this;
@@ -78,8 +81,8 @@ export abstract class FloatingPet {
 
   public unmount(): void {
     this.stopAnimation();
-    this.cleanupDrag?.();
-    this.cleanupDrag = undefined;
+    this.cleanupFloating?.();
+    this.cleanupFloating = undefined;
     const box = this.container ?? document.getElementById(this.petConfig.elementId);
     if (box) this.clearBox(box);
     this.canvas = undefined;
@@ -100,8 +103,8 @@ export abstract class FloatingPet {
   protected mount(container: HTMLElement, model: CanvasModel, canvas: HTMLCanvasElement): void {
     const previousContainer = this.container;
     this.stopAnimation();
-    this.cleanupDrag?.();
-    this.cleanupDrag = undefined;
+    this.cleanupFloating?.();
+    this.cleanupFloating = undefined;
     if (previousContainer && previousContainer !== container) this.clearBox(previousContainer);
     this.clearBox(container);
     this.model = model;
@@ -124,8 +127,8 @@ export abstract class FloatingPet {
       webkitMaskRepeat: 'no-repeat',
       maskRepeat: 'no-repeat'
     });
-    Object.assign(canvas.style, { width: `${size}px`, height: `${size}px`, transform: '', imageRendering: 'auto' });
-    if (this.options.floating) this.enableDrag(container);
+    Object.assign(canvas.style, { width: `${size}px`, height: `${size}px`, transform: '', imageRendering: 'auto', pointerEvents: this.options.floating && this.options.locked ? 'none' : '' });
+    if (this.options.floating) this.enableFloating(container);
   }
 
   protected stopAnimation(): void {
@@ -144,8 +147,9 @@ export abstract class FloatingPet {
     box.removeAttribute('style');
   }
 
-  private enableDrag(box: HTMLElement): void {
+  private enableFloating(box: HTMLElement): void {
     const size = this.displaySize;
+    const locked = this.options.locked;
     const clamp = (left: number, top: number) => ({ left: Math.clamp(left, 0, Math.max(0, window.innerWidth - size)), top: Math.clamp(top, 0, Math.max(0, window.innerHeight - size)) });
     const loadPosition = (): { left: number; top: number } | null => {
       try {
@@ -170,10 +174,10 @@ export abstract class FloatingPet {
       right: 'auto',
       bottom: 'auto',
       zIndex: '999',
-      cursor: 'grab',
-      touchAction: 'none',
-      userSelect: 'none',
-      pointerEvents: 'auto',
+      cursor: locked ? 'default' : 'grab',
+      touchAction: locked ? 'auto' : 'none',
+      userSelect: locked ? 'auto' : 'none',
+      pointerEvents: locked ? 'none' : 'auto',
       display: 'block'
     });
     let pointerId: number | null = null;
@@ -216,12 +220,18 @@ export abstract class FloatingPet {
       moveTo(rect.left, rect.top);
       savePosition();
     };
-    box.addEventListener('pointerdown', onPointerDown);
-    box.addEventListener('pointermove', onPointerMove);
-    box.addEventListener('pointerup', onPointerUp);
-    box.addEventListener('pointercancel', onPointerUp);
+    if (!locked) {
+      box.addEventListener('pointerdown', onPointerDown);
+      box.addEventListener('pointermove', onPointerMove);
+      box.addEventListener('pointerup', onPointerUp);
+      box.addEventListener('pointercancel', onPointerUp);
+    }
     window.addEventListener('resize', onResize);
-    this.cleanupDrag = () => {
+    this.cleanupFloating = () => {
+      if (pointerId !== null) {
+        savePosition();
+        if (box.hasPointerCapture?.(pointerId)) box.releasePointerCapture(pointerId);
+      }
       box.removeEventListener('pointerdown', onPointerDown);
       box.removeEventListener('pointermove', onPointerMove);
       box.removeEventListener('pointerup', onPointerUp);
@@ -290,9 +300,14 @@ class Pet extends FloatingPet {
     this.syncFrame = requestAnimationFrame(() => {
       this.syncFrame = 0;
       if (this.syncing) return;
+      const current = this.readSettings();
+      if (!current.enabled) {
+        this.unmount();
+        return;
+      }
       this.syncing = true;
       try {
-        this.render(`#${PET.elementId}`, settings);
+        this.render(`#${PET.elementId}`, current);
       } finally {
         this.syncing = false;
       }
@@ -368,11 +383,13 @@ class Pet extends FloatingPet {
   }
 
   private readSettings(): PetSettings {
-    const settings = (dol.variables.options?.maplebirch?.character?.pet ?? {}) as PetSettings;
+    const options = dol.variables.options;
+    const settings = (options?.maplebirch?.character?.pet ?? {}) as PetSettings;
 
     return {
       enabled: !!settings.enabled,
-      animated: !!dol.variables.options.sidebarAnimations,
+      locked: !!options?.maplebirch?.petLocked,
+      animated: !!options?.sidebarAnimations,
       mask: Math.clamp(settings.mask ?? DEFAULT_OPTIONS.mask, -128, 128),
       rotation: Math.clamp(settings.rotation ?? DEFAULT_OPTIONS.rotation, -90, 90),
       scale: Math.clamp(settings.scale ?? DEFAULT_OPTIONS.scale, SCALE_RANGE.min, SCALE_RANGE.max),

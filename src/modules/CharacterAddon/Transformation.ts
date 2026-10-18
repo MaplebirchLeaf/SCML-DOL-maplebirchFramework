@@ -1,6 +1,7 @@
 // ./src/modules/CharacterAddon/Transformation.ts
 
 import Diagnostics from '../../infra/Diagnostics';
+import Hooks from '../../infra/Hooks';
 import maplebirch from '../../core';
 import type { ScopedLog } from '../../infra/Diagnostics';
 import type { Translation } from '../../services/Translator';
@@ -14,14 +15,10 @@ import {
   HistoryTransforms,
   SuppressConditions,
   BuildUpdaters,
-  type NativeMacroMap,
   type DecayCondition,
   type SuppressCondition,
   type BuildUpdater
 } from './TransformationConfig';
-import DoLP from '../../compat/DoLP';
-import DoLX from '../../compat/DoLX';
-import NewWorld from '../../compat/NewWorld';
 import dol from '../../host/DoL';
 
 interface Part {
@@ -74,6 +71,13 @@ interface TransformationOption extends EntryOptions {
   traits?: Part[];
 }
 
+interface NativeTransformation {
+  name?: string;
+  parts?: Part[];
+  traits?: Part[];
+  [key: string]: any;
+}
+
 class Entry {
   public type: string;
   public parts: Part[];
@@ -110,21 +114,27 @@ class Transformation {
   public readonly decayConditions: Record<string, DecayCondition[]> = { ...DecayConditions };
   public readonly suppressConditions: Record<string, SuppressCondition[]> = { ...SuppressConditions };
   public readonly buildUpdaters: Record<string, BuildUpdater> = { ...BuildUpdaters };
+  public readonly animalTransforms = [...AnimalTransforms];
+  public readonly animalMacros = { ...AnimalMacros };
+  public readonly historyTransforms = [...HistoryTransforms];
   public readonly coexistConditions: Array<() => boolean> = [];
+  public readonly protectConditions: Array<() => boolean> = [() => dol.variables.worn.neck.name === 'familiar collar' && dol.variables.worn.neck.cursed === 1];
+  public readonly hooks = {
+    change: new Hooks<[context: { readonly name: string; change: number }], void>(),
+    update: new Hooks<[stage: 'before' | 'alter' | 'after', transformation: Transformation], void>(),
+    divine: new Hooks<[context: { widget?: [string, number] }], void>(),
+    setup: new Hooks<[context: { transformations: NativeTransformation[] }], void>(),
+    clear: new Hooks<[valid: { names: Set<string>; traits: Set<string> }], void>()
+  };
 
   public constructor(private manager: Character) {
-    manager.core.once(':storyready', () => {
-      if (DoLP.isDoLP) {
-        Object.assign(this.decayConditions, DoLP.Transformations.DecayConditions);
-        Object.assign(this.suppressConditions, DoLP.Transformations.SuppressConditions);
-        Object.assign(this.buildUpdaters, DoLP.Transformations.BuildUpdaters);
-      }
-      if (NewWorld.isNewWorld) {
-        Object.assign(this.decayConditions, NewWorld.Transformations.DecayConditions);
-        Object.assign(this.suppressConditions, NewWorld.Transformations.SuppressConditions);
-        Object.assign(this.buildUpdaters, NewWorld.Transformations.BuildUpdaters);
-      }
-    });
+    this.hooks.update.add(
+      'wolfDefiance',
+      stage => {
+        if (stage === 'alter' && dol.variables.wolfgirl >= 6) this.wikifier('def', 5);
+      },
+      1
+    );
     manager.core.tool.define('transform', (name: string, change: number) => this._transform(name, change), null, null, false, 'storyready');
     manager.core.tool.defineS('transform-hint', (name: string, colour: string) => {
       if (dol.variables.settings?.blindStatsEnabled) return;
@@ -139,41 +149,8 @@ class Transformation {
     manager.core.tool.define('transformationStateUpdate', () => this._transformationStateUpdate(), null, null, false, 'storyready');
   }
 
-  private get isDoLP() {
-    return DoLP.isDoLP;
-  }
-
-  private get isDoLX() {
-    return DoLX.isDoLX;
-  }
-
-  private get isNewWorld() {
-    return NewWorld.isNewWorld;
-  }
-
   public get coexist(): boolean {
     return this.coexistConditions.some(condition => condition());
-  }
-
-  private get animalTransforms() {
-    let transforms = AnimalTransforms;
-    if (this.isDoLP) transforms = [...transforms, ...DoLP.Transformations.AnimalTransforms];
-    if (this.isNewWorld) transforms = [...transforms, ...NewWorld.Transformations.AnimalTransforms];
-    return transforms;
-  }
-
-  private get animalMacros(): NativeMacroMap {
-    let macros = AnimalMacros;
-    if (this.isDoLP) macros = Object.cover({}, macros, DoLP.Transformations.AnimalMacros) as NativeMacroMap;
-    if (this.isNewWorld) macros = Object.cover({}, macros, NewWorld.Transformations.AnimalMacros) as NativeMacroMap;
-    return macros;
-  }
-
-  private get historyTransforms() {
-    let history = HistoryTransforms;
-    if (this.isDoLP) history = [...history, ...DoLP.Transformations.HistoryTransforms];
-    if (this.isNewWorld) history = [...history, ...NewWorld.Transformations.HistoryTransforms];
-    return history;
   }
 
   public wikifier(widget: string, ...args: any[]): any {
@@ -286,11 +263,9 @@ class Transformation {
       });
     }
 
-    const transformations = [...base, ...injected.filter(tf => !baseNames.has(tf.name))];
-    let merged = transformations;
-    if (this.isDoLP) merged = DoLP.Transformations.merge(merged);
-    if (this.isNewWorld) merged = NewWorld.Transformations.merge(merged);
-    dol.setup.transformations = merged;
+    const context = { transformations: [...base, ...injected.filter(tf => !baseNames.has(tf.name))] };
+    this.hooks.setup.execute(context);
+    dol.setup.transformations = context.transformations;
   }
 
   public state(): void {
@@ -322,9 +297,7 @@ class Transformation {
     if (!state) return;
     const valid = { names: new Set(this.config.keys()), traits: new Set<string>() };
     if (Array.isArray(dol.setup.transformations)) for (const tf of dol.setup.transformations) if (tf?.name) valid.names.add(tf.name === 'fallenangel' ? 'fallenAngel' : tf.name);
-    if (this.isDoLP) DoLP.Transformations.extend(valid);
-    if (this.isDoLX) DoLX.extend(valid);
-    if (this.isNewWorld) NewWorld.Transformations.extend(valid);
+    this.hooks.clear.execute(valid);
     for (const name of Object.keys(state)) if (!valid.names.has(name)) delete state[name];
   }
 
@@ -337,9 +310,10 @@ class Transformation {
   }
 
   public _transform(name: string, change: number): void {
+    const context = { name, change };
+    this.hooks.change.execute(context);
+    change = context.change;
     if (!change) return;
-
-    if (this.isDoLP) change = DoLP.Transformations.change(change);
 
     const updater = this.buildUpdaters[name];
     if (updater) {
@@ -350,8 +324,7 @@ class Transformation {
       if (config && data) data.build = Math.clamp(data.build + change, 0, config.build);
     }
 
-    if (Object.hasOwn(this.suppressConditions, name) && change > 0 && !this.coexist && !(dol.variables.worn.neck.name === 'familiar collar' && dol.variables.worn.neck.cursed === 1))
-      this.suppress(name, change);
+    if (Object.hasOwn(this.suppressConditions, name) && change > 0 && !this.coexist && !this.protectConditions.some(condition => condition())) this.suppress(name, change);
   }
 
   public updateTransform(name: string): void {
@@ -431,48 +404,56 @@ class Transformation {
 
   public _transformationAlteration(): void {
     if (dol.variables.settings.transformDivineEnabled) {
+      const context: { widget?: [string, number] } = {};
       if ((dol.variables.demonbuild >= 5 && dol.variables.specialTransform !== 1) || (dol.variables.demon >= 1 && dol.variables.specialTransform === 1)) {
-        this.wikifier('demonTransform', dol.variables.demon);
+        context.widget = ['demonTransform', dol.variables.demon];
       } else if ((dol.variables.angelbuild >= 5 && dol.variables.specialTransform !== 1) || (dol.variables.angel >= 1 && dol.variables.specialTransform === 1)) {
-        this.wikifier('angelTransform', dol.variables.angel);
+        context.widget = ['angelTransform', dol.variables.angel];
       } else if (dol.variables.fallenangel >= 2) {
-        this.wikifier('fallenButNotOut', dol.variables.fallenangel);
+        context.widget = ['fallenButNotOut', dol.variables.fallenangel];
       }
+      this.hooks.divine.execute(context);
+      if (context.widget) this.wikifier(...context.widget);
     }
 
-    if (dol.variables.settings.transformAnimalEnabled) {
-      const transforms: Array<{ name: string; level: number; build: number }> = this.animalTransforms.map(transform => ({
-        name: transform.name,
-        level: transform.level(),
-        build: transform.build()
-      }));
+    const transforms = [...this.animalTransforms];
+    for (const [name, entry] of this.config) {
+      if (entry.type !== 'physical') continue;
+      transforms.push({
+        name,
+        level: () => dol.variables.maplebirch?.transformation?.[name]?.level ?? 0,
+        build: () => dol.variables.maplebirch?.transformation?.[name]?.build ?? 0
+      });
+    }
 
-      for (const [name, entry] of this.config) {
-        if (entry.type !== 'physical') continue;
-        transforms.push({
-          name,
-          level: dol.variables.maplebirch?.transformation?.[name]?.level ?? 0,
-          build: dol.variables.maplebirch?.transformation?.[name]?.build ?? 0
-        });
-      }
+    dol.variables.physicalTransform = Number(transforms.some(transform => transform.level() > 0));
+    try {
+      if (dol.variables.settings.transformAnimalEnabled) {
+        const candidates = transforms
+          .map(transform => ({ name: transform.name, level: transform.level(), build: transform.build() }))
+          .filter(transform => Number.isFinite(transform.level) && Number.isFinite(transform.build));
+        const coexist = this.coexist;
+        let active = candidates;
+        if (!coexist) {
+          const maxLevel = Math.max(...candidates.map(transform => transform.level));
+          const maxBuild = Math.max(...candidates.map(transform => transform.build));
+          const highest = maxLevel > 0 ? candidates.filter(transform => transform.level === maxLevel) : candidates.filter(transform => transform.build >= 5 && transform.build === maxBuild);
+          active = maxLevel > 0 || highest.length === 1 ? highest.slice(0, 1) : [];
+        }
 
-      let active = transforms;
-      if (!this.coexist) {
-        const maxLevel = Math.max(...transforms.map(transform => transform.level));
-        const maxBuild = Math.max(...transforms.map(transform => transform.build));
-        const highest = maxLevel > 0 ? transforms.filter(transform => transform.level === maxLevel) : transforms.filter(transform => transform.build >= 5 && transform.build === maxBuild);
-        active = maxLevel > 0 || highest.length === 1 ? highest.slice(0, 1) : [];
-      }
-
-      const vanilla: Record<string, [string, number]> = Object.fromEntries(Object.entries(this.animalMacros).map(([name, [macro, level]]) => [name, [macro, level()]]));
-      for (const transform of active) {
-        if (vanilla[transform.name]) {
-          const [macro, level] = vanilla[transform.name];
-          this.wikifier(macro, level);
-        } else {
-          this.updateTransform(transform.name);
+        for (const transform of active) {
+          if (coexist) dol.variables.physicalTransform = transform.level > 0 ? 1 : 0;
+          const native = this.animalMacros[transform.name];
+          if (native) {
+            const [macro, level] = native;
+            this.wikifier(macro, level());
+          } else {
+            this.updateTransform(transform.name);
+          }
         }
       }
+    } finally {
+      dol.variables.physicalTransform = Number(transforms.some(transform => transform.level() > 0));
     }
 
     for (const [name, entry] of this.config) {
@@ -484,23 +465,16 @@ class Transformation {
   }
 
   public _transformationStateUpdate(): void {
-    if (!this.coexist && !(dol.variables.worn.neck.name === 'familiar collar' && dol.variables.worn.neck.cursed === 1)) {
+    this.hooks.update.execute('before', this);
+    if (!this.coexist && !this.protectConditions.some(condition => condition())) {
       Object.entries(this.decayConditions).forEach(([_animal, conditions]) => {
         if (conditions.every(condition => condition())) this._transform(_animal, -1);
       });
     }
 
-    if (this.isDoLP) DoLP.Transformations.composite();
-
-    if (dol.variables.wolfgirl >= 6) this.wikifier('def', 5);
-
+    this.hooks.update.execute('alter', this);
     this._transformationAlteration();
-
-    dol.variables.physicalTransform =
-      this.animalTransforms.some(transform => transform.level() > 0) ||
-      Array.from(this.config.entries()).some(([name, entry]) => entry.type === 'physical' && (dol.variables.maplebirch?.transformation?.[name]?.level ?? 0) > 0)
-        ? 1
-        : 0;
+    this.hooks.update.execute('after', this);
 
     if ((dol.variables.physicalTransform === 1 || dol.variables.specialTransform === 1) && !(dol.variables.hypnosis_traits?.peace && dol.variables.settings.hypnosisEnabled))
       this.handleHiddenTransformParts();

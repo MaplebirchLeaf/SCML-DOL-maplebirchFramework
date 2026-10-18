@@ -155,6 +155,49 @@ test('wardrobe reuses named conditions across location, passage, overnight hours
   }
 });
 
+test('one shared pet lock checkbox updates both pets without rebuilding the options panel', () => {
+  const saved = ['document', '$', 'V'].map(key => ({ key, descriptor: Object.getOwnPropertyDescriptor(globalThis, key) }));
+  const handlers = new Map<string, (event: { currentTarget: unknown }) => void>();
+  const phase = { preInitCompleted: false };
+  const options = { petLocked: false };
+  const locks: boolean[] = [];
+  const errors: string[] = [];
+  const core = {
+    services: { modules: { initPhase: phase } },
+    char: { pet: { sync: () => locks.push(options.petLocked) } },
+    npc: { Sidebar: { pet: { sync: () => locks.push(options.petLocked) } } },
+    infra: { diagnostics: { write: (message: string) => errors.push(message) } }
+  } as unknown as MaplebirchCore;
+  try {
+    Object.defineProperty(globalThis, 'document', { value: {}, configurable: true });
+    Object.defineProperty(globalThis, 'V', { value: { options: { maplebirch: options } }, configurable: true });
+    Object.defineProperty(globalThis, '$', {
+      value: () => ({ on: (_event: string, selector: string, handler: (event: { currentTarget: unknown }) => void) => handlers.set(selector, handler) }),
+      configurable: true
+    });
+    const events = new OptionEvents(core);
+    events.install();
+    const change = handlers.get('input[name*="optionsmaplebirchpetlocked"]')!;
+    change({ currentTarget: {} });
+    expect(locks).toEqual([]);
+    phase.preInitCompleted = true;
+    options.petLocked = true;
+    change({ currentTarget: {} });
+    expect(options.petLocked).toBe(true);
+    expect(locks).toEqual([true, true]);
+    options.petLocked = false;
+    change({ currentTarget: {} });
+    expect(options.petLocked).toBe(false);
+    expect(locks).toEqual([true, true, false, false]);
+    expect(errors).toEqual([]);
+  } finally {
+    for (const { key, descriptor } of saved) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else Reflect.deleteProperty(globalThis, key);
+    }
+  }
+});
+
 test('option events install once and wait until module pre-initialization completes', () => {
   const originalDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
   const originalJQuery = Object.getOwnPropertyDescriptor(globalThis, '$');
@@ -176,7 +219,7 @@ test('option events install once and wait until module pre-initialization comple
     const events = new OptionEvents(core);
     events.install();
     events.install();
-    expect(handlers.size).toBe(8);
+    expect(handlers.size).toBe(9);
     expect(handlers.has('.link-internal.macro-button')).toBe(false);
     const refresh = handlers.get('select[name="lanListbox-optionsmaplebirchnpcsidebarnnpc"]')!;
     refresh();

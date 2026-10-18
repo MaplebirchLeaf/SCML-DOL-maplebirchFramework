@@ -6,7 +6,8 @@ import NewWorld from '../../src/compat/NewWorld';
 test('NewWorld detection and canvasmodel guard', () => {
   const saved = ['V', 'StartConfig', 'Transformations'].map(key => ({
     key,
-    descriptor: Object.getOwnPropertyDescriptor(globalThis, key)
+    target: key === 'Transformations' ? window : globalThis,
+    descriptor: Object.getOwnPropertyDescriptor(key === 'Transformations' ? window : globalThis, key)
   }));
 
   try {
@@ -46,16 +47,16 @@ test('NewWorld detection and canvasmodel guard', () => {
     expect(merged.length).toBe(15);
     expect(merged.some(tf => tf.name === 'dragon')).toBe(true);
   } finally {
-    for (const { key, descriptor } of saved) {
-      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
-      else Reflect.deleteProperty(globalThis, key);
+    for (const { target, key, descriptor } of saved) {
+      if (descriptor) Object.defineProperty(target, key, descriptor);
+      else Reflect.deleteProperty(target, key);
     }
   }
 });
 
 test('NewWorld detection via window.Transformations', () => {
   const savedStartConfig = Object.getOwnPropertyDescriptor(globalThis, 'StartConfig');
-  const savedTransformations = Object.getOwnPropertyDescriptor(globalThis, 'Transformations');
+  const savedTransformations = Object.getOwnPropertyDescriptor(window, 'Transformations');
 
   try {
     Object.defineProperty(globalThis, 'StartConfig', {
@@ -78,9 +79,8 @@ test('NewWorld detection via window.Transformations', () => {
     if (savedStartConfig) Object.defineProperty(globalThis, 'StartConfig', savedStartConfig);
     else Reflect.deleteProperty(globalThis, 'StartConfig');
 
-    if (savedTransformations) Object.defineProperty(globalThis, 'Transformations', savedTransformations);
+    if (savedTransformations) Object.defineProperty(window, 'Transformations', savedTransformations);
     else {
-      Reflect.deleteProperty(globalThis, 'Transformations');
       delete window.Transformations;
     }
   }
@@ -97,6 +97,7 @@ test('NewWorld install registers variable event and before hook', () => {
     const events: string[] = [];
     const charHooks: string[] = [];
     const core = {
+      once() {},
       on: (event: string) => events.push(event),
       char: {
         use: (type: string) => {

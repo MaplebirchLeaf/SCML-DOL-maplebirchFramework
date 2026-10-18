@@ -11,6 +11,7 @@ Object.defineProperty(Array.prototype, 'either', {
   configurable: true
 });
 const { NamedNPC, default: Manager } = await import('../../src/modules/NamedNPC');
+const { Translator } = await import('../../src/services/Translator');
 const base = { nam: 'Robin', gender: 'm', pronoun: 'm', adult: 1, insecurity: 'skill', eyeColour: 'green', hairColour: 'blond', bottomsize: 0 };
 const variables = {
   NPCName: [
@@ -53,3 +54,37 @@ Manager.prototype.vanillaInit.call(manager, 'Robin');
 assert.equal(robin.conviction, 0);
 assert.equal(robin.doubt, 21);
 assert.deepEqual(initialized, ['Robin']);
+
+// Native Social requests a new config on every redraw; language changes must not
+// mutate a registration or localize unrelated native NPCs.
+const translator = new Translator(undefined as any, undefined as any, { once() {} } as any, () => undefined);
+translator.set('wilfulness', { EN: 'Wilfulness', CN: '任性' });
+const registered = { dom: { name: 'Wilfulness', maxValue: 100 }, loveAlias: () => 'affection', loveInterest: true, romance: [() => true] };
+const native = { Robin: { dom: { name: 'Confidence', maxValue: 100 } }, Tsukihan: { love: { maxValue: 100 } } };
+const displayManager = {
+  data: new Map([['Tsukihan', { Config: registered }]]),
+  core: { services: { translator } },
+  type: { importantNPCs: [], specialNPCs: [] },
+  log() {}
+} as unknown as NPCManager;
+Object.defineProperty(globalThis, 'T', { value: {}, configurable: true });
+for (const [language, name] of [
+  ['CN', '任性'],
+  ['EN', 'Wilfulness'],
+  ['CN', '任性']
+] as const) {
+  translator.language = language;
+  const result = Manager.prototype.vanillaNPCConfig.call(displayManager, native) as Record<string, any>;
+  assert.equal(result.Tsukihan.dom.name, name);
+  assert.equal(result.Robin.dom.name, 'Confidence');
+  assert.equal(result.Tsukihan.dom.maxValue, 100);
+  assert.equal(result.Tsukihan.love.maxValue, 100);
+  assert.equal(result.Tsukihan.loveAlias, undefined);
+  assert.equal(result.Tsukihan.loveInterest, undefined);
+  assert.equal(result.Tsukihan.romance, undefined);
+  assert.equal(registered.dom.name, 'Wilfulness');
+  assert.equal(native.Robin.dom.name, 'Confidence');
+  assert.equal('dom' in native.Tsukihan, false);
+  assert.notEqual(result, native);
+  assert.notEqual(result.Tsukihan.dom, registered.dom);
+}
