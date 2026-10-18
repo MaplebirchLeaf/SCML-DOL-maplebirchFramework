@@ -217,6 +217,8 @@ export const NamedNPC = (core => {
       if (this.gender !== 'none') this.setPronouns();
       this.setBodyTraits(data);
       this.bottomsize = data.bottomsize ?? Math.random(4);
+      this.descCache = clone(data.descCache ?? {});
+      this.breastsdesc = data.breastsdesc ?? '';
       this.bodyPartdescription();
       this.pregnancy = clone(data.pregnancy ?? {});
       this.pregnancyAvoidance = data.pregnancyAvoidance;
@@ -305,6 +307,7 @@ export const NamedNPC = (core => {
       } as const;
       const pick = (value: unknown): string => (Array.isArray(value) ? (value.either() as string) : ((value ?? '') as string));
       const cached = (key: string, factory: () => string): string => (cache[key] ||= factory());
+      const generated = (part: string, value: string): boolean => Object.keys(cache).some(key => key.startsWith(`${part}_`) && cache[key] === value);
       const Part = (part: keyof typeof bodyPartMap, index: number): string => pick((bodyPartMap[part][lang] ?? [])[index]);
       const Suffix = (suffixMap: Record<LanguageCode, readonly string[]>): string => pick(suffixMap[lang]);
       const Combined = (key: string, part: keyof typeof bodyPartMap, index: number, suffixMap: Record<LanguageCode, readonly string[]>): string =>
@@ -313,18 +316,21 @@ export const NamedNPC = (core => {
           const suffix = Suffix(suffixMap);
           return prefix ? `${prefix}${suffix}` : suffix;
         });
-      if ((this.penis === 'clothed' && this.penissize > 0) || this.penisdesc === 'penis' || (!this.penisdesc && this.penis !== 'none' && this.penissize > 0)) {
+      if (this.penisdesc === 'penis' || generated('penis', this.penisdesc) || (!this.penisdesc && this.penis !== 'none' && this.penissize > 0)) {
         const sizeIndex = clamp(this.penissize, 1, bodyPartMap.penis[lang].length) - 1;
         this.penisdesc = cached(`penis_${lang}_${this.penissize}`, () => Part('penis', sizeIndex));
       }
-      const breastIndex = (this.vagina === 'clothed' && this.breastsize > 0) || this.breastdesc === 'breasts' ? this.breastsize - 1 : 0;
-      this.breastdesc = cached(`breast_${lang}_${breastIndex}`, () => {
-        const raw = Part('breast', breastIndex);
-        if (lang === 'CN') return breastIndex === 0 ? raw : `${raw}乳房`;
-        return breastIndex === 0 ? raw : `${raw} breast`;
-      });
+      if (!this.breastdesc || ['breasts', 'none'].includes(this.breastdesc) || generated('breast', this.breastdesc)) {
+        const breastIndex = clamp(this.breastsize, 1, bodyPartMap.breast[lang].length) - 1;
+        this.breastdesc = cached(`breast_${lang}_${breastIndex}`, () => {
+          const raw = Part('breast', breastIndex);
+          if (lang === 'CN') return breastIndex === 0 ? raw : `${raw}乳房`;
+          return breastIndex === 0 ? raw : `${raw} breast`;
+        });
+      }
       const breastDesc = this.breastdesc;
-      this.breastsdesc = cached(`breastsdesc_${lang}_${breastDesc}`, () => (lang === 'CN' ? breastDesc : breastDesc.endsWith('s') ? breastDesc : `${breastDesc}s`));
+      if (!this.breastsdesc || generated('breastsdesc', this.breastsdesc))
+        this.breastsdesc = cached(`breastsdesc_${lang}_${breastDesc}`, () => (lang === 'CN' ? breastDesc : breastDesc.endsWith('s') ? breastDesc : `${breastDesc}s`));
       if (this.bottomsize != null) this.bottomdesc = Combined(`bottom_${lang}_${this.bottomsize}`, 'bottom', this.bottomsize, bottomSuffixMap);
       if (this.ballssize > 0) {
         const sizeIndex = this.ballssize - 1;

@@ -66,3 +66,65 @@ for (const language of ['EN', 'CN']) {
   absent.bodyPartdescription();
   assert.equal(absent.penisdesc, 'none');
 }
+
+// Generated labels follow the active language after exposure and save/load,
+// while caller-owned descriptions and anatomy remain unchanged.
+const breastLabels = {
+  EN: ['nipple', 'small breast', 'large breast'],
+  CN: ['乳头', '偏小的乳房', '硕大的乳房']
+};
+for (const language of ['EN', 'CN'] as const) {
+  const other = language === 'EN' ? 'CN' : 'EN';
+  for (const state of ['clothed', 'penis']) {
+    translator.language = language;
+    const npc = new NamedNPC(manager, { ...base, penis: state, penissize: 6 });
+    const original = npc.penisdesc;
+    const anatomy = [npc.penis, npc.penissize, npc.vagina, npc.breastsize, npc.ballssize];
+    variables.NPCName = [JSON.parse(JSON.stringify(npc))];
+    NamedNPC.convert(manager);
+    const restored = variables.NPCName[0];
+    translator.language = other;
+    restored.bodyPartdescription();
+    assert.equal(restored.penisdesc, other === 'EN' ? 'massive cock' : '硕大肉棒', 'generated exposed label changes language');
+    translator.language = language;
+    restored.bodyPartdescription();
+    assert.equal(restored.penisdesc, original);
+    assert.deepEqual([restored.penis, restored.penissize, restored.vagina, restored.breastsize, restored.ballssize], anatomy);
+  }
+  for (const state of ['clothed', 'vagina']) {
+    for (const [index, size] of [1, 4, 8].entries()) {
+      translator.language = language;
+      const npc = new NamedNPC(manager, { ...base, gender: 'f', penis: 'none', penissize: 0, vagina: state, breastsize: size });
+      assert.equal(npc.breastdesc, breastLabels[language][index], 'initial generated breast label keeps its size');
+      const anatomy = [npc.penis, npc.penissize, npc.vagina, npc.breastsize, npc.ballssize];
+      variables.NPCName = [JSON.parse(JSON.stringify(npc))];
+      NamedNPC.convert(manager);
+      const restored = variables.NPCName[0];
+      for (const current of [other, language, other] as const) {
+        translator.language = current;
+        restored.bodyPartdescription();
+        assert.equal(restored.breastdesc, breastLabels[current][index], 'exposure and language changes retain the generated size');
+        const singular = breastLabels[current][index];
+        assert.equal(restored.breastsdesc, current === 'CN' ? singular : singular + 's');
+        assert.deepEqual([restored.penis, restored.penissize, restored.vagina, restored.breastsize, restored.ballssize], anatomy);
+      }
+    }
+  }
+  for (const state of ['clothed', 'penis']) {
+    translator.language = language;
+    const npc = new NamedNPC(manager, { ...base, penis: state, penissize: 6, penisdesc: 'custom description', breastsize: 8, breastdesc: 'custom singular' });
+    npc.breastsdesc = 'custom plural';
+    variables.NPCName = [JSON.parse(JSON.stringify(npc))];
+    NamedNPC.convert(manager);
+    const restored = variables.NPCName[0];
+    for (const current of [language, other, language] as const) {
+      translator.language = current;
+      restored.bodyPartdescription();
+      assert.equal(restored.penisdesc, 'custom description');
+      assert.equal(restored.breastdesc, 'custom singular');
+      assert.equal(restored.breastsdesc, 'custom plural');
+      assert.equal(restored.penissize, 6);
+      assert.equal(restored.breastsize, 8);
+    }
+  }
+}

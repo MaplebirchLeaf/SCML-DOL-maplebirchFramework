@@ -1,3 +1,13 @@
+##### (v.5.4.14更新日志):
+
+- 修复自动生成人物描述在切换语言后仍保留旧语言的问题，保留自定义描述与人物原有属性。
+- 修复衣物状态变化后人物描述未按实际尺寸显示的问题，并保留读档后的描述缓存。
+
+**English**
+
+- Refresh generated NPC descriptions when switching languages while preserving custom descriptions and character attributes.
+- Keep generated descriptions consistent with actual sizes after clothing-state changes, including after loading a save.
+
 ##### (v.5.4.13更新日志):
 
 - 修复开始页设置与 NPC 侧栏的初始化时序，补齐缺失默认值并保留已有设置。
