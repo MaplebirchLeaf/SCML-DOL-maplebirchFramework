@@ -1,3 +1,11 @@
+##### (v.5.5.1更新日志):
+
+- 修复链接区域插入时将原版选项图标与链接拆开的问题，保留链接前的连续图标及空白。
+
+**English**
+
+- Keep leading option icons beside their links when inserting LinkZone content.
+
 ##### (v.5.5.0更新日志):
 
 - 整理双语链接的跳转处理与全局类型声明，保留强制事件优先级和铁人模式行为。
