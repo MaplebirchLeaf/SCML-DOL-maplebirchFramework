@@ -19,6 +19,11 @@ interface LinkZoneConfig {
   debug: boolean;
 }
 
+const ICON_TAGS = 'img, picture, svg, canvas';
+const LINK_TAGS = 'a, .macro-link, .link-internal';
+const BLOCK_TAGS = ['DIV', 'P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'UL', 'OL', 'LI', 'TABLE'];
+const BLOCK_DISPLAYS = ['block', 'flex', 'grid', 'table', 'table-row', 'table-cell'];
+
 class LinkZoneManager {
   declare public static readonly apply: (config?: Partial<LinkZoneConfig>) => boolean;
   declare public static readonly add: (config: LinkZoneConfig, customZones: CustomZone[]) => void;
@@ -64,8 +69,8 @@ class LinkZoneManager {
   private applyBefore(config: LinkZoneConfig): void {
     if (!this.firstLink) return;
     const zone = this.zone('beforeLinkZone', config);
-    const { breakNode, start } = this.findBefore(this.firstLink);
-    this.insertAfterBreak(zone, breakNode, start);
+    const { breakNode, anchor } = this.findBefore(this.firstLink);
+    this.insertAfterBreak(zone, breakNode, anchor);
     if (config.debug) this.log('应用链接前区域', 'DEBUG', zone);
   }
 
@@ -85,9 +90,9 @@ class LinkZoneManager {
       return;
     }
     const zone = this.zone(null, config);
-    const { breakNode, start } = this.findBefore(target);
+    const { breakNode, anchor } = this.findBefore(target);
     zone.dataset.linkZonePosition = String(position);
-    this.insertAfterBreak(zone, breakNode, start);
+    this.insertAfterBreak(zone, breakNode, anchor);
     if (config.debug) this.log(`[link] 在位置 ${position} 的链接前插入区域`, 'DEBUG', target);
   }
 
@@ -98,9 +103,9 @@ class LinkZoneManager {
     return zone;
   }
 
-  private insertAfterBreak(zone: HTMLElement, breakNode: ChildNode | null, fallback: ChildNode): void {
+  private insertAfterBreak(zone: HTMLElement, breakNode: ChildNode | null, anchor: ChildNode): void {
     if (!breakNode) {
-      fallback.before(zone);
+      anchor.before(zone);
       return;
     }
 
@@ -121,36 +126,70 @@ class LinkZoneManager {
     breakNode.after(zone, document.createTextNode(text.slice(index + 1)));
   }
 
-  private findBefore(element: Element): { breakNode: ChildNode | null; start: ChildNode } {
-    const container = document.getElementById(this.containerId);
-    let start: ChildNode = element;
+  private findBefore(element: Element): { breakNode: ChildNode | null; anchor: ChildNode } {
+    const anchor = this.leadingIcon(element);
+    if (!anchor) return this.findBreakBefore(element);
+    const previous = anchor.previousSibling;
+    if (!previous) return this.findBreakBefore(anchor);
+    return { breakNode: this.isBreak(previous) ? previous : null, anchor };
+  }
 
-    while (start !== container) {
-      const parent = start.parentElement;
+  private findBreakBefore(start: ChildNode): { breakNode: ChildNode | null; anchor: ChildNode } {
+    const container = document.getElementById(this.containerId);
+    let anchor = start;
+
+    while (anchor !== container) {
+      const parent = anchor.parentElement;
       if (!parent) break;
-      let previous = start.previousSibling;
+      let previous = anchor.previousSibling;
       while (previous) {
-        if (this.isBreak(previous)) return { breakNode: previous, start };
-        start = previous;
-        previous = start.previousSibling;
+        if (!this.isIcon(previous) && this.isBreak(previous)) return { breakNode: previous, anchor };
+        anchor = previous;
+        previous = anchor.previousSibling;
       }
       if (parent === container) break;
-      start = parent;
+      anchor = parent;
     }
 
-    return { breakNode: null, start };
+    return { breakNode: null, anchor };
+  }
+
+  private leadingIcon(element: Element): ChildNode | null {
+    let anchor: ChildNode = element;
+    let icon = false;
+    let previous = anchor.previousSibling;
+    while (previous) {
+      if (this.isIcon(previous)) icon = true;
+      else if (!this.isWhitespace(previous)) break;
+      anchor = previous;
+      previous = anchor.previousSibling;
+    }
+    return icon ? anchor : null;
+  }
+
+  private isWhitespace(node: Node): boolean {
+    return node.nodeType === Node.TEXT_NODE && !(node.textContent || '').trim();
+  }
+
+  private isIcon(node: Node): boolean {
+    if (node.nodeType !== Node.ELEMENT_NODE) return false;
+    const element = node as Element;
+    if (element.matches(LINK_TAGS) || element.querySelector(LINK_TAGS)) return false;
+    if ((element.textContent || '').trim()) return false;
+    if (element.matches(ICON_TAGS)) return true;
+    if (/icon/i.test(element.getAttribute('class') || '')) return true;
+    if (/icon/i.test(element.getAttribute('id') || '')) return true;
+    const children = Array.from(element.children);
+    return children.length > 0 && children.every(child => this.isIcon(child));
   }
 
   private isBreak(node: Node): boolean {
     if (node.nodeType === Node.TEXT_NODE) return /\n/.test(node.textContent || '');
     if (node.nodeType !== Node.ELEMENT_NODE) return false;
     const element = node as Element;
-    const nodeName = element.nodeName;
-    const blockTags = ['DIV', 'P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'UL', 'OL', 'LI', 'TABLE'];
-    const blockDisplays = ['block', 'flex', 'grid', 'table', 'table-row', 'table-cell'];
-    if (nodeName === 'BR' || nodeName === 'HR') return true;
-    if (blockTags.includes(nodeName)) return true;
-    return blockDisplays.includes(getComputedStyle(element).display);
+    if (element.nodeName === 'BR' || element.nodeName === 'HR') return true;
+    if (BLOCK_TAGS.includes(element.nodeName)) return true;
+    return BLOCK_DISPLAYS.includes(getComputedStyle(element).display);
   }
 
   private visible(element: Element): boolean {
