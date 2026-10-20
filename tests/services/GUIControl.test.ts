@@ -50,14 +50,20 @@ function fixture(dependencies: Record<string, string[]> = {}) {
     }
   } as unknown as IndexedDB;
   const modloader = {
-    modLoaderGui: { getModSubUiAngularJsService: () => ({}) },
+    modLoaderGui: { getModSubUiAngularJsService: () => ({ addLifeTimeCallback() {} }) },
+    modUtils: { getModListNameNoAlias: () => [] },
     loadController: { listModIndexDB: async () => [], loadHiddenModList: async () => [] }
   } as unknown as ModLoader;
   const events = { once() {} } as unknown as Emitter;
-  const modules = { dependencyGraph: graph } as unknown as Modules;
+  const modules = { dependencyGraph: graph, initPhase: { preInitCompleted: true } } as unknown as Modules;
   const translator = { language: 'EN' } as Translator;
   return {
     gui: new GUIControl(idb, modloader, events, modules, translator, () => undefined, {} as Repair),
+    idb,
+    modloader,
+    events,
+    translator,
+    graph,
     writes,
     get disabled() {
       return disabled;
@@ -86,6 +92,54 @@ test('GUI rejects unknown module names', async () => {
   const state = fixture();
   await expect(state.gui.setModuleStates({ missing: false })).rejects.toThrow('不可修改: missing');
   expect(state.writes).toHaveLength(0);
+});
+
+test('GUI includes modules from loaded packages absent from the IndexedDB mod list', async () => {
+  const state = fixture();
+  state.graph.first.source = 'deadwood-reblooms';
+  state.modloader.modUtils.getModListNameNoAlias = () => ['deadwood-reblooms', 'BabyHawk'];
+
+  await state.gui.init();
+
+  expect(state.gui.enabledModules.map(module => module.name)).toContain('first');
+  expect(await state.gui.setModuleStates({ first: false })).toBe(true);
+  expect(state.disabled).toContainEqual({ name: 'first', source: 'deadwood-reblooms' });
+});
+
+test('disabling a conflict during preInit skips the conflicting module in the current lifecycle', async () => {
+  const { default: ModuleRegistry } = await import('../../src/services/Modules');
+  const state = fixture();
+  const modules = new ModuleRegistry({}, { core: [], protected: [] }, state.idb);
+  const gui = new GUIControl(state.idb, state.modloader, state.events, modules, state.translator, () => undefined, {} as Repair);
+  const calls: string[] = [];
+  modules.register('DeadwoodReblooms', { preInit: async () => void (await gui.setModuleStates({ BirdTower: false })) });
+  modules.register('BirdTower', { preInit: () => void calls.push('BirdTower pre'), Init: () => void calls.push('BirdTower init') }, ['DeadwoodReblooms']);
+  modules.register('unrelated', { preInit: () => void calls.push('unrelated pre'), Init: () => void calls.push('unrelated init') });
+
+  await gui.init();
+  await modules.run('pre');
+  modules.run('init');
+
+  expect(state.disabled.map(module => module.name)).toContain('BirdTower');
+  expect(gui.disabledModules.map(module => module.name)).toContain('BirdTower');
+  expect(modules.get('BirdTower')).toBeUndefined();
+  expect(calls).toEqual(['unrelated pre', 'unrelated init']);
+});
+
+test('changing module settings after preInit keeps the existing reload boundary', async () => {
+  const { default: ModuleRegistry } = await import('../../src/services/Modules');
+  const state = fixture();
+  const modules = new ModuleRegistry({}, { core: [], protected: [] }, state.idb);
+  const gui = new GUIControl(state.idb, state.modloader, state.events, modules, state.translator, () => undefined, {} as Repair);
+  const feature = { Init() {} };
+  modules.register('feature', feature);
+  await gui.init();
+  await modules.run('pre');
+  modules.run('init');
+
+  expect(await gui.setModuleStates({ feature: false })).toBe(true);
+  expect(gui.disabledModules.map(module => module.name)).toContain('feature');
+  expect(modules.get('feature')).toBe(feature);
 });
 
 Object.assign(Config, {

@@ -172,7 +172,7 @@ export class GUIControl {
   private async modNames(): Promise<Set<string>> {
     const controller = this.modloader.loadController;
     const [enabled, hidden] = await Promise.all([controller.listModIndexDB(), controller.loadHiddenModList()]);
-    return new Set([...enabled, ...hidden]);
+    return new Set([...this.modloader.modUtils.getModListNameNoAlias(), ...enabled, ...hidden]);
   }
 
   private currentModules(modNames: Set<string>): ModuleInfo[] {
@@ -268,7 +268,10 @@ export class GUIControl {
       changed = modules.some(module => Object.hasOwn(states, module.name) && before.has(module.name) !== after.has(module.name));
       if (changed) await store.put({ key: 'Modules', value: { disabled: [...disabled.values()] } });
     });
-    if (changed) await this.loadSettings();
+    if (changed) {
+      await this.loadSettings();
+      if (!this.modules.initPhase.preInitCompleted) await this.modules.load();
+    }
     return changed;
   }
 

@@ -344,7 +344,8 @@ export const NamedNPC = (core => {
   function applyData(manager: NPCManager, npc: NPCData) {
     const patch = manager.data.get(npc.nam)?.Patch;
     if (!patch || appliedData.get(npc) === patch) return;
-    merge(npc, clone(patch));
+    if (vanillaList.has(npc.nam) || npc.init !== 1) merge(npc, clone(patch));
+    else for (const [key, value] of Object.entries(patch)) if (npc[key] === undefined) npc[key] = clone(value);
     appliedData.set(npc, patch);
   }
 
@@ -384,7 +385,7 @@ export const NamedNPC = (core => {
           .filter((name): name is string => typeof name === 'string' && name.trim() !== '')
           .map(name => name.trim())
       : [];
-    manager.NPCNameList = [...new Set([...dol.setup.NPCNameList, ...savedNPCNames])];
+    manager.NPCNameList = [...new Set([...savedNPCNames, ...dol.setup.NPCNameList])];
     dol.variables.NPCNameList = [...manager.NPCNameList];
     return manager.NPCNameList;
   }

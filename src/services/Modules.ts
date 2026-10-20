@@ -242,20 +242,23 @@ export class Modules extends Lifecycle<string, Module> {
     this.phase('postInit', '后初始化');
   }
 
+  public async load(): Promise<void> {
+    try {
+      const record = (await this.idb.with(['settings'], 'readonly', tx => tx.objectStore('settings').get('Modules'))) as ModuleSettings | undefined;
+      this.disabledNames = new Set(record?.value?.disabled?.map(module => module.name) ?? []);
+    } catch (error) {
+      this.write(`模块禁用设置读取失败: ${Diagnostics.message(error)}`, 'WARN', 'modules');
+      this.disabledNames ??= new Set();
+    }
+    this.disable();
+  }
+
   private async prepare(): Promise<void> {
     if (this.initPhase.preInitCompleted) return;
     if (this.preInitTask) return this.preInitTask;
 
     const task = (async () => {
-      if (!this.disabledNames) {
-        try {
-          const record = (await this.idb.with(['settings'], 'readonly', tx => tx.objectStore('settings').get('Modules'))) as ModuleSettings | undefined;
-          this.disabledNames = new Set(record?.value?.disabled?.map(module => module.name) ?? []);
-        } catch (error) {
-          this.write(`模块禁用设置读取失败: ${Diagnostics.message(error)}`, 'WARN', 'modules');
-          this.disabledNames = new Set();
-        }
-      }
+      if (!this.disabledNames) await this.load();
 
       this.disable();
       await this.pre();

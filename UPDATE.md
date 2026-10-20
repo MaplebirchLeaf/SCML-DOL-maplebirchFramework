@@ -1,3 +1,15 @@
+##### (v.5.5.2更新日志):
+
+- NPC 名单索引跟随存档中的人物记录，避免初遇初始化落到其它人物身上。
+- 新增 NPC 初遇后读档只补缺失注册字段，保留已保存的头衔、外貌与关系进度。
+- 模组设置识别已加载的整合包，在预初始化期间立即应用冲突模块的禁用结果。
+
+**English**
+
+- Keep named NPC indices aligned with saved records so first-meeting initialization selects the correct character.
+- Fill missing registration fields after a custom NPC's first meeting without overwriting saved titles, appearance or relationship progress.
+- Include loaded bundled mods in module settings and apply conflict exclusions during the current pre-initialization phase.
+
 ##### (v.5.5.1更新日志):
 
 - 修复链接区域插入时将原版选项图标与链接拆开的问题，保留链接前的连续图标及空白。

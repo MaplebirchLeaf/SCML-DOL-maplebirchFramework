@@ -1,6 +1,6 @@
 # Named NPC
 
-Repeated calls for the same name merge explicitly supplied data and configuration. Existing vanilla NPCs receive those fields without constructor defaults. Unspecified save fields remain unchanged. Each registration is applied once per NPC object, including after loading a save.
+Repeated `add()` calls merge registration data and configuration. For new mod NPCs, registration supplies initial values. After their first-meeting initialization, loading only fills missing fields, preserving saved titles, appearance and relationship progress. Explicit overrides for native NPCs still apply once per object and are reapplied after loading, without constructor defaults replacing unrelated fields.
 
 ## Purpose
 
