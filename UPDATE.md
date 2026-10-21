@@ -1,3 +1,15 @@
+##### (v.5.5.3更新日志):
+
+- 严格按存档人物记录生成 NPC 索引，保留缺项与重复记录的位置，避免名单错位导致初见和对话失效。
+- 分开维护已保存的人物索引与注册目录，补建缺失 NPC 时保留已有人物的身份和关系进度。
+- 修复旧存档带空格的 NPC 名称错误阻止正式人物初始化的问题。
+
+**English**
+
+- Build named NPC indices directly from saved records, preserving positions even when records are missing or duplicated so introductions and conversations address the correct character.
+- Keep saved indices separate from the registration catalog and fill missing NPCs without changing existing identities or relationships.
+- Fix whitespace-distinct saved NPC names incorrectly preventing canonical characters from being initialized.
+
 ##### (v.5.5.2更新日志):
 
 - NPC 名单索引跟随存档中的人物记录，避免初遇初始化落到其它人物身上。

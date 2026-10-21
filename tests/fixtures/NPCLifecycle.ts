@@ -128,3 +128,15 @@ Manager.prototype.loadInit.call(manager);
 assert.equal(variables.NPCName.filter((npc: any) => npc.nam === 'Grant').length, 1);
 assert.deepEqual(initialized, ['Grant']);
 assert.equal(variables.maplebirch.npc.tsukihan.bodydata.eyeColour, 'red');
+
+// Saved identifiers remain exact: a whitespace-distinct row cannot suppress a
+// registered NPC whose native index and C.npc lookup use the canonical name.
+variables.NPCName = [{ nam: ' Tsukihan ', init: 1, title: 'saved distinct identity', love: 73, gender: 'm', pronoun: 'm', adult: 1 }];
+Manager.prototype.loadInit.call(manager);
+assert.equal(characters.npc.Tsukihan?.nam, 'Tsukihan');
+assert.equal(characters.npc.Tsukihan.init, 0, 'the missing canonical NPC still needs its first meeting');
+assert.equal(characters.npc[' Tsukihan '].love, 73, 'loading must not rename an existing saved identity');
+assert.equal(variables.NPCName[variables.NPCNameList.indexOf('Tsukihan')], characters.npc.Tsukihan);
+assert.equal(variables.NPCName[variables.NPCNameList.indexOf(' Tsukihan ')], characters.npc[' Tsukihan ']);
+Manager.prototype.loadInit.call(manager);
+assert.equal(variables.NPCName.filter((npc: any) => npc.nam === 'Tsukihan').length, 1);

@@ -380,13 +380,9 @@ export const NamedNPC = (core => {
     if (!Array.isArray(dol.setup.NPCNameList)) dol.setup.NPCNameList = [];
     const modNPCNames = Array.from(manager.data.keys());
     dol.setup.NPCNameList = [...new Set([...dol.setup.NPCNameList, ...modNPCNames].filter((name): name is string => typeof name === 'string' && name.trim() !== '').map(name => name.trim()))];
-    const savedNPCNames = Array.isArray(dol.variables.NPCName)
-      ? dol.variables.NPCName.map((npc: { nam?: string }) => npc?.nam)
-          .filter((name): name is string => typeof name === 'string' && name.trim() !== '')
-          .map(name => name.trim())
-      : [];
-    manager.NPCNameList = [...new Set([...savedNPCNames, ...dol.setup.NPCNameList])];
-    dol.variables.NPCNameList = [...manager.NPCNameList];
+    const savedNPCNames = Array.isArray(dol.variables.NPCName) ? dol.variables.NPCName.map((npc: NPCData | null | undefined) => npc?.nam) : [];
+    manager.NPCNameList = [...new Set([...savedNPCNames, ...dol.setup.NPCNameList].filter((name): name is string => typeof name === 'string' && name.trim() !== ''))];
+    dol.variables.NPCNameList = [...(savedNPCNames.length ? savedNPCNames : dol.setup.NPCNameList)];
     return manager.NPCNameList;
   }
 
@@ -433,11 +429,7 @@ export const NamedNPC = (core => {
     let skippedCount = 0;
     if (!Array.isArray(dol.variables.NPCName)) dol.variables.NPCName = [];
     updateNPCNameList(manager);
-    const savedNPCNameSet = new Set(
-      dol.variables.NPCName.map((npc: { nam?: string }) => npc?.nam)
-        .filter((name: string): name is string => typeof name === 'string' && name.trim() !== '')
-        .map((name: string) => name.trim())
-    );
+    const savedNPCNameSet = new Set(dol.variables.NPCName.map((npc: { nam?: string }) => npc?.nam).filter((name: string): name is string => typeof name === 'string' && name.trim() !== ''));
 
     for (const [npcName, npcEntry] of manager.data) {
       if (savedNPCNameSet.has(npcName)) {
