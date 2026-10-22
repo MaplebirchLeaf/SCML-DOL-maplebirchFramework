@@ -10,7 +10,9 @@ maplebirch.tool.patch.foodstuff.add(key, config);
 
 **`key`** 是食物的唯一标识，建议带模组名前缀，避免和原版或其他模组冲突。
 
-在启动脚本注册后，框架自动合并 `setup.foodstuff`。新游戏及读档只补齐缺失的库存条目，保留现有数量。需要手动应用时，调用 `maplebirch.tool.patch.foodstuff.apply()`，同时合并目录并补齐当前库存。
+在启动脚本注册后，框架自动合并 `setup.foodstuff`。新游戏及读档先恢复缺失的已注册食品定义，再补齐库存条目，保留现有数量。需要手动应用时，调用 `maplebirch.tool.patch.foodstuff.apply()`，同时合并目录并补齐当前库存。
+
+提供 `recipe` 时，框架合并原有食谱字段，并将缺失的 `ingredients`、`tags` 补为 `[]`。不提供 `recipe` 的物品保持无食谱，难度、耗时和份数由模组配置。
 
 ## 最小示例
 

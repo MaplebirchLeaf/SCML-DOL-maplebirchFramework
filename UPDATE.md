@@ -1,3 +1,15 @@
+##### (v.5.5.4更新日志):
+
+- NPC 转化可单独设置点数上限，保留最高等级后的成长，并在读档时保留暂未加载模组的转化数据。
+- 修复已注册食材在读档后缺少定义的问题，补全食谱数组并保留原有配方、库存与解锁记录。
+- 补充 NPC 转化、衣物与食材的中英文文档，以及点数上限、解除恢复和重复初始化的回归验证。
+
+**English**
+
+- Allow NPC transformations to set an independent point cap, retaining growth beyond the final level and saved transformations belonging to temporarily unloaded mods.
+- Restore missing registered food definitions after loading, fill recipe collections and preserve existing recipes, inventory and unlocks.
+- Update bilingual NPC transformation, clothing and food documentation, with regression coverage for point caps, restoration and repeated initialization.
+
 ##### (v.5.5.3更新日志):
 
 - 严格按存档人物记录生成 NPC 索引，保留缺项与重复记录的位置，避免名单错位导致初见和对话失效。

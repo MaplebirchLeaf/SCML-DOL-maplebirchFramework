@@ -76,7 +76,10 @@ class Foodstuff {
 
   public static syncState(): void {
     if (!dol.has('setup') || !isRecord(dol.setup.foodstuff)) return;
-    for (const key of Object.keys(foodstuffData)) Foodstuff.ensureState(key);
+    for (const [key, config] of Object.entries(foodstuffData)) {
+      if (!isRecord(dol.setup.foodstuff[key])) Foodstuff.set(key, config);
+      Foodstuff.ensureState(key);
+    }
   }
 
   public static applySetup(): void {
@@ -90,6 +93,11 @@ class Foodstuff {
   private static set(key: string, config: FoodstuffConfig): void {
     const current = dol.setup.foodstuff[key];
     const item: FoodstuffConfig = { ...clone(current), ...clone(config) };
+    if (isRecord(item.recipe)) {
+      item.recipe = { ...clone(current?.recipe), ...item.recipe };
+      item.recipe.ingredients ??= [];
+      item.recipe.tags ??= [];
+    }
     const name = item.name ?? key.replace(/_/g, ' ');
     if (item.index === undefined) item.index = Foodstuff.nextIndex();
     dol.setup.foodstuff[key] = {

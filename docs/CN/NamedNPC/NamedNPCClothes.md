@@ -234,7 +234,7 @@ wardrobe.wear('Luna', 'park', 'casual_outfit', {
 });
 
 // 场景湿度覆盖当前已经选中的整套服装。条件不成立时退回 wear 的湿度
-wardrobe.wet('Luna', 'soaked', () => passage() === 'Lake Soak');
+wardrobe.wet('Luna', 'soaked', () => V.passage === 'Lake Soak');
 
 // 条件基础层，可动态决定使用哪个已注册模板
 wardrobe.layer(

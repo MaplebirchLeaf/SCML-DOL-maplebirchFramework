@@ -26,6 +26,7 @@ The first argument is the NPC's `nam`; the second is a transformation ID local t
 | Option                           | Description                                                                                       |
 | :------------------------------- | :------------------------------------------------------------------------------------------------ |
 | `levels`                         | Increasing positive cumulative growth thresholds; defaults to `[5, 10, 15, 20, 25, 30]`           |
+| `max`                            | Growth cap, at least the last threshold; defaults to the last threshold                           |
 | `type`                           | Gameplay identity returned by `Transformation.type(name)`; leaves the NPC's base `type` unchanged |
 | `parts`                          | Vanilla parts enabled at chosen levels, for both primary and secondary NPC models                 |
 | `body(bodydata, state, npcName)` | Changes a copy of body data for this render, such as `hairColour` or `eyeColour`                  |
@@ -77,4 +78,4 @@ transformation.clear('Example', 'wolf');
 
 `build()`, `set()`, and `get()` return `{ build, level }`. `get()` initializes missing state. `level()`, `type()`, and rendering queries do not create save records. `clear(name)` removes all transformations for that NPC.
 
-Growth is clamped between zero and the last threshold, and determines the level. Unregistered types use the default thresholds but have no rendering effects. Loading repairs missing growth while preserving existing state objects. Multiple transformations can render together; identity comes from the highest-level transformation, with growth breaking ties.
+Growth is clamped between zero and `max`; `levels` determines the level. A higher `max` allows growth to accumulate after the highest level. Explicit queries or changes to unregistered types use the default thresholds but have no rendering effects. Bulk loading leaves unregistered types untouched and repairs missing growth for registered types while preserving existing state objects. Multiple transformations can render together; identity comes from the highest-level transformation, with growth breaking ties.

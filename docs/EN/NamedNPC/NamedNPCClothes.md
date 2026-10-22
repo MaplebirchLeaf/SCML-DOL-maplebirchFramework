@@ -123,7 +123,7 @@ wardrobe.wear('Luna', 'lake', 'school_uniform', {
 wardrobe.wear('Luna', 'park', 'casual_outfit', {
   wetness: () => (V.weather === 'rain' ? 'wet' : 'dry')
 });
-wardrobe.wet('Luna', 'soaked', () => passage() === 'Lake Soak');
+wardrobe.wet('Luna', 'soaked', () => V.passage === 'Lake Soak');
 wardrobe.layer(
   'Luna',
   () => (C.npc.Luna.pronoun === 'm' ? 'male_underwear' : 'female_underwear'),

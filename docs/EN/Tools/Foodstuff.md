@@ -10,7 +10,9 @@ maplebirch.tool.patch.foodstuff.add(key, config);
 
 **`key`** is the unique foodstuff id. Use a mod prefix to avoid collisions.
 
-Register during startup so the framework can merge the configuration into `setup.foodstuff`. Starting or loading a game only fills missing inventory entries and preserves existing quantities. Call `maplebirch.tool.patch.foodstuff.apply()` to manually apply both the catalog and missing inventory entries.
+Register during startup so the framework can merge the configuration into `setup.foodstuff`. Starting or loading a game restores missing registered definitions before filling inventory entries and preserves existing quantities. Call `maplebirch.tool.patch.foodstuff.apply()` to manually apply both the catalog and missing inventory entries.
+
+When `recipe` is provided, the framework merges existing recipe fields and defaults missing `ingredients` and `tags` to `[]`. Items without `recipe` remain recipe-free. Configure difficulty, cooking time, and servings in the mod.
 
 ## Minimal Example
 
