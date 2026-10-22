@@ -22,6 +22,8 @@ export interface NPCTransformationPartConfig {
 
 export interface NPCTransformationConfig {
   levels?: readonly number[];
+  // 点数上限独立于等级门槛，省略时沿用最后一级门槛。
+  max?: number;
   type?: string;
   parts?: Partial<Record<NPCTransformationPart, NPCTransformationPartConfig>>;
   body?: (bodydata: NPCBodyData, state: Readonly<NPCTransformationState>, npcName: string) => void;
@@ -29,8 +31,9 @@ export interface NPCTransformationConfig {
   layers?: CanvasLayerMap;
 }
 
-type TransformationConfig = Omit<NPCTransformationConfig, 'levels' | 'parts'> & {
+type TransformationConfig = Omit<NPCTransformationConfig, 'levels' | 'max' | 'parts'> & {
   levels: readonly number[];
+  max: number;
   parts: Partial<Record<NPCTransformationPart, Required<Pick<NPCTransformationPartConfig, 'level' | 'style'>> & Pick<NPCTransformationPartConfig, 'filter'>>>;
 };
 const defaultLevels = [5, 10, 15, 20, 25, 30] as const;
@@ -54,12 +57,12 @@ function stateLevel(build: number, levels: readonly number[]): number {
   return levels.filter(threshold => build >= threshold).length;
 }
 
-function stateValues(value: unknown, levels: readonly number[]): NPCTransformationState {
+function stateValues(value: unknown, levels: readonly number[], max = levels.at(-1)!): NPCTransformationState {
   const source = record(value) ? value : {};
   const savedBuild = source.build == null ? NaN : Number(source.build);
   const savedLevel = Number(source.level);
   const fallback = Number.isFinite(savedLevel) ? (levels[Math.clamp(Math.round(savedLevel), 0, levels.length) - 1] ?? 0) : 0;
-  const build = Math.clamp(Number.isFinite(savedBuild) ? savedBuild : fallback, 0, levels.at(-1)!);
+  const build = Math.clamp(Number.isFinite(savedBuild) ? savedBuild : fallback, 0, max);
   return { build, level: stateLevel(build, levels) };
 }
 
@@ -75,6 +78,8 @@ class NPCTransformation {
     if ([config.body, config.sidebar].some(callback => callback !== undefined && typeof callback !== 'function')) throw new Error(`Invalid transformation callback: ${name}`);
     const levels = [...(config.levels ?? defaultLevels)];
     if (!levels.length || levels.some((value, i) => !Number.isFinite(value) || value <= (levels[i - 1] ?? 0))) throw new Error(`Invalid transformation levels: ${name}`);
+    const max = config.max === undefined ? levels.at(-1)! : config.max;
+    if (!Number.isFinite(max) || max < levels.at(-1)!) throw new Error(`Invalid transformation maximum: ${name}`);
     const configuredParts: TransformationConfig['parts'] = {};
     for (const [part, options] of Object.entries(config.parts ?? {})) {
       if (!parts.has(part) || !options || typeof options !== 'object' || Array.isArray(options)) throw new Error(`Invalid transformation part: ${part}`);
@@ -91,7 +96,7 @@ class NPCTransformation {
       configuredParts[part as NPCTransformationPart] = { level, style, ...(filter ? { filter: { ...filter } } : {}) };
     }
     const configs = this.configs.get(npc) ?? new Map<string, TransformationConfig>();
-    configs.set(name, { ...config, levels, parts: configuredParts });
+    configs.set(name, { ...config, levels, max, parts: configuredParts });
     this.configs.set(npc, configs);
     if (config.layers) this.manager.core.char.use(config.layers, 'main');
     return this;
@@ -106,9 +111,12 @@ class NPCTransformation {
     if (!record(npc.transformation)) npc.transformation = {};
     const data: Record<string, unknown> = npc.transformation;
     for (const type of requested ? [requested] : Object.keys(data)) {
-      const levels = this.config(name, type)?.levels ?? defaultLevels;
+      const config = this.config(name, type);
+      // 批量读档不裁剪未加载模块的数据，明确请求某类型时仍使用默认配置。
+      if (!requested && !config) continue;
+      const levels = config?.levels ?? defaultLevels;
       const source = record(data[type]) ? data[type] : {};
-      data[type] = Object.assign(source, stateValues(source, levels));
+      data[type] = Object.assign(source, stateValues(source, levels, config?.max));
     }
     return data as Record<string, NPCTransformationState>;
   }
@@ -119,9 +127,10 @@ class NPCTransformation {
 
   public build(npcName: string, type: string, value: number): NPCTransformationState {
     if (!Number.isFinite(value)) throw new Error('Transformation growth must be finite');
-    const levels = this.config(npcName, type)?.levels ?? defaultLevels;
+    const config = this.config(npcName, type);
+    const levels = config?.levels ?? defaultLevels;
     const state = this.get(npcName, type);
-    state.build = Math.clamp(state.build + value, 0, levels.at(-1)!);
+    state.build = Math.clamp(state.build + value, 0, config?.max ?? levels.at(-1)!);
     state.level = stateLevel(state.build, levels);
     return state;
   }
@@ -144,7 +153,8 @@ class NPCTransformation {
 
   public level(npcName: string, type: string): number {
     const name = key(type);
-    return stateValues(this.read(npcName)?.[name], this.config(npcName, name)?.levels ?? defaultLevels).level;
+    const config = this.config(npcName, name);
+    return stateValues(this.read(npcName)?.[name], config?.levels ?? defaultLevels, config?.max).level;
   }
 
   public type(npcName: string): string {
@@ -182,7 +192,7 @@ class NPCTransformation {
     for (const [type, value] of Object.entries(this.read(npcName) ?? {})) {
       const config = configs?.get(type);
       if (!config) continue;
-      const state = stateValues(value, config.levels);
+      const state = stateValues(value, config.levels, config.max);
       if (state.level > 0) yield { type, state, config };
     }
   }
