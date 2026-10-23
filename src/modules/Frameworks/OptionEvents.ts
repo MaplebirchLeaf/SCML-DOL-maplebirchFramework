@@ -9,7 +9,16 @@ class OptionEvents {
   public install(): void {
     if (this.installed) return;
     this.installed = true;
-    $(document).on('change', 'select[name="lanListbox-optionsmaplebirchnpcsidebarnnpc"]', () => this.refreshOptions());
+    $(document).on(
+      'change',
+      [
+        'select[name="lanListbox-optionsmaplebirchnpcsidebarnnpc"]',
+        'select[name="lanListbox-optionsmaplebirchnpcsidebarfacestyle"]',
+        'select[name="lanListbox-optionsmaplebirchcharactercharartselect"]',
+        'select[name="lanListbox-optionsmaplebirchcharactercloseupselect"]'
+      ].join(', '),
+      () => this.refreshOptions()
+    );
     $(document).on('change', 'select.maplebirch-npc-model-primary, select.maplebirch-npc-model-secondary', event => {
       const select = event.currentTarget as HTMLSelectElement;
       const sidebar = dol.variables.options.maplebirch.npcsidebar;
@@ -22,10 +31,7 @@ class OptionEvents {
       }
       this.updateSidebar();
     });
-    $(document).on('change', 'select[name="lanListbox-optionsmaplebirchnpcsidebarfacestyle"]', () => this.refreshOptions());
     $(document).on('change', 'select[name="lanListbox-optionsmaplebirchnpcsidebarfacevariant"]', () => this.updateSidebar());
-    $(document).on('change', 'select[name="lanListbox-optionsmaplebirchcharactercharartselect"]', () => this.refreshOptions());
-    $(document).on('change', 'select[name="lanListbox-optionsmaplebirchcharactercloseupselect"]', () => this.refreshOptions());
     $(document).on('change', 'input[name*="optionsmaplebirchcharacterpet"]', () => this.updatePet());
     $(document).on('change', 'input[name*="optionsmaplebirchnpcsidebarpet"]', () => this.updateSidebar());
     $(document).on('change', 'input[name*="optionsmaplebirchpetlocked"]', () => {

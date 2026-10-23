@@ -133,17 +133,9 @@ class TimeEvent extends Event {
   }
 
   private execute(data: TimeData): boolean {
-    if (!this.match(data) || !this.action) return false;
-    this.runAction(data);
-    return this.once;
-  }
-
-  private match(data: TimeData): boolean {
-    return this.evaluate('cond', this.cond, data);
-  }
-
-  private runAction(data: TimeData): void {
+    if (!this.evaluate('cond', this.cond, data) || !this.action) return false;
     this.invoke('action', this.action, data);
+    return this.once;
   }
 
   private isExactPoint(data: TimeData): boolean {

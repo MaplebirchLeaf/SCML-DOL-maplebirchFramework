@@ -446,7 +446,6 @@ export const NamedNPC = (core => {
       manager.log(`注入模组NPC到内部状态: ${npcName}`, 'DEBUG');
     }
 
-    updateNPCNameList(manager);
     updateNPCCProxy(manager);
     setupNameTranslations();
     manager.log(`更新完成: 添加 ${addedCount} 个NPC, 跳过 ${skippedCount} 个重复NPC`, 'DEBUG');

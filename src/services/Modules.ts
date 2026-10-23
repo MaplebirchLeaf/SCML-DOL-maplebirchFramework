@@ -226,19 +226,9 @@ export class Modules extends Lifecycle<string, Module> {
         this.initPhase.mainInitCompleted = true;
         this.write('主初始化完成', 'DEBUG', 'modules');
       }
+    } else if (!this.initPhase.mainInitCompleted) return;
 
-      this.phase('postInit', '后初始化');
-      return;
-    }
-
-    if (!this.initPhase.mainInitCompleted) return;
-
-    if (phase === 'load') {
-      this.phase('loadInit', '存档初始化');
-      this.phase('postInit', '后初始化');
-      return;
-    }
-
+    if (phase === 'load') this.phase('loadInit', '存档初始化');
     this.phase('postInit', '后初始化');
   }
 

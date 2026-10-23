@@ -38,7 +38,7 @@ export function _radiobuttonsfrom(this: MacroContext): HTMLElement | void {
   const separator = this.args.length > 2 ? text(this.args[2]) : ' | ';
   const content = (payload[0]?.contents || '').trim();
   const passageObj = this.passageObj;
-  const options: Array<{ value: string; data: unknown; label: JQuery }> = [];
+  const options: Array<{ value: string; data: unknown }> = [];
   const $container = jQuery('<span>').addClass('radiobuttonsfrom-container');
 
   parsed.forEach((option, index) => {
@@ -46,7 +46,7 @@ export function _radiobuttonsfrom(this: MacroContext): HTMLElement | void {
     const $temp = jQuery(document.createElement('div'));
     const optionValue = Array.isArray(option) && option.length >= 2 ? text(option[0]) : text(option);
     const displayData = Array.isArray(option) && option.length >= 2 ? option[1] : option;
-    options.push({ value: optionValue, data: displayData, label: $label });
+    options.push({ value: optionValue, data: displayData });
     try {
       new (maplebirch.host.sugarcube.require().Wikifier)($temp[0], `<<radiobutton ${JSON.stringify(varPath)} ${JSON.stringify(optionValue)} autocheck>>`);
       if (content) {

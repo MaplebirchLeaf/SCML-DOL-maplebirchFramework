@@ -70,23 +70,15 @@ class StateEvent extends Event {
   }
 
   public matches(passageName?: string): boolean {
-    return this.checkPassage(passageName) && this.match();
+    return this.checkPassage(passageName) && this.evaluate('cond', this.cond);
   }
 
   public run(): StateEventResult {
-    this.runAction();
+    this.invoke('action', this.action);
     return {
       hasOutput: !!this.output,
       remove: this.once
     };
-  }
-
-  private match(): boolean {
-    return this.evaluate('cond', this.cond);
-  }
-
-  private runAction(): void {
-    this.invoke('action', this.action);
   }
 
   public shouldForceExit(): boolean {

@@ -89,8 +89,6 @@ function setupNPCData(manager: NPCManager) {
     const npc = dol.variables.NPCName?.find((data: any) => data?.nam === npcName);
     if (npc) for (const [key, value] of Object.entries(bodyDefaults)) if (typeof npc[key] !== typeof value || !Number.isFinite(npc[key])) npc[key] = value;
     if (!dol.variables.maplebirch.npc[name]) dol.variables.maplebirch.npc[name] = {};
-    dol.variables.maplebirch.npc[name].bodydata ??= {};
-    dol.variables.maplebirch.npc[name].outfits ??= [];
     const tucked = dol.variables.maplebirch.npc[name].tucked;
     if (!Array.isArray(tucked) || tucked.length !== 2 || typeof tucked[0] !== 'boolean' || typeof tucked[1] !== 'boolean') dol.variables.maplebirch.npc[name].tucked = [false, false];
     manager.Transformation.ensure(npcName);

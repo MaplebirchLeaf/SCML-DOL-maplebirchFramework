@@ -162,11 +162,6 @@ export function isStyleArg(arg: string): boolean {
   return arg === 'icon-only' || arg.startsWith('class:') || arg.startsWith('style:') || arg.startsWith('icon:') || (CONVERT_MODES as readonly string[]).includes(arg);
 }
 
-export function translatedText(source: unknown, convertMode: ConvertMode | null): string {
-  const value = macroTranslation(source, maplebirch);
-  return convertMode ? value.convert(convertMode) : value;
-}
-
 export function labelText(source: string | readonly string[], convertMode: ConvertMode | null): () => string {
   const labels = new Map<string, string>();
   const render = (value: string): string => {
