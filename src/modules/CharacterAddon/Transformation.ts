@@ -569,7 +569,7 @@ class Transformation {
 
     if (direction === 'Up' && level === entry.level) {
       const featName = name.charAt(0).toUpperCase() + name.slice(1);
-      tools.wikifier('earnFeat', `'${featName}'`);
+      if (dol.setup.feats[featName]) tools.wikifier('earnFeat', `'${featName}'`);
     }
 
     return true;
