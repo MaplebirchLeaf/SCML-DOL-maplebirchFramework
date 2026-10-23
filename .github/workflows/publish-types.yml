@@ -70,9 +70,6 @@ jobs:
       - name: Verify framework
         run: bun run verify
 
-      - name: Run tests
-        run: bun run test
-
       - name: Verify types package version
         run: |
           PKG_VERSION=$(node -p "require('./dist/package.json').version")

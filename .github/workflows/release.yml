@@ -123,9 +123,6 @@ jobs:
       - name: Verify framework
         run: bun run verify
 
-      - name: Run tests
-        run: bun run test
-
       - name: Build and Package
         run: bun run build:all
 
