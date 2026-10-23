@@ -1,3 +1,15 @@
+##### (v.5.5.5更新日志):
+
+- 整理 NPC 初始化、模块加载与事件监听，合并重复流程，保留存档索引与原有事件顺序。
+- 修复转化达到最高等级时尝试授予未注册成就的问题。
+- 清理已停用的测试入口，统一源码检查、类型构建与打包验证流程。
+
+**English**
+
+- Simplify NPC initialization, module loading and event listeners while preserving saved indices and event order.
+- Avoid trying to award an unregistered achievement when a transformation reaches its final level.
+- Remove retired test entry points and align source checks, type builds and package verification.
+
 ##### (v.5.5.4更新日志):
 
 - NPC 转化可单独设置点数上限，保留最高等级后的成长，并在读档时保留暂未加载模组的转化数据。
