@@ -1,3 +1,19 @@
+##### (v.5.5.6更新日志):
+
+- 保留自定义 NPC 的完整描述，初始化、旧存档转换与重新载入时不再丢失。
+- 社交页按当前进度重新判断主要与特殊关系，修复动态条件被当作固定开启的问题。
+- 在恢复旧存档衣物前注册默认套装，避免中性 NPC 的套装被误删后触发换装报错。
+- 恢复仍有效的旧衣物时保留原有裸露状态，避免半裸或全裸的人物被重新标记为穿着整齐。
+- 复核 NPC 索引、重复注入与存档加载顺序，保留原有人物关系和其它模组数据。
+
+**English**
+
+- Preserve custom NPC full descriptions during initialization, old-save conversion and reloads.
+- Re-evaluate important and special relationships from current progress when opening the social page, instead of treating dynamic conditions as permanently enabled.
+- Register default outfits before recovering saved clothing so neutral NPC outfits are not mistaken for missing sets and cause clothing-generation errors.
+- Preserve exposure state when restoring valid saved outfits so partially or fully undressed NPCs are not incorrectly marked as clothed.
+- Verify NPC indices, repeated injection and save-loading order while preserving existing relationships and other mods' data.
+
 ##### (v.5.5.5更新日志):
 
 - 整理 NPC 初始化、模块加载与事件监听，合并重复流程，保留存档索引与原有事件顺序。

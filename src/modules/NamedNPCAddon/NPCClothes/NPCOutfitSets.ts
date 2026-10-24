@@ -133,10 +133,11 @@ class NPCOutfitSets {
       temporary.maplebirchOutfitNPC = npc;
       try {
         if (named.includes(npc)) {
-          const clothes = !missingSet && npc.clothes ? clone(npc.clothes) : undefined;
+          // 原生初始化会同步暴露状态，保留有效衣物时也一并保留，避免半裸角色被误判为穿衣。
+          const snapshot = !missingSet && npc.clothes ? { clothes: clone(npc.clothes), chest: npc.chest, penis: npc.penis, vagina: npc.vagina } : undefined;
           new Wikifier(document.createDocumentFragment(), '<<initNNPCClothes _maplebirchOutfitNPC.nam "reset">>');
           npc.outfits = [...new Set([...(npc.outfits ?? []), ...(outfits ?? [])])];
-          if (clothes) npc.clothes = clothes;
+          if (snapshot) Object.assign(npc, snapshot);
         } else {
           if (missingSet) {
             npc.outfits = undefined;

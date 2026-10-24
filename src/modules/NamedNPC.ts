@@ -779,10 +779,12 @@ class NPCManager {
   }
 
   public Init(): void {
+    // 先准备默认套装，避免恢复旧存档时将 neutralDefault／hermDefault 误判为失效。
+    this.Clothes.outfitSets.init();
     if (!['Start', 'Downgrade Waiting Room'].includes(this.core.host.sugarcube.passage?.title)) this.injectModNPCs();
     else this.Pregnancy.inject();
     this.Schedule.init(this);
-    this.Clothes.init();
+    this.Clothes.wardrobe.init();
     setupNPCData(this);
     if (!Array.isArray(dol.setup.loveInterestNpc)) dol.setup.loveInterestNpc = [];
     isPossibleLoveInterest = (name: string) => isPossible(this, name);
