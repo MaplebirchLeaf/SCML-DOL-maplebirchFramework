@@ -40,6 +40,7 @@ export interface NPCData {
   pronoun?: PronounCode;
   title?: string;
   description?: string;
+  fullDescription?: string;
   type?: string;
   adult?: number;
   teen?: number;
@@ -154,6 +155,7 @@ export const NamedNPC = (core => {
     public gender: 'm' | 'f' | 'h' | 'n' | 'none';
     public title: string;
     public description: string;
+    declare public fullDescription?: string;
     public type: string;
     public adult: number;
     public teen: number;
@@ -195,6 +197,7 @@ export const NamedNPC = (core => {
       this.gender = data.gender ?? ((['m', 'f', 'h', 'n'] as const).either([0.47, 0.47, 0.05, 0.01]) as 'm' | 'f' | 'h' | 'n');
       this.title = data.title ?? 'none';
       this.description = data.description ?? this.nam;
+      if (data.fullDescription !== undefined) this.fullDescription = data.fullDescription;
       this.type = data.type ?? 'human';
       this.adult = data.adult ?? 0;
       this.teen = data.teen ?? 0;
@@ -680,6 +683,9 @@ class NPCManager {
       if (modConfig && Object.keys(modConfig).length > 0) {
         const configClone = clone(modConfig);
         ['loveAlias', 'loveInterest', 'romance'].forEach(key => delete configClone[key]);
+        for (const key of ['important', 'special'] as const) {
+          if (typeof configClone[key] === 'function') configClone[key] = configClone[key]();
+        }
         for (const stat of Object.values(configClone)) {
           if (stat && typeof stat === 'object' && 'name' in stat && typeof stat.name === 'string') stat.name = this.core.services.translator.auto(stat.name);
         }
@@ -692,8 +698,10 @@ class NPCManager {
         }
       }
     }
-    if (Array.isArray(dol.temporary.importantNpcOrder)) this.type.importantNPCs.forEach(id => dol.temporary.importantNpcOrder.pushUnique(id));
-    if (Array.isArray(dol.temporary.specialNPCs)) this.type.specialNPCs.forEach(id => dol.temporary.specialNPCs.pushUnique(id));
+    for (const [npcName, config] of Object.entries(Config)) {
+      if (config.important && Array.isArray(dol.temporary.importantNpcOrder)) dol.temporary.importantNpcOrder.pushUnique(npcName);
+      if (config.special && Array.isArray(dol.temporary.specialNPCs)) dol.temporary.specialNPCs.pushUnique(npcName);
+    }
     return (dol.temporary.npcConfig = Config);
   }
 
