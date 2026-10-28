@@ -123,12 +123,12 @@ export function _languageListbox(this: MacroContext): void {
     create(options, selectedIdx);
     $select.appendTo(this.output);
     State.setVar(varName, options[selectedIdx].value);
-    const update = () => {
+    const update = this.createShadowWrapper(() => {
       const currentValue = State.getVar(varName);
       const currentIndex = options.findIndex(option => maplebirch.host.sugarcube.require().Util.sameValueZero(option.value, currentValue));
       if (currentIndex >= 0) selectedIdx = currentIndex;
       create(options, selectedIdx);
-    };
+    });
     bindLanguageUpdate($select, 'lanListbox', update);
   } catch (error) {
     maplebirch.log('<<lanListbox>> error', 'ERROR', error);

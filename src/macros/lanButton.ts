@@ -23,15 +23,14 @@ export function _languageButton(this: MacroContext): void {
     if (style) $button.attr('style', style);
     appendMacroIcon($button, icon);
 
-    const textNode = iconOnly ? null : document.createTextNode('');
-    if (textNode) $button.append(textNode);
+    if (!iconOnly) $button.append(jQuery('<span>').addClass('macro-lanButton-text'));
     const label = labelText(source, convertMode);
     const update = () => {
       const buttonText = label();
       $button.attr('aria-label', buttonText);
       if (iconOnly) $button.attr('title', buttonText);
       else $button.removeAttr('title');
-      if (textNode) textNode.data = buttonText;
+      if (!iconOnly) $button.children('.macro-lanButton-text').text(buttonText);
     };
     update();
 

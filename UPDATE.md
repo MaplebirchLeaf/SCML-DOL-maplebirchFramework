@@ -1,3 +1,15 @@
+##### (v.5.5.7更新日志):
+
+- 修复反复切换语言后，链接和按钮文字不再更新的问题。
+- 双语段落与下拉选择保留各自的临时变量，避免重绘时串用其它人物或选项的数据。
+- 链接后区域放在完整选项与提示之后，避免场景图挤入选项行。
+
+**English**
+
+- Keep link and button labels updating after repeated language changes.
+- Preserve local variables in bilingual passages and listboxes so redraws retain the correct character and selection.
+- Place the after-link zone below complete options and hints, keeping scene artwork out of option rows.
+
 ##### (v.5.5.6更新日志):
 
 - 保留自定义 NPC 的完整描述，初始化、旧存档转换与重新载入时不再丢失。

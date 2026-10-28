@@ -75,9 +75,10 @@ class LinkZoneManager {
   }
 
   private applyAfter(config: LinkZoneConfig): void {
-    if (!this.lastLink) return;
+    const container = document.getElementById(this.containerId);
+    if (!this.lastLink || !container) return;
     const zone = this.zone('afterLinkZone', config);
-    this.lastLink.after(zone);
+    container.append(zone);
     if (config.debug) this.log('应用链接后区域', 'DEBUG', zone);
   }
 

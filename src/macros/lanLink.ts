@@ -51,15 +51,14 @@ export function _languageLink(this: MacroContext): void {
     if (convertMode) $link.attr('data-convert-mode', convertMode);
     appendMacroIcon($link, icon);
 
-    const textNode = iconOnly ? null : document.createTextNode('');
-    if (textNode) $link.append(textNode);
+    if (!iconOnly) $link.append(jQuery('<span>').addClass('macro-lanLink-text'));
     const label = labelText(source, convertMode);
     const update = () => {
       const linkText = label();
       $link.attr('aria-label', linkText);
       if (iconOnly) $link.attr('title', linkText);
       else $link.removeAttr('title');
-      if (textNode) textNode.data = linkText;
+      if (!iconOnly) $link.children('.macro-lanLink-text').text(linkText);
     };
     update();
 
