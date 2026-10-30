@@ -131,7 +131,8 @@ effect: '<<myModGuardEffect>>';
 It can also be a function:
 
 ```javascript
-effect: ctx => (ctx.actionType === 'leftaction' ? '<<myModLeftGuardEffect>>' : '<<myModRightGuardEffect>>');
+effect: ctx =>
+  ctx.actionType === 'leftaction' ? '<<myModLeftGuardEffect>>' : '<<myModRightGuardEffect>>';
 ```
 
 The framework wraps the `effect` in an action check, resets the corresponding action variable to `0`, and updates the default action:
@@ -171,7 +172,7 @@ maplebirch.combat.CombatAction.reg({
     const hour = Time.hour;
     return V.myMod?.moonBlessing && (hour >= 18 || hour <= 6);
   },
-  display: () => (Time.hour >= 0 && Time.hour <= 3 ? 'Moonlight heal (strong)' : 'Moonlight heal'),
+  display: () => 'Moonlight heal',
   value: () => 'myModMoonlightHeal',
   color: 'green',
   difficulty: () => '<span class="green">(Safe)</span>',
@@ -183,15 +184,16 @@ maplebirch.combat.CombatAction.reg({
 ```twine
 :: My Mod Combat Effects [widget]
 <<widget "myModMoonlightHealEffect">>
-  <span class="green">Moonlight gathers across your chest.</span>
-  <<health 5>>
-  <<pain -2>>
+  <<if $myMod?.moonBlessing and (Time.hour gte 18 or Time.hour lte 6)>>
+    <span class="green">Moonlight gathers across your chest.</span>
+    <<pain -2>>
+  <</if>>
 <</widget>>
 ```
 
 ## Notes
 
 - `value` should not collide with vanilla actions or other mods. A mod prefix is recommended.
-- Keep `cond` lightweight and avoid changing game state inside it.
+- Use `cond` for display checks without changing state; recheck execution conditions in the effect widget.
 - `effect` may output text, call macros, update variables, spend stamina, or change NPC state.
 - Set `combatType` if the action is only valid in a specific combat type.

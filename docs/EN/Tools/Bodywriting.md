@@ -15,7 +15,6 @@ Use `maplebirch.tool.patch.bodywriting.delete(key)` to remove an entry. Register
 ```javascript
 maplebirch.tool.patch.bodywriting.add('my_mod_mark', {
   writing: 'My Mark',
-  writ_cn: 'My Mark',
   type: 'text',
   gender: 'n',
   lewd: 0
@@ -23,6 +22,8 @@ maplebirch.tool.patch.bodywriting.add('my_mod_mark', {
 ```
 
 `key` is the unique id. Use a mod prefix to avoid collisions. It is written into the configuration and the `setup.bodywriting_namebyindex` mapping. Registering the same key updates the existing entry.
+
+The examples supply English text in `writing`. Add the optional `writ_cn` field for the Chinese text when supporting a Chinese game. These are native data fields and do not need a language macro.
 
 ## Config Fields
 
@@ -56,7 +57,6 @@ Gender values:
 ```javascript
 maplebirch.tool.patch.bodywriting.add('my_mod_rune_text', {
   writing: 'Rune',
-  writ_cn: 'Rune',
   type: 'text',
   gender: 'n',
   degree: 1
@@ -68,7 +68,6 @@ maplebirch.tool.patch.bodywriting.add('my_mod_rune_text', {
 ```javascript
 maplebirch.tool.patch.bodywriting.add('my_mod_phoenix', {
   writing: 'Phoenix',
-  writ_cn: 'Phoenix',
   type: 'object',
   gender: 'n',
   sprites: ['phoenix_left', 'phoenix_right'],
@@ -88,14 +87,12 @@ Object-map form. This is the recommended format when registering multiple entrie
     "bodywriting": {
       "my_mod_rune_text": {
         "writing": "Rune",
-        "writ_cn": "Rune",
         "type": "text",
         "gender": "n",
         "degree": 1
       },
       "my_mod_phoenix": {
         "writing": "Phoenix",
-        "writ_cn": "Phoenix",
         "type": "object",
         "gender": "n",
         "sprites": ["phoenix_left", "phoenix_right"],
@@ -121,13 +118,11 @@ Array form is also supported. Each item must include `key`:
 ```yaml
 - key: my_mod_rune_text
   writing: Rune
-  writ_cn: Rune
   type: text
   gender: n
   degree: 1
 - key: my_mod_phoenix
   writing: Phoenix
-  writ_cn: Phoenix
   type: object
   gender: n
   sprites:

@@ -91,7 +91,7 @@ Companions' `bonus` values add together. Vanilla `defiance` damage is multiplied
 
 Eligible companions offer treatment in vanilla mouth actions. The framework checks mouth availability, underwater and silenced states, and rechecks the character and conditions when executing. Selecting treatment uses that character's support for this action submission: that character supplies no damage bonus, pain reduction or `assist`, while other companions continue normally. After one treatment, its default action returns to vanilla rest so another turn does not automatically spend more resources.
 
-Write treatment dialogue, recovery and resource costs in `heal`. Use vanilla `pain` and its indicator macros, retaining vanilla minimum pain. The companion framework does not define a separate PC health pool.
+Write treatment dialogue, recovery and resource costs in `heal`. Use vanilla `pain` and its indicator macros, retaining vanilla minimum pain. Treatment options hide at that floor; the content mod retains any remaining charges. The companion framework does not define a separate PC health pool.
 
 ## Example with Costs and Departure
 

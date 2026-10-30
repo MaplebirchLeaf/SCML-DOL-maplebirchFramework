@@ -51,13 +51,13 @@ maplebirch.on(':passagerender', (_passage, content) => {
 maplebirch.on(
   ':passagestart',
   () => {
-    console.log('passage start');
+    console.log('段落开始');
   },
   'myMod:passage-start'
 );
 ```
 
-`description` 可用于之后移除监听。同一个函数引用重复注册会返回 `false`。上述监听在每次 passage 开始时输出一次 `passage start`。注销后不再输出。
+`description` 可用于之后移除监听。同一个函数引用重复注册会返回 `false`。上述监听在每次 passage 开始时输出一次“段落开始”。注销后不再输出。
 
 ```javascript
 maplebirch.off(':passagestart', 'myMod:passage-start');
@@ -67,7 +67,7 @@ maplebirch.off(':passagestart', 'myMod:passage-start');
 
 ```javascript
 function handler() {
-  console.log('passage start');
+  console.log('段落开始');
 }
 
 maplebirch.on(':passagestart', handler);

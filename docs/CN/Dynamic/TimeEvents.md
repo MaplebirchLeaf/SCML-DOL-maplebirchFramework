@@ -1,308 +1,219 @@
 # 时间事件
 
-### 基本介绍
+每天刷新一次帮助机会，或每累计十小时记下一次进度，都可以从时间事件开始。脚本加载时登记好规则，游戏推进时间时，框架就会检查该执行哪些事件。
 
-时间事件模块 (`TimeEvents`) 是动态管理系统的一部分，用于处理游戏中的时间相关事件。它允许开发者注册在特定时间点或时间间隔触发的事件，如每小时、每天、每月等定时事件，以及时间旅行时的事件处理。
-_可通过 `maplebirch.dynamic.Time` 访问。_
+这里的“小时”是**游戏内的时间**。玩家把页面开着一小时，并不会因此触发一次 `onHour`。
 
----
+下面先做跨日刷新，再看看累积时间和时间旅行。示例的进度都放在 `V.myMod.time` 中；存档初始化还不熟悉时，可以先对照[开发流程](../Development.md)。
 
-### 核心功能
-
-#### **注册时间事件 (regTimeEvent)**
-
-- 注册一个新的时间事件
-- **@param**:
-  - `type` (string): 事件类型，支持以下类型：
-    - `onSec`: 每秒触发
-    - `onMin`: 每分钟触发
-    - `onHour`: 每小时触发
-    - `onDay`: 每天触发
-    - `onWeek`: 每周触发
-    - `onMonth`: 每月触发
-    - `onYear`: 每年触发
-    - `onBefore`: 原版时间推进前
-    - `onThread`: 时间推进后、单位事件前
-    - `onAfter`: 单位事件后
-    - `onTimeTravel`: 时间旅行时触发
-  - `eventId` (string): 事件唯一标识符
-  - `options` (TimeEventOptions): 事件配置选项
-- **@return**: boolean，表示是否成功注册
-- **@example**:
-
-  ```javascript
-  // 注册一个日期变化时检查的事件
-  maplebirch.dynamic.regTimeEvent('onDay', 'myMod:dailyCheck', {
-    action: data => {
-      // 每天执行的逻辑
-      V.dayCounter = (V.dayCounter || 0) + 1;
-    },
-    cond: data => {
-      // 只在白天触发
-      return data.currentDate?.hour >= 6 && data.currentDate?.hour < 18;
-    },
-    priority: 5,
-    once: false
-  });
-
-  // 使用快捷接口
-  maplebirch.dynamic.regTimeEvent('onDay', 'myMod:dailyCheck', {
-    action: data => {
-      V.dayCounter = (V.dayCounter || 0) + 1;
-    },
-    cond: data => data.currentDate?.hour >= 6 && data.currentDate?.hour < 18,
-    priority: 5,
-    once: false
-  });
-  ```
-
-#### **注销时间事件 (delTimeEvent)**
-
-- 注销一个已注册的时间事件
-- **@param**:
-  - `type` (string): 事件类型
-  - `eventId` (string): 事件唯一标识符
-- **@return**: boolean，表示是否成功注销
-- **@example**:
-  ```javascript
-  maplebirch.dynamic.delTimeEvent('onDay', 'myMod:dailyCheck');
-  ```
-
-#### **时间旅行 (timeTravel)**
-
-- 将游戏时间向前或向后跳跃
-- **@param**: `options` (TimeTravelOptions): 时间旅行配置
-- **@return**: boolean，表示是否成功执行时间旅行
-- **@example**:
-
-  ```javascript
-  // 跳转到特定日期
-  maplebirch.dynamic.timeTravel({
-    year: 2025,
-    month: 3,
-    day: 15,
-    hour: 12
-  });
-
-  // 向前跳跃一段时间
-  maplebirch.dynamic.timeTravel({
-    addDays: 7,
-    addHours: 6
-  });
-
-  // 向后跳跃
-  maplebirch.dynamic.timeTravel({
-    addDays: -3
-  });
-  ```
-
----
-
-### 事件配置选项 (TimeEventOptions)
-
-| 参数                | 类型     | 说明                                                           |
-| :------------------ | :------- | :------------------------------------------------------------- |
-| `action`            | function | 触发时执行的动作函数，接收 TimeData 对象                       |
-| `cond`              | function | 触发条件函数，接收 TimeData 对象，返回布尔值                   |
-| `priority`          | number   | 优先级，数字越大优先级越高                                     |
-| `once`              | boolean  | 是否只触发一次                                                 |
-| `accumulate`        | object   | 累积触发配置                                                   |
-| `accumulate.unit`   | string   | 累积单位：'sec', 'min', 'hour', 'day', 'week', 'month', 'year' |
-| `accumulate.target` | number   | 累积目标值(达到多少单位后触发)                                 |
-| `exact`             | boolean  | 是否在精确时间点触发(如整点、午夜等)                           |
-
----
-
-### 时间数据对象 (TimeData)
-
-事件回调函数接收的 `data` 参数包含以下信息：
-
-| 属性           | 类型             | 说明                                  |
-| :------------- | :--------------- | :------------------------------------ |
-| `prevDate`     | DateTime         | 时间变化前的日期时间                  |
-| `currentDate`  | DateTime         | 时间变化后的日期时间                  |
-| `passed`       | number           | 经过的秒数                            |
-| `sec`          | number           | 经过的秒数(整数)                      |
-| `min`          | number           | 经过的分钟数                          |
-| `hour`         | number           | 经过的小时数                          |
-| `day`          | number           | 经过的天数                            |
-| `week`         | number           | 经过的周数                            |
-| `month`        | number           | 经过的月数                            |
-| `year`         | number           | 经过的年数                            |
-| `weekday`      | [number, number] | [变化前星期, 变化后星期]              |
-| `detailedDiff` | object           | 详细的时间差                          |
-| `changes`      | object           | 各时间单位的变化量                    |
-| `cumulative`   | object           | 累积的时间量                          |
-| `direction`    | string           | 时间旅行方向：'forward' 或 'backward' |
-
----
-
-### 完整使用示例
-
-#### **示例1：每日任务刷新**
+## 1. 登记与执行顺序
 
 ```javascript
-// 注册每日任务刷新事件
-maplebirch.dynamic.regTimeEvent('onDay', 'myMod:dailyQuestRefresh', {
+maplebirch.dynamic.regTimeEvent('onDay', 'myMod:newDay', {
   action: data => {
-    // 刷新每日任务
-    V.dailyQuests = generateDailyQuests();
-    V.lastQuestRefresh = data.currentDate.timeStamp;
-
-    // 显示刷新提示
-    Wikifier.wikifyEval('<<notify "每日任务已刷新！">>');
+    maplebirch.log(
+      `游戏日期已变为 ${data.currentDate.year}-${data.currentDate.month}-${data.currentDate.day}`
+    );
   },
-  cond: data => {
-    // 只在午夜后触发
-    return data.currentDate?.hour === 0 && data.currentDate?.minute === 0;
-  },
-  priority: 10,
-  once: false,
-  exact: true // 跨越日期边界时检查，午夜条件由 cond 判断
-});
-```
-
-#### **示例2：累积时间事件(每累计10小时)**
-
-```javascript
-// 注册每累计10小时触发的事件
-maplebirch.dynamic.regTimeEvent('onHour', 'myMod:tenHourReward', {
-  action: data => {
-    // 每累计10小时给予奖励
-    const rewardCount = data.triggeredByAccumulator?.count || 1;
-    for (let i = 0; i < rewardCount; i++) {
-      giveRewardToPlayer();
-    }
-
-    Wikifier.wikifyEval(`<<notify "获得累计 ${rewardCount * 10} 小时在线奖励！">>`);
-  },
-  accumulate: {
-    unit: 'hour',
-    target: 10 // 每累计10小时触发一次
-  },
+  exact: true,
   priority: 5
 });
 ```
 
-#### **示例3：季节性事件**
+同一类型的 ID 必须唯一；重复登记返回 `false`，不会替换原事件。注销时需要类型和 ID：
 
 ```javascript
-// 注册季节性事件
-maplebirch.dynamic.regTimeEvent('onMonth', 'myMod:seasonalEvent', {
-  action: data => {
-    const month = data.currentDate?.month;
+maplebirch.dynamic.delTimeEvent('onDay', 'myMod:newDay');
+```
 
-    if (month === 3 || month === 4) {
-      // 春季事件
-      V.season = 'spring';
-      startSpringEvent();
-    } else if (month === 7 || month === 8) {
-      // 夏季事件
-      V.season = 'summer';
-      startSummerEvent();
-    }
-    // ... 其他季节
-  },
-  cond: data => {
-    // 只在每月的第一天触发
-    return data.currentDate?.day === 1;
-  },
-  priority: 8
+正常推进的顺序是：
+
+```text
+onBefore → 原版时间推进 → onThread
+         → onYear → onMonth → onWeek → onDay → onHour → onMin → onSec
+         → onAfter
+```
+
+单位事件只有符合本次经过时间／跨界条件时才运行；累积事件另见后文。`priority` 数值越大，同一类型中越先执行，不能靠优先级让 `onAfter` 跑到 `onBefore` 前。
+
+| 类型                                   | 用途                                 |
+| :------------------------------------- | :----------------------------------- |
+| `onBefore`                             | 推进前读取旧日期，必要时调整本次耗时 |
+| `onThread`                             | 已推进时间，在单位事件前处理         |
+| `onSec`、`onMin`、`onHour`             | 处理秒、分钟、小时变化               |
+| `onDay`、`onWeek`、`onMonth`、`onYear` | 处理日期或更大单位变化               |
+| `onAfter`                              | 所有单位事件之后处理                 |
+| `onTimeTravel`                         | 时间旅行后处理，不代替正常时间事件   |
+
+## 2. 经过时间与跨越边界
+
+默认单位事件会在经过至少一个完整单位，或跨过该单位边界时检查。`exact: true` 只保留跨界情况，不保证最后停在整点。
+
+| 一次推进        | `changes.hour` | `exactPoints.hour` | `onHour` 的行为                      |
+| :-------------- | :------------- | :----------------- | :----------------------------------- |
+| `10:10 → 10:30` | `0`            | `false`            | 普通事件不执行，累积事件仍可累加时间 |
+| `10:50 → 11:10` | `0`            | `true`             | 检查一次，也满足 `exact: true`       |
+| `10:10 → 13:10` | `3`            | `true`             | 检查一次，不自动执行三次             |
+
+因此，`23:50 → 次日 00:10` 可以触发跨日事件，但最终分钟为 `10`。再判断 `hour === 0 && minute === 0` 会漏掉它。日刷新应依据跨日，而不是要求最终恰好停在午夜。
+
+回调中的 `currentDate` 是最终日期。需要对一次跨过三天的生产逐天结算时，必须由模组设计补算过程，不能把一次回调当作三个历史日期的独立回调。
+
+## 3. 完整示例：跨日刷新一个使用标记
+
+先在 `framework.js` 里准备好存档字段。后面的几个例子会沿用这些字段：
+
+```javascript
+function initMyModTime(variables) {
+  variables.myMod ??= {};
+  variables.myMod.time ??= {};
+  variables.myMod.time.helpUsed ??= false;
+  variables.myMod.time.elapsedSeconds ??= 0;
+  variables.myMod.time.rewardCount ??= 0;
+  variables.myMod.time.halfDuration ??= false;
+}
+
+maplebirch.tool.onInit(() => {
+  initMyModTime(V);
+});
+
+maplebirch.on(':onLoad', save => {
+  initMyModTime(save.V);
 });
 ```
 
-#### **示例4：时间旅行事件**
+然后在同一脚本中登记：
 
 ```javascript
-// 注册时间旅行时触发的事件
-maplebirch.dynamic.regTimeEvent('onTimeTravel', 'myMod:timeTravelEffects', {
-  action: data => {
-    // 根据时间旅行方向应用不同效果
-    if (data.direction === 'forward') {
-      // 向前时间旅行的效果
-      applyAgingEffects(data.diffSeconds);
-    } else if (data.direction === 'backward') {
-      // 向后时间旅行的效果
-      applyRejuvenationEffects(data.diffSeconds);
-    }
-
-    // 记录时间旅行历史
-    V.timeTravelHistory = V.timeTravelHistory || [];
-    V.timeTravelHistory.push({
-      from: data.prevDate,
-      to: data.currentDate,
-      timestamp: Date.now()
-    });
+maplebirch.dynamic.regTimeEvent('onDay', 'myMod:resetHelp', {
+  action: () => {
+    V.myMod.time.helpUsed = false;
   },
-  priority: 15
+  exact: true
 });
 ```
 
-#### **示例5：复杂条件组合**
+玩家真正完成帮助行动时，把 `$myMod.time.helpUsed` 设为 `true`，并在显示入口和点击时都检查这个标记。下一次正常推进跨过日期边界，它就会恢复为 `false`。即使一次跳过三天，这里也只需重置一次，因为这个功能没有补发奖励。
+
+`helpUsed` 随存档保存，事件注册在每次启动时重建。时间旅行只触发 `onTimeTravel`，不会执行这个跨日刷新。如果玩法允许通过时间旅行刷新，需要在时间旅行事件中明确实现该策略。
+
+## 4. 每累计十小时处理多少次
+
+以下使用框架自带的累积器，接在初始化后运行：
 
 ```javascript
-// 注册只在特定条件下触发的时间事件
-maplebirch.dynamic.regTimeEvent('onHour', 'myMod:specialConditionEvent', {
+maplebirch.dynamic.regTimeEvent('onHour', 'myMod:elapsedReward', {
   action: data => {
-    // 特殊事件逻辑
-    triggerSpecialEvent();
+    V.myMod.time.rewardCount += data.triggeredByAccumulator.count;
   },
-  cond: data => {
-    // 只在满足以下所有条件时触发：
-    // 1. 周五的下午
-    // 2. 玩家在特定地点
-    // 3. 特定的游戏进度
-    return (
-      data.currentDate?.weekDay === 5 && // 周五
-      data.currentDate?.hour >= 14 &&
-      data.currentDate?.hour < 18 && // 下午2点到6点
-      V.location === 'townSquare' && // 在城镇广场
-      V.storyProgress >= 3
-    ); // 故事进度至少为3
-  },
-  priority: 12,
-  once: true // 只触发一次
+  accumulate: {
+    unit: 'hour',
+    target: 10
+  }
 });
 ```
 
----
+一次推进 `25` 小时，`count` 为 `2`，剩下 `5` 小时留在累积器。这里仅记录应结算次数；接入钱或物品前，应在本分支实现自己的实际结算。
 
-### 时间旅行选项 (TimeTravelOptions)
+选择这版之前，先了解余数会在哪里保留：
 
-时间旅行支持多种方式指定目标时间：
+- 余数保存在事件对象中，不随存档保存。重启会丢失余数，切换存档也不会自动换成该存档自己的余数。
+- `cond` 为假时也会累加；达到门槛后会先消耗计数，再判断条件。它不表示“只有条件成立的时间才计入”。
+- 秒至周使用经过的秒数累积，月与年使用日历变化数量。时间旅行不进入这些普通单位事件的累积器。
 
-| 参数         | 类型     | 说明                               |
-| :----------- | :------- | :--------------------------------- |
-| `target`     | DateTime | 直接指定目标 DateTime 对象         |
-| `year`       | number   | 目标年份(需与 month、day 一起使用) |
-| `month`      | number   | 目标月份(1-12)                     |
-| `day`        | number   | 目标日期(1-31)                     |
-| `hour`       | number   | 目标小时(0-23)                     |
-| `minute`     | number   | 目标分钟(0-59)                     |
-| `second`     | number   | 目标秒数(0-59)                     |
-| `addYears`   | number   | 增加的年数                         |
-| `addMonths`  | number   | 增加的月数                         |
-| `addDays`    | number   | 增加的天数                         |
-| `addHours`   | number   | 增加的小时数                       |
-| `addMinutes` | number   | 增加的分钟数                       |
-| `addSeconds` | number   | 增加的秒数                         |
+**如果十小时进度属于该存档，使用下面这一版替换上一版，二者不要同时登记。**它把余数和结算次数都保存在模组变量中：
 
----
+```javascript
+maplebirch.dynamic.regTimeEvent('onAfter', 'myMod:elapsedReward', {
+  action: data => {
+    const state = V.myMod.time;
+    const period = 10 * maplebirch.dynamic.Time.TimeConstants.secondsPerHour;
+    state.elapsedSeconds += Math.max(0, data.diffSeconds ?? 0);
+    const count = Math.floor(state.elapsedSeconds / period);
+    state.elapsedSeconds %= period;
+    state.rewardCount += count;
+  }
+});
+```
 
-### 补充说明
+这版按正常推进的游戏时间计算，不计现实离线时间。每次正常推进都会处理余数，读档恢复保存时的进度；`25` 小时一次推进与分成 `5` 次 `5` 小时的结果相同。需要限定为训练、工作等特定行为时，先明确哪些实际行动耗时可以计入，不要仅根据推进后的页面位置推断整段时间都在工作。
 
-1. **事件执行顺序**: _按优先级从高到低执行_
-2. **时间旅行影响**: _时间旅行会触发 `onTimeTravel` 事件，并重新计算累积时间_
-3. **累积触发**: _使用 `accumulate` 选项时，事件会在累积达到目标值时触发_
-4. **精确触发**: _`exact: true` 的事件只在时间单位变化时触发(如整点、午夜)_
-5. **一次性事件**: _`once: true` 的事件触发后会自动移除_
+## 5. 调整本次正常行动耗时
 
-## 回调数据与跨越时间
+沿用初始化中的 `halfDuration` 选项，以下代码演示如何把正常推进耗时减半：
 
-`onBefore` 在原版时间推进前执行，只提供 `prevDate`、`prev`、`passed`、`timeStamp`。`onThread` 在时间推进后、单位事件之前执行，`onAfter` 在单位事件之后执行。其他正常推进回调可读取 `prevDate`、`currentDate`、`changes`、`diffSeconds`、`exactPoints`。
+```javascript
+maplebirch.dynamic.regTimeEvent('onBefore', 'myMod:halfDuration', {
+  cond: () => V.myMod?.time?.halfDuration === true,
+  action: data => {
+    data.passed = data.passed / 2;
+  }
+});
+```
 
-`onBefore` 可通过修改 `data.passed` 调整本次推进的秒数。回调按优先级共享这份数据，框架在全部回调结束后采用最终值，零秒有效，负数、非数值和非有限值会保留原始耗时。原版日程、天气结算和后续时间事件均使用最终采用的秒数。此调整只作用于正常时间推进，不作用于时间旅行。
+这个开关由自己的设置界面或剧情维护，初始为 `false`。`onBefore` 只提供 `prevDate`、`prev`、`passed`、`timeStamp`，此时还没有 `currentDate`。
 
-一次推进跨越多个小时或多天时，事件收到这次推进的数据，不会自动为每个单位重复调用。批量结算应使用 `changes` 或 `triggeredByAccumulator.count`。`exact: true` 检查是否跨过单位边界，不保证最终停在整点或午夜。不要将它当成精确预约机制。
+多个 `onBefore` 回调共享同一份数据，按优先级依次修改，最终有效的 `passed` 才交给原版。`0` 有效；最终为负数、非数值或非有限值时采用原始耗时。这个示例会影响全部正常推进，实际玩法若只针对某一行动，应在 `cond` 中检查该行动明确设置的上下文。它不改变时间旅行的目标。
 
-`once` 与累积计数属于当前运行的事件对象，不写入存档。持久计数需自行保存在模组变量中。
+## 6. 时间旅行
+
+只在游戏时间系统已就绪后的实际行动中调用：
+
+```javascript
+maplebirch.dynamic.timeTravel({
+  addDays: 2,
+  addHours: 6
+});
+```
+
+这会请求相对于当前日期跳转，返回是否完成。不要把调用直接放到注册脚本顶层，否则每次加载都会尝试跳转。
+
+若需要记录最近一次跳转，可在脚本中另行登记：
+
+```javascript
+maplebirch.dynamic.regTimeEvent('onTimeTravel', 'myMod:recordTravel', {
+  action: data => {
+    V.myMod.time.lastTravel = {
+      from: data.prevDate.timeStamp,
+      to: data.currentDate.timeStamp,
+      direction: data.direction
+    };
+  }
+});
+```
+
+这里只保存数字和字符串，不把运行时 `DateTime` 对象当作任务记录。跳转不重放 `onDay`、`onHour` 等普通事件，也不等于逐步模拟经过日期内的所有剧情。
+
+| 参数                                                                       | 行为                                                     |
+| :------------------------------------------------------------------------- | :------------------------------------------------------- |
+| `target`                                                                   | 指定一个有效 `DateTime`；提供时优先使用                  |
+| `year`、`month`、`day`、`hour`、`minute`、`second`                         | 指定绝对日期的一部分，未指定部分沿用当前值               |
+| `addYears`、`addMonths`、`addDays`、`addHours`、`addMinutes`、`addSeconds` | 只在没有 `target` 和绝对日期字段时用于相对跳转；可为负数 |
+
+- +不要混写绝对与相对字段并期待两者叠加。目标必须处于原版允许的日期范围内。
+- +## 配置与数据速查
+- +| 配置 | 含义 |
+  +| :--- | :--- |
+  +| `action(data)` | 同步处理本次变化 |
+  +| `cond(data)` | 无副作用的资格判断，默认成立 |
+  +| `priority` | 同类型内从大到小排序，默认 `0` |
+  +| `once` | 触发后移除本次运行中的登记，不是存档标记 |
+  +| `exact` | 要求跨过对应单位边界 |
+  +| `accumulate` | `{ unit, target }`；单位为 `sec/min/hour/day/week/month/year`，目标向下取整且至少为 `1` |
+- +正常推进完成后的回调可读取以下字段。部分字段在类型上可选，`onBefore` 不提供完整结果：
+- +| 数据 | 含义 |
+  +| :--- | :--- |
+  +| `prevDate`、`currentDate` | 推进前、后的日期；`prev`、`current` 为别名 |
+  +| `passed` | 本次采用的推进秒数 |
+  +| `diffSeconds`、`sec` | 实际日期差，时间旅行向后时为负 |
+  +| `changes` | 秒至周为绝对经过时间的完整单位数；月、年为日历差 |
+  +| `min/hour/day/week/month/year` | 对应 `changes` 中的值 |
+  +| `exactPoints` | 是否跨过分钟至年的单位边界 |
+  +| `weekday` | `[推进前星期, 推进后星期]` |
+  +| `detailedDiff` | 原版日期比较结果 |
+  +| `direction` | `forward` 或 `backward` |
+  +| `triggeredByAccumulator` | 累积触发时的 `unit`、`target`、`count` |
+- +## 验证边界
+- +用独立存档分别检查：同小时内推进、跨整点但不足一小时、一次跨多小时、跨午夜、保存／重启／读档、向前与向后时间旅行。尤其确认长时间推进的结算次数，以及切换存档是否保留各自余数。避免在真实存档中用跳转反复试验奖励。
+- +[状态事件](StateEvents.md)负责把这些状态变成页面提示或场景；奖励仍在实际结算中发放。
+-

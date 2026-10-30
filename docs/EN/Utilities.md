@@ -118,15 +118,48 @@ const same = maplebirch.utils.equal(dataA, dataB);
 These functions recursively merge objects. Their main difference is array handling.
 
 ```javascript
-maplebirch.utils.merge({ list: [1, 2] }, { list: [3] }); // { list: [3, 2] }
-maplebirch.utils.append({ list: [1, 2] }, { list: [3] }); // { list: [1, 2, 3] }
-maplebirch.utils.cover({ list: [1, 2] }, { list: [3] }); // { list: [3] }
+maplebirch.utils.merge(
+  {
+    list: [1, 2]
+  },
+  {
+    list: [3]
+  }
+); // { list: [3, 2] }
+maplebirch.utils.append(
+  {
+    list: [1, 2]
+  },
+  {
+    list: [3]
+  }
+); // { list: [1, 2, 3] }
+maplebirch.utils.cover(
+  {
+    list: [1, 2]
+  },
+  {
+    list: [3]
+  }
+); // { list: [3] }
 ```
 
 Objects are merged recursively:
 
 ```javascript
-const result = Object.merge({ npc: { enabled: true, count: 2 } }, { npc: { count: 4 } });
+const result = Object.merge(
+  {
+    npc: {
+      enabled: true,
+      count: 2
+    }
+  },
+  {
+    npc: {
+      count: 4
+    }
+  }
+);
 // { npc: { enabled: true, count: 4 } }
 ```
 
@@ -141,7 +174,11 @@ const options = Object.merge(defaults, modDefaults, playerOptions);
 Filtered variants call a filter before each field is merged.
 
 ```javascript
-maplebirch.utils.mergefn(target, (key, value, depth, targetValue) => targetValue === undefined, source);
+maplebirch.utils.mergefn(
+  target,
+  (key, value, depth, targetValue) => targetValue === undefined,
+  source
+);
 ```
 
 Filter arguments:
@@ -156,7 +193,11 @@ Filter arguments:
 Examples:
 
 ```javascript
-maplebirch.utils.mergefn(target, (_key, _value, _depth, targetValue) => targetValue === undefined, source);
+maplebirch.utils.mergefn(
+  target,
+  (_key, _value, _depth, targetValue) => targetValue === undefined,
+  source
+);
 maplebirch.utils.mergefn(target, (_key, _value, depth) => depth <= 2, source);
 maplebirch.utils.mergefn(target, (_key, value) => value != null, source);
 ```
@@ -175,7 +216,10 @@ Arrays:
 Objects, `Set`, and `Map` have no `contains` instance method. Collect their values into an array first, then call the array `contains`:
 
 ```javascript
-Object.values({ a: 1, b: 2 }).contains(2); // true
+Object.values({
+  a: 1,
+  b: 2
+}).contains(2); // true
 [...new Set(['a', 'b'])].contains('a'); // true
 [...new Map([['key', 'value']]).values()].contains('value'); // true
 ```
@@ -184,7 +228,9 @@ Strings:
 
 ```javascript
 'Hello World'.contains('World'); // true
-'Hello World'.contains('hello', { case: false }); // true
+'Hello World'.contains('hello', {
+  case: false
+}); // true
 ```
 
 Modes:
@@ -204,9 +250,26 @@ Options:
 | `compare` | None    | Custom comparison function       |
 
 ```javascript
-const list = [{ id: 1 }, { id: 2 }];
-list.contains({ id: 1 }, 'any', { deep: true }); // true
-list.contains(2, 'any', { compare: (item, value) => item.id === value }); // true
+const list = [
+  {
+    id: 1
+  },
+  {
+    id: 2
+  }
+];
+list.contains(
+  {
+    id: 1
+  },
+  'any',
+  {
+    deep: true
+  }
+); // true
+list.contains(2, 'any', {
+  compare: (item, value) => item.id === value
+}); // true
 ```
 
 ## random / either
@@ -271,7 +334,9 @@ Options:
 
 ```javascript
 'NPC name'.convert('title'); // NPC Name
-'NPC name'.convert('title', { acronym: false }); // Npc Name
+'NPC name'.convert('title', {
+  acronym: false
+}); // Npc Name
 ```
 
 ## Math.clamp
@@ -311,7 +376,9 @@ These helpers are useful for cloud saves, import/export, compression, and networ
 ```javascript
 const bytes = textToBytes('hello');
 
-const jsonBytes = jsonToBytes({ ok: true });
+const jsonBytes = jsonToBytes({
+  ok: true
+});
 const data = bytesToJson(jsonBytes);
 
 const base64 = bytesToBase64(bytes);
@@ -361,7 +428,13 @@ const list = widgets(Options, Cheats);
 `SelectCase` is useful for writing chained condition/result tables.
 
 ```javascript
-const result = new SelectCase().case('wolf', 'Wolf').caseIn(['cat', 'dog'], 'Animal').caseIncludes('NPC', 'Character').caseRegex(/^mod:/, 'Mod').else('Unknown').match(value);
+const result = new SelectCase()
+  .case('wolf', 'Wolf')
+  .caseIn(['cat', 'dog'], 'Animal')
+  .caseIncludes('NPC', 'Character')
+  .caseRegex(/^mod:/, 'Mod')
+  .else('Unknown')
+  .match(value);
 ```
 
 String and numeric conditions cannot be mixed by default; start with `casePredicate()` when mixed conditions are needed. Numeric ranges require finite, ordered bounds. Regex matching preserves the supplied expression's `lastIndex`.

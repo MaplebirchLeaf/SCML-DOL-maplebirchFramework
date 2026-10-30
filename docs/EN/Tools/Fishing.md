@@ -22,17 +22,23 @@ Register during startup so the framework can merge the configuration into `setup
 This example registers a new fish and its preferred bait, then adjusts the pier weight. It assumes your mod supplies `fish/my-mod-silverfish.png`:
 
 ```javascript
-maplebirch.tool.patch.fishing.addBait('my_mod_grub', { name: 'river grub' });
+maplebirch.tool.patch.fishing.addBait('my_mod_grub', {
+  name: 'river grub'
+});
 
 maplebirch.tool.patch.fishing.add('my_mod_silverfish', {
   minSize: 10,
   maxSize: 35,
-  locations: { fishingPier: 0.7 },
+  locations: {
+    fishingPier: 0.7
+  },
   preferredBait: 'my_mod_grub',
   icon: 'fish/my-mod-silverfish.png'
 });
 
-maplebirch.tool.patch.fishing.configure('fishingPier', { my_mod_silverfish: 1.2 });
+maplebirch.tool.patch.fishing.configure('fishingPier', {
+  my_mod_silverfish: 1.2
+});
 ```
 
 ## Config Fields
@@ -71,7 +77,7 @@ Every registered fish gets a same-key food catalog entry for vanilla catch inven
 fishingBeach / fishingPier / fishingCoastPath / fishingForestLake / fishingMoor
 ```
 
-`configure(location, weights)` adjusts fish weights at an existing spot. `0` excludes a fish from that spot. Fish keys must exist when the configuration is applied; unknown keys produce an error. This API adjusts fish distribution; the Mod provides entrances, discovery conditions, and stories. Fishing configuration is skipped on older versions without `setup.fishing`.
+`configure(location, weights)` adjusts fish weights at an existing spot. `0` excludes a fish from that spot. Fish keys must exist when the configuration is applied; unknown keys produce an error. This API adjusts fish distribution; the Mod provides entrances, discovery conditions, and stories.
 
 ## boot.json
 
@@ -80,12 +86,16 @@ fishingBeach / fishingPier / fishingCoastPath / fishingForestLake / fishingMoor
   "framework": {
     "fish": "data/fish.json",
     "bait": "data/bait.yaml",
-    "fishingLocations": { "fishingPier": { "salmon": 1.25 } }
+    "locations": {
+      "fishingPier": {
+        "salmon": 1.25
+      }
+    }
   }
 }
 ```
 
-`fish` and `bait` accept keyed objects or arrays with a `key` on each entry. `fishingLocations` uses a spot-to-fish-weights object. See [boot.json Configuration](../BootJson.md) for file formats and the complete addon structure.
+`fish` and `bait` accept keyed objects or arrays with a `key` on each entry. `locations` uses a spot-to-fish-weights object. See [boot.json Configuration](../BootJson.md) for file formats and the complete addon structure.
 
 ## Related guides
 

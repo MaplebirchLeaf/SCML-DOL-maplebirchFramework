@@ -103,7 +103,9 @@ Register default options in the module's `preInit()`:
 maplebirch.var.options.define('MyModFeature', {
   enabled: true,
   volume: 0.5,
-  display: { hints: true }
+  display: {
+    hints: true
+  }
 });
 ```
 
@@ -177,8 +179,10 @@ All hooks are optional.
 | :----------- | :----------------------------------------------------------------- | :---------------------------------------- |
 | `preInit()`  | After `afterInjectEarlyLoad`, once IndexedDB and logging are ready | Prepare resources, config, or caches      |
 | `Init()`     | During `:passagestart` when normal gameplay begins                 | Main setup with `setup` and `V` available |
-| `loadInit()` | After loading a save                                               | Restore save-dependent state              |
+| `loadInit()` | When loading a save after main initialization is complete          | Restore save-dependent state              |
 | `postInit()` | Each passage start after main/load init                            | Refresh passage-scoped behavior           |
+
+The first save loaded from the title screen runs `Init()` and `postInit()` in the restored passage. Restore any state needed on that first load in `Init()` as well.
 
 Example:
 

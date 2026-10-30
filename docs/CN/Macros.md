@@ -4,6 +4,8 @@
 
 框架提供了一组 SugarCube 宏，主要用于多语言文本、按钮、链接、列表和选项生成。它们适合写在 `.twee`、widget 或 passage 内容中。
 
+单语言正文直接写文本，按钮和链接也可使用 SugarCube 原有的 `<<button>>`、`<<link>>`。需要按语言切换内容或标签时，再使用下列多语言宏。
+
 常用宏：
 
 | 宏                         | 用途                     |
@@ -21,12 +23,12 @@
 
 ## language
 
-按当前 `maplebirch.Language` 显示对应内容。
+按当前 `maplebirch.Language` 显示对应内容。语言代码写在 `option` 子标签上，不写在 `language` 的参数中。`option` 不需要结束标签；没有匹配项时不输出正文。
 
 ```twine
 <<language>>
-  <<option "CN">>中文内容<</option>>
-  <<option "EN">>English content<</option>>
+  <<option "CN">>中文内容
+  <<option "EN">>English content
 <</language>>
 ```
 
@@ -36,12 +38,12 @@
 <<language>>
   <<option "CN">>
     <<link "继续">><<goto "Next">><</link>>
-  <</option>>
   <<option "EN">>
     <<link "Continue">><<goto "Next">><</link>>
-  <</option>>
 <</language>>
 ```
+
+切换语言会重新解析所选内容块。正文中只放显示内容；赋值、扣除资源等操作放在链接的点击内容或实际结算逻辑中。
 
 ---
 
@@ -258,7 +260,7 @@
 
 ```javascript
 maplebirch.tool.defineS('myModHello', name => {
-  return `Hello, ${name}`;
+  return `你好，${name}`;
 });
 ```
 
@@ -272,7 +274,7 @@ maplebirch.tool.defineS('myModHello', name => {
 
 ```javascript
 maplebirch.tool.define('myModRaw', function () {
-  $(this.output).wiki('raw output');
+  $(this.output).wiki('自定义输出');
 });
 ```
 
@@ -290,7 +292,7 @@ maplebirch.tool.define('myModRaw', function () {
 | `'storyinit'`  | 原版 widget 已注册，在 `StoryInit` 末尾、存档恢复与首段落显示前 | 须覆盖恢复首轮的转化 widget、战斗结算         |
 | `'storyready'` | 首个段落显示后                                                  | 依赖初始界面的包装，如人物浮窗同步            |
 
-`storyinit` 不替代 `storyready`。已就绪的阶段立即安装；尚未就绪的阶段等待对应时机。`storyinit` 阶段先于 `tool.onInit()` 中后续登记的初始化函数执行，无需再套一层 `onInit()`。 宏直接指定 `phase`。原版 setup 数据或分支配置继续使用 `tool.onInit()`，界面与图片索引初始化保留各自的就绪时机。
+`storyinit` 不替代 `storyready`。已就绪的阶段立即安装；尚未就绪的阶段等待对应时机。`storyinit` 阶段先于 `tool.onInit()` 中后续登记的初始化函数执行，无需再套一层 `onInit()`。宏直接指定 `phase`。原版 setup 数据或分支配置继续使用 `tool.onInit()`，界面与图片索引初始化保留各自的就绪时机。
 
 `wrapper` 保留原版宏的上下文和定义属性。调用 `next()` 执行上一层处理器；可通过 `this.args`、`this.payload` 和 `this.output` 读取参数与输出。
 
@@ -316,5 +318,3 @@ maplebirch.tool.macro.wrap(
 - 翻译键建议带模组名前缀。
 - `lanButton` 和 `lanLink` 内部可以写 SugarCube 动作。
 - 需要生成复杂文本时，可把逻辑放到 [文本工具](Tools/Text.md) 中。
-
-`language` 的语言写在 `option` 子标签上。不要写 `<<language 'CN'>>`，没有匹配的 `option` 时正文为空。

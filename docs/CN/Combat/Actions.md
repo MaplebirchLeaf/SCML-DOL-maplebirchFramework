@@ -30,7 +30,7 @@ maplebirch.combat.CombatAction.reg({
   display: () => '快速打击',
   value: () => 'myModQuickStrike',
   color: 'brat',
-  difficulty: () => '<span class="green">(Easy)</span>',
+  difficulty: () => '<span class="green">（简单）</span>',
   effect: '<<myModQuickStrikeEffect>>'
 });
 ```
@@ -40,7 +40,7 @@ maplebirch.combat.CombatAction.reg({
 ```twine
 :: My Mod Combat Effects [widget]
 <<widget "myModQuickStrikeEffect">>
-  You strike with your left hand.
+  你挥出左拳。
   <<stamina -20>>
 <</widget>>
 ```
@@ -131,7 +131,8 @@ effect: '<<myModGuardEffect>>';
 也可以写成函数：
 
 ```javascript
-effect: ctx => (ctx.actionType === 'leftaction' ? '<<myModLeftGuardEffect>>' : '<<myModRightGuardEffect>>');
+effect: ctx =>
+  ctx.actionType === 'leftaction' ? '<<myModLeftGuardEffect>>' : '<<myModRightGuardEffect>>';
 ```
 
 框架会自动为 `effect` 外层包上动作判断，并把对应动作变量设回 `0`，同时更新默认动作：
@@ -171,10 +172,10 @@ maplebirch.combat.CombatAction.reg({
     const hour = Time.hour;
     return V.myMod?.moonBlessing && (hour >= 18 || hour <= 6);
   },
-  display: () => (Time.hour >= 0 && Time.hour <= 3 ? '月光治疗（强）' : '月光治疗'),
+  display: () => '月光治疗',
   value: () => 'myModMoonlightHeal',
   color: 'green',
-  difficulty: () => '<span class="green">(Safe)</span>',
+  difficulty: () => '<span class="green">（安全）</span>',
   effect: '<<myModMoonlightHealEffect>>',
   order: 2
 });
@@ -183,15 +184,16 @@ maplebirch.combat.CombatAction.reg({
 ```twine
 :: My Mod Combat Effects [widget]
 <<widget "myModMoonlightHealEffect">>
-  <span class="green">Moonlight gathers across your chest.</span>
-  <<health 5>>
-  <<pain -2>>
+  <<if $myMod?.moonBlessing and (Time.hour gte 18 or Time.hour lte 6)>>
+    <span class="green">月光在你的胸前汇聚。</span>
+    <<pain -2>>
+  <</if>>
 <</widget>>
 ```
 
 ## 注意事项
 
 - `value` 不要和原版动作或其他模组动作重复，建议带模组名前缀。
-- `cond` 只建议做显示判断，不要在里面修改游戏状态。
+- `cond` 用于显示判断，不要在里面修改游戏状态；效果 widget 须重新核对执行条件。
 - `effect` 中可以写文本，也可以调用宏、修改变量、消耗体力、改变 NPC 状态。
 - 如果动作只适用于特殊战斗，请设置 `combatType`。

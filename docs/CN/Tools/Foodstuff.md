@@ -18,9 +18,9 @@ maplebirch.tool.patch.foodstuff.add(key, config);
 
 ```javascript
 maplebirch.tool.patch.foodstuff.add('my_mod_berry', {
-  name: 'strange berry',
-  singular: 'strange berry',
-  plural: 'strange berries',
+  name: '奇异浆果',
+  singular: '奇异浆果',
+  plural: '奇异浆果',
   category: 'fruit',
   icon: 'my-mod-berry.png',
   shop: {
@@ -56,14 +56,14 @@ maplebirch.tool.patch.foodstuff.add('my_mod_berry', {
   "framework": {
     "foodstuff": {
       "my_mod_berry": {
-        "name": "strange berry",
+        "name": "奇异浆果",
         "category": "fruit",
         "shop": {
           "sell_price": 80
         }
       },
       "my_mod_soup": {
-        "name": "herbal soup",
+        "name": "草药汤",
         "category": "dish",
         "kitchen_item_type_icon": "recipe-food.png",
         "prop_folder": "food",
@@ -71,7 +71,7 @@ maplebirch.tool.patch.foodstuff.add('my_mod_berry', {
           "sell_price": 500
         },
         "recipe": {
-          "recipe_name": "herbal soup",
+          "recipe_name": "草药汤",
           "difficulty": 1,
           "cook_minutes": 20,
           "servings": 1,
@@ -98,19 +98,19 @@ maplebirch.tool.patch.foodstuff.add('my_mod_berry', {
 
 ```yaml
 - key: my_mod_berry
-  name: strange berry
+  name: 奇异浆果
   category: fruit
   shop:
     sell_price: 80
 - key: my_mod_soup
-  name: herbal soup
+  name: 草药汤
   category: dish
   kitchen_item_type_icon: recipe-food.png
   prop_folder: food
   shop:
     sell_price: 500
   recipe:
-    recipe_name: herbal soup
+    recipe_name: 草药汤
     difficulty: 1
     cook_minutes: 20
     servings: 1

@@ -2,12 +2,30 @@
 
 [Project home](../../README.EN.md) · [中文](../CN/README.md)
 
-These guides follow the path from a running script to specific extensions. Read only the topics your mod needs; each topic page is the reference for its fields and behavior.
+Whether you are adding a character, a scene, or an Options section, [Getting started](GettingStarted.md) gives you a small feature to run first. Then choose the topics you need below. If you already know the framework, go straight to the [boot.json reference](BootJson.md) or the relevant API page.
 
-> [!TIP]
-> New to the framework? Start with [Getting started](GettingStarted.md), then use the [boot.json reference](BootJson.md). Examples prefer short `maplebirch` entry points.
+## Reading the examples
 
-Callouts have distinct meanings: **TIP** recommends a practice, **NOTE** adds context, **IMPORTANT** marks a prerequisite, and **WARNING** identifies a likely failure mode.
+Ordinary examples use English here and Chinese in the Chinese guide. Both languages appear together when a page explains translation or a multilingual API. Write single-language content directly, then add [translation support](Translator.md) or [language macros](Macros.md#language) when you need switching.
+
+Examples combine framework APIs, SugarCube syntax, and game variables. Knowing where each comes from makes them easier to follow:
+
+| Content in an example               | Owner and usage                                                 |
+| :---------------------------------- | :-------------------------------------------------------------- |
+| `maplebirch.*`                      | Framework APIs described on each topic page                     |
+| `<<widget>>`, `<<link>>`, `<<set>>` | SugarCube syntax for `.twee` files loaded by ModLoader          |
+| `V`, `C.npc`, `Time`, `<<pain>>`    | Game runtime variables or APIs required by the DoL examples     |
+| `myMod`, `My Mod ...`, `myMod...`   | Example mod IDs, passages or widgets that your mod must provide |
+
+JavaScript usually goes in a file listed under `params.script` in `boot.json`; compile TypeScript examples first. `V.myMod` and `$myMod` in Twee refer to the same saved data. `setup` belongs to the current runtime and is not saved with the game.
+
+Keep the code's API names, configuration keys, native IDs, and paths. Fields tied to a particular language, such as `cn_name` and `writ_cn`, have their own explanations in the topic pages.
+
+## Learn through a complete feature
+
+Once [Getting started](GettingStarted.md) shows your script log and widget, read [From an example to a complete feature](Development.md) for file organization, saved progress, and action results.
+
+For a hands-on path, open the [NPC park-meeting example](NamedNPC/Example.md). Starting with three files, it follows character registration, a schedule, a scene entry, and a conversation, then checks progress after loading. Add wardrobes, artwork, transformations, and other topics when the basic scene works; you do not need everything at once.
 
 ## Everyday mod development
 
@@ -39,8 +57,14 @@ Callouts have distinct meanings: **TIP** recommends a practice, **NOTE** adds co
 
 ### Data registration
 
-- [Traits](Tools/Traits.md) · [Tips](Tools/Tips.md) · [Bodywriting](Tools/Bodywriting.md)
-- [Foodstuff](Tools/Foodstuff.md) · [Fishing](Tools/Fishing.md) · [Antiques](Tools/Antiques.md)
+- [Traits](Tools/Traits.md)
+- [Tips](Tools/Tips.md)
+- [Bodywriting](Tools/Bodywriting.md)
+- [Starting feat boosts](Tools/FeatBoosts.md)
+- [Foodstuff](Tools/Foodstuff.md)
+- [Pills](Tools/Pills.md)
+- [Fishing](Tools/Fishing.md)
+- [Antiques](Tools/Antiques.md)
 
 ## Advanced and optional services
 
@@ -52,5 +76,3 @@ Callouts have distinct meanings: **TIP** recommends a practice, **NOTE** adds co
 
 > [!NOTE]
 > `services`, `infra`, and `host` are advanced entry points. Most mods should use top-level methods such as `maplebirch.on/once/off/after/trigger`, `t/auto`, `idb/define/with`, and `log`.
-
-- [Pills](Tools/Pills.md)

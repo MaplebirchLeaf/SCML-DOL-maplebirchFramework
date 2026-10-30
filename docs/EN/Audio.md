@@ -163,7 +163,8 @@ Common properties:
 ### Binding A Progress Bar
 
 ```html
-<input id="music-progress" type="range" min="0" max="100" step="0.1" /> <span id="music-time"></span>
+<input id="music-progress" type="range" min="0" max="100" step="0.1" />
+<span id="music-time"></span>
 ```
 
 ```javascript

@@ -51,17 +51,28 @@ maplebirch.tool.onInit(() => {
 maplebirch.tool.onInit(() => {
   maplebirch.char.transformation.add('dragon', 'physical', {
     parts: [
-      { name: 'eyes', tfRequired: 2, label: () => lanSwitch('Eyes', '眼睛') },
-      { name: 'tail', tfRequired: 4, label: () => lanSwitch('Scaled tail', '鳞尾') }
+      {
+        name: 'eyes',
+        tfRequired: 2,
+        label: '眼睛'
+      },
+      {
+        name: 'tail',
+        tfRequired: 4,
+        label: '鳞尾'
+      }
     ],
     layers: () => dragonLayers(),
-    combat: { pre: dragonCombatPre, layers: dragonCombatLayers },
+    combat: {
+      pre: dragonCombatPre,
+      layers: dragonCombatLayers
+    },
     chimeras: [
       {
         name: 'demondragon',
         part: 'tail',
         sources: ['dragon', 'demon'],
-        label: () => lanSwitch('Demon dragon tail:', '恶魔龙尾：')
+        label: '恶魔龙尾：'
       }
     ]
   });
@@ -85,18 +96,50 @@ maplebirch.tool.onInit(() => {
   maplebirch.char.transformation.add('dragon', 'physical', {
     // 必填：转化部件列表
     parts: [
-      { name: 'horns', tfRequired: 1, default: 'default' },
-      { name: 'tail', tfRequired: 2, default: 'default' },
-      { name: 'wings', tfRequired: 3, default: 'default' },
-      { name: 'scales', tfRequired: 4, default: 'default' },
-      { name: 'claws', tfRequired: 5, default: 'default' },
-      { name: 'fangs', tfRequired: 6, default: 'default' }
+      {
+        name: 'horns',
+        tfRequired: 1,
+        default: 'default'
+      },
+      {
+        name: 'tail',
+        tfRequired: 2,
+        default: 'default'
+      },
+      {
+        name: 'wings',
+        tfRequired: 3,
+        default: 'default'
+      },
+      {
+        name: 'scales',
+        tfRequired: 4,
+        default: 'default'
+      },
+      {
+        name: 'claws',
+        tfRequired: 5,
+        default: 'default'
+      },
+      {
+        name: 'fangs',
+        tfRequired: 6,
+        default: 'default'
+      }
     ],
 
     // 可选：转化特质列表
     traits: [
-      { name: 'fire_breath', tfRequired: 4, default: 'default' },
-      { name: 'dragon_sight', tfRequired: 3, default: 'default' }
+      {
+        name: 'fire_breath',
+        tfRequired: 4,
+        default: 'default'
+      },
+      {
+        name: 'dragon_sight',
+        tfRequired: 3,
+        default: 'default'
+      }
     ],
 
     // 转化配置
@@ -109,13 +152,23 @@ maplebirch.tool.onInit(() => {
 
     // 可选：转化消息
     message: {
-      EN: {
-        up: ['你感到背部发痒...', '鳞片开始生长...', '龙翼破体而出...', '龙爪变得锋利...', '你感到龙的力量...', '完全转化为龙！'],
-        down: ['鳞片开始脱落...', '龙翼萎缩...', '龙爪变钝...', '龙的特征减弱...', '几乎恢复人形...', '完全恢复人形']
-      },
       CN: {
-        up: ['你感到背部发痒...', '鳞片开始生长...', '龙翼破体而出...', '龙爪变得锋利...', '你感到龙的力量...', '完全转化为龙！'],
-        down: ['鳞片开始脱落...', '龙翼萎缩...', '龙爪变钝...', '龙的特征减弱...', '几乎恢复人形...', '完全恢复人形']
+        up: [
+          '你感到背部发痒...',
+          '鳞片开始生长...',
+          '龙翼破体而出...',
+          '龙爪变得锋利...',
+          '你感到龙的力量...',
+          '完全转化为龙！'
+        ],
+        down: [
+          '鳞片开始脱落...',
+          '龙翼萎缩...',
+          '龙爪变钝...',
+          '龙的特征减弱...',
+          '几乎恢复人形...',
+          '完全恢复人形'
+        ]
       }
     },
 
@@ -123,13 +176,20 @@ maplebirch.tool.onInit(() => {
     decay: true,
 
     // 可选：衰退条件
-    decayConditions: [() => V.maplebirch.transformation.dragon.build >= 1, () => V.worn.neck.name !== 'dragon_amulet', () => playerNormalPregnancyType() !== 'dragon'],
+    decayConditions: [
+      () => V.maplebirch.transformation.dragon.build >= 1,
+      () => V.worn.neck.name !== 'dragon_amulet',
+      () => playerNormalPregnancyType() !== 'dragon'
+    ],
 
     // 可选：是否压制其他转化
     suppress: true,
 
     // 可选：压制条件
-    suppressConditions: [sourceName => sourceName !== 'dragon', () => V.worn.neck.name !== 'dragon_amulet'],
+    suppressConditions: [
+      sourceName => sourceName !== 'dragon',
+      () => V.worn.neck.name !== 'dragon_amulet'
+    ],
 
     // 可选：预处理函数
     pre: options => {
@@ -154,7 +214,7 @@ maplebirch.tool.onInit(() => {
           if (level < 1) return undefined;
           return `img/transformations/dragon/horns_${level}.png`;
         },
-        showfn: () => V.maplebirch?.transformation?.dragon?.level >= 1,
+        showfn: () => isPartEnabled(V.transformationParts?.dragon?.horns ?? 'disabled'),
         zfn: () => maplebirch.char.ZIndices.effects
       },
       dragon_wings: {
@@ -163,22 +223,33 @@ maplebirch.tool.onInit(() => {
           if (level < 3) return undefined;
           return `img/transformations/dragon/wings_${level}.png`;
         },
-        showfn: () => V.maplebirch?.transformation?.dragon?.level >= 3,
+        showfn: () => isPartEnabled(V.transformationParts?.dragon?.wings ?? 'disabled'),
         zfn: () => maplebirch.char.ZIndices.effects + 1
       }
     },
 
     // 可选：翻译
     translations: {
-      dragon: { EN: 'Dragon', CN: '龙' },
-      fire_breath: { EN: 'Fire Breath', CN: '火焰吐息' },
-      dragon_sight: { EN: 'Dragon Sight', CN: '龙之视觉' }
+      dragon: {
+        EN: 'Dragon',
+        CN: '龙'
+      },
+      fire_breath: {
+        EN: 'Fire Breath',
+        CN: '火焰吐息'
+      },
+      dragon_sight: {
+        EN: 'Dragon Sight',
+        CN: '龙之视觉'
+      }
     }
   });
 });
 ```
 
 ---
+
+`message` 按语言代码保存消息。此例只提供 `CN`；双语模组可增加同结构的 `EN`，分别填写 `up` 与 `down` 数组。当前语言没有对应消息时不会输出。`translations` 则是部件、特质等名称的双语数据，详见[翻译服务](../Translator.md)。
 
 ## 配置选项详解
 
@@ -201,9 +272,21 @@ maplebirch.tool.onInit(() => {
 
 ```javascript
 parts: [
-  { name: 'tail', tfRequired: 2, default: 'default' },
-  { name: 'horns', tfRequired: 1, default: 'curved' },
-  { name: 'wings', tfRequired: 3, default: 'leathery' }
+  {
+    name: 'tail',
+    tfRequired: 2,
+    default: 'default'
+  },
+  {
+    name: 'horns',
+    tfRequired: 1,
+    default: 'curved'
+  },
+  {
+    name: 'wings',
+    tfRequired: 3,
+    default: 'leathery'
+  }
 ];
 ```
 
@@ -211,8 +294,16 @@ parts: [
 
 ```javascript
 traits: [
-  { name: 'night_vision', tfRequired: 2, default: 'default' },
-  { name: 'enhanced_senses', tfRequired: 4, default: 'default' }
+  {
+    name: 'night_vision',
+    tfRequired: 2,
+    default: 'default'
+  },
+  {
+    name: 'enhanced_senses',
+    tfRequired: 4,
+    default: 'default'
+  }
 ];
 ```
 
@@ -278,7 +369,7 @@ message: {
 
 ### 预处理/后处理函数
 
-`pre` 和 `post` 只作用于 `main` 模型，用于修改 PC 常规人模渲染参数或在渲染后补充效果。
+顶层 `pre` 和 `post` 作用于 `main` 模型，用于修改 PC 常规人模渲染参数或在渲染后补充效果。`combat.pre`、`combat.post` 则作用于原版战斗 PC 模型 `combatMainPc`。
 
 ```javascript
 pre: (options) => {
@@ -300,7 +391,7 @@ post: (options) => {
 
 ### 转化图层
 
-`layers` 只会注入到 `main` 模型。需要给战斗画布或其它模型写独立图层时，请直接使用 `maplebirch.char.use()`。
+顶层 `layers` 登记到 `main`，`combat.layers` 登记到 `combatMainPc`，不需要再手动重复注册。需要给其它模型增加独立图层时，再使用 `maplebirch.char.use(layers, target)`，`target` 使用原版 `Renderer.CanvasModels` 中的实际模型名。
 
 ---
 
@@ -339,19 +430,34 @@ V.transformationParts = {
 ```javascript
 maplebirch.char.transformation.add('fairy', 'physical', {
   parts: [
-    { name: 'wings', tfRequired: 1, default: 'delicate' },
-    { name: 'glow', tfRequired: 2, default: 'default' },
-    { name: 'pointed_ears', tfRequired: 3, default: 'default' }
+    {
+      name: 'wings',
+      tfRequired: 1,
+      default: 'delicate'
+    },
+    {
+      name: 'glow',
+      tfRequired: 2,
+      default: 'default'
+    },
+    {
+      name: 'pointed_ears',
+      tfRequired: 3,
+      default: 'default'
+    }
   ],
   build: 100,
   level: 3,
   update: [33, 66, 100],
   decay: true,
-  decayConditions: [() => V.maplebirch.transformation.fairy.build >= 1, () => !V.worn.earrings?.name?.includes('fairy')],
+  decayConditions: [
+    () => V.maplebirch.transformation.fairy.build >= 1,
+    () => !V.worn.earrings?.name?.includes('fairy')
+  ],
   layers: {
     fairy_wings: {
       srcfn: () => 'img/transformations/fairy/wings.png',
-      showfn: () => V.maplebirch?.transformation?.fairy?.level >= 1,
+      showfn: () => isPartEnabled(V.transformationParts?.fairy?.wings ?? 'disabled'),
       zfn: () => maplebirch.char.ZIndices.effects + 2
     }
   }
@@ -363,14 +469,38 @@ maplebirch.char.transformation.add('fairy', 'physical', {
 ```javascript
 maplebirch.char.transformation.add('fire_elemental', 'elemental', {
   parts: [
-    { name: 'aura', tfRequired: 1, default: 'flickering' },
-    { name: 'embers', tfRequired: 2, default: 'default' },
-    { name: 'flame_body', tfRequired: 4, default: 'default' },
-    { name: 'fire_crown', tfRequired: 6, default: 'default' }
+    {
+      name: 'aura',
+      tfRequired: 1,
+      default: 'flickering'
+    },
+    {
+      name: 'embers',
+      tfRequired: 2,
+      default: 'default'
+    },
+    {
+      name: 'flame_body',
+      tfRequired: 4,
+      default: 'default'
+    },
+    {
+      name: 'fire_crown',
+      tfRequired: 6,
+      default: 'default'
+    }
   ],
   traits: [
-    { name: 'heat_aura', tfRequired: 3, default: 'default' },
-    { name: 'fire_immunity', tfRequired: 5, default: 'default' }
+    {
+      name: 'heat_aura',
+      tfRequired: 3,
+      default: 'default'
+    },
+    {
+      name: 'fire_immunity',
+      tfRequired: 5,
+      default: 'default'
+    }
   ],
   build: 100,
   level: 6,

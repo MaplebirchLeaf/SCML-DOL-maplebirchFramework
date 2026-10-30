@@ -37,6 +37,23 @@ const locationPassage = {
 
 // prettier-ignore
 const widgetPassage = {
+  FeatsUI: [
+    {
+      srcmatch: /(<<widget "featName">>)(?:(?!<<\/widget>>)[\s\S])*?<<switch _upgradeName>>/,
+      to: '$&<<case `maplebirch.tool.patch.featBoosts.has(_upgradeName) ? _upgradeName : undefined`>><<run maplebirch.tool.patch.featBoosts.refresh(_upgradeName)>><span class="gold"><<= $featsBoosts.name[_upgradeName]>></span>',
+      expected: 1
+    },
+    {
+      srcmatch: /(<<widget "featsMenu">>)((?:(?!<<\/widget>>)[\s\S])*?<<switch _name>>)/,
+      to: '$1<<run maplebirch.tool.patch.featBoosts.refresh(_args[0])>>$2<<case `maplebirch.tool.patch.featBoosts.has(_name) ? _name : undefined`>><<= maplebirch.tool.patch.featBoosts.text(_name, "text")>>',
+      expected: 1
+    },
+    {
+      srcmatch: /(<<widget "featsPointsMenuButtons">>(?:(?!<<\/widget>>)[\s\S])*?<<switch )(_type)(>>)/,
+      to: '$1$2$3<<case `maplebirch.tool.patch.featBoosts.has($2) ? $2 : undefined`>><<= maplebirch.tool.patch.featBoosts.text($2, "upgrade")>>',
+      expected: 1
+    }
+  ],
   MuseumAntiques: [
     { src: '<</widget>>\n\n<<widget "museumPaintingText">>', applybefore: '\t<<run maplebirch.tool.patch.antiques.inject(_museumAntiqueText)>>\n', expected: 1 }
   ],

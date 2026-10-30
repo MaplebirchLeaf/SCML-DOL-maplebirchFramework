@@ -2,6 +2,8 @@
 
 Trait registration lets a mod add custom player or NPC traits to the vanilla trait display.
 
+This API registers visibility and description text. Implement any gameplay bonuses separately. `name` is a display label; `title` matches a category using the native keys listed below.
+
 Use:
 
 ```javascript
@@ -13,7 +15,7 @@ maplebirch.tool.patch.traits.add(...traits);
 ```javascript
 maplebirch.tool.patch.traits.add({
   title: 'General Traits',
-  name: 'quick_learner',
+  name: 'Quick learner',
   colour: 'blue',
   has: true,
   text: 'Learns new skills quickly.'
@@ -39,23 +41,23 @@ maplebirch.tool.patch.traits.add({
 maplebirch.tool.patch.traits.add({
   title: 'General Traits',
   replace: /^(?:Rite of Promise:|承诺仪式：)/,
-  name: () => lanSwitch('Rite of Promise: ', '承诺仪式：') + maplebirch.auto('Robin'),
+  name: () => 'Rite of Promise: ' + maplebirch.auto('Robin'),
   colour: 'blue',
   has: () => V.myMod.promised,
   text: 'A promise recognised by the temple.'
 });
 ```
 
-| English category    | Chinese display   |
-| :------------------ | :---------------- |
-| `General Traits`    | General traits    |
-| `Medicinal Traits`  | Medicinal traits  |
-| `Special Traits`    | Special traits    |
-| `School Traits`     | School traits     |
-| `Trauma Traits`     | Trauma traits     |
-| `NPC Traits`        | NPC traits        |
-| `Hypnosis Traits`   | Hypnosis traits   |
-| `Acceptance Traits` | Acceptance traits |
+| Category key        |
+| :------------------ |
+| `General Traits`    |
+| `Medicinal Traits`  |
+| `Special Traits`    |
+| `School Traits`     |
+| `Trauma Traits`     |
+| `NPC Traits`        |
+| `Hypnosis Traits`   |
+| `Acceptance Traits` |
 
 Unknown category names are kept as-is.
 
@@ -64,7 +66,7 @@ Unknown category names are kept as-is.
 ```javascript
 maplebirch.tool.patch.traits.add({
   title: 'Medicinal Traits',
-  name: 'poison_resistance',
+  name: 'Poison resistance',
   colour: () => {
     const level = V.poisonResistance || 0;
     if (level >= 80) return 'green';
@@ -88,14 +90,14 @@ maplebirch.tool.patch.traits.add({
         "traits": [
           {
             "title": "General Traits",
-            "name": "strong",
+            "name": "Strong",
             "colour": "brown",
             "has": "V.strength > 70",
             "text": "Strong enough to stand out."
           },
           {
             "title": "School Traits",
-            "name": "honor_student",
+            "name": "Honor student",
             "colour": "yellow",
             "has": "V.grades >= 90",
             "text": "Known for strong grades."

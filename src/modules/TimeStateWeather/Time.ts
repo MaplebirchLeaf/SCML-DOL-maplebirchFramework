@@ -13,14 +13,22 @@ interface TimeHandlers {
 }
 
 export const vanillaTime: TimeHandlers = {};
+const originals = new WeakMap<TimeAPI, TimeHandlers>();
 
 export function bindTimeHandlers(time: TimeAPI, handlers: TimeHandlers): void {
   for (const [name, handler] of Object.entries(handlers)) if (handler) Object.defineProperty(time, name, { value: handler, writable: true, configurable: true });
 }
 
 function patchTime(time: TimeAPI): void {
-  vanillaTime.pass = typeof time.pass === 'function' ? time.pass.bind(time) : undefined;
-  vanillaTime.timeTravel = typeof time.timeTravel === 'function' ? time.timeTravel.bind(time) : undefined;
+  let handlers = originals.get(time);
+  if (!handlers) {
+    handlers = {
+      pass: typeof time.pass === 'function' ? time.pass.bind(time) : undefined,
+      timeTravel: typeof time.timeTravel === 'function' ? time.timeTravel.bind(time) : undefined
+    };
+    originals.set(time, handlers);
+  }
+  Object.assign(vanillaTime, handlers);
 }
 
 export default patchTime;

@@ -11,14 +11,16 @@ maplebirch.tool.patch.get(name);
 
 **`name`** is the unique extension name; both `myMod:catalog` and `myMod-catalog` work. **`definition.api`** declares the members to add to `patch`; other fields are optional.
 
-Built-in extensions are available as `patch.traits`, `patch.location`, `patch.bodywriting`, `patch.fishing`, `patch.foodstuff`, `patch.antiques` and `patch.tips`. Use `get(name)` for dynamic names; it returns `undefined` when absent. Use `require(name)` when absence should throw, and `has(name)` or `names()` to inspect registrations.
+Built-in extensions are available as `patch.traits`, `patch.featBoosts`, `patch.location`, `patch.bodywriting`, `patch.fishing`, `patch.foodstuff`, `patch.antiques` and `patch.tips`. Use `get(name)` for dynamic names; it returns `undefined` when absent. Use `require(name)` when absence should throw, and `has(name)` or `names()` to inspect registrations.
 
 Separate extensions may declare API members with the same name without conflicting in their namespaces. `.add()` keeps non-conflicting flat API members for 4.x compatibility; new code should use namespaces. Duplicate extension names throw. Register during startup; late registration does not replay completed phases.
 
 ## Minimal Example
 
 ```typescript
-const api = { myCatalog: new Map<string, string>() };
+const api = {
+  myCatalog: new Map<string, string>()
+};
 
 maplebirch.tool.patch.add('myMod:catalog', {
   api,
@@ -36,6 +38,10 @@ maplebirch.tool.patch.add('myMod:catalog', {
 const catalog = maplebirch.tool.patch.require<typeof api>('myMod:catalog');
 catalog.myCatalog.set('example', 'value');
 ```
+
+## Starting Feat Boosts
+
+See [Feat Boosts](FeatBoosts.md) for starting feat boosts.
 
 ## Lifecycle
 

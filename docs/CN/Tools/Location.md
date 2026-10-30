@@ -124,8 +124,14 @@ maplebirch.tool.patch.location.configure('old_ruins', {
     fogEnabled: true,
     fogDistributionCurve: 1.2,
     groundBounds: {
-      splashes: { top: 7, bottom: 0 },
-      fog: { top: 15, bottom: 0 }
+      splashes: {
+        top: 7,
+        bottom: 0
+      },
+      fog: {
+        top: 15,
+        bottom: 0
+      }
     }
   }
 });
@@ -150,7 +156,10 @@ maplebirch.tool.patch.location.configure(
         image: 'base.png'
       }
     },
-    weather: { rainSplashEnabled: false, fogEnabled: false }
+    weather: {
+      rainSplashEnabled: false,
+      fogEnabled: false
+    }
   },
   {
     overwrite: true

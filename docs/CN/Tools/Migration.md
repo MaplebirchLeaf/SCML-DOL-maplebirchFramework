@@ -16,7 +16,11 @@ migrator.add('1.0.0', '1.1.0', (data, utils) => {
 
 const data = {
   version: '1.0.0',
-  user: { name: 'Alice', age: '25', deprecatedField: true }
+  user: {
+    name: 'Alice',
+    age: '25',
+    deprecatedField: true
+  }
 };
 migrator.run(data, '1.1.0');
 // data: { version: '1.1.0', user: { fullName: 'Alice', age: 25 } }
@@ -54,7 +58,10 @@ migrator.run(data, '1.1.0');
 ```javascript
 migrator.add('*', '1.2.0', (data, utils) => {
   utils.fill(data, {
-    settings: { enabled: true, volume: 0.8 },
+    settings: {
+      enabled: true,
+      volume: 0.8
+    },
     flags: {}
   });
 });

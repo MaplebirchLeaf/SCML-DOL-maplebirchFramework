@@ -32,6 +32,8 @@ maplebirch.tool.patch.bodywriting.add('my_mod_mark', {
 
 `key` 是纹身的唯一标识，建议带模组名前缀。框架会将它写入配置对象和 `setup.bodywriting_namebyindex` 映射。同键配置更新已有条目。
 
+`writing` 与 `writ_cn` 是原版分别使用的英文字段和中文字段，因此本页示例同时填写两者。它们是数据配置，不需要包语言宏。
+
 ---
 
 ## 配置字段

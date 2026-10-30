@@ -10,5 +10,14 @@
   "bracketSpacing": true,
   "arrowParens": "avoid",
   "bracketSameLine": true,
-  "proseWrap": "preserve"
+  "proseWrap": "preserve",
+  "overrides": [
+    {
+      "files": ["docs/**/*.md"],
+      "options": {
+        "printWidth": 100,
+        "objectWrap": "preserve"
+      }
+    }
+  ]
 }

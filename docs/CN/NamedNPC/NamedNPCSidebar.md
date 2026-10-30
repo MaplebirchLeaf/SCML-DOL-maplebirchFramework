@@ -1,566 +1,214 @@
 # NPC 侧边栏
 
-### 基本介绍
+侧边栏从当前场景的命名 NPC 名单中选择人物。注册人物、登记图片和让人物在场是三个步骤，详见 [NPC 注册](NamedNPC.md)。
 
-NPC 侧边栏系统允许模组制作者为自定义 NPC 添加侧边栏显示功能，包括静态图片显示和基于游戏内服装系统的动态模型渲染。
+## 先选择显示方式
 
----
+| 方式         | 资源入口                                | 设置                                 |
+| :----------- | :-------------------------------------- | :----------------------------------- |
+| 整张静态立绘 | `img/ui/nnpc/<npc>/` 与 `Sidebar.image` | 关闭“PC 模型模式”，为该 NPC 选择图片 |
+| 画师分层模型 | `Sidebar.config` 指向的图片配置文件     | 关闭“PC 模型模式”，选择该分层配置    |
+| PC 模型      | 原版人物素材、NPC 外貌与侧边栏衣柜      | 开启“PC 模型模式”                    |
 
-### 侧边栏显示模式
+三种方式都需要开启“NPC 侧边栏图像显示”。PC 模型模式是显示方式开关，开启后不会再同时叠加选中的画师立绘。第二 NPC 模型和 NPC 桌宠沿用对应人物的显示资源。
 
-#### 两种显示模式
+## 最小静态立绘接入
 
-1. **静态图片模式**: 显示预先绘制的 NPC 静态图片
-2. **动态模型模式**: 基于游戏内服装系统动态渲染 NPC 模型
+### 1. 准备文件
 
----
-
-### 静态图片模式
-
-#### 图片放置位置
-
-```
-img/ui/nnpc/[npc_name]/[image_name].[png|jpg|gif]
-```
-
-**兼容 DOLP（DOL+）深层目录结构**：
-
-```
-img/ui/nnpc/[npc_name]/[gender]/[skin_tone]/[image_name].[png|jpg|gif]
+```text
+myMod/
+  boot.json
+  framework.js
+  scenes.twee
+  img/ui/nnpc/luna/default.png
+  img/ui/nnpc/luna/happy.png
 ```
 
-- `[gender]`: `male` / `female`，按 NPC 当前性别动态解析（男性为 `male`，其余为 `female`）
-- `[skin_tone]`: `dark` / `pale`，按侧边栏设置中的皮肤明暗（`skin_type`）动态映射（含 `dark` 时为 `dark`，其余为 `pale`）
-- 目录名兼容 `black_wolf`（snake_case）、`black-wolf`（kebab-case）、`black wolf`（空格）三种形式，自动归一化为 NPC 名称
+`framework.js` 注册 `nam: 'Luna'`，`scenes.twee` 在场景中使用 `<<npc "Luna">>`。这两部分的完整示例见[NPC 注册](NamedNPC.md)。图片文件需要实际放入模组 ZIP。
 
-框架扫描 `img/ui/nnpc` 文件夹时会同时识别上述两种结构。渲染时优先匹配当前 NPC 性别与肤色的深层路径，缺失时自动回退到同名图片的其它可用路径（DOLP 素材中 `fools`、`monster` 等额外目录里的同名图片也能通过回退机制选用）。
+### 2. 声明资源
 
----
+下面是 `addonPlugin` 数组内的框架配置项：
 
-### 动态模型发型长度
+```json
+{
+  "modName": "maplebirch",
+  "addonName": "maplebirchAddon",
+  "modVersion": ">=5.2.0",
+  "params": {
+    "script": ["framework.js"],
+    "npc": {
+      "Sidebar": {
+        "image": ["Luna"]
+      }
+    }
+  }
+}
+```
 
-NPC 各自保存数值字段 `hair_sides_length`（主体）与 `hair_fringe_length`（刘海）。渲染时分别按 `0 / 200 / 400 / 600 / 800 / 1000` 映射为 `short / shoulder / chest / navel / thighs / feet`，`0` 是有效长度。额外背发仅使用主体长度。两个数值各自默认 200。缺失、类型不对或非有限数值时由构造与 NPCUtils 校验恢复默认值，不转换旧字段。修改任一长度不会改变另一项。
+`tweeFileList` 仍写在 `boot.json` 顶层，由 ModLoader 加载。`image` 中写人物名，不写 PNG 路径。框架扫描 `img/ui/nnpc/` 后，把文件名（不含扩展名）加入图形候选列表；`default.png` 与 `happy.png` 是两个可选项，不会根据文件名自动判断心情。
+
+### 3. 在游戏中选择
+
+1. 加载模组并进入露娜在场的场景。
+2. 打开框架的 NPC 侧边栏设置，开启图像显示。
+3. 关闭“PC 模型模式”，选择人物 `Luna` 的图形 `default` 或 `happy`。
+4. 若关闭了图像显示，或图形仍是 `none`，登记图片也不会显示。
+
+人物选择与图形选择是两件事。第一／第二人物候选来自当前 `V.npc` 与原版命名人物表的交集；图形资源可以提前登记。仅执行 `initnpc` 或给日程填写地点，不会把人物加入当前场景。场景结束后沿用原版 `endevent` 清理。
+
+人物选择为“自动”时，第一模型使用当前名单最后一位人物，第二模型使用另一位最近加入的人物。手动选中的人物离开名单后会回到自动选择；第二模型还需单独开启。
+
+## 图片路径与 DoLP 目录
+
+支持的图片扩展名为 `png`、`jpg`、`jpeg`、`gif`、`webp`。
+
+```text
+img/ui/nnpc/luna/default.png
+img/ui/nnpc/luna/female/pale/default.png
+img/ui/nnpc/luna/male/dark/default.png
+```
+
+后两种为 DoLP 常用的深层目录。框架按当前人物性别选择 `male`／`female`，男性为 `male`，其它为 `female`；按侧栏肤色设置中的 `skin_type` 是否包含 `dark` 选择 `dark`／`pale`。
+
+优先查找匹配性别与肤色的深层同名图片，再查平面目录，最后回退到其它可用的同名路径。`black_wolf`、`black-wolf`、`black wolf` 等目录会归一化到人物名。额外目录中的同名素材也可能作为回退候选，文件名应避免无意重复。
+
+## 画师分层模型
+
+`Sidebar.config` 接收 JSON/YAML 文件路径数组，每个文件可为单个配置对象或配置数组。以下为 `data/npc/luna.yaml`：
+
+```yaml
+- name: 'Luna'
+  body: 'img/npc/luna/body.png'
+  head:
+    - img: 'img/npc/luna/hair_rain.png'
+      zIndex: auto
+      cond: "Weather.name === 'rain'"
+    - img: 'img/npc/luna/hair.png'
+      zIndex: auto
+  face:
+    - img: 'img/npc/luna/face_happy.png'
+      zIndex: auto
+      cond: 'V.myMod?.lunaHappy === true'
+    - img: 'img/npc/luna/face_default.png'
+      zIndex: auto
+  upper:
+    - img: 'img/npc/luna/library_top.png'
+      zIndex: auto
+      cond: "maplebirch.npc.Schedule.get('Luna').location === 'library'"
+    - img: 'img/npc/luna/casual_top.png'
+      zIndex: auto
+```
+
+各图片均需由模组提供，`lunaHappy` 是模组自己的剧情状态。`library` 对应该人物日程中的标签。所有图层应按同一画布尺寸与坐标对齐；框架不会替作者生成或补齐素材。
+
+在同一个框架配置项的 `params.npc.Sidebar` 中增加：
+
+```json
+{
+  "npc": {
+    "Sidebar": {
+      "config": ["data/npc/luna.yaml"]
+    }
+  }
+}
+```
+
+这里展示的是 `params` 内容，完整外层同前面的静态图片配置。
+
+| 字段                                                              | 含义                                                       |
+| :---------------------------------------------------------------- | :--------------------------------------------------------- |
+| `name`                                                            | 对应命名 NPC 的名称，示例为 `Luna`                         |
+| `body`                                                            | 基础图片路径字符串，不是候选数组                           |
+| `head`、`face`、`neck`、`upper`、`lower`、`legs`、`feet`、`hands` | 部位候选数组；即使只有一张也写数组                         |
+| 候选的 `img`                                                      | 必填图片路径，相对 ZIP 根目录                              |
+| 候选的 `cond`                                                     | 省略表示成立；可写布尔值、表达式字符串或条件数组           |
+| 候选的 `zIndex`                                                   | 默认 `'auto'`；数值表示画布绝对层级，不是相对该 NPC 的偏移 |
+
+**同一部位只选第一条满足条件的候选，不会叠加全部候选。** 默认图必须放在有条件图片之后。需要头发和耳朵同时显示时，应在同一图片中合成，或通过专门的角色图层扩展；不能把它们依次放进 `head` 数组就当作两层。
+
+条件数组按 AND 计算。OR 写在表达式内，例如 `Weather.name === 'rain' || Weather.name === 'snow'`，不支持 `$or` 对象。函数条件只适用于脚本对象；JSON/YAML 中不要写函数字符串。查询可能重复执行，条件只读取状态。
+
+配置会生成供“图形选择”使用的内部键，例如单条 `myMod` 模组的 `luna.yaml` 为 `myMod_luna`。可用 `maplebirch.npc.Clothes.art.keys('Luna')` 查询，以实际返回值为准；无需硬编码存档中的图形选择。
+
+## PC 模型与衣柜
+
+PC 模型读取 NPC 当前外貌、框架转化与侧边栏衣柜，不使用画师模型的 PNG 候选。开启对应设置后无需提供静态立绘；衣服的实际素材仍须在游戏中存在。
+
+| `Sidebar` 字段 | 加载什么            |
+| :------------- | :------------------ |
+| `image`        | 静态图片人物目录    |
+| `config`       | 画师图片候选文件    |
+| `clothes`      | PC 模型衣柜模板文件 |
+
+衣柜文件是“模板键 → 衣物槽位对象”，不是上面的 `name/body/head` 格式。模板、日程与穿着规则需要一起接入，详见[NPC 服装与衣柜](NamedNPCClothes.md)。框架内置裸体占位模板，不需要在每个模组重复定义它。
+
+### 发型长度
+
+`hair_sides_length`（主体头发）与 `hair_fringe_length`（刘海）分别保存有限数字，默认各为 `200`。建议使用 `0` 至 `1000`，对应阶段如下：
+
+| 长度起点 | 绘制阶段   |
+| :------- | :--------- |
+| `0`      | `short`    |
+| `200`    | `shoulder` |
+| `400`    | `chest`    |
+| `600`    | `navel`    |
+| `800`    | `thighs`   |
+| `1000`   | `feet`     |
+
+渲染按 `Math.trunc(长度 / 200)` 选阶段，落不到阶段表时回退 `short`。这不是自动把任意长度钳制到最大阶段。额外背发只使用主体长度。
 
 ```javascript
-Object.assign(C.npc['Ivory Wraith'], {
-  hair_side_type: 'ruffled',
-  hair_fringe_type: 'sideswept braid',
+maplebirch.npc.add({
+  nam: 'Luna',
+  hair_side_type: 'default',
+  hair_fringe_type: 'default',
   hair_sides_length: 800,
   hair_fringe_length: 200
 });
 ```
 
-### 动态模型体液显示
+以上为注册时补充初始外貌；剧情中改发型则修改当前 `C.npc.Luna`。发型字段使用原版资源标识。两个长度独立保存，缺失、非数字、非有限值各自恢复默认值，有效的 `0` 保留，不转换旧字段。
 
-NPC 侧边栏动态模型可以显示原版玩家模型使用的体液与滴落图层。框架会把状态存在 `V.maplebirch.npc[name].fluids`，不改动原版 `V.player.bodyliquid`。每个部位保存二元组 `[goo, semen]`：第 `0` 项为爱液／黏液，第 `1` 项为精液，不保存 `nectar`。
+### 体液与滴落
+
+PC 模型可显示原版体液与滴落素材。状态保存在 `V.maplebirch.npc.luna.fluids`，不改动玩家的 `V.player.bodyliquid`。每个部位为 `[goo, semen]` 二元组，各项限制在 `0` 至 `5`，没有 `nectar` 槽位。
+
+在实际剧情结算中调用：
 
 ```javascript
-maplebirch.npc.fluids.add('Robin', 'mouth', 2, 'semen');
-maplebirch.npc.fluids.add('Robin', 'vagina', 1, 'goo');
-maplebirch.npc.fluids.set('Robin', 'face', 3, 'semen');
-maplebirch.npc.fluids.reduce('Robin', 'mouth', 1, 'semen');
-maplebirch.npc.fluids.combined('Robin', 'mouth'); // goo + semen，未限制合计值
-maplebirch.npc.fluids.clear('Robin', 'vagina', 'goo');
-maplebirch.npc.fluids.clear('Robin', 'face');
-maplebirch.npc.fluids.clear('Robin');
+maplebirch.npc.fluids.add('Luna', 'mouth', 2, 'semen');
+maplebirch.npc.fluids.set('Luna', 'face', 1, 'goo');
+maplebirch.npc.fluids.reduce('Luna', 'mouth', 1, 'semen');
+const mouth = maplebirch.npc.fluids.get('Luna').mouth;
+const total = maplebirch.npc.fluids.combined('Luna', 'mouth');
 ```
 
-可用部位与原版身体液体槽一致：`vagina`、`vaginaoutside`、`anus`、`mouth`、`penis`、`chest`、`face`、`hair`、`bottom`、`feet`、`leftarm`、`rightarm`、`neck`、`thigh`、`tummy`。两种液体各自限制在 `0～5`。渲染时将合计限制在 `0～5`，转换为原版 `drip_*` 与 `cum_*` 参数，不改变保存值。`penis`、`hair`、`bottom`、`vaginaoutside` 没有对应的原版侧边栏体液图层，仅保存数据。
+`mouth[0]` 为爱液／黏液，`mouth[1]` 为精液，`combined()` 返回两项之和，不限制合计。渲染把合计限制到 `0` 至 `5`，不会改写保存值。`get()` 会补齐缺少的数据，不是纯粹的只读查询。
 
-`set`、`add`、`reduce` 省略类型时默认操作 `semen`。`clear` 省略类型时清除两种液体，省略部位时清除所有部位。每小时两项各自衰减。旧存档的数字值无法还原来源，自动迁入 `[旧值, 0]`（`goo`），缺少部位自动补 `[0, 0]`。读取单类数值请使用数组下标，读取合计请用 `combined`，不能再把整个部位当作数字。
+清理液体时，按需要选择清除范围：
 
-框架不自动判定高潮或液体来源，调用方负责按剧情更新等级。滴液遮罩会覆盖完整动画精灵图，保留原版滴落间隔。这些等级共用原版体液素材，不区分精液和爱液的外观。
-
-**路径说明**:
-
-- `[npc_name]`: NPC 名称(小写，如：luna, draven)
-- `[image_name]`: 图片名称，将在游戏中作为显示选项
-
-例如：
-
-```
-img/ui/nnpc/luna/default.png
-img/ui/nnpc/luna/happy.png
-img/ui/nnpc/luna/angry.png
+```javascript
+maplebirch.npc.fluids.clear('Luna', 'face', 'goo');
+maplebirch.npc.fluids.clear('Luna', 'face');
+maplebirch.npc.fluids.clear('Luna');
 ```
 
-当 `boot.json` 中注册了 `luna` 后，以上图片会自动作为侧边栏可选图片。
-
----
-
-### 在 boot.json 中配置
-
-#### 基本结构
-
-```json
-{
-  "modName": "maplebirch",
-  "addonName": "maplebirchAddon",
-  "modVersion": ">=5.2.0",
-  "params": {
-    "npc": {
-      "Sidebar": {
-        "image": ["luna", "draven"] // NPC名称，推荐小写，画师模型配置图片路径还是 ui/nnpc/<npcName>/
-      }
-    }
-  }
-}
-```
-
-#### 完整示例
-
-```json
-{
-  "modName": "maplebirch",
-  "addonName": "maplebirchAddon",
-  "modVersion": ">=5.2.0",
-  "params": {
-    "npc": {
-      "Sidebar": {
-        "image": ["Elara", "Merlin", "Draven"], // NPC名称，推荐小写，画师模型配置图片路径还是 ui/nnpc/<npcName>/
-        "clothes": ["data/npc/elven_clothes.yaml", "data/npc/wizard_wardrobe.json"], // PC模型模式下NPC的服装数据，取自PC身上的衣着
-        "config": ["data/npc/elara_sidebar.yaml", "data/npc/merlin_sidebar.json"] // 动态的画师模型配置
-      }
-    }
-  }
-}
-```
-
-#### 配置字段说明
-
-| 字段      | 类型     | 说明                                   |
-| :-------- | :------- | :------------------------------------- |
-| `image`   | string[] | NPC 名称列表，系统自动加载其侧边栏图片 |
-| `clothes` | string[] | 服装配置文件路径(YAML/JSON)            |
-| `config`  | string[] | 侧边栏图层配置文件路径(YAML/JSON)      |
-
----
-
-### 配置文件示例
-
-#### 侧边栏图层配置 (YAML)
-
-```yaml
-# data/npc/elara_sidebar.yaml
-
-- name: 'Elara' # NPC名称，需要与NPC系统中的ID一致
-
-  body: 'img/npc/elara/body.png' # 基础身体图片，所有图层的基础
-
-  # 头部图层
-  head:
-    # 头发图层
-    - { img: 'img/npc/elara/hair.png', zIndex: auto } # auto 表示自动计算图层顺序
-
-    # 耳朵图层
-    - { img: 'img/npc/elara/ears.png', zIndex: 7 }
-
-  # 面部图层
-  face:
-    # 默认表情
-    - { img: 'img/npc/elara/face_default.png', zIndex: 10 }
-
-    # 条件图层：当NPC心情为 shy 或 happy 时显示
-    - { img: 'img/npc/elara/blush.png', zIndex: 12, cond: "C.npc.Elara.mood === 'shy' || C.npc.Elara.mood === 'happy'" }
-
-  # 上半身服装
-  upper:
-    # 当NPC穿 elven_robe 时显示
-    - { img: 'img/npc/elara/top_default.png', zIndex: 15, cond: "maplebirch.npc.Clothes.wardrobe.worn('Elara').upper.name === 'elven_robe'" }
-
-  # 下半身服装
-  lower:
-    # 当NPC穿 elven_skirt 时显示
-    - { img: 'img/npc/elara/skirt_default.png', zIndex: 10, cond: "maplebirch.npc.Clothes.wardrobe.worn('Elara').lower.name === 'elven_skirt'" }
-```
-
-**说明**：
-
-- `body` 为基础层
-- `head / face / upper / lower` 为逻辑图层组
-- `zIndex` 控制图层叠放顺序
-- `cond` 为条件表达式，返回 `true` 时图层才会渲染
-
----
-
-#### 侧边栏图层配置 (JSON)
-
-```json
-[
-  {
-    "name": "Elara", // NPC名称
-    "body": "img/npc/elara/body.png", // 基础身体
-
-    "head": [
-      { "img": "img/npc/elara/hair.png", "zIndex": "auto" },
-      { "img": "img/npc/elara/ears.png", "zIndex": 7 }
-    ],
-
-    "face": [
-      { "img": "img/npc/elara/face_default.png", "zIndex": 10 },
-      {
-        "img": "img/npc/elara/blush.png",
-        "zIndex": 12,
-        "cond": "C.npc.Elara.mood === 'shy' || C.npc.Elara.mood === 'happy'"
-      }
-    ],
-
-    "upper": [
-      {
-        "img": "img/npc/elara/top_default.png",
-        "zIndex": 15,
-        "cond": "maplebirch.npc.Clothes.wardrobe.worn('Elara').upper.name === 'elven_robe'"
-      }
-    ],
-
-    "lower": [
-      {
-        "img": "img/npc/elara/skirt_default.png",
-        "zIndex": 10,
-        "cond": "maplebirch.npc.Clothes.wardrobe.worn('Elara').lower.name === 'elven_skirt'"
-      }
-    ]
-  }
-]
-```
-
----
-
-#### 服装配置文件 (YAML)
-
-下面示例基于游戏原始服装结构进行简化展示。  
-由于完整配置较长，示例中会 **省略部分 slot 内部字段**（例如 `over_upper` 内的完整属性）。
-
-```yaml
-# 默认裸体配置（示例节选）
-naked:
-  over_upper:
-    index: 0
-    slot: over_upper
-    name: naked
-    name_cap: Naked
-    cn_name_cap: 赤裸
-    variable: naked
-    reveal: 1000
-    exposed: 2
-    type:
-      - naked
-    description: 一丝不挂
-    # ... 这里省略了完整的衣物参数定义
-
-  over_lower:
-    index: 0
-    slot: over_lower
-    name: naked
-    reveal: 1000
-    vagina_exposed: 1
-    anus_exposed: 1
-    type:
-      - naked
-    description: 一丝不挂
-    # ... 省略其余字段
-
-  upper:
-    index: 0
-    slot: upper
-    name: naked
-    reveal: 1000
-    exposed: 2
-    type:
-      - naked
-    description: 一丝不挂
-    # ... 省略其余字段
-
-  lower:
-    index: 0
-    slot: lower
-    name: naked
-    reveal: 1000
-    vagina_exposed: 1
-    anus_exposed: 1
-    type:
-      - naked
-    description: 一丝不挂
-    # ... 省略其余字段
-
-  under_upper:
-    index: 0
-    slot: under_upper
-    name: naked
-    exposed: 1
-    type:
-      - naked
-    description: 一丝不挂
-    # ... 省略其余字段
-
-  under_lower:
-    index: 0
-    slot: under_lower
-    name: naked
-    exposed: 1
-    vagina_exposed: 1
-    anus_exposed: 1
-    type:
-      - naked
-    description: 一丝不挂
-    # ... 省略其余字段
-
-  head:
-    index: 0
-    slot: head
-    name: naked
-    reveal: 1
-    type:
-      - naked
-    description: 一丝不挂
-    # ... 省略其余字段
-
-  face:
-    index: 0
-    slot: face
-    name: naked
-    reveal: 1
-    type:
-      - naked
-    description: 一丝不挂
-    # ... 省略其余字段
-
-  neck:
-    index: 0
-    slot: neck
-    name: naked
-    reveal: 1
-    type:
-      - naked
-    description: 一丝不挂
-    # ... 省略其余字段
-
-  hands:
-    index: 0
-    slot: hands
-    name: naked
-    reveal: 1
-    type:
-      - naked
-    description: 一丝不挂
-    # ... 省略其余字段
-
-  legs:
-    index: 0
-    slot: legs
-    name: naked
-    reveal: 1
-    type:
-      - naked
-    description: 一丝不挂
-    # ... 省略其余字段
-
-  feet:
-    index: 0
-    slot: feet
-    name: naked
-    reveal: 1
-    type:
-      - naked
-    description: 一丝不挂
-    # ... 省略其余字段
-
-  genitals:
-    index: 0
-    slot: genitals
-    name: naked
-    reveal: 1
-    vagina_exposed: 1
-    anus_exposed: 1
-    type:
-      - naked
-    description: 一丝不挂
-    # ... 省略其余字段
-```
-
----
-
-#### 服装配置文件 (JSON)
-
-下面示例为与上方 YAML 示例对应的 **JSON 格式服装配置**。  
-由于完整服装定义较长，示例中 **省略了部分 slot 内部字段**（例如 `over_upper`、`upper` 等内部的完整属性）。
-
-```json
-{
-  "naked": {
-    "over_upper": {
-      "index": 0,
-      "slot": "over_upper",
-      "name": "naked",
-      "name_cap": "Naked",
-      "cn_name_cap": "赤裸",
-      "variable": "naked",
-      "reveal": 1000,
-      "exposed": 2,
-      "type": ["naked"],
-      "description": "一丝不挂"
-      /* ... 这里省略完整服装字段 */
-    },
-
-    "over_lower": {
-      "index": 0,
-      "slot": "over_lower",
-      "name": "naked",
-      "reveal": 1000,
-      "vagina_exposed": 1,
-      "anus_exposed": 1,
-      "type": ["naked"],
-      "description": "一丝不挂"
-      /* ... 省略其余字段 */
-    },
-
-    "upper": {
-      "index": 0,
-      "slot": "upper",
-      "name": "naked",
-      "reveal": 1000,
-      "exposed": 2,
-      "type": ["naked"],
-      "description": "一丝不挂"
-      /* ... 省略其余字段 */
-    },
-
-    "lower": {
-      "index": 0,
-      "slot": "lower",
-      "name": "naked",
-      "reveal": 1000,
-      "vagina_exposed": 1,
-      "anus_exposed": 1,
-      "type": ["naked"],
-      "description": "一丝不挂"
-      /* ... 省略其余字段 */
-    },
-
-    "under_upper": {
-      "index": 0,
-      "slot": "under_upper",
-      "name": "naked",
-      "exposed": 1,
-      "type": ["naked"],
-      "description": "一丝不挂"
-      /* ... 省略其余字段 */
-    },
-
-    "under_lower": {
-      "index": 0,
-      "slot": "under_lower",
-      "name": "naked",
-      "exposed": 1,
-      "vagina_exposed": 1,
-      "anus_exposed": 1,
-      "type": ["naked"],
-      "description": "一丝不挂"
-      /* ... 省略其余字段 */
-    },
-
-    "head": {
-      "index": 0,
-      "slot": "head",
-      "name": "naked",
-      "reveal": 1,
-      "type": ["naked"],
-      "description": "一丝不挂"
-      /* ... 省略其余字段 */
-    },
-
-    "face": {
-      "index": 0,
-      "slot": "face",
-      "name": "naked",
-      "reveal": 1,
-      "type": ["naked"],
-      "description": "一丝不挂"
-      /* ... 省略其余字段 */
-    },
-
-    "neck": {
-      "index": 0,
-      "slot": "neck",
-      "name": "naked",
-      "reveal": 1,
-      "type": ["naked"],
-      "description": "一丝不挂"
-      /* ... 省略其余字段 */
-    },
-
-    "hands": {
-      "index": 0,
-      "slot": "hands",
-      "name": "naked",
-      "reveal": 1,
-      "type": ["naked"],
-      "description": "一丝不挂"
-      /* ... 省略其余字段 */
-    },
-
-    "legs": {
-      "index": 0,
-      "slot": "legs",
-      "name": "naked",
-      "reveal": 1,
-      "type": ["naked"],
-      "description": "一丝不挂"
-      /* ... 省略其余字段 */
-    },
-
-    "feet": {
-      "index": 0,
-      "slot": "feet",
-      "name": "naked",
-      "reveal": 1,
-      "type": ["naked"],
-      "description": "一丝不挂"
-      /* ... 省略其余字段 */
-    },
-
-    "genitals": {
-      "index": 0,
-      "slot": "genitals",
-      "name": "naked",
-      "reveal": 1,
-      "vagina_exposed": 1,
-      "anus_exposed": 1,
-      "type": ["naked"],
-      "description": "一丝不挂"
-      /* ... 省略其余字段 */
-    }
-  }
-}
-```
-
----
-
-### 示例1：完整的NPC侧边栏配置
-
-```
-fantasyMod/
-├── img/
-│   └── ui/
-│       └── nnpc/
-│           ├── elara/
-│           │   ├── portrait.png
-│           │   ├── casual.png
-│           │   ├── formal.png
-│           │   └── battle.png
-│           └── draven/
-│               ├── default.png
-│               ├── armored.png
-│               └── injured.png
-├── data/
-│   └── npc/
-│       ├── elara_sidebar.yaml
-│       ├── draven_sidebar.yaml
-│       ├── elven_clothes.yaml
-│       └── warrior_wardrobe.yaml
-└── boot.json
-```
-
-### 剧情出现条件
-
-侧边栏模型与设置候选列表都以原版 `V.npc` 为依据，仅保留已知命名 NPC。`<<npc "Name">>` 生成、事件结束清空名单后，模型按当前名单选择。服装日程只决定配装，不增加或移除在场人物。
+`set/add/reduce` 省略类型时处理 `semen`；`clear` 省略类型清两项，省略部位清所有部位。合法部位是 `vagina`、`vaginaoutside`、`anus`、`mouth`、`penis`、`chest`、`face`、`hair`、`bottom`、`feet`、`leftarm`、`rightarm`、`neck`、`thigh`、`tummy`。
+
+`penis`、`hair`、`bottom`、`vaginaoutside` 仅保存数据，没有对应的原版侧栏液体图层。框架每小时分别衰减两项，沿用原版滴落间隔和动画素材。旧数字值会转换为 `[旧值, 0]`，缺少部位补 `[0, 0]`。不要把整个二元组当作数字。
+
+来源与增加时机由内容模组决定，框架不会自动检测剧情中的液体来源，两种液体也不使用不同的外观素材。
+
+## 排查显示问题
+
+| 现象                 | 检查顺序                                                        |
+| :------------------- | :-------------------------------------------------------------- |
+| 完全没有人物         | 人物已注册 → 当前场景执行 `npc` → 图像显示开启 → 模式正确       |
+| 静态立绘不显示       | 文件在 ZIP 中 → 目录名与人物对应 → 图形不为 `none`              |
+| 画师表情不切换       | 条件是否成立，默认候选是否提前拦截，部位是否写成数组            |
+| 画师层被遮住         | 图片坐标一致，优先用自动层级；数值层级按整个画布比较            |
+| PC 模型没有衣服      | 模板导入成功、衣物 `name/variable` 有效、日程地点与穿着规则一致 |
+| 日程正确但人物未出现 | 日程不生成遭遇，需要内容模组提供在场场景                        |
+| 只显示了一位人物     | 是否开启第二模型，两位人物是否都在当前名单中                    |

@@ -15,7 +15,7 @@ const text = maplebirch.tool.text;
 text.add(
   'myMod:relationship',
   tools => {
-    tools.text('Relationship details', 'gold');
+    tools.text('关系详情', 'gold');
   },
   'myMod:label'
 );
@@ -75,7 +75,7 @@ maplebirch.tool.inject({
 ```typescript
 maplebirch.on(':passagedisplay', (_passage, root) => {
   const link = root.querySelector('a[data-passage="Town"]');
-  if (link) maplebirch.tool.text.renameLink(link, 'Visit town');
+  if (link) maplebirch.tool.text.renameLink(link, '前往城镇');
 });
 ```
 

@@ -118,15 +118,48 @@ const same = maplebirch.utils.equal(dataA, dataB);
 这三个函数都会递归合并对象，区别主要在数组处理方式。
 
 ```javascript
-maplebirch.utils.merge({ list: [1, 2] }, { list: [3] }); // { list: [3, 2] }
-maplebirch.utils.append({ list: [1, 2] }, { list: [3] }); // { list: [1, 2, 3] }
-maplebirch.utils.cover({ list: [1, 2] }, { list: [3] }); // { list: [3] }
+maplebirch.utils.merge(
+  {
+    list: [1, 2]
+  },
+  {
+    list: [3]
+  }
+); // { list: [3, 2] }
+maplebirch.utils.append(
+  {
+    list: [1, 2]
+  },
+  {
+    list: [3]
+  }
+); // { list: [1, 2, 3] }
+maplebirch.utils.cover(
+  {
+    list: [1, 2]
+  },
+  {
+    list: [3]
+  }
+); // { list: [3] }
 ```
 
 对象会递归合并：
 
 ```javascript
-const result = Object.merge({ npc: { enabled: true, count: 2 } }, { npc: { count: 4 } });
+const result = Object.merge(
+  {
+    npc: {
+      enabled: true,
+      count: 2
+    }
+  },
+  {
+    npc: {
+      count: 4
+    }
+  }
+);
 // { npc: { enabled: true, count: 4 } }
 ```
 
@@ -141,7 +174,11 @@ const options = Object.merge(defaults, modDefaults, playerOptions);
 过滤版本会在每个字段合并前调用过滤函数。
 
 ```javascript
-maplebirch.utils.mergefn(target, (key, value, depth, targetValue) => targetValue === undefined, source);
+maplebirch.utils.mergefn(
+  target,
+  (key, value, depth, targetValue) => targetValue === undefined,
+  source
+);
 ```
 
 过滤函数参数：
@@ -157,7 +194,11 @@ maplebirch.utils.mergefn(target, (key, value, depth, targetValue) => targetValue
 
 ```javascript
 // 只写入目标中没有的字段
-maplebirch.utils.mergefn(target, (_key, _value, _depth, targetValue) => targetValue === undefined, source);
+maplebirch.utils.mergefn(
+  target,
+  (_key, _value, _depth, targetValue) => targetValue === undefined,
+  source
+);
 
 // 只合并前两层
 maplebirch.utils.mergefn(target, (_key, _value, depth) => depth <= 2, source);
@@ -180,7 +221,10 @@ maplebirch.utils.mergefn(target, (_key, value) => value != null, source);
 检查对象、`Set`、`Map` 的值时，先取出值数组，再调用数组实例方法 `contains`（普通对象、`Set`、`Map` 上没有 `contains` 实例方法）：
 
 ```javascript
-Object.values({ a: 1, b: 2 }).contains(2); // true
+Object.values({
+  a: 1,
+  b: 2
+}).contains(2); // true
 [...new Set(['a', 'b'])].contains('a'); // true
 [...new Map([['key', 'value']]).values()].contains('value'); // true
 ```
@@ -189,7 +233,9 @@ Object.values({ a: 1, b: 2 }).contains(2); // true
 
 ```javascript
 'Hello World'.contains('World'); // true
-'Hello World'.contains('hello', { case: false }); // true
+'Hello World'.contains('hello', {
+  case: false
+}); // true
 ```
 
 `mode` 可选：
@@ -211,9 +257,26 @@ Object.values({ a: 1, b: 2 }).contains(2); // true
 示例：
 
 ```javascript
-const list = [{ id: 1 }, { id: 2 }];
-list.contains({ id: 1 }, 'any', { deep: true }); // true
-list.contains(2, 'any', { compare: (item, value) => item.id === value }); // true
+const list = [
+  {
+    id: 1
+  },
+  {
+    id: 2
+  }
+];
+list.contains(
+  {
+    id: 1
+  },
+  'any',
+  {
+    deep: true
+  }
+); // true
+list.contains(2, 'any', {
+  compare: (item, value) => item.id === value
+}); // true
 ```
 
 ## random / either
@@ -278,7 +341,9 @@ Math.random(5, 10, true); // 5 到 10 的浮点数
 
 ```javascript
 'NPC name'.convert('title'); // NPC Name
-'NPC name'.convert('title', { acronym: false }); // Npc Name
+'NPC name'.convert('title', {
+  acronym: false
+}); // Npc Name
 ```
 
 ## Math.clamp
@@ -318,7 +383,9 @@ if (result) {
 ```javascript
 const bytes = textToBytes('hello');
 
-const jsonBytes = jsonToBytes({ ok: true });
+const jsonBytes = jsonToBytes({
+  ok: true
+});
 const data = bytesToJson(jsonBytes);
 
 const base64 = bytesToBase64(bytes);
@@ -368,7 +435,13 @@ const list = widgets(Options, Cheats);
 `SelectCase` 适合把一组条件和结果写成链式结构。
 
 ```javascript
-const result = new SelectCase().case('wolf', '狼').caseIn(['cat', 'dog'], '动物').caseIncludes('NPC', '角色').caseRegex(/^mod:/, '模组').else('未知').match(value);
+const result = new SelectCase()
+  .case('wolf', '狼')
+  .caseIn(['cat', 'dog'], '动物')
+  .caseIncludes('NPC', '角色')
+  .caseRegex(/^mod:/, '模组')
+  .else('未知')
+  .match(value);
 ```
 
 字符串和数值条件默认不能混用。需要混合判断时先使用 `casePredicate()`。数值范围要求有限且有序的边界。正则匹配不会改变传入表达式的 `lastIndex`。

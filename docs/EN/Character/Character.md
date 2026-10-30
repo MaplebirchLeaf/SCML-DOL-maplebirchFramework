@@ -105,6 +105,16 @@ img/face/
 
 NPC sidebar face layers render via `img/face/<facestyle>/<facevariant>/<layer>.png` (or `img/face/<facestyle>/<layer>.png`).
 
+## Mask Helper
+
+`maplebirch.char.mask()` generates a hair-gradient mask with position and rotation controls:
+
+```javascript
+const mask = maplebirch.char.mask(0, 15);
+```
+
+Use it when implementing custom hair, gradients or mask layers.
+
 ## Notes
 
 - Omit `target` to patch only `main`.

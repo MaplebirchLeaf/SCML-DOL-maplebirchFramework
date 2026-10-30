@@ -19,7 +19,6 @@ maplebirch.tool.patch.antiques.add('antiquemyitem', {
   hint: '"For a curious little relic," Winter says.',
   museum: 'The curious relic rests on a pedestal.',
   name: 'Curious Relic',
-  cn_name: '奇妙遗物',
   journal: '"A curious little relic."',
   journalName: 'Small relic',
   icon: 'antiques/my-relic.png'
@@ -38,6 +37,8 @@ maplebirch.tool.patch.antiques.add('antiquemyitem', {
 | `journalName` | Optional journal display name                   |
 | `icon`        | Icon path                                       |
 | `key`         | Unique id when using array config               |
+
+`name` also forms the native destination `Museum <name>`. The examples require your mod to provide `Museum Curious Relic` and `Museum Old Coin`. Add `cn_name` when providing a separate Chinese display name; it does not change that destination.
 
 ## State Flow
 
@@ -66,7 +67,6 @@ Object-map form. _This is the recommended format when registering multiple entri
         "hint": "\"For a curious little relic,\" Winter says.",
         "museum": "The curious relic rests on a pedestal.",
         "name": "Curious Relic",
-        "cn_name": "奇妙遗物",
         "journal": "\"A curious little relic.\"",
         "journalName": "Small relic",
         "icon": "antiques/my-relic.png"
@@ -100,7 +100,6 @@ Array form is also supported. Each item must include **`key`**:
   hint: '"For a curious little relic," Winter says.'
   museum: The curious relic rests on a pedestal.
   name: Curious Relic
-  cn_name: 奇妙遗物
   journal: '"A curious little relic."'
   journalName: Small relic
   icon: antiques/my-relic.png

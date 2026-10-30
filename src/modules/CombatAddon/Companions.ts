@@ -301,7 +301,6 @@ class Companions {
     return fragment;
   }
 
-  // 敌方动作触发收尾后，仍须记录本轮已确认的受击。
   private get canSettle(): boolean {
     const vars = dol.variables;
     return vars.combat === 1 && ['man', 'beast'].includes(vars.enemytype) && !this.frozen && !vars.possessed;

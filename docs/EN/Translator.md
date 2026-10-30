@@ -19,7 +19,10 @@ maplebirch.services.translator.has(key);
 For the default layout, the framework looks for `translations/CN.json`, `.yml`, and `.yaml`, plus the corresponding `EN` files. When more than one format exists, files merge in **JSON → YML → YAML** order:
 
 ```json
-"language": ["CN", "EN"]
+"language": [
+  "CN",
+  "EN"
+]
 ```
 
 For one custom file per language:
@@ -35,8 +38,14 @@ For multiple files in a language, use an ordered array. If `ui.yml` repeats a ke
 
 ```json
 "language": {
-  "CN": ["i18n/CN/common.yml", "i18n/CN/ui.yml"],
-  "EN": ["i18n/EN/common.yml", "i18n/EN/ui.yml"]
+  "CN": [
+    "i18n/CN/common.yml",
+    "i18n/CN/ui.yml"
+  ],
+  "EN": [
+    "i18n/EN/common.yml",
+    "i18n/EN/ui.yml"
+  ]
 }
 ```
 
@@ -97,7 +106,10 @@ If your mod writes translated text into its own DOM nodes, refresh those nodes o
 Use this for a few runtime-generated labels; file imports are preferable for larger sets:
 
 ```javascript
-maplebirch.services.translator.set('myMod:button.save', { CN: '保存', EN: 'Save' });
+maplebirch.services.translator.set('myMod:button.save', {
+  CN: '保存',
+  EN: 'Save'
+});
 if (maplebirch.services.translator.has('myMod:button.save')) {
   console.log(maplebirch.t('myMod:button.save'));
 }
@@ -105,13 +117,15 @@ if (maplebirch.services.translator.has('myMod:button.save')) {
 
 ## SugarCube Content
 
-The language macro can choose text without a translation file:
+Use `maplebirch.t()` directly for translation keys. No `language` wrapper is needed:
 
 ```twine
-<<language>>
-  <<option "CN">>中文内容<</option>>
-  <<option "EN">>English content<</option>>
-<</language>>
+<h3><<= maplebirch.t('myMod:title')>></h3>
+<<link `maplebirch.t('myMod:enable')`>>
+  <<set $myMod.enabled to true>>
+<</link>>
 ```
 
-See [SugarCube macros](Macros.md) for other examples.
+The example assumes your mod has initialized `$myMod`. `<<= ...>>` and `<<link>>` are native SugarCube syntax: one outputs the translation, the other reads the label when creating the link.
+
+Use `lanLink`, `lanButton` or related macros when existing labels need to refresh after a language change. For short bilingual prose without translation keys, see the [language macro](Macros.md#language). Write ordinary single-language prose directly.

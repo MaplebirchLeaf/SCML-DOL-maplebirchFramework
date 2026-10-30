@@ -1,6 +1,22 @@
 # State Events
 
-State events are checked automatically before passage content (`gate`) or after it (`append`). Register them during script loading or module `preInit()`, rather than registering again on every render.
+A conversation may need a short notice at the end of the page. Another event may need to wait until the player returns to a particular location. State events provide a place for both.
+
+The framework checks `gate` before passage content and `append` after it. Register the event in a loading script or module `preInit()`, then let page checks handle it instead of registering again on each render.
+
+The [NPC park-meeting example](../NamedNPC/Example.md) uses `append` for its first-conversation notice. Trust changes in the player's click action; the notice tells the player what happened.
+
+## Design the Trigger and Completion
+
+| Stage          | Responsibility                                | Reminder example                    |
+| :------------- | :-------------------------------------------- | :---------------------------------- |
+| Saved defaults | Fill missing state without resetting progress | `noticePending` defaults to `false` |
+| Actual action  | Queue pending work                            | Set it to `true` after success      |
+| `cond`         | Query eligibility and page scope              | Read the pending flag               |
+| `action`       | Synchronously settle or consume state         | Clear the dispatched flag           |
+| Output widget  | Display the result or offer follow-up actions | Reminder text and any required exit |
+
+Think of the pending flag as a note for the next page: an action writes it, the condition reads it, and the handler clears it as it prepares the output. See the [development workflow](../Development.md#separate-registration-from-saved-defaults) for initialization and load-time defaults. If the notice never appears, first check that its action actually set the flag to `true`.
 
 ## Entry Points
 
@@ -47,7 +63,9 @@ maplebirch.dynamic.regStateEvent('gate', 'myMod:notice', {
     V.myMod.noticePending = false;
   },
   forceExit: false,
-  extra: { exclude: ['Start', 'Start2'] }
+  extra: {
+    exclude: ['Start', 'Start2']
+  }
 });
 ```
 
@@ -58,6 +76,24 @@ maplebirch.dynamic.regStateEvent('gate', 'myMod:notice', {
 <</widget>>
 ```
 
+Here `action` clears the flag before the output widget renders, recording that the reminder has been handed to the page. Let the widget display its text directly: another `noticePending` check would hide it because the flag has already been cleared. Player acknowledgement needs a click handler like the one below.
+
+For an acknowledgement-based reminder, remove `action` from the registration above, retain `cond`, and replace the widget with:
+
+```twine
+:: My Mod Notices [widget]
+<<widget 'myModNotice'>>
+  <span class='teal'>Something needs your attention.</span>
+  <<linkreplace 'Understood'>>
+    <<set $myMod.noticePending to false>>
+    Acknowledged.
+  <</linkreplace>>
+  <br><br>
+<</widget>>
+```
+
+Choose one consumption method rather than registering the same ID twice. The second retains pending state until clicked and appears again on an eligible page or when loading an unacknowledged save. State events provide checks and output, not persistent read receipts. An inline `linkreplace` does not create a new history moment. To capture acknowledgement in the next saved snapshot, clear the flag in the link that actually leaves the notice scene.
+
 ## Replacing Passage Content
 
 ```javascript
@@ -66,7 +102,9 @@ maplebirch.dynamic.regStateEvent('gate', 'myMod:encounter', {
   cond: () => V.myMod?.encounterPending === true,
   forceExit: true,
   priority: 10,
-  extra: { passage: ['My Mod Road'] }
+  extra: {
+    passage: ['My Mod Road']
+  }
 });
 ```
 
@@ -76,9 +114,9 @@ The output widget must provide a complete scene and usable exit. The example pas
 :: My Mod Encounters [widget]
 <<widget 'myModEncounter'>>
   Someone blocks the road.<br><br>
-  <<lanLink ['Leave', '离开'] 'My Mod Safe Place'>>
+  <<link 'Leave' 'My Mod Safe Place'>>
     <<set $myMod.encounterPending to false>>
-  <</lanLink>>
+  <</link>>
 <</widget>>
 ```
 

@@ -18,7 +18,6 @@ Only stocked tablets appear. Taking one also requires `canTake()`. The framework
 
 ```javascript
 maplebirch.tool.patch.pills.add('myMod tablets', {
-  cn_name: '示例药片',
   description: 'Example tablets',
   warning_label: '',
   owned: () => V.myMod?.tablets ?? 0,
@@ -34,3 +33,5 @@ maplebirch.tool.patch.pills.add('myMod tablets', {
 ```
 
 The example assumes the mod initializes `V.myMod` through State widgets or module save initialization. Drawer registration does not create pharmacy stock. Keep native shop entries on single lines and put prices, descriptions, and warnings on the confirmation page. `CustomLinkZone` with `[-1, widget]` places a section before the return link without cutting into the first native category.
+
+The first argument, `myMod tablets`, is the native item name. The optional `cn_name` supplies a separate Chinese name when needed; keep the item name stable.

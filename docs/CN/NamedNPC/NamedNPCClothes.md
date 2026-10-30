@@ -1,304 +1,237 @@
 # NPC 服装与衣柜
 
-### 基本介绍
+人物的互动衣服、画师图片和 PC 模型衣柜使用不同数据。先决定要改变哪一项，再使用对应入口。
 
-NPC 服装系统分为三个独立但相关的子系统，分别处理不同场景下的服装需求：
+## 三种配置的边界
 
-1. **原版 NPC 服装** (`addClothes`) - 游戏内互动服装
-2. **NPC 侧边栏默认服装** (`Sidebar.config`) - NPC 侧边栏显示
-3. **NPC 衣柜系统** (`Wardrobe`) - 基于位置和条件的服装切换
+| 入口                              | 改变什么                                              | 不会自动完成什么                                   |
+| :-------------------------------- | :---------------------------------------------------- | :------------------------------------------------- |
+| `maplebirch.npc.addClothes()`     | 原版 NPC 互动套装，如衣物名称、掀起／拉下动作和完整度 | 不生成 PC 模型衣物贴图                             |
+| `params.npc.Sidebar.config`       | 画师模型的图片候选与显示条件                          | 不自动穿上原版互动套装，也不根据图片名推导衣物数据 |
+| `maplebirch.npc.Clothes.wardrobe` | 用 PC 服装素材绘制的侧边栏衣柜                        | 不改写原版遭遇的互动衣服，不把人物加入当前场景     |
 
-_可通过 `maplebirch.npc.addClothes` 来注册原版 NPC 服装。_
+同一个 NPC 可以同时配置它们。若剧情要求互动文本和立绘同步，应在剧情与衣柜条件中使用同一份模组状态。单独注册其中一项不会同步其它项。
 
----
+## 原版互动套装
 
-### 原版 NPC 服装系统 (VanillaClothes)
-
-#### 用途
-
-处理游戏内的服装互动，如脱衣、检查、损坏等。这些服装会在 NPC 对话、事件和互动中使用。
-
-#### 使用方法
+在原版 `setup` 就绪后登记，例如放在 `tool.onInit()` 中：
 
 ```javascript
-// 添加原版NPC服装套装
-maplebirch.npc.addClothes({
-  name: 'school_uniform',
-  type: 'uniform',
+maplebirch.tool.onInit(() => {
+  maplebirch.npc.addClothes({
+    name: 'myMod:library',
+    type: 'custom',
+    gender: 'f',
+    upper: {
+      name: 'shirt',
+      desc: '衬衫',
+      word: 'a',
+      action: 'lift',
+      integrity_max: 100
+    },
+    lower: {
+      name: 'trousers',
+      desc: '长裤',
+      word: 'n',
+      action: 'pull',
+      integrity_max: 100
+    },
+    desc: '衬衫和长裤'
+  });
+});
+
+maplebirch.npc.add({
+  nam: 'Luna',
   gender: 'f',
-  upper: {
-    name: 'school_shirt',
-    word: 'a',
-    action: 'lift',
-    integrity_max: 100
-  },
-  lower: {
-    name: 'pleated_skirt',
-    word: 'a',
-    action: 'lift',
-    integrity_max: 100
-  },
-  desc: '标准校服，白色衬衫和格子短裙'
+  adult: 1,
+  teen: 0,
+  outfits: ['myMod:library']
 });
 ```
 
-#### 存储位置
+`outfits` 是可用套装名单，框架还会补入性别对应的默认套装。何时选择哪套衣服，仍由原版服装生成与场景逻辑决定。注册不会立刻给当前遭遇换衣。
+
+| 字段                       | 含义与默认值                                               |
+| :------------------------- | :--------------------------------------------------------- |
+| `name`                     | 唯一套装标识，必填；重名会跳过并记录警告                   |
+| `type`、`gender`、`outfit` | 原版选择套装使用的数据，默认 `'custom'`、`'n'`、`0`        |
+| `upper`、`lower`           | 必填，可写名称字符串或部位对象；只写名称不表示 PC 衣物资源 |
+| `upper/lower.name`         | 该部位的互动名称，必填                                     |
+| `desc`                     | 套装或部位描述，省略时由名称生成                           |
+| `word`                     | 原版英文冠词标记，默认上衣 `'a'`、下装 `'n'`               |
+| `action`                   | 衣物动作，默认上衣 `'lift'`、下装 `'pull'`                 |
+| `integrity_max`            | 最大完整度，默认 `100`                                     |
+
+结果由框架加入 `setup.npcClothesSets`，不用在模组中重新赋值整个数组。`addClothes()` 可一次接收多个套装，没有返回值。
+
+## PC 模型衣柜的最小接入
+
+### 1. 提供衣柜模板
+
+`data/npc/wardrobe.yaml`：
+
+```yaml
+'myMod:casual':
+  upper:
+    name: 't-shirt'
+    variable: 'tshirt'
+    colour: 'blue'
+  lower:
+    name: 'shorts'
+    variable: 'shorts'
+    colour: 'black'
+
+'myMod:library':
+  upper:
+    name: 'school shirt'
+    variable: 'schoolshirt'
+    colour: 'white'
+  lower:
+    name: 'shorts'
+    variable: 'shorts'
+    colour: 'black'
+```
+
+这是基于原版 0.5.12.13 衣物的简短配置。`name` 与 `variable` 必须对应实际 PC 衣物，不能写 `school_shirt` 等自行猜测的名称。框架通过原版 `clothesIndex` 查询完整定义，再合入本次状态。使用自定义衣物时还要保证其定义与素材已由对应衣物模组提供。
+
+颜色字段是 `colour`，不是 `color`。如需保留损坏、款式、配色等更多状态，可以从实际衣物数据复制完整对象。框架内置 `naked` 槽位模板，无需复制一大份裸体配置；其它套装需自行提供，建议用模组前缀避免重名。
+
+### 2. 从 boot.json 导入
+
+下面是 `maplebirchAddon` 的配置项：
+
+```json
+{
+  "modName": "maplebirch",
+  "addonName": "maplebirchAddon",
+  "modVersion": ">=5.2.0",
+  "params": {
+    "npc": {
+      "Sidebar": {
+        "clothes": ["data/npc/wardrobe.yaml"]
+      }
+    }
+  }
+}
+```
+
+脚本中也可 `await wardrobe.load('myMod', 'data/npc/wardrobe.yaml')`。两项分别是实际模组名和 ZIP 内路径。加载失败会记录日志，因此需要核对文件路径与 `wardrobe.has(key)`，不能把 Promise 已结束当作模板一定存在。
+
+### 3. 登记日程与穿着规则
 
 ```javascript
-// 存储在 setup.npcClothesSets 数组中
-setup.npcClothesSets = [
-  {
-    name: 'school_uniform',
-    type: 'uniform',
-    gender: 'f',
-    outfit: 0,
-    clothes: {
-      upper: { name: 'school_shirt', ... },
-      lower: { name: 'pleated_skirt', ... }
-    },
-    desc: '标准校服...'
-  },
-  // ... 其他服装
-];
+maplebirch.npc.addSchedule('Luna', schedule => {
+  schedule.at(0, 'home').at(8, 'library').at(18, 'home');
+});
+
+maplebirch.once(':storyready', () => {
+  const wardrobe = maplebirch.npc.Clothes.wardrobe;
+  wardrobe.wear('Luna', '*', 'myMod:casual');
+  wardrobe.wear('Luna', 'library', 'myMod:library');
+});
 ```
 
-### 2. NPC 侧边栏默认服装 (Sidebar.config)
+等待 `:storyready` 登记穿着规则，是为了让上述衣柜文件先加载。`wear()` 会立即检查模板是否存在，过早登记一个不存在的模板会被跳过。日程中的 `library`、`home` 是本模组使用的地点标签。
 
-#### 用途
+这里的穿着地点取自 **露娜的框架日程**，不是玩家的 `V.location`。在框架设置中开启 NPC 侧边栏显示与“PC 模型模式”，并让露娜实际进入当前场景后，才能看到 PC 模型衣物。人物出现条件见[侧边栏](NamedNPCSidebar.md)。
 
-定义 NPC 在侧边栏显示时的外观。包括身体、头、脸、颈部、上半身、下半身、腿、脚、手等图层的配置。
+## 选择规则与当前服装
 
-#### 配置格式
+`wardrobe.wear(npcName, location, choice, options?)`：
 
-支持 JSON 和 YAML 格式：
-
-```yaml
-# 侧边栏服装配置 (YAML)
-- name: 'Luna' # NPC名称
-  body: 'img/npc/luna/body.png' # 身体基础图片
-
-  # 头部候选（只选择第一个符合条件的图像）
-  head:
-    - {
-        img: 'img/npc/luna/hat.png',
-        zIndex: 20,
-        cond: "Weather.name === 'rain' || Weather.name === 'snow'" # 条件显示
-      }
-
-    - { img: 'img/npc/luna/hair_back.png', zIndex: 5 }
-
-  face: 'img/npc/luna/face_base.png'
-
-  # 上半身服装图层
-  upper:
-    - { img: 'img/npc/luna/top_casual.png', zIndex: 15, cond: "maplebirch.npc.Clothes.wardrobe.worn('Luna')?.upper?.name === 'casual_top'" }
-    - { img: 'img/npc/luna/top_formal.png', zIndex: 15, cond: "maplebirch.npc.Clothes.wardrobe.worn('Luna')?.upper?.name === 'formal_top'" }
-
-  # 下半身服装图层
-  lower:
-    - { img: 'img/npc/luna/skirt.png', zIndex: 10 }
-
-  # 手部图层
-  hands:
-    - { img: 'img/npc/luna/gloves.png', zIndex: 25, cond: ["maplebirch.npc.Clothes.wardrobe.worn('Luna')?.hands", 'V.temperature < 10'] }
-```
-
-#### 在 boot.json 中配置
-
-```json
-{
-  "modName": "maplebirch",
-  "addonName": "maplebirchAddon",
-  "modVersion": ">=5.2.0",
-  "params": {
-    "npc": {
-      "Sidebar": {
-        "config": ["data/npc/luna_sidebar.yaml", "data/npc/draven_sidebar.json"]
-      }
-    }
-  }
-}
-```
-
-#### 条件系统
-
-条件支持布尔值、表达式字符串、函数，以及按 AND 计算的条件数组。JSON/YAML 中请写表达式字符串，函数只用于脚本配置。OR 使用表达式中的 `||`，不支持 `$or` 对象。
-
-```yaml
-- img: 'img/npc/luna/hat.png'
-  cond: "Weather.name === 'rain' || Weather.name === 'snow'"
-- img: 'img/npc/luna/hair.png'
-  cond: true
-```
-
-同一部位按顺序选择第一个符合条件的候选图像，不是将数组中的全部图像叠加。请把有条件的候选放在默认图像之前。衣柜状态通过 `maplebirch.npc.Clothes.wardrobe.worn(name)` 读取。
-
----
-
-### 3. NPC 衣柜系统 (Wardrobe)
-
-#### 用途
-
-根据 NPC 所在位置、时间、事件等条件，动态切换 NPC 的服装。用于模拟 NPC 的日常换装行为。
-
-#### 基本概念
-
-- **服装定义**: 定义一套完整的服装
-- **位置注册**: 在特定位置穿着特定服装
-- **条件控制**: 满足条件时才穿着
-- **服装选择**: 位置特定 > 全局默认
-- **服装延留**: 服装持续保留，直到另一条有效穿着规则触发
-- **合并顺序**: 裸体模板 → NPC 基础层 → 选中的地点服装 → 动态修改 → 整套湿度
-
-#### 服装定义文件 (来源于PC身上的服装数据)
-
-```yaml
-# wardrobe.yaml
-naked:
-  upper: { name: 'naked' }
-  lower: { name: 'naked' }
-  head: { name: 'naked' }
-  hands: { name: 'naked' }
-  feet: { name: 'naked' }
-
-casual_outfit:
-  upper: { name: 't-shirt', color: 'blue' }
-  lower: { name: 'jeans', color: 'black' }
-  head: { name: 'baseball_cap' }
-
-school_uniform:
-  upper: { name: 'school_shirt' }
-  lower: { name: 'pleated_skirt' }
-  head: { name: 'ribbon' }
-
-work_uniform:
-  upper: { name: 'apron' }
-  lower: { name: 'work_pants' }
-  head: { name: 'hairnet' }
-```
-
-#### 在 boot.json 中配置
-
-```json
-{
-  "modName": "maplebirch",
-  "addonName": "maplebirchAddon",
-  "modVersion": ">=5.2.0",
-  "params": {
-    "npc": {
-      "Sidebar": {
-        "clothes": ["wardrobe.yaml", "wardrobe.json"]
-      }
-    }
-  }
-}
-```
-
-#### 在代码中使用
-
-框架内置衣柜会自动加载。通过代码加载额外衣柜文件时，需要同时传入模组名和文件路径。
+- `location` 可为地点字符串、地点数组或全局兜底 `'*'`。
+- 先找当前日程地点的规则，再找全局规则。同一组中，后登记且条件成立的规则优先。
+- `choice` 为模板键，或 `[模板键, 权重]` 数组。
+- `options` 可为条件，也可为 `{ when, wetness }`。
 
 ```javascript
 const wardrobe = maplebirch.npc.Clothes.wardrobe;
-
-// 1. 加载衣柜配置
-await wardrobe.load('myMod', 'data/wardrobe.yaml');
-
-// 2. 设置 NPC 的基础服装。地点服装可覆盖同名部位
-wardrobe.base('Luna', clothes => {
-  clothes.neck = { name: 'collar' };
-});
-
-// 3. 为 NPC 注册服装
-// 在学校位置总是穿校服
-wardrobe.wear('Luna', 'school', 'school_uniform');
-
-// 在咖啡馆位置穿便服，但只在非工作时间
-wardrobe.wear('Luna', 'cafe', 'casual_outfit', () => V.time.hour >= 18 || V.time.hour <= 8);
-
-// 每次重新触发规则时，按权重随机选择一套服装
-wardrobe.wear('Luna', 'school', [
-  ['school_uniform', 8],
-  ['school_uniform_alt', 2]
+wardrobe.wear('Luna', 'library', [
+  ['myMod:library', 8],
+  ['myMod:casual', 2]
 ]);
-
-// 湿度属于本次穿着规则，而不是服装模板。整套服装统一使用字符串状态
-wardrobe.wear('Luna', 'lake', 'school_uniform', {
-  when: () => V.lunaSwimming,
-  wetness: 'soaked'
-});
-
-// 需要动态变化时返回 dry、damp、wet 或 soaked
-wardrobe.wear('Luna', 'park', 'casual_outfit', {
-  wetness: () => (V.weather === 'rain' ? 'wet' : 'dry')
-});
-
-// 场景湿度覆盖当前已经选中的整套服装。条件不成立时退回 wear 的湿度
-wardrobe.wet('Luna', 'soaked', () => V.passage === 'Lake Soak');
-
-// 条件基础层，可动态决定使用哪个已注册模板
-wardrobe.layer(
-  'Luna',
-  () => (C.npc.Luna.pronoun === 'm' ? 'male_underwear' : 'female_underwear'),
-  () => C.npc.Luna.corruption < 10
-);
-
-// 在动态修改中合并模板，或将槽位恢复为裸体占位
-wardrobe.modify('Luna', clothes => {
-  wardrobe.put(clothes, 'chastity_belt');
-  wardrobe.strip(clothes, ['upper', 'lower']);
-});
-
-// 在面包店工作位置穿工作服
-wardrobe.wear('Luna', 'bakery', 'work_uniform');
-
-// 全局默认(当没有其他匹配时)
-wardrobe.wear('Luna', '*', 'casual_outfit');
-
-// 4. 最终动态修改。在地点服装合并后执行
-wardrobe.modify('Luna', (clothes, context) => {
-  if (context.location === 'park' && V.weather === 'rain') clothes.head = { name: 'hood' };
-});
-
-// 5. 获取当前服装
-const currentOutfit = wardrobe.worn('Luna');
-console.log('Luna当前穿着:', currentOutfit);
 ```
 
-NPC 服装湿度使用 `dry`（干燥）、`damp`（湿润）、`wet`（潮湿）、`soaked`（湿透）四种语义状态，框架内部对应透明度 `1`、`0.9`、`0.7`、`0.5`。湿度统一作用于 `upper`、`lower`、`under_upper`、`under_lower`，不会使眼镜、首饰或鞋等槽位透明。未配置 `wetness` 时保持原有干燥显示。`wardrobe.wet()` 用于覆盖当前已选服装的湿度。存在多条匹配规则时最后注册的规则优先，未命中时退回 `wardrobe.wear()` 的湿度。
-
-`wardrobe.layer()` 在地点服装之前按条件合并基础模板，适合内衣或固定配饰。模板键也可以由函数动态返回。`wardrobe.put(clothes, key, slots?)` 在回调中合并已注册模板，可用单个槽位或槽位数组限制合并范围。`wardrobe.apply(clothes, slot, item)` 将一件服装复制到指定槽位。`wardrobe.strip()` 会把指定槽位恢复为 `naked` 模板中的占位数据，不会留下渲染器无法读取的空槽位。地点服装在基础层之后合并，因此泳装等模板自身的 `under_upper`、`under_lower` 不受基础内衣条件影响。
-
-`wardrobe.wear()` 只在当前位置存在有效规则时换装。当前位置没有匹配规则或规则条件不成立时，NPC 会延续上一次成功选中的服装。尚未触发过任何规则时才使用 `naked`。
-
-重复使用的条件可命名组合。`location` 检查 `V.location`，`passage` 检查当前 passage 标题。`hours: [起始, 结束]` 使用 `V.time.hour`，允许跨午夜。第三个参数可补充原版剧情状态等条件。条件会在使用时重新求值，按名称再次调用 `when()` 可取得同一个函数：
+这条加权规则会优先于前面登记的同地点普通规则。仅在规则变为当前有效规则时随机选择一次；连续读取 `worn()` 或原地重绘不会重复抽取。规则中断后再次触发才会重新选择。不存在的键、非有限或非正权重会被忽略并记录警告。
 
 ```javascript
-const nightStudy = wardrobe.when(
-  'night-study',
+const outfit = maplebirch.npc.Clothes.wardrobe.worn('Luna');
+console.log(outfit.upper?.name);
+```
+
+无任何规则命中时，沿用本次运行中上一次选中的套装；从未选中过才使用 `naked`。`worn()` 返回本次组合的副本，不要通过修改它来保存换装。规则与当前选择保存在运行时，重新加载会重新登记；需要持久化的剧情服装状态由模组自己的存档变量管理。
+
+## 条件使用的是谁的位置
+
+| 入口                             | 位置来源                               |
+| :------------------------------- | :------------------------------------- |
+| `wear()` 第二项地点              | 该 NPC 的 `Schedule.location`          |
+| `modify()` 的 `context.location` | 该 NPC 的日程地点                      |
+| `when()` 分组中的 `location`     | 玩家的 `V.location`                    |
+| `when()` 分组中的 `passage`      | 当前 passage 标题                      |
+| `when()` 分组中的 `hours`        | 当前 `V.time.hour`，两端包含，可跨午夜 |
+
+```javascript
+const wardrobe = maplebirch.npc.Clothes.wardrobe;
+const rainyNight = wardrobe.when(
+  'myMod:rainyNight',
   {
-    location: ['library', 'school'],
-    passage: 'Study',
+    location: 'library',
     hours: [21, 5]
   },
-  () => V.weather === 'rain'
+  () => Weather.name === 'rain'
 );
-wardrobe.wear('Luna', 'library', 'school_uniform', { when: nightStudy });
-wardrobe.wet('Luna', 'damp', wardrobe.when('night-study'));
+wardrobe.wet('Luna', 'damp', rainyNight);
 ```
 
-第三个参数也可以使用 `[服装键, 权重]` 数组。随机选择只在规则由未触发变为触发时执行一次。连续读取和服装延留期间不会重复随机，规则中断后再次触发时才会重新选择。不存在的服装键、非有限数或小于等于零的权重会被忽略并记录警告。
+分组内条件按 AND 计算，额外条件也要成立。`when(name)` 返回已登记的同一个判断函数；未知名称会抛错，带分组再次登记同名条件也会抛错。条件支持布尔值、表达式字符串、同步函数及按 AND 计算的条件数组；函数放在脚本中，JSON/YAML 仅使用数据或表达式字符串。
 
-#### 服装层级示例
+## 合并顺序与局部修改
+
+组合顺序为：`naked` → `base`／`layer` → 选中的套装 → `modify` → 湿度。
+
+同名槽位按**整件服装**替换，不是把两件衣服的字段深度合并。`base()` 设置的某个槽位可能被套装覆盖；需要最终调整时使用 `modify()`。
 
 ```javascript
-// 假设 Luna 在 "school" 位置
-// 系统会按以下顺序查找：
-
-1. 位置特定: 'school' -> 'school_uniform'  (使用)
-2. 全局默认: '*' -> 'casual_outfit'        (跳过)
-
-// 假设 Luna 在 "park" 位置
-1. 位置特定: 'park' -> 无
-2. 全局默认: '*' -> 'casual_outfit'        (使用)
+maplebirch.once(':storyready', () => {
+  const wardrobe = maplebirch.npc.Clothes.wardrobe;
+  wardrobe.modify('Luna', clothes => {
+    if (V.myMod?.lunaBorrowedShirt) {
+      wardrobe.put(clothes, 'myMod:casual', 'upper');
+    }
+  });
+});
 ```
+
+| 方法                                           | 用途                                                |
+| :--------------------------------------------- | :-------------------------------------------------- |
+| `set(key, template)` / `get(key)` / `has(key)` | 登记、取得模板副本或检查存在；同键 `set()` 替换模板 |
+| `base(name, callback)`                         | 套装合入前修改本次衣物                              |
+| `layer(name, keyOrFunction, condition?)`       | 在基础阶段按条件合入模板                            |
+| `modify(name, callback)`                       | 套装合入后修改；回调收到 `(clothes, context)`       |
+| `put(clothes, key, slots?)`                    | 在回调中合入模板，可限制单个槽位或槽位数组          |
+| `apply(clothes, slot, item)`                   | 复制一件衣物到指定槽位                              |
+| `strip(clothes, slots)`                        | 把槽位恢复为 `naked` 占位，不删除槽位               |
+
+渲染与条件回调可能反复执行，只修改本次传入的衣物副本。剧情扣款、消耗、奖励等放在实际行动结算中。
+
+## 湿度
+
+```javascript
+maplebirch.once(':storyready', () => {
+  const wardrobe = maplebirch.npc.Clothes.wardrobe;
+  wardrobe.wear('Luna', 'lake', 'myMod:casual', {
+    when: () => V.myMod?.lunaSwimming === true,
+    wetness: 'soaked'
+  });
+  wardrobe.wet('Luna', 'soaked', () => V.myMod?.lunaJustFellInWater === true);
+});
+```
+
+`dry / damp / wet / soaked` 分别对应透明度 `1 / 0.9 / 0.7 / 0.5`，只作用于 `upper`、`lower`、`under_upper`、`under_lower`。其它槽位不变。`wear` 的湿度属于穿着规则；`wet()` 临时覆盖当前套装的湿度，最后一条命中规则优先，无命中则回退到 `wear`。
+
+`lunaSwimming` 和 `lunaJustFellInWater` 是模组自己的剧情状态。落水状态结束后由实际剧情清除，湿度便回退到当前穿着规则。不提供第三项条件的 `wet()` 会在所有地点覆盖湿度。
+
+## 画师模型
+
+`Sidebar.config` 的文件是图片组合配置，不是上面的衣柜模板。每个部位数组只选第一条满足条件的图片，默认图片放在最后。完整字段、路径与示例见 [NPC 侧边栏](NamedNPCSidebar.md#画师分层模型)。

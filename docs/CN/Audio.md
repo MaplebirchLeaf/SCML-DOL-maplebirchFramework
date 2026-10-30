@@ -163,7 +163,8 @@ maplebirch.audio.formatTime(progress.currentTime);
 ### 绑定进度条
 
 ```html
-<input id="music-progress" type="range" min="0" max="100" step="0.1" /> <span id="music-time"></span>
+<input id="music-progress" type="range" min="0" max="100" step="0.1" />
+<span id="music-time"></span>
 ```
 
 ```javascript

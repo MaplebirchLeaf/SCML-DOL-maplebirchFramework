@@ -67,21 +67,12 @@ export class Schedule {
   public sortedSpecials: SpecialSchedule[] | null = null;
 
   public at(scheduleConfig: ScheduleTime, location: string): this {
-    const setHour = (hour: number) => {
-      if (Number.isInteger(hour) && hour >= 0 && hour <= 23) this.daily[hour] = location;
-    };
-
-    if (Array.isArray(scheduleConfig)) {
-      const [start, end = start] = scheduleConfig;
-      if (start > end) {
-        maplebirch.npc.log('起始时间不能大于结束时间', 'ERROR');
-        return this;
-      }
-      for (let hour = start; hour <= end; hour++) setHour(hour);
-    } else {
-      setHour(scheduleConfig);
+    const [start, end = start] = Array.isArray(scheduleConfig) ? scheduleConfig : [scheduleConfig];
+    if (!Number.isInteger(start) || !Number.isInteger(end) || start < 0 || end > 23 || start > end) {
+      maplebirch.npc.log('日程小时必须是0至23的整数，且起始时间不能大于结束时间', 'ERROR');
+      return this;
     }
-
+    for (let hour = start; hour <= end; hour++) this.daily[hour] = location;
     return this;
   }
 

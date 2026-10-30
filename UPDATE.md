@@ -1,3 +1,23 @@
+##### (v.5.6.0更新日志):
+
+- 新增战斗同伴接口，支持独立生命、眩晕、援助、治疗与提前退场，沿用原版动作和遭遇结束流程。
+- 宏注册与包装支持 sugarcube、storyinit、storyready 三个时机，保留原版宏上下文并减少重复监听。
+- 修复双语文本切换语言时丢失 widget 参数，以及从标题页读档后重复执行段落正文的问题。
+- 重复接入时间处理器时保留原版函数，避免递归调用。
+- 成就加成接入原版 V 币购买、退款与新周目结算，支持独立 JSON 或 YAML 配置。
+- 修复无效 NPC 日程区间可能导致浏览器卡死的问题，并保留转化升级前已设置的部位外观。
+- 整理中英文接口文档和配置示例，统一钓点配置名称为 locations。
+
+**English**
+
+- Add combat companions with independent health, stun, assistance, treatment and individual departure, using native actions and encounter cleanup.
+- Support sugarcube, storyinit and storyready phases for macro definitions and wrappers while preserving native contexts and reducing repeated listeners.
+- Preserve widget arguments when switching bilingual text and avoid executing passage content twice after loading a save from the title screen.
+- Retain native time handlers across repeated installation to prevent recursive calls.
+- Integrate feat boosts with native V-coin purchases, refunds and new-game application, with separate JSON or YAML configuration.
+- Prevent invalid NPC schedule ranges from freezing the browser and preserve transformation part choices across level changes.
+- Revise bilingual API documentation and configuration examples, using locations for fishing-location configuration.
+
 ##### (v.5.5.7更新日志):
 
 - 修复反复切换语言后，链接和按钮文字不再更新的问题。

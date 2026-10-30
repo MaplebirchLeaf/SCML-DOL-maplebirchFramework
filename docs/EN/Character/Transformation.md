@@ -40,17 +40,28 @@ Adapters can extend `animalTransforms`, `animalMacros`, `historyTransforms`, and
 maplebirch.tool.onInit(() => {
   maplebirch.char.transformation.add('dragon', 'physical', {
     parts: [
-      { name: 'eyes', tfRequired: 2, label: () => lanSwitch('Eyes', '眼睛') },
-      { name: 'tail', tfRequired: 4, label: () => lanSwitch('Scaled tail', '鳞尾') }
+      {
+        name: 'eyes',
+        tfRequired: 2,
+        label: 'Eyes'
+      },
+      {
+        name: 'tail',
+        tfRequired: 4,
+        label: 'Scaled tail'
+      }
     ],
     layers: () => dragonLayers(),
-    combat: { pre: dragonCombatPre, layers: dragonCombatLayers },
+    combat: {
+      pre: dragonCombatPre,
+      layers: dragonCombatLayers
+    },
     chimeras: [
       {
         name: 'demondragon',
         part: 'tail',
         sources: ['dragon', 'demon'],
-        label: () => lanSwitch('Demon dragon tail:', '恶魔龙尾：')
+        label: 'Demon dragon tail:'
       }
     ]
   });
@@ -68,9 +79,21 @@ maplebirch.tool.onInit(() => {
 maplebirch.tool.onInit(() => {
   maplebirch.char.transformation.add('fairy', 'physical', {
     parts: [
-      { name: 'wings', tfRequired: 1, default: 'delicate' },
-      { name: 'glow', tfRequired: 2, default: 'default' },
-      { name: 'pointed_ears', tfRequired: 3, default: 'default' }
+      {
+        name: 'wings',
+        tfRequired: 1,
+        default: 'delicate'
+      },
+      {
+        name: 'glow',
+        tfRequired: 2,
+        default: 'default'
+      },
+      {
+        name: 'pointed_ears',
+        tfRequired: 3,
+        default: 'default'
+      }
     ],
     build: 100,
     level: 3,
@@ -79,7 +102,7 @@ maplebirch.tool.onInit(() => {
     layers: {
       fairy_wings: {
         srcfn: () => 'img/transformations/fairy/wings.png',
-        showfn: () => V.maplebirch?.transformation?.fairy?.level >= 1,
+        showfn: () => isPartEnabled(V.transformationParts?.fairy?.wings ?? 'disabled'),
         zfn: () => maplebirch.char.ZIndices.effects + 2
       }
     }
@@ -89,23 +112,25 @@ maplebirch.tool.onInit(() => {
 
 ## Main Config
 
-| Field                | Type       | Description                                   |
-| :------------------- | :--------- | :-------------------------------------------- |
-| `parts`              | array      | Transformation parts unlocked by level        |
-| `traits`             | array      | Optional transformation traits                |
-| `build`              | number     | Maximum build value                           |
-| `level`              | number     | Maximum level                                 |
-| `update`             | number[]   | Build thresholds for each level               |
-| `icon`               | string     | Optional icon path                            |
-| `message`            | object     | Level-up and level-down messages              |
-| `decay`              | boolean    | Whether the transformation can decay          |
-| `decayConditions`    | Function[] | Conditions required for decay                 |
-| `suppress`           | boolean    | Whether it can suppress other transformations |
-| `suppressConditions` | Function[] | Conditions for suppression                    |
-| `pre`                | function   | Runs before character rendering               |
-| `post`               | function   | Runs after character rendering                |
-| `layers`             | object     | Character rendering layers                    |
-| `translations`       | object     | Display translations                          |
+| Field                | Type               | Description                                                   |
+| :------------------- | :----------------- | :------------------------------------------------------------ |
+| `parts`              | array              | Transformation parts unlocked by level                        |
+| `traits`             | array              | Optional transformation traits                                |
+| `build`              | number             | Maximum build value                                           |
+| `level`              | number             | Maximum level                                                 |
+| `update`             | number[]           | Build thresholds for each level                               |
+| `icon`               | string             | Optional icon path                                            |
+| `message`            | object             | Level-up and level-down messages                              |
+| `decay`              | boolean            | Whether the transformation can decay                          |
+| `decayConditions`    | Function[]         | Conditions required for decay                                 |
+| `suppress`           | boolean            | Whether it can suppress other transformations                 |
+| `suppressConditions` | Function[]         | Conditions for suppression                                    |
+| `pre`                | function           | Runs before character rendering                               |
+| `post`               | function           | Runs after character rendering                                |
+| `layers`             | object or function | Layers for the regular PC model, or a function returning them |
+| `combat`             | object             | Separate `pre`, `post`, and `layers` for `combatMainPc`       |
+| `chimeras`           | array              | Fusion parts and mirror toggles                               |
+| `translations`       | object             | Display translations                                          |
 
 ## Parts And Traits
 
@@ -130,13 +155,11 @@ message: {
   EN: {
     up: ['Level 1 message', 'Level 2 message', 'Level 3 message'],
     down: ['Level 1 to 0', 'Level 2 to 1', 'Level 3 to 2']
-  },
-  CN: {
-    up: ['...', '...', '...'],
-    down: ['...', '...', '...']
   }
 }
 ```
+
+Message keys are language codes. This example provides English messages; a bilingual mod adds a `CN` entry with the same `up`/`down` structure. No message is output when the current language has no entry. See [Translator](../Translator.md) for translation files and language selection.
 
 ## Decay And Suppression
 
@@ -155,7 +178,7 @@ suppressConditions: [
 
 ## Rendering Hooks
 
-`pre` and `post` only apply to the `main` model. Use them to adjust regular PC model render options or add post-render effects.
+Top-level `pre` and `post` apply to `main`. Use them to adjust regular PC render options or add post-render effects. `combat.pre` and `combat.post` apply to the native combat PC model, `combatMainPc`.
 
 ```javascript
 pre: options => {
@@ -175,18 +198,17 @@ Transformation state is stored under `V.maplebirch.transformation`.
 
 ## Rendering Layers
 
-`layers` is also injected only into the `main` model. If a combat canvas or another model needs separate layers, register those layers directly with `maplebirch.char.use()`.
+Top-level `layers` register to `main`; `combat.layers` register to `combatMainPc` without a second manual registration. Use `maplebirch.char.use(layers, target)` for other models, with the actual name from `Renderer.CanvasModels`.
 
 ```javascript
-maplebirch.char.use(
-  {
+combat: {
+  layers: {
     fairy_combat_wings: {
       srcfn: () => 'img/transformations/fairy/combat-wings.png',
-      showfn: options => V.maplebirch.transformation.fairy.level >= 1
+      showfn: () => isPartEnabled(V.transformationParts?.fairy?.wings ?? 'disabled')
     }
-  },
-  'combat'
-);
+  }
+}
 ```
 
 For the regular PC model, keep the layer inside the transformation config:
@@ -195,7 +217,7 @@ For the regular PC model, keep the layer inside the transformation config:
 layers: {
   fairy_wings: {
     srcfn: () => 'img/transformations/fairy/wings.png',
-    showfn: () => V.maplebirch.transformation.fairy.level >= 1
+    showfn: () => isPartEnabled(V.transformationParts?.fairy?.wings ?? 'disabled')
   }
 }
 ```

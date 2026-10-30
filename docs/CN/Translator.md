@@ -25,7 +25,10 @@ maplebirch.services.translator.has(key);
 最简单的写法会自动查找 `translations/CN.json`、`translations/CN.yml`、`translations/CN.yaml`，以及对应的 `EN` 文件。存在多个格式时会按 **JSON → YML → YAML** 的顺序合并：
 
 ```json
-"language": ["CN", "EN"]
+"language": [
+  "CN",
+  "EN"
+]
 ```
 
 指定单个文件时可用字符串：
@@ -41,8 +44,14 @@ maplebirch.services.translator.has(key);
 
 ```json
 "language": {
-  "CN": ["i18n/CN/common.yml", "i18n/CN/ui.yml"],
-  "EN": ["i18n/EN/common.yml", "i18n/EN/ui.yml"]
+  "CN": [
+    "i18n/CN/common.yml",
+    "i18n/CN/ui.yml"
+  ],
+  "EN": [
+    "i18n/EN/common.yml",
+    "i18n/EN/ui.yml"
+  ]
 }
 ```
 
@@ -149,16 +158,18 @@ if (maplebirch.services.translator.has('myMod:button.save')) {
 
 ## 在 SugarCube 中使用
 
-可以结合语言宏使用：
+使用翻译键时，可以直接调用 `maplebirch.t()`，不必再包一层 `language`：
 
 ```twine
-<<language>>
-  <<option "CN">>中文内容<</option>>
-  <<option "EN">>English content<</option>>
-<</language>>
+<h3><<= maplebirch.t('myMod:title')>></h3>
+<<link `maplebirch.t('myMod:enable')`>>
+  <<set $myMod.enabled to true>>
+<</link>>
 ```
 
-更多宏用法见 [SugarCube 宏扩展](Macros.md)。
+示例假定 `$myMod` 已由模组初始化。`<<= ...>>` 和 `<<link>>` 是 SugarCube 原有语法：前者输出译文，后者在生成链接时读取标签。
+
+需要在切换语言后刷新现有控件的标签时，使用 `lanLink`、`lanButton` 等语言宏。少量双语正文也可用 `language` 直接选择内容，写法见 [SugarCube 宏](Macros.md#language)。普通单语言正文直接写文本即可。
 
 ---
 

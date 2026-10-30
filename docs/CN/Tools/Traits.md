@@ -5,6 +5,8 @@
 `Traits` 是框架提供的角色特质管理系统，允许模组制作者添加自定义的角色特质。
 _可通过 `maplebirch.tool.patch.traits.add()` 访问。_
 
+此接口注册特质的显示条件和说明。描述中的数值加成需要模组另行实现，注册文本本身不会改变能力。`name` 是显示名称；`title` 用于匹配分类，内置分类沿用下表的英文键名。
+
 ---
 
 ### 核心功能
@@ -19,7 +21,7 @@ _可通过 `maplebirch.tool.patch.traits.add()` 访问。_
   // 添加一个简单特质
   maplebirch.tool.patch.traits.add({
     title: 'General Traits',
-    name: 'brave',
+    name: '勇敢',
     colour: 'green',
     has: () => V.courage > 50,
     text: '勇敢的战士，无所畏惧'
@@ -47,10 +49,10 @@ _可通过 `maplebirch.tool.patch.traits.add()` 访问。_
 maplebirch.tool.patch.traits.add({
   title: 'General Traits',
   replace: /^(?:Rite of Promise:|承诺仪式：)/,
-  name: () => lanSwitch('Rite of Promise: ', '承诺仪式：') + maplebirch.auto('Robin'),
+  name: () => '承诺仪式：' + maplebirch.auto('Robin'),
   colour: 'blue',
   has: () => V.myMod.promised,
-  text: 'A promise recognised by the temple.'
+  text: '一份得到神殿认可的承诺。'
 });
 ```
 
@@ -88,14 +90,14 @@ maplebirch.tool.patch.traits.add({
         "traits": [
           {
             "title": "General Traits",
-            "name": "heroic",
+            "name": "英雄气概",
             "colour": "orange",
             "has": true,
             "text": "英雄气概，领导力强"
           },
           {
             "title": "Special Traits",
-            "name": "arcane_affinity",
+            "name": "奥术亲和",
             "colour": "purple",
             "has": false,
             "text": "对魔法有特殊亲和力"
@@ -116,7 +118,7 @@ maplebirch.tool.patch.traits.add({
   "traits": [
     {
       "title": "General Traits",
-      "name": "wealthy",
+      "name": "富有",
       "colour": "yellow",
       "has": "V.gold > 10000",
       "text": "拥有可观的财富。"
@@ -147,7 +149,7 @@ maplebirch.tool.patch.traits.add({
 // 添加静态特质(始终显示)
 maplebirch.tool.patch.traits.add({
   title: 'General Traits',
-  name: 'quick_learner',
+  name: '快速学习者',
   colour: 'blue',
   has: true, // 始终拥有
   text: '快速学习者，技能获取速度+20%'
@@ -160,7 +162,7 @@ maplebirch.tool.patch.traits.add({
 // 添加动态特质(根据游戏状态变化)
 maplebirch.tool.patch.traits.add({
   title: 'Medicinal Traits',
-  name: 'poison_resistance',
+  name: '毒素抗性',
   colour: () => {
     // 根据抗性等级显示不同颜色
     const level = V.poisonResistance || 0;
@@ -175,7 +177,7 @@ maplebirch.tool.patch.traits.add({
   text: () => {
     // 动态描述文本
     const level = V.poisonResistance || 0;
-    return `毒抗 ${level}% - ${getResistanceDescription(level)}`;
+    return `毒抗 ${level}%`;
   }
 });
 ```
@@ -186,7 +188,7 @@ maplebirch.tool.patch.traits.add({
 // 只在特定条件下显示的特质
 maplebirch.tool.patch.traits.add({
   title: 'Special Traits',
-  name: 'moon_caller',
+  name: '满月呼唤者',
   colour: 'purple',
   has: () => {
     // 只有在满月之夜且是法师职业时才显示
@@ -209,28 +211,28 @@ maplebirch.tool.patch.traits.add({
         "traits": [
           {
             "title": "General Traits",
-            "name": "strong",
+            "name": "强壮",
             "colour": "brown",
             "has": "V.strength > 70",
             "text": "力量过人，物理攻击+15%"
           },
           {
             "title": "General Traits",
-            "name": "agile",
+            "name": "敏捷",
             "colour": "teal",
             "has": "V.dexterity > 70",
             "text": "身手敏捷，闪避率+10%"
           },
           {
             "title": "School Traits",
-            "name": "honor_student",
+            "name": "优等生",
             "colour": "yellow",
             "has": "V.grades >= 90",
             "text": "优等生，学校声誉+20"
           },
           {
             "title": "Trauma Traits",
-            "name": "battle_scarred",
+            "name": "身经百战",
             "colour": "grey",
             "has": "V.battlesWon > 10",
             "text": "身经百战，战斗经验丰富"

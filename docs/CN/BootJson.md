@@ -36,7 +36,9 @@
     "addonName": "maplebirchAddon",
     "modVersion": ">=5.2.0",
     "params": {
-      "script": ["framework.js"]
+      "script": [
+        "framework.js"
+      ]
     }
   }
 ]
@@ -60,7 +62,9 @@
 **`script`** 是最常用的脚本加载字段。大多数模组功能都应放在这里。
 
 ```json
-"script": ["framework.js"]
+"script": [
+  "framework.js"
+]
 ```
 
 多个文件会按数组顺序加载：
@@ -91,7 +95,9 @@
 **`module`** 比 **`script`** 更早执行，适合需要参与框架模块扩展的脚本。
 
 ```json
-"module": ["modules/register.js"]
+"module": [
+  "modules/register.js"
+]
 ```
 
 多数模组不需要使用 **`module`**。如果只是注册 NPC、事件、战斗按钮或选项页，使用 **`script`** 即可。
@@ -105,7 +111,10 @@
 默认写法：
 
 ```json
-"language": ["CN", "EN"]
+"language": [
+  "CN",
+  "EN"
+]
 ```
 
 自定义文件路径：
@@ -134,8 +143,14 @@
 
 ```json
 "language": {
-  "CN": ["i18n/CN/common.yml", "i18n/CN/npc.yml"],
-  "EN": ["i18n/EN/common.yml", "i18n/EN/npc.yml"]
+  "CN": [
+    "i18n/CN/common.yml",
+    "i18n/CN/npc.yml"
+  ],
+  "EN": [
+    "i18n/EN/common.yml",
+    "i18n/EN/npc.yml"
+  ]
 }
 ```
 
@@ -157,13 +172,18 @@ maplebirch.auto('Known source text');
 用于导入模组内的音频目录。
 
 ```json
-"audio": ["audio"]
+"audio": [
+  "audio"
+]
 ```
 
 多个目录：
 
 ```json
-"audio": ["audio/bgm", "audio/se"]
+"audio": [
+  "audio/bgm",
+  "audio/se"
+]
 ```
 
 脚本中播放：
@@ -215,8 +235,13 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
   "addto": "StatusBar",
   "widget": {
     "widget": "CombatStatus",
-    "passage": ["Combat", "Struggle"],
-    "exclude": ["Victory"]
+    "passage": [
+      "Combat",
+      "Struggle"
+    ],
+    "exclude": [
+      "Victory"
+    ]
   }
 }
 ```
@@ -273,6 +298,9 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
     "bodywriting": "data/bodywriting.yaml"
   },
   {
+    "featBoosts": "data/feat-boosts.json"
+  },
+  {
     "foodstuff": "data/foodstuff.yaml"
   },
   {
@@ -281,21 +309,21 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
   {
     "fish": "data/fish.json",
     "bait": "data/bait.yaml",
-    "fishingLocations": "data/fishing-locations.yaml"
+    "locations": "data/fishing-locations.yaml"
   }
 ]
 ```
 
 同一个 **`framework`** 对象可以声明多个数据字段。每个字段都支持文件路径或路径数组。多个文件按顺序读取，内容使用下表中的格式：
 
-| 字段                                                   | 内容格式                                      |
-| :----------------------------------------------------- | :-------------------------------------------- |
-| `traits`                                               | 特质配置数组                                  |
-| `tips`                                                 | 提示文本数组，或分类到文本数组的对象          |
-| `bodywriting`、`foodstuff`、`antiques`、`fish`、`bait` | 以唯一标识为键的对象，或每项包含 `key` 的数组 |
-| `fishingLocations`                                     | 钓点到鱼类权重的对象                          |
+| 字段                                                                 | 内容格式                                      |
+| :------------------------------------------------------------------- | :-------------------------------------------- |
+| `traits`                                                             | 特质配置数组                                  |
+| `tips`                                                               | 提示文本数组，或分类到文本数组的对象          |
+| `bodywriting`、`featBoosts`、`foodstuff`、`antiques`、`fish`、`bait` | 以唯一标识为键的对象，或每项包含 `key` 的数组 |
+| `locations`                                                          | 钓点到鱼类权重的对象                          |
 
-这些内容也可以直接内联。按键注册的数据重复时，以后注册的配置为准。`fish`、`bait` 和 `fishingLocations` 对应原版 0.5.12.13 的钓鱼系统。
+这些内容也可以直接内联。补丁数据按键覆盖。`fish`、`bait` 和 `locations` 对应原版 0.5.12.13 的钓鱼系统。
 
 `tips.json` 可以直接写字符串数组，默认加入原版始终启用的 `general` 分类：
 
@@ -383,7 +411,14 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
   "Transformation": {
     "Example": {
       "wolf": {
-        "parts": { "wolf_ears": { "level": 1 }, "wolf_tail": { "level": 2 } }
+        "parts": {
+          "wolf_ears": {
+            "level": 1
+          },
+          "wolf_tail": {
+            "level": 2
+          }
+        }
       }
     }
   },
@@ -391,13 +426,29 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
     "Example": {
       "canBePregnant": true,
       "canImpregnatePlayer": true,
-      "cycle": { "days": [26, 30], "dangerousDay": 14, "fertileLeadDays": [4, 6] }
+      "cycle": {
+        "days": [
+          26,
+          30
+        ],
+        "dangerousDay": 14,
+        "fertileLeadDays": [
+          4,
+          6
+        ]
+      }
     }
   },
   "Sidebar": {
-    "image": ["img/npc/example.png"],
-    "clothes": ["npc/clothes.yml"],
-    "config": ["npc/sidebar.yml"]
+    "image": [
+      "img/npc/example.png"
+    ],
+    "clothes": [
+      "npc/clothes.yml"
+    ],
+    "config": [
+      "npc/sidebar.yml"
+    ]
   }
 }
 ```
@@ -426,7 +477,9 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
         "CN": "language/cn.yml",
         "EN": "language/en.yml"
       },
-      "audio": ["audio"],
+      "audio": [
+        "audio"
+      ],
       "framework": [
         {
           "addto": "Options",
@@ -436,7 +489,9 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
           "addto": "StatusBar",
           "widget": {
             "widget": "MyModStatus",
-            "exclude": ["Start"]
+            "exclude": [
+              "Start"
+            ]
           }
         }
       ],

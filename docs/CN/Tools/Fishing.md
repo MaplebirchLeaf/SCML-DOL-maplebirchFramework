@@ -22,17 +22,23 @@ maplebirch.tool.patch.fishing.configure(location, weights);
 下面注册一条新鱼及其偏好的鱼饵，并调整码头权重。示例假设模组已提供 `fish/my-mod-silverfish.png`：
 
 ```javascript
-maplebirch.tool.patch.fishing.addBait('my_mod_grub', { name: 'river grub' });
+maplebirch.tool.patch.fishing.addBait('my_mod_grub', {
+  name: '河边幼虫'
+});
 
 maplebirch.tool.patch.fishing.add('my_mod_silverfish', {
   minSize: 10,
   maxSize: 35,
-  locations: { fishingPier: 0.7 },
+  locations: {
+    fishingPier: 0.7
+  },
   preferredBait: 'my_mod_grub',
   icon: 'fish/my-mod-silverfish.png'
 });
 
-maplebirch.tool.patch.fishing.configure('fishingPier', { my_mod_silverfish: 1.2 });
+maplebirch.tool.patch.fishing.configure('fishingPier', {
+  my_mod_silverfish: 1.2
+});
 ```
 
 ## 配置字段
@@ -71,7 +77,7 @@ maplebirch.tool.patch.fishing.configure('fishingPier', { my_mod_silverfish: 1.2 
 fishingBeach / fishingPier / fishingCoastPath / fishingForestLake / fishingMoor
 ```
 
-`configure(location, weights)` 调整现有钓点中各鱼类的权重，`0` 表示该处不出现此鱼。鱼类键必须在应用配置时存在，否则报错。此接口只调整鱼类分布，钓点入口、发现条件和剧情由 Mod 提供。旧版本缺少 `setup.fishing` 时会跳过钓鱼配置。
+`configure(location, weights)` 调整现有钓点中各鱼类的权重，`0` 表示该处不出现此鱼。鱼类键必须在应用配置时存在，否则报错。此接口只调整鱼类分布，钓点入口、发现条件和剧情由 Mod 提供。
 
 ## boot.json
 
@@ -80,12 +86,16 @@ fishingBeach / fishingPier / fishingCoastPath / fishingForestLake / fishingMoor
   "framework": {
     "fish": "data/fish.json",
     "bait": "data/bait.yaml",
-    "fishingLocations": { "fishingPier": { "salmon": 1.25 } }
+    "locations": {
+      "fishingPier": {
+        "salmon": 1.25
+      }
+    }
   }
 }
 ```
 
-`fish`、`bait` 支持键值对象或带 `key` 的数组。`fishingLocations` 使用钓点到鱼类权重的对象。文件写法和完整 addon 结构见 [boot.json 配置](../BootJson.md)。
+`fish`、`bait` 支持键值对象或带 `key` 的数组。`locations` 使用钓点到鱼类权重的对象。文件写法和完整 addon 结构见 [boot.json 配置](../BootJson.md)。
 
 ## 相关文档
 

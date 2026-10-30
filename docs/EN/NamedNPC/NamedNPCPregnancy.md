@@ -1,22 +1,32 @@
 # NPC Pregnancy
 
-> [!IMPORTANT]
-> This feature depends on the target DoL version's native NPC pregnancy API. Check `maplebirch.npc.Pregnancy.available` before querying state or rolling for conception; registration may run while your mod script loads.
+`maplebirch.npc.Pregnancy` integrates named NPCs with the native 0.5.12.13 pregnancy API. It provides content-list registration, cycle configuration, queries and conception rolls. Native code still owns pregnancy records, time progression, child generation and birth.
 
-`maplebirch.npc.Pregnancy` registers named NPCs with the original 0.5.12.13 pregnancy system and provides cycle configuration, story queries, and conception rolls. The original game continues to own pregnancy records, time progression, child generation, and birth.
+## Registration and Runtime Boundaries
 
-Call `add()` while loading your mod script; query state or roll for conception only after the game has initialized and loaded the NPC. Check `maplebirch.npc.Pregnancy.available` before calling: `get()` and `tryConceive()` throw if the original pregnancy API is unavailable or the NPC name is unknown.
+- Call `add()` from your loading script to register configuration.
+- Query or roll only after game and character-record initialization.
+- `available` checks for native API functions, not character existence, enabled cycles or conception eligibility.
+- Check both `available` and the current character, such as `C.npc.Luna`. Missing APIs or unknown characters make `get()` and `tryConceive()` throw.
+
+`NPCData.pregnancy` contains cycle and switch state. It is separate from the active records in `get().pregnancies`; do not put the record array in the character's `pregnancy` field.
 
 ## Registration
 
-The registration key is the NPC's `nam`; it does not use a mod prefix.
+Use the character's `nam`, matching [NPC Registration](NamedNPC.md):
 
 ```javascript
-maplebirch.npc.add({ nam: 'Example', gender: 'f', type: 'human' });
+maplebirch.npc.add({
+  nam: 'Luna',
+  gender: 'f',
+  adult: 1,
+  teen: 0,
+  type: 'human'
+});
 
-maplebirch.npc.Pregnancy.add('Example', {
+maplebirch.npc.Pregnancy.add('Luna', {
   canBePregnant: true,
-  canImpregnatePlayer: true,
+  canImpregnatePlayer: false,
   cycle: {
     days: [26, 30],
     dangerousDay: 14,
@@ -28,59 +38,75 @@ maplebirch.npc.Pregnancy.add('Example', {
 });
 ```
 
-Static configuration can also go in [`npc.Pregnancy` in `boot.json`](../BootJson.md#npc). Do not configure different cycles for the same NPC in both places. `canBePregnant` and `canImpregnatePlayer` add NPCs to original content lists; they do not remove existing entries.
+The list flags only add a character to native content lists; they do not remove existing members. They do not change anatomy, bypass content settings or generate pregnancy/birth scenes.
 
-| Option                  | Default  | Purpose                                       |
-| :---------------------- | :------- | :-------------------------------------------- |
-| `canBePregnant`         | `true`   | Adds completed carrier content                |
-| `canImpregnatePlayer`   | `false`  | Adds completed player-impregnation content    |
-| `cycle.days`            | Original | Fixed cycle length or `[minimum, maximum]`    |
-| `cycle.dangerousDay`    | Original | Ovulation danger day                          |
-| `cycle.fertileLeadDays` | Original | Fixed fertile lead or a random range          |
-| `cycle.pills`           | Original | `contraceptive`, `fertility`, or `null`       |
-| `cycle.analEnabled`     | Original | Enables the original anal pregnancy check     |
-| `cycle.avoidance`       | Original | Contraception tendency from `0` through `100` |
+| Option                  | Default | Meaning                                                       |
+| :---------------------- | :------ | :------------------------------------------------------------ |
+| `canBePregnant`         | `true`  | Add to the native carrier-content list                        |
+| `canImpregnatePlayer`   | `false` | Add to the native player-impregnation content list            |
+| `cycle.days`            | Native  | Fixed cycle days or `[minimum, maximum]`                      |
+| `cycle.dangerousDay`    | Native  | Positive-integer danger day, no later than the shortest cycle |
+| `cycle.fertileLeadDays` | Native  | Fixed positive fertile lead or a random range                 |
+| `cycle.pills`           | Native  | `'contraceptive'`, `'fertility'` or `null`                    |
+| `cycle.analEnabled`     | Native  | Native anal pregnancy switch                                  |
+| `cycle.avoidance`       | Native  | Finite contraception tendency from `0` through `100`          |
 
-`days` and `fertileLeadDays` must be positive integers or ordered positive-integer ranges. `dangerousDay` requires `days` and cannot exceed the shortest cycle. Invalid configurations throw from `add()`.
+`days` and `fertileLeadDays` accept positive integers or two positive integer endpoints with minimum no greater than maximum. `dangerousDay` requires `days`. Invalid configuration throws from `add()`, which returns the service itself. Registering the same character again replaces its configuration.
 
-Cycle configuration is applied once. Existing saves retain their current cycle day, clamped when it exceeds the new cycle length. Later loads do not reset the cycle or overwrite saved switches.
+Cycle configuration applies once per character in each save. An existing cycle retains its current day, clamped to the new range if necessary; a newly initialized cycle may randomize its starting day. Later loads do not reset it, and changed registration does not reconfigure an already initialized cycle. Native flows maintain saved cycles and switches.
 
-## Story State
+## Static boot.json Configuration
 
-```javascript
-const pregnancy = maplebirch.npc.Pregnancy.get('Example');
-```
+Place this structure inside `maplebirchAddon`'s `params`:
 
-The result groups the values commonly needed by a story:
-
-```javascript
+```json
 {
-  cycle: {
-    enabled,
-    day,
-    days,
-    dangerousDay,
-    fertileLeadDays,
-    fertility,
-    pills,
-    analEnabled,
-    avoidance
-  },
-  pregnancies,
-  progress,
-  dueDate,
-  belly
+  "npc": {
+    "Pregnancy": {
+      "Luna": {
+        "canBePregnant": true,
+        "cycle": {
+          "days": 28,
+          "dangerousDay": 14
+        }
+      }
+    }
+  }
 }
 ```
 
-`pregnancies` contains the active records returned by the original game. `fertility` is the original current fertility multiplier from `0` through `1`. `progress` is the first active pregnancy's progress from `0` through `1`, or `null`. `dueDate` is an original game timestamp, and `belly` uses the original belly-size calculation.
+Choose one registration entry point for the same cycle to avoid conflicting values. See [boot.json Configuration](../BootJson.md#npc) for the outer structure. `npc.Pregnancy` does not replace character registration through `npc.NamedNPC`.
+
+## Queries
+
+Run after character data is loaded:
+
+```javascript
+if (maplebirch.npc.Pregnancy.available && C.npc.Luna) {
+  const status = maplebirch.npc.Pregnancy.get('Luna');
+  console.log(status.cycle.enabled, status.progress, status.dueDate);
+}
+```
+
+| Result field                                           | Meaning                                                                  |
+| :----------------------------------------------------- | :----------------------------------------------------------------------- |
+| `cycle.enabled`                                        | Whether the native cycle is enabled                                      |
+| `cycle.day`, `days`, `dangerousDay`, `fertileLeadDays` | Current cycle data; missing numbers are `null`                           |
+| `cycle.fertility`                                      | Current native fertility multiplier from `0` through `1`                 |
+| `cycle.pills`, `analEnabled`, `avoidance`              | Medication, anal switch and avoidance; absent avoidance is `null`        |
+| `pregnancies`                                          | Native active-pregnancy record array                                     |
+| `progress`                                             | First active pregnancy's progress from `0` through `1`, otherwise `null` |
+| `dueDate`                                              | First active pregnancy's native timestamp, otherwise `null`              |
+| `belly`                                                | Native belly-size calculation                                            |
+
+Use results for story queries. Do not fabricate conception, delivery or knowledge by editing the returned data; use native APIs for those changes.
 
 ## Story Conception Roll
 
-After a custom story explicitly describes internal ejaculation, it can request one original NPC conception roll:
+Request one native roll only after the corresponding event actually occurs in your story:
 
 ```javascript
-const record = maplebirch.npc.Pregnancy.tryConceive('Example', {
+const record = maplebirch.npc.Pregnancy.tryConceive('Luna', {
   donor: 'pc',
   orifice: 'vagina',
   depth: 'deep',
@@ -91,8 +117,19 @@ const record = maplebirch.npc.Pregnancy.tryConceive('Example', {
 });
 ```
 
-The method returns the original pregnancy record on success and `null` otherwise. It retains the original chance, cycle, pills, content settings, infertility list, and existing-pregnancy checks; it does not force conception.
+Check the runtime requirements first. Success returns a native pregnancy record; an unsuccessful roll returns `null`. Every call makes a new roll, so keep it out of display, schedule and repeatedly evaluated condition callbacks.
 
-`donor` defaults to player `pc`; `fertility` defaults to `1` and must be finite and non-negative. If omitted, `orifice` is selected from the NPC's body data; specify it explicitly for a particular story scene. `aware` and `donorKnown` record the player's knowledge of the pregnancy and donor, respectively; they do not inform every character. Each call requests one original conception roll, so invoke it only when the corresponding story event occurs.
+| Argument       | Default and meaning                                                                                         |
+| :------------- | :---------------------------------------------------------------------------------------------------------- |
+| `donor`        | Defaults to `'pc'`; other named donors must exist in native character records                               |
+| `donorSpecies` | Player defaults to `'human'`; a named donor defaults to its base `type`; specify unusual sources explicitly |
+| `orifice`      | `'vagina'` or `'anus'`, chosen from anatomy if omitted; incompatible anatomy returns `null`                 |
+| `depth`        | `'outside' / 'imminent' / 'deep'`, passed to native checks                                                  |
+| `location`     | Location passed to the native record                                                                        |
+| `fertility`    | Defaults to `1`; finite and nonnegative, not a guaranteed success probability                               |
+| `aware`        | Records player knowledge of this pregnancy                                                                  |
+| `donorKnown`   | Records player knowledge of the donor, not universal character knowledge                                    |
 
-The NPC and donor must use an original reproductive species: `human`, `wolf`, `wolfboy`, `wolfgirl`, `hawk`, or `harpy`. The framework does not add child species or replace original combat conception, daily progression, or birth.
+Native chance, cycle, pills, content settings, infertility and existing-pregnancy checks remain. `canImpregnatePlayer` does not turn this into an API for impregnating the player: `tryConceive(name)` always names the NPC carrier.
+
+Supported native reproductive species are `human`, `wolf`, `wolfboy`, `wolfgirl`, `hawk` and `harpy`. NPC transformation identity does not automatically change the base `type` or this species selection. The framework adds no child species and does not replace native combat rolls, daily progression or delivery.

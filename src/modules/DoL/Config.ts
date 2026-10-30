@@ -9,6 +9,7 @@ import type { ZonesManager, ZoneWidgetConfig } from '../Frameworks/ZonesManager'
 import type { Patches } from './Patches';
 import type { TraitConfig } from './Patches/Traits';
 import type { BodywritingConfig } from './Patches/Bodywriting';
+import type { FeatBoostConfig } from './Patches/FeatBoosts';
 import type { FoodstuffConfig } from './Patches/Foodstuff';
 import type { AntiqueConfig } from './Patches/Antiques';
 import type { FishConfig, FishingLocation } from './Patches/Fishing';
@@ -28,6 +29,7 @@ interface TraitBootConfig {
 
 type TraitConfigSource = TraitBootConfig[] | ConfigFileSource;
 type BodywritingConfigSource = KeyedConfig<BodywritingConfig>[] | Record<string, BodywritingConfig> | ConfigFileSource;
+type FeatBoostConfigSource = KeyedConfig<FeatBoostConfig>[] | Record<string, FeatBoostConfig> | ConfigFileSource;
 type FoodstuffConfigSource = KeyedConfig<FoodstuffConfig>[] | Record<string, FoodstuffConfig> | ConfigFileSource;
 type AntiquesConfigSource = KeyedConfig<AntiqueConfig>[] | Record<string, AntiqueConfig> | ConfigFileSource;
 type TipsConfigSource = string[] | Record<string, string[]> | ConfigFileSource;
@@ -35,12 +37,13 @@ type FrameworkWidgetConfig = string | ZoneWidgetConfig | [number, string | ZoneW
 export interface FrameworkConfig {
   traits?: TraitConfigSource;
   bodywriting?: BodywritingConfigSource;
+  featBoosts?: FeatBoostConfigSource;
   foodstuff?: FoodstuffConfigSource;
   antiques?: AntiquesConfigSource;
   tips?: TipsConfigSource;
   fish?: KeyedConfig<FishConfig>[] | Record<string, FishConfig> | ConfigFileSource;
   bait?: FoodstuffConfigSource;
-  fishingLocations?: Partial<Record<FishingLocation, Record<string, number>>> | ConfigFileSource;
+  locations?: Partial<Record<FishingLocation, Record<string, number>>> | ConfigFileSource;
   addto?: string;
   widget?: FrameworkWidgetConfig;
 }
@@ -55,19 +58,20 @@ class FrameworkConfigLoader {
     private readonly patch: Patches,
     private readonly zone: ZonesManager
   ) {
-    const { bodywriting, foodstuff, antiques, fishing } = patch;
+    const { bodywriting, featBoosts, foodstuff, antiques, fishing } = patch;
     this.handlers = {
       traits: (name, source) => {
         if (!Array.isArray(source)) throw new Error('traits 配置必须为数组');
         for (const trait of source) this.addTrait(name, trait);
       },
       bodywriting: (name, source) => this.addKeyedConfig(name, 'bodywriting', source, bodywriting.add),
+      featBoosts: (name, source) => this.addKeyedConfig(name, 'featBoosts', source, featBoosts.add),
       foodstuff: (name, source) => this.addKeyedConfig(name, 'foodstuff', source, foodstuff.add),
       antiques: (name, source) => this.addKeyedConfig(name, 'antiques', source, antiques.add),
       fish: (name, source) => this.addKeyedConfig(name, 'fish', source, fishing.add),
       bait: (name, source) => this.addKeyedConfig(name, 'bait', source, fishing.addBait),
-      fishingLocations: (name, source) => {
-        if (!isRecord(source)) throw new Error('fishingLocations 配置必须为对象');
+      locations: (name, source) => {
+        if (!isRecord(source)) throw new Error('locations 配置必须为对象');
         for (const [location, weights] of Object.entries(source)) {
           if (!isRecord(weights) || !Object.values(weights).every(weight => typeof weight === 'number') || !fishing.configure(location as FishingLocation, weights as Record<string, number>)) {
             this.core.log(`${name} 的钓点配置无效: ${location}`, 'WARN');

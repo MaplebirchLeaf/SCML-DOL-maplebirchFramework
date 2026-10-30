@@ -26,7 +26,7 @@ maplebirch.define(name, module, dependencies);
 ```javascript
 maplebirch.define('myModule', {
   Init() {
-    this.log('module initialized', 'INFO');
+    this.log('模块已初始化', 'INFO');
   }
 });
 ```
@@ -38,7 +38,7 @@ maplebirch.define(
   'myModule',
   {
     Init() {
-      this.log('runs after tool and npc', 'INFO');
+      this.log('在 tool 和 npc 初始化后执行', 'INFO');
     }
   },
   ['tool', 'npc']
@@ -70,7 +70,7 @@ maplebirch.define(
   {
     enabled: true,
     Init() {
-      this.log('feature initialized');
+      this.log('功能已初始化');
     }
   },
   ['tool']
@@ -107,7 +107,9 @@ declare module '@scml-dol-maplebirch/types' {
 maplebirch.var.options.define('MyModFeature', {
   enabled: true,
   volume: 0.5,
-  display: { hints: true }
+  display: {
+    hints: true
+  }
 });
 ```
 
@@ -121,7 +123,7 @@ maplebirch.var.options.define('MyModFeature', {
 maplebirch.define('myApi', {
   exposed: true,
   hello() {
-    return 'Hello';
+    return '你好';
   }
 });
 
@@ -191,8 +193,10 @@ console.log(maplebirch.dependencyGraph.npc);
 | :----------- | :---------------------------------------------------- | :---------------------------------- |
 | `preInit()`  | `afterInjectEarlyLoad` 后，IndexedDB 与日志准备完成后 | 提前准备资源、配置、缓存            |
 | `Init()`     | 首次进入正常游戏段落的 `:passagestart` 阶段           | 主初始化，此时可使用 `setup` 和 `V` |
-| `loadInit()` | SugarCube 读档回调中，临时切换到待载入变量后          | 恢复和存档相关的状态                |
+| `loadInit()` | 主初始化完成后的读档回调中，临时切换到待载入变量后    | 恢复和存档相关的状态                |
 | `postInit()` | 每次段落开始，主初始化或读档初始化后                  | 刷新段落级逻辑                      |
+
+首次从标题页载入存档时，会在载入段落执行 `Init()` 和 `postInit()`。首次载入也需要恢复的状态，应在 `Init()` 中一并处理。
 
 示例：
 

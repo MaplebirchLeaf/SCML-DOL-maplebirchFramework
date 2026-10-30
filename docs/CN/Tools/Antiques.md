@@ -16,12 +16,12 @@ maplebirch.tool.patch.antiques.add(key, config);
 
 ```javascript
 maplebirch.tool.patch.antiques.add('antiquemyitem', {
-  hint: '"For a curious little relic," Winter says.',
-  museum: 'The curious relic rests on a pedestal.',
+  hint: '温特说：“找一件奇妙的小遗物吧。”',
+  museum: '奇妙的遗物陈列在展台上。',
   name: 'Curious Relic',
   cn_name: '奇妙遗物',
-  journal: '"A curious little relic."',
-  journalName: 'Small relic',
+  journal: '一件奇妙的小遗物。',
+  journalName: '小遗物',
   icon: 'antiques/my-relic.png'
 });
 ```
@@ -30,7 +30,7 @@ maplebirch.tool.patch.antiques.add('antiquemyitem', {
 
 | 字段          | 说明                       |
 | :------------ | :------------------------- |
-| `hint`        | Winter 提示文本            |
+| `hint`        | 温特的提示文本             |
 | `museum`      | 古董放入博物馆后的展示文本 |
 | `name`        | 真实名称                   |
 | `cn_name`     | 中文显示名称，可选         |
@@ -38,6 +38,8 @@ maplebirch.tool.patch.antiques.add('antiquemyitem', {
 | `journalName` | 日志中使用的名称，可选     |
 | `icon`        | 图标路径                   |
 | `key`         | 数组配置时使用的唯一标识   |
+
+`name` 还用于拼接原版入口 `Museum <name>`，因此示例保留 `Curious Relic` 和 `Old Coin`。模组须提供 `Museum Curious Relic`、`Museum Old Coin` 两个对应段落。中文显示名称填写在 `cn_name`，其它描述文本可直接写中文。
 
 ## 状态流转
 
@@ -65,20 +67,20 @@ notFound -> found -> talk -> museum
   "framework": {
     "antiques": {
       "antiquemyitem": {
-        "hint": "\"For a curious little relic,\" Winter says.",
-        "museum": "The curious relic rests on a pedestal.",
+        "hint": "温特说：“找一件奇妙的小遗物吧。”",
+        "museum": "奇妙的遗物陈列在展台上。",
         "name": "Curious Relic",
         "cn_name": "奇妙遗物",
-        "journal": "\"A curious little relic.\"",
-        "journalName": "Small relic",
+        "journal": "一件奇妙的小遗物。",
+        "journalName": "小遗物",
         "icon": "antiques/my-relic.png"
       },
       "antiquemycoin": {
-        "hint": "\"For a small old coin,\" Winter says.",
-        "museum": "The old coin rests in a small display case.",
+        "hint": "温特说：“找一枚小小的旧硬币吧。”",
+        "museum": "旧硬币陈列在一个小展柜中。",
         "name": "Old Coin",
         "cn_name": "旧硬币",
-        "journal": "\"A small old coin.\"",
+        "journal": "一枚小小的旧硬币。",
         "icon": "antiques/my-coin.png"
       }
     }
@@ -100,18 +102,18 @@ notFound -> found -> talk -> museum
 
 ```yaml
 - key: antiquemyitem
-  hint: '"For a curious little relic," Winter says.'
-  museum: The curious relic rests on a pedestal.
+  hint: '温特说：“找一件奇妙的小遗物吧。”'
+  museum: 奇妙的遗物陈列在展台上。
   name: Curious Relic
   cn_name: 奇妙遗物
-  journal: '"A curious little relic."'
-  journalName: Small relic
+  journal: '一件奇妙的小遗物。'
+  journalName: 小遗物
   icon: antiques/my-relic.png
 - key: antiquemycoin
-  hint: '"For a small old coin," Winter says.'
-  museum: The old coin rests in a small display case.
+  hint: '温特说：“找一枚小小的旧硬币吧。”'
+  museum: 旧硬币陈列在一个小展柜中。
   name: Old Coin
   cn_name: 旧硬币
-  journal: '"A small old coin."'
+  journal: '一枚小小的旧硬币。'
   icon: antiques/my-coin.png
 ```

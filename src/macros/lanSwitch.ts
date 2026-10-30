@@ -20,7 +20,7 @@ export function _languageSwitch(this: MacroContext | void, ...lanObj: unknown[])
   if (!context?.output) return target[currentLanguage] ?? target[languages[0]] ?? text(lanObj[0]);
   try {
     const $container = jQuery('<span style="display: contents;"></span>');
-    const render = () => wiki($container, target[maplebirch.services.translator.language] ?? target[languages[0]] ?? '');
+    const render = context.createShadowWrapper(() => wiki($container, target[maplebirch.services.translator.language] ?? target[languages[0]] ?? ''));
     render();
     jQuery(context.output).append($container);
     bindLanguageUpdate($container, 'lanSwitch', render);

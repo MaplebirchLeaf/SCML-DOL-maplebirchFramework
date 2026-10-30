@@ -3,7 +3,6 @@ import { isKey } from './config';
 
 type Text = string | (() => string);
 
-/** 手动服用的扩展药片。库存与药效归调用模组管理，框架只接入原版药柜。 */
 export interface PillConfig {
   cn_name?: Text;
   description: Text;

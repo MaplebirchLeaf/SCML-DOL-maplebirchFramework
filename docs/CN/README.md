@@ -2,12 +2,30 @@
 
 [项目首页](../../README.md) · [English](../EN/README.md)
 
-这份文档按“先运行，再扩展”的顺序组织。只需阅读与你的模组相关的专题。配置字段和返回行为以各专题页为准。
+准备给游戏加一个人物、一段剧情，或是自己的选项页？可以从[快速开始](GettingStarted.md)写出第一个能运行的小功能，再按需要翻阅下面的专题。已经熟悉框架时，也可以直接查 [boot.json 配置](BootJson.md)和对应接口。
 
-> [!TIP]
-> 第一次使用？从[快速开始](GettingStarted.md)入手，再查阅[boot.json 配置](BootJson.md)。示例优先使用 `maplebirch` 顶层短接口。
+## 如何阅读示例
 
-文中的提示标注有固定含义：**TIP** 是推荐写法，**NOTE** 补充背景，**IMPORTANT** 是必须满足的前提，**WARNING** 提醒可能导致功能失效的情况。
+普通中文示例直接写中文，英文指南则使用英文；讲解翻译和多语言接口时，才会把两种语言放在一起。自己的内容也可以这样写，需要切换语言时再接入[翻译服务](Translator.md)或[语言宏](Macros.md#language)。
+
+示例里会同时出现框架接口、SugarCube 语法和游戏变量。先认清它们来自哪里，阅读起来会轻松一些：
+
+| 示例中的内容                        | 所属范围与写法                                         |
+| :---------------------------------- | :----------------------------------------------------- |
+| `maplebirch.*`                      | 框架接口，按专题页说明调用                             |
+| `<<widget>>`、`<<link>>`、`<<set>>` | SugarCube 语法，写在由 ModLoader 加载的 `.twee` 文件中 |
+| `V`、`C.npc`、`Time`、`<<pain>>`    | 游戏运行时提供的变量或接口，DoL 专题中的示例依赖它们   |
+| `myMod`、`My Mod ...`、`myMod...`   | 示例模组的标识、段落或 widget，需要由自己的模组提供    |
+
+JavaScript 通常写进 `boot.json` 的 `params.script` 所指定的文件；TypeScript 示例需要先编译。`V.myMod` 和 Twee 里的 `$myMod` 是同一份存档数据，`setup` 中的内容则留在本次运行中，不随存档保存。
+
+API 名称、配置键、原版标识和文件路径保留代码中的写法。像 `cn_name`、`writ_cn` 这样与固定语言有关的字段，会在对应专题中单独说明。
+
+## 按完整功能学习
+
+在[快速开始](GettingStarted.md)里看到脚本日志和自己的 widget 后，可以继续读[从示例到完整功能](Development.md)，了解文件怎么分、进度放在哪里，以及行动完成后怎样保存结果。
+
+想边看边做，可以打开 [NPC 公园约见与交谈实例](NamedNPC/Example.md)。它从三个文件开始，带你走过注册人物、安排日程、加入入口和完成交谈，再检查读档后的进度。衣柜、立绘和转化等专题可以等基本场景跑通后再加入，不必一次全部接入。
 
 ## 日常开发
 
@@ -39,8 +57,14 @@
 
 ### 数据注册
 
-- [特质](Tools/Traits.md) · [小贴士](Tools/Tips.md) · [身体文字](Tools/Bodywriting.md)
-- [食物](Tools/Foodstuff.md) · [钓鱼](Tools/Fishing.md) · [古董](Tools/Antiques.md)
+- [特质](Tools/Traits.md)
+- [小贴士](Tools/Tips.md)
+- [身体涂鸦](Tools/Bodywriting.md)
+- [开局成就加成](Tools/FeatBoosts.md)
+- [食物](Tools/Foodstuff.md)
+- [药片](Tools/Pills.md)
+- [钓鱼](Tools/Fishing.md)
+- [古董](Tools/Antiques.md)
 
 ## 进阶服务
 
@@ -52,5 +76,3 @@
 
 > [!NOTE]
 > 专题页中的 `services`、`infra`、`host` 是高级入口。一般模组优先使用 `maplebirch.on/once/off/after/trigger`、`t/auto`、`idb/define/with` 和 `log` 等顶层方法。
-
-- [药片](Tools/Pills.md)

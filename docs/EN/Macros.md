@@ -4,6 +4,8 @@
 
 The framework adds SugarCube macros for multilingual text, buttons, links, listboxes, radio options, and text output.
 
+Write single-language prose directly. SugarCube's own `<<button>>` and `<<link>>` are also available. Use the multilingual macros below when content or labels need to switch languages.
+
 ## Common Macros
 
 | Macro                      | Purpose                                |
@@ -19,12 +21,16 @@ The framework adds SugarCube macros for multilingual text, buttons, links, listb
 
 ## language
 
+Select content using `maplebirch.Language`. Put the language code on an `option` child tag, rather than on `language`. Child tags do not need a closing tag. If no option matches, nothing is output.
+
 ```twine
 <<language>>
-  <<option "CN">>中文内容<</option>>
-  <<option "EN">>English content<</option>>
+  <<option "CN">>中文内容
+  <<option "EN">>English content
 <</language>>
 ```
+
+Switching languages parses the selected block again. Keep the body for display; put assignments, resource costs and other state changes inside click handlers or the actual resolution logic.
 
 ## lanSwitch
 
@@ -245,5 +251,3 @@ maplebirch.tool.macro.wrap(
 ```
 
 This method returns no result. A missing macro produces a warning at installation. Multiple wrappers stack in registration order, with later wrappers on the outside.
-
-Put the language on an `option` child tag. `<<language 'CN'>>` does not select its body. Without a matching option, the result is empty.

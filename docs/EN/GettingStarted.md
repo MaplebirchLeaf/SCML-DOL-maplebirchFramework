@@ -1,31 +1,40 @@
 # Getting started
 
-Start here if this is your first DoL mod using `maplebirch`. Load one script successfully, then follow the feature pages you need.
+Begin with one small feature: load your own script and show “My Mod” in Options. Seeing both results tells you that ModLoader, the framework, and your files are connected.
 
 ## 1. Declare the dependency and load a script
 
-Add the following fields to your mod's `boot.json` (only the relevant fields are shown):
+Add these fields to your existing mod's `boot.json`. This is the framework integration portion; for complete files, compare it with the [NPC example](NamedNPC/Example.md).
 
 ```json
 {
-  "dependenceInfo": [{ "modName": "maplebirch", "version": ">=5.2.0" }],
+  "tweeFileList": ["widgets.twee"],
+  "dependenceInfo": [
+    {
+      "modName": "maplebirch",
+      "version": ">=5.2.0"
+    }
+  ],
   "addonPlugin": [
     {
       "modName": "maplebirch",
       "addonName": "maplebirchAddon",
       "modVersion": ">=5.2.0",
-      "params": { "script": ["framework.js"] }
+      "params": {
+        "script": ["framework.js"]
+      }
     }
   ]
 }
 ```
 
-> [!IMPORTANT]
-> `framework.js` is a path inside the mod ZIP, not an absolute filesystem path. Set the dependency version to the oldest framework version you actually tested.
+`framework.js` and `widgets.twee` are **paths inside the ZIP**. Match them to the packaged files rather than using absolute filesystem paths. Set the dependency range to the oldest framework version you actually tested and support.
 
-Put most mod code in `script`. Use `module` only for early framework-module extensions; see [boot.json configuration](BootJson.md) for all fields.
+Most mod code can go in `script`. Use `module` for earlier framework-module extensions when you need them. See [boot.json configuration](BootJson.md) for all fields.
 
 ## 2. Call the public API
+
+Open `framework.js` and add:
 
 ```javascript
 maplebirch.on(
@@ -39,14 +48,27 @@ maplebirch.on(
 maplebirch.tool.addTo('Options', 'MyModOptions');
 ```
 
-Your mod must provide `MyModOptions` as a SugarCube widget. `on()` listens for a framework event, while `tool.addTo()` places the widget in Options. See [events](Events.md) and [zones](Tools/Zones.md).
+This does two things: `on()` waits for the story to be ready before writing a log message, and `tool.addTo()` registers a widget name for Options.
 
-> [!TIP]
-> Prefer short `maplebirch` entry points such as `on()`, `t()`, `define()`, `with()`, and `log()`. Reach into `services`, `infra`, or `host` only for advanced needs.
+The page still needs the widget's contents. Put this definition in `widgets.twee`:
 
-Use `myMod:purpose` for your own event IDs, registration names, and translation keys (for example, `myMod:dailyCheck`). `V.myMod` is a variable object name and is not renamed by this convention.
+```twine
+:: My Mod Options [widget]
+<<widget "MyModOptions">>
+  <h3>My Mod</h3>
+  <p>Mod options have loaded.</p>
+<</widget>>
+```
+
+Package both files with `boot.json` and load the mod in your target game. The log should say “MyMod is ready”, and Options should show “My Mod”. The first confirms script execution; the second confirms that Twee loading and the zone entry are connected too.
+
+ModLoader reads `tweeFileList`; the framework handles `params.script` and `tool.addTo()`. Follow [events](Events.md) and [zones](Tools/Zones.md) to explore what each can do.
+
+For everyday work, use short entry points such as `maplebirch.on()`, `t()`, `define()`, `with()`, and `log()`. Reach into `services`, `infra`, or `host` when you need advanced features. Prefix your own event IDs, registration names, and translation keys, for example `myMod:dailyCheck`; `V.myMod` remains an ordinary variable object name.
 
 ## 3. Pick a next step
+
+With a small feature visible in the game, choose what you would like to add next:
 
 | Goal                             | Guide                                                                                 |
 | :------------------------------- | :------------------------------------------------------------------------------------ |
@@ -56,7 +78,6 @@ Use `myMod:purpose` for your own event IDs, registration names, and translation 
 | Add NPC data or outfits          | [NPC registration](NamedNPC/NamedNPC.md) / [NPC clothes](NamedNPC/NamedNPCClothes.md) |
 | Diagnose errors or loading order | [Modules and diagnostics](Modules.md)                                                 |
 
-> [!WARNING]
-> A successful build or type check does not prove that your mod loads in the target DoL, SugarCube, and ModLoader versions. Verify one running script before adding more features.
+To connect several APIs into a story, continue with the [development workflow](Development.md) or work through the [NPC park-meeting example](NamedNPC/Example.md). Load and use the result in your chosen DoL, SugarCube, and ModLoader versions: builds and type checks help with code, while page behavior and the story path still need an in-game check.
 
 [Back to documentation](README.md)

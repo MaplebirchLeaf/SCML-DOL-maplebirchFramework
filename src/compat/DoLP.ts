@@ -345,6 +345,10 @@ class DoLP {
     core.once(':addon:beforePatch', () => {
       const passage = core.services.addonPlugin.SC2DataManager.getSC2DataInfoAfterPatch().passageDataItems.map.get('Widgets modUpdate');
       if (!passage?.tags.includes('widget')) return;
+      for (const rule of core.tool.zone.widgetPassage.FeatsUI ?? []) {
+        if (!rule.to?.includes('patch.featBoosts.text($2, "upgrade")')) continue;
+        rule.srcmatch = /(<<widget "featsPointsMenuButtons">>(?:(?!<<\/widget>>)[\s\S])*?<<switch )(_name)(>>)/;
+      }
       core.tool.inject({
         widgetPassage: {
           'Widgets modUpdate': [

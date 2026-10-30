@@ -20,7 +20,9 @@ Put complex conditions and runtime logic in JavaScript files loaded through **`s
     "addonName": "maplebirchAddon",
     "modVersion": ">=5.2.0",
     "params": {
-      "script": ["framework.js"]
+      "script": [
+        "framework.js"
+      ]
     }
   }
 ]
@@ -53,7 +55,9 @@ Use **`script`** for most mod logic: NPC registration, dynamic events, combat ac
 ## module
 
 ```json
-"module": ["modules/register.js"]
+"module": [
+  "modules/register.js"
+]
 ```
 
 Use **`module`** only when you intentionally need earlier module-extension behavior. _Most mods do not need it._
@@ -61,7 +65,10 @@ Use **`module`** only when you intentionally need earlier module-extension behav
 ## language
 
 ```json
-"language": ["CN", "EN"]
+"language": [
+  "CN",
+  "EN"
+]
 ```
 
 Custom files:
@@ -77,8 +84,14 @@ To split one language across several files, use an ordered array. Later files ov
 
 ```json
 "language": {
-  "CN": ["i18n/CN/common.yml", "i18n/CN/npc.yml"],
-  "EN": ["i18n/EN/common.yml", "i18n/EN/npc.yml"]
+  "CN": [
+    "i18n/CN/common.yml",
+    "i18n/CN/npc.yml"
+  ],
+  "EN": [
+    "i18n/EN/common.yml",
+    "i18n/EN/npc.yml"
+  ]
 }
 ```
 
@@ -87,13 +100,18 @@ The object form's `file` field also accepts an array. Files for one language are
 ## audio
 
 ```json
-"audio": ["audio"]
+"audio": [
+  "audio"
+]
 ```
 
 Multiple folders:
 
 ```json
-"audio": ["audio/bgm", "audio/se"]
+"audio": [
+  "audio/bgm",
+  "audio/se"
+]
 ```
 
 ## framework
@@ -127,6 +145,9 @@ Register framework data:
     "bodywriting": "data/bodywriting.yaml"
   },
   {
+    "featBoosts": "data/feat-boosts.json"
+  },
+  {
     "foodstuff": "data/foodstuff.yaml"
   },
   {
@@ -135,21 +156,21 @@ Register framework data:
   {
     "fish": "data/fish.json",
     "bait": "data/bait.yaml",
-    "fishingLocations": "data/fishing-locations.yaml"
+    "locations": "data/fishing-locations.yaml"
   }
 ]
 ```
 
 A single **`framework`** object may contain multiple data fields. Each field accepts a path or array of paths to **`.json`**, **`.yaml`**, or **`.yml`** files. Files are read in order and use these formats:
 
-| Field                                                  | Content Format                                                         |
-| :----------------------------------------------------- | :--------------------------------------------------------------------- |
-| `traits`                                               | Array of trait configurations                                          |
-| `tips`                                                 | Array of tip strings, or an object mapping categories to string arrays |
-| `bodywriting`, `foodstuff`, `antiques`, `fish`, `bait` | Object keyed by unique id, or an array with `key` on each item         |
-| `fishingLocations`                                     | Object mapping fishing spots to fish weights                           |
+| Field                                                                | Content Format                                                         |
+| :------------------------------------------------------------------- | :--------------------------------------------------------------------- |
+| `traits`                                                             | Array of trait configurations                                          |
+| `tips`                                                               | Array of tip strings, or an object mapping categories to string arrays |
+| `bodywriting`, `featBoosts`, `foodstuff`, `antiques`, `fish`, `bait` | Object keyed by unique id, or an array with `key` on each item         |
+| `locations`                                                          | Object mapping fishing spots to fish weights                           |
 
-These formats also work inline. For keyed data, later registrations take precedence. `fish`, `bait`, and `fishingLocations` target the vanilla 0.5.12.13 fishing system.
+These formats also work inline. Patch data replaces earlier entries with the same key. `fish`, `bait`, and `locations` target the vanilla 0.5.12.13 fishing system.
 
 `tips.json` may be a string array. This adds every entry to vanilla's always-enabled `general` category:
 
@@ -190,7 +211,14 @@ Related docs:
   "Transformation": {
     "Example": {
       "wolf": {
-        "parts": { "wolf_ears": { "level": 1 }, "wolf_tail": { "level": 2 } }
+        "parts": {
+          "wolf_ears": {
+            "level": 1
+          },
+          "wolf_tail": {
+            "level": 2
+          }
+        }
       }
     }
   },
@@ -198,7 +226,17 @@ Related docs:
     "Example": {
       "canBePregnant": true,
       "canImpregnatePlayer": true,
-      "cycle": { "days": [26, 30], "dangerousDay": 14, "fertileLeadDays": [4, 6] }
+      "cycle": {
+        "days": [
+          26,
+          30
+        ],
+        "dangerousDay": 14,
+        "fertileLeadDays": [
+          4,
+          6
+        ]
+      }
     }
   },
   "Sidebar": {
@@ -240,7 +278,9 @@ Related docs:
         "CN": "language/cn.yml",
         "EN": "language/en.yml"
       },
-      "audio": ["audio"],
+      "audio": [
+        "audio"
+      ],
       "framework": {
         "addto": "Options",
         "widget": "MyModOptions"

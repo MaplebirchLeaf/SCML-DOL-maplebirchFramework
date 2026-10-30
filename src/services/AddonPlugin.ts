@@ -56,7 +56,6 @@ export interface AddonServices {
 }
 
 export class AddonPlugin extends Hooks<[BootTask], void> {
-  public onStart = false;
   public get resources(): Resources {
     return this.modloader!.resources;
   }
@@ -223,7 +222,6 @@ export class AddonPlugin extends Hooks<[BootTask], void> {
       const save = this.sugarcube.save(saveObj);
       void this.events.trigger(':onLoad', save);
       save.use(save.V, () => this.modules.run('load'));
-      if (!this.sugarcube.passage || this.blockedPassages.has(this.sugarcube.passage.title)) this.onStart = true;
     });
   }
 
@@ -236,11 +234,6 @@ export class AddonPlugin extends Hooks<[BootTask], void> {
     if (!this.sugarcube.passage || this.blockedPassages.has(this.sugarcube.passage.title)) return;
     this.modules.run('init');
     await this.events.trigger(':passagestart', passage, content);
-    if (this.onStart) {
-      const runtime = this.sugarcube.require();
-      runtime.Engine.show(runtime.State.passage);
-      this.onStart = false;
-    }
   }
 
   public async whenSC2PassageRender(passage: Passage, content: HTMLDivElement): Promise<void> {

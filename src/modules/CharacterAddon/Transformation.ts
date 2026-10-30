@@ -269,20 +269,22 @@ class Transformation {
   }
 
   public state(): void {
-    const collectNames = (list?: Part[]): string[] => {
-      if (!Array.isArray(list)) return [];
-      return list.map(part => part?.name).filter(Boolean);
-    };
-
     for (const [name, entry] of this.config) {
       dol.variables.maplebirch.transformation[name] ??= { level: 0, build: 0 };
+      const level = dol.variables.maplebirch.transformation[name].level;
       if (entry.parts?.length) {
         dol.variables.transformationParts[name] ??= {};
-        for (const partName of collectNames(entry.parts)) if (!(partName in dol.variables.transformationParts[name])) dol.variables.transformationParts[name][partName] = 'disabled';
+        for (const part of entry.parts) {
+          if (part?.name && !(part.name in dol.variables.transformationParts[name]))
+            dol.variables.transformationParts[name][part.name] = level >= part.tfRequired ? part.default || 'default' : 'disabled';
+        }
       }
       if (entry.traits?.length) {
         dol.variables.transformationParts.traits ??= {};
-        for (const traitName of collectNames(entry.traits)) if (!(traitName in dol.variables.transformationParts.traits)) dol.variables.transformationParts.traits[traitName] = 'disabled';
+        for (const trait of entry.traits) {
+          if (trait?.name && !(trait.name in dol.variables.transformationParts.traits))
+            dol.variables.transformationParts.traits[trait.name] = level >= trait.tfRequired ? trait.default || 'default' : 'disabled';
+        }
       }
     }
     for (const [name, parts] of Object.entries(this.chimeraDefaults)) {
@@ -357,9 +359,9 @@ class Transformation {
 
     for (const part of entry.parts) {
       if (!part.name || part.tfRequired === undefined) continue;
-      if (newLevel >= part.tfRequired) {
+      if (newLevel >= part.tfRequired && oldLevel < part.tfRequired) {
         dol.variables.transformationParts[name][part.name] = part.default || 'default';
-      } else if (oldLevel >= part.tfRequired) {
+      } else if (newLevel < part.tfRequired && oldLevel >= part.tfRequired) {
         dol.variables.transformationParts[name][part.name] = 'disabled';
       }
     }
@@ -368,9 +370,9 @@ class Transformation {
     dol.variables.transformationParts.traits ??= {};
     for (const trait of entry.traits) {
       if (!trait.name || trait.tfRequired === undefined) continue;
-      if (newLevel >= trait.tfRequired) {
+      if (newLevel >= trait.tfRequired && oldLevel < trait.tfRequired) {
         dol.variables.transformationParts.traits[trait.name] = trait.default || 'default';
-      } else if (oldLevel >= trait.tfRequired) {
+      } else if (newLevel < trait.tfRequired && oldLevel >= trait.tfRequired) {
         dol.variables.transformationParts.traits[trait.name] = 'disabled';
       }
     }

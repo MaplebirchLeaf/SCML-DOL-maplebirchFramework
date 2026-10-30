@@ -1,6 +1,22 @@
 # 状态事件
 
-状态事件在段落正文开始前（`gate`）或结束后（`append`）自动检查。注册时机是脚本加载或模块 `preInit()`，不要在每次段落渲染时重复注册。
+交谈结束后，想在页面末尾留一句提示；某件事还没处理，想等玩家回到指定地点时再出现——这些都可以交给状态事件。
+
+框架会在段落正文开始前检查 `gate`，在正文结束后检查 `append`。把事件登记在加载脚本或模块 `preInit()` 中，之后让它随着页面检查即可，不需要每次渲染都重新注册。
+
+[NPC 公园约见实例](../NamedNPC/Example.md)里就用 `append` 显示初次交谈后的提示。加信任仍然发生在玩家点击时，提示本身只负责把结果告诉玩家。
+
+## 先设计触发与完成
+
+| 环节            | 负责什么                 | 本页提醒示例                 |
+| :-------------- | :----------------------- | :--------------------------- |
+| 存档初始化      | 补缺失的状态，不重置进度 | `noticePending` 默认 `false` |
+| 实际行动        | 让事件进入待处理状态     | 行动成功后设为 `true`        |
+| `cond`          | 查询资格与页面范围       | 读取待处理标记               |
+| `action`        | 同步结算或消费待处理状态 | 派发后设为 `false`           |
+| `output` widget | 显示结果或提供后续行动   | 提醒文本与必要出口           |
+
+可以把待处理标记想成留给下个页面的一张便条：行动完成时写下它，条件读取它，准备显示时再收起来。初始化和读档补齐的方法见[开发流程](../Development.md#注册与存档初始化分开)。如果提示一直没有出现，先看看行动是否真的把标记设成了 `true`。
 
 ## 使用入口
 
@@ -47,7 +63,9 @@ maplebirch.dynamic.regStateEvent('gate', 'myMod:notice', {
     V.myMod.noticePending = false;
   },
   forceExit: false,
-  extra: { exclude: ['Start', 'Start2'] }
+  extra: {
+    exclude: ['Start', 'Start2']
+  }
 });
 ```
 
@@ -58,6 +76,24 @@ maplebirch.dynamic.regStateEvent('gate', 'myMod:notice', {
 <</widget>>
 ```
 
+这里的 `action` 会先清除标记，再渲染输出 widget，所以它记录的是这条提醒已交给页面显示。widget 直接输出文本即可；如果再次检查 `noticePending`，反而会因为标记已经清除而把提醒藏起来。玩家是否亲自确认，还需要下面这样的点击处理。
+
+如果提醒需要玩家确认，将上面注册中的 `action` 删除，保留 `cond`，并把 widget 改为：
+
+```twine
+:: My Mod Notices [widget]
+<<widget 'myModNotice'>>
+  <span class='teal'>你有一件事情需要处理。</span>
+  <<linkreplace '知道了'>>
+    <<set $myMod.noticePending to false>>
+    已确认。
+  <</linkreplace>>
+  <br><br>
+<</widget>>
+```
+
+这两种消费方式二选一，不要同时登记同名事件。后一种在点击前会保留待处理状态，重新进入符合条件的页面或读回未确认的存档时仍会提醒。状态事件只负责检查和输出，不提供持久化的“已读”机制。 页内 `linkreplace` 不会创建新历史段落；若确认必须随本次操作进入存档快照，应在真正离开提示场景的链接中清除标记。
+
 ## 替换正文的场景
 
 ```javascript
@@ -66,7 +102,9 @@ maplebirch.dynamic.regStateEvent('gate', 'myMod:encounter', {
   cond: () => V.myMod?.encounterPending === true,
   forceExit: true,
   priority: 10,
-  extra: { passage: ['My Mod Road'] }
+  extra: {
+    passage: ['My Mod Road']
+  }
 });
 ```
 
@@ -76,9 +114,9 @@ maplebirch.dynamic.regStateEvent('gate', 'myMod:encounter', {
 :: My Mod Encounters [widget]
 <<widget 'myModEncounter'>>
   有人挡住了去路。<br><br>
-  <<lanLink ['Leave', '离开'] 'My Mod Safe Place'>>
+  <<link '离开' 'My Mod Safe Place'>>
     <<set $myMod.encounterPending to false>>
-  <</lanLink>>
+  <</link>>
 <</widget>>
 ```
 

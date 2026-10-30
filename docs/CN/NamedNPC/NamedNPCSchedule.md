@@ -10,6 +10,14 @@ maplebirch.npc.addSchedule(npcName, config);
 
 当前接口只接收两个参数：NPC 名称和日程配置。日程配置可以是配置对象，也可以是一个 builder 函数。
 
+## 日程负责到哪一步
+
+日程返回的是“此 NPC 现在应在何处”的字符串标签。侧边栏衣柜会读取它；模组剧情也可主动查询。它不会生成相遇链接、调用 `npc`、增加当前 `$npc` 名单，也不会替换罗宾等原版人物专用的日程函数。
+
+`library`、`home` 等标签由模组约定，需与衣柜或剧情检查一致，不要求与 passage 标题相同。注册与修改日程在脚本中进行，当前没有对应的 `boot.json` 日程字段。
+
+`addSchedule()` 返回新 `Schedule`，并**替换该人物此前整份框架日程**。需要给已有日程增加一项时，使用 `Schedule.get(name).when(...)`；不要用第二次 `addSchedule()` 当作追加。以下示例均以模组人物 `Luna` 为例。
+
 ---
 
 ## 配置对象写法
@@ -17,9 +25,18 @@ maplebirch.npc.addSchedule(npcName, config);
 ```javascript
 maplebirch.npc.addSchedule('Luna', {
   daily: [
-    { time: 8, location: 'school' },
-    { time: [14, 16], location: 'library' },
-    { time: 18, location: 'home' }
+    {
+      time: 8,
+      location: 'school'
+    },
+    {
+      time: [14, 16],
+      location: 'library'
+    },
+    {
+      time: 18,
+      location: 'home'
+    }
   ],
   special: [
     {
@@ -36,6 +53,10 @@ maplebirch.npc.addSchedule('Luna', {
 
 `daily` 用于固定时间日程。
 
+单个小时是从该时刻起的地点记录，不表示只有那一小时能出现。查询时从当前小时往前找最近的一条，必要时跨午夜回查；整天都没记录才返回空字符串。范围 `[14, 16]` 会分别填写 14、15、16 三个小时，后面的空小时仍沿用最近记录。
+
+例如 `8 → school`、`14 → library`、`18 → home`，则 12 点仍在学校，17 点仍在图书馆，次日凌晨沿用家中记录。重复填写同一小时以后写入的值为准。范围两端必须是 `0` 至 `23` 的整数，开始不能大于结束；跨午夜请拆为两段。
+
 | 字段       | 说明                            |
 | :--------- | :------------------------------ |
 | `time`     | 小时，或 `[开始小时, 结束小时]` |
@@ -43,8 +64,14 @@ maplebirch.npc.addSchedule('Luna', {
 
 ```javascript
 daily: [
-  { time: 9, location: 'school' },
-  { time: [13, 15], location: 'gym' }
+  {
+    time: 9,
+    location: 'school'
+  },
+  {
+    time: [13, 15],
+    location: 'gym'
+  }
 ];
 ```
 
@@ -60,7 +87,7 @@ daily: [
 | `override`  | 是否优先于其它特殊日程        |
 | `before`    | 排在某个特殊日程之前          |
 | `after`     | 排在某个特殊日程之后          |
-| `insteadOf` | 替代某个特殊日程              |
+| `insteadOf` | 排在指定特殊日程之前          |
 
 ```javascript
 special: [
@@ -72,6 +99,10 @@ special: [
 ];
 ```
 
+特殊日程按顺序选第一条条件成立的项目。`insteadOf` 只影响排序，不会删除目标；当前项目不成立时，目标仍可触发。`before/after/insteadOf` 的相对排序用于同一人物的非 `override` 项目，`override` 项目作为优先组保留登记顺序。ID 应在该人物的日程内保持唯一。
+
+动态地点回调应返回有效字符串或一个子 `Schedule`。条件已经成立后返回空字符串或没有配置地点，不表示“继续尝试下一个特殊日程”；需要跳过时，把条件写在 `condition` 中。
+
 ---
 
 ## Builder 写法
@@ -79,7 +110,7 @@ special: [
 如果日程比较复杂，可以传入函数。函数会收到一个 `Schedule` 实例，可以链式调用 `at()` 和 `when()`。
 
 ```javascript
-maplebirch.npc.addSchedule('Robin', schedule => {
+maplebirch.npc.addSchedule('Luna', schedule => {
   schedule.at(7, 'home').at([8, 15], 'school').at(16, 'library').at(18, 'home');
 
   schedule.when(
@@ -89,7 +120,9 @@ maplebirch.npc.addSchedule('Robin', schedule => {
       if (V.money >= 100) return 'mall';
       return 'park';
     },
-    { id: 'weekend_activity' }
+    {
+      id: 'weekend_activity'
+    }
   );
 });
 ```
@@ -127,7 +160,9 @@ schedule.when(condition, location, options);
 | `options`   | 特殊日程选项                                     |
 
 ```javascript
-schedule.when(date => C.npc.Robin?.love >= 30 && date.weekEnd, 'arcade', { id: 'weekend_arcade' });
+schedule.when(date => C.npc.Luna?.love >= 30 && date.weekEnd, 'arcade', {
+  id: 'weekend_arcade'
+});
 ```
 
 动态地点：
@@ -139,7 +174,9 @@ schedule.when(
     if (Weather.name === 'rain') return 'home';
     return 'park';
   },
-  { id: 'weather_weekend' }
+  {
+    id: 'weather_weekend'
+  }
 );
 ```
 
@@ -148,7 +185,7 @@ schedule.when(
 ## 日程管理
 
 ```javascript
-const schedule = maplebirch.npc.Schedule.get('Robin');
+const schedule = maplebirch.npc.Schedule.get('Luna');
 
 console.log(schedule.location);
 console.log(maplebirch.npc.Schedule.location);
@@ -157,7 +194,7 @@ console.log(maplebirch.npc.Schedule.location);
 更新特殊日程：
 
 ```javascript
-maplebirch.npc.Schedule.update('Robin', 'weekend_arcade', {
+maplebirch.npc.Schedule.update('Luna', 'weekend_arcade', {
   location: 'mall'
 });
 ```
@@ -165,15 +202,19 @@ maplebirch.npc.Schedule.update('Robin', 'weekend_arcade', {
 删除特殊日程：
 
 ```javascript
-maplebirch.npc.Schedule.remove('Robin', 'weekend_arcade');
+maplebirch.npc.Schedule.remove('Luna', 'weekend_arcade');
 ```
 
 清空日程：
 
 ```javascript
-maplebirch.npc.Schedule.clear('Robin');
+maplebirch.npc.Schedule.clear('Luna');
 maplebirch.npc.Schedule.clearAll();
 ```
+
+`get(name)` 不存在时会创建空日程。`update/remove/clear` 返回该人物的 `Schedule`，`update/remove` 找不到项目 ID 时不会创建项目。`clearAll()` 会清除所有框架 NPC 日程，包括其它模组登记的内容；普通扩展优先只删除自己的项目。
+
+日程定义保存在运行时，重载脚本时重建。持久化任务状态放在模组存档中，由条件回调读取。回调可能因查询或重绘反复执行，只做判断，不推进时间或修改剧情进度。
 
 ---
 
@@ -204,6 +245,8 @@ date.isHour(8, 12, 18);
 date.isHourBetween(9, 16);
 date.isMinuteBetween(0, 30);
 ```
+
+`at([14, 16], ...)` 中数组表示小时区间；`date.isAt([14, 30])` 中数组表示 **14:30**，含义不同。`isAt(9)` 只匹配 09:00；`isAfter/isBefore` 为严格比较，`isBetween/isHourBetween/isMinuteBetween` 包含两端。日期比较方法不自动处理跨午夜区间，跨夜条件用两段或 `||` 表达。
 
 ---
 
