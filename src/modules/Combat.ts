@@ -33,10 +33,6 @@ class Combat {
     this.core.tool.define('companions-leave', function (...npcs: CompanionNPC[]) {
       this.output.append(companions.leave(...npcs));
     });
-    this.core.tool.define('maplebirchCompanionHeal', function (source: string, key: string) {
-      const member = companions.members.find(member => member.source === source && member.key === key);
-      if (member) this.output.append(companions.heal(member.npc));
-    });
     this.core.tool.macro.wrap(
       'pain',
       function (next) {
@@ -62,7 +58,6 @@ class Combat {
     this.core.tool.macro.wrap(
       'effectsman',
       function (next) {
-        companions.begin();
         const result = next();
         this.output.append(companions.turn());
         return result;
@@ -116,7 +111,6 @@ class Combat {
 
   private _generateCombatAction() {
     const CombatAction = this.CombatAction;
-    const companions = this.companions;
     const pendingDefaults = this.pendingDefaults;
     const log = this.log;
     const combatButtonAdjustments = this._combatButtonAdjustments.bind(this);
@@ -135,7 +129,6 @@ class Combat {
       const el = (val: string) => document.createElement(val);
 
       try {
-        if (actionType === 'mouthaction' && !combatType) companions.options();
         CombatAction.patchOptions(optionsTable, actionType, combatType);
       } catch (e) {
         log('mod战斗动作对象错误', 'ERROR', e);

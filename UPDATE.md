@@ -1,3 +1,15 @@
+##### (v.5.6.1更新日志):
+
+- 战斗同伴收束为自动协助，移除通用治疗菜单；角色专属主动动作使用现有 CombatAction 接口。
+- 精简同伴内部状态，保留生命、眩晕、重复结算与存读档保护，以及原版遭遇结束时的清理。
+- 补全中英文接口文档与配置示例，增加文档链接、表格及代码示例检查。
+
+**English**
+
+- Focus combat companions on automatic assistance and remove the generic treatment menu. Character-specific active actions use the existing CombatAction interface.
+- Simplify companion state while retaining health, stun, settlement and save/load guards, with cleanup through native encounter endings.
+- Expand bilingual API documentation and configuration examples, with checks for documentation links, tables and code examples.
+
 ##### (v.5.6.0更新日志):
 
 - 新增战斗同伴接口，支持独立生命、眩晕、援助、治疗与提前退场，沿用原版动作和遭遇结束流程。
