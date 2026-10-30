@@ -49,7 +49,17 @@ For multiple files in a language, use an ordered array. If `ui.yml` repeats a ke
 }
 ```
 
-The existing `"CN": { "file": "i18n/cn.yml" }` form still works; `file` may also be an array. The framework merges all files for one mod and language before updating its translations. Removing a file from the configuration list, or a key from a file, removes the old translation on the next import. A missing or invalid file still listed in the configuration leaves the previous set intact instead of importing only part of the list. Do not split one language across separate `language` configuration entries.
+Use one file list per language, ordered from shared text to UI-specific text. The `"CN": { "file": "i18n/cn.yml" }` form is also supported, including an array for `file`.
+
+On the next import:
+
+| Your change                                           | Result                                                                             |
+| :---------------------------------------------------- | :--------------------------------------------------------------------------------- |
+| Repeat a key in a later file                          | Use the later value                                                                |
+| Remove a file from the list, or a key from its file   | Remove old text supplied only by that source                                       |
+| Keep a file in the list, but it is missing or invalid | Log the error and retain the previous complete set; do not import a partial result |
+
+Keep one language's files together in the array rather than splitting them across separate `language` entries.
 
 ## Translation File
 
@@ -61,7 +71,18 @@ The existing `"CN": { "file": "i18n/cn.yml" }` form still works; `file` may also
 }
 ```
 
-Within a mod and language, later files override duplicate keys; between mods, later imports take priority. Prefix keys such as `myMod:category.name` to avoid accidental collisions. Files use flat key/value pairs: strings are accepted, numbers and booleans become text, and nested objects are ignored. JSON, YML, and YAML are supported.
+Keys may contain colons and dots while the file stays flat. For a UI category, write:
+
+```yaml
+# The dot is part of the key; do not wrap these in a nested ui object.
+myMod:ui.title: "Luna's news"
+myMod:ui.meet: 'Arrange a meeting'
+myMod:ui.cancel: 'Cancel the meeting'
+```
+
+Read the complete key, such as `maplebirch.t('myMod:ui.title')`. Nested objects are ignored; numbers and booleans become text. JSON, YML and YAML are supported.
+
+Later files in the same language override duplicate keys. Between mods, later imports take priority, so a `myMod:` prefix helps prevent accidental collisions.
 
 ## t()
 

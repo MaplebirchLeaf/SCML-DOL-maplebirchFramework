@@ -49,7 +49,7 @@ For a hands-on path, open the [NPC park-meeting example](NamedNPC/Example.md). S
 
 ### Characters and combat
 
-- [Character layers](Character/Character.md) · [Transformations](Character/Transformation.md) · [Transformation hints](Character/TransformHint.md)
+- [Character layers](Character/Character.md) · [Face styles](Character/FaceStyle.md) · [Transformations](Character/Transformation.md) · [Transformation hints](Character/TransformHint.md)
 - [NPC registration](NamedNPC/NamedNPC.md) · [Stats](NamedNPC/NamedNPCStats.md) · [Schedules](NamedNPC/NamedNPCSchedule.md)
 - [NPC clothes and wardrobe](NamedNPC/NamedNPCClothes.md) · [Sidebar](NamedNPC/NamedNPCSidebar.md) · [Transformations](NamedNPC/NamedNPCTransformation.md) · [Pregnancy](NamedNPC/NamedNPCPregnancy.md)
 - [Combat actions](Combat/Actions.md)

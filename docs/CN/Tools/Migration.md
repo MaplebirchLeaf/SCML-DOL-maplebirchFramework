@@ -32,7 +32,15 @@ migrator.run(data, '1.1.0');
 
 `add(from, to, apply)` 注册同步转换函数。`from` 可以是具体版本或 `'*'`。重复的版本组合和不能向前推进的步骤不会注册。
 
-`run(data, targetVersion)` 优先选择起点等于当前版本的步骤，否则使用通配步骤。同类候选中选择不超过目标版本的最高终点，因此跨度较大的步骤必须包含中间版本需要的转换。每一步成功后更新 `data.version`。没有可用步骤时停止，不会直接把版本写成目标值。
+假设存档是 `1.0.0`，目标是 `1.2.0`，框架会根据已登记的步骤选择路线：
+
+| 已登记的步骤                     | 执行顺序                           |
+| :------------------------------- | :--------------------------------- |
+| `1.0.0 → 1.1.0`、`1.1.0 → 1.2.0` | 先升级到 `1.1.0`，再到 `1.2.0`     |
+| 上面两步，再加 `1.0.0 → 1.2.0`   | 直接执行 `1.0.0 → 1.2.0`           |
+| 只有 `1.0.0 → 1.1.0`             | 停在 `1.1.0`，不会自行写成 `1.2.0` |
+
+**直接跨版本的步骤必须包含中间需要的转换。** 选择时，先找起点等于当前版本的步骤，没有才用 `'*'`；同类候选中，选择不超过目标版本的最高终点。每一步成功后才更新 `data.version`。
 
 步骤抛出异常时停止并向调用者抛出带有 `fromVersion`、`toVersion`、`cause` 的错误。已经发生的数据修改不会自动回滚。
 
@@ -56,7 +64,10 @@ migrator.run(data, '1.1.0');
 ## 填充默认值
 
 ```javascript
+const migrator = maplebirch.tool.migration.create();
+
 migrator.add('*', '1.2.0', (data, utils) => {
+  // 填缺失字段，保留玩家已选择的 false。
   utils.fill(data, {
     settings: {
       enabled: true,
@@ -65,6 +76,15 @@ migrator.add('*', '1.2.0', (data, utils) => {
     flags: {}
   });
 });
+
+const data = {
+  version: '1.1.0',
+  settings: { enabled: false } // 这个值已经保存，不能用默认 true 覆盖。
+};
+migrator.run(data, '1.2.0');
+
+console.log(data.settings); // { enabled: false, volume: 0.8 }
+console.log(data.version); // '1.2.0'
 ```
 
 `fill()` 保留已有标量和数组，递归补齐已有普通对象中的缺失字段，并跳过根对象的 `version`。例如 `{ settings: { enabled: false } }` 会保留 `false` 并补入 `volume`。

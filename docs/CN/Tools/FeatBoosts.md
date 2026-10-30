@@ -36,6 +36,32 @@ maplebirch.tool.patch.featBoosts.add('myMod:boost', {
 
 未指定 `max` 时，上限为已获得的前置成就数量乘以 `maxMultiplier` (默认 1)。无前置时按一项计算。`name`、`missing`、`text`、`upgrade` 可为字符串或返回字符串的函数，展示时经 `maplebirch.auto()` 翻译。
 
+## 补齐效果 widget
+
+**widgets.twee** — 加入 `tweeFileList`；宏名与上方 effect 保持一致。
+
+```twine
+:: My Mod Feat Boost [widget]
+<<widget "myModFeatBoost">>
+  /* 新周目可能尚无自己的变量对象，只创建缺失项。 */
+  <<if !$myMod>><<set $myMod to {}>><</if>>
+  <<set $myMod.featBoostApplied to true>>
+<</widget>>
+```
+
+**framework.js**
+
+```javascript
+maplebirch.tool.patch.traits.add({
+  title: 'General Traits',
+  name: '先行者',
+  colour: 'gold',
+  // 购买菜单不改此标记；只有新周目 effect 执行后显示。
+  has: () => V.myMod?.featBoostApplied === true,
+  text: '你带着成就加成开始了这一段旅程。'
+});
+```
+
 ## JSON 配置
 
 也可在 `boot.json` 的 `framework` 中单独配置：

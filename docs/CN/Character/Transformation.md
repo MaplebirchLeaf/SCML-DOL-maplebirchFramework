@@ -12,7 +12,7 @@ _可通过 `maplebirch.char.transformation.add` 注册。_
 模组可添加运行时条件，允许原版与框架注册的 `physical` 转化共同成长：
 
 ```javascript
-maplebirch.char.transformation.coexistConditions.push(() => myModule.hasCoexistTrait);
+maplebirch.char.transformation.coexistConditions.push(() => V.myMod?.hasCoexistTrait === true);
 ```
 
 任一条件返回 `true` 时，`coexist` 为真。每次成长结算会逐项检查动物转化，保留各自的门槛和成长来源，同时跳过相互抑制与自然衰退。明确扣除点数或清除转化的行为仍然有效，神圣转化不受此开关影响。未注册条件或所有条件为假时，保留默认规则。眷属项圈自身的效果不变。
@@ -48,8 +48,34 @@ maplebirch.tool.onInit(() => {
 `layers` 和 `combat.layers` 可以是图层表，也可以是返回图层表的函数。图层表直接登记，函数延后到游戏的 `StoryInit` 阶段执行，此时可读取已加载的原版 `Renderer.CanvasModels`。因此可在 `preInit` 登记转化和融合条件，不必等图像资源就绪。
 
 ```javascript
+// 两套图片都需放进 ZIP 并列入 imgFileList；zfn 按自己的素材层级调整。
+function dragonLayers() {
+  return {
+    myMod_dragon_tail: {
+      srcfn: () => 'img/transformations/dragon/tail.png',
+      showfn: () => isPartEnabled(V.transformationParts?.dragon?.tail ?? 'disabled'),
+      zfn: () => 0
+    }
+  };
+}
+
+function dragonCombatPre(options) {
+  options.myModDragonTail = isPartEnabled(V.transformationParts?.dragon?.tail ?? 'disabled');
+}
+
+const dragonCombatLayers = {
+  myMod_dragon_combat_tail: {
+    srcfn: () => 'img/transformations/dragon/combat-tail.png',
+    showfn: options => options.myModDragonTail,
+    zfn: () => 0
+  }
+};
+
 maplebirch.tool.onInit(() => {
   maplebirch.char.transformation.add('dragon', 'physical', {
+    build: 100,
+    level: 6,
+    update: [20, 40, 60, 80, 95, 100],
     parts: [
       {
         name: 'eyes',

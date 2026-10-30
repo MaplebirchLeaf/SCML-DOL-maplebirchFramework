@@ -6,6 +6,62 @@
 
 `maplebirch.dynamic.Weather` 还提供天气数据和渲染层的接入。它们和事件回调各有用途，后面会分别说明。
 
+## 完整示例：雨天与雨停提示
+
+**framework.js**
+
+```javascript
+function initWeatherNotice(variables) {
+  variables.myMod ??= {};
+  variables.myMod.weather ??= {};
+  variables.myMod.weather.notice ??= ''; // 读档时保留尚未显示的提示。
+}
+maplebirch.tool.onInit(() => initWeatherNotice(V));
+maplebirch.on(':onLoad', save => initWeatherNotice(save.V));
+
+maplebirch.dynamic.regWeatherEvent('myMod:rainNotice', {
+  // 雨属于 precipitation；name 是 clear、lightClouds 等天气类型。
+  condition: () => Boolean(V.myMod?.weather) && Weather.precipitation === 'rain',
+  onEnter: () => {
+    V.myMod.weather.notice = 'rain';
+  },
+  onExit: () => {
+    if (V.myMod?.weather) V.myMod.weather.notice = 'clear';
+  }
+});
+
+// 每种状态对应一个输出 widget；先清掉标记，再输出固定内容。
+for (const [state, widget] of [
+  ['rain', 'myModRainBegins'],
+  ['clear', 'myModRainEnds']
+]) {
+  maplebirch.dynamic.regStateEvent('gate', `myMod:weather:${state}`, {
+    output: widget,
+    cond: () => V.myMod?.weather?.notice === state,
+    action: () => {
+      V.myMod.weather.notice = '';
+    },
+    forceExit: false, // 显示提示后继续原页面。
+    extra: { exclude: ['Start', 'Start2'] }
+  });
+}
+```
+
+**widgets.twee** — 加入 boot.json 的 `tweeFileList`。
+
+```twine
+:: My Mod Weather Notices [widget]
+<<widget "myModRainBegins">>
+  <span class="blue">雨点落了下来。</span><br><br>
+<</widget>>
+
+<<widget "myModRainEnds">>
+  <span class="blue">雨渐渐停了。</span><br><br>
+<</widget>>
+```
+
+结果：天气通知进入下雨状态后，下一个合适页面显示一次提示；持续下雨时不重复进入。重新启动或切换存档不恢复天气事件的运行时激活集合，因此不要把 onEnter 当成一次性奖励的凭证。下面保留单独测试、条件匹配及渲染扩展的示例。
+
 ## 1. 可直接登记的最小事件
 
 把下面代码放在 `params.script` 加载的脚本中：

@@ -10,6 +10,8 @@ Use:
 maplebirch.tool.patch.traits.add(...traits);
 ```
 
+The example courage, resistance, and class values belong to your own story under `V.myMod`; they are not native fields.
+
 ## Basic Example
 
 ```javascript
@@ -43,7 +45,7 @@ maplebirch.tool.patch.traits.add({
   replace: /^(?:Rite of Promise:|承诺仪式：)/,
   name: () => 'Rite of Promise: ' + maplebirch.auto('Robin'),
   colour: 'blue',
-  has: () => V.myMod.promised,
+  has: () => V.myMod?.promised,
   text: 'A promise recognised by the temple.'
 });
 ```
@@ -68,13 +70,13 @@ maplebirch.tool.patch.traits.add({
   title: 'Medicinal Traits',
   name: 'Poison resistance',
   colour: () => {
-    const level = V.poisonResistance || 0;
+    const level = V.myMod?.poisonResistance ?? 0;
     if (level >= 80) return 'green';
     if (level >= 50) return 'yellow';
     return 'red';
   },
-  has: () => (V.poisonResistance || 0) > 0,
-  text: () => `Poison resistance: ${V.poisonResistance || 0}%`
+  has: () => (V.myMod?.poisonResistance ?? 0) > 0,
+  text: () => `Poison resistance: ${V.myMod?.poisonResistance ?? 0}%`
 });
 ```
 
@@ -92,14 +94,14 @@ maplebirch.tool.patch.traits.add({
             "title": "General Traits",
             "name": "Strong",
             "colour": "brown",
-            "has": "V.strength > 70",
+            "has": "V.myMod?.strength > 70",
             "text": "Strong enough to stand out."
           },
           {
             "title": "School Traits",
             "name": "Honor student",
             "colour": "yellow",
-            "has": "V.grades >= 90",
+            "has": "V.myMod?.grades >= 90",
             "text": "Known for strong grades."
           }
         ]

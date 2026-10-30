@@ -80,7 +80,7 @@ maplebirch.tool.patch.location.configure(
 maplebirch.tool.patch.location.configure(
   'forest_clearing',
   {
-    condition: () => Weather.name === 'rain'
+    condition: () => Weather.precipitation === 'rain'
   },
   {
     layer: 'base',
@@ -177,7 +177,7 @@ maplebirch.tool.patch.location.configure(
   {
     condition: () => {
       const night = Time.hour < 6 || Time.hour >= 18;
-      return Weather.name === 'snow' && night;
+      return Weather.precipitation === 'snow' && night;
     }
   },
   {

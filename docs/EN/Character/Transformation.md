@@ -37,8 +37,34 @@ Adapters can extend `animalTransforms`, `animalMacros`, `historyTransforms`, and
 `layers` and `combat.layers` accept a layer map or a function returning one. Layer maps register immediately. Functions run during the game's `StoryInit` phase, when native `Renderer.CanvasModels` are available. Transformations and chimera conditions can therefore register in `preInit` before image resources are ready.
 
 ```javascript
+// Supply both images in the ZIP/imgFileList; adjust zfn for the artwork layering.
+function dragonLayers() {
+  return {
+    myMod_dragon_tail: {
+      srcfn: () => 'img/transformations/dragon/tail.png',
+      showfn: () => isPartEnabled(V.transformationParts?.dragon?.tail ?? 'disabled'),
+      zfn: () => 0
+    }
+  };
+}
+
+function dragonCombatPre(options) {
+  options.myModDragonTail = isPartEnabled(V.transformationParts?.dragon?.tail ?? 'disabled');
+}
+
+const dragonCombatLayers = {
+  myMod_dragon_combat_tail: {
+    srcfn: () => 'img/transformations/dragon/combat-tail.png',
+    showfn: options => options.myModDragonTail,
+    zfn: () => 0
+  }
+};
+
 maplebirch.tool.onInit(() => {
   maplebirch.char.transformation.add('dragon', 'physical', {
+    build: 100,
+    level: 6,
+    update: [20, 40, 60, 80, 95, 100],
     parts: [
       {
         name: 'eyes',
@@ -233,7 +259,7 @@ Traits with the same name, such as vanilla `sharpEyes`, remain enabled while any
 Mods can register runtime conditions that let native and framework-registered `physical` transformations grow together:
 
 ```javascript
-maplebirch.char.transformation.coexistConditions.push(() => myModule.hasCoexistTrait);
+maplebirch.char.transformation.coexistConditions.push(() => V.myMod?.hasCoexistTrait === true);
 ```
 
 `coexist` is true when any condition returns `true`. Each update checks every animal form against its own growth thresholds, while skipping mutual suppression and natural decay. Explicit point losses and transformation removal still apply. Divine transformations are unaffected. With no active condition, the default rules apply. The familiar collar retains its existing behaviour.

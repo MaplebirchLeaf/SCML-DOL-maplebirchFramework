@@ -24,8 +24,9 @@
     "release": "bumpp --push --tag maplebirch-release-v%s",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.worker.json",
     "verify": "bun run typecheck && bun run check && bun run notices:check",
-    "check": "oxlint && oxfmt --check",
-    "fix": "oxlint --fix && oxfmt"
+    "check": "oxlint && oxfmt --check && bun run docs:check",
+    "fix": "oxlint --fix && oxfmt",
+    "docs:check": "bun run scripts/check-docs.ts"
   },
   "dependencies": {
     "acorn": "8.17.0",

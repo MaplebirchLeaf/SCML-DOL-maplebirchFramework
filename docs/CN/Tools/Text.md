@@ -46,7 +46,41 @@ maplebirch.tool.inject({
 | `renderInto(root, keys, context?)` | 在指定 `Element` 或 `DocumentFragment` 中追加内容                          |
 | `render(macro, keys)`              | 写入 SugarCube 宏的输出，并提供宏上下文                                    |
 
-`keys` 可以是字符串或字符串数组，按给定顺序渲染。单个处理器报错会记录日志，其余继续执行。`context` 的 `args` 是只读 `unknown[]`。`name`、`widgetName`、`passageTitle` 是可选字符串。自定义字段为 `unknown`，读取前需检查类型。宏渲染时通过 `context.macro` 访问完整的 MacroContext。
+想把标题和详情分开维护，可以登记两个 key，再按需要的顺序一起输出。下面是一个独立例子：只在自己的 `My Mod Status` 页面追加信息。
+
+```typescript
+const text = maplebirch.tool.text;
+
+text.add('myMod:header', tools => {
+  tools.line('露娜的近况', 'gold');
+});
+
+text.add('myMod:details', tools => {
+  // 自定义上下文中的值是 unknown，检查后再使用。
+  const trust = tools.context.trust;
+  if (typeof trust !== 'number' || !Number.isFinite(trust)) return;
+  tools.line(`当前信任：${trust}`);
+});
+
+maplebirch.on(':passagedisplay', (passage, root) => {
+  if (passage.title !== 'My Mod Status') return;
+
+  text.renderInto(root, ['myMod:header', 'myMod:details'], {
+    trust: C.npc.Luna?.myModTrust ?? 0 // 查询当前档案，不在显示回调中增加数值。
+  });
+});
+```
+
+数组里的 key 按顺序输出，因此标题在详情之前。某个处理器报错会记入日志，其余继续执行。
+
+处理器还可以读取以下上下文：
+
+| 字段                                 | 用法                                            |
+| :----------------------------------- | :---------------------------------------------- |
+| `args`                               | 只读参数数组，每项为 `unknown`，使用前检查类型  |
+| `name`、`widgetName`、`passageTitle` | 可选名称，使用前考虑缺省情况                    |
+| `macro`                              | 从宏入口渲染时提供完整的 SugarCube MacroContext |
+| 自定义字段，如示例的 `trust`         | 由本次渲染传入，读取前检查类型                  |
 
 宏入口支持字符串、字符串数组和逗号分隔的键名：
 

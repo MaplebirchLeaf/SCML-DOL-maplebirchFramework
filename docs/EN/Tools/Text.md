@@ -46,7 +46,41 @@ This inserts the text macro after a specific source anchor. Set `expected` to th
 | `renderInto(root, keys, context?)` | Appends content to an `Element` or `DocumentFragment`                                                          |
 | `render(macro, keys)`              | Renders into a SugarCube macro's output with its context                                                       |
 
-`keys` accepts a string or string array. Handlers run in order; a failing handler is logged without stopping subsequent handlers. Context `args` is a readonly `unknown[]`; `name`, `widgetName` and `passageTitle` are optional strings. Custom fields are `unknown` and require narrowing before use. Macro rendering exposes the complete MacroContext through `context.macro`.
+Register separate keys to maintain a heading and its details independently, then render them in the desired order. This standalone example appends information only to your `My Mod Status` passage:
+
+```typescript
+const text = maplebirch.tool.text;
+
+text.add('myMod:header', tools => {
+  tools.line("Luna's news", 'gold');
+});
+
+text.add('myMod:details', tools => {
+  // Custom context values are unknown; check the type before using one.
+  const trust = tools.context.trust;
+  if (typeof trust !== 'number' || !Number.isFinite(trust)) return;
+  tools.line(`Current Trust: ${trust}`);
+});
+
+maplebirch.on(':passagedisplay', (passage, root) => {
+  if (passage.title !== 'My Mod Status') return;
+
+  text.renderInto(root, ['myMod:header', 'myMod:details'], {
+    trust: C.npc.Luna?.myModTrust ?? 0 // Read current data; do not grant points while drawing.
+  });
+});
+```
+
+Keys render in array order, putting the heading before the details. If one handler throws, it is logged and the others continue.
+
+Handlers can also inspect:
+
+| Field                                | Use                                                                |
+| :----------------------------------- | :----------------------------------------------------------------- |
+| `args`                               | Readonly array of `unknown` arguments; narrow each item before use |
+| `name`, `widgetName`, `passageTitle` | Optional names; account for missing values                         |
+| `macro`                              | Complete SugarCube MacroContext when rendering through a macro     |
+| Custom fields, such as `trust` above | Supplied for this render; narrow before use                        |
 
 The macro accepts strings, string arrays and comma-separated keys:
 

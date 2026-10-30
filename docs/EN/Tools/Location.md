@@ -66,7 +66,7 @@ Supply both `layer` and `element` to add or update one element within a layer:
 maplebirch.tool.patch.location.configure(
   'forest_clearing',
   {
-    condition: () => Weather.name === 'rain'
+    condition: () => Weather.precipitation === 'rain'
   },
   {
     layer: 'base',

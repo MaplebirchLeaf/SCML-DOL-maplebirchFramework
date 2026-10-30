@@ -237,6 +237,7 @@ Feature areas:
 - [NPC pregnancy](docs/EN/NamedNPC/NamedNPCPregnancy.md)
 - [Fishing extensions](docs/EN/Tools/Fishing.md)
 - [Combat actions](docs/EN/Combat/Actions.md)
+- [Combat companions](docs/EN/Combat/Companions.md)
 
 Complete Chinese docs:
 

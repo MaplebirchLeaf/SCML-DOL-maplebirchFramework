@@ -1,5 +1,7 @@
 # 特质注册
 
+示例中的勇气、毒抗和职业等数值由模组自己的剧情维护在 `V.myMod`；它们不是原版字段。
+
 ### 基本介绍
 
 `Traits` 是框架提供的角色特质管理系统，允许模组制作者添加自定义的角色特质。
@@ -23,7 +25,7 @@ _可通过 `maplebirch.tool.patch.traits.add()` 访问。_
     title: 'General Traits',
     name: '勇敢',
     colour: 'green',
-    has: () => V.courage > 50,
+    has: () => V.myMod?.courage > 50,
     text: '勇敢的战士，无所畏惧'
   });
   ```
@@ -51,7 +53,7 @@ maplebirch.tool.patch.traits.add({
   replace: /^(?:Rite of Promise:|承诺仪式：)/,
   name: () => '承诺仪式：' + maplebirch.auto('Robin'),
   colour: 'blue',
-  has: () => V.myMod.promised,
+  has: () => V.myMod?.promised,
   text: '一份得到神殿认可的承诺。'
 });
 ```
@@ -120,7 +122,7 @@ maplebirch.tool.patch.traits.add({
       "title": "General Traits",
       "name": "富有",
       "colour": "yellow",
-      "has": "V.gold > 10000",
+      "has": "V.myMod?.gold > 10000",
       "text": "拥有可观的财富。"
     }
   ]
@@ -165,18 +167,18 @@ maplebirch.tool.patch.traits.add({
   name: '毒素抗性',
   colour: () => {
     // 根据抗性等级显示不同颜色
-    const level = V.poisonResistance || 0;
+    const level = V.myMod?.poisonResistance ?? 0;
     if (level >= 80) return 'green';
     if (level >= 50) return 'yellow';
     return 'red';
   },
   has: () => {
     // 只有抗性大于0时才显示
-    return (V.poisonResistance || 0) > 0;
+    return (V.myMod?.poisonResistance ?? 0) > 0;
   },
   text: () => {
     // 动态描述文本
-    const level = V.poisonResistance || 0;
+    const level = V.myMod?.poisonResistance ?? 0;
     return `毒抗 ${level}%`;
   }
 });
@@ -192,7 +194,11 @@ maplebirch.tool.patch.traits.add({
   colour: 'purple',
   has: () => {
     // 只有在满月之夜且是法师职业时才显示
-    return Weather.moonPhase === 'full' && V.playerClass === 'mage' && V.hasMoonRitual === true;
+    return (
+      V.myMod?.fullMoon === true &&
+      V.myMod?.playerClass === 'mage' &&
+      V.myMod?.hasMoonRitual === true
+    );
   },
   text: '满月呼唤者，在满月之夜魔力增强'
 });
@@ -213,28 +219,28 @@ maplebirch.tool.patch.traits.add({
             "title": "General Traits",
             "name": "强壮",
             "colour": "brown",
-            "has": "V.strength > 70",
+            "has": "V.myMod?.strength > 70",
             "text": "力量过人，物理攻击+15%"
           },
           {
             "title": "General Traits",
             "name": "敏捷",
             "colour": "teal",
-            "has": "V.dexterity > 70",
+            "has": "V.myMod?.dexterity > 70",
             "text": "身手敏捷，闪避率+10%"
           },
           {
             "title": "School Traits",
             "name": "优等生",
             "colour": "yellow",
-            "has": "V.grades >= 90",
+            "has": "V.myMod?.grades >= 90",
             "text": "优等生，学校声誉+20"
           },
           {
             "title": "Trauma Traits",
             "name": "身经百战",
             "colour": "grey",
-            "has": "V.battlesWon > 10",
+            "has": "V.myMod?.battlesWon > 10",
             "text": "身经百战，战斗经验丰富"
           }
         ]

@@ -16,7 +16,11 @@ A schedule returns a string label for where this NPC should be now. The sidebar 
 
 Your mod defines labels such as `library` and `home`. Match them in wardrobe rules or scene checks; they need not equal passage titles. Register schedules in scripts; there is no corresponding `boot.json` schedule field.
 
-`addSchedule()` returns a new `Schedule` and **replaces the character's entire previous framework schedule**. To append a special rule, call `Schedule.get(name).when(...)` instead of registering a second full schedule. Examples below use the mod character `Luna`.
+The examples use the registered character Luna. Use `addSchedule()` for her complete initial schedule and `Schedule.get('Luna').when(...)` to append an activity; both are shown below.
+
+**Calling `addSchedule('Luna', ...)` again replaces her entire framework schedule.** It returns the newly created `Schedule`.
+
+The config-object and builder examples are alternative complete definitions. Choose one initial schedule, then use the later API examples as needed. Do not register the same special-rule ID twice for one character.
 
 ## Config Object
 
@@ -39,7 +43,7 @@ maplebirch.npc.addSchedule('Luna', {
   special: [
     {
       id: 'rainy_night',
-      condition: date => Weather.name === 'rain' && date.hour >= 18,
+      condition: date => Weather.precipitation === 'rain' && date.hour >= 18,
       location: 'home',
       override: true
     }
@@ -51,9 +55,19 @@ maplebirch.npc.addSchedule('Luna', {
 
 `daily` is for fixed hourly locations.
 
-One hour records a location starting at that time, rather than making it valid for only that hour. Queries search backward from the current hour for the nearest record, wrapping across midnight. A completely empty day returns an empty string. `[14, 16]` fills hours 14, 15 and 16; later empty hours still inherit the last record.
+Think of `daily` as “Luna goes here starting at this hour.” You need not fill all 24 hours: empty hours inherit the nearest preceding record.
 
-With `8 → school`, `14 → library`, `18 → home`, noon is still school, 17:00 is still library, and early next morning inherits home. Later assignments replace the same hour. Ranges use integer endpoints from `0` through `23`, with start no later than end; split ranges crossing midnight.
+For the schedule above, when no special rule matches:
+
+| Query time         | Location  | Why                                           |
+| :----------------- | :-------- | :-------------------------------------------- |
+| 12:00              | `school`  | Inherits the 08:00 record                     |
+| 14:00–16:59        | `library` | `[14, 16]` fills hours 14, 15 and 16          |
+| 17:00              | `library` | No new record, so the preceding one continues |
+| 18:00              | `home`    | Uses the new 18:00 record                     |
+| 02:00 next morning | `home`    | Searches backward across midnight to 18:00    |
+
+A later assignment replaces an earlier one at the same hour. Hours must be integers from `0` through `23`. Split overnight ranges rather than writing `[21, 5]`. A completely empty day returns an empty string.
 
 | Field      | Description                     |
 | :--------- | :------------------------------ |
@@ -61,16 +75,19 @@ With `8 → school`, `14 → library`, `18 → home`, noon is still school, 17:0
 | `location` | Location id                     |
 
 ```javascript
-daily: [
-  {
-    time: 9,
-    location: 'school'
-  },
-  {
-    time: [13, 15],
-    location: 'gym'
-  }
-];
+maplebirch.npc.addSchedule('Luna', {
+  daily: [
+    {
+      time: 9,
+      location: 'school' // school
+    },
+    {
+      time: [13, 15],
+      location: 'gym' // gym
+    }
+  ]
+});
+// The range includes hours 13, 14 and 15; later hours remain at the gym.
 ```
 
 ## Special Schedule
@@ -88,18 +105,33 @@ daily: [
 | `insteadOf` | Sort before the specified special schedule |
 
 ```javascript
-special: [
-  {
-    id: 'weekend_park',
-    condition: date => date.weekEnd && Weather.name !== 'rain',
-    location: 'park'
-  }
-];
+maplebirch.npc.addSchedule('Luna', {
+  daily: [{ time: 0, location: 'home' }], // Fallback daily location.
+  special: [
+    {
+      id: 'weekend_park',
+      condition: date => date.weekEnd && Weather.precipitation !== 'rain',
+      location: 'park' // Visit the park on a dry weekend.
+    },
+    {
+      id: 'weekend_arcade',
+      condition: date => date.weekEnd && (C.npc.Luna?.love ?? 0) >= 30,
+      location: 'arcade',
+      insteadOf: 'weekend_park' // Prefer the arcade with enough love; keep the park rule.
+    }
+  ]
+});
 ```
 
-The first matching special rule wins. `insteadOf` affects ordering without deleting its target; the target can still match when the earlier rule does not. Relative `before/after/insteadOf` ordering applies to the same character's non-override rules. Override rules form the first group in registration order. Keep IDs unique within each character's schedule.
+This example checks `weekend_arcade` before `weekend_park` and chooses the first match:
 
-Dynamic locations should return a valid string or a child `Schedule`. Returning an empty string or an unconfigured location after a condition matches does not try the next special rule. Put skip conditions in `condition`.
+- Weekend and love at least `30`: visit the arcade.
+- Weekend, love below `30`, and no rain: the park rule can still match.
+- Neither matches: use the daily schedule, which is home here.
+
+Thus `insteadOf` means “try this one first,” not “delete the old rule.” `before`, `after` and `insteadOf` order the same character's non-override rules. Rules with `override: true` form a higher-priority group, checked in registration order. Keep IDs unique within each character.
+
+**To skip an activity, return `false` from `condition`.** Once it matches, returning an empty string from `location` does not try the next rule. Dynamic locations should return a location string or child `Schedule`.
 
 ## Builder Function
 
@@ -112,7 +144,7 @@ maplebirch.npc.addSchedule('Luna', schedule => {
   schedule.when(
     date => date.weekEnd,
     date => {
-      if (Weather.name === 'rain') return 'home';
+      if (Weather.precipitation === 'rain') return 'home';
       if (V.money >= 100) return 'mall';
       return 'park';
     },
@@ -135,6 +167,7 @@ schedule.at(time, location);
 | `location` | Location id                     |
 
 ```javascript
+const schedule = maplebirch.npc.Schedule.get('Luna'); // Retrieve Luna's schedule without replacing other entries.
 schedule.at(8, 'school');
 schedule.at([19, 22], 'dormitory');
 ```
@@ -152,7 +185,9 @@ schedule.when(condition, location, options);
 | `options`   | Special schedule options                                        |
 
 ```javascript
-schedule.when(date => C.npc.Luna?.love >= 30 && date.weekEnd, 'arcade', {
+const schedule = maplebirch.npc.Schedule.get('Luna');
+
+schedule.when(date => (C.npc.Luna?.love ?? 0) >= 30 && date.weekEnd, 'arcade', {
   id: 'weekend_arcade'
 });
 ```
@@ -160,10 +195,12 @@ schedule.when(date => C.npc.Luna?.love >= 30 && date.weekEnd, 'arcade', {
 Dynamic location:
 
 ```javascript
+const schedule = maplebirch.npc.Schedule.get('Luna');
+
 schedule.when(
   date => date.weekEnd,
   date => {
-    if (Weather.name === 'rain') return 'home';
+    if (Weather.precipitation === 'rain') return 'home';
     return 'park';
   },
   {
@@ -223,17 +260,45 @@ Common properties:
 Common methods:
 
 ```javascript
-date.isAt(9);
-date.isAt([14, 30]);
-date.isAfter(12);
-date.isBefore(18);
-date.isBetween(9, 17);
-date.isBetween([8, 30], [12, 0]);
-date.isHour(8, 12, 18);
-date.isHourBetween(9, 16);
-date.isMinuteBetween(0, 30);
+const schedule = maplebirch.npc.Schedule.get('Luna');
+
+schedule.when(
+  date => {
+    // Inspect true/false while debugging; remove console.table from the finished script.
+    console.table({
+      atNine: date.isAt(9), // Only 09:00, not 09:01.
+      atHalfPastTwo: date.isAt([14, 30]), // Only 14:30; this array means hour and minute.
+      afterNoon: date.isAfter(12), // After 12:00, excluding 12:00.
+      beforeSix: date.isBefore(18), // Before 18:00, excluding 18:00.
+      daytime: date.isBetween(9, 17), // 09:00–17:00, both endpoints included.
+      morning: date.isBetween([8, 30], [12, 0]), // 08:30–12:00, both endpoints included.
+      selectedHours: date.isHour(8, 12, 18), // Any minute in hour 8, 12 or 18.
+      schoolHours: date.isHourBetween(9, 16), // Any minute in hours 9 through 16.
+      firstHalfHour: date.isMinuteBetween(0, 30) // Minutes 0 through 30 of each hour.
+    });
+
+    return date.isBetween([8, 30], [12, 0]);
+  },
+  'park',
+  { id: 'myMod:morningPark' }
+);
 ```
 
-`at([14, 16], ...)` takes an hour range; `date.isAt([14, 30])` means **14:30**. `isAt(9)` matches only 09:00. `isAfter/isBefore` are strict; `isBetween/isHourBetween/isMinuteBetween` include endpoints. Date comparison helpers do not wrap midnight automatically; split overnight conditions or use `||`.
+The example logs each check when querying the schedule. Remove `console.table()` for the finished script and keep the final `return` to visit the park from 08:30 through 12:00.
+
+The two array forms differ: `schedule.at([14, 16], ...)` fills **hours 14 through 16**, while `date.isAt([14, 30])` matches only **14:30**.
+
+Date comparisons do not wrap midnight automatically. Append an overnight activity like this:
+
+```javascript
+const schedule = maplebirch.npc.Schedule.get('Luna');
+schedule.when(
+  date => date.isHour(21, 22, 23, 0, 1, 2, 3, 4, 5), // 21:00 through 05:59 next morning.
+  'home',
+  { id: 'myMod:nightHome' }
+);
+```
+
+`date.hour >= 21 || date.hour <= 5` expresses the same range.
 
 `daily` stores locations by hour. `special` schedules are sorted before evaluation; `override: true` schedules are checked before normal special schedules.

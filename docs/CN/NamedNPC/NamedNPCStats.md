@@ -21,18 +21,18 @@
 ```javascript
 maplebirch.npc.addStats({
   myModTrust: {
-    min: 0,
+    min: 0, // 模组自行限制赋值范围，min/max 不会自动钳制。
     max: 100,
-    default: 0,
-    position: 2,
+    default: 0, // 其它人物缺少该字段时，用 0 补齐。
+    position: 2, // 从 0 开始的显示位置，放在重要人物卡片前部。
     name: '信任',
-    value: () => T.npcData?.myModTrust ?? 0,
+    value: () => T.npcData?.myModTrust ?? 0, // 每次绘制时读取正在显示的人物。
     minValue: 0,
     maxValue: 100,
     activeIcon: 'img/ui/sym-love.png',
     inactiveIcon: 'img/ui/sym-love-empty.png',
     color: 'teal',
-    requirements: () => T.npcData?.nam === 'Luna'
+    requirements: () => T.npcData?.nam === 'Luna' // 这里只控制露娜的卡片是否允许显示这一项。
   }
 });
 
@@ -43,15 +43,17 @@ maplebirch.npc.add(
     adult: 1,
     teen: 0,
     title: '图书管理员',
-    myModTrust: 25
+    myModTrust: 25 // 露娜首次生成时从 25 开始，读档保留已有值。
   },
   {
-    important: true
+    important: true // 使用重要人物卡片来展示新增数值。
   }
 );
 ```
 
-社交页会依次绘制不同人物，所以 `value` 和 `requirements` 都在绘制时读取 `T.npcData`，而不是注册时就固定到露娜身上。其他人物得到默认值 `0`，露娜从 `25` 开始，这个条目也只在她的卡片上出现。
+打开社交页时，框架会依次绘制人物卡片，`T.npcData` 就是当前这张卡片的人物。上面的两个函数跟着卡片读取数据：露娜显示自己的信任值，其他人物不显示这项。
+
+因此不要把 `value` 写成固定读取 `C.npc.Luna` 的函数，再把它用于所有人物。
 
 露娜完成[原版初遇](NamedNPC.md#2-在剧情中安排初遇)后，社交页的重要人物卡片才能按原版条件显示。仅设置 `position` 不会自动创建名称、读取数值或选择图标。
 
@@ -66,7 +68,9 @@ maplebirch.npc.add(
 | `position`        | 加入原版重要人物的状态列表，数值索引从 `0` 开始，也支持 `'first'`、`'last'`、`false` |
 | `position: false` | 不自动加入重要人物状态列表，仍登记数值定义                                           |
 
-省略 `position` 时，框架会在原版列表靠后的位置插入。原版普通卡片只显示少量固定数值，重要人物卡片还保留尾部项目供特殊人物使用。需要可靠展示新增数值时，按示例使用重要人物和明确的前部索引，不能把 `'last'` 理解成所有人物都会显示的最后一格。
+示例选用 `important: true` 和 `position: 2`，让信任条排在重要人物卡片前部。省略位置或使用 `'last'` 时，条目会靠后，可能落在原版没有绘制的区域。
+
+普通人物卡片只有少量固定项目，重要人物卡片的尾部也有特殊用途。因此新增数值时，先沿用示例的位置，再进社交页检查实际效果。
 
 同名 `addStats()` 合并配置。它不是为每个 NPC 分别登记一项，也不是重置已有存档的接口。
 
@@ -102,7 +106,11 @@ maplebirch.npc.add(
 <</if>>
 ```
 
-这里复用实例的变量和目标 passage，是结算片段，不是另一个完整剧情。交谈完成标记与信任一起保存，反复打开页面不会再次增加信任。原版 `npcincr` 有人物与属性白名单，不能假定它支持新人物或新数值。不要在注册脚本中立即寻找 `$NPCName` 索引并赋值；新游戏尚未建表时会找不到人物，重复加载时还可能覆盖进度。
+这段接在完整实例的约见流程中，变量和目标 passage 都沿用该实例。点击后同时增加信任、标记交谈完成；再打开页面时，状态已不是 `planned`，不会重复加点。
+
+自定义信任值在这里直接修改并用 `Math.clamp()` 限制范围。原版 `npcincr` 有人物与属性白名单，新增人物和字段不一定能使用它。
+
+初始值交给注册资料处理即可。加载脚本运行时，新游戏的 `$NPCName` 可能还没建立，直接寻找数组索引写值也容易在重载时覆盖进度。
 
 需要初始值时，像前面的 `myModTrust: 25` 一样放入 NPC 注册资料。要让构造器识别该自定义数值，脚本中先调用 `addStats()`，再调用 `add()`。
 

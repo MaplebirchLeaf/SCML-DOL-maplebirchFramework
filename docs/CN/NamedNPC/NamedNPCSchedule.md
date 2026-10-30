@@ -16,9 +16,11 @@ maplebirch.npc.addSchedule(npcName, config);
 
 `library`、`home` 等标签由模组约定，需与衣柜或剧情检查一致，不要求与 passage 标题相同。注册与修改日程在脚本中进行，当前没有对应的 `boot.json` 日程字段。
 
-`addSchedule()` 返回新 `Schedule`，并**替换该人物此前整份框架日程**。需要给已有日程增加一项时，使用 `Schedule.get(name).when(...)`；不要用第二次 `addSchedule()` 当作追加。以下示例均以模组人物 `Luna` 为例。
+以下示例使用已注册的露娜（`Luna`）。首次定义整份日程用 `addSchedule()`；给已有日程追加活动则用 `Schedule.get('Luna').when(...)`，后面会分别演示。
 
----
+**再次调用 `addSchedule('Luna', ...)` 会替换她的整份框架日程**，不是追加。返回值是这份新建的 `Schedule`。
+
+本页的“配置对象”和“Builder”演示是两种完整写法，选择一种作为初始日程。后面的接口示例按需要选用；同一人物中不要重复登记相同的特殊日程 ID。
 
 ## 配置对象写法
 
@@ -41,7 +43,7 @@ maplebirch.npc.addSchedule('Luna', {
   special: [
     {
       id: 'rainy_night',
-      condition: date => Weather.name === 'rain' && date.hour >= 18,
+      condition: date => Weather.precipitation === 'rain' && date.hour >= 18,
       location: 'home',
       override: true
     }
@@ -53,9 +55,19 @@ maplebirch.npc.addSchedule('Luna', {
 
 `daily` 用于固定时间日程。
 
-单个小时是从该时刻起的地点记录，不表示只有那一小时能出现。查询时从当前小时往前找最近的一条，必要时跨午夜回查；整天都没记录才返回空字符串。范围 `[14, 16]` 会分别填写 14、15、16 三个小时，后面的空小时仍沿用最近记录。
+把 `daily` 想成“从这个小时开始，露娜去了哪里”。不用给一天的 24 个小时逐个填写；没有新记录时，她会留在最近一次安排的地点。
 
-例如 `8 → school`、`14 → library`、`18 → home`，则 12 点仍在学校，17 点仍在图书馆，次日凌晨沿用家中记录。重复填写同一小时以后写入的值为准。范围两端必须是 `0` 至 `23` 的整数，开始不能大于结束；跨午夜请拆为两段。
+以上面的日程为例，在没有特殊日程命中时：
+
+| 查询时间     | 所在地点  | 原因                                  |
+| :----------- | :-------- | :------------------------------------ |
+| 12:00        | `school`  | 沿用 8 点的记录                       |
+| 14:00～16:59 | `library` | `[14, 16]` 填写了 14、15、16 三个小时 |
+| 17:00        | `library` | 17 点未填写，沿用最近的记录           |
+| 18:00        | `home`    | 使用 18 点的新记录                    |
+| 次日 02:00   | `home`    | 凌晨没有记录，跨午夜回查到 18 点      |
+
+同一小时写两次时，后写的覆盖前写的。小时必须是 `0`～`23` 的整数；跨午夜的范围要拆开，不能写 `[21, 5]`。整天没有记录时才返回空字符串。
 
 | 字段       | 说明                            |
 | :--------- | :------------------------------ |
@@ -63,16 +75,19 @@ maplebirch.npc.addSchedule('Luna', {
 | `location` | 地点 ID                         |
 
 ```javascript
-daily: [
-  {
-    time: 9,
-    location: 'school'
-  },
-  {
-    time: [13, 15],
-    location: 'gym'
-  }
-];
+maplebirch.npc.addSchedule('Luna', {
+  daily: [
+    {
+      time: 9,
+      location: 'school' // 学校
+    },
+    {
+      time: [13, 15],
+      location: 'gym' // 体育馆
+    }
+  ]
+});
+// 这里的范围包含 13、14、15 点；16 点以后仍留在体育馆。
 ```
 
 ### `special`
@@ -90,20 +105,33 @@ daily: [
 | `insteadOf` | 排在指定特殊日程之前          |
 
 ```javascript
-special: [
-  {
-    id: 'weekend_park',
-    condition: date => date.weekEnd && Weather.name !== 'rain',
-    location: 'park'
-  }
-];
+maplebirch.npc.addSchedule('Luna', {
+  daily: [{ time: 0, location: 'home' }], // 普通日程兜底。
+  special: [
+    {
+      id: 'weekend_park',
+      condition: date => date.weekEnd && Weather.precipitation !== 'rain',
+      location: 'park' // 晴朗周末去公园。
+    },
+    {
+      id: 'weekend_arcade',
+      condition: date => date.weekEnd && (C.npc.Luna?.love ?? 0) >= 30,
+      location: 'arcade',
+      insteadOf: 'weekend_park' // 感情足够时优先去游戏厅，但不删除公园安排。
+    }
+  ]
+});
 ```
 
-特殊日程按顺序选第一条条件成立的项目。`insteadOf` 只影响排序，不会删除目标；当前项目不成立时，目标仍可触发。`before/after/insteadOf` 的相对排序用于同一人物的非 `override` 项目，`override` 项目作为优先组保留登记顺序。ID 应在该人物的日程内保持唯一。
+以上例子会先检查 `weekend_arcade`，再检查 `weekend_park`，选中第一条成立的安排：
 
-动态地点回调应返回有效字符串或一个子 `Schedule`。条件已经成立后返回空字符串或没有配置地点，不表示“继续尝试下一个特殊日程”；需要跳过时，把条件写在 `condition` 中。
+- 周末且感情达到 `30`：去游戏厅。
+- 周末、感情不足 `30`，而且没下雨：仍可去公园。
+- 两项都不成立：回到普通日程，这里是家中。
 
----
+所以 `insteadOf` 表示“排在它前面试”，不会删除原项目。`before`、`after` 和 `insteadOf` 只给同一人物的普通特殊日程排序；`override: true` 的项目会先组成优先组，组内按登记顺序检查。每个人物内部的 ID 要唯一。
+
+**跳过一条安排，要让 `condition` 返回 `false`。** 一旦条件成立，这条安排就已选中；在 `location` 中返回空字符串不会继续找下一条。动态地点应返回地点字符串或子 `Schedule`。
 
 ## Builder 写法
 
@@ -116,7 +144,7 @@ maplebirch.npc.addSchedule('Luna', schedule => {
   schedule.when(
     date => date.weekEnd,
     date => {
-      if (Weather.name === 'rain') return 'home';
+      if (Weather.precipitation === 'rain') return 'home';
       if (V.money >= 100) return 'mall';
       return 'park';
     },
@@ -141,6 +169,7 @@ schedule.at(time, location);
 | `location` | 地点 ID                         |
 
 ```javascript
+const schedule = maplebirch.npc.Schedule.get('Luna'); // 取出露娜已有日程，保留其它安排。
 schedule.at(8, 'school');
 schedule.at([19, 22], 'dormitory');
 ```
@@ -160,7 +189,9 @@ schedule.when(condition, location, options);
 | `options`   | 特殊日程选项                                     |
 
 ```javascript
-schedule.when(date => C.npc.Luna?.love >= 30 && date.weekEnd, 'arcade', {
+const schedule = maplebirch.npc.Schedule.get('Luna');
+
+schedule.when(date => (C.npc.Luna?.love ?? 0) >= 30 && date.weekEnd, 'arcade', {
   id: 'weekend_arcade'
 });
 ```
@@ -168,10 +199,12 @@ schedule.when(date => C.npc.Luna?.love >= 30 && date.weekEnd, 'arcade', {
 动态地点：
 
 ```javascript
+const schedule = maplebirch.npc.Schedule.get('Luna');
+
 schedule.when(
   date => date.weekEnd,
   date => {
-    if (Weather.name === 'rain') return 'home';
+    if (Weather.precipitation === 'rain') return 'home';
     return 'park';
   },
   {
@@ -235,20 +268,46 @@ maplebirch.npc.Schedule.clearAll();
 常用方法：
 
 ```javascript
-date.isAt(9);
-date.isAt([14, 30]);
-date.isAfter(12);
-date.isBefore(18);
-date.isBetween(9, 17);
-date.isBetween([8, 30], [12, 0]);
-date.isHour(8, 12, 18);
-date.isHourBetween(9, 16);
-date.isMinuteBetween(0, 30);
+const schedule = maplebirch.npc.Schedule.get('Luna');
+
+schedule.when(
+  date => {
+    // 调试时查看各项判断的 true/false，正式脚本可删去 console.table。
+    console.table({
+      atNine: date.isAt(9), // 仅 09:00，不包含 09:01。
+      atHalfPastTwo: date.isAt([14, 30]), // 仅 14:30，这里的数组是“时、分”。
+      afterNoon: date.isAfter(12), // 晚于 12:00，不含 12:00。
+      beforeSix: date.isBefore(18), // 早于 18:00，不含 18:00。
+      daytime: date.isBetween(9, 17), // 09:00～17:00，含两端。
+      morning: date.isBetween([8, 30], [12, 0]), // 08:30～12:00，含两端。
+      selectedHours: date.isHour(8, 12, 18), // 8 点、12 点或 18 点的任意分钟。
+      schoolHours: date.isHourBetween(9, 16), // 9～16 点的任意分钟。
+      firstHalfHour: date.isMinuteBetween(0, 30) // 每小时的第 0～30 分钟。
+    });
+
+    return date.isBetween([8, 30], [12, 0]);
+  },
+  'park',
+  { id: 'myMod:morningPark' }
+);
 ```
 
-`at([14, 16], ...)` 中数组表示小时区间；`date.isAt([14, 30])` 中数组表示 **14:30**，含义不同。`isAt(9)` 只匹配 09:00；`isAfter/isBefore` 为严格比较，`isBetween/isHourBetween/isMinuteBetween` 包含两端。日期比较方法不自动处理跨午夜区间，跨夜条件用两段或 `||` 表达。
+上例会在查询日程时输出各项判断，方便在控制台对照当前时间。正式脚本去掉 `console.table()`，保留最后的 `return`，就是一条 08:30～12:00 去公园的安排。
 
----
+注意两类数组的含义不同：`schedule.at([14, 16], ...)` 填写 **14～16 点三个小时**，`date.isAt([14, 30])` 则只匹配 **14:30**。
+
+日期比较方法不自动跨午夜。夜间安排可以这样追加：
+
+```javascript
+const schedule = maplebirch.npc.Schedule.get('Luna');
+schedule.when(
+  date => date.isHour(21, 22, 23, 0, 1, 2, 3, 4, 5), // 21:00～次日 05:59。
+  'home',
+  { id: 'myMod:nightHome' }
+);
+```
+
+也可以用 `date.hour >= 21 || date.hour <= 5` 表达同一范围。
 
 ## 补充说明
 

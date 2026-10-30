@@ -16,6 +16,19 @@ Only stocked tablets appear. Taking one also requires `canTake()`. The framework
 
 `indicators` supplies HTML hints to the native drawer, such as `<span class="green">- Stress</span>`. Native rendering hides them when blind stats are enabled. These strings only describe effects and do not apply them.
 
+**framework.js**
+
+```javascript
+function initMyModMedicine(variables) {
+  variables.myMod ??= {};
+  // Give 3 tablets on first initialization; retain existing stock, including 0.
+  variables.myMod.tablets ??= 3;
+  variables.myMod.taken ??= 0;
+}
+maplebirch.tool.onInit(() => initMyModMedicine(V));
+maplebirch.on(':onLoad', save => initMyModMedicine(save.V));
+```
+
 ```javascript
 maplebirch.tool.patch.pills.add('myMod tablets', {
   description: 'Example tablets',

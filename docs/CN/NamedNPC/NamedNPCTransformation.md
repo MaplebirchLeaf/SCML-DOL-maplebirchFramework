@@ -129,7 +129,23 @@ transformation.clear('Luna', 'wolf'); // 仅在剧情要求清除时调用
 
 `build()`、`set()`、`get()` 返回 `{ build, level }`。`get()` 会初始化缺失状态。`level()`、`type()` 和渲染查询不会创建存档记录。`clear(name)` 清除该 NPC 的全部转化。
 
-`get()` 返回保存的状态对象，`build()` 与 `set()` 也返回修改后的同一类状态对象。需要保存“修改前数值”用于比较时先复制，不要长期保留跨读档引用。使用这些方法修改状态，避免直接分别写入 `build` 和 `level` 导致两者不一致。
+如果想在行动后提示“升了一级”，先复制修改前的数值，再加成长：
+
+```javascript
+const transformation = maplebirch.npc.Transformation;
+
+// 这一段替代前面的单次 build() 演示，在行动完成时调用一次。
+const before = { ...transformation.get('Luna', 'wolf') };
+const after = transformation.build('Luna', 'wolf', 5);
+
+if (after.level > before.level) {
+  console.log(`露娜的狼转化从 ${before.level} 级升到了 ${after.level} 级。`);
+}
+```
+
+`get()` 返回的是存档中的状态对象。这里的 `{ ... }` 留下数值副本，才能在修改后比较；直接把原对象存进 `before`，它也会随成长更新。读档后重新查询当前状态，不长期缓存旧对象。
+
+增加成长用 `build()`，指定等级用 `set()`，它们会一起维护成长值与等级。
 
 | 操作                     | 边界                                                         |
 | :----------------------- | :----------------------------------------------------------- |

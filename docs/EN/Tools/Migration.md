@@ -32,7 +32,15 @@ Use numeric version segments such as `1.0.0`. A missing `data.version` is treate
 
 `add(from, to, apply)` registers a synchronous transition; `from` accepts a version or `'*'`. Duplicate version pairs and steps that cannot advance the version are ignored.
 
-`run(data, targetVersion)` prefers a step starting at the current version, then falls back to a wildcard step. Within either group, it selects the highest destination that does not exceed the target. A larger step must therefore include all necessary intermediate conversions. Each successful step updates `data.version`. If no step applies, execution stops without assigning the target version.
+For a save at `1.0.0` targeting `1.2.0`, registered steps determine the route:
+
+| Registered steps                    | Execution                                            |
+| :---------------------------------- | :--------------------------------------------------- |
+| `1.0.0 → 1.1.0` and `1.1.0 → 1.2.0` | Run both in sequence                                 |
+| Those two plus `1.0.0 → 1.2.0`      | Run the direct step only                             |
+| Only `1.0.0 → 1.1.0`                | Stop at `1.1.0`; do not assign `1.2.0` automatically |
+
+**A direct step must include all necessary intermediate conversions.** Selection first looks for the current version as an exact start, then falls back to `'*'`. Within each group, it chooses the highest destination no later than the target. `data.version` updates only after each successful step.
 
 A thrown error stops execution and is wrapped with `fromVersion`, `toVersion`, and `cause`. Changes already made to the data are not automatically rolled back.
 
@@ -56,7 +64,10 @@ The input to `transform()` is `unknown`; narrow its type before using it. If the
 ## Filling Defaults
 
 ```javascript
+const migrator = maplebirch.tool.migration.create();
+
 migrator.add('*', '1.2.0', (data, utils) => {
+  // Fill missing fields while keeping the player's saved false.
   utils.fill(data, {
     settings: {
       enabled: true,
@@ -65,6 +76,15 @@ migrator.add('*', '1.2.0', (data, utils) => {
     flags: {}
   });
 });
+
+const data = {
+  version: '1.1.0',
+  settings: { enabled: false } // Keep this saved choice rather than replacing it with true.
+};
+migrator.run(data, '1.2.0');
+
+console.log(data.settings); // { enabled: false, volume: 0.8 }
+console.log(data.version); // '1.2.0'
 ```
 
 `fill()` preserves existing scalars and arrays, descends into existing plain objects to add missing fields, and skips the root `version`. For example, `{ settings: { enabled: false } }` keeps `false` and gains `volume`.

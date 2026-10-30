@@ -34,8 +34,18 @@ maplebirch.after(eventName, callback);
 
 ```javascript
 function capture(event) {
-  // 读取本次动作执行前的状态。
+  // 只观察带目标 passage 的链接，其它点击直接忽略。
+  if (!(event.target instanceof Element)) return;
+  const link = event.target.closest('a[data-passage]');
+  if (!link) return;
+
+  // 捕获阶段先于链接的普通点击处理，便于核对行动前的钱。
+  console.log({
+    destination: link.getAttribute('data-passage'),
+    moneyBefore: V.money
+  });
 }
+
 maplebirch.on(':passagerender', (_passage, content) => {
   content.addEventListener('click', capture, true);
 });
@@ -106,15 +116,26 @@ await maplebirch.trigger('myMod:refresh', {
 
 ## after
 
-`after()` 会在指定事件的监听器执行完毕后执行一次。对于 `:sugarcube`、`:idbReady`、`:storyready`、`:modLoaderEnd`、`:language`，框架会保留最近一次参数。事件已完成时，新注册的 `on()`、`once()`、`after()` 会立即收到这些参数。
+想等这一轮监听都完成后再处理一次，用 `after()`。下面沿用已导入的 `myMod:title` 翻译键，刷新页面上的自有标题：
 
 ```javascript
 maplebirch.after(':language', () => {
-  setup.myMod.refreshText();
+  // 页面上已有 .my-mod-title 时，更新其文字。
+  const title = document.querySelector('.my-mod-title');
+  if (title) title.textContent = maplebirch.t('myMod:title');
 });
 ```
 
----
+`after()` 只处理一次。需要每次切换语言都刷新时，用文末的 `on(':language', ...)` 示例。
+
+有些启动事件还会保留最近一次参数：`:sugarcube`、`:idbReady`、`:storyready`、`:modLoaderEnd`、`:language`。它们完成后才登记监听也能立即收到这次结果：
+
+```javascript
+// 即使故事已经准备好才加载这段脚本，也会执行一次。
+maplebirch.once(':storyready', () => {
+  console.log('故事已准备好，可以接入页面功能了。');
+});
+```
 
 ## 常用框架事件
 
@@ -140,15 +161,40 @@ maplebirch.after(':language', () => {
 回调收到的 `save` 包含 `saveObj`、`details`、`V` 和 `use()`。`save.V` 是待保存或待载入的变量。读档回调执行时，全局 `V` 仍是当前游戏状态。
 
 ```javascript
+function initMyMod(variables) {
+  variables.myMod ??= {};
+  variables.myMod.flags ??= {};
+  variables.myMod.flags.metLuna ??= false; // 保留存档中已经完成的初遇。
+}
+
+// 新游戏初始化当前变量。
+maplebirch.tool.onInit(() => initMyMod(V));
+
 maplebirch.on(':onLoad', save => {
-  save.V.myMod ??= {};
-  save.V.myMod.flags ??= {};
+  // 此时正在修整待载入的存档，不能把这行改成 initMyMod(V)。
+  initMyMod(save.V);
 });
 ```
 
-若已有初始化逻辑依赖全局 `V`，使用 `save.use(save.V, () => { /* 同步初始化 */ })` 临时切换变量。正常返回后修改写回存档，异常时不写回，当前游戏的变量始终恢复。`setup` 的静态注册仍在启动阶段完成。
+上例让初始化函数直接接收变量对象，所以新游戏和读档可以共用它。读档回调中的全局 `V` 仍指向当前游戏，`save.V` 才是即将载入的存档。
 
----
+如果已有函数只能读取全局 `V`，可以使用下面这套替代写法：
+
+```javascript
+function initMyModWithGlobalV() {
+  V.myMod ??= {};
+  V.myMod.flags ??= {};
+  V.myMod.flags.metLuna ??= false;
+}
+
+maplebirch.tool.onInit(initMyModWithGlobalV);
+maplebirch.on(':onLoad', save => {
+  // 在这个同步函数执行期间，让 V 临时指向待载入的数据副本。
+  save.use(save.V, initMyModWithGlobalV);
+});
+```
+
+`use()` 成功后把修改写回存档，抛错时丢弃这次副本的修改；退出时恢复当前游戏变量。回调必须同步，不能在里面等待请求。`setup` 的静态注册仍放在启动阶段。
 
 ## 示例：语言切换后刷新页面文本
 

@@ -25,8 +25,18 @@ For a Twee interface you own, its container can refresh through `onchange`. To r
 
 ```javascript
 function capture(event) {
-  // Read state before this action executes.
+  // Observe passage links only; ignore other clicks.
+  if (!(event.target instanceof Element)) return;
+  const link = event.target.closest('a[data-passage]');
+  if (!link) return;
+
+  // Capture runs before the normal link click handler, so inspect money before the action.
+  console.log({
+    destination: link.getAttribute('data-passage'),
+    moneyBefore: V.money
+  });
 }
+
 maplebirch.on(':passagerender', (_passage, content) => {
   content.addEventListener('click', capture, true);
 });
@@ -81,7 +91,25 @@ await maplebirch.trigger('myMod:refresh', {
 
 ## After an Event
 
-`after()` runs once after the event's listeners finish. The latest arguments are retained for `:sugarcube`, `:idbReady`, `:storyready`, `:modLoaderEnd`, and `:language`. Once one of these events has completed, newly registered `on()`, `once()`, and `after()` callbacks receive those arguments immediately.
+Use `after()` for one callback after this round of listeners finishes. This example uses the imported `myMod:title` translation key and an existing title element:
+
+```javascript
+maplebirch.after(':language', () => {
+  const title = document.querySelector('.my-mod-title');
+  if (title) title.textContent = maplebirch.t('myMod:title');
+});
+```
+
+`after()` runs once. Use `on(':language', ...)` to refresh after every language change.
+
+`:sugarcube`, `:idbReady`, `:storyready`, `:modLoaderEnd` and `:language` retain their latest arguments. Listeners registered after they finish can receive that result immediately:
+
+```javascript
+// Runs once even if the story was ready before this script loaded.
+maplebirch.once(':storyready', () => {
+  console.log('The story is ready for page integration.');
+});
+```
 
 ## Save and Load
 
@@ -90,10 +118,37 @@ await maplebirch.trigger('myMod:refresh', {
 The callback receives `save`, which provides `saveObj`, `details`, `V`, and `use()`. `save.V` contains the variables being saved or loaded; during a load callback, global `V` still belongs to the current game.
 
 ```javascript
+function initMyMod(variables) {
+  variables.myMod ??= {};
+  variables.myMod.flags ??= {};
+  variables.myMod.flags.metLuna ??= false; // Keep an existing first-meeting flag.
+}
+
+// Initialize current variables for a new game.
+maplebirch.tool.onInit(() => initMyMod(V));
+
 maplebirch.on(':onLoad', save => {
-  save.V.myMod ??= {};
-  save.V.myMod.flags ??= {};
+  // Prepare the incoming save; using initMyMod(V) here would edit the current game.
+  initMyMod(save.V);
 });
 ```
 
-Use `save.use(save.V, () => { /* synchronous initialization */ })` for existing logic that requires global `V`. Changes are written back on success and discarded on error; the live variables are restored afterward. Static `setup` registrations still belong in startup initialization.
+The initializer above accepts a variables object, allowing new games and loads to share it. During the load callback, global `V` still refers to the current game; `save.V` is the incoming save.
+
+If an existing initializer can only use global `V`, use this alternative:
+
+```javascript
+function initMyModWithGlobalV() {
+  V.myMod ??= {};
+  V.myMod.flags ??= {};
+  V.myMod.flags.metLuna ??= false;
+}
+
+maplebirch.tool.onInit(initMyModWithGlobalV);
+maplebirch.on(':onLoad', save => {
+  // Temporarily expose a copy of the incoming variables through V during this call.
+  save.use(save.V, initMyModWithGlobalV);
+});
+```
+
+`use()` writes changes back on success and discards the copy's changes on error, restoring the live variables afterward. Keep its callback synchronous; do not await requests inside it. Static `setup` registration still belongs in startup initialization.

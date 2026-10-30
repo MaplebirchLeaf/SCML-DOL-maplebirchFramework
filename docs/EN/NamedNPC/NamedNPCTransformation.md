@@ -129,7 +129,23 @@ transformation.clear('Luna', 'wolf'); // Only when removal is intended
 
 `build()`, `set()`, and `get()` return `{ build, level }`. `get()` initializes missing state. `level()`, `type()`, and rendering queries do not create save records. `clear(name)` removes all transformations for that NPC.
 
-`get()` returns the saved state object, as do changes through `build()` and `set()`. Copy values first when comparing before/after states, and do not retain references across loads. Use these methods rather than independently assigning `build` and `level`.
+To report a level gained after an action, copy the previous values before adding growth:
+
+```javascript
+const transformation = maplebirch.npc.Transformation;
+
+// Use this instead of the earlier single build() demonstration, once on completion.
+const before = { ...transformation.get('Luna', 'wolf') };
+const after = transformation.build('Luna', 'wolf', 5);
+
+if (after.level > before.level) {
+  console.log(`Luna's wolf transformation grew from level ${before.level} to ${after.level}.`);
+}
+```
+
+`get()` returns the saved state object. `{ ... }` preserves the previous numbers for comparison; storing the original object in `before` would let it change with the growth update. Query again after loading rather than retaining old references.
+
+Use `build()` to add growth and `set()` to select a level. Both maintain growth and level together.
 
 | Operation                | Bounds                                                                                  |
 | :----------------------- | :-------------------------------------------------------------------------------------- |

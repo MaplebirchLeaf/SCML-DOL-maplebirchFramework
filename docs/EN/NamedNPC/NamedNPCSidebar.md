@@ -84,7 +84,7 @@ Resolution prefers a matching gender/skin path, then the flat folder, then other
   head:
     - img: 'img/npc/luna/hair_rain.png'
       zIndex: auto
-      cond: "Weather.name === 'rain'"
+      cond: "Weather.precipitation === 'rain'"
     - img: 'img/npc/luna/hair.png'
       zIndex: auto
   face:
@@ -128,7 +128,34 @@ The outer addon structure is the same as in the static-image example.
 
 **Each part chooses only its first matching candidate; it does not stack every entry.** Place conditional candidates before the default. To show hair and ears together, combine them in one image or use a dedicated character-layer extension. Putting both into `head` does not create two simultaneous layers.
 
-Condition arrays use AND. Express OR inside a string, such as `Weather.name === 'rain' || Weather.name === 'snow'`; `$or` objects are unsupported. Callback conditions belong in script objects, not function strings inside JSON/YAML. Keep queries free of state changes.
+### Show which checks must match
+
+Suppose rain **or** snow should select wet hair, while a happy mood **and** love of at least `30` should select a smile. Replace the earlier `luna.yaml` with:
+
+```yaml
+- name: 'Luna'
+  body: 'img/npc/luna/body.png'
+  head:
+    - img: 'img/npc/luna/hair_rain.png'
+      zIndex: auto
+      # Put “rain OR snow” in a single expression.
+      cond: "Weather.precipitation === 'rain' || Weather.precipitation === 'snow'"
+    - img: 'img/npc/luna/hair.png'
+      zIndex: auto # Keep the unconditional fallback last.
+  face:
+    - img: 'img/npc/luna/face_happy.png'
+      zIndex: auto
+      cond:
+        # Both array items must pass to select the smile.
+        - 'V.myMod?.lunaHappy === true'
+        - '(C.npc.Luna?.love ?? 0) >= 30'
+    - img: 'img/npc/luna/face_default.png'
+      zIndex: auto # Used when the previous candidate does not match.
+```
+
+The story still sets `lunaHappy`. This configuration only reads it; opening the sidebar does not change mood or love.
+
+Use arrays for “all checks” and `||` within an expression for “either check.” `$or` objects are unsupported. JSON/YAML strings contain expressions directly; put `() => ...` callbacks in script objects instead.
 
 Import creates internal graphic-selection keys. For a single configuration in `myMod`'s `luna.yaml`, the key is `myMod_luna`. Query `maplebirch.npc.Clothes.art.keys('Luna')` for actual keys; there is no need to hard-code saved graphic preferences.
 
@@ -178,11 +205,19 @@ PC models can display native fluid and drip assets. Data lives under `V.maplebir
 Call during actual scene resolution:
 
 ```javascript
-maplebirch.npc.fluids.add('Luna', 'mouth', 2, 'semen');
-maplebirch.npc.fluids.set('Luna', 'face', 1, 'goo');
-maplebirch.npc.fluids.reduce('Luna', 'mouth', 1, 'semen');
-const mouth = maplebirch.npc.fluids.get('Luna').mouth;
-const total = maplebirch.npc.fluids.combined('Luna', 'mouth');
+const fluids = maplebirch.npc.fluids;
+
+fluids.add('Luna', 'mouth', 2, 'semen'); // Add 2 to the existing mouth semen amount.
+fluids.set('Luna', 'face', 1, 'goo'); // Set face goo to 1; retain face semen.
+fluids.reduce('Luna', 'mouth', 1, 'semen'); // Reduce only mouth semen.
+
+const mouth = fluids.get('Luna').mouth;
+const total = fluids.combined('Luna', 'mouth');
+console.log({
+  goo: mouth[0], // First tuple item.
+  semen: mouth[1], // Second item; the whole mouth tuple is not a number.
+  total // Sum of both; only the rendered amount is limited to 0–5.
+});
 ```
 
 `mouth[0]` is vaginal fluid/slime and `mouth[1]` semen. `combined()` returns the unbounded sum. Rendering clamps that sum to `0–5` without changing saved amounts. `get()` fills missing data and is not a purely read-only query.
@@ -190,9 +225,9 @@ const total = maplebirch.npc.fluids.combined('Luna', 'mouth');
 When cleaning up, choose the scope needed:
 
 ```javascript
-maplebirch.npc.fluids.clear('Luna', 'face', 'goo');
-maplebirch.npc.fluids.clear('Luna', 'face');
-maplebirch.npc.fluids.clear('Luna');
+maplebirch.npc.fluids.clear('Luna', 'face', 'goo'); // Clear face goo; keep semen.
+maplebirch.npc.fluids.clear('Luna', 'face'); // Clear both face liquids; keep other parts.
+maplebirch.npc.fluids.clear('Luna'); // Clear both liquids from every part of this NPC.
 ```
 
 `set/add/reduce` default to `semen`. `clear` without a type clears both; without a part it clears all parts. Legal parts are `vagina`, `vaginaoutside`, `anus`, `mouth`, `penis`, `chest`, `face`, `hair`, `bottom`, `feet`, `leftarm`, `rightarm`, `neck`, `thigh` and `tummy`.

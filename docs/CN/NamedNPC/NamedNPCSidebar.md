@@ -84,7 +84,7 @@ img/ui/nnpc/luna/male/dark/default.png
   head:
     - img: 'img/npc/luna/hair_rain.png'
       zIndex: auto
-      cond: "Weather.name === 'rain'"
+      cond: "Weather.precipitation === 'rain'"
     - img: 'img/npc/luna/hair.png'
       zIndex: auto
   face:
@@ -128,7 +128,34 @@ img/ui/nnpc/luna/male/dark/default.png
 
 **同一部位只选第一条满足条件的候选，不会叠加全部候选。** 默认图必须放在有条件图片之后。需要头发和耳朵同时显示时，应在同一图片中合成，或通过专门的角色图层扩展；不能把它们依次放进 `head` 数组就当作两层。
 
-条件数组按 AND 计算。OR 写在表达式内，例如 `Weather.name === 'rain' || Weather.name === 'snow'`，不支持 `$or` 对象。函数条件只适用于脚本对象；JSON/YAML 中不要写函数字符串。查询可能重复执行，条件只读取状态。
+### 把“同时满足”和“任选其一”写清楚
+
+例如，希望下雨**或**下雪时使用湿发图片，露娜高兴**且**感情达到 `30` 时使用笑脸。可以把前面的 `luna.yaml` 改成：
+
+```yaml
+- name: 'Luna'
+  body: 'img/npc/luna/body.png'
+  head:
+    - img: 'img/npc/luna/hair_rain.png'
+      zIndex: auto
+      # “下雨或下雪”写在同一个表达式中。
+      cond: "Weather.precipitation === 'rain' || Weather.precipitation === 'snow'"
+    - img: 'img/npc/luna/hair.png'
+      zIndex: auto # 无条件候选放最后，作为默认头发。
+  face:
+    - img: 'img/npc/luna/face_happy.png'
+      zIndex: auto
+      cond:
+        # 数组中的两项都成立，才会选中笑脸。
+        - 'V.myMod?.lunaHappy === true'
+        - '(C.npc.Luna?.love ?? 0) >= 30'
+    - img: 'img/npc/luna/face_default.png'
+      zIndex: auto # 不满足上面的条件时，使用普通表情。
+```
+
+`lunaHappy` 仍由实际剧情设置。配置只读取它，打开侧边栏不会增加感情或改变心情。
+
+这里用数组表示“同时满足”，用表达式里的 `||` 表示“任选其一”，不需要 `$or` 对象。JSON/YAML 的字符串应当直接写判断表达式；需要 `() => ...` 函数时，改用脚本对象。
 
 配置会生成供“图形选择”使用的内部键，例如单条 `myMod` 模组的 `luna.yaml` 为 `myMod_luna`。可用 `maplebirch.npc.Clothes.art.keys('Luna')` 查询，以实际返回值为准；无需硬编码存档中的图形选择。
 
@@ -178,11 +205,19 @@ PC 模型可显示原版体液与滴落素材。状态保存在 `V.maplebirch.np
 在实际剧情结算中调用：
 
 ```javascript
-maplebirch.npc.fluids.add('Luna', 'mouth', 2, 'semen');
-maplebirch.npc.fluids.set('Luna', 'face', 1, 'goo');
-maplebirch.npc.fluids.reduce('Luna', 'mouth', 1, 'semen');
-const mouth = maplebirch.npc.fluids.get('Luna').mouth;
-const total = maplebirch.npc.fluids.combined('Luna', 'mouth');
+const fluids = maplebirch.npc.fluids;
+
+fluids.add('Luna', 'mouth', 2, 'semen'); // 在嘴部原有精液量上增加 2。
+fluids.set('Luna', 'face', 1, 'goo'); // 把脸部黏液量设为 1，保留该部位的精液量。
+fluids.reduce('Luna', 'mouth', 1, 'semen'); // 只减少嘴部的精液量。
+
+const mouth = fluids.get('Luna').mouth;
+const total = fluids.combined('Luna', 'mouth');
+console.log({
+  goo: mouth[0], // 二元组第一项。
+  semen: mouth[1], // 二元组第二项，不能把整个 mouth 当成数字。
+  total // 两项之和；渲染时才将显示量限制到 0～5。
+});
 ```
 
 `mouth[0]` 为爱液／黏液，`mouth[1]` 为精液，`combined()` 返回两项之和，不限制合计。渲染把合计限制到 `0` 至 `5`，不会改写保存值。`get()` 会补齐缺少的数据，不是纯粹的只读查询。
@@ -190,9 +225,9 @@ const total = maplebirch.npc.fluids.combined('Luna', 'mouth');
 清理液体时，按需要选择清除范围：
 
 ```javascript
-maplebirch.npc.fluids.clear('Luna', 'face', 'goo');
-maplebirch.npc.fluids.clear('Luna', 'face');
-maplebirch.npc.fluids.clear('Luna');
+maplebirch.npc.fluids.clear('Luna', 'face', 'goo'); // 只清脸部黏液，保留精液。
+maplebirch.npc.fluids.clear('Luna', 'face'); // 清脸部两种液体，保留其它部位。
+maplebirch.npc.fluids.clear('Luna'); // 清除此 NPC 所有部位的两种液体。
 ```
 
 `set/add/reduce` 省略类型时处理 `semen`；`clear` 省略类型清两项，省略部位清所有部位。合法部位是 `vagina`、`vaginaoutside`、`anus`、`mouth`、`penis`、`chest`、`face`、`hair`、`bottom`、`feet`、`leftarm`、`rightarm`、`neck`、`thigh`、`tummy`。

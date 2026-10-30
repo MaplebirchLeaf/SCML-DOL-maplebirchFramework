@@ -16,6 +16,19 @@
 
 `indicators` 使用原版药柜显示 HTML 提示，例如 `<span class="green">- 压力</span>`。开启隐藏属性时，原版会隐藏这些提示。这里只提供显示文本，不执行药效结算。
 
+**framework.js**
+
+```javascript
+function initMyModMedicine(variables) {
+  variables.myMod ??= {};
+  // 本例首次接入给 3 片；已有库存（包括 0）不会重置。
+  variables.myMod.tablets ??= 3;
+  variables.myMod.taken ??= 0;
+}
+maplebirch.tool.onInit(() => initMyModMedicine(V));
+maplebirch.on(':onLoad', save => initMyModMedicine(save.V));
+```
+
 ```javascript
 maplebirch.tool.patch.pills.add('myMod tablets', {
   cn_name: '示例药片',
@@ -33,4 +46,4 @@ maplebirch.tool.patch.pills.add('myMod tablets', {
 });
 ```
 
-示例假定模组已通过 State 区域或模块存档初始化建立 `V.myMod`。药柜接入不会自动增加药房商品，购买入口需另行注册。分类内的商品列表应保持原版的单行商品链接，把描述、售价和风险提示放在确认购买页。需要插在返回链接之前时，可使用 `CustomLinkZone` 的 `[-1, widget]`，避免 `BeforeLinkZone` 把内容插进原版分类。
+上方初始化与注册写在同一个脚本中。药柜接入不会自动增加药房商品，购买入口需另行注册。分类内的商品列表应保持原版的单行商品链接，把描述、售价和风险提示放在确认购买页。需要插在返回链接之前时，可使用 `CustomLinkZone` 的 `[-1, widget]`，避免 `BeforeLinkZone` 把内容插进原版分类。

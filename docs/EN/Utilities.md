@@ -17,43 +17,73 @@ The framework installs prototype/static helpers during initialization, and also 
 Use `maplebirch.utils` functions when operating on an existing value; array and string instance methods (`contains`/`convert`, etc.) are still available:
 
 ```javascript
+const source = {
+  sidebar: { enabled: true },
+  labels: ['beast', 'forest']
+};
+
+// Keep the original defaults; editing the copy does not change them.
 const copy = maplebirch.utils.clone(source);
-const same = maplebirch.utils.equal(oldData, newData);
+copy.sidebar.enabled = false;
+console.log(source.sidebar.enabled); // true
+
+// Compare contents; separate objects can still be equal.
+const same = maplebirch.utils.equal(source, copy); // false
+
+// Array and string instance helpers remain available.
 const labels = ['beast', 'forest'];
-const ok = labels.contains('beast');
-const key = 'My Text'.convert('snake');
+const ok = labels.contains('beast'); // true
+const key = 'My Text'.convert('snake'); // 'my_text'
 ```
 
 Use static methods when creating a new object or array:
 
 ```javascript
+const defaultOptions = { sidebar: { enabled: true, width: 240 } };
+const userOptions = { sidebar: { width: 320 } };
 const options = Object.merge(defaultOptions, userOptions);
+// options: { sidebar: { enabled: true, width: 320 } }
+// defaultOptions.sidebar.width: 240
+
+const baseList = ['home', 'school'];
+const modList = ['myMod:park'];
 const list = Array.append(baseList, modList);
+// list: ['home', 'school', 'myMod:park']
+// baseList: ['home', 'school']
 ```
 
 Number helpers live on `Math`:
 
 ```javascript
-const value = Math.clamp(input, 0, 100);
+const input = 145;
+const value = Math.clamp(input, 0, 100); // 100
 ```
 
 ## Prototype vs Static Methods
 
-The framework no longer registers instance methods such as `clone`/`equal`/`merge`/`append`/`cover` on `Object.prototype`; plain object instances no longer have them (`obj.cover === undefined`). Object merging now uses `maplebirch.utils` functions, whose first argument is the target object (modified and returned):
+First decide whether the original data should change. `maplebirch.utils.merge/append/cover` all **modify and return their first argument**; they differ in how they combine arrays:
 
 ```javascript
-maplebirch.utils.merge(target, source);
-maplebirch.utils.append(target, source);
-maplebirch.utils.cover(target, source);
+const source = { list: [3] };
+
+// Use separate targets to compare the three results.
+const merged = maplebirch.utils.merge({ list: [1, 2] }, source); // Merge by index: [3, 2].
+const appended = maplebirch.utils.append({ list: [1, 2] }, source); // Append items: [1, 2, 3].
+const covered = maplebirch.utils.cover({ list: [1, 2] }, source); // Replace the array: [3].
 ```
 
-The array instance methods `contains`/`either` and the string instance methods `contains`/`convert` are still available.
+Plain objects do not have instance `merge()`, `append()`, `cover()`, `clone()` or `equal()` methods. The array instance methods `contains`/`either` and string instance methods `contains`/`convert` remain available.
 
 Static methods create a new object or array:
 
 ```javascript
-const next = Object.merge(defaults, current);
-const list = Array.append(base, extra);
+const defaults = { sidebar: { enabled: true, width: 240 } };
+const current = { sidebar: { width: 320 } };
+const next = Object.merge(defaults, current); // { sidebar: { enabled: true, width: 320 } }
+
+const base = ['home'];
+const extra = ['myMod:park'];
+const list = Array.append(base, extra); // ['home', 'myMod:park']
 ```
 
 Prefer `Object.merge()`, `Object.append()`, `Object.cover()`, `Array.merge()`, `Array.append()`, and `Array.cover()` when you do not want to mutate existing data.
@@ -89,9 +119,14 @@ In the table, `Object.*`/`Array.*` are static methods and `array.*`/`string.*` a
 ## clone
 
 ```javascript
-const deepCopy = maplebirch.utils.clone(source);
-const shallowCopy = maplebirch.utils.clone(source, false);
-const plainCopy = maplebirch.utils.clone(source, true, false);
+const source = { sidebar: { enabled: true } };
+
+const deepCopy = maplebirch.utils.clone(source); // Copy nested objects too.
+const shallowCopy = maplebirch.utils.clone(source, false); // Copy the top level; sidebar is still shared.
+const plainCopy = maplebirch.utils.clone(source, true, false); // Deep clone without retaining object prototypes.
+
+console.log(deepCopy.sidebar === source.sidebar); // false
+console.log(shallowCopy.sidebar === source.sidebar); // true
 ```
 
 Arguments:
@@ -108,7 +143,11 @@ Supports plain objects, arrays, `Date`, `RegExp`, `Map`, `Set`, `ArrayBuffer`, `
 ## equal
 
 ```javascript
-const same = maplebirch.utils.equal(dataA, dataB);
+const dataA = { trust: 25, tags: ['friend'] };
+const dataB = { trust: 25, tags: ['friend'] };
+
+console.log(dataA === dataB); // false
+const same = maplebirch.utils.equal(dataA, dataB); // true
 ```
 
 `equal()` performs deep comparison, which is useful for objects, arrays, and nested structures.

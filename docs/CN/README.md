@@ -49,7 +49,7 @@ API 名称、配置键、原版标识和文件路径保留代码中的写法。�
 
 ### 人物与战斗
 
-- [角色图层](Character/Character.md) · [角色转化](Character/Transformation.md) · [转化选项提示](Character/TransformHint.md)
+- [角色图层](Character/Character.md) · [面部样式](Character/FaceStyle.md) · [角色转化](Character/Transformation.md) · [转化选项提示](Character/TransformHint.md)
 - [NPC 注册](NamedNPC/NamedNPC.md) · [数值](NamedNPC/NamedNPCStats.md) · [日程](NamedNPC/NamedNPCSchedule.md)
 - [NPC 服装与衣柜](NamedNPC/NamedNPCClothes.md) · [侧边栏](NamedNPC/NamedNPCSidebar.md) · [转化](NamedNPC/NamedNPCTransformation.md) · [怀孕](NamedNPC/NamedNPCPregnancy.md)
 - [战斗行动](Combat/Actions.md)

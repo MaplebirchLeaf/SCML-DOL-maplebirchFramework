@@ -163,7 +163,9 @@ When no rule matches, the last selected outfit is retained for this runtime. `na
 
 ## Whose Location Does a Condition Use?
 
-| Entry point                      | Location source                                         |
+“Where does Luna's schedule place her?” and “Where is the player?” are separate questions. Wardrobe rules can use either, through different arguments.
+
+| Entry point                      | Reads                                                   |
 | :------------------------------- | :------------------------------------------------------ |
 | Second argument to `wear()`      | This NPC's `Schedule.location`                          |
 | `context.location` in `modify()` | This NPC's scheduled location                           |
@@ -171,20 +173,73 @@ When no rule matches, the last selected outfit is retained for this runtime. `na
 | `passage` in a `when()` group    | Current passage title                                   |
 | `hours` in a `when()` group      | Current `V.time.hour`; inclusive and may cross midnight |
 
+### Define a reusable rainy-night condition
+
+Continue with Luna registered above. Suppose your scene uses `park` as its location value. Her clothes should appear damp when the player meets her there on a rainy night:
+
 ```javascript
 const wardrobe = maplebirch.npc.Clothes.wardrobe;
+
 const rainyNight = wardrobe.when(
+  // Name the check for reuse in other wardrobe rules.
   'myMod:rainyNight',
   {
-    location: 'library',
+    // Checks player V.location.
+    location: 'park',
+    // Hours 21–23 and 0–5, including 05:59.
     hours: [21, 5]
   },
-  () => Weather.name === 'rain'
+  // Location, hours AND rain must match.
+  () => Weather.precipitation === 'rain'
 );
+
+// Register the rule now; the framework checks current state when reading clothes.
 wardrobe.wet('Luna', 'damp', rainyNight);
 ```
 
-Group checks and the extra condition combine with AND. `when(name)` retrieves the existing predicate. Unknown names throw, as does registering an existing name with a new group. Conditions accept booleans, expression strings, synchronous callbacks or AND arrays. Use callbacks in scripts and data or expression strings in JSON/YAML.
+Replace `park` with the value your scene writes to `V.location`. Use `passage` instead of `location` to match a passage title. This rule controls wetness; the story still controls whether Luna is present.
+
+### Retrieve it from another rule
+
+`when(name, group, extraCondition)` **registers** a check. Passing only the name **retrieves** it:
+
+```javascript
+const sameRainyNight = maplebirch.npc.Clothes.wardrobe.when('myMod:rainyNight');
+
+// Run after the previous example: this is the same function, not a result snapshot.
+console.log(sameRainyNight === rainyNight); // true
+```
+
+| Call                                                         | Result                                                  |
+| :----------------------------------------------------------- | :------------------------------------------------------ |
+| `when('myMod:rainyNight')`                                   | Returns the registered predicate                        |
+| `when('myMod:missing')`                                      | Throws because the name is unknown                      |
+| Calling `when('myMod:rainyNight', { hours: [20, 6] })` again | Throws for a duplicate name; does not replace the check |
+
+Pass the retrieved function to `wet()`, `layer()` or `wear()`; each check reads current state. Register each name once, then pass only its name to retrieve it.
+
+### Combine several checks
+
+Conditions passed to `wet()`, `layer()` and `wear()` can also be arrays. This is an **alternative** way to express the rainy-night rule; choose one version when registering it:
+
+```javascript
+const wardrobe = maplebirch.npc.Clothes.wardrobe;
+
+wardrobe.wet('Luna', 'damp', [
+  // Boolean: true allows this item; false rejects the group.
+  true,
+  // Expression string: reads current player location.
+  "V.location === 'park'",
+  // Synchronous function: checks current weather.
+  () => Weather.precipitation === 'rain',
+  // Keep “evening OR early morning” inside one item.
+  () => Time.hour >= 21 || Time.hour <= 5
+]);
+```
+
+**Every array item must pass.** For “any of these,” use `||` inside one expression or callback. Conditions only inspect state; payments and rewards belong in action resolution.
+
+JSON/YAML supports booleans, expression strings and condition arrays. Put functions in JavaScript scripts; a string containing `() => ...` is not a JSON/YAML callback.
 
 ## Composition and Local Changes
 

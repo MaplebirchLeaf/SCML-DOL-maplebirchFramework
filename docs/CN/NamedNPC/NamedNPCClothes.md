@@ -163,7 +163,9 @@ console.log(outfit.upper?.name);
 
 ## 条件使用的是谁的位置
 
-| 入口                             | 位置来源                               |
+先区分两个问题：“露娜按日程在哪里？”与“玩家现在在哪里？”衣柜会用到两者，但入口不同。
+
+| 入口                             | 读取什么                               |
 | :------------------------------- | :------------------------------------- |
 | `wear()` 第二项地点              | 该 NPC 的 `Schedule.location`          |
 | `modify()` 的 `context.location` | 该 NPC 的日程地点                      |
@@ -171,20 +173,73 @@ console.log(outfit.upper?.name);
 | `when()` 分组中的 `passage`      | 当前 passage 标题                      |
 | `when()` 分组中的 `hours`        | 当前 `V.time.hour`，两端包含，可跨午夜 |
 
+### 写一个可复用的雨夜条件
+
+继续使用前面已注册的露娜。假设场景用 `park` 表示公园，希望玩家在公园的雨夜见到她时，衣服显示为微湿：
+
 ```javascript
 const wardrobe = maplebirch.npc.Clothes.wardrobe;
+
 const rainyNight = wardrobe.when(
+  // 给这条判断起名，供其它衣柜规则复用。
   'myMod:rainyNight',
   {
-    location: 'library',
+    // 检查玩家的 V.location。
+    location: 'park',
+    // 21～23 点与 0～5 点都成立，包含 05:59。
     hours: [21, 5]
   },
-  () => Weather.name === 'rain'
+  // 地点、小时、下雨三项必须同时成立。
+  () => Weather.precipitation === 'rain'
 );
+
+// 这里只登记规则；框架每次查询衣服时再检查当前状态。
 wardrobe.wet('Luna', 'damp', rainyNight);
 ```
 
-分组内条件按 AND 计算，额外条件也要成立。`when(name)` 返回已登记的同一个判断函数；未知名称会抛错，带分组再次登记同名条件也会抛错。条件支持布尔值、表达式字符串、同步函数及按 AND 计算的条件数组；函数放在脚本中，JSON/YAML 仅使用数据或表达式字符串。
+把 `park` 换成场景实际写入 `V.location` 的值。如果只想检查 passage 标题，则把 `location` 改成 `passage`。这条规则只决定湿度，人物是否在场仍由剧情负责。
+
+### 其它规则怎样取到它
+
+上面的 `when(名称, 分组, 额外条件)` 是**登记**。只传名称则是**取回**，不必再写一遍地点和时间：
+
+```javascript
+const sameRainyNight = maplebirch.npc.Clothes.wardrobe.when('myMod:rainyNight');
+
+// 接在上一段脚本后执行：两者是同一个函数，不是此刻判断结果的快照。
+console.log(sameRainyNight === rainyNight); // true
+```
+
+| 写法                                                    | 结果                         |
+| :------------------------------------------------------ | :--------------------------- |
+| `when('myMod:rainyNight')`                              | 取回已登记的判断函数         |
+| `when('myMod:missing')`                                 | 未登记，抛错                 |
+| 再次执行 `when('myMod:rainyNight', { hours: [20, 6] })` | 名称重复，抛错，不覆盖原条件 |
+
+取回的函数可以继续传给 `wet()`、`layer()` 或 `wear()`，每次查询时都会读取最新状态。每个名称只登记一次，后续只传名称即可。
+
+### 多个判断怎样组合
+
+`wet()`、`layer()` 和 `wear()` 的条件还可以直接写成数组。下面是前面雨夜条件的**另一种写法**，用于说明条件格式，实际选一种登记即可：
+
+```javascript
+const wardrobe = maplebirch.npc.Clothes.wardrobe;
+
+wardrobe.wet('Luna', 'damp', [
+  // 布尔值：true 放行，false 会使整组不成立。
+  true,
+  // 表达式字符串：查询时读取当前玩家位置。
+  "V.location === 'park'",
+  // 同步函数：查询时检查天气。
+  () => Weather.precipitation === 'rain',
+  // “晚间或凌晨”写在这一项内部。
+  () => Time.hour >= 21 || Time.hour <= 5
+]);
+```
+
+数组要求**每一项都成立**；想表达“任一项成立”，在单个表达式或函数中使用 `||`。条件只做判断，扣款、发奖等写进实际行动分支。
+
+JSON/YAML 中可以写布尔值、表达式字符串和条件数组。函数写在 JavaScript 脚本中，不要把 `() => ...` 当作 JSON/YAML 的字符串条件。
 
 ## 合并顺序与局部修改
 

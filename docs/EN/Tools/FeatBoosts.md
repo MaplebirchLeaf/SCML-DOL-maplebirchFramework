@@ -36,6 +36,32 @@ maplebirch.tool.patch.featBoosts.add('myMod:boost', {
 
 Without `max`, the limit is the number of earned prerequisite feats multiplied by `maxMultiplier` (default 1). A boost with no prerequisites counts as one. `name`, `missing`, `text` and `upgrade` accept strings or functions returning strings; display text passes through `maplebirch.auto()`.
 
+## Define the effect widget
+
+**widgets.twee** — add to `tweeFileList`; keep the name identical to effect above.
+
+```twine
+:: My Mod Feat Boost [widget]
+<<widget "myModFeatBoost">>
+  /* The new game may not have mod state yet; only create missing data. */
+  <<if !$myMod>><<set $myMod to {}>><</if>>
+  <<set $myMod.featBoostApplied to true>>
+<</widget>>
+```
+
+**framework.js**
+
+```javascript
+maplebirch.tool.patch.traits.add({
+  title: 'General Traits',
+  name: 'Head start',
+  colour: 'gold',
+  // Purchasing does not set this flag; show only after the new-game effect runs.
+  has: () => V.myMod?.featBoostApplied === true,
+  text: 'You began this journey with a feat boost.'
+});
+```
+
 ## JSON Configuration
 
 Alternatively, add a separate entry under `framework` in `boot.json`:

@@ -6,6 +6,62 @@ Register in a loading script, then let weather-change notifications drive the ch
 
 `maplebirch.dynamic.Weather` also offers weather-data and renderer integration. Those have different roles from event callbacks and are covered separately below.
 
+## Complete example: rain and clearing notices
+
+**framework.js**
+
+```javascript
+function initWeatherNotice(variables) {
+  variables.myMod ??= {};
+  variables.myMod.weather ??= {};
+  variables.myMod.weather.notice ??= ''; // Retain a pending notice when loading.
+}
+maplebirch.tool.onInit(() => initWeatherNotice(V));
+maplebirch.on(':onLoad', save => initWeatherNotice(save.V));
+
+maplebirch.dynamic.regWeatherEvent('myMod:rainNotice', {
+  // Rain belongs to precipitation; name is a type such as clear or lightClouds.
+  condition: () => Boolean(V.myMod?.weather) && Weather.precipitation === 'rain',
+  onEnter: () => {
+    V.myMod.weather.notice = 'rain';
+  },
+  onExit: () => {
+    if (V.myMod?.weather) V.myMod.weather.notice = 'clear';
+  }
+});
+
+// Map each state to an output widget; clear its flag before returning fixed output.
+for (const [state, widget] of [
+  ['rain', 'myModRainBegins'],
+  ['clear', 'myModRainEnds']
+]) {
+  maplebirch.dynamic.regStateEvent('gate', `myMod:weather:${state}`, {
+    output: widget,
+    cond: () => V.myMod?.weather?.notice === state,
+    action: () => {
+      V.myMod.weather.notice = '';
+    },
+    forceExit: false, // Continue the original page after the notice.
+    extra: { exclude: ['Start', 'Start2'] }
+  });
+}
+```
+
+**widgets.twee** — include in boot.json's `tweeFileList`.
+
+```twine
+:: My Mod Weather Notices [widget]
+<<widget "myModRainBegins">>
+  <span class="blue">Raindrops begin to fall.</span><br><br>
+<</widget>>
+
+<<widget "myModRainEnds">>
+  <span class="blue">The rain has stopped.</span><br><br>
+<</widget>>
+```
+
+Result: a rain transition queues one notice for the next eligible page; continuing rain does not enter again. Restarting or switching saves does not restore the runtime active set, so do not use onEnter as proof that a one-time reward is due. The standalone checks, matching examples, and renderer integration remain below.
+
 ## 1. A directly usable event
 
 Put this in a script loaded through `params.script`:

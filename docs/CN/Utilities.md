@@ -17,43 +17,73 @@
 对已有值操作时，优先使用 `maplebirch.utils` 函数式工具。数组与字符串的实例方法（`contains`/`convert` 等）仍然保留：
 
 ```javascript
+const source = {
+  sidebar: { enabled: true },
+  labels: ['beast', 'forest']
+};
+
+// 原始配置留作默认值，修改副本不会改变它。
 const copy = maplebirch.utils.clone(source);
-const same = maplebirch.utils.equal(oldData, newData);
+copy.sidebar.enabled = false;
+console.log(source.sidebar.enabled); // true
+
+// 深度比较内容；两个不同对象也可以相等。
+const same = maplebirch.utils.equal(source, copy); // false
+
+// 数组与字符串的实例工具仍然可以使用。
 const labels = ['beast', 'forest'];
-const ok = labels.contains('beast');
-const key = 'My Text'.convert('snake');
+const ok = labels.contains('beast'); // true
+const key = 'My Text'.convert('snake'); // 'my_text'
 ```
 
 创建新对象或新数组时，使用静态方法：
 
 ```javascript
+const defaultOptions = { sidebar: { enabled: true, width: 240 } };
+const userOptions = { sidebar: { width: 320 } };
 const options = Object.merge(defaultOptions, userOptions);
+// options: { sidebar: { enabled: true, width: 320 } }
+// defaultOptions.sidebar.width: 240
+
+const baseList = ['home', 'school'];
+const modList = ['myMod:park'];
 const list = Array.append(baseList, modList);
+// list: ['home', 'school', 'myMod:park']
+// baseList: ['home', 'school']
 ```
 
 数值工具放在 `Math` 上：
 
 ```javascript
-const value = Math.clamp(input, 0, 100);
+const input = 145;
+const value = Math.clamp(input, 0, 100); // 100
 ```
 
 ## 原型方法与静态方法
 
-框架不再向 `Object.prototype` 注册 `clone`/`equal`/`merge`/`append`/`cover` 等实例方法，普通对象实例上这些方法均为 `undefined`（如 `obj.cover === undefined`）。对象合并改用 `maplebirch.utils` 函数式调用，第一个参数是目标对象，函数会修改并返回它：
+处理对象时，先决定是否要保留原数据。`maplebirch.utils.merge/append/cover` 都会**修改并返回第一个参数**；它们对数组的处理不同：
 
 ```javascript
-maplebirch.utils.merge(target, source);
-maplebirch.utils.append(target, source);
-maplebirch.utils.cover(target, source);
+const source = { list: [3] };
+
+// 各用一份新目标，方便对比三种结果。
+const merged = maplebirch.utils.merge({ list: [1, 2] }, source); // 按下标合并，结果 [3, 2]。
+const appended = maplebirch.utils.append({ list: [1, 2] }, source); // 追加，结果 [1, 2, 3]。
+const covered = maplebirch.utils.cover({ list: [1, 2] }, source); // 替换整个数组，结果 [3]。
 ```
 
-数组的 `contains`/`either` 与字符串的 `contains`/`convert` 实例方法仍然保留。
+普通对象上没有 `obj.merge()`、`obj.append()`、`obj.cover()`，也没有实例 `clone()` 或 `equal()`。数组的 `contains`/`either` 与字符串的 `contains`/`convert` 实例方法仍然保留。
 
 静态方法会创建一个新的对象或数组：
 
 ```javascript
-const next = Object.merge(defaults, current);
-const list = Array.append(base, extra);
+const defaults = { sidebar: { enabled: true, width: 240 } };
+const current = { sidebar: { width: 320 } };
+const next = Object.merge(defaults, current); // { sidebar: { enabled: true, width: 320 } }
+
+const base = ['home'];
+const extra = ['myMod:park'];
+const list = Array.append(base, extra); // ['home', 'myMod:park']
 ```
 
 如果你不想影响原数据，优先使用 `Object.merge()`、`Object.append()`、`Object.cover()`、`Array.merge()`、`Array.append()`、`Array.cover()`。
@@ -89,9 +119,14 @@ const list = Array.append(base, extra);
 ## clone
 
 ```javascript
-const deepCopy = maplebirch.utils.clone(source);
-const shallowCopy = maplebirch.utils.clone(source, false);
-const plainCopy = maplebirch.utils.clone(source, true, false);
+const source = { sidebar: { enabled: true } };
+
+const deepCopy = maplebirch.utils.clone(source); // 嵌套对象也复制。
+const shallowCopy = maplebirch.utils.clone(source, false); // 只复制顶层，sidebar 仍与 source 共用。
+const plainCopy = maplebirch.utils.clone(source, true, false); // 深拷贝，同时不保留对象原型。
+
+console.log(deepCopy.sidebar === source.sidebar); // false
+console.log(shallowCopy.sidebar === source.sidebar); // true
 ```
 
 参数：
@@ -108,7 +143,11 @@ const plainCopy = maplebirch.utils.clone(source, true, false);
 ## equal
 
 ```javascript
-const same = maplebirch.utils.equal(dataA, dataB);
+const dataA = { trust: 25, tags: ['friend'] };
+const dataB = { trust: 25, tags: ['friend'] };
+
+console.log(dataA === dataB); // false
+const same = maplebirch.utils.equal(dataA, dataB); // true
 ```
 
 `equal()` 使用深度比较，适合比较对象、数组、嵌套结构。它比 `===` 更适合判断配置内容是否一致。

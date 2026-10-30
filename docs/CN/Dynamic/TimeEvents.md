@@ -190,30 +190,34 @@ maplebirch.dynamic.regTimeEvent('onTimeTravel', 'myMod:recordTravel', {
 | `year`、`month`、`day`、`hour`、`minute`、`second`                         | 指定绝对日期的一部分，未指定部分沿用当前值               |
 | `addYears`、`addMonths`、`addDays`、`addHours`、`addMinutes`、`addSeconds` | 只在没有 `target` 和绝对日期字段时用于相对跳转；可为负数 |
 
-- +不要混写绝对与相对字段并期待两者叠加。目标必须处于原版允许的日期范围内。
-- +## 配置与数据速查
-- +| 配置 | 含义 |
-  +| :--- | :--- |
-  +| `action(data)` | 同步处理本次变化 |
-  +| `cond(data)` | 无副作用的资格判断，默认成立 |
-  +| `priority` | 同类型内从大到小排序，默认 `0` |
-  +| `once` | 触发后移除本次运行中的登记，不是存档标记 |
-  +| `exact` | 要求跨过对应单位边界 |
-  +| `accumulate` | `{ unit, target }`；单位为 `sec/min/hour/day/week/month/year`，目标向下取整且至少为 `1` |
-- +正常推进完成后的回调可读取以下字段。部分字段在类型上可选，`onBefore` 不提供完整结果：
-- +| 数据 | 含义 |
-  +| :--- | :--- |
-  +| `prevDate`、`currentDate` | 推进前、后的日期；`prev`、`current` 为别名 |
-  +| `passed` | 本次采用的推进秒数 |
-  +| `diffSeconds`、`sec` | 实际日期差，时间旅行向后时为负 |
-  +| `changes` | 秒至周为绝对经过时间的完整单位数；月、年为日历差 |
-  +| `min/hour/day/week/month/year` | 对应 `changes` 中的值 |
-  +| `exactPoints` | 是否跨过分钟至年的单位边界 |
-  +| `weekday` | `[推进前星期, 推进后星期]` |
-  +| `detailedDiff` | 原版日期比较结果 |
-  +| `direction` | `forward` 或 `backward` |
-  +| `triggeredByAccumulator` | 累积触发时的 `unit`、`target`、`count` |
-- +## 验证边界
-- +用独立存档分别检查：同小时内推进、跨整点但不足一小时、一次跨多小时、跨午夜、保存／重启／读档、向前与向后时间旅行。尤其确认长时间推进的结算次数，以及切换存档是否保留各自余数。避免在真实存档中用跳转反复试验奖励。
-- +[状态事件](StateEvents.md)负责把这些状态变成页面提示或场景；奖励仍在实际结算中发放。
--
+不要混写绝对与相对字段并期待两者叠加。目标必须处于原版允许的日期范围内。
+
+## 配置与数据速查
+
+| 配置           | 含义                                                                                    |
+| :------------- | :-------------------------------------------------------------------------------------- |
+| `action(data)` | 同步处理本次变化                                                                        |
+| `cond(data)`   | 无副作用的资格判断，默认成立                                                            |
+| `priority`     | 同类型内从大到小排序，默认 `0`                                                          |
+| `once`         | 触发后移除本次运行中的登记，不是存档标记                                                |
+| `exact`        | 要求跨过对应单位边界                                                                    |
+| `accumulate`   | `{ unit, target }`；单位为 `sec/min/hour/day/week/month/year`，目标向下取整且至少为 `1` |
+
+正常推进完成后的回调可读取以下字段。部分字段在类型上可选，`onBefore` 不提供完整结果：
+| 数据 | 含义 |
+| :--- | :--- |
+| `prevDate`、`currentDate` | 推进前、后的日期；`prev`、`current` 为别名 |
+| `passed` | 本次采用的推进秒数 |
+| `diffSeconds`、`sec` | 实际日期差，时间旅行向后时为负 |
+| `changes` | 秒至周为绝对经过时间的完整单位数；月、年为日历差 |
+| `min/hour/day/week/month/year` | 对应 `changes` 中的值 |
+| `exactPoints` | 是否跨过分钟至年的单位边界 |
+| `weekday` | `[推进前星期, 推进后星期]` |
+| `detailedDiff` | 原版日期比较结果 |
+| `direction` | `forward` 或 `backward` |
+| `triggeredByAccumulator` | 累积触发时的 `unit`、`target`、`count` |
+
+## 验证边界
+
+用独立存档分别检查：同小时内推进、跨整点但不足一小时、一次跨多小时、跨午夜、保存／重启／读档、向前与向后时间旅行。尤其确认长时间推进的结算次数，以及切换存档是否保留各自余数。避免在真实存档中用跳转反复试验奖励。
+[状态事件](StateEvents.md)负责把这些状态变成页面提示或场景；奖励仍在实际结算中发放。

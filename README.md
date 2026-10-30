@@ -283,6 +283,7 @@ npm install -D @scml-dol-maplebirch/types
   - [NPC 怀孕][NamedNPCPregnancy]
 - [战斗管理][Combat]
   - [战斗按钮][CombatActions]
+  - [战斗同伴][CombatCompanions]
 
 ## boot.json 配置
 
@@ -384,3 +385,4 @@ npm install -D @scml-dol-maplebirch/types
 [NamedNPCPregnancy]: docs/CN/NamedNPC/NamedNPCPregnancy.md
 [Combat]: docs/CN/Combat/
 [CombatActions]: docs/CN/Combat/Actions.md
+[CombatCompanions]: docs/CN/Combat/Companions.md
