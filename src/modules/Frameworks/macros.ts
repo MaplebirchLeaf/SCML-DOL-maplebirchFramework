@@ -5,20 +5,22 @@ import type { MaplebirchCore } from '../../core';
 import type { ScopedLog } from '../../infra/Diagnostics';
 import type { MacroContext } from '../../macros';
 import type ToolCollection from '../ToolCollection';
-import type { MacroDefinition } from 'twine-sugarcube';
+import type { MacroDefinition, MacroContext as NativeMacroContext } from 'twine-sugarcube';
 
 export type MacroFunction<Args extends unknown[] = unknown[]> = (this: MacroContext, ...args: Args) => unknown;
 export type SimpleMacroFunction<Args extends unknown[]> = (this: MacroContext | null, ...args: Args) => unknown;
+export type MacroWrapper = (this: NativeMacroContext, next: () => unknown) => unknown;
 type StatFunction<Args extends unknown[] = unknown[]> = (...args: Args) => DocumentFragment;
 export type MacroTags = string[] | null | undefined;
 export type SkipArgs = string[] | boolean | null | undefined;
-export type MacroPhase = 'sugarcube' | 'storyready';
+export type MacroPhase = 'sugarcube' | 'storyinit' | 'storyready';
 
 class defineMacros {
   public readonly log: ScopedLog;
   public readonly macros: string[] = [];
   public readonly statFunctions: Record<string, StatFunction> = {};
   private readonly definitions = new Map<string, { definition: MacroDefinition; phase: MacroPhase }>();
+  private readonly wrappers = new Map<MacroPhase, Array<[string, MacroWrapper]>>();
   private readonly ready = new Set<MacroPhase>();
 
   public constructor(readonly manager: ToolCollection) {
@@ -26,6 +28,10 @@ class defineMacros {
     manager.core.once(':sugarcube', () => {
       this.ready.add('sugarcube');
       this.installAll('sugarcube');
+    });
+    manager.onInit(() => {
+      this.ready.add('storyinit');
+      this.installAll('storyinit');
     });
     manager.core.once(':storyready', () => {
       this.ready.add('storyready');
@@ -62,11 +68,37 @@ class defineMacros {
     const registration = definition as unknown as MacroDefinition;
     this.definitions.set(macroName, { definition: registration, phase });
     if (!this.macros.includes(macroName)) this.macros.push(macroName);
-    if (this.ready.has('storyready') || this.ready.has(phase)) this.install(macroName, registration);
+    if (this.ready.has(phase)) this.install(macroName, registration);
   }
 
   private installAll(phase: MacroPhase): void {
     for (const [name, entry] of this.definitions) if (entry.phase === phase) this.install(name, entry.definition);
+    const wrappers = this.wrappers.get(phase) ?? [];
+    this.wrappers.delete(phase);
+    for (const [name, wrapper] of wrappers) {
+      const original = this.Macro.get(name) as MacroDefinition | undefined;
+      if (!original || typeof original.handler !== 'function') {
+        this.log(`待包装的宏不存在: ${name}`, 'WARN');
+        continue;
+      }
+      this.install(name, {
+        ...original,
+        handler(this: NativeMacroContext) {
+          return wrapper.call(this, () => original.handler.call(this));
+        }
+      });
+    }
+  }
+
+  public wrap(name: string, wrapper: MacroWrapper, phase: MacroPhase = 'storyready'): void {
+    if (!name || typeof wrapper !== 'function') {
+      this.log(`宏包装无效: ${name}`, 'WARN');
+      return;
+    }
+    const wrappers = this.wrappers.get(phase) ?? [];
+    wrappers.push([name, wrapper]);
+    this.wrappers.set(phase, wrappers);
+    if (this.ready.has(phase)) this.installAll(phase);
   }
 
   private install(name: string, definition: MacroDefinition): void {

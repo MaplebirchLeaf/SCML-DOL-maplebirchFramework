@@ -214,6 +214,36 @@ maplebirch.tool.defineS('myModHello', name => {
 });
 ```
 
-Use `maplebirch.tool.define()` when the handler needs the SugarCube macro context. Both shortcuts retain the arguments of `tool.macro.define()` and `tool.macro.defineS()`. New macros register at `:sugarcube` by default, without a manual `once(':sugarcube')` wrapper. To replace a vanilla macro, set the final `phase` argument to `'storyready'` so vanilla can register first; claiming its name earlier makes SugarCube reject the vanilla definition. To read and wrap an original handler, still wait until `:storyready`. The `macro` service remains available for other macro-management methods.
+Use `maplebirch.tool.define()` when the handler needs the SugarCube macro context. Both shortcuts retain the arguments of `tool.macro.define()` and `tool.macro.defineS()`. New macros register at `:sugarcube` by default, without a manual `once(':sugarcube')` wrapper. To replace a vanilla Twee widget, set the final `phase` argument to `'storyinit'` or `'storyready'` so vanilla can register first; claiming its name earlier makes SugarCube reject the vanilla definition. The `macro` service remains available for other macro-management methods.
+
+### Wrapping Existing Macros
+
+`maplebirch.tool.macro.wrap(name, wrapper, phase = 'storyready')` registers a macro wrapper through the same installation flow as `define`. It defaults to `:storyready`; calls made after the selected phase is ready install immediately. No separate `onInit()` is needed.
+
+`define()`, `defineS()` and `wrap()` share these installation phases:
+
+| `phase`        | Timing                                                                                                            | Typical use                                                           |
+| -------------- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `'sugarcube'`  | Game scripts have run; Twee widgets have not registered yet                                                       | New macros or wrappers for vanilla JS macros                          |
+| `'storyinit'`  | Vanilla widgets have registered; at the end of `StoryInit`, before save restoration and the first passage display | Wrappers needed on the restored first turn, such as combat resolution |
+| `'storyready'` | After the first passage display                                                                                   | Wrappers that depend on the initial UI or can install later           |
+
+`storyinit` does not replace `storyready`. A ready phase installs immediately; a pending phase waits for its own timing. The `storyinit` phase runs before initialization functions subsequently registered through `tool.onInit()`, without a separate `onInit()` wrapper.
+
+`wrapper` preserves the original macro context and definition properties. Call `next()` to run the previous handler. Access arguments and output through `this.args`, `this.payload` and `this.output`.
+
+```javascript
+maplebirch.tool.macro.wrap(
+  'endcombat',
+  function (next) {
+    const result = next();
+    // Handle this mod's combat-end logic here.
+    return result;
+  },
+  'storyinit'
+);
+```
+
+This method returns no result. A missing macro produces a warning at installation. Multiple wrappers stack in registration order, with later wrappers on the outside.
 
 Put the language on an `option` child tag. `<<language 'CN'>>` does not select its body. Without a matching option, the result is empty.

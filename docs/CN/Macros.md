@@ -276,7 +276,37 @@ maplebirch.tool.define('myModRaw', function () {
 });
 ```
 
-`define()` 和 `defineS()` 沿用 `tool.macro` 的参数，默认在 `:sugarcube` 注册**新增宏**，无需自己包一层 `once(':sugarcube')`。替换原版宏时，将最后一个 `phase` 参数设为 `'storyready'`，等原版注册完成后再替换。提前占用原版宏名会让 SugarCube 的原版注册报错。若要读取并包装原版处理器，仍需等到 `:storyready`。需要 `create()` 等其它宏管理能力时可访问 `maplebirch.tool.macro`。
+`define()` 和 `defineS()` 沿用 `tool.macro` 的参数，默认在 `:sugarcube` 注册**新增宏**，无需自己包一层 `once(':sugarcube')`。替换原版 Twee widget 时，将最后一个 `phase` 参数设为 `'storyinit'` 或 `'storyready'`，等原版注册完成后再替换。提前占用原版宏名会让 SugarCube 的原版注册报错。需要 `create()` 等其它宏管理能力时可访问 `maplebirch.tool.macro`。
+
+### 包装现有宏
+
+`maplebirch.tool.macro.wrap(name, wrapper, phase = 'storyready')` 登记宏包装，与 `define` 共用安装流程。默认在 `:storyready` 安装；对应阶段已就绪时立即安装，无需另写 `onInit()`。
+
+`define()`、`defineS()` 和 `wrap()` 共用以下安装时机：
+
+| `phase`        | 执行时机                                                        | 适用情况                                       |
+| -------------- | --------------------------------------------------------------- | ---------------------------------------------- |
+| `'sugarcube'`  | 游戏脚本已执行，Twee widget 尚未注册                            | 新增宏，或包装原版 JS 宏                       |
+| `'storyinit'`  | 原版 widget 已注册，在 `StoryInit` 末尾、存档恢复与首段落显示前 | 必须覆盖恢复首轮的原版 widget 包装，如战斗结算 |
+| `'storyready'` | 首个段落显示后                                                  | 依赖初始界面或稍后安装的包装                   |
+
+`storyinit` 不替代 `storyready`。已就绪的阶段立即安装；尚未就绪的阶段等待对应时机。`storyinit` 阶段先于 `tool.onInit()` 中后续登记的初始化函数执行，无需再套一层 `onInit()`。
+
+`wrapper` 保留原版宏的上下文和定义属性。调用 `next()` 执行上一层处理器；可通过 `this.args`、`this.payload` 和 `this.output` 读取参数与输出。
+
+```javascript
+maplebirch.tool.macro.wrap(
+  'endcombat',
+  function (next) {
+    const result = next();
+    // 在此处理本模组的战斗结束逻辑。
+    return result;
+  },
+  'storyinit'
+);
+```
+
+此方法不返回执行结果。安装时找不到对应宏会记录警告；同一宏的多个包装按登记顺序叠加，后登记的包在外层。
 
 ---
 

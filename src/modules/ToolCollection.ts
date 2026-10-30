@@ -31,9 +31,9 @@ class ToolCollection {
     constructors: ToolConstructors = {}
   ) {
     this.console = Object.seal(new (constructors.console ?? Console)(this));
+    this.zone = Object.seal(new ZonesManager(core));
     this.macro = Object.freeze(new (constructors.macro ?? defineMacros)(this)) as defineMacros;
     this.text = Object.seal(new htmlTools(core));
-    this.zone = Object.seal(new ZonesManager(core));
     this.patch = new Patch((name, error) => core.infra.diagnostics.record(`Patch ${name}: ${Diagnostics.message(error)}`, 'ERROR', 'patch', error));
   }
 
