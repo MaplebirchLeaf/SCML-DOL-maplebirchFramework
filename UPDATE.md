@@ -1,3 +1,11 @@
+##### (v.5.6.2更新日志):
+
+- 冻结场景与回放中的战斗保留同伴援助，继续沿用原版快照恢复现实属性，以及按回合去重和遭遇结束清理。
+
+**English**
+
+- Keep companion assistance available in frozen and replayed combat, retaining native snapshot restoration, once-per-turn settlement and encounter cleanup.
+
 ##### (v.5.6.1更新日志):
 
 - 战斗同伴收束为自动协助，移除通用治疗菜单；角色专属主动动作使用现有 CombatAction 接口。
