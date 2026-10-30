@@ -135,7 +135,7 @@ class Transformation {
       },
       1
     );
-    manager.core.tool.define('transform', (name: string, change: number) => this._transform(name, change), null, null, false, 'storyready');
+    manager.core.tool.define('transform', (name: string, change: number) => this._transform(name, change));
     manager.core.tool.defineS('transform-hint', (name: string, colour: string) => {
       if (dol.variables.settings?.blindStatsEnabled) return;
       const fragment = document.createDocumentFragment();
@@ -145,8 +145,8 @@ class Transformation {
       fragment.append(' | ', label);
       return fragment;
     });
-    manager.core.tool.define('transformationAlteration', () => this._transformationAlteration(), null, null, false, 'storyready');
-    manager.core.tool.define('transformationStateUpdate', () => this._transformationStateUpdate(), null, null, false, 'storyready');
+    manager.core.tool.define('transformationAlteration', () => this._transformationAlteration(), null, null, false, 'storyinit');
+    manager.core.tool.define('transformationStateUpdate', () => this._transformationStateUpdate(), null, null, false, 'storyinit');
   }
 
   public get coexist(): boolean {

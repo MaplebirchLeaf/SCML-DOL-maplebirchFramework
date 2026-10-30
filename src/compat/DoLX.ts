@@ -71,7 +71,7 @@ class DoLX {
   public static readonly Transformations = DoLXTransformations;
 
   public static install(core: MaplebirchCore): void {
-    core.once(':storyready', () => {
+    core.tool.onInit(() => {
       if (!this.isDoLX) return;
       const transformation = core.char.transformation;
       if (!DoLP.isDoLP) DoLP.Transformations.install(transformation);

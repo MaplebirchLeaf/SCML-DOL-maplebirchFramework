@@ -445,7 +445,7 @@ class NewWorld {
   }
 
   public static install(core: MaplebirchCore): void {
-    core.once(':storyready', () => {
+    core.tool.onInit(() => {
       if (this.isNewWorld) this.Transformations.install(core.char.transformation);
     });
     if (!NewWorld.isNewWorld) return;

@@ -222,13 +222,13 @@ Use `maplebirch.tool.define()` when the handler needs the SugarCube macro contex
 
 `define()`, `defineS()` and `wrap()` share these installation phases:
 
-| `phase`        | Timing                                                                                                            | Typical use                                                           |
-| -------------- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `'sugarcube'`  | Game scripts have run; Twee widgets have not registered yet                                                       | New macros or wrappers for vanilla JS macros                          |
-| `'storyinit'`  | Vanilla widgets have registered; at the end of `StoryInit`, before save restoration and the first passage display | Wrappers needed on the restored first turn, such as combat resolution |
-| `'storyready'` | After the first passage display                                                                                   | Wrappers that depend on the initial UI or can install later           |
+| `phase`        | Timing                                                                                                            | Typical use                                                                    |
+| -------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `'sugarcube'`  | Game scripts have run; Twee widgets have not registered yet                                                       | New macros; vanilla JS macros such as `transform` and feat boosts              |
+| `'storyinit'`  | Vanilla widgets have registered; at the end of `StoryInit`, before save restoration and the first passage display | Transformation widgets and combat resolution needed on the restored first turn |
+| `'storyready'` | After the first passage display                                                                                   | Wrappers that depend on the initial UI, such as character pet synchronization  |
 
-`storyinit` does not replace `storyready`. A ready phase installs immediately; a pending phase waits for its own timing. The `storyinit` phase runs before initialization functions subsequently registered through `tool.onInit()`, without a separate `onInit()` wrapper.
+`storyinit` does not replace `storyready`. A ready phase installs immediately; a pending phase waits for its own timing. The `storyinit` phase runs before initialization functions subsequently registered through `tool.onInit()`, without a separate `onInit()` wrapper. Specify `phase` directly for macros. Continue using `tool.onInit()` for native setup data or branch configuration, and retain the required readiness timing for UI and image-index initialization.
 
 `wrapper` preserves the original macro context and definition properties. Call `next()` to run the previous handler. Access arguments and output through `this.args`, `this.payload` and `this.output`.
 

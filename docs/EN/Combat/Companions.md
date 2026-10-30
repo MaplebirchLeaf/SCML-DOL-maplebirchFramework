@@ -23,18 +23,19 @@ Call the leave macro when the companion needs to leave early:
 
 Ordinary integration only needs the add macro. The framework follows vanilla combat to process actions, support and hit updates, then clears the group when the encounter ends. The leave macro only makes specified characters leave early; no arguments means no action.
 
-Each companion uses one response widget. Basic usage only needs to handle `assist`:
+Each companion uses one response widget. Basic damage and pain reduction only need `effects`:
 
 ```twine
 :: My Mod Combat Support [widget]
 <<widget 'myMod-robin-support'>>
-  <<if _args[0].event is 'assist'>>
-    Robin stays close, watching the fight.
+  <<if _args[0].event is 'effects'>>
+    <<set _args[0].bonus to 0.1>>
+    <<set _args[0].guard to 0.1>>
   <</if>>
 <</widget>>
 ```
 
-List the widget file in your mod's `tweeFileList`. This example only outputs dialogue. Add support conditions and effects inside this branch as needed; other responses can be added later.
+List the widget file in your mod's `tweeFileList`. This example provides 10% more damage and 10% less pain gain. Put per-turn dialogue or costs in `assist`, and add treatment and hit responses as the content needs them.
 
 ## NPCs and Responses
 
@@ -92,9 +93,9 @@ Eligible companions offer treatment in vanilla mouth actions. The framework chec
 
 Write treatment dialogue, recovery and resource costs in `heal`. Use vanilla `pain` and its indicator macros, retaining vanilla minimum pain. The companion framework does not define a separate PC health pool.
 
-## Complete Twee Example
+## Example with Costs and Departure
 
-The widget below replaces the minimal example under the same name. The example has four parts: joining the encounter, recording a hit, handling responses and recovering afterward.
+This optional example includes costs and departure, with separate sections for joining the encounter, recording hits, handling responses and recovery. Its widget replaces the basic example under the same name. Actual content can reuse existing NPC or story progress.
 
 ### 1. Join the Encounter
 

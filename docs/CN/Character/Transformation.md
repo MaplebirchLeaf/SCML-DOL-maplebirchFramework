@@ -21,7 +21,7 @@ maplebirch.char.transformation.coexistConditions.push(() => myModule.hasCoexistT
 
 ## 兼容钩子
 
-分支适配可在 `:storyready` 中注册，通过 `maplebirch.char.transformation.hooks` 接入结算流程。钩子使用框架已有的 `Hooks`，支持 `add(name, callback, order)` 与 `remove(name)`，回调必须同步执行。
+在 `tool.onInit()` 中登记 `maplebirch.char.transformation.hooks`，让分支规则在恢复存档前就绪。回调执行时再读取游戏变量。钩子使用框架已有的 `Hooks`，支持 `add(name, callback, order)` 与 `remove(name)`，回调必须同步执行。
 
 | 钩子     | 参数与时机                                                                             |
 | -------- | -------------------------------------------------------------------------------------- |
@@ -32,7 +32,7 @@ maplebirch.char.transformation.coexistConditions.push(() => myModule.hasCoexistT
 | `clear`  | 清理状态前，将需要保留的名称加入 `valid.names`                                         |
 
 ```javascript
-maplebirch.once(':storyready', () => {
+maplebirch.tool.onInit(() => {
   maplebirch.char.transformation.hooks.change.add('my-mod', context => {
     if (context.name === 'cat' && context.change > 0 && V.myMod?.growthBoost) context.change *= 2;
   });

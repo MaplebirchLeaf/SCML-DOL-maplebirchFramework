@@ -1,7 +1,6 @@
 // ./src/modules/NamedNPCAddon/NPCSidebar.ts
 
 import type { ModZipReader } from '@scml/types/sugarcube-2-ModLoader/ModZipReader';
-import type { MacroDefinition } from 'twine-sugarcube';
 import maplebirch from '../../core';
 import { lookupColour, clothes_layer, isAltPosition, normaliseClothingState, clothingIndex, previousFilterName } from './NPCSidebarConfig/functions';
 import base_layers from './NPCSidebarConfig/base_layers';
@@ -858,14 +857,15 @@ const NPCSidebar = (() => {
       manager.core.char.use(layers, 'main');
       manager.core.char.use(pet_layers('nnpc'), 'npc-pet-nnpc');
       manager.core.char.use(pet_layers('previous'), 'npc-pet-previous');
-      manager.core.once(':storyready', () => {
-        const macro = manager.core.host.sugarcube.require().Macro.get('updatesidebarimg') as MacroDefinition | undefined;
-        if (!macro) return;
-        manager.core.tool.macro.define('updatesidebarimg', function (this: any) {
-          macro.handler.call(this);
+      manager.core.tool.macro.wrap(
+        'updatesidebarimg',
+        function (next) {
+          const result = next();
           NPCSidebar.pet.sync();
-        });
-      });
+          return result;
+        },
+        'storyready'
+      );
       manager.core.on(
         ':passageend',
         () => {

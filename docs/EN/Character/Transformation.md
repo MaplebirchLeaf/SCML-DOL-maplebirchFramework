@@ -12,7 +12,7 @@ maplebirch.char.transformation.add(name, type, config);
 
 ## Compatibility Hooks
 
-Register branch adapters during `:storyready` through `maplebirch.char.transformation.hooks`. These use the existing `Hooks` API: `add(name, callback, order)` and `remove(name)`. Callbacks must be synchronous.
+Register branch adapters through `tool.onInit()` before save restoration, using `maplebirch.char.transformation.hooks`. Registration configures rules; read game variables when the callbacks execute. These use the existing `Hooks` API: `add(name, callback, order)` and `remove(name)`. Callbacks must be synchronous.
 
 | Hook     | Arguments and timing                                                                                        |
 | -------- | ----------------------------------------------------------------------------------------------------------- |
@@ -23,7 +23,7 @@ Register branch adapters during `:storyready` through `maplebirch.char.transform
 | `clear`  | Add names to `valid.names` before stored state is cleaned up                                                |
 
 ```javascript
-maplebirch.once(':storyready', () => {
+maplebirch.tool.onInit(() => {
   maplebirch.char.transformation.hooks.change.add('my-mod', context => {
     if (context.name === 'cat' && context.change > 0 && V.myMod?.growthBoost) context.change *= 2;
   });

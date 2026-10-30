@@ -1,6 +1,5 @@
 // ./src/modules/Character.ts
 
-import { MacroDefinition } from 'twine-sugarcube';
 import maplebirch, { MaplebirchCore } from '../core';
 import type { ScopedLog } from '../infra/Diagnostics';
 import Hooks from '../infra/Hooks';
@@ -458,15 +457,16 @@ class Character {
   public preInit() {
     const { core, pet } = this;
     core.on(':language', () => this.faceStyleSetupOption(), 'face style setup options');
-    core.once(':storyready', () => {
-      this.faceStyleSetupOption();
-      const macro = core.host.sugarcube.require().Macro.get('updatesidebarimg') as MacroDefinition | undefined;
-      if (!macro) return;
-      core.tool.macro.define('updatesidebarimg', function (this: any) {
-        macro.handler.call(this);
+    core.once(':storyready', () => this.faceStyleSetupOption());
+    core.tool.macro.wrap(
+      'updatesidebarimg',
+      function (next) {
+        const result = next();
         void pet.sync();
-      });
-    });
+        return result;
+      },
+      'storyready'
+    );
     core.on(':passageend', () => void pet.sync());
     this.use('pre', preprocess, 'main');
     this.use(layers, 'main');
