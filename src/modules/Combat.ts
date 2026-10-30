@@ -4,19 +4,93 @@ import maplebirch, { type MaplebirchCore } from '../core';
 import type { ScopedLog } from '../infra/Diagnostics';
 import type { MacroContext } from '../macros';
 import CombatActions, { type ActionType, type ActionValue, type CombatType, type OptionsTable } from './CombatAddon/CombatAction';
+import Companions, { type CompanionNPC } from './CombatAddon/Companions';
 import dol from '../host/DoL';
+import DoLX from '../compat/DoLX';
 
 class Combat {
   public readonly log!: ScopedLog;
   public readonly CombatAction = new CombatActions();
+  public readonly companions = new Companions(this);
   private readonly pendingDefaults = new WeakMap<OptionsTable, ActionValue>();
 
   public constructor(readonly core: MaplebirchCore) {}
 
+  public get climax(): boolean {
+    if (DoLX.isDoLX) return DoLX.climax;
+    const vars = dol.variables;
+    return vars.enemyarousalmax > 0 && vars.enemyarousal >= vars.enemyarousalmax;
+  }
+
   public preInit(): void {
+    const companions = this.companions;
     this.core.tool.define('assignCombatDefaults', this._assignCombatDefaults());
     this.core.tool.define('generateCombatAction', this._generateCombatAction());
     this.core.tool.define('combatButtonAdjustments', (name: string, extra: CombatType | '' = '') => this._combatButtonAdjustments(name, extra));
+    this.core.tool.define('companions-add', (npc: CompanionNPC, widget: string, healthmax?: number) => {
+      this.companions.add(npc, widget, healthmax);
+    });
+    this.core.tool.define('companions-leave', function (...npcs: CompanionNPC[]) {
+      this.output.append(companions.leave(...npcs));
+    });
+    this.core.tool.define('maplebirchCompanionHeal', function (source: string, key: string) {
+      const member = companions.members.find(member => member.source === source && member.key === key);
+      if (member) this.output.append(companions.heal(member.npc));
+    });
+    this.core.tool.macro.wrap(
+      'pain',
+      function (next) {
+        const original = this.args[0];
+        let amount: number;
+        let modifier: number;
+        try {
+          amount = Number(original);
+          modifier = this.args[1] === undefined ? 4 : Number(this.args[1]);
+        } catch {
+          return next();
+        }
+        if (!Number.isFinite(amount * modifier) || amount * modifier <= 0) return next();
+        this.args[0] = companions.pain(amount, modifier);
+        try {
+          return next();
+        } finally {
+          this.args[0] = original;
+        }
+      },
+      'storyinit'
+    );
+    this.core.tool.macro.wrap(
+      'effectsman',
+      function (next) {
+        companions.begin();
+        const result = next();
+        this.output.append(companions.turn());
+        return result;
+      },
+      'storyinit'
+    );
+    this.core.tool.macro.wrap(
+      'stateman',
+      function (next) {
+        const result = next();
+        this.output.append(companions.update());
+        return result;
+      },
+      'storyinit'
+    );
+    for (const name of ['combatinit', 'endcombat', 'endevent']) {
+      this.core.tool.macro.wrap(
+        name,
+        function (next) {
+          try {
+            return next();
+          } finally {
+            companions.clear();
+          }
+        },
+        'storyinit'
+      );
+    }
   }
 
   private _assignCombatDefaults() {
@@ -42,6 +116,7 @@ class Combat {
 
   private _generateCombatAction() {
     const CombatAction = this.CombatAction;
+    const companions = this.companions;
     const pendingDefaults = this.pendingDefaults;
     const log = this.log;
     const combatButtonAdjustments = this._combatButtonAdjustments.bind(this);
@@ -60,6 +135,7 @@ class Combat {
       const el = (val: string) => document.createElement(val);
 
       try {
+        if (actionType === 'mouthaction' && !combatType) companions.options();
         CombatAction.patchOptions(optionsTable, actionType, combatType);
       } catch (e) {
         log('mod战斗动作对象错误', 'ERROR', e);

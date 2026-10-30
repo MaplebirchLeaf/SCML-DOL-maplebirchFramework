@@ -35,6 +35,7 @@ Callouts have distinct meanings: **TIP** recommends a practice, **NOTE** adds co
 - [NPC registration](NamedNPC/NamedNPC.md) · [Stats](NamedNPC/NamedNPCStats.md) · [Schedules](NamedNPC/NamedNPCSchedule.md)
 - [NPC clothes and wardrobe](NamedNPC/NamedNPCClothes.md) · [Sidebar](NamedNPC/NamedNPCSidebar.md) · [Transformations](NamedNPC/NamedNPCTransformation.md) · [Pregnancy](NamedNPC/NamedNPCPregnancy.md)
 - [Combat actions](Combat/Actions.md)
+- [Combat companions](Combat/Companions.md)
 
 ### Data registration
 

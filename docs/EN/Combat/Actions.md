@@ -6,6 +6,8 @@
 
 Buttons use the vanilla `generateCombatAction` flow. In a human encounter, `effect` runs in the matching section of `effectsman`. With `combatType` set, effects for struggle, swarm, vore, machine and tentacle encounters run in their respective effect widgets.
 
+`maplebirch.combat.climax` is a read-only boolean that checks whether the enemy has reached the current game's native climax threshold. It can be used when resolving an encounter and does not advance or end combat.
+
 ## Entry Point
 
 ```javascript

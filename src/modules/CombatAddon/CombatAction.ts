@@ -99,6 +99,12 @@ class CombatActions {
     return this;
   }
 
+  public remove(id: string): void {
+    for (let index = this.actions.length - 1; index >= 0; index--) {
+      if (this.actions[index].id === id) this.actions.splice(index, 1);
+    }
+  }
+
   public modify(...configs: ModificationConfig[]): this {
     configs.forEach(({ id, actionType, value, combatType = 'Default', cond, display, order }) => {
       for (const type of Array.isArray(actionType) ? actionType : [actionType]) {

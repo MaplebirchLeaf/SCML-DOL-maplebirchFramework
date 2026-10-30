@@ -35,6 +35,7 @@
 - [NPC 注册](NamedNPC/NamedNPC.md) · [数值](NamedNPC/NamedNPCStats.md) · [日程](NamedNPC/NamedNPCSchedule.md)
 - [NPC 服装与衣柜](NamedNPC/NamedNPCClothes.md) · [侧边栏](NamedNPC/NamedNPCSidebar.md) · [转化](NamedNPC/NamedNPCTransformation.md) · [怀孕](NamedNPC/NamedNPCPregnancy.md)
 - [战斗行动](Combat/Actions.md)
+- [战斗同伴](Combat/Companions.md)
 
 ### 数据注册
 

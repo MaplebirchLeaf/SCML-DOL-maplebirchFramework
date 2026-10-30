@@ -77,6 +77,7 @@ declare global {
 
   const Links: LinksAPI;
   const StartConfig: { version: string };
+  const statChange: { minPain(): number };
 
   interface ErrorsConfig {
     debug: boolean;

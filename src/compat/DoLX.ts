@@ -61,6 +61,11 @@ class DoLX {
     return String(dol.gameVersion ?? '').includes('DoLX') || (dol.has('V') && !!dol.variables?.xchange);
   }
 
+  public static get climax(): boolean {
+    const vars = dol.variables;
+    return vars.enemypleasuremax > 0 && vars.enemypleasure >= vars.enemypleasuremax;
+  }
+
   public static readonly PreservedTraits = ['dragonTongue', 'ironWill', 'leviathan'] as const;
 
   public static readonly Transformations = DoLXTransformations;

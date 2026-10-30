@@ -6,6 +6,8 @@
 
 按钮通过原版的 `generateCombatAction` 显示。普通人类遭遇的 `effect` 在 `effectsman` 的对应动作区域执行。设置 `combatType` 后，挣扎、虫群、吞食、机械和触手遭遇的 `effect` 会在各自的效果 widget 中执行。
 
+`maplebirch.combat.climax` 是只读布尔值，按当前底版的原生阈值判断敌方是否已达到高潮，可用于遭遇收尾。它不会推进或结束战斗。
+
 ## 入口
 
 ```javascript
