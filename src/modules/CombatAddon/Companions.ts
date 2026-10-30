@@ -53,11 +53,6 @@ class Companions {
     return dol.variables.maplebirch?.combat;
   }
 
-  private get frozen(): boolean {
-    const vars = dol.variables;
-    return !!(vars.replayScene || vars.statFreeze || vars.frozenValues);
-  }
-
   private get step(): number {
     const moment = this.combat.core.SugarCube.State.current;
     if (!this.clock || this.clock.moment !== moment) {
@@ -174,7 +169,7 @@ class Companions {
   public leave(...npcs: CompanionNPC[]): DocumentFragment {
     const fragment = document.createDocumentFragment();
     const state = this.state;
-    if (!state || this.frozen || !npcs.length) return fragment;
+    if (!state || !npcs.length) return fragment;
     const selected = new Set(npcs.map(npc => this.find(npc)));
     for (const member of state.companions.slice()) {
       if (this.state !== state) break;
@@ -229,7 +224,7 @@ class Companions {
 
   private get canSettle(): boolean {
     const vars = dol.variables;
-    return vars.combat === 1 && ['man', 'beast'].includes(vars.enemytype) && !this.frozen && !vars.possessed;
+    return vars.combat === 1 && ['man', 'beast'].includes(vars.enemytype) && !vars.possessed;
   }
 
   private get canAct(): boolean {
@@ -261,7 +256,7 @@ class Companions {
   public turn(): DocumentFragment {
     const fragment = document.createDocumentFragment();
     const state = this.state;
-    if (!state || this.frozen) return fragment;
+    if (!state) return fragment;
     if (dol.variables.combat !== 1) {
       this.clear();
       return fragment;

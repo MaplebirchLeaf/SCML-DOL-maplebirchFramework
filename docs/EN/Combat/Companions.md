@@ -97,7 +97,7 @@ No arguments or no valid characters means no action. Adding a character twice do
 - Support runs after `effectsman`; updates run after enemy actions and `stateman` status output. Displaying `stateman` alone does not settle hits. Confirmed hits following this turn's support may settle once during the ending, without adding another support action.
 - Character identities, response widgets, health, stun and settlement records are saved. Characters are resolved from the current native containers after loading. Native entry snapshots and passage replay are retained, without catch-up turns for time spent away from the game.
 - `combatinit`, `endcombat` and `endevent` automatically clear the group. Repeated cleanup invokes no additional companion responses. Read any needed aftermath result before native end macros; cleanup does not delete characters from `$NPCName` or `$per_npc`.
-- Character and combat conditions are rechecked before each companion acts. Frozen, replay, possessed, pending-transition and stunned states provide no new support. This entry point covers ordinary human/beast encounters; content still decides eligibility in complex mixed encounters.
+- Character and combat conditions are rechecked before each companion acts. Possessed, pending-transition and stunned states provide no new support. This entry point covers ordinary human/beast encounters; content still decides eligibility in complex mixed encounters.
 
 ## Script API
 
