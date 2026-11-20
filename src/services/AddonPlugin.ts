@@ -1,43 +1,28 @@
-// ./src/services/AddonPlugin.ts
-
 import type { Passage } from '@scml/types/sugarcube-2-ModLoader/SugarCube2';
 import type { ModBootJson, ModInfo } from '@scml/types/sugarcube-2-ModLoader/ModLoader';
 import type { JSZipLikeReadOnlyInterface } from '@scml/types/sugarcube-2-ModLoader/JSZipLikeReadOnlyInterface';
 import type { ModZipReader } from '@scml/types/sugarcube-2-ModLoader/ModZipReader';
 import type { SC2DataManager } from '@scml/types/sugarcube-2-ModLoader/SC2DataManager';
 import type { ModUtils } from '@scml/types/sugarcube-2-ModLoader/Utils';
-import type { CryptOptions } from '../services/CredentialVault';
 import MaplebrichStyles from '@/styles/MaplebrichStyles.css?raw';
-import type ModLoader from '../host/ModLoader';
+import type { default as ModLoader, Replacement } from '../host/ModLoader';
 import type Resources from '../host/Resources';
 import type SugarCube from '../host/SugarCube';
 import type Emitter from '../infra/Emitter';
 import Catalog from '../infra/Catalog';
 import Hooks from '../infra/Hooks';
 import Diagnostics from '../infra/Diagnostics';
-import type { Replacement } from '../host/ModLoader';
-import type CredentialVault from './CredentialVault';
+import type { default as CredentialVault, CryptOptions } from './CredentialVault';
 import type GUIControl from './GUIControl';
 import type IndexedDB from './IndexedDB';
 import type Modules from './Modules';
 import type Translator from './Translator';
+import Files, { type FileConfig, type FileItem } from './AddonPlugin/Files';
 
-type FileType = 'Module' | 'Script';
-
-interface AddonParams {
-  module?: unknown;
-  script?: unknown;
-  [name: string]: unknown;
-}
+type AddonParams = FileConfig & Record<string, unknown>;
 
 interface AddonPluginConfig {
   params?: AddonParams;
-}
-
-interface FileItem {
-  modName: string;
-  filePath: string;
-  content: string;
 }
 
 export interface BootTask<T = unknown> {
@@ -65,16 +50,15 @@ export class AddonPlugin extends Hooks<[BootTask], void> {
   }
   public readonly info: Catalog<string, { addonName: string; mod: ModInfo; modZip: ModZipReader }>;
   public readonly modList: string[] = [];
-  public readonly jsFiles: FileItem[] = [];
-  public readonly moduleFiles: FileItem[] = [];
+  public readonly jsFiles: FileItem[];
+  public readonly moduleFiles: FileItem[];
   private readonly disabledMods = new Set<string>();
   public readonly blockedPassages = new Set(['Start']);
   public readonly excludedMods = new Set<string>();
   private readonly bootQueue = new Map<string, BootTask[]>();
+  private readonly files: Files;
 
   private onSaveLoadTracer = false;
-  private moduleFilesExecuted = false;
-  private scriptFilesExecuted = false;
   private bootReady = false;
 
   public constructor(
@@ -87,6 +71,9 @@ export class AddonPlugin extends Hooks<[BootTask], void> {
   ) {
     super(modloader, 'continue');
     this.info = new Catalog(modloader);
+    this.files = new Files(modules, () => this.services.gui().disabledScripts, this.log.bind(this));
+    this.jsFiles = this.files.scripts;
+    this.moduleFiles = this.files.modules;
     this.log('框架开始初始化流程', 'INFO');
     this.modUtils.getAddonPluginManager().registerAddonPlugin('maplebirch', 'maplebirchAddon', this);
     this.SC2DataManager.getModLoadController().addLifeTimeCircleHook('maplebirchFramework', this);
@@ -125,9 +112,8 @@ export class AddonPlugin extends Hooks<[BootTask], void> {
 
   public async afterInjectEarlyLoad(): Promise<void> {
     for (const name of this.excludedMods) if (!this.disabledMods.has(name)) await this.modloader!.disabled(name);
-    await this.loadStartupFiles();
-    await this.executeScripts(this.moduleFiles, 'Module');
-    this.moduleFilesExecuted = true;
+    await this.loadFiles();
+    await this.files.run('Module');
     this.log('所有模块注册完成，开始预初始化', 'INFO');
     await this.events.trigger(':indexedDB');
     await this.idb.init();
@@ -157,24 +143,23 @@ export class AddonPlugin extends Hooks<[BootTask], void> {
       if (name === 'module' || name === 'script' || config == null) continue;
       const task: BootTask = { modName: modInfo.name, modInfo, modZip, config };
       if (this.bootReady) {
-        await this.run(name, task);
+        await this.dispatch(name, task);
       } else {
         this.queue(name, task);
       }
     }
 
-    if (this.moduleFilesExecuted) await this.loadModFiles(modInfo.name, modZip, params);
+    if (this.files.started) await this.files.load(modInfo.name, modZip, params);
   }
 
   public async afterRegisterMod2Addon(): Promise<void> {
-    await this.executeScripts(this.jsFiles, 'Script');
-    this.scriptFilesExecuted = true;
+    await this.files.run('Script');
   }
 
   public async beforePatchModToGame(): Promise<void> {
     await this.events.trigger(':addon:repair', this);
     await this.events.trigger(':addon:preparePatch', this);
-    await this.process();
+    await this.flushBoot();
     await this.events.trigger(':import');
     await this.events.trigger(':addon:beforePatch', this);
   }
@@ -238,81 +223,21 @@ export class AddonPlugin extends Hooks<[BootTask], void> {
     return this.services.credential().loadCrypt(options);
   }
 
-  private async loadStartupFiles(): Promise<void> {
+  private async loadFiles(): Promise<void> {
     for (const modName of this.modUtils.getModListNameNoAlias()) {
       try {
         const mod = this.modUtils.getMod(modName) as ModInfo | undefined;
         const modZip = this.modUtils.getModZip(modName);
         if (!mod || !modZip) continue;
         const params = this.config(mod)?.params;
-        if (params) await this.loadModFiles(modName, modZip, params);
+        if (params) await this.files.load(modName, modZip, params);
       } catch (error) {
         this.log(`加载模组脚本失败: ${modName} - ${Diagnostics.message(error)}`, 'ERROR', error);
       }
     }
   }
 
-  private async loadModFiles(modName: string, modZip: ModZipReader, params: AddonParams): Promise<void> {
-    const late = this.moduleFilesExecuted;
-    await this.loadFiles(modName, modZip, params.module, 'Module', late);
-    await this.loadFiles(modName, modZip, params.script, 'Script', late);
-  }
-
-  private async loadFiles(modName: string, modZip: ModZipReader, files: unknown, type: FileType, late: boolean): Promise<void> {
-    if (!Array.isArray(files)) return;
-    const target = type === 'Module' ? this.moduleFiles : this.jsFiles;
-    const loaded: FileItem[] = [];
-    for (const filePath of files) {
-      if (typeof filePath !== 'string') {
-        this.log(`${type} 文件路径无效: ${String(filePath)} (来自 ${modName})`, 'WARN');
-        continue;
-      }
-      try {
-        if (target.some(file => file.modName === modName && file.filePath === filePath)) continue;
-        const file = modZip.zip.file(filePath);
-        if (!file) {
-          this.log(`${type} 文件未找到: ${filePath} (来自 ${modName})`, 'WARN');
-          continue;
-        }
-        const entry = { modName, filePath, content: await file.async('string') };
-        target.push(entry);
-        if (late) loaded.push(entry);
-      } catch (error) {
-        this.log(`加载 ${type} 文件失败: ${filePath} (来自 ${modName}): ${Diagnostics.message(error)}`, 'ERROR', error);
-      }
-    }
-    if (loaded.length && (type === 'Module' || this.scriptFilesExecuted)) await this.executeScripts(loaded, type);
-  }
-
-  private async executeScripts(files: FileItem[], type: FileType): Promise<void> {
-    if (!files.length) return;
-    const disabled = type === 'Script' ? new Set(this.services.gui().disabledScripts) : null;
-    for (const file of files) {
-      const key = `[${file.modName}]:${file.filePath}`;
-      if (disabled?.has(key)) {
-        file.content = '';
-        continue;
-      }
-      const execute = async () => {
-        const func = new Function(file.content);
-        const result: unknown = func();
-        if (result != null && typeof (result as PromiseLike<unknown>).then === 'function') await result;
-      };
-      try {
-        if (type === 'Module') {
-          await this.modules.with(file.modName, execute);
-        } else {
-          await execute();
-        }
-      } catch (error) {
-        this.log(`执行 ${type} 文件失败: ${file.filePath} (来自 ${file.modName}): ${Diagnostics.message(error)}`, 'ERROR', error);
-      } finally {
-        file.content = '';
-      }
-    }
-  }
-
-  private async process(): Promise<void> {
+  private async flushBoot(): Promise<void> {
     this.bootReady = true;
     for (const name of this.bootQueue.keys()) {
       if (!this.has(name)) {
@@ -333,15 +258,14 @@ export class AddonPlugin extends Hooks<[BootTask], void> {
   }
 
   private async flush(name: string): Promise<void> {
-    const handler = this.get(name);
     const tasks = this.bootQueue.get(name);
-    if (!handler || !tasks?.length) return;
+    if (!this.has(name) || !tasks?.length) return;
     this.bootQueue.delete(name);
-    for (const task of tasks) await this.run(name, task, handler);
+    for (const task of tasks) await this.call(name, task);
   }
 
-  private async run(name: string, task: BootTask, handler = this.get(name)): Promise<void> {
-    if (!handler) {
+  private async dispatch(name: string, task: BootTask): Promise<void> {
+    if (!this.has(name)) {
       this.queue(name, task);
       return;
     }

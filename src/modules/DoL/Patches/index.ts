@@ -1,6 +1,5 @@
-// ./src/modules/DoL/Patches/index.ts
-
 import type { MaplebirchCore } from '../../../core';
+import dol from '../../../host/DoL';
 import Patch, { type PatchDefinition } from '../../Frameworks/Patch';
 import Traits, { traitsData } from './Traits';
 import Location, { locationData } from './Location';
@@ -10,21 +9,19 @@ import Antiques, { antiquesData } from './Antiques';
 import Tips, { tipsData } from './Tips';
 import Pills, { pillsData } from './Pills';
 import Fishing, { fishData, fishingLocationData } from './Fishing';
-import FeatBoosts, { featBoostsData } from './FeatBoosts';
+import Feats from './Feats';
+import featBoosts from './FeatBoosts';
 import { isRecord } from './config';
-import dol from '../../../host/DoL';
 
 type PatchSurface<Definition extends PatchDefinition> = Definition extends { legacy: infer Flat } ? Flat : Definition['api'];
 type PatchAliases<Definition extends PatchDefinition> = (Definition extends PatchDefinition ? (surface: PatchSurface<Definition>) => void : never) extends (surface: infer Aliases) => void
   ? Aliases
   : never;
 
-function register(core: MaplebirchCore, patch: Patch) {
+function install(core: MaplebirchCore, patch: Patch) {
   const pills = new Pills();
-  const injectTraits = (data: Parameters<typeof Traits.inject>[0]) => Traits.inject(data, text => core.auto(text));
-  const featBoostText = (key: string, field: Parameters<typeof FeatBoosts.text>[1]) => FeatBoosts.text(key, field, text => core.auto(text));
-  const setupFeatBoosts = () => FeatBoosts.setup(text => core.auto(text));
-  const applyFeatBoosts = () => FeatBoosts.apply(source => void core.host.sugarcube.require().Wikifier.wikifyEval(source));
+  const translate = (text: string) => core.auto(text);
+  const injectTraits = (data: Parameters<typeof Traits.inject>[0]) => Traits.inject(data, translate);
   const definitions = {
     traits: {
       api: {
@@ -38,36 +35,12 @@ function register(core: MaplebirchCore, patch: Patch) {
         injectTraits
       }
     },
-    featBoosts: {
-      api: {
-        data: featBoostsData,
-        add: FeatBoosts.add,
-        has: FeatBoosts.has,
-        text: featBoostText,
-        setup: setupFeatBoosts,
-        refresh: (key: string) => FeatBoosts.refresh(key, text => core.auto(text)),
-        apply: applyFeatBoosts
-      },
-      init: () => {
-        core.tool.macro.wrap(
-          'setupFeatBoosts',
-          next => {
-            const result = next();
-            setupFeatBoosts();
-            return result;
-          },
-          'sugarcube'
-        );
-        core.tool.macro.wrap(
-          'applyFeatBoosts',
-          next => {
-            applyFeatBoosts();
-            return next();
-          },
-          'sugarcube'
-        );
-      }
+    feats: {
+      api: { add: Feats.add },
+      available: () => dol.has('setup') && isRecord(dol.setup.feats),
+      init: () => Feats.apply(text => (typeof text === 'string' ? translate(text) : text[core.Language === 'CN' ? 1 : 0]))
     },
+    featBoosts: featBoosts(core),
     location: {
       api: {
         data: locationData,
@@ -178,6 +151,6 @@ function register(core: MaplebirchCore, patch: Patch) {
   return patch as Patch & PatchCatalog & PatchAliases<(typeof definitions)[keyof typeof definitions]>;
 }
 
-export type Patches = ReturnType<typeof register>;
+export type Patches = ReturnType<typeof install>;
 
-export default register;
+export default install;

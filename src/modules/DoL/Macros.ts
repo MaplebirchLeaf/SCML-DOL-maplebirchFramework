@@ -1,5 +1,5 @@
 import dol from '../../host/DoL';
-import defineMacros from './macros';
+import defineMacros from '../Frameworks/macros';
 
 class DoLMacros extends defineMacros {
   public statChange(statType: string, amount: number, colorClass: string, condition: () => boolean = () => true): DocumentFragment {

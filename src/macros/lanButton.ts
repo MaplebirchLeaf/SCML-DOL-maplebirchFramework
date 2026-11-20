@@ -1,10 +1,7 @@
-// ./src/macros/lanButton.ts
-
 import Diagnostics from '../infra/Diagnostics';
 import maplebirch from '../core';
-import { addClasses, appendMacroIcon, bindLanguageUpdate, parseLanguageArgs, readStyle, sourceText, text, labelText, type MacroContext } from './helpers';
+import { addClasses, appendMacroIcon, bindLanguageUpdate, labelControl, parseLanguageArgs, readStyle, sourceText, text, type MacroContext } from './helpers';
 
-// <<lanButton>>
 export function _languageButton(this: MacroContext): void {
   try {
     parseLanguageArgs(this.args);
@@ -13,7 +10,8 @@ export function _languageButton(this: MacroContext): void {
     const content = (payload[0]?.contents || '').trim();
     const firstArg = this.args[0];
     const source = Array.isArray(firstArg) ? firstArg.map(text) : text(firstArg);
-    const { className, style, icon, iconOnly, convertMode } = readStyle(this.args);
+    const appearance = readStyle(this.args);
+    const { className, style, icon } = appearance;
     const passageObj = this.passageObj;
     const sourceLabel = sourceText(source);
     if (!sourceLabel) return this.error('<<lanButton>> needs a valid text source.');
@@ -23,16 +21,7 @@ export function _languageButton(this: MacroContext): void {
     if (style) $button.attr('style', style);
     appendMacroIcon($button, icon);
 
-    if (!iconOnly) $button.append(jQuery('<span>').addClass('macro-lanButton-text'));
-    const label = labelText(source, convertMode);
-    const update = () => {
-      const buttonText = label();
-      $button.attr('aria-label', buttonText);
-      if (iconOnly) $button.attr('title', buttonText);
-      else $button.removeAttr('title');
-      if (!iconOnly) $button.children('.macro-lanButton-text').text(buttonText);
-    };
-    update();
+    const update = labelControl($button, 'macro-lanButton-text', source, appearance);
 
     $button.ariaClick(
       { namespace: '.macros', role: 'button', one: false },

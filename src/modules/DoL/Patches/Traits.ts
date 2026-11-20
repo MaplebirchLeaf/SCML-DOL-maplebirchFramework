@@ -1,5 +1,3 @@
-// ./src/modules/DoL/Patches/Traits.ts
-
 import { clone } from '../../../utils/object';
 import dol from '../../../host/DoL';
 

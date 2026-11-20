@@ -221,6 +221,7 @@ Feature areas:
 - [Data migration](docs/EN/Tools/Migration.md)
 - [Text builder](docs/EN/Tools/Text.md)
 - [Traits](docs/EN/Tools/Traits.md)
+- [Achievement definitions](docs/EN/Tools/Feats.md)
 - [Tips](docs/EN/Tools/Tips.md)
 - [Location config](docs/EN/Tools/Location.md)
 - [Bodywriting](docs/EN/Tools/Bodywriting.md)

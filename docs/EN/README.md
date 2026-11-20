@@ -60,6 +60,7 @@ For a hands-on path, open the [NPC park-meeting example](NamedNPC/Example.md). S
 - [Traits](Tools/Traits.md)
 - [Tips](Tools/Tips.md)
 - [Bodywriting](Tools/Bodywriting.md)
+- [Achievement definitions](Tools/Feats.md)
 - [Starting feat boosts](Tools/FeatBoosts.md)
 - [Foodstuff](Tools/Foodstuff.md)
 - [Pills](Tools/Pills.md)

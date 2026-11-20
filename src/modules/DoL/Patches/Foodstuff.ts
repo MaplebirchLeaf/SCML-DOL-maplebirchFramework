@@ -1,5 +1,3 @@
-// ./src/modules/DoL/Patches/Foodstuff.ts
-
 import { isKey, isRecord } from './config';
 import dol from '../../../host/DoL';
 

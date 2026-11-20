@@ -1,7 +1,7 @@
 import type { MaplebirchCore } from '../../core';
 import dol from '../../host/DoL';
 
-class OptionEvents {
+class Options {
   private installed = false;
 
   public constructor(private readonly core: MaplebirchCore) {}
@@ -17,11 +17,12 @@ class OptionEvents {
         'select[name="lanListbox-optionsmaplebirchcharactercharartselect"]',
         'select[name="lanListbox-optionsmaplebirchcharactercloseupselect"]'
       ].join(', '),
-      () => this.refreshOptions()
+      () => this.refresh()
     );
     $(document).on('change', 'select.maplebirch-npc-model-primary, select.maplebirch-npc-model-secondary', event => {
       const select = event.currentTarget as HTMLSelectElement;
       const sidebar = dol.variables.options.maplebirch.npcsidebar;
+      // 保留刚选的 NPC，清空另一侧的重复选项。
       if (sidebar.primary_npc && sidebar.primary_npc === sidebar.secondary_npc) {
         const primaryChanged = select.classList.contains('maplebirch-npc-model-primary');
         if (primaryChanged) sidebar.secondary_npc = '';
@@ -29,14 +30,14 @@ class OptionEvents {
         const previous = document.querySelector<HTMLSelectElement>(primaryChanged ? 'select.maplebirch-npc-model-secondary' : 'select.maplebirch-npc-model-primary');
         if (previous) previous.selectedIndex = 0;
       }
-      this.updateSidebar();
+      this.sidebar();
     });
-    $(document).on('change', 'select[name="lanListbox-optionsmaplebirchnpcsidebarfacevariant"]', () => this.updateSidebar());
-    $(document).on('change', 'input[name*="optionsmaplebirchcharacterpet"]', () => this.updatePet());
-    $(document).on('change', 'input[name*="optionsmaplebirchnpcsidebarpet"]', () => this.updateSidebar());
+    $(document).on('change', 'select[name="lanListbox-optionsmaplebirchnpcsidebarfacevariant"]', () => this.sidebar());
+    $(document).on('change', 'input[name*="optionsmaplebirchcharacterpet"]', () => this.pet());
+    $(document).on('change', 'input[name*="optionsmaplebirchnpcsidebarpet"]', () => this.sidebar());
     $(document).on('change', 'input[name*="optionsmaplebirchpetlocked"]', () => {
       if (!this.ready) return;
-      this.updatePet();
+      this.pet();
       try {
         this.core.npc.Sidebar.pet.sync();
       } catch (error) {
@@ -53,7 +54,7 @@ class OptionEvents {
     this.core.infra.diagnostics.write(message, 'ERROR', 'options', error);
   }
 
-  private refreshOptions(): void {
+  private refresh(): void {
     if (!this.ready) return;
     try {
       $.wiki('<<replace #customOverlayContent>><<maplebirchOptions>><</replace>>');
@@ -62,7 +63,7 @@ class OptionEvents {
     }
   }
 
-  private updateSidebar(): void {
+  private sidebar(): void {
     if (!this.ready) return;
     try {
       $.wiki('<<updatesidebarimg>>');
@@ -71,7 +72,7 @@ class OptionEvents {
     }
   }
 
-  private updatePet(): void {
+  private pet(): void {
     if (!this.ready) return;
     try {
       this.core.char.pet.sync();
@@ -81,4 +82,4 @@ class OptionEvents {
   }
 }
 
-export default OptionEvents;
+export default Options;

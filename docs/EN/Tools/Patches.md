@@ -11,7 +11,7 @@ maplebirch.tool.patch.get(name);
 
 **`name`** is the unique extension name; both `myMod:catalog` and `myMod-catalog` work. **`definition.api`** declares the members to add to `patch`; other fields are optional.
 
-Built-in extensions are available as `patch.traits`, `patch.featBoosts`, `patch.location`, `patch.bodywriting`, `patch.fishing`, `patch.foodstuff`, `patch.antiques` and `patch.tips`. Use `get(name)` for dynamic names; it returns `undefined` when absent. Use `require(name)` when absence should throw, and `has(name)` or `names()` to inspect registrations.
+Built-in extensions are available as `patch.traits`, `patch.feats`, `patch.featBoosts`, `patch.location`, `patch.bodywriting`, `patch.fishing`, `patch.foodstuff`, `patch.antiques` and `patch.tips`. Use `get(name)` for dynamic names; it returns `undefined` when absent. Use `require(name)` when absence should throw, and `has(name)` or `names()` to inspect registrations.
 
 Separate extensions may declare API members with the same name without conflicting in their namespaces. `.add()` keeps non-conflicting flat API members for 4.x compatibility; new code should use namespaces. Duplicate extension names throw. Register during startup; late registration does not replay completed phases.
 
@@ -59,6 +59,7 @@ Related docs:
 
 - [boot.json Configuration](../BootJson.md)
 - [Traits](Traits.md)
+- [Achievement Definitions](Feats.md)
 - [Tips](Tips.md)
 - [Location Config](Location.md)
 - [Bodywriting](Bodywriting.md)

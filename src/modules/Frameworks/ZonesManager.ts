@@ -1,5 +1,3 @@
-// .src/modules/Frameworks/ZonesManager.ts
-
 import Diagnostics from '../../infra/Diagnostics';
 import type { PassageDataItem } from '@scml/types/sugarcube-2-ModLoader/SC2DataInfoCache';
 import type { MaplebirchCore } from '../../core';

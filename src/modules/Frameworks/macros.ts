@@ -1,5 +1,3 @@
-// .src/modules/Frameworks/macros.ts
-
 import Diagnostics from '../../infra/Diagnostics';
 import type { MaplebirchCore } from '../../core';
 import type { ScopedLog } from '../../infra/Diagnostics';

@@ -1,11 +1,8 @@
-// ./src/macros/lanLink.ts
-
 import Diagnostics from '../infra/Diagnostics';
 import maplebirch from '../core';
-import { addClasses, appendMacroIcon, bindLanguageUpdate, parseLanguageArgs, isStyleArg, readStyle, sourceText, text, labelText, type LinkArg, type MacroContext } from './helpers';
+import { addClasses, appendMacroIcon, bindLanguageUpdate, labelControl, isStyleArg, parseLanguageArgs, readStyle, sourceText, text, type LinkArg, type MacroContext } from './helpers';
 import dol from '../host/DoL';
 
-// <<lanLink>>
 export function _languageLink(this: MacroContext): void {
   try {
     parseLanguageArgs(this.args);
@@ -14,7 +11,8 @@ export function _languageLink(this: MacroContext): void {
     const payload = Array.isArray(this.payload) ? this.payload : [];
     const content = (payload[0]?.contents || '').trim();
     const firstArg = this.args[0];
-    const { className, style, icon, iconOnly, convertMode } = readStyle(this.args);
+    const appearance = readStyle(this.args);
+    const { className, style, icon, convertMode } = appearance;
     const passageObj = this.passageObj;
     let source: string | readonly string[] = '';
     let passageName: string | null = null;
@@ -51,16 +49,7 @@ export function _languageLink(this: MacroContext): void {
     if (convertMode) $link.attr('data-convert-mode', convertMode);
     appendMacroIcon($link, icon);
 
-    if (!iconOnly) $link.append(jQuery('<span>').addClass('macro-lanLink-text'));
-    const label = labelText(source, convertMode);
-    const update = () => {
-      const linkText = label();
-      $link.attr('aria-label', linkText);
-      if (iconOnly) $link.attr('title', linkText);
-      else $link.removeAttr('title');
-      if (!iconOnly) $link.children('.macro-lanLink-text').text(linkText);
-    };
-    update();
+    const update = labelControl($link, 'macro-lanLink-text', source, appearance);
 
     $link.ariaClick(
       { namespace: '.macros', role: passageName != null ? 'link' : 'button', one: passageName != null },

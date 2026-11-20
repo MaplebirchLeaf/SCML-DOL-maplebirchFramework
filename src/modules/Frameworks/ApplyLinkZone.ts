@@ -1,5 +1,3 @@
-// ./src/modules/Frameworks/ApplyLinkZone.ts
-
 import maplebirch, { type MaplebirchCore } from '../../core';
 import type { ScopedLog } from '../../infra/Diagnostics';
 interface CustomZone {

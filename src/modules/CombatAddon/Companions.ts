@@ -1,5 +1,5 @@
-import type Combat from '../Combat';
 import dol from '../../host/DoL';
+import type Combat from '../Combat';
 
 export type CompanionNPC = Record<string, unknown>;
 export type CompanionEvent = 'effects' | 'assist' | 'update' | 'hit' | 'stun' | 'defeat' | 'leave';
@@ -53,7 +53,8 @@ class Companions {
     return dol.variables.maplebirch?.combat;
   }
 
-  private get step(): number {
+  // 战斗可以反复进入同一段落，使用 SugarCube 的历史节点区分回合。
+  private get turnKey(): number {
     const moment = this.combat.core.SugarCube.State.current;
     if (!this.clock || this.clock.moment !== moment) {
       const state = this.state;
@@ -65,7 +66,7 @@ class Companions {
 
   public get members(): readonly ResolvedCompanion[] {
     return (this.state?.companions ?? []).flatMap(member => {
-      const npc = member.active && this.resolve(member);
+      const npc = member.active && this.resolveNPC(member);
       return npc ? [this.view(member, npc)] : [];
     });
   }
@@ -79,7 +80,7 @@ class Companions {
     return key ? { source: 'per', key } : undefined;
   }
 
-  private resolve(member: CompanionReference): CompanionNPC | undefined {
+  private resolveNPC(member: CompanionReference): CompanionNPC | undefined {
     if (member.source === 'named') {
       const npc = dol.variables.NPCName?.find((current: CompanionNPC) => current.nam === member.key);
       return npc?.init === 1 ? npc : undefined;
@@ -105,7 +106,7 @@ class Companions {
 
   public add(npc: CompanionNPC, widget: string, healthmax = 100): boolean {
     const ref = this.reference(npc);
-    if (!this.canAct || !ref || !this.resolve(ref) || typeof widget !== 'string' || !/^[A-Za-z][\w-]*$/.test(widget) || !Number.isFinite(healthmax) || healthmax <= 0) return false;
+    if (!this.canAct || !ref || !this.resolveNPC(ref) || typeof widget !== 'string' || !/^[A-Za-z][\w-]*$/.test(widget) || !Number.isFinite(healthmax) || healthmax <= 0) return false;
     const state: CombatState = ((dol.variables.maplebirch ??= {}).combat ??= { companions: [], turn: -1, updated: -1 });
     const member = state.companions.find(member => member.source === ref.source && member.key === ref.key);
     if (member) {
@@ -121,11 +122,11 @@ class Companions {
   }
 
   private available(member: CompanionState): boolean {
-    return this.canAct && !!this.state?.companions.includes(member) && member.active && member.health > 0 && member.stun === 0 && !!this.resolve(member);
+    return this.canAct && !!this.state?.companions.includes(member) && member.active && member.health > 0 && member.stun === 0 && !!this.resolveNPC(member);
   }
 
   private supports(member: CompanionState): boolean {
-    return this.available(member) && member.stun_turn !== this.step;
+    return this.available(member) && member.stun_turn !== this.turnKey;
   }
 
   private effects(member: CompanionState): CompanionEffects {
@@ -175,7 +176,7 @@ class Companions {
       if (this.state !== state) break;
       if (!member.active || !selected.has(member)) continue;
       member.active = false;
-      const turn = this.step;
+      const turn = this.turnKey;
       if (member.leave_turn === turn) continue;
       member.leave_turn = turn;
       fragment.append(this.render(member, 'leave'));
@@ -189,7 +190,7 @@ class Companions {
       !this.canSettle ||
       !member.active ||
       !this.state?.companions.includes(member) ||
-      !this.resolve(member) ||
+      !this.resolveNPC(member) ||
       member.health <= 0 ||
       !Number.isFinite(damage) ||
       damage < 0 ||
@@ -209,12 +210,12 @@ class Companions {
     const fragment = document.createDocumentFragment();
     const state = this.state;
     if (!state || !this.canSettle) return fragment;
-    const step = this.step;
-    if (state.turn !== step || state.updated === step) return fragment;
-    state.updated = step;
+    const turn = this.turnKey;
+    if (state.turn !== turn || state.updated === turn) return fragment;
+    state.updated = turn;
     for (const member of state.companions.slice()) {
       if (this.state !== state || !this.canSettle) break;
-      if (!member.active || !this.resolve(member)) continue;
+      if (!member.active || !this.resolveNPC(member)) continue;
       const result: CompanionEffects & Pick<CompanionContext, 'hit'> = { bonus: 0, guard: 0 };
       fragment.append(this.render(member, 'update', 0, result));
       if (Array.isArray(result.hit) && result.hit.length >= 1 && result.hit.length <= 2) fragment.append(this.hit(member, result.hit[0], result.hit[1] ?? 0));
@@ -234,7 +235,7 @@ class Companions {
 
   private render(member: CompanionState, event: CompanionEvent, damage = 0, effects: CompanionEffects = { bonus: 0, guard: 0 }): DocumentFragment {
     const fragment = document.createDocumentFragment();
-    const npc = this.resolve(member);
+    const npc = this.resolveNPC(member);
     if (!npc) return fragment;
     const temporary = dol.temporary;
     const hadContext = Object.hasOwn(temporary, 'maplebirch_companion');
@@ -261,12 +262,12 @@ class Companions {
       this.clear();
       return fragment;
     }
-    const turn = this.step;
+    const turn = this.turnKey;
     if (!state.companions.some(member => member.active) || state.turn === turn || !this.canAct) return fragment;
     state.turn = turn;
     for (const member of state.companions.slice()) {
       if (this.state !== state || !this.canAct) break;
-      if (!member.active || !this.resolve(member)) continue;
+      if (!member.active || !this.resolveNPC(member)) continue;
       if (member.stun > 0) {
         member.stun_turn = turn;
         member.stun--;

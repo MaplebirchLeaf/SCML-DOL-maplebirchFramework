@@ -1,3 +1,4 @@
+import type { MaplebirchCore } from '../../../core';
 import dol from '../../../host/DoL';
 import { clone } from '../../../utils/object';
 import { isKey, isRecord } from './config';
@@ -18,7 +19,7 @@ export interface FeatBoostConfig {
   effect?: string;
 }
 
-export const featBoostsData: Record<string, FeatBoostConfig> = Object.create(null);
+const data: Record<string, FeatBoostConfig> = Object.create(null);
 
 class FeatBoosts {
   public static add(key: string, config: FeatBoostConfig): boolean {
@@ -40,16 +41,16 @@ class FeatBoosts {
       (config.effect !== undefined && typeof config.effect !== 'string')
     )
       return false;
-    featBoostsData[key] = clone(config);
+    data[key] = clone(config);
     return true;
   }
 
   public static has(key: string): boolean {
-    return Object.hasOwn(featBoostsData, key);
+    return Object.hasOwn(data, key);
   }
 
   public static text(key: string, field: FeatBoostField, translate: (text: string) => string): string {
-    const value = featBoostsData[key]?.[field];
+    const value = data[key]?.[field];
     return translate(typeof value === 'function' ? value() : (value ?? ''));
   }
 
@@ -57,7 +58,7 @@ class FeatBoosts {
     const boosts = dol.variables.featsBoosts;
     if (!boosts?.upgradeDetails) return;
     const earnedFeats = Object.keys(dol.variables.feats.allSaves);
-    for (const [key, config] of Object.entries(featBoostsData)) {
+    for (const [key, config] of Object.entries(data)) {
       if (Object.hasOwn(boosts.upgradeDetails, key)) continue;
       const required = config.required ?? [];
       const maxEarned = !required.length ? 1 : required.filter(feat => earnedFeats.includes(feat)).length;
@@ -80,7 +81,7 @@ class FeatBoosts {
   public static apply(effect: (source: string) => void): void {
     const boosts = dol.variables.featsBoosts;
     if (!boosts?.upgradeDetails) return;
-    for (const [key, config] of Object.entries(featBoostsData)) {
+    for (const [key, config] of Object.entries(data)) {
       const details = boosts.upgradeDetails[key];
       if (
         !config.effect ||
@@ -96,4 +97,40 @@ class FeatBoosts {
   }
 }
 
-export default FeatBoosts;
+export default function definition(core: MaplebirchCore) {
+  const translate = (text: string) => core.auto(text);
+  const setup = () => FeatBoosts.setup(translate);
+  const apply = () => FeatBoosts.apply(source => void core.SugarCube.Wikifier.wikifyEval(source));
+  return {
+    api: {
+      data,
+      add: FeatBoosts.add,
+      has: FeatBoosts.has,
+      text: (key: string, field: FeatBoostField) => FeatBoosts.text(key, field, translate),
+      setup,
+      refresh: (key: string) => FeatBoosts.refresh(key, translate),
+      apply
+    },
+    init() {
+      const { macro } = core.tool;
+      // 原版先创建加成目录，应用时会清理购买数据。
+      macro.wrap(
+        'setupFeatBoosts',
+        next => {
+          const result = next();
+          setup();
+          return result;
+        },
+        'sugarcube'
+      );
+      macro.wrap(
+        'applyFeatBoosts',
+        next => {
+          apply();
+          return next();
+        },
+        'sugarcube'
+      );
+    }
+  };
+}

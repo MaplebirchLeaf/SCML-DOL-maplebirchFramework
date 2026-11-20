@@ -1,5 +1,3 @@
-// ./src/macros/helpers.ts
-
 import maplebirch, { type MaplebirchCore } from '../core';
 import type { MacroContext as SugarCubeMacroContext } from 'twine-sugarcube';
 import dol from '../host/DoL';
@@ -55,8 +53,8 @@ export function parseLanguageArgs(args: MacroArgs): void {
   args.push(...parser.parseArgs(raw));
 }
 
-/** Array labels contain literal [EN, CN] text, not translation segments. */
 export interface LinkArg {
+  /** 数组按 [英文, 中文] 解释，直接使用对应文本。 */
   text: string | readonly string[];
   link?: string;
 }
@@ -192,6 +190,23 @@ export function labelText(source: string | readonly string[], convertMode: Conve
     const value = render(macroTranslation(source, maplebirch));
     return convertMode ? value.convert(convertMode) : value;
   };
+}
+
+export function labelControl($control: JQuery, textClass: string, source: LinkArg['text'], { iconOnly, convertMode }: Pick<StyleArgs, 'iconOnly' | 'convertMode'>): () => void {
+  if (!iconOnly) $control.append(jQuery('<span>').addClass(textClass));
+  const label = labelText(source, convertMode);
+  const update = () => {
+    const value = label();
+    $control.attr('aria-label', value);
+    if (iconOnly) {
+      $control.attr('title', value);
+    } else {
+      $control.removeAttr('title');
+      $control.children(`.${textClass}`).text(value);
+    }
+  };
+  update();
+  return update;
 }
 
 export function appendMacroIcon($target: JQuery, icon: string): void {

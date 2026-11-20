@@ -11,7 +11,7 @@ maplebirch.tool.patch.get(name);
 
 **`name`** 是扩展的唯一名称，可以使用 `myMod:catalog` 或 `myMod-catalog`。**`definition.api`** 声明要加入 `patch` 的成员，其余字段按需提供。
 
-内置扩展直接使用 `patch.traits`、`patch.featBoosts`、`patch.location`、`patch.bodywriting`、`patch.fishing`、`patch.foodstuff`、`patch.antiques` 和 `patch.tips`。动态名称使用 `get(name)`。不存在时返回 `undefined`，需要强制取得时使用 `require(name)`。`has(name)` 和 `names()` 可用于查询。
+内置扩展直接使用 `patch.traits`、`patch.feats`、`patch.featBoosts`、`patch.location`、`patch.bodywriting`、`patch.fishing`、`patch.foodstuff`、`patch.antiques` 和 `patch.tips`。动态名称使用 `get(name)`。不存在时返回 `undefined`，需要强制取得时使用 `require(name)`。`has(name)` 和 `names()` 可用于查询。
 
 不同扩展可以声明同名 API，它们在各自命名空间中互不冲突。`.add()` 仍为未冲突的 API 保留 4.x 扁平访问兼容。新代码应使用命名空间。重复扩展名称会抛错。请在启动脚本注册，晚注册不会补跑已经结束的阶段。
 
@@ -59,6 +59,7 @@ catalog.myCatalog.set('example', 'value');
 
 - [boot.json 配置](../BootJson.md)
 - [特质注册](Traits.md)
+- [成就定义](Feats.md)
 - [小贴士注册](Tips.md)
 - [地点配置](Location.md)
 - [身体文字](Bodywriting.md)

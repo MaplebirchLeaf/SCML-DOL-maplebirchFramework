@@ -1,5 +1,3 @@
-// ./src/modules/DoL/Patches/Tips.ts
-
 import { isKey, isRecord } from './config';
 import dol from '../../../host/DoL';
 

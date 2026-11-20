@@ -298,6 +298,9 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
     "bodywriting": "data/bodywriting.yaml"
   },
   {
+    "feats": "data/feats.json"
+  },
+  {
     "featBoosts": "data/feat-boosts.json"
   },
   {
@@ -316,14 +319,14 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 
 同一个 **`framework`** 对象可以声明多个数据字段。每个字段都支持文件路径或路径数组。多个文件按顺序读取，内容使用下表中的格式：
 
-| 字段                                                                 | 内容格式                                      |
-| :------------------------------------------------------------------- | :-------------------------------------------- |
-| `traits`                                                             | 特质配置数组                                  |
-| `tips`                                                               | 提示文本数组，或分类到文本数组的对象          |
-| `bodywriting`、`featBoosts`、`foodstuff`、`antiques`、`fish`、`bait` | 以唯一标识为键的对象，或每项包含 `key` 的数组 |
-| `locations`                                                          | 钓点到鱼类权重的对象                          |
+| 字段                                                                          | 内容格式                                      |
+| :---------------------------------------------------------------------------- | :-------------------------------------------- |
+| `traits`                                                                      | 特质配置数组                                  |
+| `tips`                                                                        | 提示文本数组，或分类到文本数组的对象          |
+| `bodywriting`、`feats`、`featBoosts`、`foodstuff`、`antiques`、`fish`、`bait` | 以唯一标识为键的对象，或每项包含 `key` 的数组 |
+| `locations`                                                                   | 钓点到鱼类权重的对象                          |
 
-这些内容也可以直接内联。补丁数据按键覆盖。`fish`、`bait` 和 `locations` 对应原版 0.5.13.8 的钓鱼系统。
+这些内容也可以直接内联。大部分按键登记的字段以后读条目覆盖同键数据。`fish`、`bait` 和 `locations` 对应原版 0.5.13.8 的钓鱼系统。`feats` 保留已有成就，按定义顺序添加新条目。参见[成就定义](Tools/Feats.md)。
 
 `tips.json` 可以直接写字符串数组，默认加入原版始终启用的 `general` 分类：
 

@@ -1,11 +1,9 @@
-﻿// ./src/modules/Frameworks/TimeTravelCheat.ts
-
 import Diagnostics from '../../infra/Diagnostics';
 import { TimeConstants } from '../../constants';
 import type { MaplebirchCore } from '../../core';
 
 type TimeTravelField = 'year' | 'month' | 'day' | 'hour' | 'minute';
-class TimeTravelCheat {
+class TimeTravel {
   private readonly ids: Record<TimeTravelField, string> = {
     year: 'maplebirch-time-travel-year',
     month: 'maplebirch-time-travel-month',
@@ -33,10 +31,9 @@ class TimeTravelCheat {
 
   private bind(root: HTMLElement): void {
     const current = new window.DateTime(Time.date);
-    this.setFields(root, current);
+    this.fill(root, current);
     root.querySelector<HTMLButtonElement>('.maplebirch-time-travel-confirm')?.addEventListener('click', () => this.travel(root));
-    root.querySelectorAll<HTMLInputElement>('[data-time-travel-field]').forEach(input => input.addEventListener('change', () => this.syncDayLimit(root)));
-    this.syncDayLimit(root);
+    root.querySelectorAll<HTMLInputElement>('[data-time-travel-field]').forEach(input => input.addEventListener('change', () => this.limitDay(root)));
   }
 
   private render(): string {
@@ -67,22 +64,22 @@ class TimeTravelCheat {
       </div>`;
   }
 
-  private fieldInput(root: HTMLElement, field: TimeTravelField): HTMLInputElement | null {
+  private input(root: HTMLElement, field: TimeTravelField): HTMLInputElement | null {
     return root.querySelector<HTMLInputElement>(`[data-time-travel-field="${field}"]`);
   }
 
-  private setFields(root: HTMLElement, date: Pick<DateTime, TimeTravelField>): void {
+  private fill(root: HTMLElement, date: Pick<DateTime, TimeTravelField>): void {
     for (const field of Object.keys(this.ids) as TimeTravelField[]) {
-      const input = this.fieldInput(root, field);
+      const input = this.input(root, field);
       if (input) input.value = String(date[field]);
     }
-    this.syncDayLimit(root);
+    this.limitDay(root);
   }
 
-  private readFields(root: HTMLElement): Record<TimeTravelField, number> {
+  private read(root: HTMLElement): Record<TimeTravelField, number> {
     const values = {} as Record<TimeTravelField, number>;
     for (const field of Object.keys(this.ids) as TimeTravelField[]) {
-      const value = Number(this.fieldInput(root, field)?.value);
+      const value = Number(this.input(root, field)?.value);
       if (!Number.isInteger(value)) throw new Error(`${field} is invalid`);
       values[field] = value;
     }
@@ -95,11 +92,11 @@ class TimeTravelCheat {
     return values;
   }
 
-  private syncDayLimit(root: HTMLElement): void {
+  private limitDay(root: HTMLElement): void {
     try {
-      const year = Number(this.fieldInput(root, 'year')?.value);
-      const month = Number(this.fieldInput(root, 'month')?.value);
-      const dayInput = this.fieldInput(root, 'day');
+      const year = Number(this.input(root, 'year')?.value);
+      const month = Number(this.input(root, 'month')?.value);
+      const dayInput = this.input(root, 'day');
       if (!dayInput || !Number.isInteger(year) || !Number.isInteger(month)) return;
       const maxDay = new window.DateTime(year, month, 1).lastDayOfMonth;
       dayInput.max = String(maxDay);
@@ -111,7 +108,7 @@ class TimeTravelCheat {
 
   private travel(root: HTMLElement): void {
     try {
-      const target = this.readFields(root);
+      const target = this.read(root);
       const date = new window.DateTime(target.year, target.month, target.day, target.hour, target.minute, 0);
       if (date.timeStamp < TimeConstants.MIN_DATE.timeStamp || date.timeStamp > TimeConstants.MAX_DATE.timeStamp) throw new Error(lanSwitch('Target date is out of range.', '目标时间超出范围。'));
       if (!this.core.dynamic.timeTravel({ ...target, second: 0 })) throw new Error(lanSwitch('Time travel failed.', '时间跳转失败。'));
@@ -129,4 +126,4 @@ class TimeTravelCheat {
   }
 }
 
-export default TimeTravelCheat;
+export default TimeTravel;

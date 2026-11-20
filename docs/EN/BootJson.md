@@ -30,14 +30,14 @@ Put complex conditions and runtime logic in JavaScript files loaded through **`s
 
 ## params Fields
 
-| Field       | Purpose                                                           |
-| :---------- | :---------------------------------------------------------------- |
-| `script`    | Load normal JavaScript files                                      |
-| `module`    | Load earlier module-extension scripts                             |
-| `language`  | Import translation files                                          |
-| `audio`     | Import audio folders                                              |
-| `framework` | Add UI widgets, traits, tips, bodywriting, foodstuff, or antiques |
-| `npc`       | Register NPC resources                                            |
+| Field       | Purpose                                                                         |
+| :---------- | :------------------------------------------------------------------------------ |
+| `script`    | Load normal JavaScript files                                                    |
+| `module`    | Load earlier module-extension scripts                                           |
+| `language`  | Import translation files                                                        |
+| `audio`     | Import audio folders                                                            |
+| `framework` | Add UI widgets, traits, tips, bodywriting, foodstuff, antiques, or achievements |
+| `npc`       | Register NPC resources                                                          |
 
 ## script
 
@@ -145,6 +145,9 @@ Register framework data:
     "bodywriting": "data/bodywriting.yaml"
   },
   {
+    "feats": "data/feats.json"
+  },
+  {
     "featBoosts": "data/feat-boosts.json"
   },
   {
@@ -163,14 +166,14 @@ Register framework data:
 
 A single **`framework`** object may contain multiple data fields. Each field accepts a path or array of paths to **`.json`**, **`.yaml`**, or **`.yml`** files. Files are read in order and use these formats:
 
-| Field                                                                | Content Format                                                         |
-| :------------------------------------------------------------------- | :--------------------------------------------------------------------- |
-| `traits`                                                             | Array of trait configurations                                          |
-| `tips`                                                               | Array of tip strings, or an object mapping categories to string arrays |
-| `bodywriting`, `featBoosts`, `foodstuff`, `antiques`, `fish`, `bait` | Object keyed by unique id, or an array with `key` on each item         |
-| `locations`                                                          | Object mapping fishing spots to fish weights                           |
+| Field                                                                         | Content Format                                                         |
+| :---------------------------------------------------------------------------- | :--------------------------------------------------------------------- |
+| `traits`                                                                      | Array of trait configurations                                          |
+| `tips`                                                                        | Array of tip strings, or an object mapping categories to string arrays |
+| `bodywriting`, `feats`, `featBoosts`, `foodstuff`, `antiques`, `fish`, `bait` | Object keyed by unique id, or an array with `key` on each item         |
+| `locations`                                                                   | Object mapping fishing spots to fish weights                           |
 
-These formats also work inline. Patch data replaces earlier entries with the same key. `fish`, `bait`, and `locations` target the vanilla 0.5.13.8 fishing system.
+These formats also work inline. For most keyed fields, later entries replace earlier entries with the same key. `fish`, `bait`, and `locations` target the vanilla 0.5.13.8 fishing system. `feats` preserves existing achievements and adds new entries in declaration order. See [Achievement Definitions](Tools/Feats.md).
 
 `tips.json` may be a string array. This adds every entry to vanilla's always-enabled `general` category:
 

@@ -264,6 +264,7 @@ npm install -D @scml-dol-maplebirch/types
   - [文本工具][HtmlTools]
   - [区域管理][Framework]
   - [特质注册][Traits]
+  - [成就定义][Feats]
   - [小贴士注册][Tips]
   - [地点配置][Location]
   - [纹身注册][Bodywriting]
@@ -366,6 +367,7 @@ npm install -D @scml-dol-maplebirch/types
 [HtmlTools]: docs/CN/Tools/Text.md
 [Framework]: docs/CN/Tools/Zones.md
 [Traits]: docs/CN/Tools/Traits.md
+[Feats]: docs/CN/Tools/Feats.md
 [Tips]: docs/CN/Tools/Tips.md
 [Location]: docs/CN/Tools/Location.md
 [Bodywriting]: docs/CN/Tools/Bodywriting.md

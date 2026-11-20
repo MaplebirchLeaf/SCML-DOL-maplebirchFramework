@@ -1,5 +1,3 @@
-// ./src/modules/Frameworks/ConsoleCheat.ts
-
 import Diagnostics from '../../infra/Diagnostics';
 import maplebirch, { type MaplebirchCore } from '../../core';
 import type { ScopedLog } from '../../infra/Diagnostics';

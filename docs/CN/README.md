@@ -60,6 +60,7 @@ API 名称、配置键、原版标识和文件路径保留代码中的写法。�
 - [特质](Tools/Traits.md)
 - [小贴士](Tools/Tips.md)
 - [身体涂鸦](Tools/Bodywriting.md)
+- [成就定义](Tools/Feats.md)
 - [开局成就加成](Tools/FeatBoosts.md)
 - [食物](Tools/Foodstuff.md)
 - [药片](Tools/Pills.md)

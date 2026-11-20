@@ -1,13 +1,13 @@
 import type ToolCollection from '../ToolCollection';
-import Console from './ConsoleCheat';
-import TimeTravelCheat from './TimeTravelCheat';
+import Console from '../Frameworks/ConsoleCheat';
+import TimeTravel from './TimeTravel';
 
 class DoLConsole extends Console {
-  public readonly timeTravel: TimeTravelCheat;
+  public readonly timeTravel: TimeTravel;
 
   public constructor(manager: ToolCollection) {
     super(manager);
-    this.timeTravel = new TimeTravelCheat(manager.core);
+    this.timeTravel = new TimeTravel(manager.core);
   }
 }
 

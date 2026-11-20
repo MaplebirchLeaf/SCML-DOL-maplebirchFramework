@@ -1,5 +1,3 @@
-// .src/modules/Frameworks/RandSystem.ts
-
 import maplebirch from '../../core';
 import type { ScopedLog } from '../../infra/Diagnostics';
 

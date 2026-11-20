@@ -1,5 +1,3 @@
-// ./src/modules/DoL/Config.ts
-
 import jsyaml from 'js-yaml';
 import Diagnostics from '../../infra/Diagnostics';
 import { compileBooleanExpression } from '../../utils/condition';
@@ -9,6 +7,7 @@ import type { ZonesManager, ZoneWidgetConfig } from '../Frameworks/ZonesManager'
 import type { Patches } from './Patches';
 import type { TraitConfig } from './Patches/Traits';
 import type { BodywritingConfig } from './Patches/Bodywriting';
+import type { FeatConfig } from './Patches/Feats';
 import type { FeatBoostConfig } from './Patches/FeatBoosts';
 import type { FoodstuffConfig } from './Patches/Foodstuff';
 import type { AntiqueConfig } from './Patches/Antiques';
@@ -17,7 +16,7 @@ import { isKey, isRecord } from './Patches/config';
 
 type ConfigFileSource = string | string[];
 
-type KeyedConfig<T> = T & { key?: string };
+type KeyedSource<T> = Array<T & { key?: string }> | Record<string, T> | ConfigFileSource;
 
 interface TraitBootConfig {
   title?: string;
@@ -27,22 +26,18 @@ interface TraitBootConfig {
   text?: string;
 }
 
-type TraitConfigSource = TraitBootConfig[] | ConfigFileSource;
-type BodywritingConfigSource = KeyedConfig<BodywritingConfig>[] | Record<string, BodywritingConfig> | ConfigFileSource;
-type FeatBoostConfigSource = KeyedConfig<FeatBoostConfig>[] | Record<string, FeatBoostConfig> | ConfigFileSource;
-type FoodstuffConfigSource = KeyedConfig<FoodstuffConfig>[] | Record<string, FoodstuffConfig> | ConfigFileSource;
-type AntiquesConfigSource = KeyedConfig<AntiqueConfig>[] | Record<string, AntiqueConfig> | ConfigFileSource;
-type TipsConfigSource = string[] | Record<string, string[]> | ConfigFileSource;
 type FrameworkWidgetConfig = string | ZoneWidgetConfig | [number, string | ZoneWidgetConfig];
+
 export interface FrameworkConfig {
-  traits?: TraitConfigSource;
-  bodywriting?: BodywritingConfigSource;
-  featBoosts?: FeatBoostConfigSource;
-  foodstuff?: FoodstuffConfigSource;
-  antiques?: AntiquesConfigSource;
-  tips?: TipsConfigSource;
-  fish?: KeyedConfig<FishConfig>[] | Record<string, FishConfig> | ConfigFileSource;
-  bait?: FoodstuffConfigSource;
+  traits?: TraitBootConfig[] | ConfigFileSource;
+  bodywriting?: KeyedSource<BodywritingConfig>;
+  feats?: KeyedSource<FeatConfig>;
+  featBoosts?: KeyedSource<FeatBoostConfig>;
+  foodstuff?: KeyedSource<FoodstuffConfig>;
+  antiques?: KeyedSource<AntiqueConfig>;
+  tips?: Record<string, string[]> | ConfigFileSource;
+  fish?: KeyedSource<FishConfig>;
+  bait?: KeyedSource<FoodstuffConfig>;
   locations?: Partial<Record<FishingLocation, Record<string, number>>> | ConfigFileSource;
   addto?: string;
   widget?: FrameworkWidgetConfig;
@@ -50,7 +45,7 @@ export interface FrameworkConfig {
 
 type ConfigHandler = (modName: string, source: unknown) => void;
 
-class FrameworkConfigLoader {
+class Config {
   private readonly handlers: Readonly<Record<string, ConfigHandler>>;
 
   public constructor(
@@ -58,18 +53,23 @@ class FrameworkConfigLoader {
     private readonly patch: Patches,
     private readonly zone: ZonesManager
   ) {
-    const { bodywriting, featBoosts, foodstuff, antiques, fishing } = patch;
+    const { bodywriting, feats, featBoosts, foodstuff, antiques, fishing } = patch;
+    const keyed =
+      <T extends object>(label: string, api: { add(key: string, config: T): void | boolean }): ConfigHandler =>
+      (name, source) =>
+        this.entries(name, label, source, api.add);
     this.handlers = {
       traits: (name, source) => {
         if (!Array.isArray(source)) throw new Error('traits 配置必须为数组');
         for (const trait of source) this.addTrait(name, trait);
       },
-      bodywriting: (name, source) => this.addKeyedConfig(name, 'bodywriting', source, bodywriting.add),
-      featBoosts: (name, source) => this.addKeyedConfig(name, 'featBoosts', source, featBoosts.add),
-      foodstuff: (name, source) => this.addKeyedConfig(name, 'foodstuff', source, foodstuff.add),
-      antiques: (name, source) => this.addKeyedConfig(name, 'antiques', source, antiques.add),
-      fish: (name, source) => this.addKeyedConfig(name, 'fish', source, fishing.add),
-      bait: (name, source) => this.addKeyedConfig(name, 'bait', source, fishing.addBait),
+      bodywriting: keyed('bodywriting', bodywriting),
+      feats: keyed('feats', feats),
+      featBoosts: keyed('featBoosts', featBoosts),
+      foodstuff: keyed('foodstuff', foodstuff),
+      antiques: keyed('antiques', antiques),
+      fish: keyed('fish', fishing),
+      bait: (name, source) => this.entries(name, 'bait', source, fishing.addBait),
       locations: (name, source) => {
         if (!isRecord(source)) throw new Error('locations 配置必须为对象');
         for (const [location, weights] of Object.entries(source)) {
@@ -97,7 +97,7 @@ class FrameworkConfigLoader {
           this.core.log(`${task.modName} 的 framework 配置类型未知: ${key}`, 'WARN');
           continue;
         }
-        for (const data of await this.loadSources(task, source, key === 'tips')) {
+        for (const data of await this.read(task, source, key === 'tips')) {
           try {
             handler(task.modName, data);
           } catch (error) {
@@ -108,7 +108,8 @@ class FrameworkConfigLoader {
     }
   }
 
-  private async loadSources(task: BootTask, source: unknown, inlineStrings: boolean): Promise<unknown[]> {
+  private async read(task: BootTask, source: unknown, inlineStrings: boolean): Promise<unknown[]> {
+    // 小贴士也可以直接写成字符串数组，有文件扩展名时才按路径数组读取。
     const fileArray = Array.isArray(source) && source.length > 0 && source.every(value => typeof value === 'string' && (!inlineStrings || /\.(?:json|ya?ml)$/i.test(value)));
     if (typeof source !== 'string' && !fileArray) return [source];
     const paths = typeof source === 'string' ? [source] : (source as string[]);
@@ -163,7 +164,7 @@ class FrameworkConfigLoader {
     this.patch.traits.add(config);
   }
 
-  private addKeyedConfig<T extends object>(modName: string, label: string, source: unknown, add: (key: string, config: T) => void | boolean): void {
+  private entries<T extends object>(modName: string, label: string, source: unknown, add: (key: string, config: T) => void | boolean): void {
     const entries: [unknown, unknown][] = Array.isArray(source) ? source.map(item => [isRecord(item) ? item.key : undefined, item]) : isRecord(source) ? Object.entries(source) : [];
     if (entries.length === 0) this.core.log(`${modName} 的 ${label} 配置为空或无效`, 'WARN');
     for (const [key, config] of entries) {
@@ -193,4 +194,4 @@ class FrameworkConfigLoader {
   }
 }
 
-export default FrameworkConfigLoader;
+export default Config;
