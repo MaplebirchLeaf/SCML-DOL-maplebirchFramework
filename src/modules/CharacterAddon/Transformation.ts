@@ -135,7 +135,7 @@ class Transformation {
       },
       1
     );
-    manager.core.tool.define('transform', (name: string, change: number) => this._transform(name, change));
+    manager.core.tool.define('transform', (name: string, change: number) => this._transform(name, change), null, null, false, 'storyinit');
     manager.core.tool.defineS('transform-hint', (name: string, colour: string) => {
       if (dol.variables.settings?.blindStatsEnabled) return;
       const fragment = document.createDocumentFragment();

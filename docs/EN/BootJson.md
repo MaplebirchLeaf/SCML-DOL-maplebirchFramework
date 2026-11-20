@@ -170,7 +170,7 @@ A single **`framework`** object may contain multiple data fields. Each field acc
 | `bodywriting`, `featBoosts`, `foodstuff`, `antiques`, `fish`, `bait` | Object keyed by unique id, or an array with `key` on each item         |
 | `locations`                                                          | Object mapping fishing spots to fish weights                           |
 
-These formats also work inline. Patch data replaces earlier entries with the same key. `fish`, `bait`, and `locations` target the vanilla 0.5.12.13 fishing system.
+These formats also work inline. Patch data replaces earlier entries with the same key. `fish`, `bait`, and `locations` target the vanilla 0.5.13.8 fishing system.
 
 `tips.json` may be a string array. This adds every entry to vanilla's always-enabled `general` category:
 

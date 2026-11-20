@@ -273,14 +273,14 @@ class NPCPregnancy {
   }
 
   private cycleConfigured(npcName: string): boolean {
-    return dol.variables.maplebirch?.npc?.[npcName.toLowerCase()]?.pregnancyCycleConfigured === true;
+    return dol.variables.maplebirch?.npc?.[npcName.toLowerCase()]?.pregnancy_cycle_configured === true;
   }
 
   private markCycleConfigured(npcName: string): void {
     dol.variables.maplebirch ??= {};
     dol.variables.maplebirch.npc ??= {};
     const npc = (dol.variables.maplebirch.npc[npcName.toLowerCase()] ??= {});
-    npc.pregnancyCycleConfigured = true;
+    npc.pregnancy_cycle_configured = true;
   }
 
   private species(npcName: string, value: unknown): NPCPregnancySpecies {
@@ -301,7 +301,7 @@ class NPCPregnancy {
   }
 
   private requireRuntime(): void {
-    if (!this.available) throw new Error('NPC pregnancy requires the original 0.5.12.13 pregnancy API');
+    if (!this.available) throw new Error('NPC pregnancy requires the native NPC pregnancy API');
   }
 
   private range(value: NPCPregnancyRange): number {

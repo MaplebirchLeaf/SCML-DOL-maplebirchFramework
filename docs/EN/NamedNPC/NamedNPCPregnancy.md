@@ -1,6 +1,6 @@
 # NPC Pregnancy
 
-`maplebirch.npc.Pregnancy` integrates named NPCs with the native 0.5.12.13 pregnancy API. It provides content-list registration, cycle configuration, queries and conception rolls. Native code still owns pregnancy records, time progression, child generation and birth.
+`maplebirch.npc.Pregnancy` integrates named NPCs with the native 0.5.13.8 pregnancy API. It provides content-list registration, cycle configuration, queries and conception rolls. Native code still owns pregnancy records, time progression, child generation and birth.
 
 ## Registration and Runtime Boundaries
 

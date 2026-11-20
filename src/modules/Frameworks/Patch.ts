@@ -60,26 +60,16 @@ class Patch<Extensions extends Record<string, object> = Record<never, never>> {
     return [...this.definitions.entries.keys()];
   }
 
-  private available(name: string, definition: PatchDefinition): boolean {
-    const check = definition.available;
-    if (!check) return true;
-    let available = false;
-    this.run(name, () => (available = check()));
-    return available;
-  }
-
-  private run(name: string, callback: () => void): void {
-    try {
-      callback();
-    } catch (error) {
-      this.report(name, error);
-    }
-  }
-
   public apply(phase: PatchPhase): void {
     for (const [name, definition] of this.definitions.entries) {
       const callback = definition[phase];
-      if (callback && this.available(name, definition)) this.run(name, callback);
+      if (!callback) continue;
+      const check = definition.available;
+      try {
+        if (!check || check()) callback();
+      } catch (error) {
+        this.report(name, error);
+      }
     }
   }
 }

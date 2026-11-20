@@ -92,7 +92,7 @@ The framework appends sets to `setup.npcClothesSets`; do not replace that array.
     colour: 'black'
 ```
 
-These compact entries use native 0.5.12.13 clothes. `name` and `variable` must identify actual PC clothing; guessed names such as `school_shirt` do not suffice. The framework resolves the full definition through native `clothesIndex`, then combines it with current state. Custom clothes also require their owning mod's definitions and sprites.
+These compact entries use native 0.5.13.8 clothes. `name` and `variable` must identify actual PC clothing; guessed names such as `school_shirt` do not suffice. The framework resolves the full definition through native `clothesIndex`, then combines it with current state. Custom clothes also require their owning mod's definitions and sprites.
 
 Use `colour`, not `color`. Copy a complete clothing object when damage, style, colour or other state needs to be retained. The framework includes the `naked` slot template, so no large naked configuration is needed. Supply other sets yourself and prefix their keys.
 

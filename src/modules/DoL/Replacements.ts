@@ -58,7 +58,7 @@ const widgetPassage = {
     { src: '<</widget>>\n\n<<widget "museumPaintingText">>', applybefore: '\t<<run maplebirch.tool.patch.antiques.inject(_museumAntiqueText)>>\n', expected: 1 }
   ],
   'Widgets Museum': [
-    { src: '<</widget>>\n\n<<widget "museumtalk">>', applybefore: '\t<<for _maplebirchAntique range Object.keys(maplebirch.tool.patch.antiques.data)>>\n\t\t<<if $museumAntiques.antiques[_maplebirchAntique] is "found">><<museumAntiqueStatus _maplebirchAntique "talk">><</if>>\n\t<</for>>\n', expected: 1 }
+    { src: '<</widget>>\n\n<<widget "museumtalk">>', applybefore: '\t<<for _maplebirch_antique range Object.keys(maplebirch.tool.patch.antiques.data)>>\n\t\t<<if $museumAntiques.antiques[_maplebirch_antique] is "found">><<museumAntiqueStatus _maplebirch_antique "talk">><</if>>\n\t<</for>>\n', expected: 1 }
   ],
   'Widgets Tips': [
     { src: '<</widget>>\n\n<<widget "printTipsList">>', applybefore: '\t<<run maplebirch.tool.patch.tips.inject(setup.tipsList)>>\n', expected: 1 }
@@ -88,7 +88,7 @@ const widgetPassage = {
   ],
   Social: [
     { src: 'T.importantNPCs = T.importantNpcOrder', applybefore: 'maplebirch.npc.vanillaNPCConfig(T.npcConfig);\n\t\t\t\t' },
-    { src: '<</silently>>\n\t\t\t<<relation-box-simple _policeBoxConfig>>', applybefore: '\t<<maplebirchReputationModify>>\n\t\t\t' },
+    { src: '<<relation-box-simple _policeBoxConfig>>', applybefore: '<<silently>><<maplebirchReputationModify>><</silently>>\n\t\t\t', expected: 1 },
     { src: '<<relation-box-wolves>>', applyafter: '\n\n\t\t<<maplebirchReputation>>' },
     { src: '<</silently>>\n\n\t\t\t<<relation-box-simple _sexFameBoxConfig>>', applybefore: '\t<<maplebirchFameModify>>\n\t\t\t' },
     { src: '<<relation-box-simple _overallFameBoxConfig>>', applyafter: '\n\n\t\t\t<<maplebirchFame>>' },
@@ -106,7 +106,7 @@ const widgetPassage = {
     { srcmatch: /(?:<<NPC_CN_NAME \$NPCName\[_npcId\]\.nam>>——<span style="text-transform: capitalize;"><<print[\s\S]*?>><\/span>|\$NPCName\[_npcId\]\.nam the <span style="text-transform: capitalize;">\$NPCName\[_npcId\]\.title<\/span>|<<NPC_CN_NAME \$NPCName\[_npcId\]\.nam>>——<span style="text-transform: capitalize;"><<print setup\.NPC_CN_TITLE\(\$NPCName\[_npcId\]\.title\)>><\/span>)/, to: '<<= maplebirch.auto($NPCName[_npcId].nam) + (lanSwitch(" the ","——"))>><span style="text-transform: capitalize;"><<= maplebirch.auto($NPCName[_npcId].title)>></span>' },
     { srcmatchgroup: /\[(?:setup\.NPC_CN_NAME\()?_sortedNPCList\[_sortedId](?:\))?\]/g, to: '[maplebirch.auto(_sortedNPCList[_sortedId])]' },
     { srcmatch: /<label>\s*<<radiobutton\s+"\$NPCName\[_npcId\]\.pronoun"\s+"m"\s+autocheck>>[\s\S]*?<\/label>/, applyafter: ' | <label><<radiobutton "$NPCName[_npcId].pronoun" "n" autocheck>><<= maplebirch.t("neutral").convert("title")>></label>' },
-    { srcmatch: /(?:<<if \$debug is 1>>)?(\s*\|\s*<label>\s*<<radiobutton\s+"\$NPCName\[_npcId\]\.gender"\s+"h"\s+autocheck>>[\s\S]*?<\/label>)(?:\s*<<\/if>>)?/, to: '$1 | <label><<radiobutton "$NPCName[_npcId].gender" "n" autocheck>><<= maplebirch.t("neither").convert("title")>></label>' },
+    { srcmatch: /<<if \$debug>>(\s*\|\s*<label>\s*<<radiovar "\$NPCName\[_npcId\]\.gender" "h">><<nnpcGenderSetByHand _npcId>><<\/radiovar>>[\s\S]*?<\/label>)<<\/if>>/, to: '$1 | <label><<radiovar "$NPCName[_npcId].gender" "n">><<nnpcGenderSetByHand _npcId>><</radiovar>><<= maplebirch.t("neither").convert("title")>></label>', expected: 1 },
     { src: '</span>\n\t\t\t<</if>>\n\t\t</div>', applyafter: '\n\t\t<div id="maplebirchNPCHairStyleOptions" class="settingsToggleItemWide"><<maplebirchNPCHairStyleOptions>></div>' },
   ],
   Widgets: [

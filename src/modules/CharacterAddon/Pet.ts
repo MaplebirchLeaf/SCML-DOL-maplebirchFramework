@@ -250,12 +250,12 @@ const csv = (value: string): string[] =>
 const petLayers = {
   exact: csv(`
     base, basehead, breasts, belly, bellyLeft, bellyRight, leftarm, rightarm,
-    freckles, ears, eyes, sclera, left_iris, right_iris, eyelids, lashes, brows, mouth, blush, tears, toast, scars,
+    ears, eyes, sclera, left_iris, right_iris, eyelids, lashes, brows, mouth, blush, tears, toast, scars,
     hair_sides, hair_fringe, hair_extra, pbhair, pbhair_strip, pbhair_balls,
     penis, genitals, buttplug, vines
   `),
   prefixes: csv(`
-    makeup, nipples, breasts, tummy, penis, clit, ear_slime,
+    freckles, makeup, nipples, breasts, tummy, penis, clit, ear_slime,
     wolf, cat, cow, bird, fox, angel, fallen, demon,
     writing, drip, cum,
     upper, over_upper, lower, over_lower, under_lower, under_upper,

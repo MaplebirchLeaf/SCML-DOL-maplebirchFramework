@@ -1,7 +1,7 @@
 import type { MaplebirchCore } from '../core';
 import type { ScopedLog } from '../infra/Diagnostics';
+import Migration from '../migrations/Migration';
 import Console from './Frameworks/ConsoleCheat';
-import migration from './Frameworks/migration';
 import randSystem from './Frameworks/RandSystem';
 import defineMacros, { type MacroFunction, type SimpleMacroFunction, type MacroTags, type SkipArgs, type MacroPhase } from './Frameworks/macros';
 import htmlTools from './Frameworks/HtmlTools';
@@ -18,7 +18,7 @@ type ToolConstructors = {
 class ToolCollection {
   public readonly log!: ScopedLog;
   public readonly console: Console;
-  public readonly migration: typeof migration = Object.freeze(migration);
+  public readonly migration: typeof Migration = Object.freeze(Migration);
   public readonly rand: typeof randSystem = Object.freeze(randSystem);
   public readonly macro: defineMacros;
   public readonly text: htmlTools;

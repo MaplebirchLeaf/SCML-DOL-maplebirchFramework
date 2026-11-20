@@ -125,7 +125,7 @@ export class AddonPlugin extends Hooks<[BootTask], void> {
 
   public async afterInjectEarlyLoad(): Promise<void> {
     for (const name of this.excludedMods) if (!this.disabledMods.has(name)) await this.modloader!.disabled(name);
-    await this.scriptFiles();
+    await this.loadStartupFiles();
     await this.executeScripts(this.moduleFiles, 'Module');
     this.moduleFilesExecuted = true;
     this.log('所有模块注册完成，开始预初始化', 'INFO');
@@ -163,21 +163,7 @@ export class AddonPlugin extends Hooks<[BootTask], void> {
       }
     }
 
-    if (this.moduleFilesExecuted && Array.isArray(params.module)) {
-      const start = this.moduleFiles.length;
-      await this.loadFiles(modInfo.name, modZip, params.module, 'Module');
-      const modules = this.moduleFiles.slice(start);
-      if (modules.length) await this.executeScripts(modules, 'Module');
-    }
-
-    if (this.moduleFilesExecuted && Array.isArray(params.script)) {
-      const start = this.jsFiles.length;
-      await this.loadFiles(modInfo.name, modZip, params.script, 'Script');
-      if (this.scriptFilesExecuted) {
-        const scripts = this.jsFiles.slice(start);
-        if (scripts.length) await this.executeScripts(scripts, 'Script');
-      }
-    }
+    if (this.moduleFilesExecuted) await this.loadModFiles(modInfo.name, modZip, params);
   }
 
   public async afterRegisterMod2Addon(): Promise<void> {
@@ -252,46 +238,53 @@ export class AddonPlugin extends Hooks<[BootTask], void> {
     return this.services.credential().loadCrypt(options);
   }
 
-  private async scriptFiles(): Promise<void> {
+  private async loadStartupFiles(): Promise<void> {
     for (const modName of this.modUtils.getModListNameNoAlias()) {
       try {
         const mod = this.modUtils.getMod(modName) as ModInfo | undefined;
         const modZip = this.modUtils.getModZip(modName);
         if (!mod || !modZip) continue;
         const params = this.config(mod)?.params;
-        if (!params) continue;
-        if (Array.isArray(params.module)) await this.loadFiles(modName, modZip, params.module, 'Module');
-        if (Array.isArray(params.script)) await this.loadFiles(modName, modZip, params.script, 'Script');
+        if (params) await this.loadModFiles(modName, modZip, params);
       } catch (error) {
         this.log(`加载模组脚本失败: ${modName} - ${Diagnostics.message(error)}`, 'ERROR', error);
       }
     }
   }
 
-  private async loadFiles(modName: string, modZip: ModZipReader, files: unknown[], type: FileType): Promise<void> {
+  private async loadModFiles(modName: string, modZip: ModZipReader, params: AddonParams): Promise<void> {
+    const late = this.moduleFilesExecuted;
+    await this.loadFiles(modName, modZip, params.module, 'Module', late);
+    await this.loadFiles(modName, modZip, params.script, 'Script', late);
+  }
+
+  private async loadFiles(modName: string, modZip: ModZipReader, files: unknown, type: FileType, late: boolean): Promise<void> {
+    if (!Array.isArray(files)) return;
     const target = type === 'Module' ? this.moduleFiles : this.jsFiles;
-    for (const value of files) {
-      if (typeof value !== 'string') {
-        this.log(`${type} 文件路径无效: ${String(value)} (来自 ${modName})`, 'WARN');
+    const loaded: FileItem[] = [];
+    for (const filePath of files) {
+      if (typeof filePath !== 'string') {
+        this.log(`${type} 文件路径无效: ${String(filePath)} (来自 ${modName})`, 'WARN');
         continue;
       }
-      const filePath = value;
       try {
-        const key = `[${modName}]:${filePath}`;
-        if (target.some(file => `[${file.modName}]:${file.filePath}` === key)) continue;
+        if (target.some(file => file.modName === modName && file.filePath === filePath)) continue;
         const file = modZip.zip.file(filePath);
         if (!file) {
           this.log(`${type} 文件未找到: ${filePath} (来自 ${modName})`, 'WARN');
           continue;
         }
-        target.push({ modName, filePath, content: await file.async('string') });
+        const entry = { modName, filePath, content: await file.async('string') };
+        target.push(entry);
+        if (late) loaded.push(entry);
       } catch (error) {
         this.log(`加载 ${type} 文件失败: ${filePath} (来自 ${modName}): ${Diagnostics.message(error)}`, 'ERROR', error);
       }
     }
+    if (loaded.length && (type === 'Module' || this.scriptFilesExecuted)) await this.executeScripts(loaded, type);
   }
 
-  private async executeScripts(files: FileItem[], type: FileType = 'Script'): Promise<void> {
+  private async executeScripts(files: FileItem[], type: FileType): Promise<void> {
     if (!files.length) return;
     const disabled = type === 'Script' ? new Set(this.services.gui().disabledScripts) : null;
     for (const file of files) {

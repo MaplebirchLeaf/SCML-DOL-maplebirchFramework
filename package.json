@@ -98,7 +98,7 @@
       },
       {
         "modName": "GameVersion",
-        "version": ">=0.5.12.13"
+        "version": ">=0.5.13.8"
       }
     ]
   }

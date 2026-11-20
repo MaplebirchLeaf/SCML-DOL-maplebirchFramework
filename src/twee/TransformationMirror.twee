@@ -1,30 +1,30 @@
 :: Widget [widget]
 
 <<widget 'maplebirchTransformationMirror'>>
-  <<set $_modTransforms to Object.keys(V.maplebirch?.transformation || {}).filter(name => V.maplebirch.transformation[name].level > 0)>>
-  <<for $_modTransformation range $_modTransforms>>
-    <<set $_config to maplebirch.char.transformation.config.get($_modTransformation)>>
-    <<set $_parts to Object.keys($transformationParts[$_modTransformation] || {}).filter(part => $transformationParts[$_modTransformation][part] !== 'disabled')>>
+  <<set $_mod_transforms to Object.keys(V.maplebirch?.transformation || {}).filter(name => V.maplebirch.transformation[name].level > 0)>>
+  <<for $_mod_transformation range $_mod_transforms>>
+    <<set $_config to maplebirch.char.transformation.config.get($_mod_transformation)>>
+    <<set $_parts to Object.keys($transformationParts[$_mod_transformation] || {}).filter(part => $transformationParts[$_mod_transformation][part] !== 'disabled')>>
     <div class='settingsToggleItem'>
       <<if $_config.icon>><<= $_config.icon>><</if>>
-      <span class='gold bold'><<lanSwitch 'Mods: ' '模组：'>><<= maplebirch.t($_modTransformation).convert('title')>></span>
-      <<for $_partName range $_parts>><<maplebirchTransformationPartSelect $_modTransformation $_partName>><</for>>
+      <span class='gold bold'><<lanSwitch 'Mods: ' '模组：'>><<= maplebirch.t($_mod_transformation).convert('title')>></span>
+      <<for $_part_name range $_parts>><<maplebirchTransformationPartSelect $_mod_transformation $_part_name>><</for>>
     </div>
   <</for>>
   <<maplebirchChimeraMirror>>
 <</widget>>
 
 <<widget 'maplebirchChimeraMirror'>>
-  <<set $_chimeraOptions to maplebirch.char.transformation.chimeraOptions>>
-  <<if Object.values($_chimeraOptions).some(Boolean)>>
+  <<set $_chimera_options to maplebirch.char.transformation.chimeraOptions>>
+  <<if Object.values($_chimera_options).some(Boolean)>>
   <div class='settingsToggleItemWide'>
     <span class='gold bold'><<lanSwitch 'Mods: Chimera' '模组：融合形态'>></span>
     <<for $_chimera range maplebirch.char.transformation.chimeras>>
-      <<if $_chimeraOptions[$_chimera.name + '_' + $_chimera.part]>>
+      <<if $_chimera_options[$_chimera.name + '_' + $_chimera.part]>>
         <div class='tf-part-item'>
           <<= $_chimera.label>>
-          <<set $_chimeraPath to '$chimera.' + $_chimera.name + '.' + $_chimera.part>>
-          <<listbox $_chimeraPath autoselect>>
+          <<set $_chimera_path to '$chimera.' + $_chimera.name + '.' + $_chimera.part>>
+          <<listbox $_chimera_path autoselect>>
             <<option `lanSwitch('Show', '显示')` true>>
             <<option `lanSwitch('Hide', '隐藏')` false>>
           <</listbox>>
@@ -36,21 +36,21 @@
 <</widget>>
 
 <<widget 'maplebirchTransformationPartSelect'>>
-  <<set $_modTransformation to _args[0]>>
-  <<set $_partName to _args[1]>>
-  <<set $_config to maplebirch.char.transformation.config.get($_modTransformation)>>
-  <<set $_partConfig to $_config.parts.find(part => part.name === $_partName)>>
-  <<set $_defaultValue to $_partConfig?.default || 'default'>>
-  <<set $_varPath to '$transformationParts.' + $_modTransformation + '.' + $_partName>>
+  <<set $_mod_transformation to _args[0]>>
+  <<set $_part_name to _args[1]>>
+  <<set $_config to maplebirch.char.transformation.config.get($_mod_transformation)>>
+  <<set $_part_config to $_config.parts.find(part => part.name === $_part_name)>>
+  <<set $_default_value to $_part_config?.default || 'default'>>
+  <<set $_var_path to '$transformationParts.' + $_mod_transformation + '.' + $_part_name>>
   <div class='tf-part-item'>
-    <<if $_partConfig?.label>>
-      <<= typeof $_partConfig.label === 'function' ? $_partConfig.label() : $_partConfig.label>>：
+    <<if $_part_config?.label>>
+      <<= typeof $_part_config.label === 'function' ? $_part_config.label() : $_part_config.label>>：
     <<else>>
-      <<= maplebirch.t(String($_partName)).convert('title')>>：
+      <<= maplebirch.t(String($_part_name)).convert('title')>>：
     <</if>>
-    <<lanListbox $_varPath autoselect class:macro-listbox>>
+    <<lanListbox $_var_path autoselect class:macro-listbox>>
       <<option 'hidden' 'hidden'>>
-      <<option 'default' $_defaultValue>>
+      <<option 'default' $_default_value>>
     <</lanListbox>>
   </div>
 <</widget>>

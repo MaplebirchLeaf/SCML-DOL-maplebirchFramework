@@ -110,8 +110,8 @@ class Macros {
     const titleSource = "<<lanSwitch 'Welcome to' '欢迎使用'>>[[<<lanSwitch 'Maplebirch Framework' '秋枫白桦框架'>>|https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchframework]]";
     const title = $('<div>').wiki(titleSource).html() || titleSource;
     const t = (key: string) => this.core.t(key);
-    dol.temporary.maplebirchNoticeLinksEnabled = Links.enabled;
-    dol.temporary.maplebirchNoticeVerify = false;
+    dol.temporary.maplebirch_notice_links_enabled = Links.enabled;
+    dol.temporary.maplebirch_notice_verify = false;
     Links.enabled = false;
     $('#story').addClass('gateBlur');
     $('#ui-bar').addClass('gateBlur');
@@ -121,11 +121,11 @@ class Macros {
       <b>${t('framework.notice.issue.title')}</b><br>
       <ol><li>${t('framework.notice.issue.mod')}</li><li>${t('framework.notice.issue.framework')}</li><li>${t('framework.notice.issue.report')}</li></ol>
       <div class='text-align-center'>
-        <label><<checkbox '_maplebirchNoticeVerify' false true autocheck>>${t('framework.notice.verify')}</label><br>
+        <label><<checkbox '_maplebirch_notice_verify' false true autocheck>>${t('framework.notice.verify')}</label><br>
         <div class='m-2'>
           <<button ${JSON.stringify(t('framework.notice.confirm'))}>>
-            <<if _maplebirchNoticeVerify>>
-              <<set Links.enabled to _maplebirchNoticeLinksEnabled>>
+            <<if _maplebirch_notice_verify>>
+              <<set Links.enabled to _maplebirch_notice_links_enabled>>
               <<run $('#story').removeClass('gateBlur')>>
               <<run $('#ui-bar').removeClass('gateBlur')>>
               <<run localStorage.setItem('maplebirchFrameworkNotice', 'true')>>

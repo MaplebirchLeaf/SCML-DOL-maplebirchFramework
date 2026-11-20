@@ -33,8 +33,8 @@ export interface CompanionContext extends ResolvedCompanion, CompanionEffects {
 }
 
 interface CompanionState extends CompanionMember {
-  leaveTurn: number;
-  stunTurn: number;
+  leave_turn: number;
+  stun_turn: number;
 }
 
 interface CombatState {
@@ -57,7 +57,7 @@ class Companions {
     const moment = this.combat.core.SugarCube.State.current;
     if (!this.clock || this.clock.moment !== moment) {
       const state = this.state;
-      const key = Math.max(state?.turn ?? -1, ...(state?.companions.map(member => member.leaveTurn) ?? [])) + 1;
+      const key = Math.max(state?.turn ?? -1, ...(state?.companions.map(member => member.leave_turn) ?? [])) + 1;
       this.clock = { moment, key };
     }
     return this.clock.key;
@@ -111,7 +111,7 @@ class Companions {
     if (member) {
       if (member.active || member.health <= 0) return false;
       member.active = true;
-    } else state.companions.push({ ...ref, widget, health: healthmax, healthmax, stun: 0, active: true, leaveTurn: -1, stunTurn: -1 });
+    } else state.companions.push({ ...ref, widget, health: healthmax, healthmax, stun: 0, active: true, leave_turn: -1, stun_turn: -1 });
     return true;
   }
 
@@ -125,7 +125,7 @@ class Companions {
   }
 
   private supports(member: CompanionState): boolean {
-    return this.available(member) && member.stunTurn !== this.step;
+    return this.available(member) && member.stun_turn !== this.step;
   }
 
   private effects(member: CompanionState): CompanionEffects {
@@ -176,8 +176,8 @@ class Companions {
       if (!member.active || !selected.has(member)) continue;
       member.active = false;
       const turn = this.step;
-      if (member.leaveTurn === turn) continue;
-      member.leaveTurn = turn;
+      if (member.leave_turn === turn) continue;
+      member.leave_turn = turn;
       fragment.append(this.render(member, 'leave'));
     }
     return fragment;
@@ -237,18 +237,18 @@ class Companions {
     const npc = this.resolve(member);
     if (!npc) return fragment;
     const temporary = dol.temporary;
-    const hadContext = Object.hasOwn(temporary, 'maplebirchCompanion');
-    const previous = temporary.maplebirchCompanion;
-    temporary.maplebirchCompanion = Object.assign(effects, this.view(member, npc), { event, damage }) satisfies CompanionContext;
+    const hadContext = Object.hasOwn(temporary, 'maplebirch_companion');
+    const previous = temporary.maplebirch_companion;
+    temporary.maplebirch_companion = Object.assign(effects, this.view(member, npc), { event, damage }) satisfies CompanionContext;
     try {
-      fragment.append(this.combat.core.SugarCube.Wikifier.wikifyEval(`<<${member.widget} _maplebirchCompanion>>`));
+      fragment.append(this.combat.core.SugarCube.Wikifier.wikifyEval(`<<${member.widget} _maplebirch_companion>>`));
     } catch (error) {
       if (event === 'effects') Object.assign(effects, { bonus: 0, guard: 0 });
       if (event === 'update') Object.assign(effects, { hit: undefined });
       this.combat.log(`战斗同伴执行错误: ${member.source}:${member.key}`, 'ERROR', error);
     } finally {
-      if (hadContext) temporary.maplebirchCompanion = previous;
-      else delete temporary.maplebirchCompanion;
+      if (hadContext) temporary.maplebirch_companion = previous;
+      else delete temporary.maplebirch_companion;
     }
     return fragment;
   }
@@ -268,7 +268,7 @@ class Companions {
       if (this.state !== state || !this.canAct) break;
       if (!member.active || !this.resolve(member)) continue;
       if (member.stun > 0) {
-        member.stunTurn = turn;
+        member.stun_turn = turn;
         member.stun--;
         fragment.append(this.render(member, 'stun'));
       } else {

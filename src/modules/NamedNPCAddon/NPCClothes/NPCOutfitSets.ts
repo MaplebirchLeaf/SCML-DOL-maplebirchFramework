@@ -129,25 +129,24 @@ class NPCOutfitSets {
       const missingSet = npc.clothes?.set && !sets.has(npc.clothes.set);
       if (!missingOutfits && !missingSet) continue;
       const temporary = dol.temporary;
-      const previous = temporary.maplebirchOutfitNPC;
-      temporary.maplebirchOutfitNPC = npc;
+      const previous = temporary.maplebirch_outfit_npc;
+      temporary.maplebirch_outfit_npc = npc;
       try {
         if (named.includes(npc)) {
-          // 原生初始化会同步暴露状态，保留有效衣物时也一并保留，避免半裸角色被误判为穿衣。
           const snapshot = !missingSet && npc.clothes ? { clothes: clone(npc.clothes), chest: npc.chest, penis: npc.penis, vagina: npc.vagina } : undefined;
-          new Wikifier(document.createDocumentFragment(), '<<initNNPCClothes _maplebirchOutfitNPC.nam "reset">>');
+          new Wikifier(document.createDocumentFragment(), '<<initNNPCClothes _maplebirch_outfit_npc.nam "reset">>');
           npc.outfits = [...new Set([...(npc.outfits ?? []), ...(outfits ?? [])])];
           if (snapshot) Object.assign(npc, snapshot);
         } else {
           if (missingSet) {
             npc.outfits = undefined;
-            new Wikifier(document.createDocumentFragment(), '<<generateNPCClothes _maplebirchOutfitNPC>>');
+            new Wikifier(document.createDocumentFragment(), '<<generateNPCClothes _maplebirch_outfit_npc>>');
           }
           npc.outfits = outfits?.length ? outfits : undefined;
         }
       } finally {
-        if (previous === undefined) delete temporary.maplebirchOutfitNPC;
-        else temporary.maplebirchOutfitNPC = previous;
+        if (previous === undefined) delete temporary.maplebirch_outfit_npc;
+        else temporary.maplebirch_outfit_npc = previous;
       }
     }
   }

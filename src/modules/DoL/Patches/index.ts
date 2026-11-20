@@ -14,10 +14,17 @@ import FeatBoosts, { featBoostsData } from './FeatBoosts';
 import { isRecord } from './config';
 import dol from '../../../host/DoL';
 
+type PatchSurface<Definition extends PatchDefinition> = Definition extends { legacy: infer Flat } ? Flat : Definition['api'];
+type PatchAliases<Definition extends PatchDefinition> = (Definition extends PatchDefinition ? (surface: PatchSurface<Definition>) => void : never) extends (surface: infer Aliases) => void
+  ? Aliases
+  : never;
+
 function register(core: MaplebirchCore, patch: Patch) {
   const pills = new Pills();
   const injectTraits = (data: Parameters<typeof Traits.inject>[0]) => Traits.inject(data, text => core.auto(text));
   const featBoostText = (key: string, field: Parameters<typeof FeatBoosts.text>[1]) => FeatBoosts.text(key, field, text => core.auto(text));
+  const setupFeatBoosts = () => FeatBoosts.setup(text => core.auto(text));
+  const applyFeatBoosts = () => FeatBoosts.apply(source => void core.host.sugarcube.require().Wikifier.wikifyEval(source));
   const definitions = {
     traits: {
       api: {
@@ -37,16 +44,16 @@ function register(core: MaplebirchCore, patch: Patch) {
         add: FeatBoosts.add,
         has: FeatBoosts.has,
         text: featBoostText,
-        setup: () => FeatBoosts.setup(text => core.auto(text)),
+        setup: setupFeatBoosts,
         refresh: (key: string) => FeatBoosts.refresh(key, text => core.auto(text)),
-        apply: () => FeatBoosts.apply(source => void core.host.sugarcube.require().Wikifier.wikifyEval(source))
+        apply: applyFeatBoosts
       },
       init: () => {
         core.tool.macro.wrap(
           'setupFeatBoosts',
           next => {
             const result = next();
-            FeatBoosts.setup(text => core.auto(text));
+            setupFeatBoosts();
             return result;
           },
           'sugarcube'
@@ -54,7 +61,7 @@ function register(core: MaplebirchCore, patch: Patch) {
         core.tool.macro.wrap(
           'applyFeatBoosts',
           next => {
-            FeatBoosts.apply(source => void core.host.sugarcube.require().Wikifier.wikifyEval(source));
+            applyFeatBoosts();
             return next();
           },
           'sugarcube'
@@ -140,14 +147,6 @@ function register(core: MaplebirchCore, patch: Patch) {
       available: () => dol.has('variables') && isRecord(dol.variables.museumAntiques?.antiques),
       state: () => new (core.host.sugarcube.require().Wikifier)(document.createDocumentFragment(), '<<museumAntiqueText>>')
     },
-    pills: {
-      api: {
-        data: pillsData,
-        add: Pills.add
-      },
-      available: () => dol.has('setup') && Array.isArray(dol.setup.pills),
-      init: () => pills.apply()
-    },
     tips: {
       api: {
         data: tipsData,
@@ -163,20 +162,20 @@ function register(core: MaplebirchCore, patch: Patch) {
       },
       available: () => dol.has('setup') && isRecord(dol.setup.tips),
       init: Tips.apply
+    },
+    pills: {
+      api: {
+        data: pillsData,
+        add: Pills.add
+      },
+      available: () => dol.has('setup') && Array.isArray(dol.setup.pills),
+      init: () => pills.apply()
     }
   } satisfies Record<string, PatchDefinition>;
+  for (const [name, definition] of Object.entries<PatchDefinition>(definitions)) patch.add(name, definition);
+
   type PatchCatalog = { [Name in keyof typeof definitions]: (typeof definitions)[Name]['api'] };
-  const registered = patch
-    .add('traits', definitions.traits)
-    .add('featBoosts', definitions.featBoosts)
-    .add('location', definitions.location)
-    .add('bodywriting', definitions.bodywriting)
-    .add('fishing', definitions.fishing)
-    .add('foodstuff', definitions.foodstuff)
-    .add('antiques', definitions.antiques)
-    .add('tips', definitions.tips)
-    .add('pills', definitions.pills);
-  return registered as typeof registered & PatchCatalog;
+  return patch as Patch & PatchCatalog & PatchAliases<(typeof definitions)[keyof typeof definitions]>;
 }
 
 export type Patches = ReturnType<typeof register>;

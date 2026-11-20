@@ -219,7 +219,7 @@ const base_layers = {
       return !!nnpc.freckles && nnpc.show && nnpc.model;
     },
     zfn: (options: NPCSidebarOptions) => {
-      return maplebirch.char.ZIndices.freckles + options.maplebirch.nnpc.position;
+      return maplebirch.char.ZIndices.faceFreckles + options.maplebirch.nnpc.position;
     },
     dxfn: (options: NPCSidebarOptions) => {
       return options.maplebirch.nnpc.dxfn;

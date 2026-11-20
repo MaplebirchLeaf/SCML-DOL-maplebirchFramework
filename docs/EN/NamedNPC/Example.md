@@ -4,7 +4,7 @@ Luna is a librarian who enjoys afternoon walks in the park. Let's give the playe
 
 This small scene brings together NPC registration, schedules, trust, and a page notice. All the files are included below, so you can build the example as you read.
 
-It targets vanilla **0.5.12.13**, using its `Park` passage and `<<displayLinks>>` macro as the entry point. Check that insertion point again when adapting it to another game base.
+It targets vanilla **0.5.13.8**, using its `Park` passage and `<<displayLinks>>` macro as the entry point. Check that insertion point again when adapting it to another game base.
 
 ## Prepare three files
 

@@ -1,10 +1,7 @@
-// ./src/modules/Frameworks/migration.ts
-
-import Diagnostics from '../../infra/Diagnostics';
-import maplebirch from '../../core';
-import type { ScopedLog } from '../../infra/Diagnostics';
-import { coverFn, mergeFn } from '../../utils/object';
-import ModLoader from '../../host/ModLoader';
+import Diagnostics, { type ScopedLog } from '../infra/Diagnostics';
+import maplebirch from '../core';
+import { coverFn, mergeFn } from '../utils/object';
+import ModLoader from '../host/ModLoader';
 
 const _ = ModLoader.getLodash();
 
@@ -28,14 +25,14 @@ interface Utils {
   fill: (target: Record<string, unknown>, defaults: Record<string, unknown>, mode?: 'merge' | 'cover') => void;
 }
 
-class migration {
+class Migration {
   public static readonly log: ScopedLog = (message, level = 'INFO', ...objects) => maplebirch.tool.log(message, level, ...objects);
 
-  public static create(): migration {
-    return new migration();
+  public static create(): Migration {
+    return new Migration();
   }
 
-  public readonly log = migration.log;
+  public readonly log = Migration.log;
   public readonly utils: Utils;
 
   public steps: Step[] = [];
@@ -171,4 +168,4 @@ class migration {
   }
 }
 
-export default migration;
+export default Migration;

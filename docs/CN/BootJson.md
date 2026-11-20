@@ -323,7 +323,7 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 | `bodywriting`、`featBoosts`、`foodstuff`、`antiques`、`fish`、`bait` | 以唯一标识为键的对象，或每项包含 `key` 的数组 |
 | `locations`                                                          | 钓点到鱼类权重的对象                          |
 
-这些内容也可以直接内联。补丁数据按键覆盖。`fish`、`bait` 和 `locations` 对应原版 0.5.12.13 的钓鱼系统。
+这些内容也可以直接内联。补丁数据按键覆盖。`fish`、`bait` 和 `locations` 对应原版 0.5.13.8 的钓鱼系统。
 
 `tips.json` 可以直接写字符串数组，默认加入原版始终启用的 `general` 分类：
 
