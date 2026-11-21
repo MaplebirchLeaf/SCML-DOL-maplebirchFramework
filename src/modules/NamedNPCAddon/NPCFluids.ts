@@ -90,6 +90,15 @@ class NPCFluids {
     return fluids;
   }
 
+  public advance(seconds: number, secondsPerHour: number): void {
+    if (!Number.isFinite(seconds) || seconds <= 0) return;
+    const state = (dol.variables.maplebirch ??= {});
+    const elapsed = (state.npc_fluid_seconds ?? 0) + seconds;
+    state.npc_fluid_seconds = elapsed % secondsPerHour;
+    const hours = Math.floor(elapsed / secondsPerHour);
+    if (hours) this.decay(hours);
+  }
+
   public decay(value = 1): void {
     for (const name of Object.keys(dol.variables.maplebirch?.npc ?? {})) {
       const fluids = this.ensure(name);

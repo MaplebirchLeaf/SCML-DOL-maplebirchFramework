@@ -874,9 +874,9 @@ const NPCSidebar = (() => {
         },
         'NPC sidebar state sync'
       );
-      manager.core.dynamic.regTimeEvent('onHour', 'maplebirch.npc.fluids.decay', {
-        action: data => manager.fluids.decay(data.triggeredByAccumulator?.count ?? 1),
-        accumulate: { unit: 'hour', target: 1 },
+      const { dynamic } = manager.core;
+      dynamic.regTimeEvent('onSec', 'maplebirch.npc.fluids.decay', {
+        action: data => manager.fluids.advance(data.changes?.sec ?? 0, dynamic.Time.TimeConstants.secondsPerHour),
         priority: -10
       });
     }

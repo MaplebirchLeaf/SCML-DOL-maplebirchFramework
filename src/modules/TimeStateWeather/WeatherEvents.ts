@@ -122,8 +122,8 @@ class WeatherEvent extends Event {
     return current === value;
   }
 
-  public executeEnter(): void {
-    this.invoke('onEnter', this.onEnter);
+  public executeEnter(): boolean {
+    return this.invoke('onEnter', this.onEnter);
   }
 
   public executeExit(): void {
@@ -178,8 +178,11 @@ export class WeatherManager {
       const isActive = event.tryMatch();
       if (isActive && !wasActive) {
         this.activeEvents.add(event.id);
-        event.executeEnter();
-        if (event.once) toRemove.push(event.id);
+        const succeeded = event.executeEnter();
+        if (event.once) {
+          if (succeeded) toRemove.push(event.id);
+          else this.activeEvents.delete(event.id);
+        }
       } else if (!isActive && wasActive) {
         this.activeEvents.delete(event.id);
         event.executeExit();

@@ -31,12 +31,13 @@ abstract class Event {
     }
   }
 
-  protected invoke<T extends unknown[]>(label: string, callback: ((...args: T) => void) | undefined, ...args: T): void {
-    if (!callback) return;
+  protected invoke<T extends unknown[]>(label: string, callback: ((...args: T) => void) | undefined, ...args: T): boolean {
     try {
-      callback(...args);
+      callback?.(...args);
+      return true;
     } catch (error) {
       this.log(`[${this.eventName}:${this.id}] ${label} error:`, 'ERROR', error);
+      return false;
     }
   }
 }

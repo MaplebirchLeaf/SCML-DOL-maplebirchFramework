@@ -74,10 +74,10 @@ class StateEvent extends Event {
   }
 
   public run(): StateEventResult {
-    this.invoke('action', this.action);
+    const succeeded = this.invoke('action', this.action);
     return {
-      hasOutput: !!this.output,
-      remove: this.once
+      hasOutput: succeeded && !!this.output,
+      remove: succeeded && this.once
     };
   }
 
