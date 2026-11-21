@@ -10,13 +10,18 @@
 				<option ng-repeat='lang in languages' value='{{lang.code}}'>{{lang.name}}</option>
 			</select>
 			<div ng-if='isDEBUG()' class='gui-button-group' style='margin-left: auto;'>
-				<button type='button' ng-click='$ctrl.repair.open()' aria-haspopup='dialog' aria-controls='maplebirch-repair' class='theme-button'>{{t($ctrl.data.text.Repair.Title)}}</button>
 				<input type='button' value='{{t($ctrl.data.text.ClearIndexedDB)}}' ng-click='ClearIndexedDB()' class='theme-button' />
 			</div>
 		</div>
 		<div class='gui-button-group'>
 			<input type='button' ng-click="EnableDisableItem('enable')" ng-value="DEBUGMODE('enable')" class='theme-button' />
 			<input type='button' ng-click="EnableDisableItem('disable')" ng-value="DEBUGMODE('disable')" class='theme-button' />
+			<button type='button' ng-click='copyDiagnostics()' class='theme-button'>{{t($ctrl.data.text.Diagnostics.Copy)}}</button>
+		</div>
+		<div ng-if='diagnosticsCopied' role='status'>{{t($ctrl.data.text.Diagnostics.Copied)}}</div>
+		<div ng-if='diagnosticsText'>
+			<label for='maplebirch-diagnostics'>{{t($ctrl.data.text.Diagnostics.Manual)}}</label>
+			<textarea id='maplebirch-diagnostics' readonly ng-model='diagnosticsText'></textarea>
 		</div>
 		<input type='text' readonly='true' ng-value='DEBUGSTATUS()' /><br>
 		<textarea ng-model='$ctrl.data.moduleText' readonly='true'></textarea>
@@ -50,5 +55,9 @@
 				</div>
 			</div>
 		</div>
+		<details ng-if='isDEBUG()'>
+			<summary>{{t($ctrl.data.text.Repair.Tools)}}</summary>
+			<button type='button' ng-click='$ctrl.repair.open($event.currentTarget)' aria-haspopup='dialog' aria-controls='maplebirch-repair' class='theme-button'>{{t($ctrl.data.text.Repair.Title)}}</button>
+		</details>
 	</div>
 </div>

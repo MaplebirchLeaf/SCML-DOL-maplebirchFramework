@@ -4,6 +4,7 @@ import type { IDBPObjectStore } from 'idb';
 import type { ModSubUiAngularJsModeExportInterface } from '@scml/types/Mod_SubUiAngularJs/ModSubUiAngularJsModeExportInterface';
 import type { ModSubUiAngularJsService } from '@scml/types/Mod_LoaderGui/ModSubUiAngularJsService';
 import type ModLoader from '../host/ModLoader';
+import dol from '../host/DoL';
 import type Emitter from '../infra/Emitter';
 import Gui from '@/twee/Gui.twee?raw';
 import RepairGui from '@/twee/RepairGui.twee?raw';
@@ -63,7 +64,19 @@ interface GuiData {
   disabledScripts: string[];
   text: Pick<
     typeof Config,
-    'Title' | 'DEBUGSTATUS' | 'EnabledSTATUS' | 'DisabledSTATUS' | 'Languages' | 'LanguageSelection' | 'EnableModule' | 'DisableModule' | 'EnableScript' | 'DisableScript' | 'ClearIndexedDB' | 'Repair'
+    | 'Title'
+    | 'DEBUGSTATUS'
+    | 'EnabledSTATUS'
+    | 'DisabledSTATUS'
+    | 'Languages'
+    | 'LanguageSelection'
+    | 'EnableModule'
+    | 'DisableModule'
+    | 'EnableScript'
+    | 'DisableScript'
+    | 'ClearIndexedDB'
+    | 'Diagnostics'
+    | 'Repair'
   > & { DEBUGMODE: string[] };
 }
 
@@ -85,6 +98,9 @@ interface GuiScope {
   selectedEnabledScript: number;
   selectedDisabledScript: number;
   ClearIndexedDB(): Promise<boolean>;
+  copyDiagnostics(): Promise<void>;
+  diagnosticsText?: string;
+  diagnosticsCopied?: boolean;
   isDEBUG(): boolean;
   typeLabel(type: ModuleType): string;
   changeLanguage(): void;
@@ -326,12 +342,33 @@ export class GUIControl {
     return result.length > 0 ? result.join('\n') : '';
   }
 
+  private diagnostics(): string {
+    const { modUtils, diagnostics } = this.modloader;
+    const names: string[] = modUtils.getModListNameNoAlias();
+    return JSON.stringify(
+      {
+        game: dol.gameVersion || modUtils.getMod('GameVersion')?.version,
+        modLoader: modUtils.version,
+        language: this.translator.language,
+        passage: typeof State !== 'undefined' ? State.passage : undefined,
+        mods: names.map(name => ({ name, version: modUtils.getMod(name)?.version })),
+        disabledModules: this.disabledModules.map(({ name, source }) => ({ name, source })),
+        failedPatches: diagnostics.patches
+          .filter(({ status }) => status !== 'applied')
+          .map(({ kind, target, index, status, matches, expected }) => ({ kind, target, index, status, matches, expected }))
+      },
+      null,
+      2
+    );
+  }
+
   private async whenCreate(Ref: ModSubUiAngularJsModeExportInterface): Promise<void> {
     const { translator, idb, events, modloader, repair } = this;
     const typeLabel = this.typeLabel.bind(this);
     const cascadeModules = this.cascadeModules.bind(this);
     const saveModules = this.saveModules.bind(this);
     const saveScripts = this.saveScripts.bind(this);
+    const diagnostics = () => this.diagnostics();
     Ref.registryComponentModGuiConfig(ngModule => {
       const componentDef = {
         selector: 'maplebirch-control-component',
@@ -354,6 +391,18 @@ export class GUIControl {
               };
 
               $scope.ClearIndexedDB = () => idb.deleteDatabase();
+              $scope.copyDiagnostics = async () => {
+                const report = diagnostics();
+                try {
+                  await navigator.clipboard.writeText(report);
+                  $scope.diagnosticsCopied = true;
+                  $scope.diagnosticsText = undefined;
+                } catch {
+                  $scope.diagnosticsCopied = false;
+                  $scope.diagnosticsText = report;
+                }
+                $scope.$applyAsync();
+              };
               this.repair = new RepairGUI(repair, translator, () => $scope.$applyAsync());
               $scope.$on('$destroy', () => this.repair.destroy());
 
@@ -533,6 +582,7 @@ export class GUIControl {
           EnableScript: Config.EnableScript,
           DisableScript: Config.DisableScript,
           ClearIndexedDB: Config.ClearIndexedDB,
+          Diagnostics: Config.Diagnostics,
           Repair: Config.Repair
         }
       }

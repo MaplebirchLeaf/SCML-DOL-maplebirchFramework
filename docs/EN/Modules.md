@@ -233,7 +233,9 @@ Late modules receive `preInit()`. If a `preInit()` hook registers children throu
 
 ## Inspecting diagnostics
 
-The framework collects logs, module failures, and patch results in one place. `maplebirch.export` is a JSON string property that you can copy when investigating a load problem; there is no need to retrieve a diagnostics object from each module.
+Select **Copy diagnostics** in the framework settings to collect the game version, language, mod load order, disabled modules and failed patches for a report. If the clipboard is unavailable, copy the report from the text area.
+
+For development, read `maplebirch.export` in the console for detailed logs.
 
 ```javascript
 console.log(maplebirch.export);

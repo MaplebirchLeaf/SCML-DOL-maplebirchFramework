@@ -54,7 +54,13 @@ Framework zone patches, `maplebirch.host.modLoader.replace()` and replacement of
 
 The latest result is retained for each kind/target/index. Reads return copies; `clearPatches()` clears the reports. Third-party patches executed directly are outside this record, and reports do not replace game behavior validation.
 
-## AI Repair State Permissions
+## Repair Assistant
+
+In framework settings, enable Debug Mode and open Repair Assistant under Advanced debugging. Enter your own model endpoint, API key and model. OpenAI-compatible APIs, Anthropic and Gemini are supported.
+
+Analyze sends diagnostics, related source and selected save fields to your configured model API. Full saves stay local. API fees may apply. Review the proposal before saving it, then reload, retest and confirm.
+
+### State and Source Permissions
 
 The framework automatically discovers save fields related to the diagnosis from explicit static `V.foo`, `$foo` or `State.variables` paths in the current error logs and related current source. Authors do not need to register paths, schemas or ownership, and discovery does not distinguish game and mod variables. Core supplies the SugarCube `State.variables` host for reading actual values; the service does not bind to DoL-specific variable names.
 

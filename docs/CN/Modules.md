@@ -254,7 +254,9 @@ maplebirch.define('myModule', new MyModule(), ['npc']);
 
 ## 查看诊断
 
-框架统一收集日志、模块错误和补丁结果。排查加载问题时先查看 `maplebirch.export`，它是 JSON 字符串属性，可复制给作者分析。不需要从每个模块单独取诊断对象。
+在框架设置中选择「复制诊断」，可复制游戏版本、语言、模组加载顺序、停用模块和失败补丁，方便反馈问题。剪贴板不可用时，可手动复制显示的报告。
+
+开发时可在控制台读取包含详细日志的 `maplebirch.export`。
 
 ```javascript
 console.log(maplebirch.export);

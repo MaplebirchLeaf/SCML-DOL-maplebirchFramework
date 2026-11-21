@@ -32,8 +32,14 @@ export const Config = {
   EnableScript     : ['Enable selected script', '启用选中脚本'],
   DisableScript    : ['Disable selected script', '禁用选中脚本'],
   ClearIndexedDB   : ['Clear IndexedDB', '清除索引数据库'],
+  Diagnostics      : {
+    Copy           : ['Copy diagnostics', '复制诊断'],
+    Copied         : ['Diagnostics copied.', '已复制诊断。'],
+    Manual         : ['Select and copy the diagnostics below.', '请选择下方的诊断内容并复制。']
+  },
   Repair           : {
-    Title          : ['AI Repair', 'AI 修复'],
+    Tools          : ['Advanced debugging', '高级调试'],
+    Title          : ['Repair assistant', '修复助手'],
     Connection     : ['Settings', '配置'],
     Summary        : ['Summary', '结论'],
     Evidence       : ['Evidence', '依据'],
@@ -53,7 +59,7 @@ export const Config = {
     Save           : ['Save', '保存'],
     Test           : ['Test', '测试'],
     Analyze        : ['Analyze', '分析'],
-    AnalyzeNotice  : ['Sends diagnostics, related source and state fragments; no complete saves.', '发送诊断、相关源码与变量片段，不含完整存档。'],
+    AnalyzeNotice  : ['Analyze sends diagnostics, related source and selected state fields to your configured model API. Full saves are excluded.', '点击分析后，会向你配置的模型接口发送诊断、相关源码和选定的变量片段。完整存档不会发送。'],
     Preview        : ['Repair preview', '修复预览'],
     Before         : ['Before', '修改前'],
     After          : ['After', '修改后'],

@@ -39,10 +39,10 @@ export default class RepairGUI {
     return this.repair.connectionSaved;
   }
 
-  public async open(): Promise<void> {
+  public async open(trigger: HTMLElement): Promise<void> {
     if (this.destroyed) return;
-    const dialog = document.getElementById('maplebirch-repair');
-    if (!(dialog instanceof HTMLDialogElement) || dialog.open) return;
+    const dialog = trigger.closest('#maplebirch')?.querySelector<HTMLDialogElement>('dialog#maplebirch-repair');
+    if (!dialog || dialog.open) return;
     this.dialog = dialog;
     dialog.onclose = () => this.controller?.abort('cancelled');
     dialog.showModal();
