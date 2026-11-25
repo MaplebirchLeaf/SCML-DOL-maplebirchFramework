@@ -776,6 +776,14 @@ class NPCManager {
 
   public preInit() {
     this.Sidebar.init(this);
+    this.core.tool.macro.wrap(
+      'npcPregnancyUpdater',
+      next => {
+        if (Array.isArray(dol.variables.NPCNameList) && dol.variables.NPCNameList.some(name => !dol.characters.npc?.[name])) this.NamedNPC.proxy(this);
+        return next();
+      },
+      'storyinit'
+    );
   }
 
   public Init(): void {
