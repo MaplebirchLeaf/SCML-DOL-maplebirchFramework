@@ -38,8 +38,8 @@
     "marked": "^17.0.6"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^5.20261030.1",
-    "@rslib/core": "^1.0.5",
+    "@cloudflare/workers-types": "^5.20261125.1",
+    "@rslib/core": "^1.0.7",
     "@scml/sc2-verlnir": "^1.0.7",
     "@scml/types": "^1.0.7",
     "@types/adm-zip": "^0.5.8",
@@ -48,7 +48,7 @@
     "@types/jquery": "^3.5.34",
     "@types/js-yaml": "^4.0.9",
     "@types/marked": "^6.0.0",
-    "@types/node": "^25.9.9",
+    "@types/node": "^25.9.10",
     "@types/twine-sugarcube": "^2.37.3",
     "adm-zip": "^0.5.18",
     "bumpp": "^11.1.0",
