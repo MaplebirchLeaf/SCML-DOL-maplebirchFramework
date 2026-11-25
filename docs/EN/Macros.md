@@ -204,13 +204,13 @@ Array form:
 
 ## maplebirchReplace
 
-Replace the framework overlay body from inside overlay content.
+Open the framework overlay and render its body with the named macro.
 
 ```twine
-<<maplebirchReplace>>
-  <<MyOtherWidget>>
-<</maplebirchReplace>>
+<<maplebirchReplace 'my-mod-hint' 'title'>>
 ```
+
+This renders the body using `my-mod-hint`. With `title`, the framework looks for `titleMyModHint` first, then tries `title-my-mod-hint`.
 
 ## Custom Macros
 

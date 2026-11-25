@@ -22,8 +22,8 @@ export function _overlayReplace(name: string, type: string): void {
     case 'customize':
       return $.wiki(`<<${key}>><<exit>>`);
     case 'title':
-      const titleKey = 'title' + key.convert('pascal');
-      if (titleKey && maplebirch.tool.macro.Macro.has(titleKey)) $.wiki(`<<replace #customOverlayTitle>><<${titleKey}>><</replace>>`);
+      const titleKey = [`title${key.convert('pascal')}`, `title-${key}`].find(name => maplebirch.tool.macro.Macro.has(name));
+      if (titleKey) $.wiki(`<<replace #customOverlayTitle>><<${titleKey}>><</replace>>`);
       break;
     default:
       break;

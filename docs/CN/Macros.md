@@ -254,6 +254,18 @@
 
 ---
 
+## maplebirchReplace
+
+打开框架浮窗，并用指定宏渲染正文。
+
+```twine
+<<maplebirchReplace 'my-mod-hint' 'title'>>
+```
+
+此例使用 `my-mod-hint` 渲染正文。指定 `title` 时，先查找 `titleMyModHint`，找不到时再查找 `title-my-mod-hint`。
+
+---
+
 ## 自定义宏
 
 可以通过 `maplebirch.tool.defineS()` 定义返回文本或节点的 SugarCube 宏。
