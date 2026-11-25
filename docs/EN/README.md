@@ -73,6 +73,7 @@ For a hands-on path, open the [NPC park-meeting example](NamedNPC/Example.md). S
 - [AddonPlugin integration](AddonPlugin.md): for custom loading behavior or plugin-level capabilities.
 - [Mod encryption](Encryption.md): for authors publishing encrypted mods.
 - [Cloud save](CloudSave.md): requires player-owned storage; ordinary content mods do not need it.
+- [AI repair](../../README.EN.md#ai-repair)
 
 > [!NOTE]
 > `services`, `infra`, and `host` are advanced entry points. Most mods should use top-level methods such as `maplebirch.on/once/off/after/trigger`, `t/auto`, `idb/define/with`, and `log`.

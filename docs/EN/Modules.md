@@ -233,7 +233,7 @@ Late modules receive `preInit()`. If a `preInit()` hook registers children throu
 
 ## Inspecting diagnostics
 
-Select **Copy diagnostics** in the framework settings to collect the game version, language, mod load order, disabled modules and failed patches for a report. If the clipboard is unavailable, copy the report from the text area.
+Select **Copy diagnostics** in the framework settings to copy the game version, language, mod load order, disabled modules and failed patches to the clipboard.
 
 For development, read `maplebirch.export` in the console for detailed logs.
 

@@ -11,7 +11,7 @@
 [![Stars](https://img.shields.io/github/stars/MaplebirchLeaf/SCML-DOL-maplebirchFramework?label=stars)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/stargazers)
 [![Issues](https://img.shields.io/github/issues-raw/MaplebirchLeaf/SCML-DOL-maplebirchFramework?label=issues)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/issues)
 
-**`maplebirchFramework`** is a **_SugarCube 2 ModLoader_** extension framework for **_Degrees of Lewdity_** mod authors. It provides public APIs for scripts and resources, translations, audio, UI zones, NPCs, characters, combat, and dynamic events, alongside optional mod encryption and self-hosted cloud saves.
+**`maplebirchFramework`** is a **_SugarCube 2 ModLoader_** extension framework for **_Degrees of Lewdity_** mod authors. It provides public APIs for scripts and resources, translations, audio, UI zones, NPCs, characters, combat, and dynamic events. Optional services include mod encryption, self-hosted cloud saves, and AI-assisted repair.
 
 Its guiding idea is simple: **extend the game through public interfaces instead of replacing large pieces of vanilla content.** Use it when your mod needs to add UI or NPC content, react to game events, or load scripts, translations, and audio in a consistent way.
 
@@ -28,6 +28,7 @@ Its guiding idea is simple: **extend the game through public interfaces instead 
 - [Framework Services](#framework-services)
   - [Mod Encryption](#mod-encryption)
   - [Cloud Save](#cloud-save)
+  - [AI Repair](#ai-repair)
 - [Recommended Structure](#recommended-structure)
 - [Type Package](#type-package)
 - [Documentation](#documentation)
@@ -120,6 +121,12 @@ Cloud Save syncs DoL's local IndexedDB slots and save export codes to a **player
 
 > [!WARNING]
 > The framework does not provide a public save server. Uploaded records are plain JSON: use HTTPS, a strong random token, and a private R2 bucket. The token is not persisted by default, but the in-game “Remember access token on this device” option stores it in browser local storage. See [Cloud Save](docs/EN/CloudSave.md).
+
+### AI Repair
+
+The repair assistant uses a model you configure to investigate errors and propose changes to patches or save fields. Enable Debug Mode in framework settings, open **Repair assistant**, and enter your API URL, key, and model. It supports OpenAI-compatible APIs, Anthropic, and Gemini.
+
+**Analyze** sends diagnostics, related source, and selected save fields to your configured API. API fees may apply. Review the proposal before saving it, then reload the game, retest, and confirm the repair. See [State and Source Permissions](docs/EN/AddonPlugin.md#state-and-source-permissions).
 
 ## Recommended Structure
 

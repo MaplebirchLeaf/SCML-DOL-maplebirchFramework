@@ -56,7 +56,7 @@ The latest result is retained for each kind/target/index. Reads return copies; `
 
 ## Repair Assistant
 
-In framework settings, enable Debug Mode and open Repair Assistant under Advanced debugging. Enter your own model endpoint, API key and model. OpenAI-compatible APIs, Anthropic and Gemini are supported.
+In framework settings, enable Debug Mode and click Repair Assistant next to Clear IndexedDB. Enter your own model endpoint, API key and model. OpenAI-compatible APIs, Anthropic and Gemini are supported.
 
 Analyze sends diagnostics, related source and selected save fields to your configured model API. Full saves stay local. API fees may apply. Review the proposal before saving it, then reload, retest and confirm.
 

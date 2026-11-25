@@ -11,7 +11,7 @@
 [![Stars](https://img.shields.io/github/stars/MaplebirchLeaf/SCML-DOL-maplebirchFramework?label=stars)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/stargazers)
 [![Issues](https://img.shields.io/github/issues-raw/MaplebirchLeaf/SCML-DOL-maplebirchFramework?label=issues)](https://github.com/MaplebirchLeaf/SCML-DOL-maplebirchFramework/issues)
 
-**`maplebirchFramework`** 是基于 **_SugarCube 2 ModLoader_**、面向 **_Degrees of Lewdity_** 模组制作者的扩展框架。它提供脚本与资源加载、翻译、音频、区域注入、NPC、角色、战斗和动态事件等公开接口，并提供可选的模组加密与自托管云存档。
+**`maplebirchFramework`** 是基于 **_SugarCube 2 ModLoader_**、面向 **_Degrees of Lewdity_** 模组制作者的扩展框架。它提供脚本与资源加载、翻译、音频、区域注入、NPC、角色、战斗和动态事件等公开接口。可选服务包括模组加密、自托管云存档和 AI 辅助修复。
 
 框架的使用重点是：**少直接改原版内容，多通过公开接口追加内容。** 如果你的模组要扩展界面、NPC 或游戏事件，或想把多语言、音频和脚本资源纳入统一加载流程，可以将它作为基础依赖。
 
@@ -28,6 +28,7 @@
 - [框架服务](#框架服务)
   - [模组加密](#模组加密)
   - [云存档](#云存档)
+  - [AI 修复](#ai-修复)
 - [推荐写法](#推荐写法)
 - [类型包](#类型包)
 - [模块与功能](#模块与功能)
@@ -141,6 +142,12 @@
 
 > [!WARNING]
 > 框架不提供公共存档服务器。上传内容是明文 JSON，请使用 HTTPS、足够随机的令牌，并保持 R2 桶私有。令牌默认不持久化，但玩家勾选“在此设备上记住访问令牌”后会保存到浏览器本地存储。详见[云存档文档](docs/CN/CloudSave.md)。
+
+### AI 修复
+
+修复助手使用你配置的模型排查错误，提出补丁或存档字段的修改方案。在框架设置中开启调试模式，打开「修复助手」，填写 API 地址、密钥和模型。支持 OpenAI 兼容接口、Anthropic 和 Gemini。
+
+点击「分析」会向该接口发送诊断、相关源码和选定的存档字段，可能产生 API 费用。预览方案后可选择保存，再重载游戏、复测并确认。处理范围见[状态与源码权限](docs/CN/AddonPlugin.md#状态与源码权限)。
 
 ## 推荐写法
 

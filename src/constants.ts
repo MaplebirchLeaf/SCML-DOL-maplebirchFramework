@@ -32,13 +32,8 @@ export const Config = {
   EnableScript     : ['Enable selected script', '启用选中脚本'],
   DisableScript    : ['Disable selected script', '禁用选中脚本'],
   ClearIndexedDB   : ['Clear IndexedDB', '清除索引数据库'],
-  Diagnostics      : {
-    Copy           : ['Copy diagnostics', '复制诊断'],
-    Copied         : ['Diagnostics copied.', '已复制诊断。'],
-    Manual         : ['Select and copy the diagnostics below.', '请选择下方的诊断内容并复制。']
-  },
+  CopyDiagnostics  : ['Copy diagnostics', '复制诊断'],
   Repair           : {
-    Tools          : ['Advanced debugging', '高级调试'],
     Title          : ['Repair assistant', '修复助手'],
     Connection     : ['Settings', '配置'],
     Summary        : ['Summary', '结论'],

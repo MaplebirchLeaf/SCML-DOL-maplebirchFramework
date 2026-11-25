@@ -73,6 +73,7 @@ API 名称、配置键、原版标识和文件路径保留代码中的写法。�
 - [AddonPlugin 接入](AddonPlugin.md)：需要控制加载过程或复用插件能力时阅读。
 - [模组加密](Encryption.md)：只适用于计划发布加密模组的作者。
 - [云存档](CloudSave.md)：玩家自行部署存储端。普通内容模组不需要此功能。
+- [AI 修复](../../README.md#ai-修复)
 
 > [!NOTE]
 > 专题页中的 `services`、`infra`、`host` 是高级入口。一般模组优先使用 `maplebirch.on/once/off/after/trigger`、`t/auto`、`idb/define/with` 和 `log` 等顶层方法。

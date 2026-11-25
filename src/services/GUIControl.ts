@@ -75,7 +75,7 @@ interface GuiData {
     | 'EnableScript'
     | 'DisableScript'
     | 'ClearIndexedDB'
-    | 'Diagnostics'
+    | 'CopyDiagnostics'
     | 'Repair'
   > & { DEBUGMODE: string[] };
 }
@@ -99,8 +99,6 @@ interface GuiScope {
   selectedDisabledScript: number;
   ClearIndexedDB(): Promise<boolean>;
   copyDiagnostics(): Promise<void>;
-  diagnosticsText?: string;
-  diagnosticsCopied?: boolean;
   isDEBUG(): boolean;
   typeLabel(type: ModuleType): string;
   changeLanguage(): void;
@@ -392,16 +390,7 @@ export class GUIControl {
 
               $scope.ClearIndexedDB = () => idb.deleteDatabase();
               $scope.copyDiagnostics = async () => {
-                const report = diagnostics();
-                try {
-                  await navigator.clipboard.writeText(report);
-                  $scope.diagnosticsCopied = true;
-                  $scope.diagnosticsText = undefined;
-                } catch {
-                  $scope.diagnosticsCopied = false;
-                  $scope.diagnosticsText = report;
-                }
-                $scope.$applyAsync();
+                await navigator.clipboard?.writeText(diagnostics()).catch(() => undefined);
               };
               this.repair = new RepairGUI(repair, translator, () => $scope.$applyAsync());
               $scope.$on('$destroy', () => this.repair.destroy());
@@ -582,7 +571,7 @@ export class GUIControl {
           EnableScript: Config.EnableScript,
           DisableScript: Config.DisableScript,
           ClearIndexedDB: Config.ClearIndexedDB,
-          Diagnostics: Config.Diagnostics,
+          CopyDiagnostics: Config.CopyDiagnostics,
           Repair: Config.Repair
         }
       }
