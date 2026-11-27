@@ -55,6 +55,13 @@
 | `framework` | 添加区域 widget，注册特质、小贴士、纹身、食物、古董或钓鱼数据 |
 | `npc`       | 注册 NPC 相关资源                                             |
 
+```mermaid
+flowchart LR
+  A["afterInjectEarlyLoad<br/>执行 module 脚本与 preInit"] --> B["registerMod<br/>入队 language / audio / framework / npc"]
+  B --> C["afterRegisterMod2Addon<br/>按序执行 script 脚本"]
+  C --> D["beforePatchModToGame<br/>分发已注册的 Boot 处理器"]
+```
+
 ---
 
 ### script
@@ -101,6 +108,9 @@
 ```
 
 多数模组不需要使用 **`module`**。如果只是注册 NPC、事件、战斗按钮或选项页，使用 **`script`** 即可。
+
+> [!TIP]
+> `module` 会在 `afterInjectEarlyLoad` 阶段执行（早于 `preInit`），而 `script` 在 `afterRegisterMod2Addon` 阶段执行。普通内容模组只需使用 `script`。
 
 ---
 
@@ -276,7 +286,8 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 | `has`    | 是否拥有该特质 |
 | `text`   | 特质说明       |
 
-`has` 可以写布尔值，也可以写判断表达式。表达式会作为代码执行，只应写可信内容。
+> [!WARNING]
+> `has` 可以写布尔值，也可以写判断表达式。表达式会作为代码执行，只应写可信内容。
 
 更多说明见 [特质注册](Tools/Traits.md)。
 

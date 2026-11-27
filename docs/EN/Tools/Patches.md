@@ -13,7 +13,10 @@ maplebirch.tool.patch.get(name);
 
 Built-in extensions are available as `patch.traits`, `patch.feats`, `patch.featBoosts`, `patch.location`, `patch.bodywriting`, `patch.fishing`, `patch.foodstuff`, `patch.antiques` and `patch.tips`. Use `get(name)` for dynamic names; it returns `undefined` when absent. Use `require(name)` when absence should throw, and `has(name)` or `names()` to inspect registrations.
 
-Separate extensions may declare API members with the same name without conflicting in their namespaces. `.add()` keeps non-conflicting flat API members for 4.x compatibility; new code should use namespaces. Duplicate extension names throw. Register during startup; late registration does not replay completed phases.
+Separate extensions may declare API members with the same name without conflicting in their namespaces. `.add()` keeps non-conflicting flat API members for 4.x compatibility; new code should use namespaces.
+
+> [!IMPORTANT]
+> Blank or duplicate extension names throw in `.add()`. Register during startup; late registration does not replay completed lifecycle phases.
 
 ## Minimal Example
 
@@ -51,9 +54,26 @@ See [Feat Boosts](FeatBoosts.md) for starting feat boosts.
 | `init()`      | During StoryInit, after vanilla static initialization | Merge setup catalogs without creating save variables            |
 | `state()`     | State initialization for a new or loaded game         | Fill missing V entries while preserving quantities and progress |
 
-Handlers run synchronously in registration order. `available` is evaluated each time and can return `false` when a required vanilla structure is absent, skipping `init` or `state`. Errors are logged without stopping subsequent handlers.
+```mermaid
+flowchart TD
+  Start["patch.apply(phase) ('init' | 'state')"] --> Next["Next extension in registration order"]
+  Next --> HasCb{"Has definition[phase]?"}
+  HasCb -- "No" --> Next
+  HasCb -- "Yes" --> CheckAvail{"Has available()?"}
+  CheckAvail -- "No" --> Run["Run definition[phase]()"]
+  CheckAvail -- "Yes" --> EvalAvail{"available() === true?"}
+  EvalAvail -- "No" --> Next
+  EvalAvail -- "Yes" --> Run
+  Run -- "OK" --> Next
+  Run -- "Throws" --> Log["Record diagnostics error and continue"] --> Next
+```
 
-Locations, bodywriting, food, fish and tips merge static data during init. They silently skip when their vanilla catalog is absent and do not create missing vanilla `setup` roots. Food inventory and antique state fill missing entries during state. Antique text, donation and tip lists use [widget source patches](Zones.md#source-patches). Loading a save does not initialize setup again.
+Handlers run synchronously in registration order. `available()` can return `false` when a required vanilla structure is absent, skipping `init` or `state`. Errors are logged without stopping subsequent handlers.
+
+> [!NOTE]
+> `available()` is evaluated each time without caching. `setup` catalogs are merged only during `init`; loading a save does not initialize `setup` again.
+
+Locations, bodywriting, food, fish and tips merge static data during init. They silently skip when their vanilla catalog is absent and do not create missing vanilla `setup` roots. Food inventory and antique state fill missing entries during state. Antique text, donation and tip lists use [widget source patches](Zones.md#source-patches).
 
 Related docs:
 

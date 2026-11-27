@@ -53,7 +53,8 @@ maplebirch.npc.add(
 
 Social draws one character card at a time. `T.npcData` is the character on that card, so these callbacks follow the current card: Luna displays her own Trust value and other characters omit the entry.
 
-Avoid reading `C.npc.Luna` for a display callback that will be used on every character's card.
+> [!IMPORTANT]
+> Avoid reading `C.npc.Luna` in a display callback shared across all character cards. In addition, `min` and `max` are metadata only and do not clamp assignments; use `Math.clamp()` when updating values.
 
 Luna must complete [native first-meeting initialization](NamedNPC.md#2-arrange-the-first-meeting) before the important-NPC card appears under native conditions. `position` alone does not create a label, read the value or choose an icon.
 
@@ -108,11 +109,8 @@ Use the `$myMod.luna.meeting` state initialized in the [complete example](Exampl
 
 This fragment continues the complete meeting example, using its state and target passage. Clicking adds Trust and marks the conversation complete together. On a later visit the state is no longer `planned`, so it cannot grant points again.
 
-Assign the custom value directly and use `Math.clamp()` to enforce its bounds. Native `npcincr` has character and stat whitelists, so new characters or fields may not work with it.
-
-Keep initial values in character registration. `$NPCName` may not exist when a new game's loading script runs, and assigning through an array index on every reload could overwrite progress.
-
-Put initial values in character registration, such as `myModTrust: 25` above. Call `addStats()` before `add()` so the constructor recognizes that custom numeric field.
+> [!NOTE]
+> Assign custom stats directly and use `Math.clamp()` to enforce bounds — native `npcincr` has character and stat whitelists. Put initial values (such as `myModTrust: 25`) in `add()` rather than writing `$NPCName` at load time, and call `addStats()` before `add()` so the constructor recognizes the custom field.
 
 ## boot.json Data
 

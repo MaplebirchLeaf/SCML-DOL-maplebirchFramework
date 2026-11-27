@@ -12,13 +12,24 @@ The current API accepts two arguments: the NPC name and either a schedule config
 
 ## What a Schedule Controls
 
-A schedule returns a string label for where this NPC should be now. The sidebar wardrobe reads it, and your scenes can query it. It does not create meeting links, call `npc`, add to current `$npc`, or replace native character-specific schedule functions.
+> [!IMPORTANT]
+> A schedule returns a string label for where this NPC should be now, read by the sidebar wardrobe and your scenes. It does **not** create meeting links, call `<<npc>>`, add to `$npc`, or replace native character-specific schedule functions.
+
+```mermaid
+flowchart TD
+  A["Query schedule.location"] --> B{"Any override: true<br/>special rule matches?"}
+  B -- "Yes" --> C["Return its location"]
+  B -- "No" --> D{"Any sorted normal<br/>special rule matches?"}
+  D -- "Yes" --> C
+  D -- "No" --> E["Lookup current hour in daily<br/>(inherits preceding hour if empty)"]
+```
 
 Your mod defines labels such as `library` and `home`. Match them in wardrobe rules or scene checks; they need not equal passage titles. Register schedules in scripts; there is no corresponding `boot.json` schedule field.
 
 The examples use the registered character Luna. Use `addSchedule()` for her complete initial schedule and `Schedule.get('Luna').when(...)` to append an activity; both are shown below.
 
-**Calling `addSchedule('Luna', ...)` again replaces her entire framework schedule.** It returns the newly created `Schedule`.
+> [!WARNING]
+> **Calling `addSchedule('Luna', ...)` again replaces her entire framework schedule**, rather than appending to it. Use `Schedule.get('Luna').when(...)` to add rules to an existing schedule.
 
 The config-object and builder examples are alternative complete definitions. Choose one initial schedule, then use the later API examples as needed. Do not register the same special-rule ID twice for one character.
 
@@ -286,7 +297,8 @@ schedule.when(
 
 The example logs each check when querying the schedule. Remove `console.table()` for the finished script and keep the final `return` to visit the park from 08:30 through 12:00.
 
-The two array forms differ: `schedule.at([14, 16], ...)` fills **hours 14 through 16**, while `date.isAt([14, 30])` matches only **14:30**.
+> [!TIP]
+> The two array forms differ: `schedule.at([14, 16], ...)` fills **hours 14 through 16**, while `date.isAt([14, 30])` matches only **14:30**. To skip a `special` rule, return `false` from `condition`; once matched, returning an empty string from `location` will not fall through to the next rule.
 
 Date comparisons do not wrap midnight automatically. Append an overnight activity like this:
 

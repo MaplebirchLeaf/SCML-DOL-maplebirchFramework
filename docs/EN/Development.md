@@ -1,45 +1,43 @@
 # From an example to a complete feature
 
-The awkward parts of mod development often lie between APIs: a registered character has no way to meet the player, a reward can be claimed again after reopening a page, or an older save lacks a field that a new game already has.
+Most mod bugs happen at the seams between APIs: a character is registered without an entry point, a reward can be claimed twice after reopening a page, or an older save is missing newly added fields. Start from [Getting started](GettingStarted.md) and keep the [NPC park-meeting example](NamedNPC/Example.md) handy if you want a full multi-file reference.
 
-This page connects those pieces through one small feature. Start with [Getting started](GettingStarted.md) to confirm that scripts and widgets load. Keep the [NPC park-meeting example](NamedNPC/Example.md) open if you want complete files to compare against.
+```mermaid
+flowchart LR
+  Boot["Startup registration<br>(framework.js)"] --> Init["Fill save defaults<br>(onInit / :onLoad)"]
+  Init --> Check["Read-only checks<br>(<<if>>)"]
+  Check --> Action["Settle & flag on action<br>(<<link>> / <<set>>)"]
+```
 
-## Describe the player's path first
+## Map the player's path first
 
-Start with the player's actions before choosing APIs: meet Luna in the park, arrange to talk when free, then gain a little trust through the conversation. Once that path is clear, it is easier to see what the code needs to remember.
+Before picking APIs, trace the states a player walks through—for example, meeting Luna in the park, arranging to talk later, and gaining trust once the chat finishes:
 
 | Current state  | Player action                            | New state  | Settlement                                |
 | :------------- | :--------------------------------------- | :--------- | :---------------------------------------- |
 | Not introduced | Enter the greeting scene                 | Introduced | Native `npc` initializes the character    |
-| No arrangement | Agree to talk when free                  | Planned    | Change story state and return to the park |
+| No arrangement | Agree to talk when free                  | Planned    | Update story state and return to the park |
 | Planned        | Meet and complete the first conversation | Completed  | Add `5` trust and queue a notice          |
-| Completed      | Talk again or redraw                     | Completed  | Preserve existing values                  |
+| Completed      | Talk again or redraw                     | Completed  | Keep existing values; never grant twice   |
 
-Reopening a page should preserve progress; trust should increase when the conversation is completed. That gives us two requirements: a saved completion flag and another eligibility check inside the click action.
+## Give each file a clear job
 
-## Give each file a clear role
+| File or object                | What goes here                                    | Lifecycle                            |
+| :---------------------------- | :------------------------------------------------ | :----------------------------------- |
+| `boot.json`                   | Dependencies, script order, Twee & asset paths    | Read when ModLoader loads the mod    |
+| `framework.js`                | NPC, stat, schedule, event, and zone registration | Runs on every game boot              |
+| `[widget]` passage in `.twee` | Reusable UI and story widgets                     | Called by pages or zones after boot  |
+| Regular `.twee` passage       | Scene prose, choices, settlement, and exits       | Rendered when the player enters      |
+| `setup.myMod`                 | Helpers and static lookup tables                  | Rebuilt on boot; not saved           |
+| `V.myMod` / `$myMod`          | Quest state, claimed flags, mod settings          | Persisted in each save               |
+| `C.npc.Luna`                  | Relationships and custom stats in the active save | Read/written after NPC records exist |
 
-A feature can span several kinds of file. Begin with this division, then split scripts further as the mod grows:
-
-| File or object                  | Contents                                                     | When it is used                             |
-| :------------------------------ | :----------------------------------------------------------- | :------------------------------------------ |
-| `boot.json`                     | Dependencies, script order, Twee and resource paths          | ModLoader loads the mod                     |
-| `framework.js`                  | NPC, stat, schedule, event, and zone registrations           | Register on each startup                    |
-| A `[widget]` passage in `.twee` | Reusable UI and story widgets                                | Called by a page or zone after registration |
-| A regular `.twee` passage       | Scenes, choices, action settlement, and exits                | The player enters the scene                 |
-| `setup.myMod`                   | Functions, constant tables, runtime configuration            | Rebuilt on startup; not saved               |
-| `V.myMod` / `$myMod`            | Quest progress, claimed flags, mod settings                  | Saved with that playthrough                 |
-| `C.npc.Luna`                    | Character relationships and custom stats in the current save | Query after character records exist         |
-
-If `params.script` already loads `framework.js`, leave it out of `scriptFileList` to avoid running it twice. Widget definitions belong in a passage tagged `[widget]`, with its file listed in `tweeFileList`.
-
-`myMod`, `Luna`, and `My Mod ...` are example names. Update registrations, queries, and link targets together when using your own names. Keep quest progress in your own `V.myMod` too, so it stays separate from other mods and native objects such as `$daily`.
+> [!TIP]
+> Keep your mod's state under `V.myMod` instead of mixing fields into vanilla `$daily` or other mods. `V.myMod` in JS and `$myMod` in Twee point to the exact same save object.
 
 ## Separate registration from saved defaults
 
-Registration tells the framework which characters, events, and rules the mod provides on each startup. The player's progress should come back from the save. Keeping these jobs separate avoids resetting the story while loading scripts.
-
-This pattern can be used in your own mod. The function fills missing defaults and can be called at startup and when loading:
+**Registration** tells the framework what your mod provides on every boot. **Save initialization** fills missing fields in `V` without overwriting choices or progress already saved:
 
 ```javascript
 function initMyMod(variables) {
@@ -59,15 +57,12 @@ maplebirch.on(':onLoad', save => {
 });
 ```
 
-If the player sets `enabled` to `false`, another call leaves it off. Claimed rewards stay claimed too. An older save may lack newly added fields, which is why the load callback fills them as well.
-
-Use `save.V` inside the load callback: global `V` still refers to the game state before loading. See [Save and Load](Events.md#save-and-load). `??=` only handles missing or `null` values. Repair invalid types and rename fields in [migration files](Tools/Migration.md), then fill defaults.
+> [!IMPORTANT]
+> Inside `:onLoad`, always mutate `save.V` (see [Save and Load](Events.md#save-and-load)): global `V` still points to the pre-load state. Because `??=` only fills `undefined` or `null`, handle renames or type fixes in [migration files](Tools/Migration.md).
 
 ## Queries read; actions settle
 
-Pages can redraw more often than expected. Social cards, wardrobes, schedules, and layers may query data repeatedly, and `cond` can run more than once. Use those callbacks to read the current situation. Put points, money, quest progress, and conception attempts in the actual action so they are not repeated by a redraw.
-
-This example uses the preceding initialization and assumes the player has already met Luna:
+Pages, sidebars, social cards, and `cond` callbacks redraw more often than you might expect. **Keep checks read-only, and put stat gains, money, quest steps, and flags inside the player's action**:
 
 ```twine
 <<if C.npc.Luna and !$myMod.quest.rewardClaimed>>
@@ -80,42 +75,35 @@ This example uses the preceding initialization and assumes the player has alread
 <</if>>
 ```
 
-The outer `if` controls the link; the inner check confirms eligibility again when clicked. After adding trust, it records `rewardClaimed`, so reopening the page does not grant another reward. Loading a save made before claiming restores that earlier progress.
+> [!CAUTION]
+> An event's `once: true` option only unregisters it for the **current runtime**; use a flag in `$myMod` (such as `$myMod.quest.rewardClaimed` above) whenever progress must survive saving and loading.
 
-This fragment demonstrates the reward only; your mod still needs to define `My Mod Reward`. See the [NPC example](NamedNPC/Example.md) for a complete scene.
+## Pick the right integration point
 
-An event's `once: true` option is useful too, but it only removes the registration from the current runtime. Use a saved flag to remember what happened in a particular save; the option does not limit progress in other saves either.
+| Goal                              | Use                                                                               | Watch out for                                                       |
+| :-------------------------------- | :-------------------------------------------------------------------------------- | :------------------------------------------------------------------ |
+| Add UI to Options or a page slot  | [Zones](Tools/Zones.md)                                                           | Supply the widget and display condition                             |
+| No suitable zone exists           | [Source patches](Tools/Patches.md)                                                | A matching `expected` count isn't enough—preserve combat/hour gates |
+| Update state as game time passes  | [Time events](Dynamic/TimeEvents.md)                                              | Handle large time jumps or multi-day skips cleanly                  |
+| Queue a scene for the next page   | [State events](Dynamic/StateEvents.md)                                            | Provide condition, scene output, and a valid exit                   |
+| Add an NPC and daily routine      | [Schedule](NamedNPC/NamedNPCSchedule.md) / [Sidebar](NamedNPC/NamedNPCSidebar.md) | Schedules place the NPC; you still write encounters & art           |
+| Register food, traits, or TF data | [Data registration](README.md#data-registration)                                  | Registration stores metadata only; implement effects separately     |
 
-## Choose the appropriate integration
+## Verify and debug in order
 
-For content in Options or a status area, start with a [zone widget](Tools/Zones.md) and provide its definition and display conditions. A story entry also needs prerequisites, a target passage, and exit handling. When no suitable zone exists, consider a local [source patch](Tools/Patches.md).
+Test on your target vanilla version first before stacking other mods or forks: **Load → First use → Action → Re-enter → Save & load → Older save**.
 
-Use [time events](Dynamic/TimeEvents.md) for changes as time passes, and [state events](Dynamic/StateEvents.md) for a notice or scene waiting for a page check. Decide how the former handles a long interval; give the latter a condition, output, and any required exit.
+| Stage              | Expected result                          | Where to look first on failure                                                                |
+| :----------------- | :--------------------------------------- | :-------------------------------------------------------------------------------------------- |
+| Load               | Script runs once; widgets/passages exist | ZIP paths, `boot.json`, duplicate script loading                                              |
+| First use          | Defaults present; intro runs once        | Registration order, `onInit`, native `npc` setup                                              |
+| Action             | Only completed actions mutate state      | Click handler, inner guard, repeat-claim flag                                                 |
+| Re-entry           | Progress and stats stay intact           | Page code accidentally resetting defaults                                                     |
+| Save & load        | Saved progress returns cleanly           | Using `save.V`, stale cached NPC references                                                   |
+| Earlier save       | New fields filled; old progress kept     | `onInit` / `:onLoad` and [migration files](Tools/Migration.md)                                |
+| Fork compatibility | Native gates and assets still work       | Anchors, [Modules and diagnostics](Modules.md), [patch reports](AddonPlugin.md#patch-reports) |
 
-For NPC content, a [schedule](NamedNPC/NamedNPCSchedule.md) answers where the character is now, while your story supplies the encounter. The [sidebar](NamedNPC/NamedNPCSidebar.md) needs artwork or model resources, current scene presence, and display settings. Fixed food, trait, and similar definitions use the relevant [data registration](README.md#data-registration) API alongside resources and gameplay code. Registering a trait does not implement its effect; registering a transformation does not grant growth points.
-
-Source patches need one more check: a passing `expected` count confirms the number of matches. Inspect the native branch to ensure combat, fainting, opening-hour, and quest restrictions still apply. With another translation or fork, check that structure before adjusting the anchor.
-
-## Verify in order
-
-Walk a simple path first: load, use the feature, complete the action, enter again, then save and load. Confirm it on the target version alone before adding the mods and forks you intend to support; this makes new problems easier to trace.
-
-| Stage              | Expected observation                               | Check first if it fails                                 |
-| :----------------- | :------------------------------------------------- | :------------------------------------------------------ |
-| Load               | Script runs once; widgets and passages exist       | ZIP paths, `boot.json`, dependencies, duplicate loading |
-| First use          | Correct defaults; introduction initializes once    | Registration order, saved defaults, native `npc` call   |
-| Action             | Only successful actions change state               | Click callback, reward branch, repeat protection        |
-| Re-entry           | Completed progress and values remain               | Defaults being assigned in page content                 |
-| Save and load      | Saved progress returns                             | `save.V`, serializable data, stale character references |
-| Earlier save       | Missing fields are filled; progress remains        | Defaults and centralized migrations                     |
-| Fork compatibility | Native prerequisites still work; resources display | Source anchors, patch reports, actual fork resources    |
-
-Follow the same order when diagnosing: did the file load, was registration accepted, did the condition match, did the action run, and what was displayed? [Modules and diagnostics](Modules.md) and [patch reports](AddonPlugin.md#patch-reports) help identify lifecycle and source-adaptation results. Record the versions you actually exercised; successful registration still needs a complete playable path.
-
-## Which examples are complete?
-
-A complete example includes its file layout and all contents, so you can get it running first. Topic fragments help explain one API; look for the characters, state, artwork, and passages they rely on.
-
-If a fragment contains ellipses, an undefined helper, or partial configuration, supply those pieces before using it in your mod. That keeps the example focused while making the remaining work clear.
+> [!NOTE]
+> Snippets in topic guides focus on a single API. Whenever a snippet uses ellipses or assumes existing characters/passages, fill those in or cross-check the complete [NPC park-meeting example](NamedNPC/Example.md).
 
 [Back to documentation](README.md)

@@ -2,6 +2,9 @@
 
 Antique registration adds new museum antique text and collection state.
 
+> [!IMPORTANT]
+> The framework only registers text and the default collection state (`notFound`); it does **not** supply icon assets, discovery stories, or rewards. Your mod must still provide the `icon` image file, discovery passages, and `Museum <name>` passages.
+
 ## Entry Point
 
 ```javascript
@@ -10,7 +13,7 @@ maplebirch.tool.patch.antiques.add(key, config);
 
 Register during startup. Source patches merge text after `museumAntiqueText` and invoke vanilla `museumAntiqueStatus` during donation. Starting or loading a game only fills missing collection entries and preserves progress. Check the [patch report](../AddonPlugin.md#patch-reports) if a target game version changes either widget's source anchor.
 
-`inject(data)` manually merges into and returns the supplied object; normal registration does not need it. The Mod still provides assets, discovery stories and `Museum <name>` passages.
+`inject(data)` manually merges into and returns the supplied object; normal registration does not need it.
 
 ## Minimal Example
 
@@ -19,6 +22,7 @@ maplebirch.tool.patch.antiques.add('antiquemyitem', {
   hint: '"For a curious little relic," Winter says.',
   museum: 'The curious relic rests on a pedestal.',
   name: 'Curious Relic',
+  cn_name: '奇妙遗物',
   journal: '"A curious little relic."',
   journalName: 'Small relic',
   icon: 'antiques/my-relic.png'
@@ -27,18 +31,19 @@ maplebirch.tool.patch.antiques.add('antiquemyitem', {
 
 ## Config Fields
 
-| Field         | Description                                     |
-| :------------ | :---------------------------------------------- |
-| `hint`        | Winter hint text                                |
-| `museum`      | Display text after the antique is in the museum |
-| `name`        | True name                                       |
-| `cn_name`     | Optional Chinese display name                   |
-| `journal`     | Journal description                             |
-| `journalName` | Optional journal display name                   |
-| `icon`        | Icon path                                       |
-| `key`         | Unique id when using array config               |
+| Field         | Description                                     | Required   |
+| :------------ | :---------------------------------------------- | :--------- |
+| `hint`        | Winter hint text                                | Yes        |
+| `museum`      | Display text after the antique is in the museum | Yes        |
+| `name`        | True name (used for passage lookup)             | Yes        |
+| `cn_name`     | Chinese display name                            | No         |
+| `journal`     | Journal description                             | Yes        |
+| `journalName` | Journal display name                            | No         |
+| `icon`        | Icon path                                       | Yes        |
+| `key`         | Unique id when using array config               | Array only |
 
-`name` also forms the native destination `Museum <name>`. The examples require your mod to provide `Museum Curious Relic` and `Museum Old Coin`. Add `cn_name` when providing a separate Chinese display name; it does not change that destination.
+> [!NOTE]
+> `name` forms the native destination `Museum <name>` even in Chinese builds. The examples require your mod to provide `Museum Curious Relic` and `Museum Old Coin`. Put a separate Chinese display name in `cn_name` rather than changing `name`.
 
 ## State Flow
 
@@ -48,7 +53,7 @@ Antique state is still controlled by vanilla **`<<museumAntiqueStatus key status
 notFound -> found -> talk -> museum
 ```
 
-**`stolen`** and **`recovered`** also exist. The framework only registers text and default state; _discovery locations and rewards should remain in your own passages_.
+**`stolen`** and **`recovered`** also exist. Discovery locations and rewards should remain in your own passages:
 
 ```twine
 <<set $antiquemoney += 4000>>
@@ -67,6 +72,7 @@ Object-map form. _This is the recommended format when registering multiple entri
         "hint": "\"For a curious little relic,\" Winter says.",
         "museum": "The curious relic rests on a pedestal.",
         "name": "Curious Relic",
+        "cn_name": "奇妙遗物",
         "journal": "\"A curious little relic.\"",
         "journalName": "Small relic",
         "icon": "antiques/my-relic.png"
@@ -75,6 +81,7 @@ Object-map form. _This is the recommended format when registering multiple entri
         "hint": "\"For a small old coin,\" Winter says.",
         "museum": "The old coin rests in a small display case.",
         "name": "Old Coin",
+        "cn_name": "旧硬币",
         "journal": "\"A small old coin.\"",
         "icon": "antiques/my-coin.png"
       }
@@ -100,6 +107,7 @@ Array form is also supported. Each item must include **`key`**:
   hint: '"For a curious little relic," Winter says.'
   museum: The curious relic rests on a pedestal.
   name: Curious Relic
+  cn_name: 奇妙遗物
   journal: '"A curious little relic."'
   journalName: Small relic
   icon: antiques/my-relic.png
@@ -107,6 +115,7 @@ Array form is also supported. Each item must include **`key`**:
   hint: '"For a small old coin," Winter says.'
   museum: The old coin rests in a small display case.
   name: Old Coin
+  cn_name: 旧硬币
   journal: '"A small old coin."'
   icon: antiques/my-coin.png
 ```

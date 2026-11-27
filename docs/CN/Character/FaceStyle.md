@@ -21,9 +21,12 @@ img/face/
 - `<style>`: 风格（如 `my-style`、`default`）
 - `<variant>`: 变体 / 仪态（如 `default`、`sweet`）
 
-模组加载后（`afterPreload`）框架会遍历所有已装模组，扫描 `img/face/<style>/<variant>/<图>.png` 与 `img/face/<style>/<图>.png` 路径，建立风格与变体选项。`img/face/masks/` 目录会被跳过。`default` 风格下的内置变体（`aloof` / `catty` / `default` / `foxy` / `gloomy` / `sweet`）不会重复加入变体选项。
+模组加载后，框架会遍历所有已装模组，扫描 `img/face/<style>/<variant>/<图>.png` 与 `img/face/<style>/<图>.png` 路径，并在 `:storyready` 和语言切换时建立风格与变体选项。`img/face/masks/` 目录会被跳过。`default` 风格下的内置变体（`aloof` / `catty` / `default` / `foxy` / `gloomy` / `sweet`）不会重复加入变体选项。
 
 NPC 侧边栏的脸部图层按 `img/face/<facestyle>/<facevariant>/<图>.png`（或 `img/face/<facestyle>/<图>.png`）渲染。
+
+> [!NOTE]
+> 构建选项标签时，框架会通过 `maplebirch.auto(key)` 查找翻译（`default` 风格与变体分别映射到 `traditional` 与 `gentle`）。如果自定义风格或变体缺少翻译条目，则会直接回退显示目录名。
 
 ---
 
@@ -46,6 +49,9 @@ img/body/base-head.png
 ```text
 img/body/mannequin/base-head.png
 ```
+
+> [!TIP]
+> 渲染前如果当前 `facestyle` 或 `facevariant` 不在已注册选项中，框架会自动回退到 `'default'`，避免因卸载模组导致空脸或报错。
 
 ---
 

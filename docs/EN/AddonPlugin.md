@@ -2,9 +2,21 @@
 
 Image resources belong to `maplebirch.host.modLoader.resources`, while `maplebirch.infra.diagnostics` collects diagnostics globally. See [boot.json](BootJson.md) for configuration and [HTML Tools](Tools/Text.md) for content construction.
 
+```mermaid
+flowchart LR
+  E["afterInjectEarlyLoad<br/>module scripts / IDB / preInit"] --> R["afterRegisterMod2Addon<br/>run script files"]
+  R --> B["beforePatchModToGame<br/>:addon:repair / flushBoot / :import"]
+  B --> P["PatchModToGame_start<br/>:addon:patchStart / SugarCube bridge"]
+  P --> A["afterPatchModToGame<br/>:addon:verify / :addon:afterPatch"]
+  A --> S["whenSC2StoryReady<br/>:storyready / save & load hooks"]
+```
+
 ## Adapting Vanilla Content
 
-The framework no longer exposes `maplebirch.wikify()` rendering interception: the current host accepts callback registration but does not invoke it while SugarCube parses content. Use [source patches](Tools/Zones.md#source-patches) with `expected` to change widget content, or listen for [`:passagedisplay`](Events.md) to edit displayed page nodes. The text Builder's `wikify(content)` only parses supplied text; it is not a rendering hook.
+> [!NOTE]
+> The framework no longer exposes `maplebirch.wikify()` rendering interception: the current host accepts callback registration but does not invoke it while SugarCube parses content.
+
+Use [source patches](Tools/Zones.md#source-patches) with `expected` to change widget content, or listen for [`:passagedisplay`](Events.md) to edit displayed page nodes. The text Builder's `wikify(content)` only parses supplied text; it is not a rendering hook.
 
 ## Image Resources
 
@@ -21,7 +33,10 @@ if (image !== false) document.querySelector<HTMLImageElement>('#myModIcon')!.src
 | `load(path)`      | Returns a cached resolved URL or `false`, otherwise a Promise; queries ModLoader before trying the original path in the browser |
 | `clear(path?)`    | Clears one path or all cached results; pending requests still complete but cannot restore cleared entries                       |
 
-Concurrent loads of the same path share a request. The cache retains the resolved address, including Mod image data URLs. Browser fallback times out after 15 seconds. `has` reflects cache/provider knowledge; a provider returning false does not rule out a working ordinary URL. Use `load` to resolve it. Failures are cached too; call `clear` after resource changes or before retrying. The framework clears the cache after early-load.
+Concurrent loads of the same path share a request. The cache retains the resolved address, including Mod image data URLs. Browser fallback times out after 15 seconds. `has` reflects cache/provider knowledge; a provider returning false does not rule out a working ordinary URL. Use `load` to resolve it.
+
+> [!TIP]
+> Failed loads are cached too. Call `clear(path)` after resource changes or before retrying. The framework clears the cache after early-load.
 
 [loadImage](Utilities.md#loadimage) uses this resolver and retains its sidebar refresh behavior.
 
@@ -56,9 +71,10 @@ The latest result is retained for each kind/target/index. Reads return copies; `
 
 ## Repair Assistant
 
-In framework settings, enable Debug Mode and click Repair Assistant next to Clear IndexedDB. Enter your own model endpoint, API key and model. OpenAI-compatible APIs, Anthropic and Gemini are supported.
+> [!WARNING]
+> Clicking Analyze sends diagnostics, related source, and selected save fields to your configured model API (full saves stay local); API fees may apply. Review the proposal before saving, reloading, and confirming.
 
-Analyze sends diagnostics, related source and selected save fields to your configured model API. Full saves stay local. API fees may apply. Review the proposal before saving it, then reload, retest and confirm.
+In framework settings, enable Debug Mode and click Repair Assistant next to Clear IndexedDB. Enter your own model endpoint, API key and model. OpenAI-compatible APIs, Anthropic and Gemini are supported.
 
 ### State and Source Permissions
 

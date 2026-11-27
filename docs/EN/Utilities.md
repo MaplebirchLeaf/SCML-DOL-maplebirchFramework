@@ -61,7 +61,10 @@ const value = Math.clamp(input, 0, 100); // 100
 
 ## Prototype vs Static Methods
 
-First decide whether the original data should change. `maplebirch.utils.merge/append/cover` all **modify and return their first argument**; they differ in how they combine arrays:
+> [!WARNING]
+> `maplebirch.utils.merge`, `append`, and `cover` all **modify and return their first argument**. Prefer `Object.merge()`, `Object.append()`, `Object.cover()`, `Array.merge()`, `Array.append()`, and `Array.cover()` when you do not want to mutate existing data.
+
+First decide whether the original data should change. They differ in how they combine arrays:
 
 ```javascript
 const source = { list: [3] };
@@ -406,7 +409,8 @@ if (result) {
 
 `loadImage()` delegates to `maplebirch.host.modLoader.resources.load()`: resolve through ModLoader, then try the original path. It returns the resolved URL, `false`, or a Promise of either; use `await` consistently. The cache retains resolved URLs and shares concurrent requests. Failures retain the legacy sidebar refresh behavior.
 
-Call `maplebirch.host.modLoader.resources.clear(path)` before retrying a cached failure. See [image resources](AddonPlugin.md#image-resources) for existence checks and normalization.
+> [!TIP]
+> Call `maplebirch.host.modLoader.resources.clear(path)` before retrying a cached failure. See [image resources](AddonPlugin.md#image-resources) for existence checks and normalization.
 
 ## Bytes and Base64
 
@@ -476,7 +480,8 @@ const result = new SelectCase()
   .match(value);
 ```
 
-String and numeric conditions cannot be mixed by default; start with `casePredicate()` when mixed conditions are needed. Numeric ranges require finite, ordered bounds. Regex matching preserves the supplied expression's `lastIndex`.
+> [!NOTE]
+> String and numeric conditions cannot be mixed by default; start with `casePredicate()` when mixed conditions are needed. Numeric ranges require finite, ordered bounds. Regex matching preserves the supplied expression's `lastIndex`.
 
 TypeScript callers can specify input, result, and metadata types:
 

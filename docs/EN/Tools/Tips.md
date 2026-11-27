@@ -1,11 +1,8 @@
 # Tip Registration
 
-### Introduction
+Tip registration adds new text to vanilla `setup.tips` categories. Access it through `maplebirch.tool.patch.tips.add()`.
 
-Tip registration adds new text to vanilla `setup.tips` categories.
-_Access it through `maplebirch.tool.patch.tips.add()`._
-
-### Adding Tips
+## Adding Tips
 
 ```javascript
 maplebirch.tool.patch.tips.add('general', 'The first mod tip.', 'The second mod tip.');
@@ -13,16 +10,19 @@ maplebirch.tool.patch.tips.add('general', 'The first mod tip.', 'The second mod 
 
 - The first argument is an existing or new tip category.
 - The remaining arguments are the tip texts to add.
-- Empty text is ignored and duplicate text is not added twice.
-- Vanilla categories continue to follow vanilla content settings. New categories are treated as always enabled and automatically join the vanilla random pool.
+
+> [!NOTE]
+> Empty or whitespace-only strings and duplicate tips are ignored automatically. Vanilla categories continue to follow vanilla content settings, while custom categories are treated as always enabled and join the vanilla random pool via `inject()`.
 
 The framework calls `apply()` after vanilla `init_tips`, so registration does not replace or prevent vanilla tip initialization. Normal scripts loaded through `maplebirchAddon` may call `add()` directly.
 
-### Registering through boot.json
+## Registering through boot.json
 
 ```json
-"framework": {
-  "tips": "data/tips.json"
+{
+  "framework": {
+    "tips": "data/tips.json"
+  }
 }
 ```
 

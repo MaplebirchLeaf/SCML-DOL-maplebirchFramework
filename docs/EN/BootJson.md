@@ -39,6 +39,13 @@ Put complex conditions and runtime logic in JavaScript files loaded through **`s
 | `framework` | Add UI widgets, traits, tips, bodywriting, foodstuff, antiques, or achievements |
 | `npc`       | Register NPC resources                                                          |
 
+```mermaid
+flowchart LR
+  A["afterInjectEarlyLoad<br/>Run module scripts & preInit"] --> B["registerMod<br/>Queue language / audio / framework / npc"]
+  B --> C["afterRegisterMod2Addon<br/>Run script files in order"]
+  C --> D["beforePatchModToGame<br/>Flush registered boot handlers"]
+```
+
 ## script
 
 ```json
@@ -61,6 +68,9 @@ Use **`script`** for most mod logic: NPC registration, dynamic events, combat ac
 ```
 
 Use **`module`** only when you intentionally need earlier module-extension behavior. _Most mods do not need it._
+
+> [!TIP]
+> `module` runs during `afterInjectEarlyLoad` (before `preInit`), whereas `script` runs later in `afterRegisterMod2Addon`. Ordinary content mods only need `script`.
 
 ## language
 
@@ -194,6 +204,9 @@ To follow vanilla content settings, use an object matching the shape of `setup.t
 Vanilla categories continue to follow vanilla content settings. New categories are always enabled by default and automatically join the pool built by vanilla `generateTipsList`. Scripts may also call `maplebirch.tool.patch.tips.add('myMod:tips', 'A new tip')`. The framework merges tips after vanilla `init_tips` and ignores duplicate text.
 
 Inline `tips` string arrays contain tip text. When every entry ends with `.json`, `.yaml`, or `.yml`, they are read as file paths instead.
+
+> [!NOTE]
+> For `traits`, the `has` field accepts a boolean or an expression string evaluated as code—only use trusted expressions. See [Traits](Tools/Traits.md) for details.
 
 Related docs:
 

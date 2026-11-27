@@ -2,9 +2,12 @@
 
 `maplebirch.tool.patch.featBoosts.add(key, config)` 把模组加成加入原版的成就加成菜单，使用原版的成就、V 币预算、购买等级与退款界面。
 
+> [!IMPORTANT]
+> 购买、退款和菜单展示本身**不会**授予任何玩法效果。`effect` 只在拥有成就点的新周目开局时通过原版 `applyFeatBoosts` 流程执行，当前角色不会在购买时提前获得效果。
+
 ## 注册
 
-请在启动时注册，早于原版的 `setupFeatBoosts` 初始化。使用模组前缀区分加成标识。
+请在启动时注册，早于原版的 `setupFeatBoosts` 初始化。使用模组前缀区分加成标识。配置有效时返回 `true`，无效配置返回 `false`。
 
 ```javascript
 maplebirch.tool.patch.featBoosts.add('myMod:boost', {
@@ -22,7 +25,7 @@ maplebirch.tool.patch.featBoosts.add('myMod:boost', {
 `effect` 是 Twee 源码，可调用模组已有的 widget。示例中的 `myModFeatBoost` 需由模组定义并载入。
 
 | 字段            | 说明                                                                |
-| --------------- | ------------------------------------------------------------------- |
+| :-------------- | :------------------------------------------------------------------ |
 | `name`          | 菜单中的加成名称，必填                                              |
 | `required`      | 成就标识数组，拥有其中任意一项即可解锁，默认无前置                  |
 | `cost`          | 每级所需 V 币，必填，非负安全整数                                   |
@@ -34,11 +37,12 @@ maplebirch.tool.patch.featBoosts.add('myMod:boost', {
 | `upgrade`       | 购买区域的效果说明                                                  |
 | `effect`        | 新周目执行的 Twee 源码                                              |
 
-未指定 `max` 时，上限为已获得的前置成就数量乘以 `maxMultiplier` (默认 1)。无前置时按一项计算。`name`、`missing`、`text`、`upgrade` 可为字符串或返回字符串的函数，展示时经 `maplebirch.auto()` 翻译。
+> [!NOTE]
+> 未指定 `max` 时，上限为已获得的前置成就数量乘以 `maxMultiplier`（默认 `1`）；无前置时按一项计算。`name`、`missing`、`text`、`upgrade` 在脚本中可为字符串或无参数函数，展示时经 `maplebirch.auto()` 翻译；在 `boot.json` 中请使用普通字符串。
 
 ## 补齐效果 widget
 
-**widgets.twee** — 加入 `tweeFileList`；宏名与上方 effect 保持一致。
+**widgets.twee** — 加入 `tweeFileList`；宏名与上方 `effect` 保持一致。
 
 ```twine
 :: My Mod Feat Boost [widget]
@@ -98,5 +102,3 @@ maplebirch.tool.patch.traits.add({
 
 - `setupFeatBoosts`：原版初始化后补充模组加成。普通重开保留购买，原版导入与重置流程重新计算上限并清空购买。
 - `applyFeatBoosts`：在原版清理加成数据前执行已购买的 `effect`。
-
-购买、退款和展示不会授予玩法效果。`effect` 随原版有成就点的新周目加成流程执行，当前角色不会在购买时提前获得效果。

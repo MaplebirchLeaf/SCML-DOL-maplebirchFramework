@@ -4,12 +4,19 @@
 
 ## 工作原理
 
+```mermaid
+flowchart LR
+  G["游戏内「云存档」面板<br/>(DoL IndexedDB 槽位)"] -->|"HTTPS + Bearer Token<br/>(15 秒超时)"| W["Cloudflare Worker<br/>(cloudflare/worker.ts)"]
+  W --> R["R2 私有桶<br/>slots/&lt;slot&gt;.json & save-code.json"]
+```
+
 游戏内设置界面会新增一个「云存档」标签页。面板把本地槽位以 JSON 记录上传到 Worker。Worker 校验请求头 `Authorization: Bearer <token>` 通过后写入 R2：
 
 - 槽位存档：`slots/<槽位>.json`
 - 导出码：`save-code.json`
 
-上传内容为导出记录（含 `slot`/`details`/`save`/`exportedAt`/`gameId`），是**明文 JSON**，框架不做业务层加密。请使用 HTTPS、足够随机的令牌并保持 R2 桶私有。需要端到端加密时请在 Worker 层自行实现。
+> [!IMPORTANT]
+> 上传内容为导出记录（含 `slot`/`details`/`save`/`exportedAt`/`gameId`），是**明文 JSON**，框架不做业务层加密。请使用 HTTPS、足够随机的令牌并保持 R2 桶私有；需要端到端加密时请在 Worker 层自行实现。
 
 ## 部署自己的 Worker（一次性）
 
@@ -72,7 +79,9 @@
 
 ## 注意事项
 
-- 删除远端槽位**不可恢复**。
-- 框架默认只在本地持久化 Worker 地址，不持久化令牌。若勾选「在此设备上记住访问令牌」，令牌将保存在当前浏览器的本地存储（localStorage）中。请妥善保管令牌，泄漏等于任何人可读写你的云端存档。
+> [!WARNING]
+> 删除远端槽位**不可恢复**。若勾选「在此设备上记住访问令牌」，令牌会保存在当前浏览器的 `localStorage` 中，请勿在公共设备上勾选。
+
+- 框架默认只在本地持久化 Worker 地址，不持久化令牌。请妥善保管令牌，泄漏等于任何人可读写你的云端存档。
 - 游戏内仅接受 HTTPS Worker 地址。请求超过 15 秒会自动超时。
 - 示例 Worker 接受的单次 JSON 请求最大为 32 MiB，并会拒绝格式错误或槽位不匹配的存档。

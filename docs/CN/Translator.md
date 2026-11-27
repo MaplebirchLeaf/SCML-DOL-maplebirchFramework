@@ -18,6 +18,14 @@ maplebirch.services.translator.set(key, translations);
 maplebirch.services.translator.has(key);
 ```
 
+```mermaid
+flowchart LR
+  B["boot.json / set()"] --> DB["IndexedDB language 存储"]
+  DB --> T["maplebirch.t(key)"]
+  T -->|命中| R["返回当前语言文本"]
+  T -->|缺失| F["返回 '[key]' 占位"]
+```
+
 ---
 
 ## 通过 boot.json 导入
@@ -65,7 +73,8 @@ maplebirch.services.translator.has(key);
 | 从列表移除一个文件，或从文件删掉一个键     | 不再保留由它单独提供的旧译文                     |
 | 列表中仍指定某个文件，但文件缺失或格式错误 | 保留之前的整份翻译，日志报告错误，不导入半份内容 |
 
-不要把同一语言拆成多个 `language` 配置项；用上面的数组把文件放在一起。
+> [!TIP]
+> 不要把同一语言拆成多个 `language` 配置项；用数组把文件按「先通用、后界面」的顺序放在一起，后面的文件会覆盖前面的同名键。
 
 完整配置见 [boot.json 配置](BootJson.md)。
 
@@ -102,7 +111,10 @@ myMod:ui.meet: '约好见面的时间'
 myMod:ui.cancel: '取消约见'
 ```
 
-读取时使用完整键名，例如 `maplebirch.t('myMod:ui.title')`。嵌套对象不会被导入，数字和布尔值会转成文本。
+读取时使用完整键名，例如 `maplebirch.t('myMod:ui.title')`。
+
+> [!NOTE]
+> 翻译文件必须保持平铺结构：键名中的 `.` 和 `:` 只是普通字符，嵌套对象不会被导入，数字和布尔值会转成文本。
 
 同一语言按文件列表顺序覆盖重名键；不同模组之间，后导入的模组优先。因此键名带上 `myMod:` 前缀，可以减少意外覆盖。
 
@@ -153,6 +165,9 @@ maplebirch.on(':language', () => {
   console.log('当前语言：', maplebirch.Language);
 });
 ```
+
+> [!IMPORTANT]
+> 切换语言后，脚本自行写入的 DOM 节点不会自动更新，需要监听 `:language` 手动刷新，或在 SugarCube 中使用 `lanLink` / `lanButton` 等语言宏。
 
 ---
 

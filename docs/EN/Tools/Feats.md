@@ -2,9 +2,12 @@
 
 Mods can add achievements through a startup script or `boot.json`. The framework adds the definitions to vanilla's `setup.feats` during StoryInit.
 
+> [!IMPORTANT]
+> Registering a feat only defines its metadata in `setup.feats`; it does **not** award the achievement automatically. Your mod must still call vanilla `<<earnFeat "id">>` in a passage when the condition is met.
+
 ## Startup Script
 
-Call `maplebirch.tool.patch.feats.add(id, config)` before StoryInit.
+Call `maplebirch.tool.patch.feats.add(id, config)` before StoryInit. It returns `true` if the configuration is valid and not already registered, or `false` otherwise.
 
 ```javascript
 const { feats } = maplebirch.tool.patch;
@@ -57,7 +60,7 @@ YAML, inline data and arrays of file paths are also supported. See [boot.json Co
 ## Fields
 
 | Field               | Description                                                                           |
-| ------------------- | ------------------------------------------------------------------------------------- |
+| :------------------ | :------------------------------------------------------------------------------------ |
 | `title`             | Achievement title, required                                                           |
 | `description`       | Achievement description, required                                                     |
 | `difficulty`        | Vanilla difficulty, required integer from 1 to 5                                      |
@@ -69,7 +72,8 @@ YAML, inline data and arrays of file paths are also supported. See [boot.json Co
 
 `title` and `description` accept strings or `[English, Chinese]` pairs. Bilingual text follows the game language.
 
-Include `All` in a custom `filter` to list the achievement under Show All.
+> [!TIP]
+> Include `'All'` in a custom `filter` array so the achievement appears under Show All.
 
 ## Series
 

@@ -9,7 +9,15 @@ Use `maplebirch.npc.Transformation` to register named NPC transformations, growt
 3. Call `build()` or `set()` when a transformation action actually completes. Your mod owns growth sources, time progression and story conditions.
 4. Enable PC Model Mode in the sidebar and make the NPC present to see native part layers. Static portraits and artist images do not generate new transformation assets automatically.
 
-NPC `parts` describe rendering parts, unlike the PC transformation system's `parts` array. Do not pass `maplebirch.char.transformation` configuration to this API unchanged.
+> [!IMPORTANT]
+> NPC `parts` describe a rendering-part map, unlike the PC transformation system's (`maplebirch.char.transformation`) `parts` array. Do not pass PC transformation config directly to this API. Registering definitions also does not grant growth; call `build()` or `set()` in story actions.
+
+```mermaid
+flowchart LR
+  A["1. Startup: Transformation.add()"] --> B["2. Story action: build() / set()"]
+  B --> C["Updates V.maplebirch.npc[name].transformation"]
+  C --> D["3. Sidebar render: applyBody() → parts → sidebar()"]
+```
 
 ## Register a Transformation
 
@@ -143,7 +151,8 @@ if (after.level > before.level) {
 }
 ```
 
-`get()` returns the saved state object. `{ ... }` preserves the previous numbers for comparison; storing the original object in `before` would let it change with the growth update. Query again after loading rather than retaining old references.
+> [!TIP]
+> `get()` returns the saved state object. Spreading `{ ...transformation.get('Luna', 'wolf') }` preserves the previous numbers for comparison; storing the original object in `before` would mutate it during `build()`. Query again after loading rather than retaining old references.
 
 Use `build()` to add growth and `set()` to select a level. Both maintain growth and level together.
 

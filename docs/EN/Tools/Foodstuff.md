@@ -47,6 +47,9 @@ maplebirch.tool.patch.foodstuff.add('my_mod_berry', {
 | `food.tags`              | Food tags such as `vegan`, `drink`, or `sweet`       | -                       |
 | `tending`                | Growable item config                                 | -                       |
 
+> [!NOTE]
+> `icon` defaults to `${key}.png` and `prop_folder` defaults to `ingredient`. Your mod must supply the corresponding icon and prop image assets for custom items.
+
 ## Dish Example
 
 ```javascript
@@ -73,6 +76,9 @@ maplebirch.tool.patch.foodstuff.add('my_mod_soup', {
   }
 });
 ```
+
+> [!TIP]
+> When defining a `dish` with a `recipe`, set `kitchen_item_type_icon` (e.g. `'recipe-food.png'`) and `prop_folder` (e.g. `'food'`) to match vanilla dish rendering.
 
 ## boot.json
 

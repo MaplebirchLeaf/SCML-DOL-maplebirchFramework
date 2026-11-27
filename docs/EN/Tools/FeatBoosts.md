@@ -2,9 +2,12 @@
 
 `maplebirch.tool.patch.featBoosts.add(key, config)` adds a mod boost to the native feat booster menu, using the game's feats, VrelCoin budget, purchase levels and refund controls.
 
+> [!IMPORTANT]
+> Purchasing, refunding, and displaying a boost do **not** grant any gameplay effects on their own. `effect` runs only through the native `applyFeatBoosts` new-game booster flow when the player starts a new game with feat points—never immediately upon purchase.
+
 ## Registration
 
-Register during startup, before vanilla calls `setupFeatBoosts`. Prefix boost keys with your mod's name.
+Register during startup, before vanilla calls `setupFeatBoosts`. Prefix boost keys with your mod's name. `add()` returns `true` when accepted, or `false` if validation fails.
 
 ```javascript
 maplebirch.tool.patch.featBoosts.add('myMod:boost', {
@@ -22,7 +25,7 @@ maplebirch.tool.patch.featBoosts.add('myMod:boost', {
 `effect` is Twee source and may call an existing mod widget. The mod must define and load `myModFeatBoost` from this example.
 
 | Field           | Description                                                                               |
-| --------------- | ----------------------------------------------------------------------------------------- |
+| :-------------- | :---------------------------------------------------------------------------------------- |
 | `name`          | Boost name shown in the menu; required                                                    |
 | `required`      | Array of feat keys; owning any one unlocks the boost; defaults to no prerequisite         |
 | `cost`          | VrelCoins per level; required nonnegative safe integer                                    |
@@ -34,11 +37,12 @@ maplebirch.tool.patch.featBoosts.add('myMod:boost', {
 | `upgrade`       | Effect description in the purchase area                                                   |
 | `effect`        | Twee source executed for the new game                                                     |
 
-Without `max`, the limit is the number of earned prerequisite feats multiplied by `maxMultiplier` (default 1). A boost with no prerequisites counts as one. `name`, `missing`, `text` and `upgrade` accept strings or functions returning strings; display text passes through `maplebirch.auto()`.
+> [!NOTE]
+> Without `max`, the limit is the number of earned prerequisite feats multiplied by `maxMultiplier` (default `1`); a boost with no prerequisites counts as one. In scripts, `name`, `missing`, `text`, and `upgrade` accept strings or callbacks returning strings and pass through `maplebirch.auto()`. In `boot.json`, use plain strings.
 
 ## Define the effect widget
 
-**widgets.twee** — add to `tweeFileList`; keep the name identical to effect above.
+**widgets.twee** — add to `tweeFileList`; keep the name identical to `effect` above.
 
 ```twine
 :: My Mod Feat Boost [widget]
@@ -98,5 +102,3 @@ The framework wraps two native macros:
 
 - `setupFeatBoosts`: adds mod boosts after native initialization. Ordinary reopening preserves purchases; native import and reset flows recalculate limits and clear purchases.
 - `applyFeatBoosts`: runs purchased `effect` sources before vanilla cleans up the boost data.
-
-Purchasing, refunding and displaying a boost do not grant gameplay effects. `effect` runs through the native new-game booster flow when the player has feat points; purchasing does not apply it early to the current character.

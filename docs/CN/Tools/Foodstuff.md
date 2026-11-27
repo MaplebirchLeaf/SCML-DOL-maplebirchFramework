@@ -47,6 +47,39 @@ maplebirch.tool.patch.foodstuff.add('my_mod_berry', {
 | `food.tags`              | 食物标签，如 `vegan`、`drink`、`sweet` | -                       |
 | `tending`                | 种植配置                               | -                       |
 
+> [!NOTE]
+> `icon` 默认为 `${key}.png`，`prop_folder` 默认为 `ingredient`。自定义物品所需的图标与 prop 图片资源需由模组自行提供。
+
+## 菜品示例
+
+```javascript
+maplebirch.tool.patch.foodstuff.add('my_mod_soup', {
+  name: '草药汤',
+  singular: '一份草药汤',
+  plural: '份草药汤',
+  category: 'dish',
+  kitchen_item_type_icon: 'recipe-food.png',
+  prop_folder: 'food',
+  shop: {
+    sell_price: 500
+  },
+  recipe: {
+    recipe_name: '草药汤',
+    difficulty: 1,
+    cook_minutes: 20,
+    servings: 1,
+    ingredients: ['wild_carrot', 'salt'],
+    tags: []
+  },
+  food: {
+    tags: ['vegan']
+  }
+});
+```
+
+> [!TIP]
+> 注册带有 `recipe` 的菜品（`dish`）时，建议将 `kitchen_item_type_icon` 设为 `'recipe-food.png'`、`prop_folder` 设为 `'food'`，以匹配原版菜品渲染。
+
 ## boot.json
 
 对象映射写法，_推荐用于一次注册多个条目_：

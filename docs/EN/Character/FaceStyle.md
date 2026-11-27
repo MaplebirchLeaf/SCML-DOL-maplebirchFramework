@@ -21,9 +21,12 @@ img/face/
 - `<style>`: a style such as `my-style` or `default`
 - `<variant>`: a variant / demeanour such as `default` or `sweet`
 
-After mod loading (`afterPreload`) the framework iterates every installed mod, scanning `img/face/<style>/<variant>/<image>.png` and `img/face/<style>/<image>.png` paths to build the style and variant options. The `img/face/masks/` folder is skipped; built-in variants of the `default` style (`aloof`, `catty`, `default`, `foxy`, `gloomy`, `sweet`) are not re-added as variant options.
+After mod loading, the framework iterates every installed mod, scanning `img/face/<style>/<variant>/<image>.png` and `img/face/<style>/<image>.png` paths, and builds the style and variant options on `:storyready` and language changes. The `img/face/masks/` folder is skipped; built-in variants of the `default` style (`aloof`, `catty`, `default`, `foxy`, `gloomy`, `sweet`) are not re-added as variant options.
 
 NPC sidebar face layers render via `img/face/<facestyle>/<facevariant>/<image>.png` (or `img/face/<facestyle>/<image>.png`).
+
+> [!NOTE]
+> Option labels are resolved via `maplebirch.auto(key)` (`default` maps to `traditional` for styles and `gentle` for variants). If a custom style or variant has no translation entry, the directory name is used as the fallback label.
 
 ---
 
@@ -46,6 +49,9 @@ img/body/base-head.png
 ```text
 img/body/mannequin/base-head.png
 ```
+
+> [!TIP]
+> Before rendering, if the active `facestyle` or `facevariant` is not present in the registered options (for example, after uninstalling a mod), the framework falls back to `'default'`.
 
 ---
 

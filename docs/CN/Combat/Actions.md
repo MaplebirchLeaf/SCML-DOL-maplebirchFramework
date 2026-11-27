@@ -8,6 +8,14 @@
 
 `maplebirch.combat.climax` 是只读布尔值，按当前底版的原生阈值判断敌方是否已达到高潮，可用于遭遇收尾。它不会推进或结束战斗。
 
+```mermaid
+flowchart LR
+    A["generateCombatAction"] --> B["CombatAction.patchOptions（修改或按 order 插入）"]
+    B --> C["玩家选择动作（写入 $leftaction 等）"]
+    C --> D["effectsman / 对应遭遇效果 widget"]
+    D --> E["重置 $action 为 0，更新 $actiondefault，执行 effect"]
+```
+
 ## 入口
 
 ```javascript
@@ -71,7 +79,8 @@ maplebirch.combat.CombatAction.reg({
 
 除 `id`、`actionType` 外，多数字段都支持函数。函数会收到 `ctx` 参数。
 
-`order` 会把模组动作插入原版动作列表：非负数从列表开头按 `0` 计数，负数从列表末尾反向定位。默认 `-4` 会将动作放在原版倒数四项之前。可通过 `ctx.originalCount` 把动作放到原版动作之后。
+> [!TIP]
+> `order` 会把模组动作插入原版动作列表：非负数从列表开头按 `0` 计数，负数从列表末尾反向定位。默认 `-4` 会将动作放在原版倒数四项之前。可通过 `ctx.originalCount` 把动作放到原版动作之后。
 
 ## actionType
 
@@ -159,7 +168,8 @@ effect: ctx =>
 
 这样左手动作的反应不会被丢到整段战斗文本末尾。
 
-非人类遭遇在对应效果 widget 开始时执行模组动作一次，随后继续原版结算。不会替换原版动作或额外推进回合。触手遭遇使用外层 `effectstentacles`，不会因单回合有多根触手而重复执行。
+> [!NOTE]
+> 非人类遭遇在对应效果 widget 开始时执行模组动作一次，随后继续原版结算。不会替换原版动作或额外推进回合。触手遭遇使用外层 `effectstentacles`，不会因单回合有多根触手而重复执行。
 
 ## 完整示例
 
@@ -213,7 +223,9 @@ maplebirch.combat.CombatAction.reg({
 
 ## 注意事项
 
+> [!IMPORTANT]
+> `cond` 仅用于显示判断，不要在里面修改游戏状态；效果 widget 中须重新核对执行条件（例如体力和剧情标记在结算前可能已变化）。
+
 - `value` 不要和原版动作或其他模组动作重复，建议带模组名前缀。
-- `cond` 用于显示判断，不要在里面修改游戏状态；效果 widget 须重新核对执行条件。
 - `effect` 中可以写文本，也可以调用宏、修改变量、消耗体力、改变 NPC 状态。
 - 如果动作只适用于特殊战斗，请设置 `combatType`。

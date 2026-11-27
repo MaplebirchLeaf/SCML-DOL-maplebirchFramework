@@ -187,14 +187,28 @@ console.log(maplebirch.dependencyGraph.npc);
 
 ## 生命周期方法
 
+```mermaid
+flowchart LR
+  R["REGISTERED (0)"] --> P["preInit() (可异步)"]
+  P --> I["Init() (首次 :passagestart, 同步)"]
+  I --> M["MOUNTED (1)"]
+  I -. "出错" .-> E["ERROR (2)"]
+  M --> L["loadInit() (读档时, 同步)"]
+  M --> O["postInit() (每次段落开始, 同步)"]
+  L --> O
+```
+
 模块对象可以定义以下方法，全部可选：
 
 | 方法         | 调用时机                                              | 用途                                |
 | :----------- | :---------------------------------------------------- | :---------------------------------- |
-| `preInit()`  | `afterInjectEarlyLoad` 后，IndexedDB 与日志准备完成后 | 提前准备资源、配置、缓存            |
+| `preInit()`  | `afterInjectEarlyLoad` 后，IndexedDB 与日志准备完成后 | 提前准备资源、配置、缓存（可异步）  |
 | `Init()`     | 首次进入正常游戏段落的 `:passagestart` 阶段           | 主初始化，此时可使用 `setup` 和 `V` |
 | `loadInit()` | 主初始化完成后的读档回调中，临时切换到待载入变量后    | 恢复和存档相关的状态                |
 | `postInit()` | 每次段落开始，主初始化或读档初始化后                  | 刷新段落级逻辑                      |
+
+> [!IMPORTANT]
+> 仅 `preInit()` 支持返回 `Promise`（异步执行）。`Init()`、`loadInit()` 和 `postInit()` 必须同步执行，返回 `Promise` 会直接抛出错误。
 
 首次从标题页载入存档时，会在载入段落执行 `Init()` 和 `postInit()`。首次载入也需要恢复的状态，应在 `Init()` 中一并处理。
 
@@ -232,6 +246,9 @@ maplebirch.define('myModule', new MyModule(), ['npc']);
 ---
 
 ## 依赖规则
+
+> [!WARNING]
+> 禁用模块会沿依赖链级联禁用所有依赖它的模块，并在保存设置后需要重载游戏才会生效。
 
 只更新指定模块时，使用 `maplebirch.services.gui.setModuleStates({ myModule: false, anotherModule: true })`。单个模块只需传一个键。它保留未指定模块的状态。若依赖关系会导致未指定模块一起改变，调用会报错，须明确把相关模块加入本次选择。状态写入后仍需重载游戏才会影响模块生命周期。
 

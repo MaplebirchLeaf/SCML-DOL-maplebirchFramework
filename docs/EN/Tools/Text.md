@@ -33,7 +33,8 @@ maplebirch.tool.inject({
 });
 ```
 
-This inserts the text macro after a specific source anchor. Set `expected` to the match count in the target version; a mismatch leaves the passage unchanged and appears in the [patch report](../AddonPlugin.md#patch-reports). A real Mod should narrow the target by passage, NPC or display conditions.
+> [!IMPORTANT]
+> Set `expected` to the match count in the target version; a mismatch leaves the passage unchanged and appears in the [patch report](../AddonPlugin.md#patch-reports). A real Mod should narrow the target by passage, NPC or display conditions.
 
 ## Registration and Rendering
 
@@ -102,7 +103,8 @@ The macro accepts strings, string arrays and comma-separated keys:
 | `raw(content)`               | Adds a Node or literal text without translation or HTML parsing |
 | `box(content, className?)`   | Creates a div, translating strings or inserting a Node          |
 
-`text`, `line` and `wikify` accept strings, numbers and booleans; nullish values produce no text. Use `tools.raw(tools.auto(value))` when translated raw text is intended. Nodes are moved into the target; clone them yourself when reusing them.
+> [!NOTE]
+> `text`, `line` and `wikify` accept strings, numbers and booleans; nullish values (`null` / `undefined`) produce no text. Use `tools.raw(tools.auto(value))` when translated raw text is intended. `Node` instances are moved into the target; clone them yourself when reusing them.
 
 ## Editing Existing Content
 
@@ -119,6 +121,8 @@ maplebirch.on(':passagedisplay', (_passage, root) => {
 | `renameLink(target, label, root?)`       | Changes the label while retaining the link element, attributes, destination and its listeners; returns whether a link was found  |
 | `replaceLink(target, wikiSource, root?)` | Replaces the entire link with newly wikified content, discarding its listeners; returns whether replacement succeeded            |
 
-Prefer passing an already selected element as `target`; it is edited directly. A string selects the first `.macro-link` or `.link-internal` whose displayed text contains that string within root. Text arguments retain `lanSwitch` translation. Element selection or `data-passage` avoids depending on the display language.
+> [!TIP]
+> Prefer passing an already selected element as `target`; selecting by element or `data-passage` avoids depending on the display language. A string selects the first `.macro-link` or `.link-internal` whose displayed text contains that string within `root`, and text arguments retain `lanSwitch` translation.
 
-`renameLink` replaces label contents, so existing child nodes are removed. `replaceLink` parses before replacing; exceptions or generated `.error` elements leave the original link in place. Wiki side effects during parsing are not rolled back.
+> [!WARNING]
+> `renameLink` replaces label contents, so existing child nodes are removed. `replaceLink` parses before replacing; exceptions or generated `.error` elements leave the original link in place, but Wiki side effects during parsing are not rolled back.

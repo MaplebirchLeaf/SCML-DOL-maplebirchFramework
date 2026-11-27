@@ -6,6 +6,13 @@ Music, ambience, and short effects all use Howler's WebAudio playback. Audio byt
 
 Supported formats: **`.mp3`**, **`.wav`**, **`.ogg`**, **`.m4a`**, **`.flac`**, **`.webm`**.
 
+```mermaid
+flowchart LR
+  M["music/ (IndexedDB)"] --> P["audio.playFromMod()<br/>Playlists / Progress / Modes"]
+  A["ambience/ (ZIP stream)"] --> AL["audio.ambience.play()<br/>Up to 4 layers / Crossfade"]
+  S["sfx/ & voice/ (ZIP stream)"] --> EF["audio.effects.play()<br/>Per-mod channels / Cooldown"]
+```
+
 ## Independent Ambience Layers
 
 `maplebirch.audio.ambience` does not occupy the music playlist. It reads audio directly from a mod ZIP and loops it through Howler's public API, crossfading when tracks change without accessing `Howler.ctx`. Include the file in the audio pack's `additionFile`. `play()` returns `false` if the file is missing, the request is cancelled, or the layer limit is reached. Decoding or loading failures reject its promise.
@@ -27,7 +34,8 @@ maplebirch.audio.ambience.setVolume(0.2, 100, 'myMod:weather');
 maplebirch.audio.ambience.stop(500, 'myMod:weather');
 ```
 
-Without a layer name, `play()` and `setVolume()` use the `default` layer. Calling `stop()` without a layer name stops every layer. Mods should name their own layers when leaving a scene. Up to 4 layers and 4 crossfading tails are retained at once.
+> [!TIP]
+> Without a layer name, `play()` and `setVolume()` target `default`, while `stop()` without arguments stops **all** layers. Always pass your mod-prefixed layer name when leaving a scene so other mods' ambience stays intact. Up to 4 layers and 4 crossfading tails are retained at once.
 
 ## Short Effects and Voices
 
@@ -49,11 +57,15 @@ If an audio context that previously played audio is suspended while idle, playba
 
 Up to 3 active requests and 8 idle effects are retained. The entire audio pack is not preloaded. Call `stop('myAudioPack')` when changing passages or loading a save to cancel that mod's unfinished effects. Calling `stop()` without arguments cancels active effects from all mods. Destroying the audio manager releases ambience and effect caches.
 
+> [!WARNING]
+> `effects.play()` skips and returns `false` (without queuing) if audio is locked, muted, at zero volume, cooling down, at the concurrency limit, or expired after 1.5 seconds. Call `effects.stop('myAudioPack')` on passage changes or save loads to cancel unfinished effects.
+
 When importing an audio folder, files whose audio names start with `ambience/`, `sfx/`, or `voice/` stay out of the music playlist. Place ambience loops, short effects, and voices in these folders, and music in `music/`.
 
 ## Importing From boot.json
 
-Audio files must be listed in **`additionFile`** so ModLoader can provide them. Then declare the folders to import in the `maplebirchAddon` params.
+> [!IMPORTANT]
+> Audio files must be listed in **`additionFile`** so ModLoader can provide them, then declare the folders to import in `maplebirchAddon` params.
 
 ```json
 {

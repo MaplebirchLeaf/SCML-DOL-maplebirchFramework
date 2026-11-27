@@ -8,6 +8,14 @@ Buttons use the vanilla `generateCombatAction` flow. In a human encounter, `effe
 
 `maplebirch.combat.climax` is a read-only boolean that checks whether the enemy has reached the current game's native climax threshold. It can be used when resolving an encounter and does not advance or end combat.
 
+```mermaid
+flowchart LR
+    A["generateCombatAction"] --> B["CombatAction.patchOptions (modify / insert by order)"]
+    B --> C["Player picks action ($leftaction etc.)"]
+    C --> D["effectsman / encounter effect widget"]
+    D --> E["Reset $action to 0, update $actiondefault, run effect"]
+```
+
 ## Entry Point
 
 ```javascript
@@ -71,7 +79,8 @@ When the player selects this action, `$leftaction` becomes `myModQuickStrike`. D
 
 Most fields except `id` and `actionType` may be functions. Functions receive a `ctx` object.
 
-`order` inserts the mod action into the vanilla action list. Non-negative values are zero-based positions from the start, while negative values count back from the end. The default `-4` places the action before the last four vanilla entries. Use `ctx.originalCount` to place an action after the vanilla entries.
+> [!TIP]
+> `order` inserts the mod action into the vanilla action list. Non-negative values are zero-based positions from the start, while negative values count back from the end. The default `-4` places the action before the last four vanilla entries. Use `ctx.originalCount` to place an action after the vanilla entries.
 
 ## actionType
 
@@ -159,7 +168,8 @@ Vanilla combat reaction text is hardcoded in `effectsman`, but actions are rough
 
 This keeps a left-hand action reaction near the hand-action text instead of appending it to the end of the whole combat output.
 
-Other encounters run the mod action once at the start of their effect widget, then continue vanilla resolution. Tentacle effects run in the outer `effectstentacles` widget, not once per tentacle.
+> [!NOTE]
+> Other encounters run the mod action once at the start of their effect widget, then continue vanilla resolution. Tentacle effects run in the outer `effectstentacles` widget, not once per tentacle.
 
 ## Full Example
 
@@ -213,7 +223,9 @@ The game's fallback runs when the matching widget is missing. Speech respects `_
 
 ## Notes
 
+> [!IMPORTANT]
+> Use `cond` for display checks without changing state; always recheck execution conditions in the `effect` widget (for example, stamina or story flags may have changed before resolution).
+
 - `value` should not collide with vanilla actions or other mods. A mod prefix is recommended.
-- Use `cond` for display checks without changing state; recheck execution conditions in the effect widget.
 - `effect` may output text, call macros, update variables, spend stamina, or change NPC state.
 - Set `combatType` if the action is only valid in a specific combat type.

@@ -9,7 +9,15 @@
 3. 在真正完成转化行动的分支调用 `build()` 或 `set()`。成长来源、时间推进和剧情条件由内容模组实现。
 4. 在侧边栏开启 PC 模型模式，并让该 NPC 在当前场景中出现，才能看到原版部位图层。静态立绘与画师图片不会自动随转化生成新素材。
 
-本页的 `parts` 是 NPC 渲染部位，不等同于 PC 转化系统的 `parts` 数组。不要把 `maplebirch.char.transformation` 的配置直接放到此接口。
+> [!IMPORTANT]
+> 本页的 `parts` 是 NPC 渲染部位对象，不等同于 PC 转化系统（`maplebirch.char.transformation`）的 `parts` 数组。不要把 PC 转化的配置直接传给此接口。登记定义也不会自动增加成长值，仍需在剧情中调用 `build()` 或 `set()`。
+
+```mermaid
+flowchart LR
+  A["1. 加载时: Transformation.add()"] --> B["2. 剧情中: build() / set()"]
+  B --> C["写入 V.maplebirch.npc[name].transformation"]
+  C --> D["3. 侧边栏渲染: applyBody() → parts → sidebar()"]
+```
 
 ## 注册转化
 
@@ -143,7 +151,8 @@ if (after.level > before.level) {
 }
 ```
 
-`get()` 返回的是存档中的状态对象。这里的 `{ ... }` 留下数值副本，才能在修改后比较；直接把原对象存进 `before`，它也会随成长更新。读档后重新查询当前状态，不长期缓存旧对象。
+> [!TIP]
+> `get()` 返回的是存档中的状态对象。因此 `{ ...transformation.get('Luna', 'wolf') }` 的浅拷贝才能留下修改前的数值用于比较；直接把原对象存进 `before`，它也会随 `build()` 同步更新。读档后应重新查询当前状态。
 
 增加成长用 `build()`，指定等级用 `set()`，它们会一起维护成长值与等级。
 

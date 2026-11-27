@@ -4,12 +4,19 @@ Cloud save syncs **DoL's native local saves** (IndexedDB slots) to **your own cl
 
 ## How it works
 
+```mermaid
+flowchart LR
+  G["In-game Cloud Save Panel<br/>(DoL IndexedDB slots)"] -->|"HTTPS + Bearer Token<br/>(15s timeout)"| W["Cloudflare Worker<br/>(cloudflare/worker.ts)"]
+  W --> R["Private R2 Bucket<br/>slots/&lt;slot&gt;.json & save-code.json"]
+```
+
 An extra **"Cloud Save"** tab is added to the in-game settings. The panel uploads local slots to the Worker as JSON records; after checking `Authorization: Bearer <token>`, the Worker stores them in R2:
 
 - Slot saves: `slots/<slot>.json`
 - Export code: `save-code.json`
 
-Uploaded records contain `slot`/`details`/`save`/`exportedAt`/`gameId` and are **plain JSON** — there is no application-level encryption. Use HTTPS, a strong random token, and keep the R2 bucket private; implement end-to-end encryption in the Worker yourself if needed.
+> [!IMPORTANT]
+> Uploaded records contain `slot`/`details`/`save`/`exportedAt`/`gameId` and are **plain JSON** — there is no application-level encryption. Use HTTPS, a strong random token, and keep the R2 bucket private; implement end-to-end encryption in the Worker yourself if needed.
 
 ## Deploying your own Worker (once)
 
@@ -72,7 +79,9 @@ After updating the Worker, upload each existing cloud save again from its origin
 
 ## Notes
 
-- Deleting a remote slot **cannot be undone**.
-- By default, the framework persists only the Worker URL and keeps the token in memory. If "Remember access token on this device" is checked, the token is saved to the browser's local storage. Keep it safe — anyone who has it can read and write your cloud saves.
+> [!WARNING]
+> Deleting a remote slot **cannot be undone**. Checking "Remember access token on this device" stores the token in browser `localStorage` — avoid enabling it on shared devices.
+
+- By default, the framework persists only the Worker URL and keeps the token in memory. Keep your token safe — anyone who has it can read and write your cloud saves.
 - The game accepts HTTPS Worker addresses only. Requests time out after 15 seconds.
 - The example Worker accepts JSON request bodies up to 32 MiB and rejects malformed saves or payloads whose slot does not match the URL.

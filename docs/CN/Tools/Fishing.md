@@ -60,9 +60,9 @@ maplebirch.tool.patch.fishing.configure('fishingPier', {
 | `minigame`          | `behavior`、`maxStamina`、`armFatigueDifficulty` | -           |
 | `foodstuff`         | 同键食物配置，见 [食物注册](Foodstuff.md)        | -           |
 
-`behavior` 支持原版的 `runner`、`darter`、`panicked`、`anchor`、`thrasher`、`slipper`。尺寸与小游戏数值必须为有限正数，钓点权重必须为有限非负数。
+`behavior` 支持原版的 `runner`、`darter`、`panicked`、`anchor`、`thrasher`、`slipper`。尺寸与小游戏数值必须为有限正数，钓点权重必须为有限非负数。当 `requiresBaitFish` 为 `true` 且未提供 `minigame` 时，`add()` 会返回 `false`。
 
-每条注册鱼自动关联同键食物目录，供原版捕获入库使用。图片由 Mod 提供，食物图标默认从 `icon` 去掉 `fish/` 前缀，也可通过 `foodstuff.icon` 指定。
+每条注册鱼自动关联同键食物目录（默认 `category: 'seafood'`、`kitchen_item_type_icon: 'recipe-seafood.png'`），供原版捕获入库使用。图片由 Mod 提供，食物图标默认从 `icon` 去掉 `fish/` 前缀，也可通过 `foodstuff.icon` 指定。
 
 `addBait(key, config)` 接受 [食物配置](Foodstuff.md#常用字段)，自动设置原版 `is_fishing_bait` 标记并共用食物库存。自定义鱼饵使用原版普通食物鱼饵逻辑。原版 `baitfish` 和 `bait_worm` 保留各自的特殊处理。
 
@@ -77,7 +77,10 @@ maplebirch.tool.patch.fishing.configure('fishingPier', {
 fishingBeach / fishingPier / fishingCoastPath / fishingForestLake / fishingMoor
 ```
 
-`configure(location, weights)` 调整现有钓点中各鱼类的权重，`0` 表示该处不出现此鱼。鱼类键必须在应用配置时存在，否则报错。此接口只调整鱼类分布，钓点入口、发现条件和剧情由 Mod 提供。
+`configure(location, weights)` 调整现有钓点中各鱼类的权重，`0` 表示该处不出现此鱼。此接口只调整鱼类分布，钓点入口、发现条件和剧情由 Mod 提供。
+
+> [!WARNING]
+> `configure()` 引用的鱼类键在应用配置时必须已存在于 `setup.fishing.lootTables.fish` 中，否则会在初始化时抛出错误。
 
 ## boot.json
 

@@ -9,7 +9,8 @@
 - `available` 只检查原版 API 函数是否存在，不代表人物存在、周期已开启或本次一定符合受孕条件。
 - 查询前同时确认 `available` 与当前人物，例如 `C.npc.Luna`。缺少原版 API 或人物名未知时，`get()`、`tryConceive()` 会抛错。
 
-`NPCData.pregnancy` 保存周期和开关状态。它与 `get().pregnancies` 返回的活动妊娠记录是两类数据，不能把记录数组塞进人物的 `pregnancy` 字段。
+> [!IMPORTANT]
+> `available` 只检查原版 API 函数是否存在，不代表人物存在、周期已开启或本次一定符合受孕条件。`NPCData.pregnancy` 保存周期与开关状态，与 `get().pregnancies` 返回的活动妊娠记录数组是两类数据，切勿把记录数组塞进人物的 `pregnancy` 字段。
 
 ## 注册
 
@@ -117,7 +118,8 @@ const record = maplebirch.npc.Pregnancy.tryConceive('Luna', {
 });
 ```
 
-调用前仍须确认前述运行时条件。成功返回原版妊娠记录，未受孕返回 `null`，不强制成功。每调用一次就进行一次判定，不能把它放进显示、日程或反复执行的条件回调。
+> [!WARNING]
+> 每调用一次 `tryConceive()` 就会执行一次原版受孕判定，绝不能放进显示、日程或反复执行的条件回调中。`tryConceive(name)` 的承孕方始终是所传 NPC；`canImpregnatePlayer` 不会反向把该 API 变成“令玩家怀孕”的入口。
 
 | 参数           | 默认与含义                                                                 |
 | :------------- | :------------------------------------------------------------------------- |

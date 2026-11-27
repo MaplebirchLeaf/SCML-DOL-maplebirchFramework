@@ -14,6 +14,14 @@ maplebirch.services.translator.set(key, translations);
 maplebirch.services.translator.has(key);
 ```
 
+```mermaid
+flowchart LR
+  B["boot.json / set()"] --> DB["IndexedDB language store"]
+  DB --> T["maplebirch.t(key)"]
+  T -->|hit| R["Return localized string"]
+  T -->|missing| F["Return '[key]' fallback"]
+```
+
 ## Import Through boot.json
 
 For the default layout, the framework looks for `translations/CN.json`, `.yml`, and `.yaml`, plus the corresponding `EN` files. When more than one format exists, files merge in **JSON → YML → YAML** order:
@@ -59,7 +67,8 @@ On the next import:
 | Remove a file from the list, or a key from its file   | Remove old text supplied only by that source                                       |
 | Keep a file in the list, but it is missing or invalid | Log the error and retain the previous complete set; do not import a partial result |
 
-Keep one language's files together in the array rather than splitting them across separate `language` entries.
+> [!TIP]
+> Keep one language's files together in a single ordered array (shared text first, UI text later) rather than splitting them across separate `language` entries.
 
 ## Translation File
 
@@ -80,7 +89,10 @@ myMod:ui.meet: 'Arrange a meeting'
 myMod:ui.cancel: 'Cancel the meeting'
 ```
 
-Read the complete key, such as `maplebirch.t('myMod:ui.title')`. Nested objects are ignored; numbers and booleans become text. JSON, YML and YAML are supported.
+Read the complete key, such as `maplebirch.t('myMod:ui.title')`. JSON, YML and YAML are supported.
+
+> [!NOTE]
+> Translation files must stay flat: dots and colons in keys are literal characters. Nested objects are ignored, and numbers/booleans are converted to strings.
 
 Later files in the same language override duplicate keys. Between mods, later imports take priority, so a `myMod:` prefix helps prevent accidental collisions.
 
@@ -120,7 +132,8 @@ maplebirch.on(':language', () => {
 });
 ```
 
-If your mod writes translated text into its own DOM nodes, refresh those nodes on `:language`.
+> [!IMPORTANT]
+> Custom DOM nodes written by scripts do not update automatically when the language changes—refresh them in a `:language` listener, or use `lanLink` / `lanButton` macros in SugarCube.
 
 ## Setting Text in Scripts
 

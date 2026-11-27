@@ -2,7 +2,7 @@
 
 Location config modifies or extends vanilla `setup.LocationImages` and `setup.Locations`. It is useful for adding conditional location layers based on weather, time, or story state.
 
-Use:
+## Entry Point
 
 ```javascript
 maplebirch.tool.patch.location.configure(locationId, config, options);
@@ -27,13 +27,13 @@ This merges the condition into `lake_ruin.base.bloodmoon`.
 
 ## Arguments
 
-| Argument     | Description                                  |
-| :----------- | :------------------------------------------- |
-| `locationId` | Key in `setup.LocationImages`                |
-| `config`     | Location image config                        |
-| `options`    | Controls merge target and overwrite behavior |
+### locationId
 
-Common config fields:
+Location ID matching a key in vanilla `setup.LocationImages`, such as `'lake_ruin'`.
+
+### config
+
+Location image config:
 
 | Field           | Description                                  |
 | :-------------- | :------------------------------------------- |
@@ -44,19 +44,22 @@ Common config fields:
 | `reflective`    | Reflective layer config                      |
 | `layerTop`      | Top layer config                             |
 | `weather`       | Fog, rain splashes and ground boundaries     |
+| `particles`     | Particle config array                        |
 | `customMapping` | Custom location mapping                      |
 
-Keep `condition` functions focused on checks. Avoid changing game state inside location conditions.
+> [!IMPORTANT]
+> `condition` functions are evaluated during rendering. Keep them pure checks and avoid mutating game state inside them.
 
-`folder` is relative to vanilla `img/misc/locations/`, and image layer elements need an `image` filename. New or overwritten locations receive defaults for missing weather fields: fog and rain splashes are disabled, the fog distribution curve is `1`, and both ground boundaries have `top` and `bottom` set to `0`. Partial weather and boundary objects keep explicit values and receive only missing defaults. Ordinary updates to existing locations do not reset vanilla weather settings.
+> [!NOTE]
+> `folder` is relative to vanilla `img/misc/locations/`, and image layer elements need an `image` filename. New or overwritten locations receive defaults for missing weather fields: fog and rain splashes are disabled, the fog distribution curve is `1`, and both ground boundaries have `top` and `bottom` set to `0`. Partial weather and boundary objects keep explicit values and receive only missing defaults. Ordinary updates to existing locations do not reset vanilla weather settings.
 
-Options:
+### options
 
-| Field       | Description                                |
-| :---------- | :----------------------------------------- |
-| `layer`     | Target layer, such as `base` or `layerTop` |
-| `element`   | Target element inside the layer            |
-| `overwrite` | Replace the whole location config          |
+| Field       | Description                                             |
+| :---------- | :------------------------------------------------------ |
+| `layer`     | Target layer, such as `base`, `emissive`, or `layerTop` |
+| `element`   | Target element inside the layer                         |
+| `overwrite` | Replace the whole location config                       |
 
 ## Add A Layer Element
 
@@ -75,9 +78,24 @@ maplebirch.tool.patch.location.configure(
 );
 ```
 
+You can also add top-layer decorations:
+
+```javascript
+maplebirch.tool.patch.location.configure(
+  'main_street',
+  {
+    condition: () => V.myMod?.festival === true
+  },
+  {
+    layer: 'layerTop',
+    element: 'festival_decorations'
+  }
+);
+```
+
 ## Merge Full Config
 
-Without `layer` and `element`, the configuration is merged into the location. Repeated configurations for the same location are merged by default.
+Without `layer` and `element`, the configuration is merged into the location. Repeated configurations for the same location are merged by default:
 
 ```javascript
 maplebirch.tool.patch.location.configure('old_ruins', {
@@ -128,6 +146,24 @@ maplebirch.tool.patch.location.configure(
   },
   {
     overwrite: true
+  }
+);
+```
+
+## Combined Conditions
+
+```javascript
+maplebirch.tool.patch.location.configure(
+  'mountain_pass',
+  {
+    condition: () => {
+      const night = Time.hour < 6 || Time.hour >= 18;
+      return Weather.precipitation === 'snow' && night;
+    }
+  },
+  {
+    layer: 'base',
+    element: 'snow_night'
   }
 );
 ```

@@ -81,6 +81,17 @@ maplebirch.dynamic.regWeatherEvent('myMod:rainyDay', {
 
 先观察日志，就能看清事件何时进入、何时退出。即使加载时已经在下雨，第一次收到检查通知也会算作进入；登记本身还不会立刻调用回调。
 
+```mermaid
+flowchart TD
+    A["天气变化通知"] --> B{"tryMatch()"}
+    B -- "成立且未激活" --> C["加入 activeEvents -> 执行 onEnter()"]
+    C --> D{"once: true?"}
+    D -- 是 --> E["移除本次运行登记"]
+    B -- "成立且已激活" --> F["不执行回调"]
+    B -- "不成立且曾激活" --> G["移出 activeEvents -> 执行 onExit()"]
+    B -- "不成立且未激活" --> F
+```
+
 | 连续两次检查    | 结果               |
 | :-------------- | :----------------- |
 | 不成立 → 成立   | 调用一次 `onEnter` |
@@ -94,7 +105,8 @@ ID 必须唯一，重复登记返回 `false`，不会覆盖已有事件。注销
 maplebirch.dynamic.delWeatherEvent('myMod:rainyDay');
 ```
 
-注销只移除事件及其运行时激活记录，**不会调用 `onExit`**。若进入时施加了效果，需要在主动注销前处理对应清理。
+> [!WARNING]
+> 注销只移除事件及其运行时激活记录，**不会调用 `onExit`**。若进入时施加了效果，需要在主动注销前处理对应清理。
 
 ## 2. 冷夜条件：跨午夜要显式写出
 
@@ -117,7 +129,8 @@ maplebirch.dynamic.regWeatherEvent('myMod:coldNight', {
 });
 ```
 
-`{ min: 20, max: 6 }` 是普通闭区间，不能表示跨午夜。它要求同时不小于 `20` 且不大于 `6`，永远无法匹配正常小时。上例用 `||` 拆成两段，并明确排除 `06:00`。
+> [!TIP]
+> `{ min: 20, max: 6 }` 是普通闭区间，不能表示跨午夜。它要求同时不小于 `20` 且不大于 `6`，永远无法匹配正常小时。上例用 `||` 拆成两段，并明确排除 `06:00`。
 
 检查由天气通知驱动。如果条件只依赖小时、任务或地点，需要确保该状态变化时有合适的检查机制；仅依赖天气事件不能保证恰在 `20:00` 执行。纯时间条件优先使用[时间事件](TimeEvents.md)，页面条件优先使用[状态事件](StateEvents.md)。
 
@@ -151,7 +164,8 @@ maplebirch.dynamic.regWeatherEvent('myMod:coldNight', {
 
 ## 4. 激活状态与存档
 
-事件的“上次是否成立”保存在运行时集合中，不随存档保存。重启后的第一次匹配可能再次进入；同一次运行切换存档时，该集合也不会自动恢复为目标存档的状态。
+> [!IMPORTANT]
+> 事件的“上次是否成立”保存在运行时集合中，不随存档保存。重启后的第一次匹配可能再次进入；同一次运行切换存档时，该集合也不会自动恢复为目标存档的状态。
 
 因此，需要当前是否下雨时直接查询 `Weather`。不要仅靠 `onEnter`／`onExit` 维护一个存档布尔值作为天气真值；它可能在读档后与运行时激活记录不一致。
 
@@ -166,7 +180,8 @@ maplebirch.dynamic.Weather.addLayer(layerName, patch, 'merge');
 maplebirch.dynamic.Weather.addEffect(effectName, patch, 'merge');
 ```
 
-这是接口写法，`layerName`、`effectName`、`patch` 需要用核实过的配置替换。框架不定义通用的 `damageRate`、`particleColor`、`animation.speed` 或天气伤害系统；向对象写入这些自造字段，不代表原版渲染器或战斗系统会读取它们。
+> [!NOTE]
+> 这是接口写法，`layerName`、`effectName`、`patch` 需要用核实过的配置替换。框架不定义通用的 `damageRate`、`particleColor`、`animation.speed` 或天气伤害系统；向对象写入这些自造字段，不代表原版渲染器或战斗系统会读取它们。
 
 支持 `replace`（默认）、`merge`、`concat`，分别使用框架的覆盖、合并、追加工具。这些模式修改匹配的原版层／效果对象；`replace` 不表示重新创建整个原版渲染器。
 

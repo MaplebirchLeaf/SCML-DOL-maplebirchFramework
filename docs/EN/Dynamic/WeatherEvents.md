@@ -81,6 +81,17 @@ maplebirch.dynamic.regWeatherEvent('myMod:rainyDay', {
 
 Watch the log first to see when the event enters and exits. If it is already raining on startup, the first check counts as entry too; registration itself does not call the callbacks immediately.
 
+```mermaid
+flowchart TD
+    A["Weather change notification"] --> B{"tryMatch()"}
+    B -- "True & not active" --> C["Add to activeEvents -> onEnter()"]
+    C --> D{"once: true?"}
+    D -- Yes --> E["Remove registration"]
+    B -- "True & already active" --> F["No callback"]
+    B -- "False & was active" --> G["Remove from activeEvents -> onExit()"]
+    B -- "False & not active" --> F
+```
+
 | Two consecutive checks | Result               |
 | :--------------------- | :------------------- |
 | Inactive → active      | Run `onEnter` once   |
@@ -94,7 +105,8 @@ IDs are unique. A duplicate returns `false` without replacing the existing event
 maplebirch.dynamic.delWeatherEvent('myMod:rainyDay');
 ```
 
-Removal clears the event and its runtime active record; it **does not call `onExit`**. Clean up any applied effect before explicitly unregistering it.
+> [!WARNING]
+> Removal clears the event and its runtime active record; it **does not call `onExit`**. Clean up any applied effect before explicitly unregistering it.
 
 ## 2. Cold nights: express midnight wrapping explicitly
 
@@ -117,7 +129,8 @@ maplebirch.dynamic.regWeatherEvent('myMod:coldNight', {
 });
 ```
 
-`{ min: 20, max: 6 }` is an ordinary inclusive interval, not a wrapped interval. No normal hour can be both at least `20` and at most `6`. Use `||` for the two parts, as above, with `06:00` explicitly excluded.
+> [!TIP]
+> `{ min: 20, max: 6 }` is an ordinary inclusive interval, not a wrapped interval. No normal hour can be both at least `20` and at most `6`. Use `||` for the two parts, as above, with `06:00` explicitly excluded.
 
 Checks are driven by weather notifications. A condition based only on time, quests, or location needs an appropriate check when that state changes; a weather event alone does not guarantee execution precisely at `20:00`. Prefer [time events](TimeEvents.md) for time-only conditions and [state events](StateEvents.md) for page conditions.
 
@@ -151,7 +164,8 @@ All fields and `condition` must match. Query your own nested state directly in `
 
 ## 4. Active state and saves
 
-The previous active state lives in a runtime set, not the save. A matching first check after restart can enter again. Loading a different save within one runtime does not restore that save's active set either.
+> [!IMPORTANT]
+> The previous active state lives in a runtime set, not the save. A matching first check after restart can enter again. Loading a different save within one runtime does not restore that save's active set either.
 
 Query `Weather` directly when you need the current weather. A saved boolean maintained only through `onEnter`/`onExit` can disagree with the runtime active record after loading.
 
@@ -166,7 +180,8 @@ maplebirch.dynamic.Weather.addLayer(layerName, patch, 'merge');
 maplebirch.dynamic.Weather.addEffect(effectName, patch, 'merge');
 ```
 
-This is the interface form: replace `layerName`, `effectName`, and `patch` with verified configuration. The framework does not define generic `damageRate`, `particleColor`, `animation.speed`, or weather-damage behavior. Adding invented fields does not make the renderer or combat system read them.
+> [!NOTE]
+> This is the interface form: replace `layerName`, `effectName`, and `patch` with verified configuration. The framework does not define generic `damageRate`, `particleColor`, `animation.speed`, or weather-damage behavior. Adding invented fields does not make the renderer or combat system read them.
 
 Modes `replace` (default), `merge`, and `concat` use the framework's cover, merge, and append helpers. These modes modify the matching native layer/effect object; `replace` does not recreate the entire renderer.
 

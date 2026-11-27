@@ -19,7 +19,8 @@ my-mod/
 
 ## 1. Connect the loader
 
-Save this as `boot.json`. The script loads through `params.script`, so leave `scriptFileList` empty to avoid running the same file twice.
+> [!TIP]
+> Save this as `boot.json`. The script loads through `params.script`, so leave `scriptFileList` empty to avoid running the same file twice.
 
 `name: "myMod"` identifies the mod. The `nam: 'Luna'` field used later identifies the character. The loader and NPC system use them for different purposes.
 
@@ -262,6 +263,12 @@ On the first visit, `<<npc "Luna">>` uses the native introduction and encounter 
 Notice the two steps inside the links: making plans sets `meeting` to `planned` and returns to the park; meeting and introducing yourself grants trust and sets it to `completed`. Leaving early keeps the arrangement without completing the conversation.
 
 Two flags have different jobs here: `C.npc.Luna.init` records native character initialization, while `$myMod.luna.meeting` records our story progress. Keeping them separate lets you add later conversations without repeating the introduction. Preserve any location-specific restrictions when moving the scene elsewhere.
+
+```mermaid
+flowchart LR
+  A["meeting = 'none'<br/>Greet by the bench"] -->|"Click: Agree to talk"| B["meeting = 'planned'<br/>Waiting by the fountain"]
+  B -->|"Click: Introduce yourself (+5 Trust)"| C["meeting = 'completed'<br/>First conversation done"]
+```
 
 ## 4. Package it and meet her in the game
 

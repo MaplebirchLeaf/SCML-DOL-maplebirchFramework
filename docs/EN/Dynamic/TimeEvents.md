@@ -28,10 +28,12 @@ maplebirch.dynamic.delTimeEvent('onDay', 'myMod:newDay');
 
 Normal advancement runs in this order:
 
-```text
-onBefore → native time advancement → onThread
-         → onYear → onMonth → onWeek → onDay → onHour → onMin → onSec
-         → onAfter
+```mermaid
+flowchart LR
+    A["onBefore (read/adjust passed)"] --> B["Native Time.pass(seconds)"]
+    B --> C["onThread"]
+    C --> D["Unit events: onYear -> onMonth -> onWeek -> onDay -> onHour -> onMin -> onSec"]
+    D --> E["onAfter"]
 ```
 
 Unit events run only when their elapsed-time or boundary conditions apply; accumulated events are described below. Higher `priority` runs earlier within the same type. It cannot move `onAfter` ahead of `onBefore`.
@@ -55,9 +57,10 @@ A default unit event checks when at least one complete unit elapsed or its bound
 | `10:50 → 11:10` | `0`            | `true`             | Checks once, including with `exact: true`                          |
 | `10:10 → 13:10` | `3`            | `true`             | Checks once, not three separate executions                         |
 
-An advancement from `23:50` to `00:10` the next day crosses a day boundary but ends at minute `10`. Requiring `hour === 0 && minute === 0` would miss it. Base daily resets on crossing the date boundary rather than ending at midnight.
-
-`currentDate` is the final date. Processing production for three elapsed days requires your mod to define its own catch-up behavior; one callback does not supply three separate historical dates.
+> [!IMPORTANT]
+> An advancement from `23:50` to `00:10` the next day crosses a day boundary but ends at minute `10`. Requiring `hour === 0 && minute === 0` would miss it. Base daily resets on crossing the date boundary rather than ending at midnight.
+>
+> `currentDate` is the final date. Processing production for three elapsed days requires your mod to define its own catch-up behavior; one callback does not supply three separate historical dates.
 
 ## 3. Complete example: reset a daily usage flag
 
@@ -115,11 +118,12 @@ maplebirch.dynamic.regTimeEvent('onHour', 'myMod:elapsedReward', {
 
 Advancing `25` hours at once gives `count: 2` and leaves `5` hours in the accumulator. This only records settlement count; implement actual money or item effects in this branch when needed.
 
-Before choosing this version, consider where the remainder lives:
-
-- Its remainder lives in the event object, not the save. Restarting loses it; switching saves does not switch to a save-specific remainder.
-- Time accumulates even when `cond` is false. At the threshold, the count is consumed before checking eligibility. This does not mean “count only time while the condition holds”.
-- Seconds through weeks accumulate elapsed seconds; months and years use calendar differences. Time travel does not feed these normal unit accumulators.
+> [!WARNING]
+> Before choosing this version, consider where the remainder lives:
+>
+> - Its remainder lives in the event object, not the save. Restarting loses it; switching saves does not switch to a save-specific remainder.
+> - Time accumulates even when `cond` is false. At the threshold, the count is consumed before checking eligibility. This does not mean “count only time while the condition holds”.
+> - Seconds through weeks accumulate elapsed seconds; months and years use calendar differences. Time travel does not feed these normal unit accumulators.
 
 **If the ten-hour progress belongs to the save, replace the preceding version with this one. Do not register both.** It saves both the remainder and settlement count:
 
@@ -182,7 +186,8 @@ maplebirch.dynamic.regTimeEvent('onTimeTravel', 'myMod:recordTravel', {
 });
 ```
 
-Only numbers and strings are saved here, rather than runtime `DateTime` objects as quest history. Travel does not replay normal events such as `onDay` and `onHour`, nor simulate every story event in the skipped interval.
+> [!CAUTION]
+> Only numbers and strings are saved here, rather than runtime `DateTime` objects as quest history. Travel does not replay normal events such as `onDay` and `onHour`, nor simulate every story event in the skipped interval.
 
 | Parameter                                                                  | Behavior                                                                             |
 | :------------------------------------------------------------------------- | :----------------------------------------------------------------------------------- |

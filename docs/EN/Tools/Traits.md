@@ -1,16 +1,17 @@
 # Traits
 
-Trait registration lets a mod add custom player or NPC traits to the vanilla trait display.
+Trait registration lets a mod add custom traits to the vanilla trait display via `maplebirch.tool.patch.traits.add(...traits)`.
 
-This API registers visibility and description text. Implement any gameplay bonuses separately. `name` is a display label; `title` matches a category using the native keys listed below.
+> [!IMPORTANT]
+> This API only registers visibility and description text; it does **not** grant gameplay bonuses automatically. Any stat effects described in `text` must be implemented separately by your mod. The example courage, resistance, and class values belong to your own story under `V.myMod` and are not native fields.
 
-Use:
+## Entry Point
 
 ```javascript
 maplebirch.tool.patch.traits.add(...traits);
 ```
 
-The example courage, resistance, and class values belong to your own story under `V.myMod`; they are not native fields.
+Accepts one or more trait config objects. `title` and `name` are required; registering the same `title` and `name` again updates the existing entry.
 
 ## Basic Example
 
@@ -28,16 +29,16 @@ maplebirch.tool.patch.traits.add({
 
 | Field     | Type             | Description                                                                 |
 | :-------- | :--------------- | :-------------------------------------------------------------------------- |
-| `title`   | string           | Trait category                                                              |
-| `name`    | string/function  | Trait name                                                                  |
+| `title`   | string           | Trait category, required                                                    |
+| `name`    | string/function  | Trait name, required                                                        |
 | `replace` | string/RegExp    | Optional original name or regular expression to replace within the category |
-| `colour`  | string/function  | Display color                                                               |
-| `has`     | boolean/function | Whether the trait is active                                                 |
-| `text`    | string/function  | Description text                                                            |
+| `colour`  | string/function  | Display color, defaults to `""`                                             |
+| `has`     | boolean/function | Whether the trait is active, defaults to `false`                            |
+| `text`    | string/function  | Description text, defaults to `""`                                          |
 
 ## Known Categories
 
-`replace` matches names before rendering and keeps the original position. Strings match exactly, while regular expressions can match both English and Chinese native names. If absent or unmatched, registration retains the existing same-name replacement and append behavior. If an existing trait has a function as its name, matching reads its return value only while the trait is active. Hidden name functions are left unevaluated. This field is available through script registration:
+`replace` matches names before rendering and keeps the original position. Strings match exactly, while regular expressions can match both English and Chinese native names. If absent or unmatched, registration retains same-name replacement and append behavior. If an existing trait has a function as its name, matching reads its return value only while the trait is active; hidden name functions are left unevaluated. This field is available through script registration:
 
 ```javascript
 maplebirch.tool.patch.traits.add({
@@ -50,6 +51,8 @@ maplebirch.tool.patch.traits.add({
 });
 ```
 
+Built-in categories use the native keys below (automatically translated in Chinese builds):
+
 | Category key        |
 | :------------------ |
 | `General Traits`    |
@@ -61,7 +64,8 @@ maplebirch.tool.patch.traits.add({
 | `Hypnosis Traits`   |
 | `Acceptance Traits` |
 
-Unknown category names are kept as-is.
+> [!NOTE]
+> Unknown category names are kept as-is when creating or matching categories.
 
 ## Dynamic Trait
 
@@ -82,7 +86,7 @@ maplebirch.tool.patch.traits.add({
 
 ## boot.json
 
-`traits` registers multiple entries as an array:
+`traits` registers multiple entries as an array under `params.framework` in `boot.json`:
 
 ```json
 {
@@ -111,7 +115,10 @@ maplebirch.tool.patch.traits.add({
 }
 ```
 
-In `boot.json`, `has` accepts a boolean or JavaScript condition evaluated in the game context. Only use trusted expressions. `name`, `colour`, and `text` are plain strings; use function configurations in a script when these fields need dynamic values.
+In `boot.json`, `has` accepts a boolean or JavaScript condition, while `name`, `colour`, and `text` are plain strings (use script registration when those fields need functions).
+
+> [!CAUTION]
+> String `has` expressions in `boot.json` are evaluated in the game context (with access to `V`, `Time`, `Weather`, etc.). Only use trusted expressions.
 
 External `.json`, `.yaml`, or `.yml` files are also supported:
 

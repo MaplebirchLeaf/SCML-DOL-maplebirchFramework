@@ -6,6 +6,13 @@
 
 支持格式：**`.mp3`**、**`.wav`**、**`.ogg`**、**`.m4a`**、**`.flac`**、**`.webm`**。
 
+```mermaid
+flowchart LR
+  M["music/ (写入 IndexedDB)"] --> P["audio.playFromMod()<br/>播放列表 / 进度 / 循环"]
+  A["ambience/ (直读 ZIP)"] --> AL["audio.ambience.play()<br/>最多 4 层 / 交叉淡化"]
+  S["sfx/ & voice/ (直读 ZIP)"] --> EF["audio.effects.play()<br/>按模组与频道隔离 / 冷却"]
+```
+
 ## 独立环境音层
 
 `maplebirch.audio.ambience` 不占用音乐播放列表。它直接读取模组 ZIP 内的音频文件，通过 Howler 的公开接口循环播放。切换曲目时交叉淡化，不需要访问 `Howler.ctx`。文件需在音频包的 `additionFile` 中。文件不存在、请求被取消或已达到层数限制时，`play()` 返回 `false`。解码或加载失败会拒绝 Promise。
@@ -27,7 +34,8 @@ maplebirch.audio.ambience.setVolume(0.2, 100, 'myMod:weather');
 maplebirch.audio.ambience.stop(500, 'myMod:weather');
 ```
 
-不传层名的 `play()` 和 `setVolume()` 操作 `default` 层。`stop()` 不传层名会停止全部层，模组退出自己的场景时应指定层名。最多同时保留 4 层和 4 个交叉淡出的尾音。
+> [!TIP]
+> 不传层名的 `play()` 和 `setVolume()` 操作 `default` 层；`stop()` 不传层名会停止**全部**层。模组退出场景时务必指定自己的层名（如 `'myMod:weather'`），避免误停其他模组的环境音。最多同时保留 4 层和 4 个交叉淡出的尾音。
 
 ## 短音效与声音
 
@@ -49,11 +57,15 @@ maplebirch.audio.effects.stop('myAudioPack');
 
 最多同时保留 3 个活动请求和 8 个空闲音效缓存，不会预加载整个音频包。模组切页或读档时应调用 `stop('myAudioPack')`，清除本模组尚未结束的音效。无参 `stop()` 会清除所有模组的活动音效。框架销毁时会释放环境音和音效缓存。
 
+> [!WARNING]
+> 浏览器未解锁音频、静音、音量为零、处于冷却、并发已满或请求超过 1.5 秒时，`effects.play()` 会跳过并返回 `false`（不会补播）。切页或读档时请调用 `effects.stop('myAudioPack')` 清理未结束的音效。
+
 导入音频目录时，名称以 `ambience/`、`sfx/`、`voice/` 开头的文件不会加入音乐播放列表。将循环环境音、短音效与人物声音分别放在这些目录中，音乐可放在 `music/`。
 
 ## boot.json 导入
 
-音频文件需要先写入 `boot.json` 的 **`additionFile`**，再在 `maplebirchAddon` 参数里声明要导入的目录。
+> [!IMPORTANT]
+> 音频文件必须先写入 `boot.json` 的 **`additionFile`**，再在 `maplebirchAddon` 参数里声明要导入的 `audio` 目录。
 
 ```json
 {

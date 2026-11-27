@@ -2,9 +2,21 @@
 
 图片资源由 `maplebirch.host.modLoader.resources` 管理，诊断由 `maplebirch.infra.diagnostics` 统一汇集。boot 配置见 [boot.json](BootJson.md)，内容构建见 [HTML 工具](Tools/Text.md)。
 
+```mermaid
+flowchart LR
+  E["afterInjectEarlyLoad<br/>module 脚本 / IDB / preInit"] --> R["afterRegisterMod2Addon<br/>执行 script 脚本"]
+  R --> B["beforePatchModToGame<br/>:addon:repair / flushBoot / :import"]
+  B --> P["PatchModToGame_start<br/>:addon:patchStart / SugarCube 桥接"]
+  P --> A["afterPatchModToGame<br/>:addon:verify / :addon:afterPatch"]
+  A --> S["whenSC2StoryReady<br/>:storyready / 注册存读档钩子"]
+```
+
 ## 修改原版内容
 
-框架不再提供 `maplebirch.wikify()` 渲染拦截：当前宿主虽接受回调注册，却不在 SugarCube 解析时触发。修改 widget 内容应使用 [源码适配](Tools/Zones.md#源码适配) 并设置 `expected`。修改已经显示的页面节点可监听 [`:passagedisplay`](Events.md)。文本工具 Builder 的 `wikify(content)` 只负责解析提供的文本，与渲染拦截无关。
+> [!NOTE]
+> 框架不再提供 `maplebirch.wikify()` 渲染拦截：当前宿主虽接受回调注册，却不在 SugarCube 解析时触发。
+
+修改 widget 内容应使用 [源码适配](Tools/Zones.md#源码适配) 并设置 `expected`。修改已经显示的页面节点可监听 [`:passagedisplay`](Events.md)。文本工具 Builder 的 `wikify(content)` 只负责解析提供的文本，与渲染拦截无关。
 
 ## 图片资源
 
@@ -21,7 +33,10 @@ if (image !== false) document.querySelector<HTMLImageElement>('#myModIcon')!.src
 | `load(path)`      | 缓存命中返回解析地址或 `false`，否则返回 Promise。先查 ModLoader，未解析到时由浏览器加载原路径 |
 | `clear(path?)`    | 清除指定路径或全部缓存，已发出的请求仍会结束，但不会重新写回清除的缓存                         |
 
-同一路径的并发读取共用请求。缓存保存解析后的实际地址，包括 Mod 图片的数据 URL。浏览器回退加载最多等待 15 秒。`has` 反映缓存和资源提供者掌握的情况，提供者返回 false 不代表普通 URL 也无法加载。实际加载应调用 `load`。失败也会缓存，资源变化或需要重试时调用 `clear`。框架在 early-load 完成后自动清理缓存。
+同一路径的并发读取共用请求。缓存保存解析后的实际地址，包括 Mod 图片的数据 URL。浏览器回退加载最多等待 15 秒。`has` 反映缓存和资源提供者掌握的情况，提供者返回 false 不代表普通 URL 也无法加载。实际加载应调用 `load`。
+
+> [!TIP]
+> `load()` 也会缓存失败结果。资源变化或需要重试时先调用 `clear(path)`。框架在 early-load 完成后会自动清理缓存。
 
 [loadImage](Utilities.md#loadimage) 复用同一个解析器，并保留旧接口的侧边栏刷新行为。
 
@@ -56,9 +71,10 @@ console.table(failures);
 
 ## 修复助手
 
-在框架设置中开启调试模式，点击「清除索引数据库」旁边的「修复助手」。填入自己的模型接口、API Key 和模型。可使用 OpenAI 兼容接口、Anthropic 或 Gemini。
+> [!WARNING]
+> 点击「分析」会向配置的模型接口发送诊断、相关源码与选定存档字段（完整存档留在本地），可能产生接口费用。请先预览方案再保存、重载并确认。
 
-点击「分析」会向你配置的模型接口发送诊断、相关源码和选定的存档字段。完整存档留在本地。接口可能收费。预览方案后可选择保存，再重载、复测并确认。
+在框架设置中开启调试模式，点击「清除索引数据库」旁边的「修复助手」。填入自己的模型接口、API Key 和模型。可使用 OpenAI 兼容接口、Anthropic 或 Gemini。
 
 ### 状态与源码权限
 

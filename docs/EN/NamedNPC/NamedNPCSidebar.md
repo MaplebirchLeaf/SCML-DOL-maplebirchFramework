@@ -12,6 +12,18 @@ The sidebar selects characters from the current scene's named-NPC list. Register
 
 All methods require “NPC Sidebar Image Display”. Enabling PC Model Mode selects that rendering method rather than also drawing the chosen artist portrait. Second NPC models and NPC pets use the corresponding character's display resources.
 
+```mermaid
+flowchart TD
+  A["NPC is present in current V.npc"] --> B{"NPC Sidebar Image<br/>Display enabled?"}
+  B -- "No" --> X["Hidden"]
+  B -- "Yes" --> C{"PC Model Mode enabled?"}
+  C -- "Yes" --> D["Render NPC appearance + transformations + wardrobe"]
+  C -- "No" --> E{"Selected graphic?"}
+  E -- "Sidebar.config" --> F["Render artist layer config"]
+  E -- "Sidebar.image" --> G["Render static portrait"]
+  E -- "none" --> X
+```
+
 ## Minimal Static Portrait Integration
 
 ### 1. Prepare Files
@@ -56,7 +68,8 @@ This is a framework entry inside `addonPlugin`:
 3. Disable “PC Model Mode” and select Luna's `default` or `happy` graphic.
 4. A disabled image display or a `none` graphic remains hidden despite registered images.
 
-Character selection is separate from graphic selection. Primary and secondary choices come from current `V.npc` entries also present in the native named-character table. Graphics can be registered in advance. `initnpc` alone or a scheduled location does not add scene presence. Use native `endevent` when the encounter ends.
+> [!IMPORTANT]
+> Character selection is separate from graphic selection. Primary and secondary choices come from current `V.npc` entries also present in the native named-character table; `<<initnpc>>` alone or a scheduled location does **not** add scene presence. Even with registered art, a `none` graphic or disabled image display keeps the sidebar blank.
 
 Automatic selection uses the last character in the current list for the primary model and another recently added character for the secondary. A manually selected character leaving the list falls back to automatic selection. Enable the second model separately.
 
@@ -126,7 +139,8 @@ The outer addon structure is the same as in the static-image example.
 | Candidate `cond`                                                  | Defaults to true; boolean, expression string or condition array                        |
 | Candidate `zIndex`                                                | Defaults to `'auto'`; a number is an absolute canvas layer, not an NPC-relative offset |
 
-**Each part chooses only its first matching candidate; it does not stack every entry.** Place conditional candidates before the default. To show hair and ears together, combine them in one image or use a dedicated character-layer extension. Putting both into `head` does not create two simultaneous layers.
+> [!WARNING]
+> **Each part chooses only its first matching candidate; it does not stack every entry.** Place conditional candidates before the default. To show hair and ears together, combine them in one image or use a dedicated character-layer extension. Putting both into `head` does not create two simultaneous layers.
 
 ### Show which checks must match
 

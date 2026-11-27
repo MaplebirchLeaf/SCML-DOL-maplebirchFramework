@@ -1,18 +1,12 @@
 # 地点配置
 
-## 用来做什么
-
-地点配置用于修改或补充原版 `setup.LocationImages` 和 `setup.Locations`。它适合根据天气、时间、事件状态等条件，为地点添加不同图层或替换图片配置。
-
----
+地点配置用于修改或补充原版 `setup.LocationImages` 和 `setup.Locations`，适合根据天气、时间、事件状态等条件，为地点添加不同图层或替换图片配置。
 
 ## 使用入口
 
 ```javascript
 maplebirch.tool.patch.location.configure(locationId, config, options);
 ```
-
----
 
 ## 最小写法
 
@@ -31,21 +25,15 @@ maplebirch.tool.patch.location.configure(
 
 这会向 `lake_ruin` 的 `base.bloodmoon` 配置中合并一个条件。
 
----
-
 ## 参数
 
 ### locationId
 
-地点 ID，对应原版 `setup.LocationImages` 中的键名。
-
-```javascript
-'lake_ruin';
-```
+地点 ID，对应原版 `setup.LocationImages` 中的键名，例如 `'lake_ruin'`。
 
 ### config
 
-地点图片配置。
+地点图片配置：
 
 | 字段            | 说明                         |
 | :-------------- | :--------------------------- |
@@ -56,11 +44,14 @@ maplebirch.tool.patch.location.configure(
 | `reflective`    | 反射层                       |
 | `layerTop`      | 顶层                         |
 | `weather`       | 雾、雨滴飞溅和地面边界       |
+| `particles`     | 粒子配置数组                 |
 | `customMapping` | 自定义地点映射               |
 
-`condition` 中只做判断，避免修改游戏状态。
+> [!IMPORTANT]
+> `condition` 函数会在渲染期间被调用，请只做纯状态判断，避免在其中修改游戏变量或触发副作用。
 
-`folder` 相对于原版 `img/misc/locations/`，图层元素需要提供 `image` 文件名。新增或覆盖地点时，未填写的天气字段会补为：关闭雾和雨滴飞溅、雾分布曲线为 `1`、两种地面边界的 `top` 和 `bottom` 均为 `0`。部分填写 `weather` 或边界时，也只补缺少的字段；普通合并已有地点不会重置原版天气配置。
+> [!NOTE]
+> `folder` 相对于原版 `img/misc/locations/`，图层元素需要提供 `image` 文件名。新增地点或使用 `overwrite: true` 时，未填写的天气字段会补为：关闭雾和雨滴飞溅、雾分布曲线为 `1`、两种地面边界的 `top` 和 `bottom` 均为 `0`；部分填写 `weather` 或边界时只补缺少的字段；普通合并已有地点不会重置原版天气配置。
 
 ### options
 
@@ -69,8 +60,6 @@ maplebirch.tool.patch.location.configure(
 | `layer`     | 指定图层，如 `base`、`emissive`、`reflective`、`layerTop` |
 | `element`   | 指定图层内元素                                            |
 | `overwrite` | 是否覆盖整个地点配置                                      |
-
----
 
 ## 按图层添加条件
 
@@ -103,8 +92,6 @@ maplebirch.tool.patch.location.configure(
   }
 );
 ```
-
----
 
 ## 合并完整配置
 
@@ -139,8 +126,6 @@ maplebirch.tool.patch.location.configure('old_ruins', {
 
 地面边界以图片底部为 `0`，按像素向上计数。启用雾或飞溅时，应按地点图片填写对应范围。
 
----
-
 ## 覆盖配置
 
 如果需要完全替换原地点配置：
@@ -166,8 +151,6 @@ maplebirch.tool.patch.location.configure(
   }
 );
 ```
-
----
 
 ## 组合条件
 

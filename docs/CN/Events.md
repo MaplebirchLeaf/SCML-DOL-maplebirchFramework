@@ -139,6 +139,14 @@ maplebirch.once(':storyready', () => {
 
 ## 常用框架事件
 
+```mermaid
+flowchart LR
+  I[":passageinit"] --> S[":passagestart"]
+  S --> R[":passagerender"]
+  R --> D[":passagedisplay"]
+  D --> E[":passageend"]
+```
+
 | 事件              | 适合做什么                     |
 | :---------------- | :----------------------------- |
 | `:storyready`     | SugarCube 故事准备完成后的逻辑 |
@@ -156,9 +164,10 @@ maplebirch.once(':storyready', () => {
 
 ## 存档与读档
 
-`:onSave`、`:onLoad` 的回调必须同步执行，SugarCube 不会等待 Promise。框架会报告异步回调并继续执行后续同步监听器。
+> [!IMPORTANT]
+> `:onSave`、`:onLoad`（以及 `:variable`）的回调必须同步执行，SugarCube 不会等待 Promise。读档时全局 `V` 仍是当前游戏状态，必须修改 `save.V`。
 
-回调收到的 `save` 包含 `saveObj`、`details`、`V` 和 `use()`。`save.V` 是待保存或待载入的变量。读档回调执行时，全局 `V` 仍是当前游戏状态。
+框架会报告异步回调并继续执行后续同步监听器。回调收到的 `save` 包含 `saveObj`、`details`、`V` 和 `use()`。`save.V` 是待保存或待载入的变量。
 
 ```javascript
 function initMyMod(variables) {

@@ -90,7 +90,7 @@ Use **`maplebirchAddon`** to load JavaScript files that depend on the framework:
 ]
 ```
 
-**Most mods need only `script`.** Use `module` only when you intentionally need the earlier framework-module extension stage.
+**Most mods need only `script`.** Use `module` only when you intentionally need the earlier framework-module extension stage. When loading via `params.script`, list the file in `additionFile` and leave it out of `scriptFileList` so it runs once (see [Getting started](docs/EN/GettingStarted.md) for a full `boot.json`).
 
 ## Framework Services
 
@@ -193,6 +193,8 @@ This package only provides TypeScript declarations. It does not include runtime 
 The [English documentation index](docs/EN/README.md) groups guides by mod-author task. This page keeps direct links to common topics:
 
 - [Getting started](docs/EN/GettingStarted.md)
+- [From an example to a complete feature](docs/EN/Development.md)
+- [NPC park-meeting example](docs/EN/NamedNPC/Example.md)
 - [English documentation index](docs/EN/README.md)
 - [boot.json configuration](docs/EN/BootJson.md)
 - [Utilities](docs/EN/Utilities.md)

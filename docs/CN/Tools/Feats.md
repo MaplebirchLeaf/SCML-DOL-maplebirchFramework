@@ -2,9 +2,12 @@
 
 模组可以通过启动脚本或 `boot.json` 添加成就。框架在 StoryInit 将定义加入原版 `setup.feats`。
 
+> [!IMPORTANT]
+> 注册成就仅将元数据写入 `setup.feats`，**不会**自动触发解锁。模组仍需在剧情达到对应条件时调用原版 `<<earnFeat "id">>` 宏来授予成就。
+
 ## 启动脚本
 
-在 StoryInit 前调用 `maplebirch.tool.patch.feats.add(id, config)`。
+在 StoryInit 前调用 `maplebirch.tool.patch.feats.add(id, config)`。配置有效且未重复时返回 `true`，否则返回 `false`。
 
 ```javascript
 const { feats } = maplebirch.tool.patch;
@@ -57,7 +60,7 @@ feats.add('MyMod First Delivery', {
 ## 字段
 
 | 字段                | 说明                                      |
-| ------------------- | ----------------------------------------- |
+| :------------------ | :---------------------------------------- |
 | `title`             | 成就标题，必填                            |
 | `description`       | 成就说明，必填                            |
 | `difficulty`        | 原版难度，必填，整数 1 至 5               |
@@ -69,7 +72,8 @@ feats.add('MyMod First Delivery', {
 
 `title` 和 `description` 支持字符串或 `[英文, 中文]`。双语文本随游戏语言切换。
 
-自定义 `filter` 时，加入 `All` 才会在「显示全部」中列出。
+> [!TIP]
+> 自定义 `filter` 时，请将 `'All'` 加入数组，否则该成就不会在「显示全部」筛选中列出。
 
 ## 系列
 

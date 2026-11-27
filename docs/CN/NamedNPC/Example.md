@@ -19,7 +19,8 @@ my-mod/
 
 ## 1. 接好加载配置
 
-先把下面的内容保存为 `boot.json`。脚本通过 `params.script` 加载，所以 `scriptFileList` 留空，避免同一个文件执行两次。
+> [!TIP]
+> 脚本通过 `params.script` 加载，因此 `scriptFileList` 必须留空，避免同一个文件被 ModLoader 与框架各执行一次。
 
 这里的 `name: "myMod"` 是模组名，稍后人物资料中的 `nam: 'Luna'` 是人物标识。它们分别交给加载器和 NPC 系统使用。
 
@@ -262,6 +263,12 @@ maplebirch.dynamic.regStateEvent('append', 'myMod:lunaConversation', {
 留意链接里的两步：约好后把 `meeting` 设为 `planned`，返回公园；赴约并介绍自己后才增加信任，把进度改为 `completed`。如果只是暂时离开，约定仍在，也没有完成交谈。
 
 这里有两个不同的标记：`C.npc.Luna.init` 记录原版人物是否已初始化，`$myMod.luna.meeting` 记录我们自己的剧情走到了哪里。把它们分开，后续添加新对话时就不必重做人物初遇。移植到其他地点时，也应保留那个地点原有的行动限制。
+
+```mermaid
+flowchart LR
+  A["meeting = 'none'<br/>长椅旁打招呼"] -->|"点击：约好聊聊"| B["meeting = 'planned'<br/>喷泉旁等待"]
+  B -->|"点击：介绍自己 (+5 信任)"| C["meeting = 'completed'<br/>已完成初次交谈"]
+```
 
 ## 4. 打包，到游戏里见见她
 

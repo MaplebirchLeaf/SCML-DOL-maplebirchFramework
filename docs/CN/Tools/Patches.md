@@ -13,7 +13,10 @@ maplebirch.tool.patch.get(name);
 
 内置扩展直接使用 `patch.traits`、`patch.feats`、`patch.featBoosts`、`patch.location`、`patch.bodywriting`、`patch.fishing`、`patch.foodstuff`、`patch.antiques` 和 `patch.tips`。动态名称使用 `get(name)`。不存在时返回 `undefined`，需要强制取得时使用 `require(name)`。`has(name)` 和 `names()` 可用于查询。
 
-不同扩展可以声明同名 API，它们在各自命名空间中互不冲突。`.add()` 仍为未冲突的 API 保留 4.x 扁平访问兼容。新代码应使用命名空间。重复扩展名称会抛错。请在启动脚本注册，晚注册不会补跑已经结束的阶段。
+不同扩展可以声明同名 API，它们在各自命名空间中互不冲突。`.add()` 仍为未冲突的 API 保留 4.x 扁平访问兼容。新代码应使用命名空间。
+
+> [!IMPORTANT]
+> 扩展名称不能为空或重复，否则 `.add()` 会直接抛出错误。请在启动脚本中完成注册，晚注册不会补跑已经结束的生命周期阶段。
 
 ## 最小示例
 
@@ -51,9 +54,26 @@ catalog.myCatalog.set('example', 'value');
 | `init()`      | StoryInit 中原版静态初始化完成后 | 合并 `setup` 目录，不创建存档变量     |
 | `state()`     | 新游戏及读档的状态初始化阶段     | 只补齐 `V` 缺失项，保留现有数量和进度 |
 
-同阶段处理器按注册顺序同步执行。`available` 不缓存。缺少依赖的原版结构时可返回 `false`，跳过 `init` 或 `state`。单项异常记录日志后继续。
+```mermaid
+flowchart TD
+  Start["patch.apply(phase) ('init' | 'state')"] --> Next["按注册顺序取下一个扩展"]
+  Next --> HasCb{"定义了 definition[phase]?"}
+  HasCb -- "否" --> Next
+  HasCb -- "是" --> CheckAvail{"available() 存在?"}
+  CheckAvail -- "否" --> Run["执行 definition[phase]()"]
+  CheckAvail -- "是" --> EvalAvail{"available() === true?"}
+  EvalAvail -- "否" --> Next
+  EvalAvail -- "是" --> Run
+  Run -- "正常" --> Next
+  Run -- "抛错" --> Log["记录诊断错误并继续下一个扩展"] --> Next
+```
 
-地点、身体文字、食物、鱼类、小贴士在 init 合并静态数据。对应的原版目录不存在时会静默跳过，不会主动创建原版 `setup` 根项。食物库存及古董收集状态在 state 补齐。古董文本、捐赠和小贴士列表通过 [widget 源码适配](Zones.md#源码适配) 接入。`setup` 不在读档时重新初始化。
+同阶段处理器按注册顺序同步执行。缺少依赖的原版结构时可返回 `false`，跳过 `init` 或 `state`。单项异常记录日志后继续。
+
+> [!NOTE]
+> `available()` 每次执行阶段都会重新求值，不会缓存。`setup` 只在 `init` 阶段合并静态数据，读档时不会重新初始化。
+
+地点、身体文字、食物、鱼类、小贴士在 init 合并静态数据。对应的原版目录不存在时会静默跳过，不会主动创建原版 `setup` 根项。食物库存及古董收集状态在 state 补齐。古董文本、捐赠和小贴士列表通过 [widget 源码适配](Zones.md#源码适配) 接入。
 
 相关文档：
 

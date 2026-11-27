@@ -6,7 +6,7 @@
 
 单语言正文直接写文本，按钮和链接也可使用 SugarCube 原有的 `<<button>>`、`<<link>>`。需要按语言切换内容或标签时，再使用下列多语言宏。
 
-常用宏：
+## 常用宏
 
 | 宏                         | 用途                     |
 | :------------------------- | :----------------------- |
@@ -16,10 +16,8 @@
 | `<<lanLink>>`              | 多语言链接               |
 | `<<lanListbox>>`           | 多语言下拉框             |
 | `<<radiobuttonsfrom>>`     | 从数组/对象生成单选按钮  |
-| `<<maplebirchReplace>>`    | 替换框架覆盖层内容       |
 | `<<maplebirchTextOutput>>` | 输出文本工具注册的内容   |
-
----
+| `<<maplebirchReplace>>`    | 替换框架覆盖层内容       |
 
 ## language
 
@@ -43,9 +41,8 @@
 <</language>>
 ```
 
-切换语言会重新解析所选内容块。正文中只放显示内容；赋值、扣除资源等操作放在链接的点击内容或实际结算逻辑中。
-
----
+> [!WARNING]
+> 切换语言会重新解析所选内容块。正文中只放显示内容；赋值、扣除资源等操作放在链接的点击内容或实际结算逻辑中。
 
 ## lanSwitch
 
@@ -67,8 +64,6 @@
 ```twine
 <<= lanSwitch("Save", "保存")>>
 ```
-
----
 
 ## lanButton
 
@@ -119,8 +114,6 @@
 <</lanButton>>
 ```
 
----
-
 ## lanLink
 
 创建链接，文本会随语言切换刷新。第二个非样式字符串指定目标 passage，内容在点击时执行，然后跳转。
@@ -159,7 +152,8 @@
 <<lanLink `['Go to town', '前往城镇']` 'Town'>><</lanLink>>
 ```
 
-只有 `lanLink`、`lanButton` 接管开头的双语数组解析。它们的其他参数继续使用原版解析器，全局 SugarCube 语法不变。变量和表达式在生成控件时求值，之后修改变量需要重新绘制控件。语言切换会刷新现有控件的文本。
+> [!NOTE]
+> 只有 `lanLink`、`lanButton` 接管开头的双语数组解析，其它参数继续使用原版解析器，全局 SugarCube 语法不变。变量和表达式在生成控件时求值，之后修改变量需要重新绘制控件；语言切换会刷新现有控件的文本。
 
 ### 标签中的显示宏
 
@@ -169,11 +163,10 @@
 <<lanLink ['Ask <<him>> to stay', '请<<him>>留下'] 'My Mod Stay'>><</lanLink>>
 ```
 
-标签在创建控件时通过原版解析器转成文字。双语数组与已加载字典译文会保留当时的代词和变量值，切换语言不会重新执行这些显示宏。大小写转换在解析后执行，图标与样式仍使用对应参数。纯文本标签沿用原来的显示方式。
+> [!IMPORTANT]
+> 标签在创建控件时通过原版解析器转成文字，双语数组与已加载字典译文会保留当时的代词和变量值，切换语言不会重新执行这些显示宏。标签只放显示内容，赋值、时间推进和其它动作仍写在点击内容中；循环或 widget 的点击内容若依赖局部变量，仍需保留 `capture`。
 
-标签只放显示内容，赋值、时间推进和其它动作仍写在点击内容中。循环或 widget 的点击内容若依赖局部变量，仍需保留相应的 `capture`。
-
----
+大小写转换在解析后执行，图标与样式仍使用对应参数。纯文本标签沿用原来的显示方式。
 
 ## lanListbox
 
@@ -214,8 +207,6 @@
 <</lanListbox>>
 ```
 
----
-
 ## radiobuttonsfrom
 
 从数组或字符串生成一组单选按钮。
@@ -240,8 +231,6 @@
 <</radiobuttonsfrom>>
 ```
 
----
-
 ## maplebirchTextOutput
 
 输出由文本工具注册的内容。
@@ -252,8 +241,6 @@
 
 相关功能见 [文本工具](Tools/Text.md)。
 
----
-
 ## maplebirchReplace
 
 打开框架浮窗，并用指定宏渲染正文。
@@ -263,8 +250,6 @@
 ```
 
 此例使用 `my-mod-hint` 渲染正文。指定 `title` 时，先查找 `titleMyModHint`，找不到时再查找 `title-my-mod-hint`。
-
----
 
 ## 自定义宏
 
@@ -290,13 +275,21 @@ maplebirch.tool.define('myModRaw', function () {
 });
 ```
 
-`define()` 和 `defineS()` 沿用 `tool.macro` 的参数，默认在 `:sugarcube` 注册**新增宏**，无需自己包一层 `once(':sugarcube')`。替换原版 Twee widget 时，将最后一个 `phase` 参数设为 `'storyinit'` 或 `'storyready'`，等原版注册完成后再替换。提前占用原版宏名会让 SugarCube 的原版注册报错。需要 `create()` 等其它宏管理能力时可访问 `maplebirch.tool.macro`。
+> [!WARNING]
+> `define()` 和 `defineS()` 默认在 `'sugarcube'` 阶段注册**新增宏**（无需自己包一层 `once(':sugarcube')`）。替换原版 Twee widget 时，必须将最后一个 `phase` 参数设为 `'storyinit'` 或 `'storyready'`，等原版注册完成后再替换；提前占用原版宏名会让 SugarCube 的原版注册报错。
+
+需要 `create()` 等其它宏管理能力时可访问 `maplebirch.tool.macro`。
 
 ### 包装现有宏
 
 `maplebirch.tool.wrap(name, wrapper, phase = 'storyready')` 登记宏包装，与 `define` 共用安装流程。也可通过 `tool.macro.wrap()` 调用。默认在 `:storyready` 安装，对应阶段已就绪时立即安装。
 
 `define()`、`defineS()` 和 `wrap()` 共用以下安装时机：
+
+```mermaid
+flowchart LR
+  SC["'sugarcube'<br/>脚本已执行，Twee widget 尚未注册"] --> SI["'storyinit'<br/>StoryInit 末尾，存档恢复与首段前"] --> SR["'storyready'<br/>首个段落显示后"]
+```
 
 | `phase`        | 执行时机                                                        | 适用情况                                      |
 | -------------- | --------------------------------------------------------------- | --------------------------------------------- |
@@ -325,8 +318,6 @@ maplebirch.tool.wrap(
 ```
 
 此方法不返回执行结果。安装时找不到对应宏会记录警告；同一宏的多个包装按登记顺序叠加，后登记的包在外层。
-
----
 
 ## 补充说明
 

@@ -1,25 +1,21 @@
 # 区域添加
 
 > [!TIP]
-> 优先使用 `maplebirch.tool.addTo()`。只有区域钩子无法满足需求时，才考虑[源码注入](Patches.md)。
+> 优先使用 `maplebirch.tool.addTo()`。只有区域钩子无法满足需求时，才考虑[源码适配](#源码适配)或 [Patch 注册](Patches.md)。
 
-### 用来做什么
+## 用来做什么
 
 区域管理用于把模组 widget 插入到游戏页面的固定位置。它适合放置选项页内容、状态栏信息、页眉页脚、链接区提示、角色面板扩展、社交页扩展等内容。
 
 如果你的目标是“把一个 widget 放到游戏已有界面的某个位置”，通常就使用这个功能。
 
----
-
-### 使用入口
+## 使用入口
 
 ```javascript
 maplebirch.tool.addTo(zone, widget);
 ```
 
----
-
-### 最小写法
+## 最小写法
 
 先定义 SugarCube widget：
 
@@ -36,9 +32,7 @@ maplebirch.tool.addTo(zone, widget);
 maplebirch.tool.addTo('Options', 'MyModOptions');
 ```
 
----
-
-### 通过 boot.json 添加
+## 通过 boot.json 添加
 
 固定区域内容可以直接写入 `boot.json`：
 
@@ -66,11 +60,9 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 
 完整配置方式见 [boot.json 配置](../BootJson.md)。
 
----
+## widget 写法
 
-### widget 写法
-
-#### widget 名称
+### widget 名称
 
 最常用的写法是传入 widget 名称：
 
@@ -84,7 +76,7 @@ maplebirch.tool.addTo('StatusBar', 'MyModStatus');
 <<MyModStatus>>
 ```
 
-#### 函数
+### 函数
 
 可以直接传入函数：
 
@@ -98,7 +90,7 @@ maplebirch.tool.addTo('Information', () => {
 
 函数也可以只更新状态而不返回内容。返回 `undefined` 或 `null` 时，该区域不输出文字。
 
-#### 配置对象
+### 配置对象
 
 配置对象用于控制显示范围：
 
@@ -119,9 +111,7 @@ maplebirch.tool.addTo('StatusBar', {
 | `exclude` | 在指定 passage 不显示   |
 | `match`   | 用正则匹配 passage 标题 |
 
----
-
-### 链接区域
+## 链接区域
 
 `BeforeLinkZone` 和 `AfterLinkZone` 用于在一组链接前后添加内容：
 
@@ -141,11 +131,10 @@ maplebirch.tool.addTo('CustomLinkZone', [-2, 'BeforeSecondLastLink']);
 
 数组第一项是链接位置索引，从 `0` 开始。负数从末尾计数，`-1` 表示最后一个链接，`-2` 表示倒数第二个链接。第二项是 widget 名称或配置对象。
 
-索引只计算页面中可见的原有 `.macro-link`，不包括区域中新插入的链接。内容插在目标链接之前；链接行首的图标（`<<icon>>`、`<<getouticon>>` 等）与链接属于同一行，插入位置会落在图标之前，不会把图标与它的文字拆开。只有图标与链接之间仅隔源码空白（换行、缩进）时才这样处理，中间若有其它文本、`<br>` 或元素，图标不计入该行。非整数或超出范围的位置不插入内容。返回链接并不一定是页面最后一个链接，使用前需要核对页面顺序。
+> [!NOTE]
+> 索引只计算页面中可见的原有 `.macro-link`，不包括区域中新插入的链接。内容插在目标链接之前；链接行首的图标（`<<icon>>`、`<<getouticon>>` 等）与链接属于同一行，插入位置会落在图标之前，不会把图标与它的文字拆开。只有图标与链接之间仅隔源码空白（换行、缩进）时才这样处理，中间若有其它文本、`<br>` 或元素，图标不计入该行。非整数或超出范围的位置不插入内容。返回链接并不一定是页面最后一个链接，使用前需要核对页面顺序。
 
----
-
-### 初始化
+## 初始化
 
 如果需要在 StoryInit 相关时机执行初始化函数：
 
@@ -168,9 +157,7 @@ maplebirch.tool.onInit(initData, initOptions, initWidgets);
 maplebirch.tool.onInit('MyModInitWidget');
 ```
 
----
-
-### 源码适配
+## 源码适配
 
 需要修改原版内容或内部执行分支时，使用 `maplebirch.tool.inject()`。普通 passage 放在 `locationPassage`，带 widget 标签的 passage 放在 `widgetPassage`。
 
@@ -188,7 +175,8 @@ maplebirch.tool.inject({
 });
 ```
 
-这里的目标与变量属于示例 Mod。适配原版时必须替换成已经核对的真实结算位置。插入成功分支才能表示奖励已结算，不能仅根据页面已渲染判断。
+> [!WARNING]
+> 上例中的目标与变量属于示例 Mod；适配原版时必须替换成已经核对的真实结算位置，并确保 `locationPassage`（无 `widget` 标签）与 `widgetPassage`（含 `widget` 标签）分类正确，否则补丁会被跳过并记为 `invalid`。建议为原版补丁始终设置 `expected`。
 
 | 字段                         | 行为                                                |
 | ---------------------------- | --------------------------------------------------- |
@@ -199,11 +187,25 @@ maplebirch.tool.inject({
 | `applybefore` / `applyafter` | 在匹配位置前/后插入字面文本                         |
 | `expected`                   | 可选的预期匹配数。不符时跳过该条补丁并记录 mismatch |
 
+```mermaid
+flowchart TD
+  Start["applySourcePatch(content, patch)"] --> Valid{"恰好 1 个匹配字段且 1 个操作字段?"}
+  Valid -- "否" --> Invalid["status: invalid"]
+  Valid -- "是" --> Count["统计全文候选匹配数 matches"]
+  Count --> Exp{"设置了 expected 且 matches !== expected?"}
+  Exp -- "是" --> Mismatch["status: mismatch (跳过修改)"]
+  Exp -- "否" --> Zero{"matches === 0?"}
+  Zero -- "是" --> Unmatched["status: unmatched (跳过修改)"]
+  Zero -- "否" --> Mode{"srcmatchgroup 或带 g 标志?"}
+  Mode -- "是" --> All["替换全部匹配 (applied = matches)"]
+  Mode -- "否" --> First["仅替换第一处 (applied = 1)"]
+  All --> Applied["status: applied"]
+  First --> Applied
+```
+
 每条使用一个匹配字段和一个替换操作。`matches` 是候选匹配数，`applied` 是实际替换数。例如 `src` 命中两处但只替换第一处时分别为 2 和 1。目标缺失、未匹配、数量不符等结果见 [补丁报告](../AddonPlugin.md#补丁报告)。
 
----
-
-### 常用区域
+## 常用区域
 
 `zone` 必须使用下表中的名称。`passage`、`exclude`、`match` 都匹配 passage 标题。`CustomLinkZone` 的位置是链接索引。
 
@@ -252,9 +254,7 @@ maplebirch.tool.inject({
 | `FameModify`       | 知名度显示修改区 |
 | `Fame`             | 知名度显示之后   |
 
----
-
-### 完整示例
+## 完整示例
 
 ```twine
 <<widget "MyModStatus">>

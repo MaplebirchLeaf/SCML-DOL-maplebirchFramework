@@ -2,6 +2,9 @@
 
 用于向博物馆古董系统添加新的古董文本和收藏状态。
 
+> [!IMPORTANT]
+> 框架只负责注册文本和默认收藏状态（`notFound`），**不会**提供图标资源、发现剧情或奖励。模组仍需自行提供 `icon` 图标文件、发现剧情以及 `Museum <name>` 段落。
+
 ## 使用入口
 
 ```javascript
@@ -10,7 +13,7 @@ maplebirch.tool.patch.antiques.add(key, config);
 
 在启动脚本中注册。框架通过加载时源码补丁，在 `museumAntiqueText` 执行后合并文本，并在捐赠时调用原版 `museumAntiqueStatus`。新游戏及读档只补齐缺失的收集条目，不覆盖已有进度。目标游戏版本若修改了这两个 widget 的源码接点，请检查[补丁报告](../AddonPlugin.md#补丁报告)。
 
-`inject(data)` 是手动合并入口，返回传入的对象。通常无需调用。古董的资源、发现剧情及 `Museum <name>` 段落仍由 Mod 提供。
+`inject(data)` 是手动合并入口，返回传入的对象。通常无需调用。
 
 ## 最小示例
 
@@ -28,30 +31,29 @@ maplebirch.tool.patch.antiques.add('antiquemyitem', {
 
 ## 配置字段
 
-| 字段          | 说明                       |
-| :------------ | :------------------------- |
-| `hint`        | 温特的提示文本             |
-| `museum`      | 古董放入博物馆后的展示文本 |
-| `name`        | 真实名称                   |
-| `cn_name`     | 中文显示名称，可选         |
-| `journal`     | 日志描述                   |
-| `journalName` | 日志中使用的名称，可选     |
-| `icon`        | 图标路径                   |
-| `key`         | 数组配置时使用的唯一标识   |
+| 字段          | 说明                       | 必填   |
+| :------------ | :------------------------- | :----- |
+| `hint`        | 温特的提示文本             | 是     |
+| `museum`      | 古董放入博物馆后的展示文本 | 是     |
+| `name`        | 真实名称（用于段落拼接）   | 是     |
+| `cn_name`     | 中文显示名称               | 否     |
+| `journal`     | 日志描述                   | 是     |
+| `journalName` | 日志中使用的名称           | 否     |
+| `icon`        | 图标路径                   | 是     |
+| `key`         | 数组配置时使用的唯一标识   | 仅数组 |
 
-`name` 还用于拼接原版入口 `Museum <name>`，因此示例保留 `Curious Relic` 和 `Old Coin`。模组须提供 `Museum Curious Relic`、`Museum Old Coin` 两个对应段落。中文显示名称填写在 `cn_name`，其它描述文本可直接写中文。
+> [!NOTE]
+> `name` 会用于拼接原版入口 `Museum <name>`（即使在中文版中也是如此）。示例保留 `Curious Relic` 和 `Old Coin`，模组须提供 `Museum Curious Relic` 与 `Museum Old Coin` 两个段落；中文显示名称请填写在 `cn_name` 中，其余描述文本可直接写中文。
 
 ## 状态流转
 
-古董状态仍由原版 **`<<museumAntiqueStatus key status>>`** 控制。常见状态：
+古董状态仍由原版 **`<<museumAntiqueStatus key status>>`** 控制。常见状态流转：
 
 ```text
 notFound -> found -> talk -> museum
 ```
 
-也存在 **`stolen`**、**`recovered`**。框架只负责注册文本和默认状态，_不负责定义发现地点或奖励_。
-
-发现古董的剧情仍需要在 passage 中自行写：
+也存在 **`stolen`**、**`recovered`** 状态。发现古董的剧情需要在 passage 中自行编写：
 
 ```twine
 <<set $antiquemoney += 4000>>

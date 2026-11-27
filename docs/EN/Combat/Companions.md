@@ -63,7 +63,8 @@ The widget reads the response from `_args[0]`:
 | `defeat`  | Health reached zero and support ended               |
 | `leave`   | Leave early through `companions-leave`              |
 
-`effects` may be queried repeatedly. Set only `bonus` and `guard`; do not change story progress, spend resources or output dialogue. Both default to `0` on every query: `bonus` is a nonnegative finite ratio; `guard` is limited to `0` through `1`, with invalid values treated as `0`. Put dialogue and actual costs in `assist`, adding other responses when the scene needs them.
+> [!IMPORTANT]
+> `effects` may be queried repeatedly. Set only `bonus` and `guard`; do not change story progress, spend resources or output dialogue. Both default to `0` on every query: `bonus` is a nonnegative finite ratio; `guard` is limited to `0` through `1`, with invalid values treated as `0`. Put dialogue and actual costs in `assist`, adding other responses when the scene needs them.
 
 Companions' `bonus` values add together. Vanilla `defiance` damage is multiplied by `1 + total bonus`, then follows the remaining vanilla multipliers, multi-enemy distribution and defeat flow. Pain reduction multiplies by `1 - guard` for each companion. It only affects positive combat `pain` macro calls, not pain recovery or scripts that write pain directly. Content must integrate custom damage at its proper resolution point, keeping individual and shared enemy health consistent.
 
@@ -79,7 +80,8 @@ The add macro's third argument sets maximum health. It defaults to `100` and mus
 <<set _myModRobinHit to [8, 1]>>
 ```
 
-The returned `hit` in `update` is `[damage, stun]`, with stun optional. Damage must be nonnegative and finite; it directly reduces companion health, capped at the remaining health, without `pain`'s ×4 conversion. Stun must be a nonnegative safe integer; the higher of the existing and new values is retained. Each valid support opportunity reduces it by one and skips that opportunity, including the decrease from `1` to `0`. `damage` in `hit`/`defeat` responses is actual health lost; it is `0` for other events.
+> [!WARNING]
+> The returned `hit` in `update` is `[damage, stun]`, with stun optional. Damage must be nonnegative and finite; it directly reduces companion health, capped at the remaining health, without `pain`'s ×4 conversion. Stun must be a nonnegative safe integer; the higher of the existing and new values is retained. Each valid support opportunity reduces it by one and skips that opportunity, including the decrease from `1` to `0`. `damage` in `hit`/`defeat` responses is actual health lost; it is `0` for other events.
 
 For several hits in one submission, the scene combines damage and retains the highest stun before returning the result. Leave `hit` unset without a confirmed hit; the framework does not randomly select companions as enemy targets. The original hit branch rebuilds temporary results when loading replays the passage, without a separate persistent story record.
 
@@ -93,10 +95,29 @@ No arguments or no valid characters means no action. Adding a character twice do
 
 ## Turns and Saves
 
+```mermaid
+flowchart TD
+    A["companions-add (after combat init)"] --> B["effectsman: companions.turn()"]
+    B --> C{"stun > 0?"}
+    C -- Yes --> D["Decrement stun -> event: stun"]
+    C -- No --> E["event: assist"]
+    E --> F["damage() / pain() query event: effects"]
+    D --> G["stateman: companions.update()"]
+    F --> G
+    G --> H{"hit returned in update?"}
+    H -- Yes --> I["Reduce health / apply stun -> hit or defeat"]
+    H -- No --> J["End of turn"]
+    I --> J
+    J --> K["combatinit / endcombat / endevent: clear group"]
+```
+
 - Submissions follow native history moments. Another `Engine.play()` is a new turn even with the same passage name; `Engine.show()` redraws without repeating support, costs or stun consumption.
 - Support runs after `effectsman`; updates run after enemy actions and `stateman` status output. Displaying `stateman` alone does not settle hits. Confirmed hits following this turn's support may settle once during the ending, without adding another support action.
 - Character identities, response widgets, health, stun and settlement records are saved. Characters are resolved from the current native containers after loading. Native entry snapshots and passage replay are retained, without catch-up turns for time spent away from the game.
-- `combatinit`, `endcombat` and `endevent` automatically clear the group. Repeated cleanup invokes no additional companion responses. Read any needed aftermath result before native end macros; cleanup does not delete characters from `$NPCName` or `$per_npc`.
+
+> [!NOTE]
+> `combatinit`, `endcombat` and `endevent` automatically clear the group. Repeated cleanup invokes no additional companion responses. Read any needed aftermath result before native end macros; cleanup does not delete characters from `$NPCName` or `$per_npc`.
+
 - Character and combat conditions are rechecked before each companion acts. Possessed, pending-transition and stunned states provide no new support. This entry point covers ordinary human/beast encounters; content still decides eligibility in complex mixed encounters.
 
 ## Script API

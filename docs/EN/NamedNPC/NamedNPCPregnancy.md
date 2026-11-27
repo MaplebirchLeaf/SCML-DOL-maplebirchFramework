@@ -9,7 +9,8 @@
 - `available` checks for native API functions, not character existence, enabled cycles or conception eligibility.
 - Check both `available` and the current character, such as `C.npc.Luna`. Missing APIs or unknown characters make `get()` and `tryConceive()` throw.
 
-`NPCData.pregnancy` contains cycle and switch state. It is separate from the active records in `get().pregnancies`; do not put the record array in the character's `pregnancy` field.
+> [!IMPORTANT]
+> `available` only checks whether the native API functions exist — not character existence, enabled cycles, or conception eligibility. `NPCData.pregnancy` holds cycle and switch state, separate from the active record array in `get().pregnancies`; never assign the record array to the character's `pregnancy` field.
 
 ## Registration
 
@@ -117,7 +118,8 @@ const record = maplebirch.npc.Pregnancy.tryConceive('Luna', {
 });
 ```
 
-Check the runtime requirements first. Success returns a native pregnancy record; an unsuccessful roll returns `null`. Every call makes a new roll, so keep it out of display, schedule and repeatedly evaluated condition callbacks.
+> [!WARNING]
+> Every call to `tryConceive()` performs a new native conception roll — never place it inside display, schedule, or repeatedly evaluated condition callbacks. `tryConceive(name)` always targets the named NPC as the carrier; `canImpregnatePlayer` does not reverse it into a player-impregnation API.
 
 | Argument       | Default and meaning                                                                                         |
 | :------------- | :---------------------------------------------------------------------------------------------------------- |

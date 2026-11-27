@@ -102,7 +102,7 @@
 ]
 ```
 
-**大多数模组只需 `script`。** 只有需要在框架模块注册阶段执行的代码，才放入 `module`。
+**大多数模组只需 `script`。** 只有需要在框架模块注册阶段执行的代码，才放入 `module`。通过 `params.script` 加载时，记得把对应文件放进 `additionFile` 并从 `scriptFileList` 留空，避免重复执行（完整 `boot.json` 模板见[快速开始](docs/CN/GettingStarted.md)）。
 
 **`script`** 的定位是普通模组脚本入口，适合注册 NPC、事件、区域 widget、战斗按钮、角色图层等内容。**`module`** 的执行时机更早，主要给需要扩展框架模块系统的代码使用，_如果你不确定是否需要它，通常就是不需要_。
 
@@ -233,8 +233,8 @@ npm install -D @scml-dol-maplebirch/types
 
 如果你是第一次使用框架，建议按这个顺序阅读：
 
-1. 先看[快速开始](docs/CN/GettingStarted.md)，再查 [boot.json 配置][BootJson]，确认脚本和资源该怎么加载。
-2. 再看 [区域管理][Framework] 和 [事件发射器][EventEmitter]，了解最常见的插入内容和监听时机。
+1. 先看[快速开始](docs/CN/GettingStarted.md)，再读[从示例到完整功能](docs/CN/Development.md)和 [NPC 公园约见实例](docs/CN/NamedNPC/Example.md)，确认脚本、存档初始化与资源该怎么接起来。
+2. 查 [boot.json 配置][BootJson]、[区域管理][Framework] 和 [事件发射器][EventEmitter]，了解最常见的配置字段、插入位置与监听时机。
 3. 根据模组类型选择阅读 NPC、动态事件、战斗、角色或工具相关文档。
 4. 遇到通用代码处理需求时，再查 [工具函数][Utilities]。
 

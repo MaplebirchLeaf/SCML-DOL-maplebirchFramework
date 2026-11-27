@@ -61,7 +61,10 @@ const value = Math.clamp(input, 0, 100); // 100
 
 ## 原型方法与静态方法
 
-处理对象时，先决定是否要保留原数据。`maplebirch.utils.merge/append/cover` 都会**修改并返回第一个参数**；它们对数组的处理不同：
+> [!WARNING]
+> `maplebirch.utils.merge`、`append`、`cover` 都会**修改并返回第一个参数**。如果你不想影响原数据，请改用 `Object.merge()`、`Object.append()`、`Object.cover()`、`Array.merge()`、`Array.append()`、`Array.cover()` 静态方法。
+
+处理对象时，先决定是否要保留原数据。它们对数组的处理不同：
 
 ```javascript
 const source = { list: [3] };
@@ -413,7 +416,8 @@ if (result) {
 
 `loadImage()` 复用 `maplebirch.host.modLoader.resources.load()`：优先解析 ModLoader 图片，未解析到时检查原路径。返回解析地址、`false` 或对应的 Promise。统一使用 `await` 即可。缓存保留解析地址，并合并同路径并发请求。失败时保留旧接口的侧边栏刷新行为。
 
-使用 `maplebirch.host.modLoader.resources.clear(path)` 清除缓存后重试。存在性查询、路径归一化见 [图片资源](AddonPlugin.md#图片资源)。
+> [!TIP]
+> 重试已缓存的失败图片前，先调用 `maplebirch.host.modLoader.resources.clear(path)` 清除缓存。存在性查询、路径归一化见 [图片资源](AddonPlugin.md#图片资源)。
 
 ## 字节与 Base64 工具
 
@@ -483,7 +487,8 @@ const result = new SelectCase()
   .match(value);
 ```
 
-字符串和数值条件默认不能混用。需要混合判断时先使用 `casePredicate()`。数值范围要求有限且有序的边界。正则匹配不会改变传入表达式的 `lastIndex`。
+> [!NOTE]
+> 字符串和数值条件默认不能混用，需要混合判断时先使用 `casePredicate()`。数值范围要求有限且有序的边界。正则匹配不会改变传入表达式的 `lastIndex`。
 
 TypeScript 可指定输入、结果和元数据类型：
 

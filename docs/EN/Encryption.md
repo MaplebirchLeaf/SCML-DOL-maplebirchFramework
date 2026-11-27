@@ -1,8 +1,19 @@
 # Mod Encryption
 
-The framework itself is not encrypted. This capability exists for **encrypted distribution of other mods that depend on maplebirch**: the real mod is packed into an encrypted shell `.modpack`, which asks the framework for authorization during ModLoader's `earlyload` phase and only then decrypts and lazy-loads the real mod.
+> [!NOTE]
+> The framework itself is not encrypted. This capability exists for **encrypted distribution of other mods that depend on maplebirch**: the real mod is packed into an encrypted shell `.modpack`, which asks the framework for authorization during ModLoader's `earlyload` phase and only then decrypts and lazy-loads the real mod.
 
 ## Player-side flow
+
+```mermaid
+flowchart LR
+  S["Shell .modpack<br/>(earlyload)"] --> C{"Check IndexedDB<br/>credentials store"}
+  C -->|valid cache| D["Decrypt real mod<br/>& lazy-load via ModLoader"]
+  C -->|missing or expired| P["Show auth prompt<br/>Paste credential or password"]
+  P --> V{"Verify signature &<br/>date window"}
+  V -->|valid| K["Store encrypted credential"] --> D
+  V -->|failed or cancelled| X["Disable encrypted mod"]
+```
 
 1. Load the `.modpack` into ModLoader in-game. The shell exposes only the shell `boot.json`, the earlyload decryptor, and `.crypt` shards; the original `boot.json`, `auth.json`, scripts, and assets all live inside the encrypted payload.
 2. On first load the framework shows an authorization prompt: paste an authorization credential issued by the companion tool (shape `maplebirch-auth.<payload>.<signature>`), or the matching authorization password.
@@ -29,6 +40,9 @@ Optional fields: `subject`, `name`, `prompt` (dialog copy) and `date`. `date` su
 
 ## Validity and invalidation
 
+> [!CAUTION]
+> Failing verification or closing the prompt immediately **disables the encrypted mod** to avoid half-loaded state, and stale remembered credentials are cleared automatically.
+
 - The framework validates the credential issuance time against the window declared by `date` in `auth.json` (day/month, timezone, grace days); credentials outside the window are treated as invalid.
 - When a credential expires or is replaced, the framework clears the locally remembered one and returns to the prompt flow.
-- Failed/cancelled verification disables the mod; re-verifying successfully restores normal loading.
+- Re-verifying successfully restores normal loading.

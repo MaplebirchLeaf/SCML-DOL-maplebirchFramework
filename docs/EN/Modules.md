@@ -173,14 +173,28 @@ Completing `preInit` does not change the public module state. The module enters 
 
 ## Lifecycle Hooks
 
+```mermaid
+flowchart LR
+  R["REGISTERED (0)"] --> P["preInit() (async ok)"]
+  P --> I["Init() (first :passagestart, sync)"]
+  I --> M["MOUNTED (1)"]
+  I -. "error" .-> E["ERROR (2)"]
+  M --> L["loadInit() (on save load, sync)"]
+  M --> O["postInit() (each passage start, sync)"]
+  L --> O
+```
+
 All hooks are optional.
 
-| Hook         | Timing                                                             | Typical use                               |
-| :----------- | :----------------------------------------------------------------- | :---------------------------------------- |
-| `preInit()`  | After `afterInjectEarlyLoad`, once IndexedDB and logging are ready | Prepare resources, config, or caches      |
-| `Init()`     | During `:passagestart` when normal gameplay begins                 | Main setup with `setup` and `V` available |
-| `loadInit()` | When loading a save after main initialization is complete          | Restore save-dependent state              |
-| `postInit()` | Each passage start after main/load init                            | Refresh passage-scoped behavior           |
+| Hook         | Timing                                                             | Typical use                                          |
+| :----------- | :----------------------------------------------------------------- | :--------------------------------------------------- |
+| `preInit()`  | After `afterInjectEarlyLoad`, once IndexedDB and logging are ready | Prepare resources, config, or caches (async allowed) |
+| `Init()`     | During `:passagestart` when normal gameplay begins                 | Main setup with `setup` and `V` available            |
+| `loadInit()` | When loading a save after main initialization is complete          | Restore save-dependent state                         |
+| `postInit()` | Each passage start after main/load init                            | Refresh passage-scoped behavior                      |
+
+> [!IMPORTANT]
+> Only `preInit()` may return a `Promise`. `Init()`, `loadInit()`, and `postInit()` must execute synchronously; returning a `Promise` throws an error.
 
 The first save loaded from the title screen runs `Init()` and `postInit()` in the restored passage. Restore any state needed on that first load in `Init()` as well.
 
@@ -216,6 +230,9 @@ maplebirch.define('myModule', new MyModule(), ['npc']);
 ```
 
 ## Dependency Rules
+
+> [!WARNING]
+> Disabling a module cascades to all transitive dependents, and changes take effect only after reloading the game.
 
 Use `maplebirch.services.gui.setModuleStates({ myModule: false, anotherModule: true })` to update only named modules; pass one key for a single module. Unnamed module states are preserved. If dependency rules would change an unnamed module too, the call rejects until that module is included explicitly. Reload the game after saving for the lifecycle state to change.
 

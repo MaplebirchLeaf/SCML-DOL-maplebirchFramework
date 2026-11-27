@@ -33,7 +33,8 @@ maplebirch.tool.inject({
 });
 ```
 
-这个例子在指定源码接点后追加文本宏。`expected` 要与目标版本实际匹配次数一致。不匹配时不会修改 passage，失败记录见 [补丁报告](../AddonPlugin.md#补丁报告)。实际 Mod 应按目标 passage、NPC 或显示条件缩小范围。
+> [!IMPORTANT]
+> `expected` 要与目标版本实际匹配次数一致。不匹配时不会修改 passage，失败记录见 [补丁报告](../AddonPlugin.md#补丁报告)。实际 Mod 应按目标 passage、NPC 或显示条件缩小范围。
 
 ## 注册与渲染
 
@@ -102,7 +103,8 @@ maplebirch.on(':passagedisplay', (passage, root) => {
 | `raw(content)`               | 添加 Node 或原样文本，不翻译、不解析 HTML |
 | `box(content, className?)`   | 创建 div。字符串自动翻译，Node 直接插入   |
 
-`text`、`line`、`wikify` 接受字符串、数字、布尔值。空值不输出文本。需要翻译原样文本时显式调用 `tools.raw(tools.auto(value))`。Node 会移动到目标中，复用时应自行克隆。
+> [!NOTE]
+> `text`、`line`、`wikify` 接受字符串、数字、布尔值，空值（`null` / `undefined`）不输出文本。需要翻译原样文本时显式调用 `tools.raw(tools.auto(value))`。`Node` 会移动到目标中，复用时应自行克隆。
 
 ## 修改已有内容
 
@@ -119,6 +121,8 @@ maplebirch.on(':passagedisplay', (_passage, root) => {
 | `renameLink(target, label, root?)`       | 修改链接标签，保留链接元素、属性、目的地及其监听器，返回是否找到链接                       |
 | `replaceLink(target, wikiSource, root?)` | 将整个链接替换为新解析的 Wiki 内容，原监听器不会保留，返回是否完成替换                     |
 
-链接 `target` 优先传入已经定位的元素。这时直接操作该元素。传入字符串时，在 root 内查找第一个显示文字包含该字符串的 `.macro-link` 或 `.link-internal`。文字参数沿用 `lanSwitch` 翻译。按元素或 `data-passage` 定位可避免依赖显示语言。
+> [!TIP]
+> 链接 `target` 优先传入已经定位的元素，按元素或 `data-passage` 定位可避免依赖显示语言。传入字符串时，在 `root` 内查找第一个显示文字包含该字符串的 `.macro-link` 或 `.link-internal`，文字参数沿用 `lanSwitch` 翻译。
 
-`renameLink` 会重建标签内容，原链接内的子节点不会保留。`replaceLink` 先解析，再替换。解析抛错或生成 `.error` 时保留原链接。解析过程中执行的 Wiki 副作用不会回滚。
+> [!WARNING]
+> `renameLink` 会重建标签内容，原链接内的子节点不会保留。`replaceLink` 先解析再替换，解析抛错或生成 `.error` 时保留原链接，但解析过程中执行的 Wiki 副作用不会回滚。

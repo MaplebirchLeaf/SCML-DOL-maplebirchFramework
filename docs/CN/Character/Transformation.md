@@ -3,9 +3,27 @@
 ## 基本介绍
 
 转化系统允许模组制作者为游戏添加自定义的形态变化，如兽化、神圣化、恶魔化等。通过此系统，您可以定义角色在不同转化阶段的外观、特性、条件和效果。
-_可通过 `maplebirch.char.transformation.add` 注册。_
+
+```javascript
+maplebirch.char.transformation.add(name, type, config);
+```
 
 顶层 `pre`、`post` 与 `layers` 注册到原版 PC 的 `main` 画布。需要战斗贴图时，在 `combat` 中提供对应配置，框架会注册到 `combatMainPc`。
+
+```mermaid
+flowchart TD
+  A["1. 注册: transformation.add(name, type, config)"] --> B["2. 增减点数: &lt;&lt;transform name delta&gt;&gt;"]
+  B --> C["执行 hooks.change 调整 delta"]
+  C --> D["更新 build (未开启 coexist 且无 protect 时触发 suppress)"]
+  D --> E["3. 周期结算: &lt;&lt;transformationStateUpdate&gt;&gt;"]
+  E --> F["hooks.update('before') → 自然衰退 → hooks.update('alter')"]
+  F --> G["检查 update 阈值 → 更新 level 与 V.transformationParts → hooks.update('after')"]
+```
+
+> [!IMPORTANT]
+> 调用 `maplebirch.char.transformation.add()` 只负责登记定义、部件与图层，**不会**自动给角色增加转化点数或提升等级。实际剧情中仍需通过 `<<transform "dragon" 10>>` 增减点数，并由游戏周期结算 `<<transformationStateUpdate>>` 触发阈值升级与部件更新。
+
+---
 
 ## 动物转化共存
 
@@ -24,7 +42,7 @@ maplebirch.char.transformation.coexistConditions.push(() => V.myMod?.hasCoexistT
 在 `tool.onInit()` 中登记 `maplebirch.char.transformation.hooks`，让分支规则在恢复存档前就绪。回调执行时再读取游戏变量。钩子使用框架已有的 `Hooks`，支持 `add(name, callback, order)` 与 `remove(name)`，回调必须同步执行。
 
 | 钩子     | 参数与时机                                                                             |
-| -------- | -------------------------------------------------------------------------------------- |
+| :------- | :------------------------------------------------------------------------------------- |
 | `change` | 修改点数前，读取 `context.name`，调整 `context.change`                                 |
 | `update` | `(stage, transformation)`，依次为衰退前 `before`、衰退后成长前 `alter`、成长后 `after` |
 | `divine` | 调整原版选择结果 `context.widget`，值为 `[宏名, 等级]`，设为 `undefined` 则跳过        |
@@ -45,7 +63,7 @@ maplebirch.tool.onInit(() => {
 
 ## 共用绘制与融合配置
 
-`layers` 和 `combat.layers` 可以是图层表，也可以是返回图层表的函数。图层表直接登记，函数延后到游戏的 `StoryInit` 阶段执行，此时可读取已加载的原版 `Renderer.CanvasModels`。因此可在 `preInit` 登记转化和融合条件，不必等图像资源就绪。
+`layers` 和 `combat.layers` 可以是图层表，也可以是返回图层表的函数。图层表直接登记，函数延后到游戏的 `StoryInit` 阶段执行，此时可读取已加载的原版 `Renderer.CanvasModels`。因此可在 `onInit` 登记转化和融合条件，不必等图像资源就绪。
 
 ```javascript
 // 两套图片都需放进 ZIP 并列入 imgFileList；zfn 按自己的素材层级调整。
@@ -122,54 +140,22 @@ maplebirch.tool.onInit(() => {
   maplebirch.char.transformation.add('dragon', 'physical', {
     // 必填：转化部件列表
     parts: [
-      {
-        name: 'horns',
-        tfRequired: 1,
-        default: 'default'
-      },
-      {
-        name: 'tail',
-        tfRequired: 2,
-        default: 'default'
-      },
-      {
-        name: 'wings',
-        tfRequired: 3,
-        default: 'default'
-      },
-      {
-        name: 'scales',
-        tfRequired: 4,
-        default: 'default'
-      },
-      {
-        name: 'claws',
-        tfRequired: 5,
-        default: 'default'
-      },
-      {
-        name: 'fangs',
-        tfRequired: 6,
-        default: 'default'
-      }
+      { name: 'horns', tfRequired: 1, default: 'default' },
+      { name: 'tail', tfRequired: 2, default: 'default' },
+      { name: 'wings', tfRequired: 3, default: 'default' },
+      { name: 'scales', tfRequired: 4, default: 'default' },
+      { name: 'claws', tfRequired: 5, default: 'default' },
+      { name: 'fangs', tfRequired: 6, default: 'default' }
     ],
 
     // 可选：转化特质列表
     traits: [
-      {
-        name: 'fire_breath',
-        tfRequired: 4,
-        default: 'default'
-      },
-      {
-        name: 'dragon_sight',
-        tfRequired: 3,
-        default: 'default'
-      }
+      { name: 'fire_breath', tfRequired: 4, default: 'default' },
+      { name: 'dragon_sight', tfRequired: 3, default: 'default' }
     ],
 
     // 转化配置
-    build: 100, // 最大build值
+    build: 100, // 最大 build 值
     level: 6, // 最大等级
     update: [20, 40, 60, 80, 95, 100], // 等级升级阈值
 
@@ -235,7 +221,7 @@ maplebirch.tool.onInit(() => {
     // 可选：转化图层定义
     layers: {
       dragon_horns: {
-        srcfn: options => {
+        srcfn: () => {
           const level = V.maplebirch?.transformation?.dragon?.level || 0;
           if (level < 1) return undefined;
           return `img/transformations/dragon/horns_${level}.png`;
@@ -244,7 +230,7 @@ maplebirch.tool.onInit(() => {
         zfn: () => maplebirch.char.ZIndices.effects
       },
       dragon_wings: {
-        srcfn: options => {
+        srcfn: () => {
           const level = V.maplebirch?.transformation?.dragon?.level || 0;
           if (level < 3) return undefined;
           return `img/transformations/dragon/wings_${level}.png`;
@@ -256,18 +242,9 @@ maplebirch.tool.onInit(() => {
 
     // 可选：翻译
     translations: {
-      dragon: {
-        EN: 'Dragon',
-        CN: '龙'
-      },
-      fire_breath: {
-        EN: 'Fire Breath',
-        CN: '火焰吐息'
-      },
-      dragon_sight: {
-        EN: 'Dragon Sight',
-        CN: '龙之视觉'
-      }
+      dragon: { EN: 'Dragon', CN: '龙' },
+      fire_breath: { EN: 'Fire Breath', CN: '火焰吐息' },
+      dragon_sight: { EN: 'Dragon Sight', CN: '龙之视觉' }
     }
   });
 });
@@ -275,84 +252,59 @@ maplebirch.tool.onInit(() => {
 
 ---
 
-`message` 按语言代码保存消息。此例只提供 `CN`；双语模组可增加同结构的 `EN`，分别填写 `up` 与 `down` 数组。当前语言没有对应消息时不会输出。`translations` 则是部件、特质等名称的双语数据，详见[翻译服务](../Translator.md)。
-
 ## 配置选项详解
 
 ### 必需参数
 
-| 参数    | 类型   | 说明                                         |
-| :------ | :----- | :------------------------------------------- |
-| `name`  | string | 转化的唯一标识符                             |
-| `type`  | string | 转化类型：`'physical'`(物理转化)或自定义类型 |
-| `parts` | Array  | 转化部件定义数组                             |
+| 参数    | 类型   | 说明                                           |
+| :------ | :----- | :--------------------------------------------- |
+| `name`  | string | 转化的唯一标识符                               |
+| `type`  | string | 转化类型：`'physical'`（物理转化）或自定义类型 |
+| `parts` | Array  | 转化部件定义数组                               |
 
-### 转化部件 (parts)
+### 转化部件 (parts) 与特质 (traits)
 
-每个部件对象包含：
+每个部件或特质对象包含：
 
-- `name`: 部件名称(必须唯一)
-- `tfRequired`: 触发该部件所需的最小等级
-- `default`: 默认值(可选)
-- `label`: 该部件的镜子名称，可使用文本或函数(可选)
+- `name`: 名称（必须唯一）
+- `tfRequired`: 触发该部件/特质所需的最小等级
+- `default`: 默认值（可选，默认为 `'default'`）
+- `label`: 该部件的镜子名称，可使用文本或函数（可选）
 
 ```javascript
 parts: [
-  {
-    name: 'tail',
-    tfRequired: 2,
-    default: 'default'
-  },
-  {
-    name: 'horns',
-    tfRequired: 1,
-    default: 'curved'
-  },
-  {
-    name: 'wings',
-    tfRequired: 3,
-    default: 'leathery'
-  }
+  { name: 'tail', tfRequired: 2, default: 'default' },
+  { name: 'horns', tfRequired: 1, default: 'curved' },
+  { name: 'wings', tfRequired: 3, default: 'leathery' }
 ];
-```
-
-### 转化特质 (traits)
-
-```javascript
 traits: [
-  {
-    name: 'night_vision',
-    tfRequired: 2,
-    default: 'default'
-  },
-  {
-    name: 'enhanced_senses',
-    tfRequired: 4,
-    default: 'default'
-  }
+  { name: 'night_vision', tfRequired: 2, default: 'default' },
+  { name: 'enhanced_senses', tfRequired: 4, default: 'default' }
 ];
 ```
 
 ### 等级配置
 
-| 参数     | 类型     | 说明                    |
-| :------- | :------- | :---------------------- |
-| `build`  | number   | 最大build值(0-100)      |
-| `level`  | number   | 最大等级(通常为6)       |
-| `update` | number[] | 等级升级的build阈值数组 |
+| 参数     | 类型     | 说明                      |
+| :------- | :------- | :------------------------ |
+| `build`  | number   | 最大 build 值（默认 100） |
+| `level`  | number   | 最大等级（通常为 6）      |
+| `update` | number[] | 等级升级的 build 阈值数组 |
 
 ```javascript
 build: 100,
 level: 6,
-update: [20, 40, 60, 80, 95, 100]  // 达到20build升1级，40build升2级...
+update: [20, 40, 60, 80, 95, 100] // 达到 20 build 升 1 级，40 build 升 2 级...
 ```
 
-### 衰退系统
+### 衰退与压制系统
 
-| 参数              | 类型       | 说明             |
-| :---------------- | :--------- | :--------------- |
-| `decay`           | boolean    | 是否允许自然衰退 |
-| `decayConditions` | Function[] | 衰退条件函数数组 |
+| 参数                 | 类型       | 说明                                  |
+| :------------------- | :--------- | :------------------------------------ |
+| `decay`              | boolean    | 是否允许自然衰退（`physical` 默认真） |
+| `decayConditions`    | Function[] | 衰退条件函数数组                      |
+| `suppress`           | boolean    | 是否压制其他转化（`physical` 默认真） |
+| `suppressConditions` | Function[] | 压制条件函数数组                      |
 
 ```javascript
 decay: true,
@@ -360,20 +312,10 @@ decayConditions: [
   () => V.maplebirch.transformation.dragon.build >= 1,
   () => V.worn.neck.name !== 'dragon_amulet',
   () => !Weather.bloodMoon
-]
-```
-
-### 压制系统
-
-| 参数                 | 类型       | 说明             |
-| :------------------- | :--------- | :--------------- |
-| `suppress`           | boolean    | 是否压制其他转化 |
-| `suppressConditions` | Function[] | 压制条件函数数组 |
-
-```javascript
+],
 suppress: true,
 suppressConditions: [
-  (sourceName) => sourceName !== 'dragon',  // 不压制自身
+  sourceName => sourceName !== 'dragon', // 不压制自身
   () => V.worn.neck.name !== 'dragon_amulet'
 ]
 ```
@@ -383,34 +325,34 @@ suppressConditions: [
 ```javascript
 message: {
   EN: {
-    up: ['等级1消息', '等级2消息', '等级3消息', '等级4消息', '等级5消息', '等级6消息'],
-    down: ['等级1->0消息', '等级2->1消息', '等级3->2消息', '等级4->3消息', '等级5->4消息', '等级6->5消息']
+    up: ['Level 1 message', 'Level 2 message', 'Level 3 message'],
+    down: ['Level 1 to 0', 'Level 2 to 1', 'Level 3 to 2']
   },
   CN: {
-    up: ['等级1消息', '等级2消息', '等级3消息', '等级4消息', '等级5消息', '等级6消息'],
-    down: ['等级1->0消息', '等级2->1消息', '等级3->2消息', '等级4->3消息', '等级5->4消息', '等级6->5消息']
+    up: ['等级1消息', '等级2消息', '等级3消息'],
+    down: ['等级1->0消息', '等级2->1消息', '等级3->2消息']
   }
 }
 ```
+
+`message` 按语言代码保存消息。当前语言没有对应消息时不会输出。`translations` 则是部件、特质等名称的双语数据，详见[翻译服务](../Translator.md)。
 
 ### 预处理/后处理函数
 
 顶层 `pre` 和 `post` 作用于 `main` 模型，用于修改 PC 常规人模渲染参数或在渲染后补充效果。`combat.pre`、`combat.post` 则作用于原版战斗 PC 模型 `combatMainPc`。
 
 ```javascript
-pre: (options) => {
+pre: options => {
   // 在角色渲染前执行
   const level = V.maplebirch?.transformation?.dragon?.level || 0;
   if (level >= 4) {
-    options.glow_effect = true;
-    options.glow_color = '#ff6b00';
+    options.color_tint = '#ff6b00';
   }
 },
-
-post: (options) => {
+post: options => {
   // 在角色渲染后执行
-  if (options.glow_effect) {
-    addGlowEffect(options.canvas, options.glow_color);
+  if (options.canvas) {
+    setup.myMod?.drawAura?.(options.canvas);
   }
 }
 ```
@@ -423,15 +365,12 @@ post: (options) => {
 
 ## 转化数据存储
 
-### 变量结构
-
 ```javascript
 V.maplebirch.transformation = {
   dragon: {
     level: 0, // 当前等级
-    build: 0 // 当前build值
+    build: 0 // 当前 build 值
   }
-  // 其他自定义转化...
 };
 
 V.transformationParts = {
@@ -456,21 +395,9 @@ V.transformationParts = {
 ```javascript
 maplebirch.char.transformation.add('fairy', 'physical', {
   parts: [
-    {
-      name: 'wings',
-      tfRequired: 1,
-      default: 'delicate'
-    },
-    {
-      name: 'glow',
-      tfRequired: 2,
-      default: 'default'
-    },
-    {
-      name: 'pointed_ears',
-      tfRequired: 3,
-      default: 'default'
-    }
+    { name: 'wings', tfRequired: 1, default: 'delicate' },
+    { name: 'glow', tfRequired: 2, default: 'default' },
+    { name: 'pointed_ears', tfRequired: 3, default: 'default' }
   ],
   build: 100,
   level: 3,
@@ -495,38 +422,14 @@ maplebirch.char.transformation.add('fairy', 'physical', {
 ```javascript
 maplebirch.char.transformation.add('fire_elemental', 'elemental', {
   parts: [
-    {
-      name: 'aura',
-      tfRequired: 1,
-      default: 'flickering'
-    },
-    {
-      name: 'embers',
-      tfRequired: 2,
-      default: 'default'
-    },
-    {
-      name: 'flame_body',
-      tfRequired: 4,
-      default: 'default'
-    },
-    {
-      name: 'fire_crown',
-      tfRequired: 6,
-      default: 'default'
-    }
+    { name: 'aura', tfRequired: 1, default: 'flickering' },
+    { name: 'embers', tfRequired: 2, default: 'default' },
+    { name: 'flame_body', tfRequired: 4, default: 'default' },
+    { name: 'fire_crown', tfRequired: 6, default: 'default' }
   ],
   traits: [
-    {
-      name: 'heat_aura',
-      tfRequired: 3,
-      default: 'default'
-    },
-    {
-      name: 'fire_immunity',
-      tfRequired: 5,
-      default: 'default'
-    }
+    { name: 'heat_aura', tfRequired: 3, default: 'default' },
+    { name: 'fire_immunity', tfRequired: 5, default: 'default' }
   ],
   build: 100,
   level: 6,
@@ -546,8 +449,14 @@ maplebirch.char.transformation.add('fire_elemental', 'elemental', {
 });
 ```
 
+---
+
 ## 特质归属与消息索引
+
+> [!NOTE]
+> `up[n - 1]` 对应进入第 n 阶段，`down[n - 1]` 对应从第 n 阶段退出。因此衰退数组也按阶段从低到高排列，不按实际衰退顺序倒排。
 
 同名特质（例如原版 `sharpEyes`）由多个转化共用时，只要任一归属转化达到要求，特质就保持启用。所有归属都失去资格后才关闭，不重复叠加原版加成。注册特质开关不会自动实现技能或伤害效果，具体结算仍需由原版或模组提供。
 
-`up[n - 1]` 对应进入第 n 阶段，`down[n - 1]` 对应从第 n 阶段退出。因此衰退数组也按阶段从低到高排列，不按实际衰退顺序倒排。外观部件开关与特质开关分别存储，渲染时应判断 `isPartEnabled()`，不能只判断等级。
+> [!WARNING]
+> 外观部件开关与特质开关分别存储在 `V.transformationParts` 中，渲染图层时应判断 `isPartEnabled()`，不要只判断转化等级，否则玩家在镜子中隐藏部件后仍会被强行绘制。

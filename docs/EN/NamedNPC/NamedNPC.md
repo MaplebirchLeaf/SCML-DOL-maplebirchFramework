@@ -33,6 +33,13 @@ These examples use `Luna` as the character's `nam`. Use that same identifier, in
 
 Registration records configuration. `C.npc.Luna` may not exist before a new game has created its character records. Resolve the current object when a scene runs; do not retain array indexes or NPC objects across loads. Store your own quest progress under your mod's save object, such as `V.myMod`.
 
+```mermaid
+flowchart LR
+  A["1. Register: maplebirch.npc.add()"] --> B["2. First meeting: &lt;&lt;npc 'Luna'&gt;&gt; / &lt;&lt;initnpc&gt;&gt;"]
+  B --> C["3. Scene state: C.npc.Luna &amp; V.myMod"]
+  C --> D["4. End encounter: &lt;&lt;endevent&gt;&gt;"]
+```
+
 ## 1. Register the Character in a Script
 
 Place this in a script loaded by `params.script` in `boot.json`:
@@ -62,7 +69,8 @@ maplebirch.npc.add(
 );
 ```
 
-`add()` returns whether registration was accepted; a missing `nam` returns `false`. Repeated registration merges data and configuration for that name. It does not create a location or story link, or mean the player has met the character.
+> [!IMPORTANT]
+> `add()` returns whether registration was accepted; a missing `nam` returns `false`. Repeated registration merges data and configuration for that name. It does **not** create a location or story link, or mean the player has met the character.
 
 ## 2. Arrange the First Meeting
 
@@ -83,7 +91,8 @@ Luna puts down her book and greets you.
 
 `<<npc "Luna">>` uses native encounter generation. Its first call runs `initnpc` and adds the character to the current scene list. Use native `<<initnpc "Luna">>` when only first-meeting initialization is needed, without occupying an encounter slot. Keep macro names and capitalization as shown.
 
-`<<endevent>>` ends the encounter and clears its slots. Put it on the exit that actually ends the scene. Do not reset `init` on every render or rewrite `$NPCList` and `$npc` merely to display a portrait.
+> [!WARNING]
+> `<<endevent>>` ends the encounter and clears its slots. Put it on the exit that actually ends the scene. Do not reset `init` on every render or rewrite `$NPCList` and `$npc` merely to display a portrait.
 
 ## 3. Read the Current Character During a Scene
 

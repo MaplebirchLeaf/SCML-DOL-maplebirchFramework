@@ -60,9 +60,9 @@ Configuration fields for `add(key, config)`:
 | `minigame`          | `behavior`, `maxStamina`, `armFatigueDifficulty`                      | -           |
 | `foodstuff`         | Associated food configuration; see [Foodstuff](Foodstuff.md)          | -           |
 
-Supported behaviors are vanilla `runner`, `darter`, `panicked`, `anchor`, `thrasher`, and `slipper`. Sizes and minigame numbers must be finite and positive; location weights must be finite and nonnegative.
+Supported behaviors are vanilla `runner`, `darter`, `panicked`, `anchor`, `thrasher`, and `slipper`. Sizes and minigame numbers must be finite and positive; location weights must be finite and nonnegative. If `requiresBaitFish` is `true` without a `minigame` object, `add()` returns `false`.
 
-Every registered fish gets a same-key food catalog entry for vanilla catch inventory. Mods supply the assets. The food icon defaults to `icon` without the `fish/` prefix, or can be set through `foodstuff.icon`.
+Every registered fish gets a same-key food catalog entry (defaulting to `category: 'seafood'` and `kitchen_item_type_icon: 'recipe-seafood.png'`) for vanilla catch inventory. Mods supply the assets. The food icon defaults to `icon` without the `fish/` prefix, or can be set through `foodstuff.icon`.
 
 `addBait(key, config)` accepts [food configuration](Foodstuff.md#common-fields), sets vanilla `is_fishing_bait`, and shares food inventory. Custom bait uses vanilla ordinary-food behavior; the original `baitfish` and `bait_worm` retain their special handling.
 
@@ -77,7 +77,10 @@ Every registered fish gets a same-key food catalog entry for vanilla catch inven
 fishingBeach / fishingPier / fishingCoastPath / fishingForestLake / fishingMoor
 ```
 
-`configure(location, weights)` adjusts fish weights at an existing spot. `0` excludes a fish from that spot. Fish keys must exist when the configuration is applied; unknown keys produce an error. This API adjusts fish distribution; the Mod provides entrances, discovery conditions, and stories.
+`configure(location, weights)` adjusts fish weights at an existing spot. `0` excludes a fish from that spot. This API adjusts fish distribution; the Mod provides entrances, discovery conditions, and stories.
+
+> [!WARNING]
+> Fish keys passed to `configure()` must exist in `setup.fishing.lootTables.fish` when the configuration is applied; unknown keys throw an error during initialization.
 
 ## boot.json
 

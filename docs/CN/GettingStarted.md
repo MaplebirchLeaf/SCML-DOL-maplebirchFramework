@@ -1,25 +1,40 @@
 # 快速开始
 
-先做一个很小的功能：让游戏加载自己的脚本，再在选项页显示“我的模组”。看到这两个结果，就说明 ModLoader、框架和你的文件已经接上了。
+先做一个能立刻看到效果的最小模组：在控制台输出一条日志，并在游戏选项页显示“我的模组”。只要这两处都出现，就说明 ModLoader、框架和你的文件已经接通了。
 
-## 1. 声明依赖并加载脚本
+## 1. 准备目录与 `boot.json`
 
-在已有模组的 `boot.json` 中加入下面这些字段。这里展示的是接入框架需要的部分；想从完整文件开始，可以对照 [NPC 实例](NamedNPC/Example.md)。
+最小模组只需要放在压缩包根目录的 3 个文件：
+
+```text
+MyMod.mod.zip
+├── boot.json
+├── framework.js
+└── widgets.twee
+```
+
+把下面的配置保存为 `boot.json`（完整实战见 [NPC 公园约见实例](NamedNPC/Example.md)）：
 
 ```json
 {
+  "name": "myMod",
+  "version": "0.1.0",
+  "styleFileList": [],
+  "scriptFileList": [],
   "tweeFileList": ["widgets.twee"],
+  "imgFileList": [],
+  "additionFile": ["framework.js"],
   "dependenceInfo": [
     {
       "modName": "maplebirch",
-      "version": ">=5.2.0"
+      "version": ">=5.5.7"
     }
   ],
   "addonPlugin": [
     {
       "modName": "maplebirch",
       "addonName": "maplebirchAddon",
-      "modVersion": ">=5.2.0",
+      "modVersion": ">=5.5.7",
       "params": {
         "script": ["framework.js"]
       }
@@ -28,13 +43,17 @@
 }
 ```
 
-`framework.js` 和 `widgets.twee` 都是 **ZIP 内的路径**。打包时让它们与配置对应即可，不用填写电脑上的绝对路径。依赖版本也要按自己的实测结果，填写实际支持的最低框架版本。
+> [!WARNING]
+> **不要把 `framework.js` 同时写进 `scriptFileList` 和 `params.script`**，否则脚本会被执行两次。通过 `params.script` 加载时，只需把它列入 `additionFile` 让 ModLoader 打包进压缩包即可。
 
-日常模组代码放在 `script` 中就够了。需要参与更早的框架模块扩展时，再使用 `module`，完整字段可以查 [boot.json 配置](BootJson.md)。
+> [!NOTE]
+>
+> - `tweeFileList`、`additionFile` 和 `params.script` 填的都是 **ZIP 内的相对路径**，不要写电脑上的绝对路径。
+> - 依赖版本号按你实际测试通过的最低框架版本填写；需要更早接入框架模块时可改用 `module`（全部字段见 [boot.json 配置](BootJson.md)）。
 
-## 2. 在脚本中调用公开接口
+## 2. 写脚本与界面 widget
 
-打开 `framework.js`，写入：
+在 `framework.js` 中写入：
 
 ```javascript
 maplebirch.on(
@@ -48,9 +67,10 @@ maplebirch.on(
 maplebirch.tool.addTo('Options', 'MyModOptions');
 ```
 
-这里做了两件事：用 `on()` 等故事准备完成后输出一条日志，再用 `tool.addTo()` 给选项区域登记一个 widget 名称。
+- `maplebirch.on(':storyready', ...)`：等故事环境就绪后输出日志。
+- `maplebirch.tool.addTo('Options', 'MyModOptions')`：把名为 `MyModOptions` 的 widget 挂到框架预置的 `Options`（选项页）区域。
 
-页面还需要知道这个 widget 里有什么。把下面的定义放进 `widgets.twee`：
+接着在 `widgets.twee` 中定义这个 widget：
 
 ```twine
 :: My Mod Options [widget]
@@ -60,24 +80,25 @@ maplebirch.tool.addTo('Options', 'MyModOptions');
 <</widget>>
 ```
 
-现在把两个文件连同 `boot.json` 一起打包，在目标游戏中加载。日志里应出现“MyMod 已就绪”，选项页里应看到“我的模组”。前者说明脚本执行了，后者说明 Twee 和区域入口也接通了。
+## 3. 打包并确认接通
 
-这几步里，`tweeFileList` 交给 ModLoader 读取，`params.script` 和 `tool.addTo()` 由框架处理。想了解它们各自还能做什么，可以继续看[事件](Events.md)和[区域添加](Tools/Zones.md)。
+将这 3 个文件直接打包进 `.mod.zip` 根目录并加载进游戏：
 
-日常调用可以沿用 `maplebirch.on()`、`t()`、`define()`、`with()`、`log()` 这样的短入口，需要高级能力时再进入 `services`、`infra` 或 `host`。自己的事件、注册项和翻译键可以带上模组前缀，例如 `myMod:dailyCheck`；`V.myMod` 仍然保留普通变量对象的名字。
+1. 按 `F12` 打开浏览器控制台（Console），能看到 `MyMod 已就绪`，说明脚本已执行。
+2. 打开游戏内的 **选项（Options）** 页面，能看到“我的模组”，说明 Twee 与区域注入已接通。
 
-## 3. 按用途继续阅读
+> [!TIP]
+> 平时优先使用 `maplebirch.on()`、`t()`、`define()`、`with()`、`log()` 等顶层短入口；只有需要底层能力时再调用 `services`、`infra` 或 `host`。事件名、注册名和翻译键建议统一加上自己的模组前缀（如 `myMod:dailyCheck`），避免和原版或其他模组撞名；存档变量继续放在 `V.myMod` 下。
 
-有了一个能显示的小功能，就可以挑自己感兴趣的部分继续写了：
+## 4. 接下来去哪里
 
-| 想做什么            | 下一页                                                                     |
-| :------------------ | :------------------------------------------------------------------------- |
-| 拆分中英文文本      | [翻译与多文件导入](Translator.md)                                          |
-| 在页面添加内容      | [区域添加](Tools/Zones.md)                                                 |
-| 响应游戏状态变化    | [状态事件](Dynamic/StateEvents.md)                                         |
-| 添加 NPC 数据或衣柜 | [NPC 注册](NamedNPC/NamedNPC.md) / [NPC 服装](NamedNPC/NamedNPCClothes.md) |
-| 检查错误与加载顺序  | [模块与诊断](Modules.md)                                                   |
-
-如果想把几个接口连成一段剧情，接着读[开发流程](Development.md)，或直接做一遍 [NPC 公园约见实例](NamedNPC/Example.md)。最后记得在自己使用的 DoL、SugarCube 和 ModLoader 版本里实际加载并操作；构建和类型检查能帮助检查代码，页面效果和流程还需要在游戏里确认。
+| 想做什么            | 对应文档                                                                     |
+| :------------------ | :--------------------------------------------------------------------------- |
+| 把一个功能串成剧情  | [从示例到完整功能](Development.md) / [NPC 公园约见实例](NamedNPC/Example.md) |
+| 拆分中英文文本      | [翻译与多文件导入](Translator.md)                                            |
+| 在更多页面插入内容  | [区域添加](Tools/Zones.md)                                                   |
+| 响应时间或状态变化  | [状态事件](Dynamic/StateEvents.md)                                           |
+| 添加 NPC 数据或衣柜 | [NPC 注册](NamedNPC/NamedNPC.md) / [NPC 服装](NamedNPC/NamedNPCClothes.md)   |
+| 排查报错与加载顺序  | [模块与诊断](Modules.md)                                                     |
 
 [返回文档导航](README.md)

@@ -1,51 +1,44 @@
 # 特质注册
 
-示例中的勇气、毒抗和职业等数值由模组自己的剧情维护在 `V.myMod`；它们不是原版字段。
+特质注册允许模组向原版角色特质面板添加自定义特质，通过 `maplebirch.tool.patch.traits.add(...traits)` 访问。
 
-### 基本介绍
+> [!IMPORTANT]
+> 此接口只注册特质的显示条件与说明文本，**不会**自动赋予能力加成。描述中提到的任何数值效果都需要模组另行实现。示例中的勇气、毒抗和职业等字段均由模组维护在 `V.myMod` 中，并非原版变量。
 
-`Traits` 是框架提供的角色特质管理系统，允许模组制作者添加自定义的角色特质。
-_可通过 `maplebirch.tool.patch.traits.add()` 访问。_
+## 使用入口
 
-此接口注册特质的显示条件和说明。描述中的数值加成需要模组另行实现，注册文本本身不会改变能力。`name` 是显示名称；`title` 用于匹配分类，内置分类沿用下表的英文键名。
+```javascript
+maplebirch.tool.patch.traits.add(...traits);
+```
 
----
+支持一次传入一个或多个特质配置对象。`title` 与 `name` 为必填；若重复注册相同的 `title` 和 `name`，后一次注册会覆盖先前的条目。
 
-### 核心功能
+## 最小示例
 
-#### **添加特质 (add)**
+```javascript
+maplebirch.tool.patch.traits.add({
+  title: 'General Traits',
+  name: '快速学习者',
+  colour: 'blue',
+  has: true,
+  text: '快速学习者，技能获取速度+20%'
+});
+```
 
-- 添加一个或多个自定义特质
-- **@param**: `...traits` (TraitConfig[]): 特质配置对象数组
-- **@return**: void
-- **@example**:
-  ```javascript
-  // 添加一个简单特质
-  maplebirch.tool.patch.traits.add({
-    title: 'General Traits',
-    name: '勇敢',
-    colour: 'green',
-    has: () => V.myMod?.courage > 50,
-    text: '勇敢的战士，无所畏惧'
-  });
-  ```
+## 特质配置对象 (TraitConfig)
 
----
+| 字段      | 类型             | 说明                                       |
+| :-------- | :--------------- | :----------------------------------------- |
+| `title`   | string           | 特质分类标题，必填                         |
+| `name`    | string/function  | 特质名称，必填，可为字符串或无参数函数     |
+| `replace` | string/RegExp    | 可选，同分类中要覆盖的原特质名称或匹配正则 |
+| `colour`  | string/function  | 特质颜色，默认 `""`                        |
+| `has`     | boolean/function | 是否拥有该特质，默认 `false`               |
+| `text`    | string/function  | 特质描述文本，默认 `""`                    |
 
-### 特质配置对象 (TraitConfig)
+## 已知分类与覆盖
 
-| 属性      | 类型             | 说明                                           |
-| :-------- | :--------------- | :--------------------------------------------- |
-| `title`   | string           | 特质分类标题                                   |
-| `name`    | string/function  | 特质名称，可以是字符串或返回字符串的函数       |
-| `replace` | string/RegExp    | 可选，同分类中要覆盖的原特质名称或匹配正则     |
-| `colour`  | string/function  | 特质颜色，可以是字符串或返回字符串的函数       |
-| `has`     | boolean/function | 是否拥有该特质，可以是布尔值或返回布尔值的函数 |
-| `text`    | string/function  | 特质描述文本，可以是字符串或返回字符串的函数   |
-
-#### **内置分类表**
-
-`replace` 匹配渲染前的名称，字符串精确匹配，正则匹配可用于同时识别中英文原版名称。覆盖时保留原特质的位置。未找到时按新增特质处理。省略时仍按 `name` 覆盖同名条目。已有特质的名称为函数时，仅在该特质可见时读取返回值进行匹配，隐藏特质的名称函数不会提前执行。该字段用于脚本注册，例如：
+`replace` 在渲染前匹配名称并保留原特质位置：字符串为精确匹配，正则可同时兼容中英文原版名称。未指定或未匹配到时，仍按 `name` 覆盖同名条目或追加到分类末尾。若已有特质的名称为函数，仅在该特质拥有（`has` 为真）时读取返回值进行匹配，隐藏特质的名称函数不会提前执行。此字段仅用于脚本注册：
 
 ```javascript
 maplebirch.tool.patch.traits.add({
@@ -58,7 +51,7 @@ maplebirch.tool.patch.traits.add({
 });
 ```
 
-框架会自动将英文分类名翻译为中文：
+内置分类沿用下表中的英文键名，框架会自动翻译为中文：
 
 | 英文分类名          | 中文翻译 |
 | :------------------ | :------- |
@@ -71,146 +64,32 @@ maplebirch.tool.patch.traits.add({
 | `Hypnosis Traits`   | 催眠特质 |
 | `Acceptance Traits` | 接纳特质 |
 
-**注意**: 如果使用未在表中定义的分类名，会直接使用原分类名。
+> [!NOTE]
+> 如果使用未在表中定义的分类名，框架会按原分类名创建或匹配分类。
 
----
-
-### 在 boot.json 中注册特质
-
-除了通过 JavaScript API 注册特质外，框架还支持在 `boot.json` 文件中通过 `addonPlugin` 配置来批量注册特质。
-
-#### **配置结构**
-
-```json
-{
-  "modName": "maplebirch",
-  "addonName": "maplebirchAddon",
-  "modVersion": ">=5.2.0",
-  "params": {
-    "framework": [
-      {
-        "traits": [
-          {
-            "title": "General Traits",
-            "name": "英雄气概",
-            "colour": "orange",
-            "has": true,
-            "text": "英雄气概，领导力强"
-          },
-          {
-            "title": "Special Traits",
-            "name": "奥术亲和",
-            "colour": "purple",
-            "has": false,
-            "text": "对魔法有特殊亲和力"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-#### **动态值的配置**
-
-在 `boot.json` 中，`has` 可以写布尔值或 JavaScript 判断表达式。`name`、`colour` 和 `text` 使用普通字符串。需要动态名称、颜色或说明时，使用脚本中的函数配置。
-
-```json
-{
-  "traits": [
-    {
-      "title": "General Traits",
-      "name": "富有",
-      "colour": "yellow",
-      "has": "V.myMod?.gold > 10000",
-      "text": "拥有可观的财富。"
-    }
-  ]
-}
-```
-
-`has` 表达式在游戏上下文中求值，可以访问 `V`、`Time`、`Weather` 等全局对象，只应填写可信代码。
-
-也可以引用 `.json`、`.yaml` 或 `.yml` 文件：
-
-```json
-{
-  "framework": {
-    "traits": "data/traits.yaml"
-  }
-}
-```
-
----
-
-### 完整使用示例
-
-#### **示例1：静态特质**
+## 动态特质示例
 
 ```javascript
-// 添加静态特质(始终显示)
-maplebirch.tool.patch.traits.add({
-  title: 'General Traits',
-  name: '快速学习者',
-  colour: 'blue',
-  has: true, // 始终拥有
-  text: '快速学习者，技能获取速度+20%'
-});
-```
-
-#### **示例2：动态特质**
-
-```javascript
-// 添加动态特质(根据游戏状态变化)
 maplebirch.tool.patch.traits.add({
   title: 'Medicinal Traits',
   name: '毒素抗性',
   colour: () => {
-    // 根据抗性等级显示不同颜色
     const level = V.myMod?.poisonResistance ?? 0;
     if (level >= 80) return 'green';
     if (level >= 50) return 'yellow';
     return 'red';
   },
-  has: () => {
-    // 只有抗性大于0时才显示
-    return (V.myMod?.poisonResistance ?? 0) > 0;
-  },
-  text: () => {
-    // 动态描述文本
-    const level = V.myMod?.poisonResistance ?? 0;
-    return `毒抗 ${level}%`;
-  }
+  has: () => (V.myMod?.poisonResistance ?? 0) > 0,
+  text: () => `毒抗 ${V.myMod?.poisonResistance ?? 0}%`
 });
 ```
 
-#### **示例3：条件特质**
+## boot.json
 
-```javascript
-// 只在特定条件下显示的特质
-maplebirch.tool.patch.traits.add({
-  title: 'Special Traits',
-  name: '满月呼唤者',
-  colour: 'purple',
-  has: () => {
-    // 只有在满月之夜且是法师职业时才显示
-    return (
-      V.myMod?.fullMoon === true &&
-      V.myMod?.playerClass === 'mage' &&
-      V.myMod?.hasMoonRitual === true
-    );
-  },
-  text: '满月呼唤者，在满月之夜魔力增强'
-});
-```
-
-#### **示例4：在 boot.json 中批量注册特质**
+除了脚本 API，也可在 `boot.json` 的 `params.framework` 中通过数组批量注册 `traits`：
 
 ```json
 {
-  "modName": "maplebirch",
-  "addonName": "maplebirchAddon",
-  "modVersion": ">=5.2.0",
   "params": {
     "framework": [
       {
@@ -223,29 +102,32 @@ maplebirch.tool.patch.traits.add({
             "text": "力量过人，物理攻击+15%"
           },
           {
-            "title": "General Traits",
-            "name": "敏捷",
-            "colour": "teal",
-            "has": "V.myMod?.dexterity > 70",
-            "text": "身手敏捷，闪避率+10%"
-          },
-          {
             "title": "School Traits",
             "name": "优等生",
             "colour": "yellow",
             "has": "V.myMod?.grades >= 90",
             "text": "优等生，学校声誉+20"
-          },
-          {
-            "title": "Trauma Traits",
-            "name": "身经百战",
-            "colour": "grey",
-            "has": "V.myMod?.battlesWon > 10",
-            "text": "身经百战，战斗经验丰富"
           }
         ]
       }
     ]
+  }
+}
+```
+
+在 `boot.json` 中，`has` 支持布尔值或 JavaScript 条件表达式，`name`、`colour`、`text` 为普通字符串（需要动态名称、颜色或描述时请使用脚本注册）。
+
+> [!CAUTION]
+> `boot.json` 中的字符串 `has` 表达式会在游戏上下文中求值（可访问 `V`、`Time`、`Weather` 等全局对象），请仅填写可信代码。
+
+也可以引用 `.json`、`.yaml` 或 `.yml` 文件：
+
+```json
+{
+  "params": {
+    "framework": {
+      "traits": "data/traits.yaml"
+    }
   }
 }
 ```

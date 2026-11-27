@@ -32,6 +32,23 @@ migrator.run(data, '1.1.0');
 
 `add(from, to, apply)` 注册同步转换函数。`from` 可以是具体版本或 `'*'`。重复的版本组合和不能向前推进的步骤不会注册。
 
+```mermaid
+flowchart TD
+  Start["run(data, targetVersion)"] --> Init["current = data.version || '0.0.0'"]
+  Init --> Check{"current < targetVersion 且步数 < 100?"}
+  Check -- "否" --> Done["结束迁移"]
+  Check -- "是" --> Exact["查找精确匹配 from === current 且 to <= targetVersion"]
+  Exact --> FoundExact{"找到?"}
+  FoundExact -- "是" --> Pick["选择终点 to 最高的步骤"]
+  FoundExact -- "否" --> Wild["查找通配 from === '*' 且 to <= targetVersion"]
+  Wild --> FoundWild{"找到?"}
+  FoundWild -- "否" --> Done
+  FoundWild -- "是" --> Pick
+  Pick --> Apply["执行 apply(data, utils)"]
+  Apply -- "成功" --> Update["data.version = next.to"] --> Check
+  Apply -- "抛错" --> Fail["包装 fromVersion / toVersion / cause 并抛出"]
+```
+
 假设存档是 `1.0.0`，目标是 `1.2.0`，框架会根据已登记的步骤选择路线：
 
 | 已登记的步骤                     | 执行顺序                           |
@@ -40,9 +57,10 @@ migrator.run(data, '1.1.0');
 | 上面两步，再加 `1.0.0 → 1.2.0`   | 直接执行 `1.0.0 → 1.2.0`           |
 | 只有 `1.0.0 → 1.1.0`             | 停在 `1.1.0`，不会自行写成 `1.2.0` |
 
-**直接跨版本的步骤必须包含中间需要的转换。** 选择时，先找起点等于当前版本的步骤，没有才用 `'*'`；同类候选中，选择不超过目标版本的最高终点。每一步成功后才更新 `data.version`。
+> [!WARNING]
+> **直接跨版本的步骤必须包含中间需要的转换。** 步骤抛出异常时停止并向调用者抛出带有 `fromVersion`、`toVersion`、`cause` 的错误，已经发生的数据修改不会自动回滚。
 
-步骤抛出异常时停止并向调用者抛出带有 `fromVersion`、`toVersion`、`cause` 的错误。已经发生的数据修改不会自动回滚。
+选择时，先找起点等于当前版本的步骤，没有才用 `'*'`；同类候选中，选择不超过目标版本的最高终点。每一步成功后才更新 `data.version`。单次 `run()` 最多执行 100 步。
 
 ## 迁移工具
 
@@ -57,9 +75,10 @@ migrator.run(data, '1.1.0');
 | `fill(target, defaults, mode?)` | 递归填充缺失的默认值。`mode` 为 `'merge'` 或 `'cover'`，默认 `'merge'`  |
 | `log(message, level, ...data)`  | 输出迁移日志                                                            |
 
-路径只遍历对象自身的属性，不允许 `__proto__`、`prototype`、`constructor`。移动到相同路径保持原值。不能将父对象移动到自己的子路径。目标属性已存在时，`move()` 会覆盖它。
+> [!NOTE]
+> 路径只遍历对象自身的属性，不允许 `__proto__`、`prototype`、`constructor`。`transform()` 的输入是 `unknown`，转换前应检查类型；若转换函数抛错，会保留旧值、记录日志并返回 `false`。
 
-`transform()` 的输入是 `unknown`，转换前应检查类型。转换函数抛错时保留旧值、记录日志并返回 `false`。
+移动到相同路径保持原值。不能将父对象移动到自己的子路径。目标属性已存在时，`move()` 会覆盖它。
 
 ## 填充默认值
 
@@ -89,4 +108,5 @@ console.log(data.version); // '1.2.0'
 
 `fill()` 保留已有标量和数组，递归补齐已有普通对象中的缺失字段，并跳过根对象的 `version`。例如 `{ settings: { enabled: false } }` 会保留 `false` 并补入 `volume`。
 
-默认值填充适合结构增补。字段重命名或类型变化应注册具体版本步骤，也可以在回调中检查数据类型后直接修改 `data`。
+> [!TIP]
+> 默认值填充适合结构增补。字段重命名或类型变化应注册具体版本步骤，也可以在回调中检查数据类型后直接修改 `data`。

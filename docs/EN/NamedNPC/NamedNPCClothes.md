@@ -131,9 +131,8 @@ maplebirch.once(':storyready', () => {
 });
 ```
 
-Waiting for `:storyready` allows the wardrobe file to load first. `wear()` checks template existence immediately; a missing template is skipped. `library` and `home` are location labels used by this mod.
-
-Wear locations come from **Luna's framework schedule**, not the player's `V.location`. Enable NPC sidebar display and “PC Model Mode” in framework settings, and generate Luna in the actual scene to see the clothes. See [Sidebar](NamedNPCSidebar.md) for presence requirements.
+> [!IMPORTANT]
+> Waiting for `:storyready` allows the wardrobe file to load first; `wear()` checks template existence immediately and skips missing keys. In addition, wear locations come from **Luna's framework schedule**, not the player's `V.location`. Enable NPC sidebar display and “PC Model Mode” in framework settings, and generate Luna in the actual scene to see the clothes (see [Sidebar](NamedNPCSidebar.md)).
 
 ## Rule Selection and Current Clothing
 
@@ -243,9 +242,18 @@ JSON/YAML supports booleans, expression strings and condition arrays. Put functi
 
 ## Composition and Local Changes
 
+```mermaid
+flowchart LR
+  A["naked placeholders"] --> B["base() / layer()"]
+  B --> C["wear() selected outfit"]
+  C --> D["modify() final tweaks"]
+  D --> E["wet() / wear.wetness"]
+```
+
 Order: `naked` → `base`/`layer` → selected outfit → `modify` → wetness.
 
-A matching slot replaces the **whole clothing item**, rather than deeply merging two items. An outfit may overwrite a slot supplied by `base()`; use `modify()` for final changes.
+> [!NOTE]
+> A matching slot replaces the **whole clothing item**, rather than deeply merging two items. An outfit may overwrite a slot supplied by `base()`; use `modify()` for final changes. Also note that the clothing colour key is `colour`, not `color`.
 
 ```javascript
 maplebirch.once(':storyready', () => {

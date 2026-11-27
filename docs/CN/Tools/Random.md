@@ -1,14 +1,12 @@
 # 随机数系统
 
-### 用来做什么
+## 用来做什么
 
 `randSystem` 用于创建可复现的随机数生成器。它适合需要保存种子、回放随机结果、回退随机流程或调试随机事件的场景。
 
 如果只是临时取一个普通随机数，可以使用 [工具函数](../Utilities.md) 中的 `random()` 或 `either()`。如果希望 _同一个状态产生同一串结果_，使用 **`maplebirch.tool.rand.create()`**。
 
----
-
-### 使用入口
+## 使用入口
 
 ```javascript
 const rng = maplebirch.tool.rand.create();
@@ -23,11 +21,10 @@ V.myMod.rand ??= {};
 const rng = maplebirch.tool.rand.create(V.myMod.rand);
 ```
 
-`create(state)` 会直接使用传入对象作为内部状态，因此适合把 `V` 中的对象交给随机系统，让随机序列跟随存档。
+> [!TIP]
+> `create(state)` 会直接使用传入对象作为内部状态，因此把 `V` 中的对象交给随机系统，即可让随机序列跟随存档自动保存与恢复。
 
----
-
-### 最小示例
+## 最小示例
 
 ```javascript
 const rng = maplebirch.tool.rand.create();
@@ -38,9 +35,7 @@ const percent = rng.percent(); // 1-100
 const index = rng.int(5); // 0-5
 ```
 
----
-
-### API
+## API
 
 | API                                   | 说明                           |
 | :------------------------------------ | :----------------------------- |
@@ -55,9 +50,7 @@ const index = rng.int(5); // 0-5
 
 `int(max)` 和 `percent()` 每调用一次都会推进随机指针。
 
----
-
-### 设置种子
+## 设置种子
 
 设置 `seed` 会清空历史并重新开始随机序列：
 
@@ -83,9 +76,7 @@ roll(100); // 每次结果一致
 roll(100); // 与上方一致
 ```
 
----
-
-### 百分比判定
+## 百分比判定
 
 `percent()` 返回 `1-100`，适合百分比判断。
 
@@ -100,9 +91,7 @@ if (rng.percent() <= 30) {
 }
 ```
 
----
-
-### 范围随机数
+## 范围随机数
 
 `int(max)` 返回 `0` 到 `max` 之间的整数，最大值包含在结果范围内。
 
@@ -118,9 +107,16 @@ const list = ['a', 'b', 'c'];
 const item = list[rng.int(list.length - 1)];
 ```
 
----
+## 回退与恢复
 
-### 回退与恢复
+```mermaid
+flowchart LR
+  Roll["int() / percent()"] --> Check{"index < history.length?"}
+  Check -- "是" --> Reuse["复用 history[index++]"]
+  Check -- "否" --> Gen["推进种子并追加到 history (上限 100)"]
+  Back["back(steps)"] --> MoveBack["index 向后回退 (下限 0)"]
+  Forward["forward(steps)"] --> MoveFwd["index 在已有 history 内向前移动"]
+```
 
 `back(steps)` 只移动历史指针。之后再次取随机数，会复用已经生成过的历史结果。
 
@@ -140,11 +136,12 @@ rng.back(2);
 rng.forward(1);
 ```
 
+> [!NOTE]
+> 内部历史最多保留最近 100 条记录；超出时最早的记录会被丢弃。赋值 `rng.seed = ...` 会清空历史并把 `index` 重置为 `0`。
+
 这适合调试、历史回退，或在某些流程中重新计算同一次随机结果。
 
----
-
-### 保存到存档
+## 保存到存档
 
 如果希望随机序列跟随存档，推荐保存完整状态对象：
 
@@ -157,9 +154,7 @@ const rng = maplebirch.tool.rand.create(V.myMod.rand);
 
 状态对象包含 `seed`、`history` 和 `index`。如果只保存 `seed`，可以复现从头开始的序列。如果保存完整状态，则可以精确恢复已经走过的随机历史。
 
----
-
-### 示例：随机遭遇
+## 示例：随机遭遇
 
 ```javascript
 function createEncounterRng() {
@@ -180,9 +175,7 @@ function randomEncounter() {
 }
 ```
 
----
-
-### 示例：固定道具池
+## 示例：固定道具池
 
 ```javascript
 function generateLoot(seed) {

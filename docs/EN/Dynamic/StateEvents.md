@@ -29,11 +29,27 @@ Both return a success boolean. Each event type has its own registry and rejects 
 
 ## Execution Order
 
+```mermaid
+flowchart TD
+    A["Passage starts: trigger gate"] --> B["Sort gate events by priority descending"]
+    B --> C["Run matching non-blocking events: action + collect output"]
+    C --> D["Recheck matching blocking candidates (forceExit)"]
+    D --> E{"Produces output and forceExit?"}
+    E -- Yes --> F["Append output + exitAll (stop passage body)"]
+    E -- No --> G["Render passage body"]
+    G --> H["Passage ends: trigger append"]
+    H --> I["Run matching append events by priority descending"]
+```
+
 Gate events are nonblocking by default. Matching nonblocking events run their actions in descending priority order and collect output. Blocking candidates run last and recheck their conditions. The first candidate that produces output and still requests an exit ends the passage body. An action without output cannot interrupt it by itself.
 
-Conditions and function-valued `forceExit` must be side-effect-free and may run more than once. Put state changes needed by later events in `action`, rather than in an output macro that has not rendered yet.
+> [!IMPORTANT]
+> Conditions and function-valued `forceExit` must be side-effect-free and may run more than once. Put state changes needed by later events in `action`, rather than in an output macro that has not rendered yet.
 
-Append events collect output at the end of the passage. Use gate for passage-start reminders. Either type may provide only an action. `once: true` removes the registration for the current runtime, rather than storing a save-specific flag. Reminders that must only appear once per save also need saved acknowledgement state.
+Append events collect output at the end of the passage. Use gate for passage-start reminders. Either type may provide only an action.
+
+> [!NOTE]
+> `once: true` removes the registration for the current runtime, rather than storing a save-specific flag. Reminders that must only appear once per save also need saved acknowledgement state.
 
 ## Options
 
@@ -92,7 +108,8 @@ For an acknowledgement-based reminder, remove `action` from the registration abo
 <</widget>>
 ```
 
-Choose one consumption method rather than registering the same ID twice. The second retains pending state until clicked and appears again on an eligible page or when loading an unacknowledged save. State events provide checks and output, not persistent read receipts. An inline `linkreplace` does not create a new history moment. To capture acknowledgement in the next saved snapshot, clear the flag in the link that actually leaves the notice scene.
+> [!TIP]
+> Choose one consumption method rather than registering the same ID twice. The second retains pending state until clicked and appears again on an eligible page or when loading an unacknowledged save. State events provide checks and output, not persistent read receipts. An inline `linkreplace` does not create a new history moment. To capture acknowledgement in the next saved snapshot, clear the flag in the link that actually leaves the notice scene.
 
 ## Replacing Passage Content
 
@@ -108,7 +125,8 @@ maplebirch.dynamic.regStateEvent('gate', 'myMod:encounter', {
 });
 ```
 
-The output widget must provide a complete scene and usable exit. The example passages belong to the mod, rather than vanilla:
+> [!WARNING]
+> When `forceExit` interrupts a passage, the output widget must provide a complete scene and a usable exit—otherwise the player can get stuck. The example passages belong to the mod, rather than vanilla:
 
 ```twine
 :: My Mod Encounters [widget]

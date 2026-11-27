@@ -78,6 +78,14 @@ await maplebirch.trigger('myMod:refresh', {
 
 ## Common Events
 
+```mermaid
+flowchart LR
+  I[":passageinit"] --> S[":passagestart"]
+  S --> R[":passagerender"]
+  R --> D[":passagedisplay"]
+  D --> E[":passageend"]
+```
+
 | Event             | Use                        |
 | :---------------- | :------------------------- |
 | `:storyready`     | SugarCube story is ready   |
@@ -113,9 +121,10 @@ maplebirch.once(':storyready', () => {
 
 ## Save and Load
 
-`:onSave` and `:onLoad` callbacks must be synchronous: SugarCube does not wait for promises. The framework reports asynchronous callbacks and continues with the remaining synchronous listeners.
+> [!IMPORTANT]
+> `:onSave`, `:onLoad`, and `:variable` callbacks must be synchronous because SugarCube does not wait for promises. During `:onLoad`, global `V` still points to the current game—mutate `save.V` instead.
 
-The callback receives `save`, which provides `saveObj`, `details`, `V`, and `use()`. `save.V` contains the variables being saved or loaded; during a load callback, global `V` still belongs to the current game.
+The framework reports asynchronous callbacks and continues with the remaining synchronous listeners. The callback receives `save`, which provides `saveObj`, `details`, `V`, and `use()`. `save.V` contains the variables being saved or loaded.
 
 ```javascript
 function initMyMod(variables) {

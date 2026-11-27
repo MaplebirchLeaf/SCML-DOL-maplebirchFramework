@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The framework adds SugarCube macros for multilingual text, buttons, links, listboxes, radio options, and text output.
+The framework adds SugarCube macros for multilingual text, buttons, links, listboxes, radio options, and text output. They are intended for `.twee`, widget, and passage content.
 
 Write single-language prose directly. SugarCube's own `<<button>>` and `<<link>>` are also available. Use the multilingual macros below when content or labels need to switch languages.
 
@@ -16,8 +16,8 @@ Write single-language prose directly. SugarCube's own `<<button>>` and `<<link>>
 | `<<lanLink>>`              | Multilingual link                      |
 | `<<lanListbox>>`           | Multilingual listbox                   |
 | `<<radiobuttonsfrom>>`     | Generate radio buttons from data       |
-| `<<maplebirchReplace>>`    | Replace framework overlay content      |
 | `<<maplebirchTextOutput>>` | Output registered text builder content |
+| `<<maplebirchReplace>>`    | Replace framework overlay content      |
 
 ## language
 
@@ -30,9 +30,23 @@ Select content using `maplebirch.Language`. Put the language code on an `option`
 <</language>>
 ```
 
-Switching languages parses the selected block again. Keep the body for display; put assignments, resource costs and other state changes inside click handlers or the actual resolution logic.
+You can continue writing SugarCube code inside each block:
+
+```twine
+<<language>>
+  <<option "CN">>
+    <<link "继续">><<goto "Next">><</link>>
+  <<option "EN">>
+    <<link "Continue">><<goto "Next">><</link>>
+<</language>>
+```
+
+> [!WARNING]
+> Switching languages parses the selected block again. Keep the body for display; put assignments, resource costs and other state changes inside click handlers or the actual resolution logic.
 
 ## lanSwitch
+
+Output text for the current language.
 
 ```twine
 <<lanSwitch "Hello" "你好">>
@@ -43,6 +57,12 @@ Store object data in a variable before passing it to the macro:
 ```twine
 <<set _greeting to { EN: "Hello", CN: "你好" }>>
 <<lanSwitch _greeting>>
+```
+
+It can also be called inside expressions:
+
+```twine
+<<= lanSwitch("Save", "保存")>>
 ```
 
 ## lanButton
@@ -132,7 +152,8 @@ Translation keys, variables, backtick expressions, and SugarCube link markup rem
 <<lanLink `['Go to town', '前往城镇']` 'Town'>><</lanLink>>
 ```
 
-Only `lanLink` and `lanButton` handle leading bilingual arrays themselves. All other arguments use the native parser, and global SugarCube syntax is unchanged. Variables and expressions are evaluated when the control is created. Redraw the control to pick up later variable changes. Language changes refresh the labels on existing controls.
+> [!NOTE]
+> Only `lanLink` and `lanButton` handle leading bilingual arrays themselves. All other arguments use the native parser, and global SugarCube syntax is unchanged. Variables and expressions are evaluated when the control is created; redraw the control to pick up later variable changes. Language changes refresh the labels on existing controls.
 
 ### Display macros in labels
 
@@ -142,9 +163,10 @@ Labels in `lanLink` and `lanButton` can contain display macros such as `<<him>>`
 <<lanLink ['Ask <<him>> to stay', '请<<him>>留下'] 'My Mod Stay'>><</lanLink>>
 ```
 
-The native parser resolves label macros to text when the control is created. Bilingual arrays and loaded dictionary translations retain the pronouns and variable values from that moment. Changing language does not rerun those display macros. Case conversion runs afterwards. Icons and styles still use their own arguments, and plain labels keep their previous display behaviour.
+> [!IMPORTANT]
+> The native parser resolves label macros to text when the control is created, so bilingual arrays and loaded dictionary translations retain the pronouns and variable values from that moment; changing language does not rerun those display macros. Use labels for display only, put assignments and time changes in the click body, and keep `capture` where a loop or widget's click body depends on local variables.
 
-Use labels for display only. Assignments, time changes and other actions belong in the click body. Keep `capture` where a loop or widget's click body depends on local variables.
+Case conversion runs afterwards. Icons and styles still use their own arguments, and plain labels keep their previous display behaviour.
 
 ## lanListbox
 
@@ -202,6 +224,23 @@ Array form:
 <</radiobuttonsfrom>>
 ```
 
+The third argument specifies a custom separator:
+
+```twine
+<<radiobuttonsfrom "$myMod.mode" "easy|normal|hard" " / ">>
+<</radiobuttonsfrom>>
+```
+
+## maplebirchTextOutput
+
+Output content registered by the text tool.
+
+```twine
+<<maplebirchTextOutput "myTextKey">>
+```
+
+See [Text and HTML tools](Tools/Text.md) for details.
+
 ## maplebirchReplace
 
 Open the framework overlay and render its body with the named macro.
@@ -214,19 +253,43 @@ This renders the body using `my-mod-hint`. With `title`, the framework looks for
 
 ## Custom Macros
 
+Use `maplebirch.tool.defineS()` to define a SugarCube macro that returns text or a DOM node.
+
 ```javascript
 maplebirch.tool.defineS('myModHello', name => {
   return `Hello, ${name}`;
 });
 ```
 
-Use `maplebirch.tool.define()` when the handler needs the SugarCube macro context. Both shortcuts retain the arguments of `tool.macro.define()` and `tool.macro.defineS()`. New macros register at `:sugarcube` by default, without a manual `once(':sugarcube')` wrapper. To replace a vanilla Twee widget, set the final `phase` argument to `'storyinit'` or `'storyready'` so vanilla can register first; claiming its name earlier makes SugarCube reject the vanilla definition. The `macro` service remains available for other macro-management methods.
+Use it in a passage:
+
+```twine
+<<myModHello "Robin">>
+```
+
+Use `maplebirch.tool.define()` when the handler needs direct access to the SugarCube macro context:
+
+```javascript
+maplebirch.tool.define('myModRaw', function () {
+  $(this.output).wiki('Custom output');
+});
+```
+
+> [!WARNING]
+> Both `define()` and `defineS()` register **new macros** at `'sugarcube'` by default, without a manual `once(':sugarcube')` wrapper. To replace a vanilla Twee widget, set the final `phase` argument to `'storyinit'` or `'storyready'` so vanilla can register first; claiming its name earlier makes SugarCube reject the vanilla definition.
+
+The `maplebirch.tool.macro` service remains available for other macro-management methods such as `create()`.
 
 ### Wrapping Existing Macros
 
 `maplebirch.tool.wrap(name, wrapper, phase = 'storyready')` registers a macro wrapper through the same installation flow as `define`. `tool.macro.wrap()` is also available. The default phase is `:storyready`. Calls made after the selected phase is ready install immediately.
 
 `define()`, `defineS()` and `wrap()` share these installation phases:
+
+```mermaid
+flowchart LR
+  SC["'sugarcube'<br/>Scripts ran; Twee widgets not registered yet"] --> SI["'storyinit'<br/>End of StoryInit, before restore & first passage"] --> SR["'storyready'<br/>After first passage display"]
+```
 
 | `phase`        | Timing                                                                                                            | Typical use                                                                    |
 | -------------- | ----------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
@@ -255,3 +318,10 @@ maplebirch.tool.wrap(
 ```
 
 This method returns no result. A missing macro produces a warning at installation. Multiple wrappers stack in registration order, with later wrappers on the outside.
+
+## Supplemental Notes
+
+- Multilingual macros refresh their own labels where possible after a language change.
+- Prefix translation keys with your mod name.
+- `lanButton` and `lanLink` bodies can run arbitrary SugarCube actions.
+- Put complex text generation logic into the [Text and HTML tools](Tools/Text.md).

@@ -11,6 +11,15 @@
 - 为角色面部样式增加新的风格或变体。
 - 在渲染前准备数据，或在渲染后追加效果。
 
+```mermaid
+flowchart LR
+  A["before 钩子"] --> B["原版 preprocess"]
+  B --> C["pre 钩子"]
+  C --> D["图层渲染 (showfn / srcfn)"]
+  D --> E["原版 postprocess"]
+  E --> F["post 钩子"]
+```
+
 ---
 
 ## 使用入口
@@ -18,6 +27,8 @@
 ```javascript
 maplebirch.char.use(layerMap);
 maplebirch.char.use(layerMap, target);
+maplebirch.char.use(layerMap, target, { pet: true });
+maplebirch.char.use('before', handler);
 maplebirch.char.use('pre', handler);
 maplebirch.char.use('post', handler);
 maplebirch.char.use('pre', handler, target);
@@ -40,7 +51,10 @@ maplebirch.char.use(layers).use('pre', preHandler);
 | `['main', 'clothes']`               | 指定多个模型                |
 | `(name, modelOrOptions) => boolean` | 按模型名和模型/选项动态判断 |
 
-常见模型名来自原版 `Renderer.CanvasModels`，例如 `main`、`lighting` 等。
+常见模型名来自原版 `Renderer.CanvasModels`，例如 `main`、`lighting`、`combatMainPc` 等。
+
+> [!TIP]
+> 不传 `target` 时默认只修改 `main`，避免意外影响其它画布模型。如果要修改多个模型，优先使用数组；只有需要规则匹配时再使用函数。
 
 ---
 
@@ -84,7 +98,7 @@ maplebirch.char.use(layers, ['main', 'lighting']);
 maplebirch.char.use(layers, name => name.startsWith('main'));
 ```
 
-图层配置：
+### 图层字段
 
 | 字段                 | 说明             |
 | :------------------- | :--------------- |
@@ -97,13 +111,20 @@ maplebirch.char.use(layers, name => name.startsWith('main'));
 
 `options` 是原版模型渲染传入的参数，里面会包含角色状态、外观选项和框架扩展字段。
 
+> [!IMPORTANT]
+> `showfn` 和 `srcfn` 会在每次渲染时求值，只应读取状态，不要在里面修改 `V` 中的游戏变量。当 `showfn` 返回假值时，框架会自动将对应图层的 `srcfn` 拦截为空字符串。
+
 ---
 
 ## 渲染处理函数
 
+### before
+
+`before` 在原版 `preprocess` 之前执行，适合在原版处理前修正或补充基础参数。
+
 ### pre
 
-`pre` 在图层渲染前执行，适合准备数据或调整 options。
+`pre` 在原版 `preprocess` 之后、图层渲染之前执行，适合准备衍生数据或调整 `options`。
 
 ```javascript
 maplebirch.char.use('pre', options => {
@@ -127,7 +148,7 @@ maplebirch.char.use(
 
 ### post
 
-`post` 在渲染后执行，适合处理渲染结果。
+`post` 在原版 `postprocess` 之后执行，适合处理渲染结果。
 
 ```javascript
 maplebirch.char.use('post', options => {
@@ -164,13 +185,13 @@ NPC 侧边栏的脸部图层按 `img/face/<facestyle>/<facevariant>/<图层名>.
 
 ## 遮罩辅助
 
-`maplebirch.char.mask()` 用于生成头发渐变遮罩，支持位置和旋转。
+`maplebirch.char.mask()` 用于生成头发渐变遮罩（返回缓存的 PNG Data URL），支持位置和旋转：
 
 ```javascript
 const mask = maplebirch.char.mask(0, 15);
 ```
 
-通常只有在自定义头发、渐变或遮罩图层时才需要直接使用。
+完整签名：`maplebirch.char.mask(x = 0, rotation = 0, swap = false, width = 256, height = 256)`。通常只有在自定义头发、渐变或遮罩图层时才需要直接使用。
 
 ---
 
@@ -197,8 +218,5 @@ maplebirch.char.use({
 ## 补充说明
 
 - 图层名称建议带模组名前缀，避免与原版或其它模组冲突。
-- 不传 `target` 时默认只修改 `main`，避免意外影响其它画布模型。
-- 如果要修改多个模型，优先使用数组。只有需要规则匹配时再使用函数。
-- `showfn` 只负责判断是否显示，不建议在里面修改游戏变量。
 - 面部样式图片路径大小写应保持一致。
 - 如果只是添加转化内容，优先参考 [转化管理](Transformation.md)。
