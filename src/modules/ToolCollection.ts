@@ -49,6 +49,10 @@ class ToolCollection {
     this.macro.defineS(name, fn, tags, skipArgs, maintainContext, phase);
   }
 
+  public wrap(...args: Parameters<defineMacros['wrap']>): void {
+    this.macro.wrap(...args);
+  }
+
   public addTo(zone: string, ...widgets: ZoneWidget[]): void {
     this.zone.addTo(zone, ...widgets);
   }

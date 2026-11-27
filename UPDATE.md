@@ -1,3 +1,17 @@
+##### (v.5.6.3更新日志):
+
+- 发布对应 DoL 0.5.13.8 的框架包，跟进原版的雀斑图层、命名 NPC 和钓鱼接口。
+- 保留原版及 DoLX 生成的发色滤镜和装备遮罩。普通立绘与特写的渐变位置不同时，先合成原版遮罩，再按各自的区域裁切。
+- 支持模组定义成就、带连字符的弹窗标题宏，以及从框架设置复制诊断报告。
+- 统一宏定义与包装的入口，补充具名 NPC 战斗对白和反应的回退分派。
+
+**English**
+
+- Target DoL 0.5.13.8 with updates for native freckles layers, named NPCs and fishing APIs.
+- Preserve hair colour filters and equipment masks from vanilla and DoLX. When standing art and close-ups use different gradient stops, compose the native masks before clipping each view.
+- Support mod-defined achievements, hyphenated overlay title macros and copying diagnostics from framework settings.
+- Align macro definition and wrapping APIs, and add fallback dispatch for named NPC combat dialogue and reactions.
+
 ##### (v.5.6.2更新日志):
 
 - 冻结场景与回放中的战斗保留同伴援助，继续沿用原版快照恢复现实属性，以及按回合去重和遭遇结束清理。

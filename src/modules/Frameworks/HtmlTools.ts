@@ -98,8 +98,8 @@ class htmlTools {
     this.log = maplebirch.infra.diagnostics.scoped('text');
   }
 
-  public get Wikifier(): ReturnType<MaplebirchCore['host']['sugarcube']['require']>['Wikifier'] {
-    return this.core.host.sugarcube.require().Wikifier;
+  public get Wikifier(): MaplebirchCore['SugarCube']['Wikifier'] {
+    return this.core.SugarCube.Wikifier;
   }
 
   public replaceText(oldText: string, newText: string, root: HtmlRoot | null = document.getElementById('passage-content')): number {

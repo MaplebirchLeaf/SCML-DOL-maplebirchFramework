@@ -165,7 +165,7 @@ class Macros {
       const actions = combatType ? rest : this.args;
       if (!actions.every((arg): arg is ActionType => (actionTypes as readonly unknown[]).includes(arg))) return this.error('Invalid combat action type.');
       const effects = core.combat?.CombatAction?.effect(combatType, ...actions);
-      if (effects) this.output.append(core.host.sugarcube.require().Wikifier.wikifyEval(effects));
+      if (effects) this.output.append(core.SugarCube.Wikifier.wikifyEval(effects));
     });
     macro.defineS('maplebirchFrameworkVersions', () => `<div id='modversions'>Maplebirch Framework v${core.meta.version}|${core.services.addonPlugin.modList.length}</div>`);
     macro.defineS('maplebirchFrameworkInfo', () => this.showFrameworkInfo());

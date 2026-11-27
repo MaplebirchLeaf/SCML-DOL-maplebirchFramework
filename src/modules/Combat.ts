@@ -5,6 +5,7 @@ import type { ScopedLog } from '../infra/Diagnostics';
 import type { MacroContext } from '../macros';
 import CombatActions, { type ActionType, type ActionValue, type CombatType, type OptionsTable } from './CombatAddon/CombatAction';
 import Companions, { type CompanionNPC } from './CombatAddon/Companions';
+import Dispatch from './CombatAddon/Dispatch';
 import dol from '../host/DoL';
 import DoLX from '../compat/DoLX';
 
@@ -24,6 +25,7 @@ class Combat {
 
   public preInit(): void {
     const companions = this.companions;
+    Dispatch.install(this.core);
     this.core.tool.define('assignCombatDefaults', this._assignCombatDefaults());
     this.core.tool.define('generateCombatAction', this._generateCombatAction());
     this.core.tool.define('combatButtonAdjustments', (name: string, extra: CombatType | '' = '') => this._combatButtonAdjustments(name, extra));
@@ -33,7 +35,7 @@ class Combat {
     this.core.tool.define('companions-leave', function (...npcs: CompanionNPC[]) {
       this.output.append(companions.leave(...npcs));
     });
-    this.core.tool.macro.wrap(
+    this.core.tool.wrap(
       'pain',
       function (next) {
         const original = this.args[0];
@@ -55,7 +57,7 @@ class Combat {
       },
       'storyinit'
     );
-    this.core.tool.macro.wrap(
+    this.core.tool.wrap(
       'effectsman',
       function (next) {
         const result = next();
@@ -64,7 +66,7 @@ class Combat {
       },
       'storyinit'
     );
-    this.core.tool.macro.wrap(
+    this.core.tool.wrap(
       'stateman',
       function (next) {
         const result = next();
@@ -74,7 +76,7 @@ class Combat {
       'storyinit'
     );
     for (const name of ['combatinit', 'endcombat', 'endevent']) {
-      this.core.tool.macro.wrap(
+      this.core.tool.wrap(
         name,
         function (next) {
           try {
@@ -150,7 +152,7 @@ class Combat {
         listSpan.id = `${actionType}Select`;
         listSpan.className = `${combatListColor(actionType, optionValues.includes(dol.variables[actionType]) ? dol.variables[actionType] : optionValues[0], combatType)}List flavorText ${dol.temporary.reducedWidths ? 'reducedWidth' : ''}`;
         dol.temporary[`${actionType}options`] = optionsTable;
-        const listBox = maplebirch.host.sugarcube.require().Wikifier.wikifyEval(`<<listbox '$${actionType}' autoselect>><<optionsfrom _${actionType}options>><</listbox>>`);
+        const listBox = maplebirch.SugarCube.Wikifier.wikifyEval(`<<listbox '$${actionType}' autoselect>><<optionsfrom _${actionType}options>><</listbox>>`);
         listSpan.append(listBox);
         frag.append(listSpan);
       } else {
@@ -159,7 +161,7 @@ class Combat {
         optionNames.forEach((name, n) => {
           const action = optionsTable[name];
           const label = el('label');
-          const radioButton = maplebirch.host.sugarcube.require().Wikifier.wikifyEval(`<<radiobutton '$${actionType}' '${action}' autocheck>>`);
+          const radioButton = maplebirch.SugarCube.Wikifier.wikifyEval(`<<radiobutton '$${actionType}' '${action}' autocheck>>`);
           const nameSpan = el('span');
           let difficultyText = document.createDocumentFragment();
           if (action === 'ask') {
@@ -171,7 +173,7 @@ class Combat {
           nameSpan.innerText = ` ${name} `;
           try {
             const modDifficulty = CombatAction.difficulty(action, combatType);
-            difficultyText = maplebirch.host.sugarcube.require().Wikifier.wikifyEval(modDifficulty || `<<${actionType}Difficulty${combatType} ${action}>>`);
+            difficultyText = maplebirch.SugarCube.Wikifier.wikifyEval(modDifficulty || `<<${actionType}Difficulty${combatType} ${action}>>`);
           } catch (e) {
             log('mod战斗动作难度提示错误', 'ERROR', e);
           }
@@ -213,7 +215,7 @@ class Combat {
         } catch (e) {
           this.log('mod战斗动作难度提示错误', 'ERROR', e);
         }
-        maplebirch.host.sugarcube.require().Wikifier.wikifyEval(`<<replace #${e.data.name}Difficulty>>${difficultyMacro}<</replace>>`);
+        maplebirch.SugarCube.Wikifier.wikifyEval(`<<replace #${e.data.name}Difficulty>>${difficultyMacro}<</replace>>`);
         $('#' + e.data.name + 'Select')
           .removeClass('whiteList bratList meekList defList subList')
           .addClass(combatListColor(e.data.name, null, e.data.extra) + 'List');

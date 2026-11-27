@@ -191,6 +191,26 @@ maplebirch.combat.CombatAction.reg({
 <</widget>>
 ```
 
+## 具名 NPC 的战斗 widget
+
+原版已有的分支会直接调用对应 widget。缺少角色或事件分支时，框架按 NPC 的注册名查找 widget。用小写拼写 NPC 名，名称中的空格用 `-` 连接，事件名保留原来的大小写。NPC 须已登记在 `setup.NPCNameList` 中。
+
+| 原版分派宏            | 可定义的 widget（以 Ellis 为例） | 传给 widget 的参数                         |
+| --------------------- | -------------------------------- | ------------------------------------------ |
+| `namedNpcComments`    | `speech-ellis`                   | 无                                         |
+| `namedNpcReaction`    | `reaction-ellis-kissDeep`        | 原版有传入部位等细节时，从 `_args[0]` 读取 |
+| `namedNpcEjaculation` | `ejaculation-ellis`              | 调用方传入的模式，从 `_args[0]` 读取       |
+
+在 `[widget]` 段落中直接定义即可。
+
+```twine
+<<widget "reaction-ellis-kissDeep">>
+  Ellis 顿了一下。
+<</widget>>
+```
+
+缺少对应 widget 时走原版回退。对白遵守 `_silent`，widget 可以设置 `_noNameComment` 继续走通用对白。象牙怨灵使用 `speechWraith`，`dev` 中罗宾的原版 `expose` 反应接收战斗槽位。`0.5.13.8` 的 `ejaculation-*` 由原版 `combat.js` 查找，NPC 名只转成小写。
+
 ## 注意事项
 
 - `value` 不要和原版动作或其他模组动作重复，建议带模组名前缀。

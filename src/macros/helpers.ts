@@ -24,7 +24,7 @@ export interface MacroContext extends Omit<SugarCubeMacroContext, 'args' | 'crea
 
 export function parseLanguageArgs(args: MacroArgs): void {
   if (args.length || args.raw == null) return;
-  const runtime = maplebirch.host.sugarcube.require();
+  const runtime = maplebirch.SugarCube;
   const parser = runtime.Wikifier.Parser.get('macro');
   if (!parser || typeof parser !== 'object' || !('parseArgs' in parser) || typeof parser.parseArgs !== 'function') throw new Error('SugarCube macro argument parser is unavailable.');
   let raw = args.raw.trimStart();
@@ -166,7 +166,7 @@ export function labelText(source: string | readonly string[], convertMode: Conve
     if (!value.includes('<<')) return value;
     if (labels.has(value)) return labels.get(value)!;
     const output = document.createDocumentFragment();
-    new (maplebirch.host.sugarcube.require().Wikifier)(output, value, { profile: 'core' });
+    new maplebirch.SugarCube.Wikifier(output, value, { profile: 'core' });
     const error = output.querySelector('.error');
     if (error) throw new Error(error.textContent || 'Invalid label macro.');
     const result = output.textContent || '';
@@ -226,7 +226,7 @@ export function wiki($container: JQuery, content: string): void {
   $container.empty();
   if (!content) return;
   const fragment = document.createDocumentFragment();
-  new (maplebirch.host.sugarcube.require().Wikifier)(fragment, content);
+  new maplebirch.SugarCube.Wikifier(fragment, content);
   $container.append(fragment);
   Links.generate();
 }

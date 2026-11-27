@@ -40,8 +40,8 @@ export function _languageLink(this: MacroContext): void {
     if (style) $link.attr('style', style);
     if (passageName != null) {
       $link.attr('data-passage', passageName);
-      if (maplebirch.host.sugarcube.require().Story.has(passageName)) {
-        if (maplebirch.host.sugarcube.require().Config.addVisitedLinkClass && maplebirch.host.sugarcube.require().State.hasPlayed(passageName)) $link.addClass('link-visited');
+      if (maplebirch.SugarCube.Story.has(passageName)) {
+        if (maplebirch.SugarCube.Config.addVisitedLinkClass && maplebirch.SugarCube.State.hasPlayed(passageName)) $link.addClass('link-visited');
       } else {
         $link.addClass('link-broken');
       }
@@ -58,7 +58,7 @@ export function _languageLink(this: MacroContext): void {
           if (!content || (passageName != null && dol.variables.nextPassage)) return;
           window.ironmanFlag = true;
           try {
-            maplebirch.host.sugarcube.require().Wikifier.wikifyEval(content, passageObj);
+            maplebirch.SugarCube.Wikifier.wikifyEval(content, passageObj);
           } finally {
             delete window.ironmanFlag;
           }
@@ -74,7 +74,7 @@ export function _languageLink(this: MacroContext): void {
               const sidebar = document.querySelector<HTMLElement>('#storyCaptionDiv');
               window.scrollUIBar = sidebar?.scrollTop ?? null;
               window.scrollMain = document.scrollingElement?.scrollTop ?? 0;
-              maplebirch.host.sugarcube.require().Engine.play(destination);
+              maplebirch.SugarCube.Engine.play(destination);
             }
           : undefined
       )

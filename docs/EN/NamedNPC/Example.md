@@ -295,7 +295,7 @@ Inspect these values in the browser console. They read state without changing th
 
 ```javascript
 (() => {
-  const { Story, Macro } = maplebirch.host.sugarcube.require();
+  const { Story, Macro } = maplebirch.SugarCube;
   console.log(V.myMod?.luna);
   console.log(C.npc.Luna?.init, C.npc.Luna?.myModTrust);
   console.log(maplebirch.npc.Schedule.get('Luna').location);

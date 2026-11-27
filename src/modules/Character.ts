@@ -12,22 +12,14 @@ import dol from '../host/DoL';
 
 interface HairGradientOptions {
   style: string;
-  colours: string[];
 }
 
 interface HairGradientPreprocessOptions {
   hair_sides_length: string;
-  hair_fringe_length: string;
   hair_colour_style?: string;
   hair_colour_gradient?: HairGradientOptions;
-  hair_sides_type?: string;
-  hair_sides_position?: string;
   hair_fringe_colour_style?: string;
   hair_fringe_colour_gradient?: HairGradientOptions;
-  hair_fringe_type?: string;
-  show_hair?: boolean;
-  headMask?: string[];
-  fringe_mask_src?: string | null;
   maplebirch?: {
     char?: {
       mask_src?: string;
@@ -119,40 +111,21 @@ function mask(x = 0, rotation = 0, swap = false, width = 256, height = 256): str
   return result;
 }
 
-function hairColourGradient(part: string, gradient: HairGradientOptions, hairType: string, hairLength: number, prefilterName: string, type: 'charArt' | 'closeUp'): any {
-  const filterPrototypeLibrary = dol.setup.colours?.hairgradients_prototypes?.[part]?.[gradient.style];
-  if (!filterPrototypeLibrary) return dol.renderer.emptyLayerFilter();
-  const filterPrototype = filterPrototypeLibrary[hairType] || filterPrototypeLibrary.all;
-  if (!filterPrototype) return dol.renderer.emptyLayerFilter();
-  const storedPositions = dol.variables.options?.maplebirch?.character?.[type]?.value?.[part]?.[gradient.style];
-  const blend = clone(filterPrototype);
-  if (storedPositions && storedPositions.length === blend.colors.length) for (let i = 0; i < blend.colors.length; i++) blend.colors[i][0] = Math.clamp(storedPositions[i], 0, 1);
-  const filter = {
-    blend,
-    brightness: {
-      gradient: filterPrototype.gradient,
-      values: filterPrototype.values,
-      adjustments: blend.colors.map(() => [0, 0] as [number, number])
-    },
-    blendMode: 'hard-light' as const
-  };
-  for (let index = 0; index < filter.blend.colors.length; index++) {
-    const color = filter.blend.colors[index];
-    const lengthFn = filter.blend.lengthFunctions?.[0];
-    let lengthValue = typeof lengthFn === 'function' ? lengthFn(hairLength, color[0]) : color[0];
-    lengthValue = Math.clamp(lengthValue, 0, 1);
-    const colourKey = gradient.colours[index];
-    const colorData = dol.setup.colours?.hair_map?.[colourKey]?.canvasfilter;
-    if (!colorData) continue;
-    filter.brightness.adjustments[index][0] = lengthValue;
-    filter.brightness.adjustments[index][1] = colorData.brightness || 0;
-    color[0] = lengthValue;
-    color[1] = colorData.blend;
-  }
+function hairColourGradient(filter: Record<string, any>, positions: number[] | undefined, length: string): Record<string, any> {
+  const colors = filter.blend?.colors;
+  if (!Array.isArray(colors) || !Array.isArray(positions) || positions.length !== colors.length) return filter;
 
-  const prefilter = dol.setup.colours?.sprite_prefilters?.[prefilterName];
-  if (prefilter) dol.renderer.mergeLayerData(filter, prefilter, true);
-  return filter;
+  const adjusted = clone(filter);
+  const hairLength = hairLengthStringToNumber(length);
+  const lengthFn = adjusted.blend.lengthFunctions?.[0];
+  const brightness = adjusted.brightness?.adjustments;
+  for (const [index, position] of positions.entries()) {
+    const value = Math.clamp(position, 0, 1);
+    const stop = Math.clamp(typeof lengthFn === 'function' ? lengthFn(hairLength, value) : value, 0, 1);
+    adjusted.blend.colors[index][0] = stop;
+    if (brightness?.[index]) brightness[index][0] = stop;
+  }
+  return adjusted;
 }
 
 function preprocess(options: HairGradientPreprocessOptions) {
@@ -160,70 +133,69 @@ function preprocess(options: HairGradientPreprocessOptions) {
   if (!options.facestyle || !styles.includes(options.facestyle)) options.facestyle = 'default';
   const variants = Object.values(dol.setup.faceVariantOptions?.[options.facestyle] ?? {});
   if (!options.facevariant || !variants.includes(options.facevariant)) options.facevariant = 'default';
-  (options.maplebirch ??= {}).char ??= {};
   const characterOptions = dol.variables.options?.maplebirch?.character ?? {};
-  options.maplebirch.char.mask_src = mask(characterOptions.mask ?? 0, characterOptions.rotation ?? 0);
-  options.maplebirch.char.mask_src_close_up = mask(characterOptions.mask ?? 0, characterOptions.rotation ?? 0, true);
-  const gradients = (style: string, key: string, part: string, type: string, lengthKey: string, prefilter: string) => {
-    if (options[style] !== 'gradient') return;
-    const gradient = options[key] as HairGradientOptions | undefined;
-    if (!gradient) return;
-    const hairType = options[type] as string;
-    const length = hairLengthStringToNumber(options[lengthKey] as string);
-    options.filters ??= {};
-    options.filters[prefilter] = hairColourGradient(part, gradient, hairType, length, prefilter, 'charArt');
-    options.filters[`${prefilter}_close_up`] = hairColourGradient(part, gradient, hairType, length, prefilter, 'closeUp');
+  const filters = options.filters;
+  if (!filters) return;
+  const gradients = (style: string | undefined, gradient: HairGradientOptions | undefined, part: 'sides' | 'fringe', name: string) => {
+    const closeUp = `${name}_close_up`;
+    delete filters[closeUp];
+    const filter = filters[name];
+    if (style !== 'gradient' || !Array.isArray(filter?.blend?.colors)) return;
+    const positions = (view: 'charArt' | 'closeUp') => gradient && characterOptions[view]?.value?.[part]?.[gradient.style];
+    const standing = hairColourGradient(filter, positions('charArt'), options.hair_sides_length);
+    const detail = hairColourGradient(filter, positions('closeUp'), options.hair_sides_length);
+    filters[name] = standing;
+    if (standing.blend.colors.some(([stop]: [number, string], index: number) => stop !== detail.blend.colors[index][0])) filters[closeUp] = detail;
   };
-  gradients('hair_colour_style', 'hair_colour_gradient', 'sides', 'hair_sides_type', 'hair_sides_length', 'hair');
-  gradients('hair_fringe_colour_style', 'hair_fringe_colour_gradient', 'fringe', 'hair_fringe_type', 'hair_fringe_length', 'hair_fringe');
-}
-
-function kaiju_mask(options: HairGradientPreprocessOptions): string | undefined {
-  if (options.worn?.over_upper?.setup?.name === 'kaiju costume') return 'img/clothes/over-upper/kaiju/mask.png';
-}
-
-function hair_mask(options: HairGradientPreprocessOptions, part: 'sides' | 'fringe' = 'sides', clip?: string): CanvasLayerMaskSrc {
-  const native = kaiju_mask(options) || (options.headMask?.length ? options.headMask : part === 'fringe' ? options.fringe_mask_src : undefined);
-  const masks = native ? (Array.isArray(native) ? [...native] : [native]) : [];
-  if (clip) masks.unshift(clip);
-  return masks.length > 1 ? [{ path: masks[0], convert: true }, ...masks.slice(1)] : masks[0];
-}
-
-const hair_layers: CanvasLayerMap = {
-  hair_sides: { masksrcfn: options => hair_mask(options) },
-  hair_fringe: { masksrcfn: options => hair_mask(options, 'fringe') },
-  hair_extra: { masksrcfn: options => hair_mask(options) }
-};
-
-const layers: CanvasLayerMap = {
-  ...hair_layers,
-  hair_sides: {
-    masksrcfn(options: HairGradientPreprocessOptions) {
-      return hair_mask(options, 'sides', options.maplebirch?.char?.mask_src);
-    }
-  },
-  hair_sides_close_up: {
-    masksrcfn(options: HairGradientPreprocessOptions) {
-      return hair_mask(options, 'sides', options.maplebirch?.char?.mask_src_close_up);
-    },
-    filtersfn(options: { hair_colour_style: string }) {
-      return options.hair_colour_style === 'gradient' ? ['hair_close_up'] : ['hair'];
-    }
-  },
-  hair_fringe: {
-    masksrcfn(options: HairGradientPreprocessOptions) {
-      return hair_mask(options, 'fringe', options.maplebirch?.char?.mask_src);
-    }
-  },
-  hair_fringe_close_up: {
-    masksrcfn(options: HairGradientPreprocessOptions) {
-      return hair_mask(options, 'fringe', options.maplebirch?.char?.mask_src_close_up);
-    },
-    filtersfn(options: { hair_fringe_colour_style: string }) {
-      return options.hair_fringe_colour_style === 'gradient' ? ['hair_fringe_close_up'] : ['hair_fringe'];
-    }
+  gradients(options.hair_colour_style, options.hair_colour_gradient, 'sides', 'hair');
+  gradients(options.hair_fringe_colour_style, options.hair_fringe_colour_gradient ?? options.hair_colour_gradient, 'fringe', 'hair_fringe');
+  if (filters.hair_close_up || filters.hair_fringe_close_up) {
+    const view = ((options.maplebirch ??= {}).char ??= {});
+    view.mask_src = mask(characterOptions.mask ?? 0, characterOptions.rotation ?? 0);
+    view.mask_src_close_up = mask(characterOptions.mask ?? 0, characterOptions.rotation ?? 0, true);
   }
-};
+}
+
+function hairMask({ masksrcfn, masksrc }: LayerConfig, filter: string, closeUp = false) {
+  const key = closeUp ? 'mask_src_close_up' : 'mask_src';
+  return function (this: LayerConfig, options: HairGradientPreprocessOptions): CanvasLayerMaskSrc {
+    const native = masksrcfn ? masksrcfn.call(this, options) : masksrc;
+    const clip = options.filters?.[filter] && options.maplebirch?.char?.[key];
+    this.maplebirchHairClip = clip;
+    if (!clip) return native;
+    return Array.isArray(native) ? [...native, clip] : native ? [native, clip] : [clip];
+  };
+}
+
+function hairClip(): void {
+  const renderer = dol.renderer;
+  const pipeline = renderer.RenderingPipeline;
+  const index = pipeline.findIndex((step: { name: string }) => step.name === 'mask');
+  if (index < 0 || pipeline.some((step: { name: string }) => step.name === 'maplebirch-hair-clip')) return;
+  const native = pipeline[index];
+  pipeline.splice(index, 0, {
+    name: 'maplebirch-hair-clip',
+    condition: (layer: LayerConfig) => !!layer.mask && !!layer.maplebirchHairClip && Array.isArray(layer.masksrc) && layer.masksrc.at(-1) === layer.maplebirchHairClip,
+    render(image: HTMLCanvasElement | HTMLImageElement, layer: LayerConfig, context: { layer: LayerConfig }) {
+      // 先让原版合成服装和发型遮罩，再裁出本图层的渐变区域。
+      const masks = Array.isArray(layer.mask) ? layer.mask : [layer.mask];
+      const clip = masks.at(-1);
+      const base = masks.slice(0, -1);
+      const masked = base.length ? native.render(image, { ...layer, mask: base.length === 1 ? base[0] : base }, context) : image;
+      const canvas = renderer.ensureCanvas(masked);
+      const ctx = canvas.getContext('2d');
+      ctx.save();
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'destination-in';
+      ctx.drawImage(clip, 0, 0, canvas.width, canvas.height);
+      ctx.restore();
+      context.layer = { ...layer, mask: undefined };
+      return canvas;
+    }
+  });
+}
+
+const hairLayers = ['hair_sides', 'hair_fringe'];
 
 class Character {
   public readonly log!: ScopedLog;
@@ -337,16 +309,38 @@ class Character {
   private splitHairLayers(layers: CanvasLayerMap): CanvasLayerMap {
     const result: CanvasLayerMap = {};
     for (const [name, layer] of Object.entries(layers)) {
-      if (['hair_sides_close_up', 'hair_fringe_close_up'].includes(name) && layers[name.replace('_close_up', '')]) continue;
+      const baseName = name.replace(/_close_up$/, '');
+      if (name !== baseName && hairLayers.includes(baseName) && layers[baseName]) continue;
       result[name] = layer;
-      if (!['hair_sides', 'hair_fringe'].includes(name)) continue;
+      if (!hairLayers.includes(name)) continue;
       const closeUp = `${name}_close_up`;
-      if (layers[closeUp]) result[closeUp] = { ...layer, ...layers[closeUp] };
+      if (!layers[closeUp]) continue;
+      const filter = name === 'hair_sides' ? 'hair' : 'hair_fringe';
+      const closeUpFilter = `${filter}_close_up`;
+      const base = layer.defaultOptions ?? layer;
+      const detail = { ...base, ...layers[closeUp] };
+      result[name] = { ...layer, masksrcfn: hairMask(base, closeUpFilter) };
+      Object.assign(
+        result,
+        guarded({
+          [closeUp]: {
+            ...detail,
+            masksrcfn: hairMask(detail, closeUpFilter, true),
+            showfn(options) {
+              return !!options.filters?.[closeUpFilter] && (detail.showfn ? detail.showfn.call(this, options) : !!detail.show);
+            },
+            filtersfn(options) {
+              return (detail.filtersfn?.call(this, options) ?? detail.filters)?.map(key => (key === filter ? closeUpFilter : key));
+            }
+          }
+        })
+      );
     }
     return result;
   }
 
   public patchCanvasModel<T extends CanvasModelConstructor>(BaseCanvasModel: T): T {
+    hairClip();
     const layerEntries = this.layers;
     const splitHairLayers = this.splitHairLayers.bind(this);
     const runProcess = this.process.bind(this);
@@ -395,6 +389,12 @@ class Character {
         layers: missing
       } as CanvasModelOptions);
       Object.assign(model.layers, initialized.layers);
+      for (const name of hairLayers) {
+        if (!missing[`${name}_close_up`] || !model.layers[name]) continue;
+        const layer = model.layers[name];
+        layer.masksrcfn = ordered[name].masksrcfn;
+        if (layer.defaultOptions) layer.defaultOptions.masksrcfn = layer.masksrcfn;
+      }
       model.layerList = Object.keys(ordered).map(name => model.layers[name]);
     };
     const patchModel = (model: CanvasModel) => {
@@ -458,7 +458,7 @@ class Character {
     const { core, pet } = this;
     core.on(':language', () => this.faceStyleSetupOption(), 'face style setup options');
     core.once(':storyready', () => this.faceStyleSetupOption());
-    core.tool.macro.wrap(
+    core.tool.wrap(
       'updatesidebarimg',
       function (next) {
         const result = next();
@@ -469,8 +469,7 @@ class Character {
     );
     core.on(':passageend', () => void pet.sync());
     this.use('pre', preprocess, 'main');
-    this.use(layers, 'main');
-    this.pet.use(hair_layers);
+    this.use({ hair_sides_close_up: {}, hair_fringe_close_up: {} }, 'main');
   }
 
   public Init(): void {

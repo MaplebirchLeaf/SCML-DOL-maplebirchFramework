@@ -23,10 +23,7 @@ export function _languageButton(this: MacroContext): void {
 
     const update = labelControl($button, 'macro-lanButton-text', source, appearance);
 
-    $button.ariaClick(
-      { namespace: '.macros', role: 'button', one: false },
-      this.createShadowWrapper(content ? () => maplebirch.host.sugarcube.require().Wikifier.wikifyEval(content, passageObj) : () => {})
-    );
+    $button.ariaClick({ namespace: '.macros', role: 'button', one: false }, this.createShadowWrapper(content ? () => maplebirch.SugarCube.Wikifier.wikifyEval(content, passageObj) : () => {}));
     $button.appendTo(this.output);
     bindLanguageUpdate($button, 'lanButton', update);
   } catch (error) {

@@ -224,7 +224,7 @@ Use `maplebirch.tool.define()` when the handler needs the SugarCube macro contex
 
 ### Wrapping Existing Macros
 
-`maplebirch.tool.macro.wrap(name, wrapper, phase = 'storyready')` registers a macro wrapper through the same installation flow as `define`. It defaults to `:storyready`; calls made after the selected phase is ready install immediately. No separate `onInit()` is needed.
+`maplebirch.tool.wrap(name, wrapper, phase = 'storyready')` registers a macro wrapper through the same installation flow as `define`. `tool.macro.wrap()` is also available. The default phase is `:storyready`. Calls made after the selected phase is ready install immediately.
 
 `define()`, `defineS()` and `wrap()` share these installation phases:
 
@@ -238,8 +238,12 @@ Use `maplebirch.tool.define()` when the handler needs the SugarCube macro contex
 
 `wrapper` preserves the original macro context and definition properties. Call `next()` to run the previous handler. Access arguments and output through `this.args`, `this.payload` and `this.output`.
 
+Pass an object with `when` and `fallback` to add fallback content to a `switch` or `if` in the original macro. `when` receives the control macro's context. When the fallback clause runs, `fallback` returns Twee in the original macro's context and can reference its `_args`. If the macro already has a `<<default>>` or `<<else>>`, set `default` to the existing clause body to match.
+
+Multiple wrappers can target the same fallback clause. The framework starts with the outermost wrapper and uses the first string returned. Returning `undefined` passes to the next wrapper. Returning an empty string ends the lookup. A nested widget uses its own fallback rules.
+
 ```javascript
-maplebirch.tool.macro.wrap(
+maplebirch.tool.wrap(
   'endcombat',
   function (next) {
     const result = next();

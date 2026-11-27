@@ -191,6 +191,26 @@ maplebirch.combat.CombatAction.reg({
 <</widget>>
 ```
 
+## Named NPC Combat Widgets
+
+Existing game branches call their widgets directly. When there is no matching NPC or event branch, the framework looks up a widget by the NPC's registered name. Lowercase the NPC name, join words with `-`, and keep the event's original case. The NPC must be listed in `setup.NPCNameList`.
+
+| Game dispatcher       | Widget name for Ellis     | Widget argument                                         |
+| --------------------- | ------------------------- | ------------------------------------------------------- |
+| `namedNpcComments`    | `speech-ellis`            | None                                                    |
+| `namedNpcReaction`    | `reaction-ellis-kissDeep` | The optional detail, such as a body part, in `_args[0]` |
+| `namedNpcEjaculation` | `ejaculation-ellis`       | The caller's mode in `_args[0]`                         |
+
+Define the widget in a `[widget]` passage.
+
+```twine
+<<widget "reaction-ellis-kissDeep">>
+  Ellis pauses for a moment.
+<</widget>>
+```
+
+The game's fallback runs when the matching widget is missing. Speech respects `_silent`, and a widget can set `_noNameComment` to allow generic dialogue. The Ivory Wraith uses `speechWraith`. On `dev`, Robin's built-in `expose` reaction takes the combat slot. In `0.5.13.8`, the game's `combat.js` resolves `ejaculation-*` by lowercasing the NPC name alone.
+
 ## Notes
 
 - `value` should not collide with vanilla actions or other mods. A mod prefix is recommended.

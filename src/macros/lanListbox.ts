@@ -47,7 +47,7 @@ function buildOptions(payload: MacroPayload[], allowSelected: boolean): { option
       if (!expression) return '<<optionsfrom>> needs an expression.';
       let value: unknown;
       try {
-        value = maplebirch.host.sugarcube.require().Scripting.evalJavaScript(expression[0] === '{' ? `(${expression})` : expression);
+        value = maplebirch.SugarCube.Scripting.evalJavaScript(expression[0] === '{' ? `(${expression})` : expression);
       } catch (error) {
         return `Expression error: ${Diagnostics.message(error)}`;
       }
@@ -69,7 +69,7 @@ export function _languageListbox(this: MacroContext): void {
     const varName = text(this.args[0]).trim();
     if (!varName || (varName[0] !== '$' && varName[0] !== '_')) return this.error(`Variable '${varName}' needs a sigil.`);
 
-    const varId = maplebirch.host.sugarcube.require().Util.slugify(varName);
+    const varId = maplebirch.SugarCube.Util.slugify(varName);
     const config = { autoselect: false };
     let classes = '';
     let style = '';
@@ -86,7 +86,7 @@ export function _languageListbox(this: MacroContext): void {
     const options = built.options;
     let selectedIdx = built.selectedIdx;
     if (selectedIdx === -1) {
-      selectedIdx = config.autoselect ? options.findIndex(option => maplebirch.host.sugarcube.require().Util.sameValueZero(option.value, State.getVar(varName))) : 0;
+      selectedIdx = config.autoselect ? options.findIndex(option => maplebirch.SugarCube.Util.sameValueZero(option.value, State.getVar(varName))) : 0;
       if (selectedIdx === -1) selectedIdx = 0;
     }
 
@@ -125,7 +125,7 @@ export function _languageListbox(this: MacroContext): void {
     State.setVar(varName, options[selectedIdx].value);
     const update = this.createShadowWrapper(() => {
       const currentValue = State.getVar(varName);
-      const currentIndex = options.findIndex(option => maplebirch.host.sugarcube.require().Util.sameValueZero(option.value, currentValue));
+      const currentIndex = options.findIndex(option => maplebirch.SugarCube.Util.sameValueZero(option.value, currentValue));
       if (currentIndex >= 0) selectedIdx = currentIndex;
       create(options, selectedIdx);
     });

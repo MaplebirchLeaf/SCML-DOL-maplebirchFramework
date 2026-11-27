@@ -252,7 +252,7 @@ const applyLinkZone = ((core: MaplebirchCore) => {
     if (typeof wiki === 'function') {
       $(container).wiki(macro);
     } else if (core.host.sugarcube.runtime?.Wikifier) {
-      new (core.host.sugarcube.require().Wikifier)(container, macro);
+      new core.SugarCube.Wikifier(container, macro);
     } else {
       container.innerHTML = macro;
     }

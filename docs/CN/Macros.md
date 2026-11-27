@@ -294,7 +294,7 @@ maplebirch.tool.define('myModRaw', function () {
 
 ### 包装现有宏
 
-`maplebirch.tool.macro.wrap(name, wrapper, phase = 'storyready')` 登记宏包装，与 `define` 共用安装流程。默认在 `:storyready` 安装；对应阶段已就绪时立即安装，无需另写 `onInit()`。
+`maplebirch.tool.wrap(name, wrapper, phase = 'storyready')` 登记宏包装，与 `define` 共用安装流程。也可通过 `tool.macro.wrap()` 调用。默认在 `:storyready` 安装，对应阶段已就绪时立即安装。
 
 `define()`、`defineS()` 和 `wrap()` 共用以下安装时机：
 
@@ -308,8 +308,12 @@ maplebirch.tool.define('myModRaw', function () {
 
 `wrapper` 保留原版宏的上下文和定义属性。调用 `next()` 执行上一层处理器；可通过 `this.args`、`this.payload` 和 `this.output` 读取参数与输出。
 
+传入包含 `when` 和 `fallback` 的对象，可给同一个原宏内的 `switch` 或 `if` 添加缺省内容。`when` 接收分支宏的上下文。实际走到缺省分支时，`fallback` 在原宏上下文中返回 Twee，可以引用原宏的 `_args`。已有 `<<default>>` 或 `<<else>>` 时，用 `default` 指定要匹配的原版分支内容。
+
+同一个缺省分支可以有多个包装。框架从外层开始尝试，采用第一个返回的字符串。返回 `undefined` 会继续尝试下一层，返回空字符串会结束查找。宏调用其它 widget 时，内层 widget 使用自己的回退规则。
+
 ```javascript
-maplebirch.tool.macro.wrap(
+maplebirch.tool.wrap(
   'endcombat',
   function (next) {
     const result = next();

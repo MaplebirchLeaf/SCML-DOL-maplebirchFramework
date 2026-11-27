@@ -118,7 +118,7 @@ function install(core: MaplebirchCore, patch: Patch) {
         injectAntiques: Antiques.inject
       },
       available: () => dol.has('variables') && isRecord(dol.variables.museumAntiques?.antiques),
-      state: () => new (core.host.sugarcube.require().Wikifier)(document.createDocumentFragment(), '<<museumAntiqueText>>')
+      state: () => new core.SugarCube.Wikifier(document.createDocumentFragment(), '<<museumAntiqueText>>')
     },
     tips: {
       api: {

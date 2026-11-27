@@ -121,7 +121,7 @@ class NPCOutfitSets {
     const sets = new Set(this.data.map(set => set.name));
     const named = Array.isArray(variables.NPCName) ? variables.NPCName : [];
     const active = Array.isArray(variables.NPCList) ? variables.NPCList : [];
-    const { Wikifier } = this.manager.core.host.sugarcube.require();
+    const { Wikifier } = this.manager.core.SugarCube;
     for (const npc of new Set([...named, ...active])) {
       if (!npc || typeof npc !== 'object') continue;
       const outfits = Array.isArray(npc.outfits) ? npc.outfits.filter((name: string) => sets.has(name)) : undefined;

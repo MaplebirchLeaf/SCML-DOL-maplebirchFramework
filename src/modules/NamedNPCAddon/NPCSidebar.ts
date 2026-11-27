@@ -857,7 +857,7 @@ const NPCSidebar = (() => {
       manager.core.char.use(layers, 'main');
       manager.core.char.use(pet_layers('nnpc'), 'npc-pet-nnpc');
       manager.core.char.use(pet_layers('previous'), 'npc-pet-previous');
-      manager.core.tool.macro.wrap(
+      manager.core.tool.wrap(
         'updatesidebarimg',
         function (next) {
           const result = next();

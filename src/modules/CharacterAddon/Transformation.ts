@@ -154,7 +154,7 @@ class Transformation {
   }
 
   public wikifier(widget: string, ...args: any[]): any {
-    return this.manager.core.host.sugarcube.require().Wikifier.wikifyEval(`<<${widget}${args.length ? ` ${args.join(' ')}` : ''}>>`);
+    return this.manager.core.SugarCube.Wikifier.wikifyEval(`<<${widget}${args.length ? ` ${args.join(' ')}` : ''}>>`);
   }
 
   public modifyEffect(manager: AddonPlugin): void {

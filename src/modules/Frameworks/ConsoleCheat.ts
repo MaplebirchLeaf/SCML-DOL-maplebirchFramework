@@ -95,12 +95,12 @@ class CheatConsole {
       const fragment = document.createDocumentFragment();
       const hasOutputMacro = /<<(?:link|goto|display)\b/i.test(code);
       try {
-        new (this.core.host.sugarcube.require().Wikifier)(fragment, code);
+        new this.core.SugarCube.Wikifier(fragment, code);
         if (hasOutputMacro) {
           const target = this.linkTarget(code);
           if (target) {
             this.showStatus(this.twineStatus, lanSwitch('Execution successful, redirecting...', '执行成功，即将跳转...'), true);
-            setTimeout(() => this.core.host.sugarcube.require().Engine.play(target), 300);
+            setTimeout(() => this.core.SugarCube.Engine.play(target), 300);
             return {
               success: true,
               message: lanSwitch('Code executed successfully.', '代码执行成功。'),

@@ -185,7 +185,7 @@ class Variables {
     this.tool.patch.apply('state');
     void this.core.trigger(':variable');
     const widgets = this.tool.zone.play('State');
-    if (widgets) new (this.core.host.sugarcube.require().Wikifier)(document.createDocumentFragment(), widgets);
+    if (widgets) new this.core.SugarCube.Wikifier(document.createDocumentFragment(), widgets);
   }
 
   public postInit(): void {
